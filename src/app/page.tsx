@@ -25,33 +25,8 @@ export default function Home() {
   // Sync sessions with Supabase in background
   useSupabaseSync();
 
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.push('/auth/login');
-    }
-  }, [isLoading, user, router]);
-
-  // Show loading state while checking auth
-  if (isLoading) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-cream-100">
-        <Loader2 className="w-8 h-8 animate-spin text-navy-600" />
-      </div>
-    );
-  }
-
-  // Don't render if not authenticated (will redirect)
-  if (!user) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-cream-100">
-        <Loader2 className="w-8 h-8 animate-spin text-navy-600" />
-      </div>
-    );
-  }
-
-  // Resizable chat panel state
-  const [chatPanelWidth, setChatPanelWidth] = useState(440); // Increased default width for better readability
+  // Resizable chat panel state - ALL HOOKS MUST BE BEFORE EARLY RETURNS
+  const [chatPanelWidth, setChatPanelWidth] = useState(440);
   const [isResizing, setIsResizing] = useState(false);
   const MIN_CHAT_WIDTH = 360;
   const MAX_CHAT_WIDTH = 650;
@@ -61,6 +36,18 @@ export default function Home() {
     setIsResizing(true);
   }, []);
 
+  const handleTabChange = useCallback((tab: 'cv' | 'cover-letter' | 'email') => {
+    setActiveTab(tab);
+  }, [setActiveTab]);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/auth/login');
+    }
+  }, [isLoading, user, router]);
+
+  // Resize effect
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
@@ -87,9 +74,23 @@ export default function Home() {
     };
   }, [isResizing]);
 
-  const handleTabChange = (tab: 'cv' | 'cover-letter' | 'email') => {
-    setActiveTab(tab);
-  };
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-cream-100">
+        <Loader2 className="w-8 h-8 animate-spin text-navy-600" />
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated (will redirect)
+  if (!user) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-cream-100">
+        <Loader2 className="w-8 h-8 animate-spin text-navy-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col bg-cream-100">
