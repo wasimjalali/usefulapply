@@ -268,8 +268,10 @@ export default function SettingsPage() {
     );
   }
 
-  // Get subscription tier from profile
-  const subscriptionTier = profile?.subscription_tier || 'free';
+  // Get subscription tier - prefer from loaded subscription, fallback to profile
+  const subscriptionTier = subscription?.tier || profile?.subscription_tier || 'free';
+  const applicationsUsed = subscription?.applications_used || 0;
+  const applicationsLimit = subscription?.applications_limit || 5;
 
   const menuItems = [
     { id: 'profile', label: 'Profile', icon: User, description: 'Your personal information' },
@@ -654,12 +656,20 @@ export default function SettingsPage() {
                       </div>
                       <p className="text-sm text-warm-gray mt-1">
                         {subscriptionTier === 'free' 
-                          ? 'Basic features with limited usage'
+                          ? `${applicationsUsed} of ${applicationsLimit} applications used this month`
                           : subscriptionTier === 'pro'
                           ? 'Unlimited applications and premium features'
                           : 'Custom solutions for teams'
                         }
                       </p>
+                      {subscriptionTier === 'free' && (
+                        <div className="mt-2 w-full bg-cream-200 rounded-full h-2">
+                          <div 
+                            className="bg-navy-500 h-2 rounded-full transition-all"
+                            style={{ width: `${Math.min((applicationsUsed / applicationsLimit) * 100, 100)}%` }}
+                          />
+                        </div>
+                      )}
                     </div>
                     {subscriptionTier !== 'free' && (
                       <Button variant="outline" size="sm">
