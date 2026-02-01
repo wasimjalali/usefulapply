@@ -58,3 +58,11 @@ export {
   connectOAuthProvider,
 } from './accounts';
 export type { ConnectedAccount, Subscription } from './accounts';
+
+// Feedback operations
+export {
+  submitMessageFeedback,
+  getSessionFeedback,
+  getMessageFeedback,
+} from './feedback';
+export type { MessageFeedback } from './feedback';

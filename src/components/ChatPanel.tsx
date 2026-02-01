@@ -21,6 +21,8 @@ import { AgentProgressV2 } from './AgentProgressV2';
 import { AgentSettingsToggle } from './AgentSettingsToggle';
 // QualityScoreCard removed from chat panel - now only in CV panel sidebar
 import { useAppStore } from '@/store/useAppStore';
+import { useAuth } from '@/contexts/AuthContext';
+import { submitMessageFeedback } from '@/lib/supabase';
 import { 
   Send, 
   Loader2,
@@ -50,6 +52,7 @@ interface ChatPanelProps {
 }
 
 export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
+  const { user } = useAuth();
   const {
     currentCV,
     currentSession,
@@ -78,6 +81,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
   const [enableReflection, setEnableReflection] = useState(true);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
+  const [messageFeedback, setMessageFeedback] = useState<Record<string, 'positive' | 'negative'>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -99,6 +103,29 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
     await navigator.clipboard.writeText(content);
     setCopiedMessageId(messageId);
     setTimeout(() => setCopiedMessageId(null), 2000);
+  };
+
+  const handleFeedback = async (messageId: string, content: string, type: 'positive' | 'negative') => {
+    if (!user) return;
+    
+    // Optimistic update
+    const currentFeedback = messageFeedback[messageId];
+    if (currentFeedback === type) {
+      // Toggle off
+      setMessageFeedback(prev => {
+        const next = { ...prev };
+        delete next[messageId];
+        return next;
+      });
+    } else {
+      setMessageFeedback(prev => ({ ...prev, [messageId]: type }));
+    }
+    
+    // Save to database
+    await submitMessageFeedback(user.id, messageId, type, {
+      sessionId: currentSession?.id,
+      messageContent: content.substring(0, 500), // Limit content length
+    });
   };
 
   const scrollToBottom = () => {
@@ -834,13 +861,23 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                   {message.role === 'assistant' && (
                     <div className="flex items-center gap-1 mt-2 ml-1">
                       <button 
-                        className="p-1.5 text-warm-gray hover:text-charcoal hover:bg-cream-200 rounded transition-colors cursor-pointer"
+                        onClick={() => handleFeedback(message.id, message.content, 'positive')}
+                        className={`p-1.5 rounded transition-colors cursor-pointer ${
+                          messageFeedback[message.id] === 'positive' 
+                            ? 'text-sage-600 bg-sage-100' 
+                            : 'text-warm-gray hover:text-charcoal hover:bg-cream-200'
+                        }`}
                         title="Good response"
                       >
                         <ThumbsUp className="w-3.5 h-3.5" />
                       </button>
                       <button 
-                        className="p-1.5 text-warm-gray hover:text-charcoal hover:bg-cream-200 rounded transition-colors cursor-pointer"
+                        onClick={() => handleFeedback(message.id, message.content, 'negative')}
+                        className={`p-1.5 rounded transition-colors cursor-pointer ${
+                          messageFeedback[message.id] === 'negative' 
+                            ? 'text-red-500 bg-red-50' 
+                            : 'text-warm-gray hover:text-charcoal hover:bg-cream-200'
+                        }`}
                         title="Bad response"
                       >
                         <ThumbsDown className="w-3.5 h-3.5" />

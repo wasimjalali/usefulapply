@@ -40,17 +40,18 @@ export function USProfessionalTemplate({ data, template }: Props) {
         pageBreakInside: 'auto',
       }}
     >
-      {/* Dark Header with Gold Accent */}
+      {/* Dark Header with Gold Accent - Full width background */}
       <header 
-        className="px-8 py-6 text-white"
+        className="py-6 text-white"
         style={{ backgroundColor: colors.headerBg }}
       >
-        <h1 
-          className="text-3xl font-bold tracking-wide mb-1"
-          style={{ fontFamily: template.fonts.heading }}
-        >
-          {data.personal.fullName || 'Your Name'}
-        </h1>
+        <div className="px-10">
+          <h1 
+            className="text-3xl font-bold tracking-wide mb-1"
+            style={{ fontFamily: template.fonts.heading }}
+          >
+            {data.personal.fullName || 'Your Name'}
+          </h1>
         
         {/* Professional Tagline/Title */}
         {data.personal.currentTitle && (
@@ -107,6 +108,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
               Website
             </span>
           )}
+        </div>
         </div>
       </header>
 

@@ -39,17 +39,18 @@ export function USModernATSTemplate({ data, template }: Props) {
         pageBreakInside: 'auto',
       }}
     >
-      {/* Header - Clean ATS-friendly design */}
+      {/* Header - Clean ATS-friendly design with full-width background */}
       <header 
-        className="px-8 py-5"
+        className="py-5"
         style={{ backgroundColor: colors.headerBg }}
       >
-        <h1 
-          className="text-2xl font-bold mb-1"
-          style={{ color: colors.primary }}
-        >
-          {data.personal.fullName || 'Your Name'}
-        </h1>
+        <div className="px-10">
+          <h1 
+            className="text-2xl font-bold mb-1"
+            style={{ color: colors.primary }}
+          >
+            {data.personal.fullName || 'Your Name'}
+          </h1>
         
         {/* Professional Tagline/Title */}
         {data.personal.currentTitle && (
@@ -104,6 +105,7 @@ export function USModernATSTemplate({ data, template }: Props) {
               Website
             </span>
           )}
+        </div>
         </div>
       </header>
 

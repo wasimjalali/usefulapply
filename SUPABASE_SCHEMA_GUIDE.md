@@ -400,6 +400,51 @@ CREATE POLICY "Users can manage own connected accounts"
 
 ---
 
+### Table 8: `message_feedback` (AI Response Feedback)
+
+Stores user feedback (thumbs up/down) on AI-generated responses.
+
+```sql
+CREATE TABLE message_feedback (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  session_id UUID REFERENCES application_sessions(id) ON DELETE CASCADE,
+  message_id TEXT NOT NULL, -- The chat message ID
+  
+  -- Feedback type
+  feedback_type TEXT NOT NULL CHECK (feedback_type IN ('positive', 'negative')),
+  
+  -- Optional additional context
+  feedback_text TEXT, -- Optional user comment
+  message_content TEXT, -- Store the message content for analysis
+  
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_feedback_user_id ON message_feedback(user_id);
+CREATE INDEX idx_feedback_session_id ON message_feedback(session_id);
+CREATE INDEX idx_feedback_type ON message_feedback(feedback_type);
+
+-- Enable RLS
+ALTER TABLE message_feedback ENABLE ROW LEVEL SECURITY;
+
+-- Policies
+CREATE POLICY "Users can view own feedback"
+  ON message_feedback FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own feedback"
+  ON message_feedback FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own feedback"
+  ON message_feedback FOR DELETE
+  USING (auth.uid() = user_id);
+```
+
+---
+
 ## Part 2: Storage Buckets
 
 ### Bucket 1: `cv-files`
