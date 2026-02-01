@@ -86,6 +86,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [feedbackModal, setFeedbackModal] = useState<{ messageId: string; content: string; type: 'positive' | 'negative' } | null>(null);
   const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackSuccess, setFeedbackSuccess] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -124,15 +125,23 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
     setMessageFeedback(prev => ({ ...prev, [messageId]: type }));
     
     // Save to database with optional text
-    await submitMessageFeedback(user.id, messageId, type, {
+    const result = await submitMessageFeedback(user.id, messageId, type, {
       sessionId: currentSession?.id,
       messageContent: content.substring(0, 500),
       feedbackText: feedbackText.trim() || undefined,
     });
     
-    // Close modal
-    setFeedbackModal(null);
+    console.log('Feedback submission result:', result);
+    
+    // Show success message
+    setFeedbackSuccess(true);
     setFeedbackText('');
+    
+    // Auto-close after 2 seconds
+    setTimeout(() => {
+      setFeedbackModal(null);
+      setFeedbackSuccess(false);
+    }, 2000);
   };
 
   const handleFeedbackCancel = () => {
@@ -686,34 +695,46 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
           </div>
           
           {/* Modal Body */}
-          <div className="px-6 py-4">
-            <textarea
-              value={feedbackText}
-              onChange={(e) => setFeedbackText(e.target.value)}
-              placeholder={feedbackModal.type === 'positive' 
-                ? "Tell us what was helpful about this response..." 
-                : "Tell us how we can make this better..."
-              }
-              className="w-full h-32 px-4 py-3 text-sm border border-cream-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gold-300 focus:border-gold-400 resize-none placeholder:text-warm-gray"
-              autoFocus
-            />
-          </div>
-          
-          {/* Modal Footer */}
-          <div className="px-6 py-4 bg-cream-50 flex items-center justify-end gap-3">
-            <button
-              onClick={handleFeedbackCancel}
-              className="px-4 py-2 text-sm font-medium text-warm-gray hover:text-charcoal transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleFeedbackSubmit}
-              className="px-5 py-2 text-sm font-medium bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-lg hover:from-gold-500 hover:to-gold-600 shadow-md transition-all"
-            >
-              Submit Feedback
-            </button>
-          </div>
+          {feedbackSuccess ? (
+            <div className="px-6 py-8 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 bg-sage-100 rounded-full flex items-center justify-center">
+                <Check className="w-8 h-8 text-sage-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-charcoal mb-2">Thank you!</h3>
+              <p className="text-sm text-warm-gray">Your feedback has been submitted successfully.</p>
+            </div>
+          ) : (
+            <>
+              <div className="px-6 py-4">
+                <textarea
+                  value={feedbackText}
+                  onChange={(e) => setFeedbackText(e.target.value)}
+                  placeholder={feedbackModal.type === 'positive' 
+                    ? "Tell us what was helpful about this response..." 
+                    : "Tell us how we can make this better..."
+                  }
+                  className="w-full h-32 px-4 py-3 text-sm border border-cream-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gold-300 focus:border-gold-400 resize-none placeholder:text-warm-gray"
+                  autoFocus
+                />
+              </div>
+              
+              {/* Modal Footer */}
+              <div className="px-6 py-4 bg-cream-50 flex items-center justify-end gap-3">
+                <button
+                  onClick={handleFeedbackCancel}
+                  className="px-4 py-2 text-sm font-medium text-warm-gray hover:text-charcoal transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleFeedbackSubmit}
+                  className="px-5 py-2 text-sm font-medium bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-lg hover:from-gold-500 hover:to-gold-600 shadow-md transition-all"
+                >
+                  Submit Feedback
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     )}
@@ -952,41 +973,6 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                           <Copy className="w-3.5 h-3.5" />
                         )}
                       </button>
-                      <div className="relative">
-                        <button 
-                          onClick={() => setOpenMenuId(openMenuId === message.id ? null : message.id)}
-                          className="p-1.5 text-warm-gray hover:text-charcoal hover:bg-cream-200 rounded transition-colors cursor-pointer"
-                          title="More options"
-                        >
-                          <MoreHorizontal className="w-3.5 h-3.5" />
-                        </button>
-                        {openMenuId === message.id && (
-                          <div className="absolute right-0 bottom-full mb-1 w-40 bg-white rounded-lg shadow-lg border border-cream-200 py-1 z-10">
-                            <button
-                              onClick={() => {
-                                handleCopyMessage(message.id, message.content);
-                                setOpenMenuId(null);
-                              }}
-                              className="w-full px-3 py-2 text-left text-sm text-charcoal hover:bg-cream-100 flex items-center gap-2"
-                            >
-                              <Copy className="w-3.5 h-3.5" />
-                              Copy text
-                            </button>
-                            <button
-                              onClick={() => {
-                                // Share functionality - copy as formatted text
-                                const shareText = `AI Response:\n\n${message.content}`;
-                                navigator.clipboard.writeText(shareText);
-                                setOpenMenuId(null);
-                              }}
-                              className="w-full px-3 py-2 text-left text-sm text-charcoal hover:bg-cream-100 flex items-center gap-2"
-                            >
-                              <Send className="w-3.5 h-3.5" />
-                              Share
-                            </button>
-                          </div>
-                        )}
-                      </div>
                     </div>
                   )}
                   
@@ -1071,7 +1057,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                       : "Upload your CV first to get started..."
                     }
                     disabled={!currentCV || isAnalyzing || isGenerating || isTyping}
-                    className="w-full px-1 py-1 text-sm bg-transparent focus:outline-none resize-none disabled:opacity-50 placeholder:text-warm-gray min-h-[24px] max-h-[150px]"
+                    className="w-full px-1 py-1 text-sm bg-transparent focus:outline-none focus:ring-0 border-none resize-none disabled:opacity-50 placeholder:text-warm-gray min-h-[24px] max-h-[150px]"
                     rows={1}
                   />
                 </div>

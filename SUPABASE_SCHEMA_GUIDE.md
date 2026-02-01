@@ -438,6 +438,10 @@ CREATE POLICY "Users can insert own feedback"
   ON message_feedback FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+CREATE POLICY "Users can update own feedback"
+  ON message_feedback FOR UPDATE
+  USING (auth.uid() = user_id);
+
 CREATE POLICY "Users can delete own feedback"
   ON message_feedback FOR DELETE
   USING (auth.uid() = user_id);
