@@ -35,6 +35,7 @@ import {
   type ConnectedAccount,
   type Subscription,
 } from '@/lib/supabase';
+import { getUserCredits, type UserCredits } from '@/lib/supabase/credits';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -57,6 +58,7 @@ export default function SettingsPage() {
   // Account & Subscription state
   const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [userCredits, setUserCredits] = useState<UserCredits | null>(null);
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -106,12 +108,16 @@ export default function SettingsPage() {
       
       setIsLoadingAccounts(true);
       try {
-        const [accounts, sub] = await Promise.all([
+        const [accounts, sub, creditsResult] = await Promise.all([
           getConnectedAccounts(authUser.id),
           getSubscription(authUser.id),
+          getUserCredits(authUser.id),
         ]);
         setConnectedAccounts(accounts);
         setSubscription(sub);
+        if (creditsResult.credits) {
+          setUserCredits(creditsResult.credits);
+        }
       } catch (error) {
         console.error('Error loading account data:', error);
       } finally {
@@ -292,9 +298,16 @@ export default function SettingsPage() {
   }
 
   // Get subscription tier - prefer from loaded subscription, fallback to profile
-  const subscriptionTier = subscription?.tier || profile?.subscription_tier || 'free' as string;
-  const applicationsUsed = subscription?.applications_used || 0;
-  const applicationsLimit = subscription?.applications_limit || 5;
+  const subscriptionTier = userCredits?.plan_tier || subscription?.tier || profile?.subscription_tier || 'starter' as string;
+  
+  // Calculate total credits and usage
+  const totalCredits = userCredits 
+    ? userCredits.monthly_credits + userCredits.rollover_credits + userCredits.addon_credits 
+    : 10;
+  const creditsUsed = userCredits 
+    ? (userCredits.plan_tier === 'starter' ? 10 : userCredits.plan_tier === 'plus' ? 160 : 300) - userCredits.monthly_credits
+    : 0;
+  const maxCredits = userCredits?.plan_tier === 'starter' ? 10 : userCredits?.plan_tier === 'plus' ? 160 : 300;
 
   const menuItems = [
     { id: 'profile', label: 'Profile', icon: User, description: 'Your personal information' },
@@ -669,48 +682,44 @@ export default function SettingsPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg font-semibold text-charcoal">
-                          {subscriptionTier === 'free' ? 'Free Plan' : subscriptionTier === 'pro' ? 'Pro Plan' : 'Enterprise'}
+                          {subscriptionTier === 'starter' || subscriptionTier === 'free' ? 'Starter Plan' : subscriptionTier === 'plus' ? 'Plus Plan' : 'Pro Plan'}
                         </h3>
-                        {subscriptionTier === 'free' && (
-                          <span className="px-2 py-0.5 text-xs font-medium bg-cream-200 text-warm-gray rounded-full">
-                            Current
-                          </span>
-                        )}
+                        <span className="px-2 py-0.5 text-xs font-medium bg-cream-200 text-warm-gray rounded-full">
+                          Current
+                        </span>
                       </div>
                       <p className="text-sm text-warm-gray mt-1">
-                        {subscriptionTier === 'free' 
-                          ? `${applicationsUsed} of ${applicationsLimit} applications used this month`
-                          : subscriptionTier === 'pro'
-                          ? 'Unlimited applications and premium features'
-                          : 'Custom solutions for teams'
-                        }
+                        {totalCredits} credits remaining ({Math.floor(totalCredits / 2)} applications)
                       </p>
-                      {subscriptionTier === 'free' && (
-                        <div className="mt-2 w-full bg-cream-200 rounded-full h-2">
-                          <div 
-                            className="bg-navy-500 h-2 rounded-full transition-all"
-                            style={{ width: `${Math.min((applicationsUsed / applicationsLimit) * 100, 100)}%` }}
-                          />
-                        </div>
-                      )}
+                      <div className="mt-2 w-full bg-cream-200 rounded-full h-2">
+                        <div 
+                          className="bg-navy-500 h-2 rounded-full transition-all"
+                          style={{ width: `${Math.min((totalCredits / maxCredits) * 100, 100)}%` }}
+                        />
+                      </div>
+                      <div className="mt-2 flex items-center gap-4 text-xs text-warm-gray">
+                        <span>Monthly: {userCredits?.monthly_credits || 0}</span>
+                        {(userCredits?.rollover_credits || 0) > 0 && <span>Rollover: {userCredits?.rollover_credits}</span>}
+                        {(userCredits?.addon_credits || 0) > 0 && <span>Add-on: {userCredits?.addon_credits}</span>}
+                      </div>
                     </div>
-                    {subscriptionTier !== 'free' && (
+                    {subscriptionTier !== 'starter' && subscriptionTier !== 'free' && (
                       <Button variant="outline" size="sm">
                         Manage Billing
                       </Button>
                     )}
                   </div>
 
-                  {subscriptionTier === 'free' && (
+                  {(subscriptionTier === 'starter' || subscriptionTier === 'free') && (
                     <div className="mt-4 p-4 bg-gradient-to-r from-gold-50 to-gold-100 rounded-xl border border-gold-200">
                       <div className="flex items-start gap-3">
                         <div className="p-2 bg-gold-500 rounded-lg">
                           <Crown className="w-5 h-5 text-white" />
                         </div>
                         <div className="flex-1">
-                          <h4 className="font-semibold text-charcoal">Upgrade to Pro</h4>
+                          <h4 className="font-semibold text-charcoal">Upgrade to Plus</h4>
                           <p className="text-sm text-warm-gray mt-1">
-                            Get unlimited job applications, advanced AI features, and priority support.
+                            Get 80+ applications per month, add-on credits, and priority support.
                           </p>
                           <Button variant="gold" size="sm" className="mt-3">
                             <Sparkles className="w-4 h-4 mr-1" />

@@ -37,19 +37,6 @@ export default function Home() {
               No credit card required. Start applying in minutes.
             </p>
           </div>
-
-          {/* Social Proof */}
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-8 text-warm-gray">
-            <div className="flex items-center gap-1">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-5 h-5 fill-gold-400 text-gold-400" />
-              ))}
-              <span className="ml-2 text-sm font-medium">4.9/5 from 500+ users</span>
-            </div>
-            <div className="text-sm">
-              <span className="font-semibold text-charcoal">10,000+</span> applications created
-            </div>
-          </div>
         </div>
       </section>
 

@@ -184,7 +184,7 @@ async function initializeUserCredits(userId: string): Promise<{ credits: UserCre
     .from('user_credits')
     .insert({
       user_id: userId,
-      monthly_credits: 50, // Starter plan credits
+      monthly_credits: 10, // Starter plan credits (5 applications at 2 credits each)
       rollover_credits: 0,
       addon_credits: 0,
       plan_tier: 'starter',

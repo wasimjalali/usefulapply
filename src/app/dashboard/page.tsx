@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import { FileText, Mail, Send, FolderOpen, Settings, User, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { CreditIndicator } from '@/components/ui/CreditIndicator';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -136,10 +137,18 @@ export default function Dashboard() {
                 Email
               </button>
               
+              {/* Spacer */}
+              <div className="flex-1" />
+              
+              {/* Credit Indicator */}
+              <div className="flex items-center py-2">
+                <CreditIndicator />
+              </div>
+
               {/* Documents Link */}
               <Link
                 href="/documents"
-                className="flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-warm-gray hover:text-charcoal transition-colors ml-auto cursor-pointer"
+                className="flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-warm-gray hover:text-charcoal transition-colors cursor-pointer"
               >
                 <FolderOpen className="w-4 h-4" />
                 Documents

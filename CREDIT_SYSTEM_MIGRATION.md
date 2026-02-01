@@ -43,40 +43,22 @@ Run these in **Supabase SQL Editor** in order.
 -- Update subscription plans with new credit allocations
 -- =====================================================
 
--- First, update existing plans or insert if they don't exist
--- Delete old plans and insert fresh ones
-
-DELETE FROM subscription_plans WHERE tier IN ('starter', 'plus', 'pro');
-
-INSERT INTO subscription_plans (tier, name, monthly_credits, price_monthly, price_yearly, features, active)
+-- Update existing plans using UPSERT (ON CONFLICT)
+INSERT INTO subscription_plans (tier, name, description, price_monthly, credits_monthly, rollover_months, max_rollover_credits, addon_enabled, display_order)
 VALUES 
-  (
-    'starter',
-    'Starter',
-    10,
-    0,
-    0,
-    '{"applications": 5, "templates": "all", "web_search": true, "ai_refinement": true, "pdf_export": true, "addon_credits": false, "rollover": false, "support": "community", "history_days": 30}',
-    true
-  ),
-  (
-    'plus',
-    'Plus',
-    160,
-    19.99,
-    199.99,
-    '{"applications": 80, "templates": "all", "web_search": true, "ai_refinement": true, "pdf_export": true, "addon_credits": true, "rollover": true, "rollover_months": 1, "max_rollover": 160, "support": "priority", "history_days": -1}',
-    true
-  ),
-  (
-    'pro',
-    'Pro',
-    300,
-    39.99,
-    399.99,
-    '{"applications": 150, "templates": "all", "web_search": true, "ai_refinement": true, "pdf_export": true, "addon_credits": true, "rollover": true, "rollover_months": 2, "max_rollover": 600, "support": "premium", "history_days": -1}',
-    true
-  );
+  ('starter', 'Starter', 'Perfect for trying out KarKo AI', 0.00, 10, 0, 0, FALSE, 1),
+  ('plus', 'Plus', 'For active job seekers', 19.99, 160, 1, 160, TRUE, 2),
+  ('pro', 'Pro', 'For power users and professionals', 39.99, 300, 2, 600, TRUE, 3)
+ON CONFLICT (tier) DO UPDATE SET
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  price_monthly = EXCLUDED.price_monthly,
+  credits_monthly = EXCLUDED.credits_monthly,
+  rollover_months = EXCLUDED.rollover_months,
+  max_rollover_credits = EXCLUDED.max_rollover_credits,
+  addon_enabled = EXCLUDED.addon_enabled,
+  display_order = EXCLUDED.display_order,
+  updated_at = NOW();
 ```
 
 ### Step 2: Update addon_credit_packs table data
@@ -89,11 +71,11 @@ VALUES
 
 DELETE FROM addon_credit_packs;
 
-INSERT INTO addon_credit_packs (name, credits, price, description, active)
+INSERT INTO addon_credit_packs (name, credits, price, discount_percent, display_order)
 VALUES 
-  ('Small Pack', 50, 4.99, '25 additional applications', true),
-  ('Medium Pack', 120, 9.99, '60 additional applications - Best Value', true),
-  ('Large Pack', 250, 17.99, '125 additional applications - Most Popular', true);
+  ('Small Pack', 50, 4.99, 0, 1),
+  ('Medium Pack', 120, 9.99, 20, 2),
+  ('Large Pack', 250, 17.99, 30, 3);
 ```
 
 ### Step 3: Update initialize_user_credits function
