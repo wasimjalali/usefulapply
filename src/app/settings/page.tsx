@@ -292,7 +292,7 @@ export default function SettingsPage() {
   }
 
   // Get subscription tier - prefer from loaded subscription, fallback to profile
-  const subscriptionTier = subscription?.tier || profile?.subscription_tier || 'free';
+  const subscriptionTier = subscription?.tier || profile?.subscription_tier || 'free' as string;
   const applicationsUsed = subscription?.applications_used || 0;
   const applicationsLimit = subscription?.applications_limit || 5;
 
@@ -726,9 +726,9 @@ export default function SettingsPage() {
                 <Card className="p-6">
                   <h3 className="text-sm font-semibold text-charcoal mb-4">Compare Plans</h3>
                   <div className="grid grid-cols-3 gap-4">
-                    {/* Free */}
-                    <div className={`p-4 rounded-xl border-2 ${subscriptionTier === 'free' ? 'border-navy-500 bg-navy-50' : 'border-cream-200'}`}>
-                      <h4 className="font-semibold text-charcoal">Free</h4>
+                    {/* Starter */}
+                    <div className={`p-4 rounded-xl border-2 ${subscriptionTier === 'free' || subscriptionTier === 'starter' ? 'border-navy-500 bg-navy-50' : 'border-cream-200'}`}>
+                      <h4 className="font-semibold text-charcoal">Starter</h4>
                       <p className="text-2xl font-bold text-charcoal mt-2">$0<span className="text-sm font-normal text-warm-gray">/mo</span></p>
                       <ul className="mt-4 space-y-2 text-sm text-warm-gray">
                         <li className="flex items-center gap-2">
@@ -737,34 +737,34 @@ export default function SettingsPage() {
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-sage-500" />
-                          Basic CV optimization
+                          All CV templates
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-sage-500" />
-                          Cover letter generation
+                          CV + Cover Letter + Email
                         </li>
                       </ul>
                     </div>
 
-                    {/* Pro */}
-                    <div className={`p-4 rounded-xl border-2 ${subscriptionTier === 'pro' ? 'border-navy-500 bg-navy-50' : 'border-cream-200'} relative`}>
+                    {/* Plus */}
+                    <div className={`p-4 rounded-xl border-2 ${subscriptionTier === 'plus' ? 'border-navy-500 bg-navy-50' : 'border-cream-200'} relative`}>
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gold-500 text-white text-xs font-medium rounded-full">
                         Popular
                       </div>
-                      <h4 className="font-semibold text-charcoal">Pro</h4>
-                      <p className="text-2xl font-bold text-charcoal mt-2">$19<span className="text-sm font-normal text-warm-gray">/mo</span></p>
+                      <h4 className="font-semibold text-charcoal">Plus</h4>
+                      <p className="text-2xl font-bold text-charcoal mt-2">$19.99<span className="text-sm font-normal text-warm-gray">/mo</span></p>
                       <ul className="mt-4 space-y-2 text-sm text-warm-gray">
                         <li className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-sage-500" />
-                          Unlimited applications
+                          80+ applications/month
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-sage-500" />
-                          Advanced AI optimization
+                          Add-on credits available
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-sage-500" />
-                          Company research
+                          1 month credit rollover
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-sage-500" />
@@ -773,26 +773,26 @@ export default function SettingsPage() {
                       </ul>
                     </div>
 
-                    {/* Enterprise */}
-                    <div className={`p-4 rounded-xl border-2 ${subscriptionTier === 'enterprise' ? 'border-navy-500 bg-navy-50' : 'border-cream-200'}`}>
-                      <h4 className="font-semibold text-charcoal">Enterprise</h4>
-                      <p className="text-2xl font-bold text-charcoal mt-2">Custom</p>
+                    {/* Pro */}
+                    <div className={`p-4 rounded-xl border-2 ${subscriptionTier === 'pro' ? 'border-navy-500 bg-navy-50' : 'border-cream-200'}`}>
+                      <h4 className="font-semibold text-charcoal">Pro</h4>
+                      <p className="text-2xl font-bold text-charcoal mt-2">$39.99<span className="text-sm font-normal text-warm-gray">/mo</span></p>
                       <ul className="mt-4 space-y-2 text-sm text-warm-gray">
                         <li className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-sage-500" />
-                          Everything in Pro
+                          150+ applications/month
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-sage-500" />
-                          Team management
+                          Add-on credits available
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-sage-500" />
-                          Custom integrations
+                          2 months credit rollover
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-sage-500" />
-                          Dedicated support
+                          Premium support
                         </li>
                       </ul>
                     </div>

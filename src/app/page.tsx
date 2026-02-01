@@ -282,12 +282,12 @@ export default function Home() {
               <div className="text-xs font-bold text-gold-500 mb-2">MOST POPULAR</div>
               <h3 className="font-semibold text-charcoal mb-2">Plus</h3>
               <div className="text-3xl font-bold text-navy-600 mb-2">$19.99<span className="text-lg font-normal text-warm-gray">/mo</span></div>
-              <p className="text-warm-gray text-sm">~20 applications per month</p>
+              <p className="text-warm-gray text-sm">80+ applications per month</p>
             </div>
             <div className="bg-white rounded-xl p-6 border border-cream-200">
               <h3 className="font-semibold text-charcoal mb-2">Pro</h3>
               <div className="text-3xl font-bold text-navy-600 mb-2">$39.99<span className="text-lg font-normal text-warm-gray">/mo</span></div>
-              <p className="text-warm-gray text-sm">~40 applications per month</p>
+              <p className="text-warm-gray text-sm">150+ applications per month</p>
             </div>
           </div>
 

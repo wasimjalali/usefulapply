@@ -14,8 +14,8 @@ const tiers = [
     price: 0,
     priceLabel: 'Free',
     priceSubtext: 'forever',
-    credits: 50,
-    applications: '~5',
+    credits: 10,
+    applications: '5',
     description: 'Perfect for trying out KarKo AI',
     icon: Sparkles,
     popular: false,
@@ -40,8 +40,8 @@ const tiers = [
     price: 19.99,
     priceLabel: '$19.99',
     priceSubtext: '/month',
-    credits: 200,
-    applications: '~20',
+    credits: 160,
+    applications: '80+',
     description: 'For active job seekers',
     icon: Zap,
     popular: true,
@@ -66,8 +66,8 @@ const tiers = [
     price: 39.99,
     priceLabel: '$39.99',
     priceSubtext: '/month',
-    credits: 400,
-    applications: '~40',
+    credits: 300,
+    applications: '150+',
     description: 'For power users and professionals',
     icon: Crown,
     popular: false,
@@ -90,9 +90,9 @@ const tiers = [
 
 // Add-on credit packs
 const addonPacks = [
-  { name: 'Small Pack', credits: 100, price: 7.99, discount: null },
-  { name: 'Medium Pack', credits: 250, price: 17.99, discount: '10% off' },
-  { name: 'Large Pack', credits: 500, price: 29.99, discount: '25% off' },
+  { name: 'Small Pack', credits: 50, applications: 25, price: 4.99, discount: null },
+  { name: 'Medium Pack', credits: 120, applications: 60, price: 9.99, discount: 'Best Value' },
+  { name: 'Large Pack', credits: 250, applications: 125, price: 17.99, discount: 'Most Popular' },
 ];
 
 // FAQ items
@@ -103,7 +103,7 @@ const faqs = [
   },
   {
     question: 'Do unused credits expire?',
-    answer: 'Plus: 1 month rollover (max 400 credits). Pro: 2 months rollover (max 800 credits). Add-on credits never expire.',
+    answer: 'Plus: 1 month rollover (max 160 credits). Pro: 2 months rollover (max 600 credits). Add-on credits never expire.',
   },
   {
     question: 'Can I change my plan anytime?',
@@ -267,24 +267,30 @@ export default function PricingPage() {
           <h2 className="text-2xl font-bold text-navy-600 text-center mb-8">
             How Credits Work
           </h2>
-          <div className="grid sm:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-4 gap-6">
             <div className="text-center p-6 bg-cream-50 rounded-xl">
-              <div className="text-3xl font-bold text-gold-500 mb-2">10</div>
+              <div className="text-3xl font-bold text-gold-500 mb-2">2</div>
               <div className="text-sm font-medium text-charcoal mb-1">credits</div>
               <div className="text-sm text-warm-gray">Full Application</div>
               <div className="text-xs text-warm-gray mt-2">CV + Cover Letter + Email</div>
             </div>
             <div className="text-center p-6 bg-cream-50 rounded-xl">
-              <div className="text-3xl font-bold text-gold-500 mb-2">2</div>
-              <div className="text-sm font-medium text-charcoal mb-1">credits</div>
+              <div className="text-3xl font-bold text-gold-500 mb-2">1</div>
+              <div className="text-sm font-medium text-charcoal mb-1">credit</div>
+              <div className="text-sm text-warm-gray">CV Only</div>
+              <div className="text-xs text-warm-gray mt-2">Optimize CV only</div>
+            </div>
+            <div className="text-center p-6 bg-cream-50 rounded-xl">
+              <div className="text-3xl font-bold text-gold-500 mb-2">1</div>
+              <div className="text-sm font-medium text-charcoal mb-1">credit</div>
               <div className="text-sm text-warm-gray">Cover Letter Regen</div>
-              <div className="text-xs text-warm-gray mt-2">Regenerate cover letter only</div>
+              <div className="text-xs text-warm-gray mt-2">Regenerate cover letter</div>
             </div>
             <div className="text-center p-6 bg-cream-50 rounded-xl">
               <div className="text-3xl font-bold text-gold-500 mb-2">1</div>
               <div className="text-sm font-medium text-charcoal mb-1">credit</div>
               <div className="text-sm text-warm-gray">Email Regen</div>
-              <div className="text-xs text-warm-gray mt-2">Regenerate email only</div>
+              <div className="text-xs text-warm-gray mt-2">Regenerate email</div>
             </div>
           </div>
         </div>
@@ -311,7 +317,8 @@ export default function PricingPage() {
                   </div>
                 )}
                 <div className="text-2xl font-bold text-charcoal mb-1">{pack.credits}</div>
-                <div className="text-sm text-warm-gray mb-3">credits</div>
+                <div className="text-sm text-warm-gray mb-1">credits</div>
+                <div className="text-sm font-medium text-sage-600 mb-3">{pack.applications} applications</div>
                 <div className="text-xl font-bold text-navy-600">${pack.price}</div>
                 <div className="text-xs text-warm-gray mt-1">one-time purchase</div>
               </div>

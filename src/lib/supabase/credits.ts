@@ -66,9 +66,10 @@ export interface AddonCreditPack {
 // =====================================================
 
 export const CREDIT_COSTS = {
-  FULL_APPLICATION: 10,
-  COVER_LETTER_REGEN: 2,
-  EMAIL_REGEN: 1,
+  FULL_APPLICATION: 2,      // CV + Cover Letter + Email
+  CV_OPTIMIZATION: 1,       // CV only
+  COVER_LETTER_REGEN: 1,    // Cover letter regeneration
+  EMAIL_REGEN: 1,           // Email regeneration
 } as const;
 
 export type CreditAction = keyof typeof CREDIT_COSTS;

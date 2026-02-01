@@ -33,29 +33,23 @@ Credit-based pricing model for AI-powered job application generation. All tiers 
 
 ---
 
-## Cost Analysis
+## Cost Analysis (Updated - GPT-4o Mini)
 
 ### Per Application Cost Breakdown
 | Component | Cost |
 |-----------|------|
-| Web search (Tavily) | ~$0.03 |
-| Research Agent | ~$0.05 |
-| Context Agent | ~$0.07 |
-| Writer Agent | ~$0.08 |
-| **Total per application** | **~$0.23** |
-
-### Regeneration Costs
-| Action | Cost |
-|--------|------|
+| Full Application (CV + Cover Letter + Email) | ~$0.03 |
 | Cover Letter Regeneration | ~$0.01 |
 | Email Regeneration | ~$0.01 |
 
-### Target API Costs
-| Tier | Max API Cost | Price | Min Margin |
-|------|-------------|-------|------------|
-| Starter | $1.15 | Free | N/A |
-| Plus | **< $5.00** | $19.99 | 75% |
-| Pro | **< $10.00** | $39.99 | 75% |
+**Note:** Using GPT-4o Mini significantly reduced costs from the original estimates.
+
+### Actual API Costs
+| Tier | Applications | API Cost | Price | Profit Margin |
+|------|--------------|----------|-------|---------------|
+| Starter | 5 | ~$0.15 | Free | N/A |
+| Plus | 80+ | ~$2.40 | $19.99 | **88%** |
+| Pro | 150+ | ~$4.50 | $39.99 | **89%** |
 
 ---
 
@@ -66,13 +60,14 @@ Credit-based pricing model for AI-powered job application generation. All tiers 
 | Attribute | Value |
 |-----------|-------|
 | **Price** | $0/month |
-| **Credits** | 50 credits |
-| **Applications** | ~5 complete applications |
-| **API Cost** | ~$1.15 |
+| **Credits** | 10 credits |
+| **Applications** | 5 complete applications |
+| **API Cost** | ~$0.15 |
 
 #### Credit Allocation:
-- Full application generation: **10 credits**
-- Cover letter regeneration: **2 credits**
+- Full application generation: **2 credits**
+- CV optimization only: **1 credit**
+- Cover letter regeneration: **1 credit**
 - Email regeneration: **1 credit**
 
 #### Features Included:
@@ -95,35 +90,36 @@ Credit-based pricing model for AI-powered job application generation. All tiers 
 | Attribute | Value |
 |-----------|-------|
 | **Price** | $19.99/month |
-| **Credits** | 200 credits |
-| **Applications** | 20+ complete applications |
-| **API Cost** | ~$4.60 (20 apps × $0.23) |
-| **Profit Margin** | 77% ($15.39) |
+| **Credits** | 160 credits |
+| **Applications** | 80+ complete applications |
+| **API Cost** | ~$2.40 (80 apps × $0.03) |
+| **Profit Margin** | 88% ($17.59) |
 
 #### Credit Allocation:
-- Full application generation: **10 credits**
-- Cover letter regeneration: **2 credits**
+- Full application generation: **2 credits**
+- CV optimization only: **1 credit**
+- Cover letter regeneration: **1 credit**
 - Email regeneration: **1 credit**
 
 #### Features Included:
 - ✅ Everything in Starter
-- ✅ 200 credits/month
+- ✅ 160 credits/month
 - ✅ **Add-on credits available**
 - ✅ Priority email support
-- ✅ Unused credits roll over (1 month, max 400)
+- ✅ Unused credits roll over (1 month, max 160)
 - ✅ Application history (unlimited)
 
 #### Usage Examples:
 | Scenario | Credits Used | Applications |
 |----------|-------------|--------------|
-| 20 apps, no regeneration | 200 | 20 |
-| 15 apps + 10 cover letter regens | 170 | 15 |
-| 18 apps + 5 email regens | 185 | 18 |
+| 80 apps, no regeneration | 160 | 80 |
+| 60 apps + 20 cover letter regens | 140 | 60 |
+| 70 apps + 10 email regens | 150 | 70 |
 
 #### Ideal For:
 - Active job seekers
 - Career changers
-- Professionals applying to 5-10 jobs/week
+- Professionals applying to 15-20 jobs/week
 
 ---
 
@@ -132,22 +128,23 @@ Credit-based pricing model for AI-powered job application generation. All tiers 
 | Attribute | Value |
 |-----------|-------|
 | **Price** | $39.99/month |
-| **Credits** | 400 credits |
-| **Applications** | 40+ complete applications |
-| **API Cost** | ~$9.20 (40 apps × $0.23) |
-| **Profit Margin** | 77% ($30.79) |
+| **Credits** | 300 credits |
+| **Applications** | 150+ complete applications |
+| **API Cost** | ~$4.50 (150 apps × $0.03) |
+| **Profit Margin** | 89% ($35.49) |
 
 #### Credit Allocation:
-- Full application generation: **10 credits**
-- Cover letter regeneration: **2 credits**
+- Full application generation: **2 credits**
+- CV optimization only: **1 credit**
+- Cover letter regeneration: **1 credit**
 - Email regeneration: **1 credit**
 
 #### Features Included:
 - ✅ Everything in Plus
-- ✅ 400 credits/month
+- ✅ 300 credits/month
 - ✅ **Add-on credits available**
 - ✅ Premium support (24h response)
-- ✅ Unused credits roll over (2 months, max 800)
+- ✅ Unused credits roll over (2 months, max 600)
 - ✅ Advanced analytics dashboard
 - ✅ API access (coming soon)
 - ✅ Team features (coming soon)
@@ -155,14 +152,14 @@ Credit-based pricing model for AI-powered job application generation. All tiers 
 #### Usage Examples:
 | Scenario | Credits Used | Applications |
 |----------|-------------|--------------|
-| 40 apps, no regeneration | 400 | 40 |
-| 35 apps + 10 cover letter regens | 370 | 35 |
-| 30 apps + 20 cover letter + 10 email regens | 350 | 30 |
+| 150 apps, no regeneration | 300 | 150 |
+| 120 apps + 30 cover letter regens | 270 | 120 |
+| 100 apps + 50 cover letter + 25 email regens | 275 | 100 |
 
 #### Ideal For:
 - Heavy users (recruiters, career coaches)
 - Job seekers in intensive search mode
-- Professionals applying to 10-20 jobs/week
+- Professionals applying to 30-40 jobs/week
 
 ---
 
@@ -170,11 +167,11 @@ Credit-based pricing model for AI-powered job application generation. All tiers 
 
 ### Credit Packs
 
-| Pack | Credits | Price | Per Credit | Discount |
-|------|---------|-------|------------|----------|
-| Small | 100 credits | $7.99 | $0.08 | - |
-| Medium | 250 credits | $17.99 | $0.07 | 10% |
-| Large | 500 credits | $29.99 | $0.06 | 25% |
+| Pack | Credits | Applications | Price | Per Credit | Discount |
+|------|---------|--------------|-------|------------|----------|
+| Small | 50 credits | 25 apps | $4.99 | $0.10 | - |
+| Medium | 120 credits | 60 apps | $9.99 | $0.08 | Best Value |
+| Large | 250 credits | 125 apps | $17.99 | $0.07 | Most Popular |
 
 ### Add-On Rules:
 - ✅ Available for **Plus** and **Pro** subscribers only
@@ -197,8 +194,8 @@ Credit-based pricing model for AI-powered job application generation. All tiers 
 | Tier | Rollover Period | Max Rollover |
 |------|-----------------|--------------|
 | Starter | None | 0 credits |
-| Plus | 1 month | 400 credits |
-| Pro | 2 months | 800 credits |
+| Plus | 1 month | 160 credits |
+| Pro | 2 months | 600 credits |
 
 ### Monthly Reset Logic:
 ```
@@ -216,8 +213,8 @@ On subscription renewal date:
 | Feature | Starter | Plus | Pro |
 |---------|---------|------|-----|
 | **Price** | Free | $19.99/mo | $39.99/mo |
-| **Monthly Credits** | 50 | 200 | 400 |
-| **Applications** | ~5 | ~20 | ~40 |
+| **Monthly Credits** | 10 | 160 | 300 |
+| **Applications** | 5 | 80+ | 150+ |
 | **All Templates** | ✅ | ✅ | ✅ |
 | **Web Search** | ✅ | ✅ | ✅ |
 | **AI Refinement** | ✅ | ✅ | ✅ |
