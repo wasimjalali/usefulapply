@@ -8,6 +8,13 @@ import { FileUpload } from '@/components/FileUpload';
 import { useAppStore, ProfilePhoto } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
+  getDocumentByType,
+  saveDocument,
+  deleteDocument as deleteSupabaseDocument,
+  uploadCVFile,
+  type Document as SupabaseDocument,
+} from '@/lib/supabase';
+import { 
   FileText, 
   Trash2, 
   ArrowLeft,
@@ -42,6 +49,58 @@ export default function DocumentsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isUploadingCV, setIsUploadingCV] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isLoadingDocs, setIsLoadingDocs] = useState(true);
+  const [supabaseDocs, setSupabaseDocs] = useState<{ primary?: SupabaseDocument; master?: SupabaseDocument }>({});
+
+  // Load documents from Supabase on mount
+  useEffect(() => {
+    const loadDocuments = async () => {
+      if (!user) return;
+      
+      try {
+        const [primaryDoc, masterDoc] = await Promise.all([
+          getDocumentByType(user.id, 'primary_cv'),
+          getDocumentByType(user.id, 'master_cv'),
+        ]);
+        
+        setSupabaseDocs({
+          primary: primaryDoc || undefined,
+          master: masterDoc || undefined,
+        });
+        
+        // Sync with local store if Supabase has data but local doesn't
+        if (primaryDoc && !currentCV) {
+          setCurrentCV({
+            rawText: primaryDoc.raw_text || '',
+            sections: primaryDoc.sections || {},
+            fileName: primaryDoc.file_name,
+            fileType: primaryDoc.file_type,
+          });
+          if (primaryDoc.structured_data) {
+            setStructuredCV(primaryDoc.structured_data);
+          }
+        }
+        
+        if (masterDoc && !masterCV) {
+          setMasterCV({
+            rawText: masterDoc.raw_text || '',
+            sections: masterDoc.sections || {},
+            fileName: masterDoc.file_name,
+            fileType: masterDoc.file_type,
+            allSkills: masterDoc.all_skills || [],
+            allExperiences: masterDoc.all_experiences || [],
+            allEducation: masterDoc.all_education || [],
+          });
+        }
+      } catch (error) {
+        console.error('Error loading documents:', error);
+      } finally {
+        setIsLoadingDocs(false);
+      }
+    };
+    
+    loadDocuments();
+  }, [user]);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -129,10 +188,37 @@ export default function DocumentsPage() {
     try {
       const result = await parseDocument(file);
       if (result) {
-        // Store BOTH the legacy ParsedCV AND the StructuredCV
+        // Store BOTH the legacy ParsedCV AND the StructuredCV locally
         setCurrentCV(result.parsedCV);
         if (result.structuredCV) {
           setStructuredCV(result.structuredCV);
+        }
+        
+        // Save to Supabase
+        if (user) {
+          // Upload file to storage
+          const { path: storagePath } = await uploadCVFile(user.id, 'primary_cv', file);
+          
+          // Save document metadata to database
+          const { document: savedDoc, error: saveError } = await saveDocument(
+            user.id,
+            'primary_cv',
+            {
+              file_name: file.name,
+              file_type: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx',
+              file_size: file.size,
+              storage_path: storagePath || undefined,
+              raw_text: result.parsedCV.rawText,
+              sections: result.parsedCV.sections,
+              structured_data: result.structuredCV,
+            }
+          );
+          
+          if (saveError) {
+            console.error('Error saving to Supabase:', saveError);
+          } else if (savedDoc) {
+            setSupabaseDocs(prev => ({ ...prev, primary: savedDoc }));
+          }
         }
       } else {
         setUploadError('Failed to parse CV. Please try again.');
@@ -150,20 +236,50 @@ export default function DocumentsPage() {
     if (result) {
       const { parsedCV } = result;
       // Convert ParsedCV to MasterCV by adding required fields
-      // Extract skills, experiences, and education from section text
+      const allSkills = parsedCV.sections.skills 
+        ? parsedCV.sections.skills.split(/[,\n•·\-]/).map((s: string) => s.trim()).filter(Boolean)
+        : [];
+      const allExperiences = parsedCV.sections.experience 
+        ? parsedCV.sections.experience.split(/\n\n/).filter(Boolean)
+        : [];
+      const allEducation = parsedCV.sections.education 
+        ? parsedCV.sections.education.split(/\n\n/).filter(Boolean)
+        : [];
+      
       const masterCVData = {
         ...parsedCV,
-        allSkills: parsedCV.sections.skills 
-          ? parsedCV.sections.skills.split(/[,\n•·\-]/).map((s: string) => s.trim()).filter(Boolean)
-          : [],
-        allExperiences: parsedCV.sections.experience 
-          ? parsedCV.sections.experience.split(/\n\n/).filter(Boolean)
-          : [],
-        allEducation: parsedCV.sections.education 
-          ? parsedCV.sections.education.split(/\n\n/).filter(Boolean)
-          : [],
+        allSkills,
+        allExperiences,
+        allEducation,
       };
       setMasterCV(masterCVData);
+      
+      // Save to Supabase
+      if (user) {
+        const { path: storagePath } = await uploadCVFile(user.id, 'master_cv', file);
+        
+        const { document: savedDoc, error: saveError } = await saveDocument(
+          user.id,
+          'master_cv',
+          {
+            file_name: file.name,
+            file_type: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx',
+            file_size: file.size,
+            storage_path: storagePath || undefined,
+            raw_text: parsedCV.rawText,
+            sections: parsedCV.sections,
+            all_skills: allSkills,
+            all_experiences: allExperiences,
+            all_education: allEducation,
+          }
+        );
+        
+        if (saveError) {
+          console.error('Error saving master CV to Supabase:', saveError);
+        } else if (savedDoc) {
+          setSupabaseDocs(prev => ({ ...prev, master: savedDoc }));
+        }
+      }
     }
   };
 
@@ -325,7 +441,14 @@ export default function DocumentsPage() {
                       </div>
                     </div>
                     <button 
-                      onClick={() => setCurrentCV(null)}
+                      onClick={async () => {
+                        setCurrentCV(null);
+                        // Delete from Supabase
+                        if (supabaseDocs.primary) {
+                          await deleteSupabaseDocument(supabaseDocs.primary.id);
+                          setSupabaseDocs(prev => ({ ...prev, primary: undefined }));
+                        }
+                      }}
                       className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                       title="Remove CV"
                     >
@@ -371,7 +494,14 @@ export default function DocumentsPage() {
                       </div>
                     </div>
                     <button 
-                      onClick={() => setMasterCV(null)}
+                      onClick={async () => {
+                        setMasterCV(null);
+                        // Delete from Supabase
+                        if (supabaseDocs.master) {
+                          await deleteSupabaseDocument(supabaseDocs.master.id);
+                          setSupabaseDocs(prev => ({ ...prev, master: undefined }));
+                        }
+                      }}
                       className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                       title="Remove Master CV"
                     >
