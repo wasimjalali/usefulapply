@@ -77,14 +77,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // Get initial session
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        // Add timeout to prevent infinite loading
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Auth timeout')), 10000)
+        );
+        
+        // Get initial session with timeout
+        const sessionPromise = supabase.auth.getSession();
+        const { data: { session: initialSession } } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ]) as Awaited<typeof sessionPromise>;
         
         if (initialSession) {
           setSession(initialSession);
           setUser(initialSession.user);
-          const profileData = await fetchProfile(initialSession.user.id, initialSession.user.email);
-          setProfile(profileData);
+          // Fetch profile but don't block on it
+          fetchProfile(initialSession.user.id, initialSession.user.email)
+            .then(profileData => setProfile(profileData))
+            .catch(err => console.error('Profile fetch error:', err));
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
@@ -97,18 +108,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
+      (event, newSession) => {
         setSession(newSession);
         setUser(newSession?.user ?? null);
+        setIsLoading(false);
 
         if (newSession?.user) {
-          const profileData = await fetchProfile(newSession.user.id, newSession.user.email);
-          setProfile(profileData);
+          // Fetch profile in background, don't block
+          fetchProfile(newSession.user.id, newSession.user.email)
+            .then(profileData => setProfile(profileData))
+            .catch(err => console.error('Profile fetch error:', err));
         } else {
           setProfile(null);
         }
-
-        setIsLoading(false);
       }
     );
 
