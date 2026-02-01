@@ -66,3 +66,28 @@ export {
   getMessageFeedback,
 } from './feedback';
 export type { MessageFeedback } from './feedback';
+
+// Credit operations
+export {
+  CREDIT_COSTS,
+  getSubscriptionPlans,
+  getSubscriptionPlan,
+  getAddonCreditPacks,
+  getUserCredits,
+  getTotalCredits,
+  hasEnoughCredits,
+  checkCreditBalance,
+  deductCredits,
+  addCredits,
+  upgradePlan,
+  processMonthlyReset,
+  getCreditTransactions,
+  processAddonPurchase,
+} from './credits';
+export type {
+  UserCredits,
+  CreditTransaction,
+  SubscriptionPlan,
+  AddonCreditPack,
+  CreditAction,
+} from './credits';
