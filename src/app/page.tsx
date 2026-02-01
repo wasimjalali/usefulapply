@@ -1,65 +1,156 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useCallback, useEffect } from 'react';
+import { CVPanel } from '@/components/CVPanel';
+import { CoverLetterPanel } from '@/components/CoverLetterPanel';
+import { EmailPanel } from '@/components/EmailPanel';
+import { ChatPanel } from '@/components/ChatPanel';
+import { StorageCleaner } from '@/components/StorageCleaner';
+import { useAppStore } from '@/store/useAppStore';
+import { FileText, Mail, Send, FolderOpen, Settings, User } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Home() {
+  const {
+    activeTab,
+    setActiveTab,
+  } = useAppStore();
+
+  // Resizable chat panel state
+  const [chatPanelWidth, setChatPanelWidth] = useState(440); // Increased default width for better readability
+  const [isResizing, setIsResizing] = useState(false);
+  const MIN_CHAT_WIDTH = 360;
+  const MAX_CHAT_WIDTH = 650;
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      const newWidth = window.innerWidth - e.clientX;
+      setChatPanelWidth(Math.min(MAX_CHAT_WIDTH, Math.max(MIN_CHAT_WIDTH, newWidth)));
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing]);
+
+  const handleTabChange = (tab: 'cv' | 'cover-letter' | 'email') => {
+    setActiveTab(tab);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="h-screen flex flex-col bg-cream-100">
+      <StorageCleaner />
+
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Panel - Results */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Tabs */}
+          <div className="bg-cream-50 border-b border-cream-300 px-4">
+            <div className="flex gap-4">
+              <button
+                onClick={() => setActiveTab('cv')}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+                  activeTab === 'cv'
+                    ? 'border-navy-600 text-navy-600'
+                    : 'border-transparent text-warm-gray hover:text-charcoal'
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                CV
+              </button>
+              <button
+                onClick={() => setActiveTab('cover-letter')}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+                  activeTab === 'cover-letter'
+                    ? 'border-navy-600 text-navy-600'
+                    : 'border-transparent text-warm-gray hover:text-charcoal'
+                }`}
+              >
+                <Mail className="w-4 h-4" />
+                Cover Letter
+              </button>
+              <button
+                onClick={() => setActiveTab('email')}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+                  activeTab === 'email'
+                    ? 'border-navy-600 text-navy-600'
+                    : 'border-transparent text-warm-gray hover:text-charcoal'
+                }`}
+              >
+                <Send className="w-4 h-4" />
+                Email
+              </button>
+              
+              {/* Documents Link */}
+              <Link
+                href="/documents"
+                className="flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-warm-gray hover:text-charcoal transition-colors ml-auto cursor-pointer"
+              >
+                <FolderOpen className="w-4 h-4" />
+                Documents
+              </Link>
+
+              {/* Settings/Profile Link */}
+              <Link
+                href="/settings"
+                className="flex items-center gap-2 px-3 py-3 text-sm font-medium border-b-2 border-transparent text-warm-gray hover:text-charcoal transition-colors cursor-pointer"
+                title="Settings & Profile"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-navy-500 to-navy-600 flex items-center justify-center">
+                  <User className="w-4 h-4 text-white" />
+                </div>
+              </Link>
+            </div>
+          </div>
+
+          {/* Content Area */}
+          <div className="flex-1 overflow-auto">
+            {activeTab === 'cv' && <CVPanel />}
+            {activeTab === 'cover-letter' && <CoverLetterPanel />}
+            {activeTab === 'email' && <EmailPanel />}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        {/* Right Panel - Chat (Resizable) */}
+        <div className="relative flex" style={{ width: chatPanelWidth }}>
+          {/* Resize Handle */}
+          <div
+            onMouseDown={handleMouseDown}
+            className={`absolute left-0 top-0 bottom-0 w-1 cursor-col-resize z-10 hover:bg-navy-400 transition-colors ${
+              isResizing ? 'bg-navy-400' : 'bg-transparent hover:bg-navy-200'
+            }`}
+            title="Drag to resize"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 rounded-full bg-cream-400 opacity-0 hover:opacity-100 transition-opacity" />
+          </div>
+          
+          <div className="flex-1 overflow-hidden">
+            <ChatPanel 
+              onTabChange={handleTabChange}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
