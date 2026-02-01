@@ -70,7 +70,6 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
   const totalCredits = credits 
     ? credits.monthly_credits + credits.rollover_credits + credits.addon_credits 
     : 0;
-  const applicationsRemaining = Math.floor(totalCredits / 2);
   const maxCredits = credits?.plan_tier === 'starter' ? 10 : credits?.plan_tier === 'plus' ? 160 : 300;
   const percentRemaining = Math.min((totalCredits / maxCredits) * 100, 100);
 
@@ -104,9 +103,6 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
         <div className="text-left">
           <div className={`text-sm font-semibold ${getColor()}`}>
             {totalCredits} credits
-          </div>
-          <div className="text-xs text-warm-gray">
-            ~{applicationsRemaining} apps left
           </div>
         </div>
         {isExpanded ? (
@@ -154,9 +150,6 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
             </div>
 
             <div className="pt-2 border-t border-cream-200">
-              <div className="text-xs text-warm-gray mb-2">
-                1 application = 2 credits
-              </div>
               <Link
                 href="/settings"
                 className="block w-full text-center text-sm font-medium text-navy-600 hover:text-navy-700 transition-colors"

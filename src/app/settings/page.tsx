@@ -689,7 +689,7 @@ export default function SettingsPage() {
                         </span>
                       </div>
                       <p className="text-sm text-warm-gray mt-1">
-                        {totalCredits} credits remaining ({Math.floor(totalCredits / 2)} applications)
+                        {totalCredits} credits remaining
                       </p>
                       <div className="mt-2 w-full bg-cream-200 rounded-full h-2">
                         <div 
