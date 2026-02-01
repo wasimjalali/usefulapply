@@ -9,6 +9,7 @@ import { ChatPanel } from '@/components/ChatPanel';
 import { StorageCleaner } from '@/components/StorageCleaner';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import { FileText, Mail, Send, FolderOpen, Settings, User, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -20,6 +21,9 @@ export default function Home() {
   } = useAppStore();
 
   const { user, profile, isLoading } = useAuth();
+  
+  // Sync sessions with Supabase in background
+  useSupabaseSync();
 
   // Redirect to login if not authenticated
   useEffect(() => {
