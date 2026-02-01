@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Coins, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserCredits, type UserCredits } from '@/lib/supabase/credits';
@@ -10,30 +10,58 @@ interface CreditIndicatorProps {
   compact?: boolean;
 }
 
+// Custom event for credit updates (fired after API calls)
+export const CREDIT_UPDATE_EVENT = 'credit-update';
+
 export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
   const { user } = useAuth();
   const [credits, setCredits] = useState<UserCredits | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const isMountedRef = useRef(true);
 
-  useEffect(() => {
-    const fetchCredits = async () => {
-      if (!user) return;
-      
-      setIsLoading(true);
+  const fetchCredits = useCallback(async (silent = false) => {
+    if (!user) return;
+    
+    if (!silent) setIsLoading(true);
+    
+    try {
       const { credits: userCredits } = await getUserCredits(user.id);
-      if (userCredits) {
+      if (isMountedRef.current && userCredits) {
         setCredits(userCredits);
       }
-      setIsLoading(false);
+    } catch (error) {
+      console.error('Error fetching credits:', error);
+    } finally {
+      if (isMountedRef.current && !silent) {
+        setIsLoading(false);
+      }
+    }
+  }, [user]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    fetchCredits();
+
+    // Listen for credit update events (triggered after API calls)
+    const handleCreditUpdate = () => {
+      fetchCredits(true); // Silent fetch - no loading state
     };
 
-    fetchCredits();
+    window.addEventListener(CREDIT_UPDATE_EVENT, handleCreditUpdate);
     
-    // Refresh credits every 30 seconds for real-time updates
-    const interval = setInterval(fetchCredits, 30000);
-    return () => clearInterval(interval);
-  }, [user]);
+    // Also listen for focus events to refresh when user returns to tab
+    const handleFocus = () => {
+      fetchCredits(true);
+    };
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      isMountedRef.current = false;
+      window.removeEventListener(CREDIT_UPDATE_EVENT, handleCreditUpdate);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [fetchCredits]);
 
   if (!user || isLoading) {
     return null;

@@ -9,6 +9,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
 
 export interface AgentV2Step {
   id: string;
@@ -218,6 +219,14 @@ export function useAgentV2(): UseAgentV2Return {
               case 'workflow_complete':
                 finalResult = data.results;
                 setResult(data.results);
+                // Trigger credit indicator update
+                triggerCreditUpdate();
+                break;
+              
+              case 'credits_deducted':
+                // Credits were deducted - trigger UI update
+                console.log(`[useAgentV2] Credits deducted: ${data.creditsUsed}, remaining: ${data.remainingCredits}`);
+                triggerCreditUpdate();
                 break;
 
               case 'tool_usage':

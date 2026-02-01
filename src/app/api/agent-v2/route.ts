@@ -14,6 +14,8 @@ import {
   type AgentEvent,
   type MasterContext,
 } from '@/lib/agents';
+import { createClient } from '@/lib/supabase/server';
+import { checkAndDeductCredits, formatCreditErrorResponse } from '@/lib/middleware/creditCheck';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -34,6 +36,19 @@ export async function POST(request: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
+        // Get authenticated user
+        const supabase = await createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError || !user) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+            type: 'error', 
+            message: 'Authentication required' 
+          })}\n\n`));
+          controller.close();
+          return;
+        }
+
         const body: AgentRequest = await request.json();
         const { 
           jobDescription, 
@@ -50,6 +65,27 @@ export async function POST(request: NextRequest) {
           controller.close();
           return;
         }
+
+        // Check and deduct credits for full application (2 credits)
+        const creditResult = await checkAndDeductCredits(user.id, 'FULL_APPLICATION');
+        
+        if (!creditResult.success) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+            type: 'error', 
+            code: 'INSUFFICIENT_CREDITS',
+            message: creditResult.error || 'Insufficient credits',
+            details: formatCreditErrorResponse(creditResult),
+          })}\n\n`));
+          controller.close();
+          return;
+        }
+
+        // Send credit deduction info to client
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+          type: 'credits_deducted', 
+          creditsUsed: 2,
+          remainingCredits: creditResult.remainingCredits,
+        })}\n\n`));
 
         // Set up event handler to stream progress
         const eventHandler = (event: AgentEvent) => {
