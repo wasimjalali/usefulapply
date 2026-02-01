@@ -25,6 +25,7 @@ export type TaskType =
   | 'write_summary'
   | 'write_bullets'
   | 'write_cover_letter'
+  | 'refine_cover_letter' // Refinement pass for cover letter quality
   | 'write_email'
   | 'optimize_content'
   | 'general_chat';
@@ -130,13 +131,19 @@ export const MODEL_CONFIGS: Record<TaskType, ModelConfig> = {
   write_cover_letter: {
     model: 'gpt-4o-mini',
     provider: 'openai',
-    temperature: 0.7,
+    temperature: 0.5,  // Lower for more consistent professional tone
+    maxTokens: 2048,
+  },
+  refine_cover_letter: {
+    model: 'gpt-4o-mini',
+    provider: 'openai',
+    temperature: 0.4,  // Even lower for editing - we want consistency
     maxTokens: 2048,
   },
   write_email: {
     model: 'gpt-4o-mini',
     provider: 'openai',
-    temperature: 0.7,
+    temperature: 0.5,  // Lower for consistency
     maxTokens: 1024,
   },
   optimize_content: {
