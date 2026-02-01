@@ -309,7 +309,7 @@ CRITICAL RULES:
    * Includes refinement pass for quality improvement
    */
   async generateCoverLetter(context: MasterContext, emit?: AgentEventHandler): Promise<string> {
-    const { applicant, job, companyResearch, rawCV } = context;
+    const { applicant, job, companyResearch, rawCV, masterCV } = context;
     
     // Get today's date in a professional format
     const today = new Date().toLocaleDateString('en-US', { 
@@ -347,6 +347,10 @@ Recent News: ${companyResearch.recentNews?.[0] || 'None found'}
 
 === CANDIDATE BACKGROUND ===
 ${rawCV}
+${masterCV ? `
+
+=== ADDITIONAL EXPERIENCE (from Master CV) ===
+${masterCV}` : ''}
 
 === EXAMPLE OF EXCELLENT COVER LETTER ===
 [Opening - hooks with achievement, shows understanding of company challenge]
@@ -412,6 +416,12 @@ WHAT TO DO INSTEAD:
 - Instead of "great fit": Show the fit through specific examples
 - Instead of "valuable asset": Demonstrate value with metrics
 - Instead of generic close: "I'd welcome the chance to discuss how my [specific skill] can help [specific company goal]."
+
+CRITICAL ANTI-HALLUCINATION RULE:
+- NEVER invent skills, experiences, achievements, or metrics
+- ONLY reference information explicitly stated in the CANDIDATE BACKGROUND section
+- If the CV lacks specific metrics, use qualitative descriptions instead of making up numbers
+- Every claim must be verifiable from the provided context
 
 OUTPUT: Plain text only. No markdown. No bullet points. Professional letter format.`,
     });
