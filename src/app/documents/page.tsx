@@ -48,7 +48,9 @@ export default function DocumentsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isUploadingCV, setIsUploadingCV] = useState(false);
+  const [isUploadingMasterCV, setIsUploadingMasterCV] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [masterCVUploadError, setMasterCVUploadError] = useState<string | null>(null);
   const [isLoadingDocs, setIsLoadingDocs] = useState(true);
   const [supabaseDocs, setSupabaseDocs] = useState<{ primary?: SupabaseDocument; master?: SupabaseDocument }>({});
 
@@ -232,54 +234,65 @@ export default function DocumentsPage() {
   };
 
   const handleMasterCVUpload = async (file: File) => {
-    const result = await parseDocument(file);
-    if (result) {
-      const { parsedCV } = result;
-      // Convert ParsedCV to MasterCV by adding required fields
-      const allSkills = parsedCV.sections.skills 
-        ? parsedCV.sections.skills.split(/[,\n•·\-]/).map((s: string) => s.trim()).filter(Boolean)
-        : [];
-      const allExperiences = parsedCV.sections.experience 
-        ? parsedCV.sections.experience.split(/\n\n/).filter(Boolean)
-        : [];
-      const allEducation = parsedCV.sections.education 
-        ? parsedCV.sections.education.split(/\n\n/).filter(Boolean)
-        : [];
-      
-      const masterCVData = {
-        ...parsedCV,
-        allSkills,
-        allExperiences,
-        allEducation,
-      };
-      setMasterCV(masterCVData);
-      
-      // Save to Supabase
-      if (user) {
-        const { path: storagePath } = await uploadCVFile(user.id, 'master_cv', file);
+    setIsUploadingMasterCV(true);
+    setMasterCVUploadError(null);
+    try {
+      const result = await parseDocument(file);
+      if (result) {
+        const { parsedCV } = result;
+        // Convert ParsedCV to MasterCV by adding required fields
+        const allSkills = parsedCV.sections.skills 
+          ? parsedCV.sections.skills.split(/[,\n•·\-]/).map((s: string) => s.trim()).filter(Boolean)
+          : [];
+        const allExperiences = parsedCV.sections.experience 
+          ? parsedCV.sections.experience.split(/\n\n/).filter(Boolean)
+          : [];
+        const allEducation = parsedCV.sections.education 
+          ? parsedCV.sections.education.split(/\n\n/).filter(Boolean)
+          : [];
         
-        const { document: savedDoc, error: saveError } = await saveDocument(
-          user.id,
-          'master_cv',
-          {
-            file_name: file.name,
-            file_type: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx',
-            file_size: file.size,
-            storage_path: storagePath || undefined,
-            raw_text: parsedCV.rawText,
-            sections: parsedCV.sections,
-            all_skills: allSkills,
-            all_experiences: allExperiences,
-            all_education: allEducation,
+        const masterCVData = {
+          ...parsedCV,
+          allSkills,
+          allExperiences,
+          allEducation,
+        };
+        setMasterCV(masterCVData);
+        
+        // Save to Supabase
+        if (user) {
+          const { path: storagePath } = await uploadCVFile(user.id, 'master_cv', file);
+          
+          const { document: savedDoc, error: saveError } = await saveDocument(
+            user.id,
+            'master_cv',
+            {
+              file_name: file.name,
+              file_type: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx',
+              file_size: file.size,
+              storage_path: storagePath || undefined,
+              raw_text: parsedCV.rawText,
+              sections: parsedCV.sections,
+              all_skills: allSkills,
+              all_experiences: allExperiences,
+              all_education: allEducation,
+            }
+          );
+          
+          if (saveError) {
+            console.error('Error saving master CV to Supabase:', saveError);
+          } else if (savedDoc) {
+            setSupabaseDocs(prev => ({ ...prev, master: savedDoc }));
           }
-        );
-        
-        if (saveError) {
-          console.error('Error saving master CV to Supabase:', saveError);
-        } else if (savedDoc) {
-          setSupabaseDocs(prev => ({ ...prev, master: savedDoc }));
         }
+      } else {
+        setMasterCVUploadError('Failed to parse Master CV. Please try again.');
       }
+    } catch (error) {
+      console.error('Master CV upload error:', error);
+      setMasterCVUploadError(error instanceof Error ? error.message : 'Upload failed');
+    } finally {
+      setIsUploadingMasterCV(false);
     }
   };
 
@@ -423,11 +436,12 @@ export default function DocumentsPage() {
                 )}
                 
                 {isUploadingCV ? (
-                  <div className="flex items-center justify-center p-5 border-2 border-dashed border-navy-300 rounded-xl bg-navy-50/50">
-                    <div className="flex items-center gap-3">
+                  <div className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-navy-300 rounded-xl bg-navy-50/50">
+                    <div className="flex items-center gap-3 mb-2">
                       <div className="animate-spin rounded-full h-5 w-5 border-2 border-navy-600 border-t-transparent"></div>
                       <p className="text-sm text-navy-600 font-medium">Parsing your CV...</p>
                     </div>
+                    <p className="text-xs text-navy-500">This may take 30-60 seconds</p>
                   </div>
                 ) : currentCV ? (
                   <div className="flex items-center justify-between p-3 bg-sage-50 rounded-xl border border-sage-200">
@@ -482,7 +496,22 @@ export default function DocumentsPage() {
               </div>
               
               <div className="mt-4 ml-14">
-                {masterCV ? (
+                {masterCVUploadError && (
+                  <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-500" />
+                    <p className="text-sm text-red-600">{masterCVUploadError}</p>
+                  </div>
+                )}
+                
+                {isUploadingMasterCV ? (
+                  <div className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-gold-300 rounded-xl bg-gold-50/50">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-gold-600 border-t-transparent"></div>
+                      <p className="text-sm text-gold-700 font-medium">Parsing your Master CV...</p>
+                    </div>
+                    <p className="text-xs text-gold-600">This may take 1-2 minutes for larger documents</p>
+                  </div>
+                ) : masterCV ? (
                   <div className="flex items-center justify-between p-3 bg-sage-50 rounded-xl border border-sage-200">
                     <div className="flex items-center gap-3">
                       <div className="p-1.5 bg-sage-100 rounded-lg">
