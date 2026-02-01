@@ -7,8 +7,6 @@ export type {
   ProfilePhoto,
   ApplicationSession as ProfileApplicationSession,
   ChatMessage as ProfileChatMessage,
-  Subscription,
-  ConnectedAccount,
 } from './types';
 
 // Document operations
@@ -36,3 +34,17 @@ export type { ApplicationSession, ChatMessage } from './sessions';
 
 // Storage operations
 export { uploadAvatar, deleteAvatar } from './storage';
+
+// Account operations
+export {
+  getConnectedAccounts,
+  disconnectAccount,
+  getSubscription,
+  createFreeSubscription,
+  incrementApplicationUsage,
+  canCreateApplication,
+  changePassword,
+  sendPasswordResetEmail,
+  connectOAuthProvider,
+} from './accounts';
+export type { ConnectedAccount, Subscription } from './accounts';
