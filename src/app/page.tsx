@@ -7,6 +7,7 @@ import { EmailPanel } from '@/components/EmailPanel';
 import { ChatPanel } from '@/components/ChatPanel';
 import { StorageCleaner } from '@/components/StorageCleaner';
 import { useAppStore } from '@/store/useAppStore';
+import { useAuth } from '@/contexts/AuthContext';
 import { FileText, Mail, Send, FolderOpen, Settings, User } from 'lucide-react';
 import Link from 'next/link';
 
@@ -15,6 +16,8 @@ export default function Home() {
     activeTab,
     setActiveTab,
   } = useAppStore();
+
+  const { profile } = useAuth();
 
   // Resizable chat panel state
   const [chatPanelWidth, setChatPanelWidth] = useState(440); // Increased default width for better readability
@@ -116,8 +119,16 @@ export default function Home() {
                 className="flex items-center gap-2 px-3 py-3 text-sm font-medium border-b-2 border-transparent text-warm-gray hover:text-charcoal transition-colors cursor-pointer"
                 title="Settings & Profile"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-navy-500 to-navy-600 flex items-center justify-center">
-                  <User className="w-4 h-4 text-white" />
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-navy-500 to-navy-600 flex items-center justify-center overflow-hidden">
+                  {profile?.avatar_url ? (
+                    <img 
+                      src={profile.avatar_url} 
+                      alt="Profile" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-4 h-4 text-white" />
+                  )}
                 </div>
               </Link>
             </div>
