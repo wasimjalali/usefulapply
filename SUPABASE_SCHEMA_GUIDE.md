@@ -449,6 +449,358 @@ CREATE POLICY "Users can delete own feedback"
 
 ---
 
+### Table 9: `subscription_plans` (Pricing Tiers)
+
+Stores the available subscription plans and their credit allocations.
+
+```sql
+CREATE TABLE subscription_plans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  
+  -- Plan identification
+  tier TEXT UNIQUE NOT NULL CHECK (tier IN ('starter', 'plus', 'pro')),
+  name TEXT NOT NULL,
+  description TEXT,
+  
+  -- Pricing
+  price_monthly DECIMAL(10,2) NOT NULL,
+  price_yearly DECIMAL(10,2), -- For future annual plans
+  
+  -- Credits
+  credits_monthly INTEGER NOT NULL,
+  
+  -- Rollover settings
+  rollover_months INTEGER DEFAULT 0,
+  max_rollover_credits INTEGER DEFAULT 0,
+  
+  -- Features
+  addon_enabled BOOLEAN DEFAULT FALSE,
+  
+  -- Stripe integration
+  stripe_product_id TEXT,
+  stripe_price_id_monthly TEXT,
+  stripe_price_id_yearly TEXT,
+  
+  -- Status
+  active BOOLEAN DEFAULT TRUE,
+  display_order INTEGER DEFAULT 0,
+  
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Insert default plans
+INSERT INTO subscription_plans (tier, name, description, price_monthly, credits_monthly, rollover_months, max_rollover_credits, addon_enabled, display_order) VALUES
+('starter', 'Starter', 'Perfect for trying out KarKo AI', 0.00, 50, 0, 0, FALSE, 1),
+('plus', 'Plus', 'For active job seekers', 19.99, 200, 1, 400, TRUE, 2),
+('pro', 'Pro', 'For power users and professionals', 39.99, 400, 2, 800, TRUE, 3)
+ON CONFLICT (tier) DO UPDATE SET
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  price_monthly = EXCLUDED.price_monthly,
+  credits_monthly = EXCLUDED.credits_monthly,
+  rollover_months = EXCLUDED.rollover_months,
+  max_rollover_credits = EXCLUDED.max_rollover_credits,
+  addon_enabled = EXCLUDED.addon_enabled,
+  display_order = EXCLUDED.display_order,
+  updated_at = NOW();
+
+-- RLS
+ALTER TABLE subscription_plans ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can view active plans"
+  ON subscription_plans FOR SELECT
+  USING (active = TRUE);
+```
+
+---
+
+### Table 10: `user_credits` (User Credit Balances)
+
+Tracks each user's credit balance and plan information.
+
+```sql
+CREATE TABLE user_credits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  
+  -- Credit balances
+  monthly_credits INTEGER DEFAULT 0,
+  rollover_credits INTEGER DEFAULT 0,
+  addon_credits INTEGER DEFAULT 0,
+  
+  -- Plan reference
+  plan_tier TEXT NOT NULL DEFAULT 'starter' REFERENCES subscription_plans(tier),
+  
+  -- Reset tracking
+  last_reset_date TIMESTAMPTZ DEFAULT NOW(),
+  next_reset_date TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '1 month'),
+  
+  -- Timestamps
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  UNIQUE(user_id)
+);
+
+-- Indexes
+CREATE INDEX idx_user_credits_user_id ON user_credits(user_id);
+CREATE INDEX idx_user_credits_plan_tier ON user_credits(plan_tier);
+CREATE INDEX idx_user_credits_next_reset ON user_credits(next_reset_date);
+
+-- RLS
+ALTER TABLE user_credits ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own credits"
+  ON user_credits FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "System can insert credits"
+  ON user_credits FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "System can update credits"
+  ON user_credits FOR UPDATE
+  USING (auth.uid() = user_id);
+```
+
+---
+
+### Table 11: `credit_transactions` (Credit Audit Trail)
+
+Logs all credit additions and deductions for auditing.
+
+```sql
+CREATE TABLE credit_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  
+  -- Transaction details
+  amount INTEGER NOT NULL, -- Negative for deductions, positive for additions
+  transaction_type TEXT NOT NULL CHECK (transaction_type IN (
+    'application_generation',
+    'cover_letter_regen',
+    'email_regen',
+    'monthly_reset',
+    'rollover_applied',
+    'addon_purchase',
+    'plan_upgrade',
+    'plan_downgrade',
+    'admin_adjustment',
+    'refund',
+    'expired'
+  )),
+  
+  -- Reference data
+  session_id UUID REFERENCES application_sessions(id) ON DELETE SET NULL,
+  description TEXT,
+  metadata JSONB DEFAULT '{}',
+  
+  -- Balance snapshot (for audit)
+  balance_before INTEGER NOT NULL,
+  balance_after INTEGER NOT NULL,
+  
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_credit_transactions_user_id ON credit_transactions(user_id);
+CREATE INDEX idx_credit_transactions_created_at ON credit_transactions(created_at);
+CREATE INDEX idx_credit_transactions_type ON credit_transactions(transaction_type);
+CREATE INDEX idx_credit_transactions_session ON credit_transactions(session_id);
+
+-- RLS
+ALTER TABLE credit_transactions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own transactions"
+  ON credit_transactions FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "System can insert transactions"
+  ON credit_transactions FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+```
+
+---
+
+### Table 12: `addon_credit_packs` (Purchasable Credit Packs)
+
+Defines the add-on credit packs available for purchase.
+
+```sql
+CREATE TABLE addon_credit_packs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  
+  -- Pack details
+  name TEXT NOT NULL,
+  credits INTEGER NOT NULL,
+  price DECIMAL(10,2) NOT NULL,
+  
+  -- Discount info
+  discount_percent INTEGER DEFAULT 0,
+  
+  -- Stripe integration
+  stripe_product_id TEXT,
+  stripe_price_id TEXT,
+  
+  -- Status
+  active BOOLEAN DEFAULT TRUE,
+  display_order INTEGER DEFAULT 0,
+  
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Insert default add-on packs
+INSERT INTO addon_credit_packs (name, credits, price, discount_percent, display_order) VALUES
+('Small Pack', 100, 7.99, 0, 1),
+('Medium Pack', 250, 17.99, 10, 2),
+('Large Pack', 500, 29.99, 25, 3)
+ON CONFLICT DO NOTHING;
+
+-- RLS
+ALTER TABLE addon_credit_packs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can view active packs"
+  ON addon_credit_packs FOR SELECT
+  USING (active = TRUE);
+```
+
+---
+
+### Auto-Initialize Credits for New Users
+
+This trigger automatically creates a credit record when a new user profile is created.
+
+```sql
+-- Function to initialize credits for new user
+CREATE OR REPLACE FUNCTION initialize_user_credits()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO user_credits (user_id, monthly_credits, plan_tier, next_reset_date)
+  VALUES (NEW.id, 50, 'starter', NOW() + INTERVAL '1 month')
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to auto-create credits on profile creation
+DROP TRIGGER IF EXISTS on_profile_created_init_credits ON profiles;
+CREATE TRIGGER on_profile_created_init_credits
+  AFTER INSERT ON profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION initialize_user_credits();
+```
+
+---
+
+### Credit Deduction Function
+
+Database function to safely deduct credits with proper ordering.
+
+```sql
+CREATE OR REPLACE FUNCTION deduct_credits(
+  p_user_id UUID,
+  p_amount INTEGER,
+  p_transaction_type TEXT,
+  p_session_id UUID DEFAULT NULL,
+  p_description TEXT DEFAULT NULL
+)
+RETURNS TABLE (
+  success BOOLEAN,
+  remaining_credits INTEGER,
+  error_message TEXT
+) AS $$
+DECLARE
+  v_credits user_credits%ROWTYPE;
+  v_remaining INTEGER;
+  v_new_monthly INTEGER;
+  v_new_rollover INTEGER;
+  v_new_addon INTEGER;
+  v_total_before INTEGER;
+BEGIN
+  -- Get current credits with lock
+  SELECT * INTO v_credits
+  FROM user_credits
+  WHERE user_id = p_user_id
+  FOR UPDATE;
+  
+  IF NOT FOUND THEN
+    RETURN QUERY SELECT FALSE, 0, 'User credits not found'::TEXT;
+    RETURN;
+  END IF;
+  
+  v_total_before := v_credits.monthly_credits + v_credits.rollover_credits + v_credits.addon_credits;
+  
+  -- Check sufficient balance
+  IF v_total_before < p_amount THEN
+    RETURN QUERY SELECT FALSE, v_total_before, 'Insufficient credits'::TEXT;
+    RETURN;
+  END IF;
+  
+  -- Deduct in order: monthly → rollover → addon
+  v_remaining := p_amount;
+  v_new_monthly := v_credits.monthly_credits;
+  v_new_rollover := v_credits.rollover_credits;
+  v_new_addon := v_credits.addon_credits;
+  
+  -- Deduct from monthly first
+  IF v_remaining > 0 AND v_new_monthly > 0 THEN
+    IF v_new_monthly >= v_remaining THEN
+      v_new_monthly := v_new_monthly - v_remaining;
+      v_remaining := 0;
+    ELSE
+      v_remaining := v_remaining - v_new_monthly;
+      v_new_monthly := 0;
+    END IF;
+  END IF;
+  
+  -- Then from rollover
+  IF v_remaining > 0 AND v_new_rollover > 0 THEN
+    IF v_new_rollover >= v_remaining THEN
+      v_new_rollover := v_new_rollover - v_remaining;
+      v_remaining := 0;
+    ELSE
+      v_remaining := v_remaining - v_new_rollover;
+      v_new_rollover := 0;
+    END IF;
+  END IF;
+  
+  -- Finally from addon
+  IF v_remaining > 0 AND v_new_addon > 0 THEN
+    IF v_new_addon >= v_remaining THEN
+      v_new_addon := v_new_addon - v_remaining;
+      v_remaining := 0;
+    ELSE
+      v_remaining := v_remaining - v_new_addon;
+      v_new_addon := 0;
+    END IF;
+  END IF;
+  
+  -- Update credits
+  UPDATE user_credits
+  SET 
+    monthly_credits = v_new_monthly,
+    rollover_credits = v_new_rollover,
+    addon_credits = v_new_addon,
+    updated_at = NOW()
+  WHERE user_id = p_user_id;
+  
+  -- Log transaction
+  INSERT INTO credit_transactions (
+    user_id, amount, transaction_type, session_id, description,
+    balance_before, balance_after
+  ) VALUES (
+    p_user_id, -p_amount, p_transaction_type, p_session_id, p_description,
+    v_total_before, v_total_before - p_amount
+  );
+  
+  RETURN QUERY SELECT TRUE, v_total_before - p_amount, NULL::TEXT;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+---
+
 ## Part 2: Storage Buckets
 
 ### Bucket 1: `cv-files`
