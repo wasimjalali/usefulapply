@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Check, X, Sparkles, Zap, Crown, ArrowRight, HelpCircle } from 'lucide-react';
+import Navbar from '@/components/marketing/Navbar';
+import Footer from '@/components/marketing/Footer';
 
 // Pricing tiers data
 const tiers = [
@@ -126,30 +128,7 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-cream-100">
-      {/* Header */}
-      <header className="bg-white border-b border-cream-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-2">
-              <img src="/karko-ai.png" alt="KarKo AI" className="h-8 w-auto" />
-            </Link>
-            <div className="flex items-center gap-4">
-              <Link
-                href="/auth/login"
-                className="text-sm font-medium text-charcoal hover:text-navy-600 transition-colors"
-              >
-                Log in
-              </Link>
-              <Link
-                href="/auth/signup"
-                className="px-4 py-2 text-sm font-medium bg-gold-400 text-white rounded-lg hover:bg-gold-500 transition-colors"
-              >
-                Get Started
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Hero Section */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
@@ -404,30 +383,7 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-navy-600 text-white py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <img src="/karko-ai.png" alt="KarKo AI" className="h-8 w-auto brightness-0 invert" />
-            </div>
-            <div className="flex items-center gap-6 text-sm text-navy-100">
-              <Link href="/privacy" className="hover:text-white transition-colors">
-                Privacy Policy
-              </Link>
-              <Link href="/terms" className="hover:text-white transition-colors">
-                Terms of Service
-              </Link>
-              <Link href="/contact" className="hover:text-white transition-colors">
-                Contact
-              </Link>
-            </div>
-            <div className="text-sm text-navy-200">
-              © 2026 KarKo AI. All rights reserved.
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
