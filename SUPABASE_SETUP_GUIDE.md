@@ -214,10 +214,10 @@ Your app uses these storage buckets:
 |--------|---------|---------------|--------|
 | `avatars` | User profile photos | `src/lib/supabase/storage.ts` | ✅ Connected |
 | `cv-files` | Uploaded CV/resume files | `src/lib/supabase/documents.ts` | ✅ Connected |
-| `profile-photos` | EU CV template photos | Not yet integrated | ⚠️ Optional |
-| `generated-pdfs` | Generated optimized PDFs | Uses Vercel Blob currently | ⚠️ Optional |
+| `profile-photos` | EU CV template photos | `src/lib/supabase/storage.ts` | ✅ Connected |
+| `generated-pdfs` | Generated optimized PDFs | `src/app/api/generate-pdf/route.ts` | ✅ Connected |
 
-**Note:** The `generated-pdfs` bucket is defined in the schema but the app currently uses Vercel Blob (`@vercel/blob`) for PDF storage. This works fine for Vercel deployments. If you want to migrate to Supabase Storage, let me know.
+**All storage buckets are now connected to Supabase!**
 
 ### 4.2 Verify Buckets Exist
 

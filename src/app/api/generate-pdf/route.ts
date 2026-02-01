@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument, rgb, StandardFonts, PDFPage, PDFFont } from 'pdf-lib';
-import { put } from '@vercel/blob';
+import { createClient } from '@supabase/supabase-js';
 import type { StructuredCV, CVDate } from '@/lib/types/cv-schema';
+
+// Create Supabase client for server-side usage
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -9,6 +15,7 @@ export const maxDuration = 30;
 interface GeneratePDFRequest {
   cv: StructuredCV;
   templateId: string;
+  userId?: string; // Optional user ID for authenticated uploads
 }
 
 interface RenderStats {
@@ -19,7 +26,7 @@ interface RenderStats {
 
 export async function POST(request: NextRequest) {
   try {
-    const { cv, templateId }: GeneratePDFRequest = await request.json();
+    const { cv, templateId, userId }: GeneratePDFRequest = await request.json();
     
     if (!cv || !cv.personal?.fullName) {
       return NextResponse.json(
@@ -31,14 +38,35 @@ export async function POST(request: NextRequest) {
     const { pdfBytes, stats } = await generatePDF(cv, templateId || 'default');
     
     const fileName = `cv-${cv.id}-${Date.now()}.pdf`;
-    const blob = await put(fileName, Buffer.from(pdfBytes), {
-      access: 'public',
-      contentType: 'application/pdf',
-    });
+    
+    // Upload to Supabase Storage (generated-pdfs bucket)
+    const filePath = userId ? `${userId}/${fileName}` : `anonymous/${fileName}`;
+    
+    const { data, error: uploadError } = await supabase.storage
+      .from('generated-pdfs')
+      .upload(filePath, pdfBytes, {
+        contentType: 'application/pdf',
+        cacheControl: '3600',
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error('Supabase upload error:', uploadError);
+      return NextResponse.json(
+        { error: 'Failed to upload PDF: ' + uploadError.message },
+        { status: 500 }
+      );
+    }
+
+    // Get signed URL for the uploaded PDF (valid for 7 days)
+    const { data: urlData } = await supabase.storage
+      .from('generated-pdfs')
+      .createSignedUrl(filePath, 60 * 60 * 24 * 7); // 7 days
     
     return NextResponse.json({
       success: true,
-      url: blob.url,
+      url: urlData?.signedUrl || null,
+      path: data.path,
       fileName,
       stats,
     });

@@ -33,7 +33,17 @@ export {
 export type { ApplicationSession, ChatMessage } from './sessions';
 
 // Storage operations
-export { uploadAvatar, deleteAvatar } from './storage';
+export { 
+  uploadAvatar, 
+  deleteAvatar,
+  uploadProfilePhoto,
+  getProfilePhotoUrl,
+  deleteProfilePhoto,
+  uploadGeneratedPDF,
+  getGeneratedPDFUrl,
+  listGeneratedPDFs,
+  deleteGeneratedPDF,
+} from './storage';
 
 // Account operations
 export {
