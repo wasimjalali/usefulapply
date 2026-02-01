@@ -43,7 +43,8 @@ import {
   MoreHorizontal,
   Check,
   CheckCircle2,
-  Circle
+  Circle,
+  Globe
 } from 'lucide-react';
 
 interface ChatPanelProps {
@@ -82,6 +83,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [messageFeedback, setMessageFeedback] = useState<Record<string, 'positive' | 'negative'>>({});
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -893,12 +895,41 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                           <Copy className="w-3.5 h-3.5" />
                         )}
                       </button>
-                      <button 
-                        className="p-1.5 text-warm-gray hover:text-charcoal hover:bg-cream-200 rounded transition-colors cursor-pointer"
-                        title="More options"
-                      >
-                        <MoreHorizontal className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="relative">
+                        <button 
+                          onClick={() => setOpenMenuId(openMenuId === message.id ? null : message.id)}
+                          className="p-1.5 text-warm-gray hover:text-charcoal hover:bg-cream-200 rounded transition-colors cursor-pointer"
+                          title="More options"
+                        >
+                          <MoreHorizontal className="w-3.5 h-3.5" />
+                        </button>
+                        {openMenuId === message.id && (
+                          <div className="absolute right-0 bottom-full mb-1 w-40 bg-white rounded-lg shadow-lg border border-cream-200 py-1 z-10">
+                            <button
+                              onClick={() => {
+                                handleCopyMessage(message.id, message.content);
+                                setOpenMenuId(null);
+                              }}
+                              className="w-full px-3 py-2 text-left text-sm text-charcoal hover:bg-cream-100 flex items-center gap-2"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              Copy text
+                            </button>
+                            <button
+                              onClick={() => {
+                                // Share functionality - copy as formatted text
+                                const shareText = `AI Response:\n\n${message.content}`;
+                                navigator.clipboard.writeText(shareText);
+                                setOpenMenuId(null);
+                              }}
+                              className="w-full px-3 py-2 text-left text-sm text-charcoal hover:bg-cream-100 flex items-center gap-2"
+                            >
+                              <Send className="w-3.5 h-3.5" />
+                              Share
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                   
@@ -971,33 +1002,64 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
             {/* Inner glow effect */}
             <div className="absolute inset-0 bg-gradient-to-b from-white/50 to-transparent pointer-events-none" />
             
-            <div className="relative flex items-end gap-2 p-2">
-              <div className="flex-1 relative">
-                <textarea
-                  ref={textareaRef}
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={currentCV 
-                    ? "Paste a job description or ask me anything..." 
-                    : "Upload your CV first to get started..."
-                  }
-                  disabled={!currentCV || isAnalyzing || isGenerating || isTyping}
-                  className="w-full px-4 py-3 text-sm bg-transparent focus:outline-none resize-none disabled:opacity-50 placeholder:text-warm-gray min-h-[48px] max-h-[150px]"
-                  rows={1}
-                />
+            <div className="relative flex flex-col">
+              {/* Toggle buttons row */}
+              <div className="flex items-center gap-1 px-3 pt-2 pb-1">
+                <button
+                  onClick={() => setEnableWebSearch(!enableWebSearch)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                    enableWebSearch 
+                      ? 'bg-navy-100 text-navy-700 border border-navy-200' 
+                      : 'bg-cream-100 text-warm-gray border border-cream-200 hover:bg-cream-200'
+                  }`}
+                  title="Toggle web search for company research"
+                >
+                  <Globe className="w-3 h-3" />
+                  Web Search
+                </button>
+                <button
+                  onClick={() => setEnableReflection(!enableReflection)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                    enableReflection 
+                      ? 'bg-navy-100 text-navy-700 border border-navy-200' 
+                      : 'bg-cream-100 text-warm-gray border border-cream-200 hover:bg-cream-200'
+                  }`}
+                  title="Toggle AI refinement for better results"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  Refine
+                </button>
               </div>
               
-              {/* Send button - circular with gradient */}
-              <button
-                onClick={handleSend}
-                disabled={!inputValue.trim() || !currentCV || isAnalyzing || isGenerating || isTyping}
-                title="Send message"
-                aria-label="Send message"
-                className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 disabled:from-cream-300 disabled:to-cream-400 disabled:cursor-not-allowed flex items-center justify-center shadow-md transition-all duration-200 hover:shadow-lg hover:scale-105 disabled:hover:scale-100"
-              >
-                <Send className="w-4 h-4 text-white" />
-              </button>
+              {/* Input row */}
+              <div className="flex items-end gap-2 px-2 pb-2">
+                <div className="flex-1 relative">
+                  <textarea
+                    ref={textareaRef}
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={currentCV 
+                      ? "Paste a job description or ask me anything..." 
+                      : "Upload your CV first to get started..."
+                    }
+                    disabled={!currentCV || isAnalyzing || isGenerating || isTyping}
+                    className="w-full px-3 py-2 text-sm bg-transparent focus:outline-none resize-none disabled:opacity-50 placeholder:text-warm-gray min-h-[44px] max-h-[150px]"
+                    rows={1}
+                  />
+                </div>
+                
+                {/* Send button - circular with gradient */}
+                <button
+                  onClick={handleSend}
+                  disabled={!inputValue.trim() || !currentCV || isAnalyzing || isGenerating || isTyping}
+                  title="Send message"
+                  aria-label="Send message"
+                  className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 disabled:from-cream-300 disabled:to-cream-400 disabled:cursor-not-allowed flex items-center justify-center shadow-md transition-all duration-200 hover:shadow-lg hover:scale-105 disabled:hover:scale-100"
+                >
+                  <Send className="w-4 h-4 text-white" />
+                </button>
+              </div>
             </div>
           </div>
           
