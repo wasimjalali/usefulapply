@@ -25,6 +25,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
+import { uploadAvatar, deleteAvatar } from '@/lib/supabase/storage';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -41,6 +42,8 @@ export default function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeSection, setActiveSection] = useState<'profile' | 'account' | 'subscription' | 'notifications'>('profile');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
 
   // Sync form data with profile
   useEffect(() => {
@@ -70,11 +73,28 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setIsSaving(true);
     
-    // Don't save large base64 images directly - they slow down the database
-    // Only save if it's a URL or null, not a base64 string
-    const avatarToSave = formData.photoUrl?.startsWith('data:') 
-      ? profile?.avatar_url // Keep existing URL if trying to save base64
-      : formData.photoUrl;
+    let avatarUrl = formData.photoUrl;
+    
+    // If there's a pending photo file, upload it to Supabase Storage
+    if (pendingPhotoFile && authUser) {
+      setIsUploadingPhoto(true);
+      const { url, error: uploadError } = await uploadAvatar(authUser.id, pendingPhotoFile);
+      setIsUploadingPhoto(false);
+      
+      if (uploadError) {
+        alert('Failed to upload photo: ' + uploadError.message);
+        setIsSaving(false);
+        return;
+      }
+      
+      avatarUrl = url;
+      setPendingPhotoFile(null);
+    }
+    
+    // Don't save base64 strings - only URLs
+    const avatarToSave = avatarUrl?.startsWith('data:') 
+      ? profile?.avatar_url 
+      : avatarUrl;
     
     const { error } = await updateProfile({
       full_name: formData.fullName,
@@ -106,12 +126,22 @@ export default function SettingsPage() {
       return;
     }
 
-    // For now, use base64 for preview (will be uploaded to Supabase storage on save)
+    // Store file for upload on save, show preview immediately
+    setPendingPhotoFile(file);
     const reader = new FileReader();
     reader.onloadend = () => {
       setFormData(prev => ({ ...prev, photoUrl: reader.result as string }));
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = async () => {
+    if (authUser && profile?.avatar_url) {
+      // Delete from storage
+      await deleteAvatar(authUser.id);
+    }
+    setPendingPhotoFile(null);
+    setFormData(prev => ({ ...prev, photoUrl: null }));
   };
 
   const handleLogout = async () => {
@@ -244,7 +274,7 @@ export default function SettingsPage() {
                       </p>
                       {formData.photoUrl && (
                         <button
-                          onClick={() => setFormData(prev => ({ ...prev, photoUrl: null }))}
+                          onClick={handleRemovePhoto}
                           className="text-xs text-red-500 hover:text-red-600 mt-2 cursor-pointer"
                         >
                           Remove photo
