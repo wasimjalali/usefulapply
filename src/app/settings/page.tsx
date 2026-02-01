@@ -72,6 +72,7 @@ export default function SettingsPage() {
     weekly: true,
     marketing: false,
   });
+  const [isSavingNotifications, setIsSavingNotifications] = useState(false);
 
   // Sync form data with profile
   useEffect(() => {
@@ -82,6 +83,13 @@ export default function SettingsPage() {
         phone: profile.phone || '',
         location: profile.location || '',
         photoUrl: profile.avatar_url,
+      });
+      // Sync notification preferences from profile
+      setNotifications({
+        tips: (profile as any).notify_tips ?? true,
+        updates: (profile as any).notify_updates ?? true,
+        weekly: (profile as any).notify_weekly ?? true,
+        marketing: (profile as any).notify_marketing ?? false,
       });
     } else if (authUser) {
       setFormData(prev => ({
@@ -257,6 +265,21 @@ export default function SettingsPage() {
 
   const isAccountConnected = (provider: string) => {
     return connectedAccounts.some(a => a.provider === provider);
+  };
+
+  const handleNotificationChange = async (key: keyof typeof notifications, value: boolean) => {
+    // Optimistic update
+    setNotifications(prev => ({ ...prev, [key]: value }));
+    
+    // Save to profile
+    const updateKey = `notify_${key}` as const;
+    const { error } = await updateProfile({ [updateKey]: value } as any);
+    
+    if (error) {
+      // Revert on error
+      setNotifications(prev => ({ ...prev, [key]: !value }));
+      alert('Failed to save notification preference');
+    }
   };
 
   // Show loading state
@@ -792,10 +815,10 @@ export default function SettingsPage() {
                   <h3 className="text-sm font-semibold text-charcoal mb-4">Email Notifications</h3>
                   <div className="space-y-4">
                     {[
-                      { id: 'tips', label: 'Tips & Tutorials', description: 'Get helpful tips to improve your applications' },
-                      { id: 'updates', label: 'Product Updates', description: 'Be the first to know about new features' },
-                      { id: 'weekly', label: 'Weekly Summary', description: 'Receive a weekly summary of your activity' },
-                      { id: 'marketing', label: 'Marketing', description: 'Promotional offers and announcements' },
+                      { id: 'tips' as const, label: 'Tips & Tutorials', description: 'Get helpful tips to improve your applications' },
+                      { id: 'updates' as const, label: 'Product Updates', description: 'Be the first to know about new features' },
+                      { id: 'weekly' as const, label: 'Weekly Summary', description: 'Receive a weekly summary of your activity' },
+                      { id: 'marketing' as const, label: 'Marketing', description: 'Promotional offers and announcements' },
                     ].map((item) => (
                       <div key={item.id} className="flex items-center justify-between py-2">
                         <div>
@@ -803,7 +826,12 @@ export default function SettingsPage() {
                           <p className="text-xs text-warm-gray">{item.description}</p>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" className="sr-only peer" defaultChecked={item.id !== 'marketing'} />
+                          <input 
+                            type="checkbox" 
+                            className="sr-only peer" 
+                            checked={notifications[item.id]}
+                            onChange={(e) => handleNotificationChange(item.id, e.target.checked)}
+                          />
                           <div className="w-11 h-6 bg-cream-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-navy-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-navy-600"></div>
                         </label>
                       </div>
