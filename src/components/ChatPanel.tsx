@@ -825,7 +825,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                 <MarkdownText 
                   content={currentCV 
                     ? "👋 Great, your CV is uploaded! **Paste a job description** below and I'll:\n\n1. Analyze the requirements\n2. Optimize your CV for the role\n3. Generate a tailored cover letter\n\nJust paste the job posting to get started!"
-                    : "👋 Welcome to Job Copilot! I'm your AI-powered application assistant.\n\nTo get started:\n1. **Upload your CV** in the Documents section\n2. Paste a job description here\n3. I'll optimize everything for you!"
+                    : "👋 Welcome to KarKo AI! I'm your AI-powered application assistant.\n\nTo get started:\n1. **Upload your CV** in the Documents section\n2. Paste a job description here\n3. I'll optimize everything for you!"
                   }
                   className="text-sm text-charcoal"
                 />

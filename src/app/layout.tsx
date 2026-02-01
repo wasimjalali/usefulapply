@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Job Copilot - AI-Powered Job Application Assistant",
-  description: "Optimize your CV, generate cover letters, and land your dream job with AI assistance.",
+  title: "KarKo AI - AI-Powered Job Application Assistant",
+  description: "Optimize your CV, generate cover letters, and land your dream job with KarKo AI.",
 };
 
 export default function RootLayout({

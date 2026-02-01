@@ -16,6 +16,7 @@ import {
 } from '@/lib/agents';
 import { createClient } from '@/lib/supabase/server';
 import { checkAndDeductCredits, formatCreditErrorResponse } from '@/lib/middleware/creditCheck';
+import { setServerSupabaseClient, clearServerSupabaseClient } from '@/lib/supabase/credits';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -48,6 +49,9 @@ export async function POST(request: NextRequest) {
           controller.close();
           return;
         }
+
+        // Set server supabase client for credit operations
+        setServerSupabaseClient(supabase);
 
         const body: AgentRequest = await request.json();
         const { 
@@ -214,6 +218,8 @@ export async function POST(request: NextRequest) {
           results,
         })}\n\n`));
         
+        // Clear server supabase client
+        clearServerSupabaseClient();
         controller.close();
         
       } catch (error) {

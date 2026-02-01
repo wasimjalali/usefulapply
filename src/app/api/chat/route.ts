@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 }
 
 function buildSystemPrompt(context: ChatContext): string {
-  let prompt = `You are Job Copilot, an AI assistant that helps users optimize their job applications. You're friendly, helpful, and concise.
+  let prompt = `You are KarKo AI, an AI assistant that helps users optimize their job applications. You're friendly, helpful, and concise.
 
 Current user state:
 - CV uploaded: ${context.hasCV ? 'Yes' : 'No'}

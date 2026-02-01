@@ -46,7 +46,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-charcoal">Job Copilot</h1>
+          <h1 className="text-3xl font-bold text-charcoal">KarKo AI</h1>
           <p className="text-warm-gray mt-2">Welcome back! Sign in to continue.</p>
         </div>
 

@@ -78,12 +78,55 @@ VALUES
   ('Large Pack', 250, 17.99, 30, 3);
 ```
 
-### Step 3: Update initialize_user_credits function
+### Step 3: Fix RLS policies for user_credits table
+
+The current RLS policies are too restrictive and block server-side operations. Run this to fix:
 
 ```sql
 -- =====================================================
 -- CREDIT SYSTEM MIGRATION - STEP 3
+-- Fix RLS policies for user_credits table
+-- =====================================================
+
+-- Drop existing policies
+DROP POLICY IF EXISTS "Users can view own credits" ON user_credits;
+DROP POLICY IF EXISTS "System can insert credits" ON user_credits;
+DROP POLICY IF EXISTS "System can update credits" ON user_credits;
+
+-- Create new policies that work with both client and server
+CREATE POLICY "Users can view own credits"
+  ON user_credits FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own credits"
+  ON user_credits FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own credits"
+  ON user_credits FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Also fix credit_transactions policies
+DROP POLICY IF EXISTS "Users can view own transactions" ON credit_transactions;
+DROP POLICY IF EXISTS "System can insert transactions" ON credit_transactions;
+
+CREATE POLICY "Users can view own transactions"
+  ON credit_transactions FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own transactions"
+  ON credit_transactions FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+```
+
+### Step 4: Update initialize_user_credits function
+
+```sql
+-- =====================================================
+-- CREDIT SYSTEM MIGRATION - STEP 4
 -- Update the function that initializes credits for new users
+-- This runs with SECURITY DEFINER to bypass RLS
 -- =====================================================
 
 CREATE OR REPLACE FUNCTION initialize_user_credits()

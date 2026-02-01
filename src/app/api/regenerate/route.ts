@@ -3,6 +3,7 @@ import { writerAgent } from '@/lib/agents/writer-agent';
 import type { MasterContext } from '@/lib/agents/types';
 import { createClient } from '@/lib/supabase/server';
 import { checkAndDeductCredits, formatCreditErrorResponse } from '@/lib/middleware/creditCheck';
+import { setServerSupabaseClient, clearServerSupabaseClient } from '@/lib/supabase/credits';
 
 /**
  * API endpoint for regenerating cover letter or email
@@ -20,6 +21,9 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Set server supabase client for credit operations
+    setServerSupabaseClient(supabase);
 
     const body = await request.json();
     const { type, context } = body;
@@ -61,6 +65,7 @@ export async function POST(request: NextRequest) {
 
     if (type === 'cover-letter') {
       const coverLetter = await writerAgent.generateCoverLetter(masterContext);
+      clearServerSupabaseClient();
       return NextResponse.json({ 
         coverLetter,
         creditsDeducted: 1,
@@ -68,18 +73,21 @@ export async function POST(request: NextRequest) {
       });
     } else if (type === 'email') {
       const email = await writerAgent.generateApplicationEmail(masterContext);
+      clearServerSupabaseClient();
       return NextResponse.json({ 
         email,
         creditsDeducted: 1,
         remainingCredits: creditResult.remainingCredits,
       });
     } else {
+      clearServerSupabaseClient();
       return NextResponse.json(
         { error: 'Invalid type. Must be "cover-letter" or "email"' },
         { status: 400 }
       );
     }
   } catch (error) {
+    clearServerSupabaseClient();
     console.error('[Regenerate API] Error:', error);
     return NextResponse.json(
       { error: 'Failed to regenerate content' },

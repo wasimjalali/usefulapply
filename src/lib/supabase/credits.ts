@@ -3,6 +3,19 @@ import { getSupabase } from './client';
 // Get untyped supabase client for tables not in generated types
 const getUntypedSupabase = () => getSupabase() as any;
 
+// Allow passing a custom supabase client (for server-side usage)
+let serverSupabaseClient: any = null;
+
+export function setServerSupabaseClient(client: any) {
+  serverSupabaseClient = client;
+}
+
+export function clearServerSupabaseClient() {
+  serverSupabaseClient = null;
+}
+
+const getSupabaseClient = () => serverSupabaseClient || getUntypedSupabase();
+
 // =====================================================
 // TYPES
 // =====================================================
@@ -151,7 +164,7 @@ export async function getAddonCreditPacks(): Promise<{ packs: AddonCreditPack[];
  * Get user's credit balance
  */
 export async function getUserCredits(userId: string): Promise<{ credits: UserCredits | null; error: Error | null }> {
-  const supabase = getUntypedSupabase();
+  const supabase = getSupabaseClient();
 
   const { data, error } = await supabase
     .from('user_credits')
@@ -175,7 +188,7 @@ export async function getUserCredits(userId: string): Promise<{ credits: UserCre
  * Initialize credits for new user (starter plan)
  */
 async function initializeUserCredits(userId: string): Promise<{ credits: UserCredits | null; error: Error | null }> {
-  const supabase = getUntypedSupabase();
+  const supabase = getSupabaseClient();
 
   const nextReset = new Date();
   nextReset.setMonth(nextReset.getMonth() + 1);
@@ -286,7 +299,7 @@ export async function deductCredits(
   remainingCredits: number;
   error: Error | null;
 }> {
-  const supabase = getUntypedSupabase();
+  const supabase = getSupabaseClient();
   const amount = CREDIT_COSTS[action];
 
   // Get current credits
@@ -597,7 +610,7 @@ async function logCreditTransaction(
     metadata?: Record<string, any>;
   }
 ): Promise<void> {
-  const supabase = getUntypedSupabase();
+  const supabase = getSupabaseClient();
 
   const { error } = await supabase.from('credit_transactions').insert({
     user_id: userId,
@@ -622,7 +635,7 @@ export async function getCreditTransactions(
   userId: string,
   limit: number = 50
 ): Promise<{ transactions: CreditTransaction[]; error: Error | null }> {
-  const supabase = getUntypedSupabase();
+  const supabase = getSupabaseClient();
 
   const { data, error } = await supabase
     .from('credit_transactions')
