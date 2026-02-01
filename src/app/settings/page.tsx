@@ -69,11 +69,18 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     setIsSaving(true);
+    
+    // Don't save large base64 images directly - they slow down the database
+    // Only save if it's a URL or null, not a base64 string
+    const avatarToSave = formData.photoUrl?.startsWith('data:') 
+      ? profile?.avatar_url // Keep existing URL if trying to save base64
+      : formData.photoUrl;
+    
     const { error } = await updateProfile({
       full_name: formData.fullName,
       phone: formData.phone,
       location: formData.location,
-      avatar_url: formData.photoUrl,
+      avatar_url: avatarToSave,
     });
     setIsSaving(false);
     if (!error) {

@@ -162,10 +162,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(null);
   };
 
-  // Update user profile
+  // Update user profile - optimistic update for better UX
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) {
       return { error: new Error('No user logged in') };
+    }
+
+    // Optimistic update - update local state immediately
+    if (profile) {
+      setProfile({ ...profile, ...updates } as Profile);
     }
 
     const { error } = await supabase
@@ -173,12 +178,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .update(updates as any)
       .eq('id', user.id);
 
-    if (!error) {
-      // Refresh profile after update
+    if (error) {
+      // Revert on error - refresh from database
       await refreshProfile();
+      return { error: new Error(error.message) };
     }
 
-    return { error: error ? new Error(error.message) : null };
+    return { error: null };
   };
 
   const value: AuthContextType = {
