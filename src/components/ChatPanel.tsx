@@ -125,8 +125,10 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
     setMessageFeedback(prev => ({ ...prev, [messageId]: type }));
     
     // Save to database with optional text
+    // Only pass sessionId if it's a valid UUID (not local session ID like "session-123")
+    const isValidUUID = currentSession?.id && !currentSession.id.startsWith('session-');
     const result = await submitMessageFeedback(user.id, messageId, type, {
-      sessionId: currentSession?.id,
+      sessionId: isValidUUID ? currentSession.id : undefined,
       messageContent: content.substring(0, 500),
       feedbackText: feedbackText.trim() || undefined,
     });
@@ -1057,7 +1059,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                       : "Upload your CV first to get started..."
                     }
                     disabled={!currentCV || isAnalyzing || isGenerating || isTyping}
-                    className="w-full px-1 py-1 text-sm bg-transparent focus:outline-none focus:ring-0 border-none resize-none disabled:opacity-50 placeholder:text-warm-gray min-h-[24px] max-h-[150px]"
+                    className="chat-input-textarea w-full px-1 py-1 text-sm bg-transparent focus:outline-none focus:ring-0 border-none resize-none disabled:opacity-50 placeholder:text-warm-gray min-h-[24px] max-h-[150px]"
                     rows={1}
                   />
                 </div>

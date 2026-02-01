@@ -98,6 +98,11 @@ body {
   outline-offset: 2px;
 }
 
+/* Remove focus outline from textareas inside chat input */
+.chat-input-textarea:focus-visible {
+  outline: none;
+}
+
 /* CV Multi-page Preview Styles */
 .cv-pages-container {
   display: flex;
