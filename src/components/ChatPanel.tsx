@@ -84,6 +84,8 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [messageFeedback, setMessageFeedback] = useState<Record<string, 'positive' | 'negative'>>({});
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [feedbackModal, setFeedbackModal] = useState<{ messageId: string; content: string; type: 'positive' | 'negative' } | null>(null);
+  const [feedbackText, setFeedbackText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -107,27 +109,35 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
     setTimeout(() => setCopiedMessageId(null), 2000);
   };
 
-  const handleFeedback = async (messageId: string, content: string, type: 'positive' | 'negative') => {
-    if (!user) return;
+  const handleFeedbackClick = (messageId: string, content: string, type: 'positive' | 'negative') => {
+    // Open modal for feedback
+    setFeedbackModal({ messageId, content, type });
+    setFeedbackText('');
+  };
+
+  const handleFeedbackSubmit = async () => {
+    if (!user || !feedbackModal) return;
     
-    // Optimistic update
-    const currentFeedback = messageFeedback[messageId];
-    if (currentFeedback === type) {
-      // Toggle off
-      setMessageFeedback(prev => {
-        const next = { ...prev };
-        delete next[messageId];
-        return next;
-      });
-    } else {
-      setMessageFeedback(prev => ({ ...prev, [messageId]: type }));
-    }
+    const { messageId, content, type } = feedbackModal;
     
-    // Save to database
+    // Update UI state
+    setMessageFeedback(prev => ({ ...prev, [messageId]: type }));
+    
+    // Save to database with optional text
     await submitMessageFeedback(user.id, messageId, type, {
       sessionId: currentSession?.id,
-      messageContent: content.substring(0, 500), // Limit content length
+      messageContent: content.substring(0, 500),
+      feedbackText: feedbackText.trim() || undefined,
     });
+    
+    // Close modal
+    setFeedbackModal(null);
+    setFeedbackText('');
+  };
+
+  const handleFeedbackCancel = () => {
+    setFeedbackModal(null);
+    setFeedbackText('');
   };
 
   const scrollToBottom = () => {
@@ -652,6 +662,62 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
   };
 
   return (
+    <>
+    {/* Feedback Modal */}
+    {feedbackModal && (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+          {/* Modal Header */}
+          <div className={`px-6 py-4 ${feedbackModal.type === 'positive' ? 'bg-sage-50' : 'bg-red-50'}`}>
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-full ${feedbackModal.type === 'positive' ? 'bg-sage-100' : 'bg-red-100'}`}>
+                {feedbackModal.type === 'positive' 
+                  ? <ThumbsUp className="w-5 h-5 text-sage-600" />
+                  : <ThumbsDown className="w-5 h-5 text-red-500" />
+                }
+              </div>
+              <div>
+                <h3 className="font-semibold text-charcoal">
+                  {feedbackModal.type === 'positive' ? 'What did you like?' : 'What could be improved?'}
+                </h3>
+                <p className="text-sm text-warm-gray">Your feedback helps us improve</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Modal Body */}
+          <div className="px-6 py-4">
+            <textarea
+              value={feedbackText}
+              onChange={(e) => setFeedbackText(e.target.value)}
+              placeholder={feedbackModal.type === 'positive' 
+                ? "Tell us what was helpful about this response..." 
+                : "Tell us how we can make this better..."
+              }
+              className="w-full h-32 px-4 py-3 text-sm border border-cream-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gold-300 focus:border-gold-400 resize-none placeholder:text-warm-gray"
+              autoFocus
+            />
+          </div>
+          
+          {/* Modal Footer */}
+          <div className="px-6 py-4 bg-cream-50 flex items-center justify-end gap-3">
+            <button
+              onClick={handleFeedbackCancel}
+              className="px-4 py-2 text-sm font-medium text-warm-gray hover:text-charcoal transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleFeedbackSubmit}
+              className="px-5 py-2 text-sm font-medium bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-lg hover:from-gold-500 hover:to-gold-600 shadow-md transition-all"
+            >
+              Submit Feedback
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    
     <div className="h-full flex flex-col bg-cream-50 border-l border-cream-300">
       {/* Header */}
       <div className="px-4 py-3 border-b border-cream-300 bg-white">
@@ -668,15 +734,6 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* V2 Agent Settings Toggle */}
-            <AgentSettingsToggle
-              enableWebSearch={enableWebSearch}
-              enableReflection={enableReflection}
-              onWebSearchChange={setEnableWebSearch}
-              onReflectionChange={setEnableReflection}
-              compact
-            />
-            <div className="w-px h-6 bg-cream-300" />
             <button
               onClick={() => setShowHistory(!showHistory)}
               className={`p-2 rounded-lg transition-colors cursor-pointer ${
@@ -863,7 +920,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                   {message.role === 'assistant' && (
                     <div className="flex items-center gap-1 mt-2 ml-1">
                       <button 
-                        onClick={() => handleFeedback(message.id, message.content, 'positive')}
+                        onClick={() => handleFeedbackClick(message.id, message.content, 'positive')}
                         className={`p-1.5 rounded transition-colors cursor-pointer ${
                           messageFeedback[message.id] === 'positive' 
                             ? 'text-sage-600 bg-sage-100' 
@@ -874,7 +931,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                         <ThumbsUp className="w-3.5 h-3.5" />
                       </button>
                       <button 
-                        onClick={() => handleFeedback(message.id, message.content, 'negative')}
+                        onClick={() => handleFeedbackClick(message.id, message.content, 'negative')}
                         className={`p-1.5 rounded transition-colors cursor-pointer ${
                           messageFeedback[message.id] === 'negative' 
                             ? 'text-red-500 bg-red-50' 
@@ -994,45 +1051,15 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area - Glossy bubble design like Lovable */}
+      {/* Input Area - Professional chat input with gold accent */}
       <div className="p-4 bg-gradient-to-t from-cream-100 to-cream-50">
         <div className="relative">
-          {/* Glossy bubble container */}
-          <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl border border-cream-200/50 shadow-lg shadow-cream-200/30 overflow-hidden">
-            {/* Inner glow effect */}
-            <div className="absolute inset-0 bg-gradient-to-b from-white/50 to-transparent pointer-events-none" />
+          {/* Main input container with gold border */}
+          <div className="relative bg-white rounded-2xl border-2 border-gold-300/60 shadow-lg shadow-gold-100/40 overflow-hidden focus-within:border-gold-400 focus-within:shadow-gold-200/50 transition-all duration-200">
             
             <div className="relative flex flex-col">
-              {/* Toggle buttons row */}
-              <div className="flex items-center gap-1 px-3 pt-2 pb-1">
-                <button
-                  onClick={() => setEnableWebSearch(!enableWebSearch)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-                    enableWebSearch 
-                      ? 'bg-navy-100 text-navy-700 border border-navy-200' 
-                      : 'bg-cream-100 text-warm-gray border border-cream-200 hover:bg-cream-200'
-                  }`}
-                  title="Toggle web search for company research"
-                >
-                  <Globe className="w-3 h-3" />
-                  Web Search
-                </button>
-                <button
-                  onClick={() => setEnableReflection(!enableReflection)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-                    enableReflection 
-                      ? 'bg-navy-100 text-navy-700 border border-navy-200' 
-                      : 'bg-cream-100 text-warm-gray border border-cream-200 hover:bg-cream-200'
-                  }`}
-                  title="Toggle AI refinement for better results"
-                >
-                  <Sparkles className="w-3 h-3" />
-                  Refine
-                </button>
-              </div>
-              
               {/* Input row */}
-              <div className="flex items-end gap-2 px-2 pb-2">
+              <div className="flex items-end gap-2 p-3">
                 <div className="flex-1 relative">
                   <textarea
                     ref={textareaRef}
@@ -1044,7 +1071,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                       : "Upload your CV first to get started..."
                     }
                     disabled={!currentCV || isAnalyzing || isGenerating || isTyping}
-                    className="w-full px-3 py-2 text-sm bg-transparent focus:outline-none resize-none disabled:opacity-50 placeholder:text-warm-gray min-h-[44px] max-h-[150px]"
+                    className="w-full px-1 py-1 text-sm bg-transparent focus:outline-none resize-none disabled:opacity-50 placeholder:text-warm-gray min-h-[24px] max-h-[150px]"
                     rows={1}
                   />
                 </div>
@@ -1055,11 +1082,41 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                   disabled={!inputValue.trim() || !currentCV || isAnalyzing || isGenerating || isTyping}
                   title="Send message"
                   aria-label="Send message"
-                  className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 disabled:from-cream-300 disabled:to-cream-400 disabled:cursor-not-allowed flex items-center justify-center shadow-md transition-all duration-200 hover:shadow-lg hover:scale-105 disabled:hover:scale-100"
+                  className="flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 disabled:from-cream-300 disabled:to-cream-400 disabled:cursor-not-allowed flex items-center justify-center shadow-md transition-all duration-200 hover:shadow-lg hover:scale-105 disabled:hover:scale-100"
                 >
                   <Send className="w-4 h-4 text-white" />
                 </button>
               </div>
+              
+              {/* Toggle buttons row - only show when input is empty */}
+              {!inputValue.trim() && (
+                <div className="flex items-center gap-2 px-3 pb-3 pt-0 border-t border-cream-100">
+                  <button
+                    onClick={() => setEnableWebSearch(!enableWebSearch)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                      enableWebSearch 
+                        ? 'bg-gold-100 text-gold-700 border border-gold-300' 
+                        : 'bg-cream-50 text-warm-gray border border-cream-200 hover:bg-cream-100'
+                    }`}
+                    title="Toggle web search for company research"
+                  >
+                    <Globe className="w-3.5 h-3.5" />
+                    Web Search
+                  </button>
+                  <button
+                    onClick={() => setEnableReflection(!enableReflection)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                      enableReflection 
+                        ? 'bg-gold-100 text-gold-700 border border-gold-300' 
+                        : 'bg-cream-50 text-warm-gray border border-cream-200 hover:bg-cream-100'
+                    }`}
+                    title="Toggle AI refinement for better results"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Refine
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           
@@ -1073,5 +1130,6 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         </div>
       </div>
     </div>
+    </>
   );
 }
