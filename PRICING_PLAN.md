@@ -226,7 +226,6 @@ On subscription renewal date:
 | **Credit Rollover** | ❌ | 1 month | 2 months |
 | **Support** | Community | Priority | Premium |
 | **History** | 30 days | Unlimited | Unlimited |
-| **Analytics** | Basic | Basic | Advanced |
 
 ---
 

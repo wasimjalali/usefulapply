@@ -8,7 +8,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <img src="/karko-ai.png" alt="KarKo AI" className="h-8 w-auto brightness-0 invert" />
+              <img src="/karko-ai.png" alt="KarKo AI" className="h-10 w-auto" />
             </Link>
             <p className="text-navy-200 text-sm">
               AI-powered job applications that get you noticed. Save hours, land more interviews.
