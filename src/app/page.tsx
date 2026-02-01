@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { CVPanel } from '@/components/CVPanel';
 import { CoverLetterPanel } from '@/components/CoverLetterPanel';
 import { EmailPanel } from '@/components/EmailPanel';
@@ -8,16 +9,42 @@ import { ChatPanel } from '@/components/ChatPanel';
 import { StorageCleaner } from '@/components/StorageCleaner';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
-import { FileText, Mail, Send, FolderOpen, Settings, User } from 'lucide-react';
+import { FileText, Mail, Send, FolderOpen, Settings, User, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Home() {
+  const router = useRouter();
   const {
     activeTab,
     setActiveTab,
   } = useAppStore();
 
-  const { profile } = useAuth();
+  const { user, profile, isLoading } = useAuth();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/auth/login');
+    }
+  }, [isLoading, user, router]);
+
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-cream-100">
+        <Loader2 className="w-8 h-8 animate-spin text-navy-600" />
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated (will redirect)
+  if (!user) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-cream-100">
+        <Loader2 className="w-8 h-8 animate-spin text-navy-600" />
+      </div>
+    );
+  }
 
   // Resizable chat panel state
   const [chatPanelWidth, setChatPanelWidth] = useState(440); // Increased default width for better readability

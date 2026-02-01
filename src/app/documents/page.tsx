@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { FileUpload } from '@/components/FileUpload';
 import { useAppStore, ProfilePhoto } from '@/store/useAppStore';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   FileText, 
   Trash2, 
@@ -16,12 +18,16 @@ import {
   Camera,
   Sparkles,
   FolderOpen,
-  Upload
+  Upload,
+  Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import type { ParsedCV } from '@/lib/types';
 
 export default function DocumentsPage() {
+  const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
+  
   const {
     currentCV,
     setCurrentCV,
@@ -36,6 +42,31 @@ export default function DocumentsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isUploadingCV, setIsUploadingCV] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/auth/login');
+    }
+  }, [authLoading, user, router]);
+
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-cream-100 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-navy-600" />
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-cream-100 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-navy-600" />
+      </div>
+    );
+  }
 
   const parseDocument = async (file: File): Promise<{ parsedCV: ParsedCV; structuredCV: any } | null> => {
     const formData = new FormData();
