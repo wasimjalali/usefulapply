@@ -104,43 +104,63 @@ function applyChangesToCVData(cvData: CVData, changes: CVChange[]): CVData {
     
     // Apply skills/competencies changes - parse into clean grouped format
     if (sectionLower.includes('skill') || sectionLower.includes('competenc') || sectionLower.includes('kenntnisse')) {
-      console.log('[CVPanel] Applying skills change, updated text length:', change.updated.length);
+      console.log('[CVPanel] Applying skills change, updated text:', change.updated.substring(0, 200));
       
-      // Try to parse categorized skills format first (Category: item1, item2)
-      const categoryPattern = /([A-Za-z&\s]+):\s*([^:]+?)(?=\s+[A-Za-z&\s]+:|$)/g;
       const groups: Array<{ category: string; items: string[] }> = [];
-      let match;
       
-      while ((match = categoryPattern.exec(change.updated)) !== null) {
-        const category = match[1].trim();
-        const itemsText = match[2].trim();
+      // Method 1: Split by newlines first to find category lines
+      const lines = change.updated.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      
+      for (const line of lines) {
+        // Check if line contains a category pattern: "Category Name:" or "Category Name •"
+        const categoryMatch = line.match(/^([A-Za-z&\s\-\/]+(?:&[A-Za-z\s]+)?)\s*[:•]\s*(.*)$/);
         
-        // Parse items - split by bullet, comma, or newline
-        const items = itemsText
-          .split(/[•·,\n]/)
-          .map(s => s.trim().replace(/^\s*[-–]\s*/, ''))
-          .filter(s => s.length > 2 && s.length < 80);
-        
-        if (items.length > 0) {
-          groups.push({ category, items });
+        if (categoryMatch) {
+          const category = categoryMatch[1].trim();
+          const itemsText = categoryMatch[2].trim();
+          
+          // Parse items from the rest of the line
+          const items = itemsText
+            .split(/[,•·]/)
+            .map(s => s.trim().replace(/^\s*[-–]\s*/, ''))
+            .filter(s => s.length > 2 && s.length < 100);
+          
+          if (items.length > 0) {
+            groups.push({ category, items });
+          }
+        } else if (line.includes(':') && !line.match(/^\d/)) {
+          // Fallback: any line with colon might be "Category: items"
+          const parts = line.split(':');
+          if (parts.length >= 2 && parts[0].length < 50) {
+            const category = parts[0].trim();
+            const itemsText = parts.slice(1).join(':').trim();
+            
+            const items = itemsText
+              .split(/[,•·]/)
+              .map(s => s.trim().replace(/^\s*[-–]\s*/, ''))
+              .filter(s => s.length > 2 && s.length < 100);
+            
+            if (items.length > 0) {
+              groups.push({ category, items });
+            }
+          }
         }
       }
       
-      // If no categories found, fall back to flat list parsing
+      // Method 2: If no categories found, try bullet-based parsing
       if (groups.length === 0) {
-        const skillText = change.updated
-          .replace(/\*\*/g, '') // Remove markdown bold
-          .replace(/\n/g, ' '); // Normalize newlines
+        console.log('[CVPanel] No categories found, trying bullet parsing');
+        const skillText = change.updated.replace(/\*\*/g, '');
         
-        // Split by bullet points (•) and clean up
+        // Split by bullet points or newlines
         const skillItems = skillText
-          .split(/[•·]/)
-          .map(s => s.trim())
-          .filter(s => s.length > 0 && s.length < 100);
+          .split(/[•·\n]/)
+          .map(s => s.trim().replace(/^\s*[-–]\s*/, ''))
+          .filter(s => s.length > 2 && s.length < 100);
         
         if (skillItems.length > 0) {
-          // Group skills into categories of 5 items each
-          const groupSize = 5;
+          // Group skills into categories of 6 items each for display
+          const groupSize = 6;
           for (let i = 0; i < skillItems.length; i += groupSize) {
             const groupItems = skillItems.slice(i, i + groupSize);
             groups.push({
@@ -152,8 +172,10 @@ function applyChangesToCVData(cvData: CVData, changes: CVChange[]): CVData {
       }
       
       if (groups.length > 0) {
-        console.log('[CVPanel] Parsed', groups.length, 'skill groups');
+        console.log('[CVPanel] Parsed', groups.length, 'skill groups with items:', groups.map(g => g.items.length));
         result.skills = groups;
+      } else {
+        console.log('[CVPanel] WARNING: Failed to parse skills from change');
       }
     }
     
@@ -192,77 +214,84 @@ function applyChangesToCVData(cvData: CVData, changes: CVChange[]): CVData {
       }
     }
     
-    // Apply experience changes - match by company/position with flexible matching
+    // Apply experience changes - match by company/position using generic word matching
     if (sectionLower.includes('experience') || sectionLower.includes('berufserfahrung')) {
       console.log('[CVPanel] Applying experience change for section:', change.section);
       
-      // Try to find the matching experience entry with more flexible matching
+      // Extract significant words from section name (4+ chars, not common words)
+      const commonWords = ['professional', 'experience', 'role', 'position', 'job', 'work', 'the', 'and', 'for'];
+      const sectionWords = sectionLower
+        .split(/[\s\-–_|]+/)
+        .filter(w => w.length >= 4 && !commonWords.includes(w));
+      
+      // Find matching experience by checking if any section word appears in company or position
       let expIndex = result.experience.findIndex(exp => {
         const companyLower = exp.company.toLowerCase();
         const positionLower = exp.position.toLowerCase();
         
-        // Direct match
-        if (sectionLower.includes(companyLower) || sectionLower.includes(positionLower)) {
-          return true;
-        }
-        
-        // Partial match - check if key words from section appear in company/position
-        const sectionWords = sectionLower.split(/[\s-]+/).filter(w => w.length > 3);
+        // Check each significant word from section
         for (const word of sectionWords) {
           if (companyLower.includes(word) || positionLower.includes(word)) {
             return true;
           }
         }
         
-        // Match common patterns: "E-Commerce" in section matches "E-Commerce Specialist"
-        if (sectionLower.includes('e-commerce') && positionLower.includes('e-commerce')) return true;
-        if (sectionLower.includes('kursfind') && (companyLower.includes('kursfind') || positionLower.includes('kursfind'))) return true;
-        if (sectionLower.includes('wasim') && (companyLower.includes('wasim') || positionLower.includes('wasim') || companyLower.includes('academy'))) return true;
-        if (sectionLower.includes('social media') && positionLower.includes('social')) return true;
-        if (sectionLower.includes('self-employed') || sectionLower.includes('self employed')) {
-          if (companyLower.includes('self') || companyLower.includes('freelance')) return true;
+        // Also check if company/position words appear in section
+        const companyWords = companyLower.split(/[\s\-–_]+/).filter(w => w.length >= 4);
+        const positionWords = positionLower.split(/[\s\-–_]+/).filter(w => w.length >= 4);
+        
+        for (const word of [...companyWords, ...positionWords]) {
+          if (sectionLower.includes(word)) {
+            return true;
+          }
         }
         
         return false;
       });
       
-      // If no match found but section mentions a specific role, try to add as new experience
-      if (expIndex < 0) {
-        console.log('[CVPanel] No matching experience found for:', change.section);
-        // Check if this is a new role that should be added (like Wasim Academy as separate entry)
-        if (sectionLower.includes('wasim academy') || sectionLower.includes('academy role')) {
-          // This is a new entry - add it
-          console.log('[CVPanel] Adding new experience entry for Wasim Academy');
-          const newExp = {
-            id: `exp-wasim-academy-${Date.now()}`,
-            company: 'Wasim Academy',
-            position: 'Founder & Instructor',
-            location: 'Kaiserslautern',
-            startDate: '2022',
-            endDate: '2025',
-            current: false,
-            bullets: [] as string[],
-          };
-          result.experience = [...result.experience, newExp];
-          expIndex = result.experience.length - 1;
+      // If no match found, try matching by index (first experience change → first experience, etc.)
+      if (expIndex < 0 && result.experience.length > 0) {
+        // Count how many experience changes we've already processed
+        const expChangeIndex = changes.filter(c => 
+          c.section.toLowerCase().includes('experience') && 
+          changes.indexOf(c) < changes.indexOf(change)
+        ).length;
+        
+        if (expChangeIndex < result.experience.length) {
+          expIndex = expChangeIndex;
+          console.log('[CVPanel] Using index-based matching, expIndex:', expIndex);
         }
       }
       
       if (expIndex >= 0 && change.updated) {
         result.experience = [...result.experience];
-        // Parse bullets - handle both newline-separated and bullet-separated formats
+        // Parse bullets - handle multiple formats
         let bullets: string[] = [];
         
-        // First try splitting by newlines
-        const newlineBullets = change.updated.split(/\n/).filter(b => b.trim().startsWith('-') || b.trim().startsWith('•'));
-        if (newlineBullets.length > 0) {
-          bullets = newlineBullets.map(b => b.replace(/^[-•]\s*/, '').trim());
-        } else {
-          // Try splitting by bullet points (•) inline
-          const inlineBullets = change.updated.split(/[•·]/).slice(1); // Skip first part (header info)
+        console.log('[CVPanel] Parsing experience bullets from:', change.updated.substring(0, 150));
+        
+        // Method 1: Lines starting with bullet or dash
+        const lines = change.updated.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
+        const bulletLines = lines.filter(l => l.startsWith('-') || l.startsWith('•') || l.startsWith('–'));
+        
+        if (bulletLines.length > 0) {
+          bullets = bulletLines.map(b => b.replace(/^[-•–]\s*/, '').trim()).filter(b => b.length > 10);
+        }
+        
+        // Method 2: Split by inline bullet points
+        if (bullets.length === 0) {
+          const inlineBullets = change.updated.split(/[•·]/).slice(1);
           if (inlineBullets.length > 0) {
-            bullets = inlineBullets.map(b => b.trim()).filter(b => b.length > 10);
+            bullets = inlineBullets.map(b => b.trim()).filter(b => b.length > 10 && b.length < 300);
           }
+        }
+        
+        // Method 3: Sentences that look like achievements (start with verb, contain metric)
+        if (bullets.length === 0) {
+          const sentences = change.updated.split(/[.!]\s+/).filter(s => s.length > 20);
+          bullets = sentences
+            .filter(s => s.match(/^(managed|led|developed|created|built|generated|optimized|increased|decreased|achieved|implemented|designed)/i))
+            .map(s => s.trim() + (s.endsWith('.') ? '' : '.'));
         }
         
         if (bullets.length > 0) {
@@ -271,6 +300,8 @@ function applyChangesToCVData(cvData: CVData, changes: CVChange[]): CVData {
             ...result.experience[expIndex],
             bullets: bullets,
           };
+        } else {
+          console.log('[CVPanel] WARNING: No bullets parsed from experience change');
         }
       }
     }
