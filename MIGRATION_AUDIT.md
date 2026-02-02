@@ -44,10 +44,16 @@
 |------|--------|--------|
 | `src/app/api/optimize/route.ts` | `claude-3-5-sonnet-20241022` → `claude-haiku-4-5` | ✅ |
 | `src/app/api/optimize-cv/route.ts` | `claude-sonnet-4-20250514` → `claude-haiku-4-5` | ✅ |
-| `src/app/api/parse-cv/route.ts` | `claude-sonnet-4-20250514` → `claude-haiku-4-5` | ✅ |
+| `src/app/api/parse-cv/route.ts` | `claude-sonnet-4-20250514` → `claude-haiku-4-5` (Gemini kept as fallback) | ✅ |
 | `src/app/api/agent-v2/route.ts` | Model info display updated to `claude-haiku-4.5` | ✅ |
 | `src/app/api/chat/route.ts` | Uses callModel (routes to Anthropic via types.ts config) | ✅ |
 | `src/app/api/regenerate/route.ts` | Uses writerAgent (routes to Anthropic) | ✅ |
+| `src/app/api/parse/route.ts` | Uses `extractCVData` from cv-extractor.ts (migrated to Anthropic) | ✅ |
+| `src/app/api/generate-pdf/route.ts` | No AI models - PDF generation only | ✅ N/A |
+| `src/app/api/test-models/route.ts` | Test endpoint - uses callModel (routes to Anthropic) | ✅ |
+| `src/app/api/test-rag/route.ts` | Test endpoint - RAG/Pinecone only, no AI models | ✅ N/A |
+| `src/app/api/test-tavily/route.ts` | Test endpoint - Tavily web search only | ✅ N/A |
+| `src/app/api/test-gpt-search/route.ts` | Test endpoint - GPT-4o web search (intentionally kept) | ⚠️ Test Only |
 
 ### Phase 4: Library Files
 
@@ -55,6 +61,20 @@
 |------|--------|--------|
 | `src/lib/cv-extractor.ts` | OpenAI `gpt-4o-mini` → Anthropic `claude-haiku-4-5` | ✅ |
 | `src/lib/anthropic.ts` | Model updated to `claude-haiku-4-5` | ✅ |
+
+### Phase 4b: RAG System Files
+
+| File | Change | Status |
+|------|--------|--------|
+| `src/lib/rag/gap-analyzer.ts` | Uses callModel (routes to Anthropic) | ✅ |
+| `src/lib/rag/skills.ts` | No AI models - skill matching logic only | ✅ N/A |
+| `src/lib/rag/embeddings.ts` | Uses Gemini `text-embedding-004` for embeddings | ⚠️ Intentional |
+| `src/lib/rag/pinecone.ts` | No AI models - Pinecone vector DB only | ✅ N/A |
+
+**Note:** `embeddings.ts` intentionally uses Gemini's embedding model because:
+- Anthropic does NOT have an embedding model
+- Google's `text-embedding-004` is specifically designed for vector embeddings
+- This is a different use case from text generation
 
 ### Phase 5: UI Components
 
@@ -136,14 +156,26 @@ GOOGLE_AI_API_KEY=your_google_key   # Legacy fallback
 ### API Routes
 - [x] `/api/optimize` - Uses `claude-haiku-4-5`
 - [x] `/api/optimize-cv` - Uses `claude-haiku-4-5`
-- [x] `/api/parse-cv` - Uses `claude-haiku-4-5`
+- [x] `/api/parse-cv` - Uses `claude-haiku-4-5` (Gemini fallback)
 - [x] `/api/agent-v2` - Uses callModel → Anthropic
 - [x] `/api/chat` - Uses callModel → Anthropic
 - [x] `/api/regenerate` - Uses writerAgent → Anthropic
+- [x] `/api/parse` - Uses cv-extractor → Anthropic
+- [x] `/api/generate-pdf` - No AI (PDF only)
+- [x] `/api/test-models` - Uses callModel → Anthropic
+- [x] `/api/test-rag` - No AI (RAG only)
+- [x] `/api/test-tavily` - Tavily only
+- [x] `/api/test-gpt-search` - GPT-4o (test endpoint, intentional)
 
 ### Agents
 - [x] Context Agent - Uses callModel → Anthropic
 - [x] Writer Agent - Uses callModel → Anthropic
+
+### RAG System
+- [x] `gap-analyzer.ts` - Uses callModel → Anthropic
+- [x] `skills.ts` - No AI models
+- [x] `embeddings.ts` - Uses Gemini embedding (intentional - Anthropic has no embedding model)
+- [x] `pinecone.ts` - No AI models
 
 ### Web Search
 - [x] Tavily is PRIMARY for company research
