@@ -352,19 +352,35 @@ ${masterCV ? `
 === ADDITIONAL EXPERIENCE (from Master CV) ===
 ${masterCV}` : ''}
 
-=== STRUCTURE EXAMPLE (DO NOT COPY CONTENT - USE ONLY AS FORMAT GUIDE) ===
-[Opening - hooks with achievement, shows understanding of company challenge]
-"After [SPECIFIC ACHIEVEMENT WITH METRIC FROM CV], I've developed [RELEVANT SKILL FROM CV]. When I saw your [JOB TITLE] role, I recognized [CONNECTION TO THEIR CHALLENGE]."
+=== EXAMPLE OF EXCELLENT COVER LETTER STRUCTURE ===
 
-[Value paragraph - specific experience matched to their needs]
-"At [PREVIOUS COMPANY FROM CV], I [SPECIFIC ACCOMPLISHMENT FROM CV]. [DESCRIBE PROCESS/ACTIONS FROM CV]. The result: [METRIC FROM CV IF AVAILABLE, OTHERWISE QUALITATIVE OUTCOME]. I'm looking to bring this same [APPROACH/SKILL FROM CV] to your team."
+[Opening - hooks with achievement from CV, shows understanding of company challenge]
+"After [INSERT EXACT METRIC FROM CV - e.g., revenue, followers, years experience], I've developed [SKILL RELEVANT TO JOB]. When I saw your [JOB TITLE] role, I recognized the exact challenge I've been solving: [CONNECT TO JOB REQUIREMENTS]."
 
-[Company knowledge - shows research]
-"I've been following [SPECIFIC COMPANY FACT FROM RESEARCH], and I'm particularly impressed by [SPECIFIC INITIATIVE/VALUE]. My experience [RELEVANT EXPERIENCE FROM CV] aligns well with [THEIR SPECIFIC CHALLENGE/GOAL]."
+[Value paragraph - specific experience matched to their needs using ONLY CV facts]
+"In my role as [EXACT TITLE FROM CV], I [EXACT ACHIEVEMENT FROM CV WITH EXACT METRIC]. I also [SECOND ACHIEVEMENT FROM CV]. My experience with [TOOLS ACTUALLY LISTED IN CV] positions me to [BENEFIT TO COMPANY]."
+
+[Company knowledge - shows research from company research section]
+"I've been following [SPECIFIC FACT FROM COMPANY RESEARCH SECTION - only if provided]. [CONNECT YOUR REAL EXPERIENCE TO THEIR SITUATION]."
 
 [Confident close - specific and action-oriented]
-"I'd welcome the opportunity to discuss how my [SPECIFIC SKILL FROM CV] can help [SPECIFIC COMPANY GOAL]. I'm available for a call this week or next at your convenience."
-=== END STRUCTURE EXAMPLE ===
+"I'd welcome the opportunity to discuss how my [SKILL FROM CV] experience can [BENEFIT]. I'm available for a call this week or next."
+
+=== END EXAMPLE ===
+
+IMPORTANT: The example above shows STRUCTURE only. 
+- Replace all [BRACKETED ITEMS] with REAL information from the candidate's CV
+- DO NOT invent metrics - use only what's in CANDIDATE BACKGROUND
+- DO NOT claim tools/platforms not listed in CANDIDATE BACKGROUND
+
+=== SKILL VERIFICATION ===
+
+CRITICAL: Only claim experience with tools/platforms that are EXPLICITLY mentioned in the CANDIDATE BACKGROUND section above. 
+
+If the job asks for tools the candidate doesn't have:
+- DO NOT claim experience with those tools
+- Instead, mention similar tools they DO have
+- Use phrases like "experience with comparable platforms" or "proven ability to master new systems quickly"
 
 INSTRUCTIONS:
 1. Use the Problem-Solution format shown in the structure example
@@ -379,54 +395,48 @@ INSTRUCTIONS:
 Write the complete cover letter now:`,
       systemPrompt: `You are an expert cover letter writer specializing in the US and UK job markets.
 
+CRITICAL ANTI-HALLUCINATION RULES (READ FIRST - VIOLATION IS UNACCEPTABLE):
+
+1. NEVER claim experience with tools, platforms, or technologies unless they are EXPLICITLY listed in the CANDIDATE BACKGROUND section. 
+   - Job wants "Shopify" but CV doesn't mention it? DO NOT claim Shopify experience.
+   - Job wants "Magento" but CV only has "Amazon Seller Central"? Say "e-commerce platform experience" NOT "Magento experience"
+
+2. NEVER invent metrics, percentages, or numbers.
+   - Only use EXACT numbers from the CV: "€150,000 revenue" ✓
+   - Never invent: "67% increase" ✗ (unless that exact number is in the CV)
+
+3. NEVER claim industry experience the candidate doesn't have.
+   - CV shows cosmetics/laundry products? DO NOT claim "agricultural sector experience"
+   - Instead: "e-commerce experience across multiple product categories"
+
+4. If unsure whether something is in the CV, DO NOT include it.
+
+5. Before writing any claim, ask: "Is this EXACT fact in the CANDIDATE BACKGROUND section?" If no, don't write it.
+
 WRITING STYLE:
 - Write like a confident professional, not a job applicant begging for consideration
 - Use active voice and strong verbs
-- Be specific and concrete - never vague
+- Be specific and concrete - but ONLY with facts from the CV
 - Sound human - slightly conversational, not robotic
 - Match the company's tone (startup = casual, corporate = professional)
 
-STRUCTURE (Problem-Solution Format - highest performing in 2025):
-1. Opening hook (1-2 sentences): Immediately show you understand their challenge or mention a specific achievement relevant to the role
-2. Value paragraph (3-4 sentences): Connect YOUR specific experience to THEIR specific needs with metrics
-3. Company knowledge (2-3 sentences): Reference something specific about the company - recent news, values, or products
-4. Confident close (1-2 sentences): Clear call to action without desperation
+STRUCTURE (Problem-Solution Format):
+1. Opening hook (1-2 sentences): Lead with a REAL achievement from the CV
+2. Value paragraph (3-4 sentences): Connect ACTUAL experience to their needs with REAL metrics
+3. Company knowledge (2-3 sentences): Reference company research if provided
+4. Confident close (1-2 sentences): Clear call to action
 
-TONE CALIBRATION:
-- Startup/Tech: Casual, enthusiastic, show personality
-- Corporate/Enterprise: Professional, measured, formal
-- Creative industry: Show creativity in writing style
-- Default to professional-casual if unsure
-
-ABSOLUTE PROHIBITIONS - NEVER USE THESE:
+ABSOLUTE PROHIBITIONS:
 - "I am writing to apply for..." or "I am excited to apply for..."
 - "I believe I would be a great fit..."
 - "Thank you for considering my application..."
 - "To Whom It May Concern"
 - "I am confident that..."
 - "I would be a valuable asset..."
-- "I am a [adjective] professional..."
 - "References available upon request"
-- "Please find attached..."
 - "I look forward to hearing from you"
-- Any phrase containing "passionate" without specific evidence
-- Em-dashes - use regular dashes instead
-
-WHAT TO DO INSTEAD:
-- Instead of "I am excited to apply": Lead with an achievement or insight
-- Instead of "great fit": Show the fit through specific examples
-- Instead of "valuable asset": Demonstrate value with metrics
-- Instead of generic close: "I'd welcome the chance to discuss how my [specific skill] can help [specific company goal]."
-
-CRITICAL ANTI-HALLUCINATION RULES:
-1. NEVER claim experience with tools, platforms, or technologies not explicitly listed in the CANDIDATE BACKGROUND
-2. NEVER invent metrics (percentages, numbers, dollar amounts) - only use exact numbers from the CV
-3. If the job requires skills the candidate doesn't have, DO NOT claim them - instead, show transferable skills
-4. The structure example uses placeholders - do NOT copy its specific content, only its format
-5. ONLY reference information explicitly stated in the CANDIDATE BACKGROUND or ADDITIONAL EXPERIENCE sections
-6. If the CV lacks specific metrics, use qualitative descriptions instead of making up numbers
-7. Every claim must be verifiable by looking at the provided CV text
-8. When mentioning tools/platforms (e.g., Shopify, Magento, AWS), verify they appear in the CV first
+- Em-dashes (—) - use regular dashes (-) instead
+- ANY claim about tools, metrics, or experience not in the CV
 
 OUTPUT: Plain text only. No markdown. No bullet points. Professional letter format.`,
     });
@@ -470,11 +480,14 @@ Company Research Available: ${companyResearch ? 'Yes' : 'No'}
 
 === EDITING CHECKLIST ===
 
-1. HALLUCINATION CHECK (CRITICAL - DO THIS FIRST):
-   - Read every claim, skill, tool, platform, and metric in the letter
-   - Verify each one appears in the CANDIDATE'S ACTUAL CV above
-   - If ANY claim is not in the CV, REMOVE IT or replace with actual CV content
-   - Common hallucinations to check: Shopify, Magento, AWS, specific percentages, dollar amounts
+1. HALLUCINATION CHECK (MOST IMPORTANT - DO THIS FIRST):
+   - Does the letter claim any tools/platforms not in the candidate's CV?
+   - If yes: REMOVE those claims or replace with tools actually in the CV
+   - Does the letter contain any percentages or metrics not in the CV?
+   - If yes: REMOVE those metrics or replace with actual metrics from CV
+   - Does the letter claim industry experience the candidate doesn't have?
+   - If yes: REMOVE or generalize ("e-commerce experience" not "agricultural sector experience")
+   - Common hallucinations to check: Shopify, Magento, AWS, specific percentages like "67%", dollar amounts
    - If the letter claims experience the CV doesn't show, REWRITE using only CV content
 
 2. OPENING CHECK:
@@ -483,7 +496,7 @@ Company Research Available: ${companyResearch ? 'Yes' : 'No'}
    
 3. SPECIFICITY CHECK:
    - Are there at least 2 specific metrics/numbers?
-   - If no: Add metrics ONLY if they exist in the CV
+   - If no: Add metrics ONLY if they exist in the CV - NEVER invent metrics
    
 4. COMPANY KNOWLEDGE CHECK:
    - Does it mention something specific about the company?
@@ -499,7 +512,7 @@ Company Research Available: ${companyResearch ? 'Yes' : 'No'}
    
 7. LENGTH CHECK:
    - Is it between 250-350 words?
-   - If too long: Cut filler. If too short: Add specific value.
+   - If too long: Cut filler. If too short: Add specific value from CV only.
 
 === BLACKLISTED PHRASES TO REMOVE ===
 - "I am writing to apply/express interest"
