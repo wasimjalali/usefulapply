@@ -852,11 +852,10 @@ NEVER end a cover letter without the signature. The signature is mandatory.`,
 
     let coverLetter = response.content || '';
     
-    // Refinement pass for quality improvement
-    if (coverLetter && coverLetter.length > 100 && emit) {
-      emit({ type: 'progress', percent: 80, message: 'Polishing cover letter...' });
-      coverLetter = await this.refineCoverLetter(coverLetter, context);
-    }
+    // NOTE: Refinement pass REMOVED to save tokens and reduce latency.
+    // With Claude Haiku 4.5 and improved prompts, the initial generation
+    // is high quality enough that refinement adds minimal value.
+    // The refineCoverLetter function is kept below for reference but not called.
     
     // Fix common typos in certifications and tool names
     coverLetter = fixTypos(coverLetter);
@@ -865,84 +864,16 @@ NEVER end a cover letter without the signature. The signature is mandatory.`,
   },
 
   /**
-   * Refinement pass - reviews and improves cover letter quality
-   * Uses same model with "critical editor" persona
+   * DEPRECATED: Refinement pass - no longer called to save tokens
+   * Kept for reference in case quality drops and refinement is needed again.
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async refineCoverLetter(
     originalLetter: string,
-    context: MasterContext
+    _context: MasterContext
   ): Promise<string> {
-    const { applicant, job, companyResearch, rawCV, masterCV } = context;
-
-    const response = await callModel({
-      task: 'refine_cover_letter',
-      prompt: `You are a critical editor reviewing a cover letter. Your job is to improve it, not praise it.
-
-=== ORIGINAL COVER LETTER ===
-${originalLetter}
-
-=== CANDIDATE'S ACTUAL CV (for verification) ===
-${rawCV}
-${masterCV ? `\n\nADDITIONAL EXPERIENCE:\n${masterCV}` : ''}
-
-=== CONTEXT ===
-Applicant: ${applicant?.name}
-Target Role: ${job?.title} at ${job?.companyName}
-Company Research Available: ${companyResearch ? 'Yes' : 'No'}
-
-=== EDITING CHECKLIST ===
-
-1. HALLUCINATION CHECK (MOST IMPORTANT - DO THIS FIRST):
-   - Does the letter claim any tools/platforms not in the candidate's CV?
-   - If yes: REMOVE those claims or replace with tools actually in the CV
-   - Does the letter contain any percentages or metrics not in the CV?
-   - If yes: REMOVE those metrics or replace with actual metrics from CV
-   - Does the letter claim industry experience the candidate doesn't have?
-   - If yes: REMOVE or generalize ("e-commerce experience" not "agricultural sector experience")
-   - Common hallucinations to check: Shopify, Magento, AWS, specific percentages like "67%", dollar amounts
-   - If the letter claims experience the CV doesn't show, REWRITE using only CV content
-
-2. OPENING CHECK:
-   - Does it start with a cliche like "I am writing to apply" or "I am excited"?
-   - If yes: Rewrite to lead with an achievement or insight
-   
-3. SPECIFICITY CHECK:
-   - Are there at least 2 specific metrics/numbers?
-   - If no: Add metrics ONLY if they exist in the CV - NEVER invent metrics
-   
-4. COMPANY KNOWLEDGE CHECK:
-   - Does it mention something specific about the company?
-   - If no and research is available: Add a specific reference
-   
-5. CLOSING CHECK:
-   - Does it end with "Thank you for considering" or "I look forward to hearing"?
-   - If yes: Rewrite with a confident, specific call to action
-   
-6. TONE CHECK:
-   - Does any sentence sound robotic or AI-generated?
-   - If yes: Rewrite in more natural language
-   
-7. LENGTH CHECK:
-   - Is it between 250-350 words?
-   - If too long: Cut filler. If too short: Add specific value from CV only.
-
-=== BLACKLISTED PHRASES TO REMOVE ===
-- "I am writing to apply/express interest"
-- "I am excited/passionate about"
-- "I believe I would be a great fit"
-- "Thank you for considering my application"
-- "I look forward to hearing from you"
-- "Please find attached"
-- Any "I am a [adjective] professional"
-
-=== OUTPUT INSTRUCTIONS ===
-Return ONLY the improved cover letter. No explanations, no "Here's the improved version", no markdown. Just the plain text letter.
-
-If the original is already excellent (rare), return it unchanged.`,
-      systemPrompt: 'You are a ruthless editor focused on ACCURACY and quality. Your #1 priority is removing any claims not in the CV. Cut cliches without mercy. Add specificity where vague, but NEVER invent facts. Return only the improved letter.',
-    });
-
-    return response.content || originalLetter;
+    // Refinement disabled - return original unchanged
+    return originalLetter;
   },
 
   /**

@@ -30,6 +30,16 @@ export function parseOptimizedCVToData(
   // Extract personal info updates if present
   const personalUpdates = parsePersonalSection(sections, optimizedText);
   
+  // Parse languages - first try dedicated section, then extract from skills
+  let languages = parseLanguagesSection(sections);
+  if (languages.length === 0) {
+    // Fallback: extract languages from skills section (AI sometimes puts them there)
+    languages = extractLanguagesFromSkills(sections);
+    if (languages.length > 0) {
+      console.log('[ParseOptimizedCV] Extracted', languages.length, 'languages from skills section');
+    }
+  }
+
   return {
     personal: {
       ...personal,
@@ -39,7 +49,7 @@ export function parseOptimizedCVToData(
     experience: parseExperienceSection(sections, originalCVData?.experience),
     education: parseEducationSection(sections, originalCVData?.education),
     skills: parseSkillsSection(sections),
-    languages: parseLanguagesSection(sections),
+    languages,
     certifications: parseCertificationsSection(sections),
     projects: parseProjectsSection(sections),
     additionalInfo: parseAdditionalInfoSection(sections),
@@ -205,7 +215,7 @@ function parseExperienceSection(
   const experiences: CVData['experience'] = [];
   
   // Strategy: Split by patterns that indicate new job entries
-  // Look for lines that have "Position | Company" or similar patterns
+  // A new entry starts with "Position | Company" pattern (contains pipe separator)
   
   const lines = content.split('\n');
   let currentEntry: {
@@ -232,14 +242,13 @@ function parseExperienceSection(
         }
       }
     } else {
-      // This might be a new entry header or continuation
-      // Check if it looks like a job header (contains | or dates)
-      const looksLikeHeader = trimmedLine.includes('|') || 
-                              trimmedLine.match(/\d{4}/) ||
-                              trimmedLine.match(/Present/i) ||
-                              (trimmedLine.length < 100 && !trimmedLine.endsWith('.'));
+      // Check if this is a NEW job entry (must have pipe separator = "Position | Company")
+      // This is the key indicator that separates entries
+      const isNewEntry = trimmedLine.includes('|') && 
+                         !trimmedLine.startsWith('|') && 
+                         trimmedLine.length > 10;
       
-      if (looksLikeHeader) {
+      if (isNewEntry) {
         // Save previous entry if exists
         if (currentEntry && currentEntry.headerLines.length > 0) {
           const parsed = parseExperienceFromLines(currentEntry.headerLines, currentEntry.bullets);
@@ -251,9 +260,18 @@ function parseExperienceSection(
           headerLines: [trimmedLine],
           bullets: [],
         };
-      } else if (currentEntry && currentEntry.bullets.length === 0) {
-        // This might be a continuation of the header (company, location, date on separate lines)
-        currentEntry.headerLines.push(trimmedLine);
+      } else if (currentEntry) {
+        // This is additional info for current entry (date line, location, etc.)
+        // Only add to header if we haven't started bullets yet
+        if (currentEntry.bullets.length === 0) {
+          // Check if it's a date line or other metadata
+          const isDateLine = trimmedLine.match(/\d{4}/) || trimmedLine.match(/Present/i);
+          const isShortLine = trimmedLine.length < 60 && !trimmedLine.endsWith('.');
+          
+          if (isDateLine || isShortLine) {
+            currentEntry.headerLines.push(trimmedLine);
+          }
+        }
       }
     }
   }
@@ -264,9 +282,18 @@ function parseExperienceSection(
     if (parsed) experiences.push(parsed);
   }
   
-  console.log('[ParseOptimizedCV] Parsed', experiences.length, 'experience entries');
+  // Deduplicate by company name (in case of parsing errors)
+  const seen = new Set<string>();
+  const deduped = experiences.filter(exp => {
+    const key = `${exp.company.toLowerCase()}-${exp.position.toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   
-  return experiences.length > 0 ? experiences : (originalExperience || []);
+  console.log('[ParseOptimizedCV] Parsed', deduped.length, 'experience entries (after dedup)');
+  
+  return deduped.length > 0 ? deduped : (originalExperience || []);
 }
 
 function parseExperienceFromLines(
@@ -425,6 +452,21 @@ function parseEducationSection(
   return education.length > 0 ? education : (original || []);
 }
 
+/**
+ * Check if a string looks like a language entry
+ */
+function isLanguageEntry(text: string): boolean {
+  const languagePatterns = [
+    /^(german|deutsch|english|englisch|french|français|spanish|español|italian|italiano|portuguese|português|russian|chinese|mandarin|japanese|korean|arabic|persian|farsi|dari|urdu|hindi|turkish|polish|dutch|swedish|norwegian|danish|finnish|greek|hebrew|vietnamese|thai|indonesian|malay)/i,
+    /\b(native|fluent|proficient|intermediate|beginner|basic|advanced|B1|B2|C1|C2|A1|A2|muttersprache|verhandlungssicher|fließend|grundkenntnisse)\b/i,
+  ];
+  
+  return languagePatterns.some(pattern => pattern.test(text));
+}
+
+/**
+ * Parse skills section and extract languages separately
+ */
 function parseSkillsSection(sections: Map<string, string>): CVData['skills'] {
   const content = sections.get('SKILLS');
   if (!content) return [];
@@ -435,6 +477,9 @@ function parseSkillsSection(sections: Map<string, string>): CVData['skills'] {
   const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
   
   for (const line of lines) {
+    // Skip lines that look like languages (they'll be extracted separately)
+    if (isLanguageEntry(line)) continue;
+    
     // Pattern: "Category Name: skill1, skill2, skill3" or "**Category:** skill1, skill2"
     const categoryMatch = line.match(/^\*?\*?([A-Za-z\s&\/\-]+)\*?\*?\s*:\s*(.+)$/);
     
@@ -446,7 +491,8 @@ function parseSkillsSection(sections: Map<string, string>): CVData['skills'] {
       const items = itemsText
         .split(/[,•·]/)
         .map(i => i.trim().replace(/^\*\*|\*\*$/g, ''))  // Remove markdown bold
-        .filter(i => i.length > 0 && i.length < 100);
+        .filter(i => i.length > 0 && i.length < 100)
+        .filter(i => !isLanguageEntry(i));  // Filter out language entries
       
       if (items.length > 0) {
         skills.push({ category, items });
@@ -459,7 +505,8 @@ function parseSkillsSection(sections: Map<string, string>): CVData['skills'] {
     const allItems = content
       .split(/[,\n•·]/)
       .map(i => i.trim())
-      .filter(i => i.length > 0 && i.length < 100 && !i.includes(':'));
+      .filter(i => i.length > 0 && i.length < 100 && !i.includes(':'))
+      .filter(i => !isLanguageEntry(i));  // Filter out language entries
     
     if (allItems.length > 0) {
       // Group into chunks of 6-8 for display
@@ -476,6 +523,53 @@ function parseSkillsSection(sections: Map<string, string>): CVData['skills'] {
   console.log('[ParseOptimizedCV] Parsed', skills.length, 'skill categories');
   
   return skills;
+}
+
+/**
+ * Extract languages from skills section content
+ */
+function extractLanguagesFromSkills(sections: Map<string, string>): CVData['languages'] {
+  const content = sections.get('SKILLS');
+  if (!content) return [];
+  
+  const languages: CVData['languages'] = [];
+  
+  // Split by lines and look for language patterns
+  const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
+  
+  for (const line of lines) {
+    if (!isLanguageEntry(line)) continue;
+    
+    // Pattern 1: "Language (Level)" - e.g., "German (B2 Certified – Verhandlungssicher)"
+    const parenMatch = line.match(/^([^(]+)\s*\(([^)]+)\)/);
+    if (parenMatch) {
+      languages.push({
+        language: parenMatch[1].trim(),
+        proficiency: parenMatch[2].trim(),
+      });
+      continue;
+    }
+    
+    // Pattern 2: "Language – Level" or "Language - Level"
+    const dashMatch = line.match(/^(.+?)\s*[–\-—]\s*(.+)$/);
+    if (dashMatch && !dashMatch[1].includes('(')) {
+      languages.push({
+        language: dashMatch[1].trim(),
+        proficiency: dashMatch[2].trim(),
+      });
+      continue;
+    }
+    
+    // Pattern 3: Just "Language (Level)" at end of line
+    if (line.length > 2 && line.length < 80) {
+      languages.push({
+        language: line,
+        proficiency: '',
+      });
+    }
+  }
+  
+  return languages;
 }
 
 function parseLanguagesSection(sections: Map<string, string>): CVData['languages'] {

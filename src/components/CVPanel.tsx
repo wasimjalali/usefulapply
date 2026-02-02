@@ -58,8 +58,11 @@ export function CVPanel() {
   const [editedCVData, setEditedCVData] = useState<CVData | null>(null);
   const cvTemplateRef = useRef<HTMLDivElement>(null);
   
-  // Track content hash to prevent duplicate parsing logs
-  const lastChangesHashRef = useRef<string>('');
+  // Extract stable values from generatedCV to prevent unnecessary re-parses
+  // This ensures parsing only happens when content actually changes, not on every render
+  const optimizedContent = generatedCV?.content;
+  const optimizedTagline = generatedCV?.optimizedTagline;
+  const photoDataUrl = profilePhoto?.dataUrl;
 
   // Parse CV data for template rendering
   // PRIORITY: Use structuredCV (from AI parsing) when available - it has proper skills/languages arrays
@@ -79,38 +82,33 @@ export function CVPanel() {
     }
     
     // Add profile photo if available
-    if (profilePhoto?.dataUrl) {
-      parsed.personal.photoUrl = profilePhoto.dataUrl;
+    if (photoDataUrl) {
+      parsed.personal.photoUrl = photoDataUrl;
     }
     
     // If we have optimized content, use FULL RE-PARSE architecture
-    if (showOptimized && generatedCV?.content) {
-      // Check if content has changed to prevent duplicate parsing
-      const contentHash = generatedCV.content.substring(0, 100);
-      if (contentHash !== lastChangesHashRef.current) {
-        console.log('[CVPanel] Using FULL RE-PARSE for optimized CV');
-        lastChangesHashRef.current = contentHash;
-      }
+    if (showOptimized && optimizedContent) {
+      console.log('[CVPanel] Using FULL RE-PARSE for optimized CV');
       
       // FULL RE-PARSE: Parse the complete optimized CV text into CVData
       // This replaces the old patching approach with a clean single-source parse
-      const optimizedData = parseOptimizedCVToData(generatedCV.content, parsed);
+      const optimizedData = parseOptimizedCVToData(optimizedContent, parsed);
       
       // Apply headline if provided separately (takes priority)
-      if (generatedCV.optimizedTagline) {
-        optimizedData.personal.currentTitle = generatedCV.optimizedTagline;
+      if (optimizedTagline) {
+        optimizedData.personal.currentTitle = optimizedTagline;
       }
       
       // Preserve profile photo from original
-      if (profilePhoto?.dataUrl) {
-        optimizedData.personal.photoUrl = profilePhoto.dataUrl;
+      if (photoDataUrl) {
+        optimizedData.personal.photoUrl = photoDataUrl;
       }
       
       return optimizedData;
     }
     
     return parsed;
-  }, [currentCV, structuredCV, generatedCV, showOptimized, profilePhoto]);
+  }, [currentCV, structuredCV, optimizedContent, optimizedTagline, showOptimized, photoDataUrl]);
 
   const handleCopy = async (text: string) => {
     await navigator.clipboard.writeText(text);
