@@ -465,7 +465,7 @@ Output should be:
 
 Return ONLY valid JSON in this exact format:
 {
-  "optimizedCV": "The COMPLETE optimized CV with ALL changes APPLIED...",
+  "optimizedCV": "The COMPLETE optimized CV with ALL changes APPLIED - this is the FINAL document the user will see",
   "changes": [
     {
       "section": "Headline",
@@ -476,28 +476,32 @@ Return ONLY valid JSON in this exact format:
   ]
 }
 
-=== CRITICAL: APPLY ALL CHANGES ===
+=== CRITICAL: THE optimizedCV FIELD IS THE FINAL OUTPUT ===
 
-The "optimizedCV" field MUST contain the FULLY OPTIMIZED CV with ALL changes applied.
-DO NOT return the original CV with minor tweaks - return the COMPLETE rewritten version.
+IMPORTANT: The "optimizedCV" field is what the user will download and use.
+The "changes" array is ONLY for showing what was changed - it is NOT applied automatically.
+YOU must write the COMPLETE, FINAL, OPTIMIZED CV in the "optimizedCV" field.
 
-WRONG APPROACH:
-- Describing changes in "changes" array but returning original CV in "optimizedCV"
-- Only changing headline and summary but leaving other sections unchanged
-- Saying you'll expand bullets but not actually expanding them
+STEP-BY-STEP PROCESS:
+1. First, decide what changes to make (these go in "changes" array)
+2. Then, WRITE THE ENTIRE CV from scratch with ALL those changes applied
+3. Put the complete rewritten CV in "optimizedCV"
+4. The "optimizedCV" should be the FINAL document - ready to use
 
-CORRECT APPROACH:
-- The "optimizedCV" field contains the COMPLETE CV with EVERY optimization applied
-- If you say you'll expand experience bullets from 3 to 5, the "optimizedCV" MUST have 5 bullets
-- If you say you'll reorganize skills into categories, the "optimizedCV" MUST show those categories
-- If you say you'll add certifications with dates, the "optimizedCV" MUST have those dates
+COMMON MISTAKE TO AVOID:
+❌ WRONG: Putting the original CV in "optimizedCV" and only listing changes in "changes"
+❌ WRONG: Only changing 1-2 sections in "optimizedCV" but listing 10 changes
+❌ WRONG: Describing expanded bullets in "changes" but "optimizedCV" has original bullets
 
-VERIFICATION CHECKLIST (before returning):
-□ Headline in optimizedCV matches the "after" in changes
-□ Summary in optimizedCV matches the "after" in changes  
-□ Skills/Competencies in optimizedCV are reorganized as described
-□ Experience bullets in optimizedCV are expanded as described
-□ Certifications in optimizedCV include dates/details as described
+✅ CORRECT: "optimizedCV" contains the COMPLETE rewritten CV with EVERY change applied
+✅ CORRECT: If "changes" says "expanded to 5 bullets", "optimizedCV" has exactly 5 bullets
+✅ CORRECT: If "changes" says "reorganized into categories", "optimizedCV" shows categories
+
+VERIFICATION (do this before returning):
+- Count bullets in "optimizedCV" - do they match what "changes" describes?
+- Check headline in "optimizedCV" - does it match the "after" in changes?
+- Check summary in "optimizedCV" - does it match the "after" in changes?
+- Check skills in "optimizedCV" - are they reorganized as described?
 
 CRITICAL RULES:
 - Do NOT use markdown formatting (no **, *, ---, etc.)
@@ -505,7 +509,7 @@ CRITICAL RULES:
 - Section headers in UPPERCASE
 - NEVER invent skills, experiences, or achievements
 - Keep CV under 2 pages worth of content
-- The "optimizedCV" MUST reflect EVERY change listed in "changes"`,
+- The "optimizedCV" IS the final document - make it complete`,
       systemPrompt: `You are an expert ATS-optimized CV writer. Return ONLY valid JSON. CRITICAL: Only use information from the provided CV and Master CV. Never invent anything. No markdown formatting.`,
       jsonMode: true,
     });
@@ -528,6 +532,25 @@ CRITICAL RULES:
       }
       
       const parsed = JSON.parse(jsonContent);
+      
+      // DEBUG: Log to verify changes are being applied
+      console.log('[WriterAgent] CV Optimization Debug:');
+      console.log('  - Changes count:', parsed.changes?.length || 0);
+      console.log('  - OptimizedCV length:', parsed.optimizedCV?.length || 0);
+      
+      // Verify that changes are actually applied to the CV
+      if (parsed.changes && parsed.changes.length > 0 && parsed.optimizedCV) {
+        // Check if the first change's "after" text appears in the optimizedCV
+        const firstChange = parsed.changes[0];
+        if (firstChange.after && !parsed.optimizedCV.includes(firstChange.after.substring(0, 50))) {
+          console.warn('[WriterAgent] WARNING: Changes may not be applied to optimizedCV!');
+          console.warn('  - First change "after":', firstChange.after.substring(0, 100));
+          console.warn('  - Not found in optimizedCV');
+        } else {
+          console.log('[WriterAgent] ✓ Changes appear to be applied correctly');
+        }
+      }
+      
       // Apply typo corrections to CV content
       const cvContent = fixTypos(parsed.optimizedCV || response.content);
       return {
