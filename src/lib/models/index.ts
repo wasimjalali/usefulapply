@@ -115,6 +115,7 @@ export async function callModel(options: ModelCallOptions): Promise<ModelRespons
       systemPrompt,
       temperature: finalTemp,
       maxTokens: finalMaxTokens,
+      jsonMode,
     });
   }
   

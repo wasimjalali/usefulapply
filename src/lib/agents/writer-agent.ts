@@ -407,13 +407,39 @@ CRITICAL RULES:
     });
 
     try {
-      const parsed = JSON.parse(response.content);
+      // Clean the response - Claude may wrap JSON in markdown code blocks
+      let jsonContent = response.content.trim();
+      
+      // Remove markdown code blocks if present
+      if (jsonContent.startsWith('```json')) {
+        jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      // Try to find JSON object in the response
+      const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonContent = jsonMatch[0];
+      }
+      
+      const parsed = JSON.parse(jsonContent);
       return {
         content: parsed.optimizedCV || response.content,
         changes: parsed.changes || [],
       };
-    } catch {
-      // Fallback if JSON parsing fails
+    } catch (error) {
+      console.error('[WriterAgent] Failed to parse CV JSON:', error);
+      console.error('[WriterAgent] Raw response:', response.content.substring(0, 500));
+      // Fallback if JSON parsing fails - try to extract just the CV content
+      const content = response.content;
+      // If it looks like it contains a CV structure, use it
+      if (content.includes('PROFESSIONAL') || content.includes('EXPERIENCE') || content.includes('EDUCATION')) {
+        return {
+          content: content,
+          changes: [],
+        };
+      }
       return {
         content: response.content,
         changes: [],
@@ -754,7 +780,23 @@ Return ONLY valid JSON: {"subject": "...", "body": "..."}`,
     });
 
     try {
-      const parsed = JSON.parse(response.content);
+      // Clean the response - Claude may wrap JSON in markdown code blocks
+      let jsonContent = response.content.trim();
+      
+      // Remove markdown code blocks if present
+      if (jsonContent.startsWith('```json')) {
+        jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      // Try to find JSON object in the response
+      const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonContent = jsonMatch[0];
+      }
+      
+      const parsed = JSON.parse(jsonContent);
       // Clean up any placeholder names that slipped through
       const cleanBody = (parsed.body || response.content)
         .replace(/Hi \[Name\],?/gi, 'Hello,')
@@ -764,7 +806,8 @@ Return ONLY valid JSON: {"subject": "...", "body": "..."}`,
         subject: parsed.subject || `Application for ${job?.title || 'Position'} at ${job?.companyName || 'Company'}`,
         body: cleanBody,
       };
-    } catch {
+    } catch (error) {
+      console.error('[WriterAgent] Failed to parse email JSON:', error);
       // Fallback: try to extract subject from content
       const lines = response.content.split('\n');
       let subject = `Application for ${job?.title || 'Position'} at ${job?.companyName || 'Company'}`;

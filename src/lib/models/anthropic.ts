@@ -16,22 +16,30 @@ export interface AnthropicCallOptions {
   systemPrompt?: string;
   temperature?: number;
   maxTokens?: number;
+  jsonMode?: boolean;
 }
 
 /**
  * Call Claude Haiku 4.5 for all AI tasks
  */
 export async function callAnthropic(options: AnthropicCallOptions): Promise<ModelResponse> {
-  const { prompt, systemPrompt, temperature = 0.7, maxTokens = 4096 } = options;
+  const { prompt, systemPrompt, temperature = 0.7, maxTokens = 4096, jsonMode = false } = options;
   
   const startTime = Date.now();
+  
+  // For JSON mode, enhance the system prompt to ensure valid JSON output
+  let finalSystemPrompt = systemPrompt || '';
+  if (jsonMode) {
+    const jsonInstruction = '\n\nIMPORTANT: You MUST respond with ONLY valid JSON. No markdown code blocks, no explanations, no text before or after the JSON. Start your response with { and end with }. Ensure all strings are properly escaped.';
+    finalSystemPrompt = finalSystemPrompt + jsonInstruction;
+  }
   
   try {
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5',
       max_tokens: maxTokens,
       temperature,
-      ...(systemPrompt && { system: systemPrompt }),
+      ...(finalSystemPrompt && { system: finalSystemPrompt }),
       messages: [
         { role: 'user', content: prompt }
       ],
@@ -64,19 +72,26 @@ export async function callAnthropicStream(
   options: AnthropicCallOptions,
   onChunk: (chunk: string) => void
 ): Promise<ModelResponse> {
-  const { prompt, systemPrompt, temperature = 0.7, maxTokens = 4096 } = options;
+  const { prompt, systemPrompt, temperature = 0.7, maxTokens = 4096, jsonMode = false } = options;
   
   const startTime = Date.now();
   let fullContent = '';
   let inputTokens = 0;
   let outputTokens = 0;
   
+  // For JSON mode, enhance the system prompt
+  let finalSystemPrompt = systemPrompt || '';
+  if (jsonMode) {
+    const jsonInstruction = '\n\nIMPORTANT: You MUST respond with ONLY valid JSON. No markdown code blocks, no explanations, no text before or after the JSON. Start your response with { and end with }. Ensure all strings are properly escaped.';
+    finalSystemPrompt = finalSystemPrompt + jsonInstruction;
+  }
+  
   try {
     const stream = anthropic.messages.stream({
       model: 'claude-haiku-4-5',
       max_tokens: maxTokens,
       temperature,
-      ...(systemPrompt && { system: systemPrompt }),
+      ...(finalSystemPrompt && { system: finalSystemPrompt }),
       messages: [
         { role: 'user', content: prompt }
       ],

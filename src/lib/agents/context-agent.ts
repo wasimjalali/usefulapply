@@ -157,9 +157,25 @@ CRITICAL: Only extract information that EXISTS in the CV. Do not invent or assum
     });
 
     try {
-      return JSON.parse(response.content);
-    } catch {
-      console.error('[ContextAgent] Failed to parse applicant profile');
+      // Clean the response - Claude may wrap JSON in markdown code blocks
+      let jsonContent = response.content.trim();
+      
+      // Remove markdown code blocks if present
+      if (jsonContent.startsWith('```json')) {
+        jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      // Try to find JSON object in the response
+      const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonContent = jsonMatch[0];
+      }
+      
+      return JSON.parse(jsonContent);
+    } catch (error) {
+      console.error('[ContextAgent] Failed to parse applicant profile:', error);
       // Return minimal profile from basic extraction
       return this.extractBasicProfile(primaryCV);
     }
@@ -217,9 +233,25 @@ Extract ALL skills mentioned, including technical skills, soft skills, tools, an
     });
 
     try {
-      return JSON.parse(response.content);
-    } catch {
-      console.error('[ContextAgent] Failed to parse job description');
+      // Clean the response - Claude may wrap JSON in markdown code blocks
+      let jsonContent = response.content.trim();
+      
+      // Remove markdown code blocks if present
+      if (jsonContent.startsWith('```json')) {
+        jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      // Try to find JSON object in the response
+      const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonContent = jsonMatch[0];
+      }
+      
+      return JSON.parse(jsonContent);
+    } catch (error) {
+      console.error('[ContextAgent] Failed to parse job description:', error);
       // Return minimal job info
       return {
         title: 'Unknown Position',

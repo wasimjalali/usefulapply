@@ -98,16 +98,25 @@ export async function searchWeb(options: TavilySearchOptions): Promise<{
 export async function researchCompany(companyName: string): Promise<CompanyResearch> {
   try {
     // Run multiple searches in parallel for comprehensive info
-    const [generalInfo, cultureInfo, techInfo, newsInfo] = await Promise.all([
+    const [generalInfo, addressInfo, cultureInfo, techInfo, newsInfo] = await Promise.all([
       searchWeb({
-        query: `${companyName} company overview headquarters address industry size founded`,
+        query: `${companyName} company overview industry size founded what does ${companyName} do`,
         searchDepth: 'advanced',
         maxResults: 5,
+        includeAnswer: true,
+      }),
+      // Dedicated search for headquarters address
+      searchWeb({
+        query: `${companyName} headquarters office address location street city country`,
+        searchDepth: 'advanced',
+        maxResults: 5,
+        includeAnswer: true,
       }),
       searchWeb({
         query: `${companyName} company culture values mission employee reviews glassdoor`,
         searchDepth: 'basic',
         maxResults: 3,
+        includeAnswer: true,
       }),
       searchWeb({
         query: `${companyName} tech stack technology engineering blog developers`,
@@ -121,12 +130,14 @@ export async function researchCompany(companyName: string): Promise<CompanyResea
       }),
     ]);
 
+    // Extract address with improved logic
+    const extractedAddress = extractAddress(addressInfo.results, addressInfo.answer, companyName);
+
     // Combine all search results into a structured format
-    // The actual extraction will be done by the AI model
     return {
       name: companyName,
       description: generalInfo.answer || extractFromResults(generalInfo.results, 'description'),
-      address: extractFromResults(generalInfo.results, 'address'),
+      address: extractedAddress,
       industry: extractFromResults(generalInfo.results, 'industry'),
       culture: extractListFromResults(cultureInfo.results, 'culture'),
       techStack: extractListFromResults(techInfo.results, 'tech'),
@@ -253,6 +264,82 @@ function extractWebsite(results: SearchResult[], companyName: string): string {
       return result.url;
     }
   }
+  return '';
+}
+
+/**
+ * Extract company address from search results with improved logic
+ * Looks for address patterns in the answer and search results
+ */
+function extractAddress(results: SearchResult[], answer: string | undefined, companyName: string): string {
+  // First, try to extract from the Tavily answer if available
+  if (answer) {
+    const addressFromAnswer = extractAddressFromText(answer);
+    if (addressFromAnswer) {
+      return addressFromAnswer;
+    }
+  }
+
+  // Then search through results for address patterns
+  for (const result of results) {
+    const addressFromContent = extractAddressFromText(result.content);
+    if (addressFromContent) {
+      return addressFromContent;
+    }
+  }
+
+  // Fallback: look for location mentions
+  for (const result of results) {
+    const content = result.content;
+    // Look for "headquartered in", "based in", "located in" patterns
+    const locationPatterns = [
+      /headquartered\s+(?:in|at)\s+([^.]+)/i,
+      /headquarters?\s+(?:is|are|in|at)\s+([^.]+)/i,
+      /based\s+(?:in|at)\s+([^.]+)/i,
+      /located\s+(?:in|at)\s+([^.]+)/i,
+      /office\s+(?:in|at)\s+([^.]+)/i,
+    ];
+    
+    for (const pattern of locationPatterns) {
+      const match = content.match(pattern);
+      if (match && match[1]) {
+        const location = match[1].trim();
+        // Clean up and return if it looks like a valid location
+        if (location.length > 3 && location.length < 150) {
+          return location;
+        }
+      }
+    }
+  }
+
+  return '';
+}
+
+/**
+ * Extract address from text using common address patterns
+ */
+function extractAddressFromText(text: string): string {
+  // Common address patterns
+  const patterns = [
+    // Full street address with number
+    /(\d+\s+[A-Za-z0-9\s,]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Way|Place|Pl|Court|Ct)[.,]?\s*[A-Za-z\s,]+(?:\d{5}(?:-\d{4})?)?)/i,
+    // Address with city, state/country
+    /([A-Za-z0-9\s]+,\s*[A-Za-z\s]+,\s*(?:[A-Z]{2}|[A-Za-z]+)\s*\d{5}(?:-\d{4})?)/i,
+    // International format: City, Country
+    /(?:headquarters?|office|located|based)\s+(?:in|at)\s+([A-Za-z\s]+,\s*[A-Za-z\s]+)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      const address = match[1].trim();
+      // Validate it looks like an address (has some length, contains letters)
+      if (address.length > 5 && address.length < 200 && /[a-zA-Z]/.test(address)) {
+        return address;
+      }
+    }
+  }
+
   return '';
 }
 
