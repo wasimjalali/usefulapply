@@ -226,6 +226,52 @@ SECTIONS TO KEEP EXACTLY AS-IS (DO NOT MODIFY):
 • Education: Keep exactly as in original CV
 • Languages: Keep exactly as in original CV
 
+=== SKILL PRESERVATION RULES ===
+
+When optimizing the CV, preserve the candidate's DIFFERENTIATING SKILLS - these are skills that make them stand out from typical applicants.
+
+DIFFERENTIATING SKILLS TO PRESERVE (if present in candidate's CV):
+
+1. AI & Automation Skills
+   - Any AI tools mentioned (e.g., ChatGPT, Claude, Gemini, MidJourney, etc.)
+   - Any AI coding assistants mentioned (e.g., Cursor, Copilot, Windsurf, etc.)
+   - Any automation platforms mentioned (e.g., Zapier, Make, n8n, etc.)
+   - Prompt engineering experience
+   - AI workflow automation
+
+2. Technical/Builder Skills
+   - Programming languages mentioned in the CV
+   - Frameworks mentioned in the CV (e.g., React, Next.js, Vue, etc.)
+   - Any indication they BUILD things (side projects, tools, products)
+
+3. Specific Industry Tools
+   - Any specialized tools the candidate actually uses (check their CV)
+   - Platform-specific expertise (e.g., Amazon Seller Central, Shopify, etc.)
+
+4. Founder/Entrepreneurial Experience
+   - Side projects
+   - Businesses started
+   - Products built
+
+HOW TO IDENTIFY DIFFERENTIATING SKILLS:
+Step 1: Read the candidate's CV and Master CV
+Step 2: Identify skills that are:
+   - Modern/forward-thinking (AI, automation, no-code)
+   - Show they can BUILD, not just operate
+   - Specialized expertise with specific tools
+   - Unique combinations (e.g., e-commerce + AI + web development)
+Step 3: KEEP these skills even if NOT explicitly required in the job description
+
+WHY: These skills signal adaptability, learning ability, and higher potential value. Removing them makes the candidate look generic.
+
+WHAT TO REMOVE:
+Only remove skills that are:
+- Truly irrelevant to any professional context
+- Outdated technologies (e.g., Flash, FrontPage)
+- Generic filler (e.g., "Microsoft Word" for a senior role)
+
+RULE: When in doubt, KEEP the skill from the original CV.
+
 SECTIONS TO OPTIMIZE (for ATS keywords and relevance):
 
 1. HEADLINE (under name):
@@ -242,6 +288,7 @@ SECTIONS TO OPTIMIZE (for ATS keywords and relevance):
 3. CORE COMPETENCIES / SKILLS:
    - Maximum 8-10 skills total
    - Prioritize skills that match job requirements
+   - PRESERVE differentiating skills (AI, automation, builder skills) even if not in JD
    - Can add skills from Master CV if relevant to job
    - Group into 2-3 categories if applicable
 
@@ -386,13 +433,25 @@ INSTRUCTIONS:
 1. Use the Problem-Solution format shown in the structure example
 2. Include at least TWO specific metrics from the candidate's background (ONLY if they exist in the CV)
 3. Reference something specific from the company research (if available)
-4. Keep between 250-350 words
+4. Keep between 250-350 words (excluding header and signature)
 5. The example shows STRUCTURE only - replace ALL bracketed placeholders with actual content from the CV
 6. CRITICAL: Every claim, skill, tool, platform, and metric MUST exist verbatim in the CANDIDATE BACKGROUND section
 7. If the job requires skills not in the CV, show TRANSFERABLE skills instead - NEVER claim missing skills
 8. Include proper header with applicant contact info and date
+9. End with a confident closing line followed by proper signature
 
-Write the complete cover letter now:`,
+REQUIRED SIGNATURE FORMAT:
+The cover letter MUST end with exactly this format:
+
+[Your closing sentence about availability/next steps]
+
+Best regards,
+
+${applicant?.name || 'Applicant Name'}
+
+NEVER omit the signature. A cover letter without a signature is incomplete.
+
+Write the complete cover letter now (including signature):`,
       systemPrompt: `You are an expert cover letter writer specializing in the US and UK job markets.
 
 CRITICAL ANTI-HALLUCINATION RULES (READ FIRST - VIOLATION IS UNACCEPTABLE):
@@ -425,6 +484,7 @@ STRUCTURE (Problem-Solution Format):
 2. Value paragraph (3-4 sentences): Connect ACTUAL experience to their needs with REAL metrics
 3. Company knowledge (2-3 sentences): Reference company research if provided
 4. Confident close (1-2 sentences): Clear call to action
+5. Signature: "Best regards," followed by applicant's full name
 
 ABSOLUTE PROHIBITIONS:
 - "I am writing to apply for..." or "I am excited to apply for..."
@@ -438,7 +498,18 @@ ABSOLUTE PROHIBITIONS:
 - Em-dashes (—) - use regular dashes (-) instead
 - ANY claim about tools, metrics, or experience not in the CV
 
-OUTPUT: Plain text only. No markdown. No bullet points. Professional letter format.`,
+OUTPUT FORMAT:
+- Plain text only
+- No markdown
+- No bullet points
+- Professional letter format
+- MUST include signature block at the end:
+  
+  Best regards,
+  
+  [Applicant Name]
+
+NEVER end a cover letter without the signature. The signature is mandatory.`,
     });
 
     let coverLetter = response.content || '';
@@ -557,9 +628,15 @@ INSTRUCTIONS:
 2. Body: Maximum 4 sentences
 3. Must include one specific number/achievement from CV
 4. End with availability, not "I look forward to hearing from you"
+5. Start with "Hello," as the greeting (do NOT use placeholder like "[Name]")
 
 Return ONLY valid JSON: {"subject": "...", "body": "..."}`,
       systemPrompt: `You are an expert at professional email communication for job applications.
+
+GREETING RULE:
+- Since we don't know the hiring manager's name, ALWAYS use: "Hello," or "Hi there,"
+- NEVER output "[Name]" or "Hi [Name]," as a literal placeholder in the final email
+- NEVER use "Dear Sir/Madam" or "To Whom It May Concern"
 
 STYLE:
 - Brief and direct - hiring managers scan emails in seconds
@@ -574,14 +651,15 @@ PROHIBITIONS:
 - "To Whom It May Concern"
 - "I look forward to hearing from you"
 - Multiple paragraphs - keep it to 3-4 sentences max
+- "[Name]" or any bracketed placeholder in the output
 
 STRUCTURE:
 Subject: [Job Title] Application - [Your Name] - [One Key Qualifier]
-Body: One sentence hook + one sentence value + one sentence call to action
+Body: Greeting + One sentence hook + one sentence value + one sentence call to action
 
 EXAMPLE:
-Subject: E-Commerce Manager Application - Sarah Chen - 150K Amazon Revenue
-Body: "Hi [Name], I'm applying for the E-Commerce Manager role and wanted to highlight my track record of growing Amazon revenue by 67% across four markets. I've attached my CV and cover letter with specific details on how I can bring this same approach to [Company]. Happy to discuss at your convenience."
+Subject: E-Commerce Manager Application - Sarah Chen - €150K Amazon Revenue
+Body: "Hello, I'm applying for the E-Commerce Manager role and wanted to highlight my track record of growing Amazon revenue to €150,000 across four markets. I've attached my CV and cover letter with specific details on how I can bring this same approach to your team. Happy to discuss at your convenience."
 
 Return ONLY valid JSON: {"subject": "...", "body": "..."}`,
       jsonMode: true,
@@ -589,9 +667,14 @@ Return ONLY valid JSON: {"subject": "...", "body": "..."}`,
 
     try {
       const parsed = JSON.parse(response.content);
+      // Clean up any placeholder names that slipped through
+      const cleanBody = (parsed.body || response.content)
+        .replace(/Hi \[Name\],?/gi, 'Hello,')
+        .replace(/Dear \[Name\],?/gi, 'Dear Hiring Team,')
+        .replace(/\[Name\]/g, 'Hiring Manager');
       return {
         subject: parsed.subject || `Application for ${job?.title || 'Position'} at ${job?.companyName || 'Company'}`,
-        body: parsed.body || response.content,
+        body: cleanBody,
       };
     } catch {
       // Fallback: try to extract subject from content
