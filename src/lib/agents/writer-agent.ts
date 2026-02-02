@@ -465,22 +465,39 @@ Output should be:
 
 Return ONLY valid JSON in this exact format:
 {
-  "optimizedCV": "The complete optimized CV as plain text...",
+  "optimizedCV": "The COMPLETE optimized CV with ALL changes APPLIED...",
   "changes": [
     {
       "section": "Headline",
       "before": "Original headline text",
       "after": "New optimized headline",
       "reason": "Aligned with job title requirements"
-    },
-    {
-      "section": "Professional Summary",
-      "before": "Original summary...",
-      "after": "New summary...",
-      "reason": "Added relevant keywords and metrics"
     }
   ]
 }
+
+=== CRITICAL: APPLY ALL CHANGES ===
+
+The "optimizedCV" field MUST contain the FULLY OPTIMIZED CV with ALL changes applied.
+DO NOT return the original CV with minor tweaks - return the COMPLETE rewritten version.
+
+WRONG APPROACH:
+- Describing changes in "changes" array but returning original CV in "optimizedCV"
+- Only changing headline and summary but leaving other sections unchanged
+- Saying you'll expand bullets but not actually expanding them
+
+CORRECT APPROACH:
+- The "optimizedCV" field contains the COMPLETE CV with EVERY optimization applied
+- If you say you'll expand experience bullets from 3 to 5, the "optimizedCV" MUST have 5 bullets
+- If you say you'll reorganize skills into categories, the "optimizedCV" MUST show those categories
+- If you say you'll add certifications with dates, the "optimizedCV" MUST have those dates
+
+VERIFICATION CHECKLIST (before returning):
+□ Headline in optimizedCV matches the "after" in changes
+□ Summary in optimizedCV matches the "after" in changes  
+□ Skills/Competencies in optimizedCV are reorganized as described
+□ Experience bullets in optimizedCV are expanded as described
+□ Certifications in optimizedCV include dates/details as described
 
 CRITICAL RULES:
 - Do NOT use markdown formatting (no **, *, ---, etc.)
@@ -488,7 +505,7 @@ CRITICAL RULES:
 - Section headers in UPPERCASE
 - NEVER invent skills, experiences, or achievements
 - Keep CV under 2 pages worth of content
-- Only include changes that were actually made`,
+- The "optimizedCV" MUST reflect EVERY change listed in "changes"`,
       systemPrompt: `You are an expert ATS-optimized CV writer. Return ONLY valid JSON. CRITICAL: Only use information from the provided CV and Master CV. Never invent anything. No markdown formatting.`,
       jsonMode: true,
     });
