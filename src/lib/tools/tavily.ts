@@ -269,49 +269,77 @@ function extractWebsite(results: SearchResult[], companyName: string): string {
 
 /**
  * Extract company address from search results with improved logic
- * Looks for address patterns in the answer and search results
+ * CRITICAL: Returns EXACT text from search results - NO modification or interpretation
+ * The address must pass through unchanged to prevent city name errors (e.g., Kastl ≠ Kastellaun)
  */
 function extractAddress(results: SearchResult[], answer: string | undefined, companyName: string): string {
-  // First, try to extract from the Tavily answer if available
+  // Priority 1: Look for structured address format in results (most reliable)
+  // Pattern: "Street Number, Postal Code City" (German format)
+  const germanAddressPattern = /([A-Za-zäöüÄÖÜß\s]+\s+\d+[a-z]?\s*,?\s*\d{4,5}\s+[A-Za-zäöüÄÖÜß\s-]+)/i;
+  
+  for (const result of results) {
+    const match = result.content.match(germanAddressPattern);
+    if (match && match[1]) {
+      const address = match[1].trim();
+      // Return EXACT match - no modification
+      console.log(`[Tavily] Found exact address: "${address}"`);
+      return address;
+    }
+  }
+
+  // Priority 2: Look for "located at/in" with full address
+  const locationWithAddressPatterns = [
+    /(?:located|headquartered|office)\s+(?:at|in)\s+([A-Za-zäöüÄÖÜß0-9\s,.-]+\d{4,5}[A-Za-zäöüÄÖÜß\s,.-]*)/i,
+    /corporate\s+office\s+(?:is\s+)?(?:located\s+)?(?:at|in)\s+([^.]+\d{4,5}[^.]*)/i,
+  ];
+  
+  for (const result of results) {
+    for (const pattern of locationWithAddressPatterns) {
+      const match = result.content.match(pattern);
+      if (match && match[1]) {
+        const address = match[1].trim().replace(/[.,]$/, '');
+        if (address.length > 10 && address.length < 150) {
+          console.log(`[Tavily] Found address from location pattern: "${address}"`);
+          return address;
+        }
+      }
+    }
+  }
+
+  // Priority 3: Extract from Tavily answer if it contains postal code (indicates real address)
   if (answer) {
-    const addressFromAnswer = extractAddressFromText(answer);
-    if (addressFromAnswer) {
-      return addressFromAnswer;
+    const postalMatch = answer.match(/([A-Za-zäöüÄÖÜß\s]+\s+\d+[a-z]?\s*,?\s*\d{4,5}\s+[A-Za-zäöüÄÖÜß\s-]+)/i);
+    if (postalMatch && postalMatch[1]) {
+      const address = postalMatch[1].trim();
+      console.log(`[Tavily] Found address from answer: "${address}"`);
+      return address;
     }
   }
 
-  // Then search through results for address patterns
+  // Priority 4: Look for city + region/state (less specific but still useful)
+  // ONLY return if it's an EXACT match from the text, not interpreted
   for (const result of results) {
-    const addressFromContent = extractAddressFromText(result.content);
-    if (addressFromContent) {
-      return addressFromContent;
-    }
-  }
-
-  // Fallback: look for location mentions
-  for (const result of results) {
-    const content = result.content;
-    // Look for "headquartered in", "based in", "located in" patterns
-    const locationPatterns = [
-      /headquartered\s+(?:in|at)\s+([^.]+)/i,
-      /headquarters?\s+(?:is|are|in|at)\s+([^.]+)/i,
-      /based\s+(?:in|at)\s+([^.]+)/i,
-      /located\s+(?:in|at)\s+([^.]+)/i,
-      /office\s+(?:in|at)\s+([^.]+)/i,
+    // Match patterns like "Kastl, Bavaria" or "84556 Kastl"
+    const cityPatterns = [
+      /(\d{4,5}\s+[A-Za-zäöüÄÖÜß]+)/i,  // Postal code + city
+      /([A-Za-zäöüÄÖÜß]+,\s*(?:Bavaria|Bayern|Berlin|Hamburg|Hessen|NRW|Saxony|Sachsen)[A-Za-zäöüÄÖÜß\s-]*)/i,
     ];
     
-    for (const pattern of locationPatterns) {
-      const match = content.match(pattern);
+    for (const pattern of cityPatterns) {
+      const match = result.content.match(pattern);
       if (match && match[1]) {
         const location = match[1].trim();
-        // Clean up and return if it looks like a valid location
-        if (location.length > 3 && location.length < 150) {
+        if (location.length > 3 && location.length < 100) {
+          console.log(`[Tavily] Found city/region: "${location}"`);
           return location;
         }
       }
     }
   }
 
+  // If no reliable address found, return empty string
+  // Better to omit than to guess
+  console.log(`[Tavily] No reliable address found for ${companyName}`);
   return '';
 }
 

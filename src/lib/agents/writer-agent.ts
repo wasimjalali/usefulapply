@@ -629,13 +629,25 @@ ${companyResearch?.name || job?.companyName || 'Company'}
 ${companyResearch?.address || '[OMIT IF UNCERTAIN]'}
 
 === COMPANY ADDRESS VERIFICATION ===
-CRITICAL: Double-check city names from web search before using them.
-- Only use the EXACT address text from COMPANY RESEARCH section
-- DO NOT modify, interpret, or "correct" city names
-- "Kastl" ≠ "Kastellaun" — these are DIFFERENT cities, never substitute
-- If the address looks incomplete, unusual, or you're uncertain, OMIT IT entirely
-- When in doubt, use only: "Hiring Manager\\n${companyResearch?.name || job?.companyName || 'Company'}" without address
-- NEVER guess or invent address details
+CRITICAL: The company address MUST be copied EXACTLY as provided in the COMPANY RESEARCH section.
+- Copy the address CHARACTER FOR CHARACTER - no modifications
+- DO NOT "correct" spelling of city names
+- DO NOT interpret or expand abbreviations
+- "Kastl" must stay "Kastl" - NEVER change to "Kastellaun" or any other city
+- "84556 Kastl" must stay exactly "84556 Kastl"
+- If Company Address shows "Not available" or is empty, OMIT the address line entirely
+- When in doubt, use ONLY: "Hiring Manager\\n${companyResearch?.name || job?.companyName || 'Company'}" without any address
+- NEVER guess, invent, or "improve" address details
+
+CORRECT EXAMPLE (if address is "Maierhof 1, 84556 Kastl"):
+Hiring Manager
+Fliegl Agro-Center GmbH
+Maierhof 1, 84556 Kastl
+
+WRONG EXAMPLE (AI modified the city):
+Hiring Manager  
+Fliegl Agro-Center GmbH
+Kastellaun, Rheinland  ← WRONG! This is a different city!
 
 INSTRUCTIONS:
 1. Use the Problem-Solution format shown in the structure example
