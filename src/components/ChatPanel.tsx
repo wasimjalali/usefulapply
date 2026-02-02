@@ -184,26 +184,29 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
     if (!currentSession) {
       createNewSession(messageContent);
       
-      setTimeout(() => {
-        addChatMessage({
-          role: 'user',
-          content: messageContent,
-        });
+      // Add message immediately (no delay)
+      addChatMessage({
+        role: 'user',
+        content: messageContent,
+      });
+      
+      // Check if it's a job description (longer text with job-related keywords)
+      const isJobDescription = messageContent.length > 100 || 
+        /job|position|role|responsibilities|requirements|qualifications|experience/i.test(messageContent);
+      
+      if (isJobDescription) {
+        setJobDescription(messageContent);
         
-        // Check if it's a job description (longer text with job-related keywords)
-        const isJobDescription = messageContent.length > 100 || 
-          /job|position|role|responsibilities|requirements|qualifications|experience/i.test(messageContent);
+        // Start agent workflow immediately - show loading state right away
+        setIsAgentWorking(true);
+        setV2Progress({ percent: 0, message: 'Starting analysis...' });
         
-        if (isJobDescription) {
-          setJobDescription(messageContent);
-          
-          // Use the new agent workflow with streaming progress
-          runAgentWorkflow(messageContent);
-        } else {
-          // Handle general conversation
-          handleGeneralChat(messageContent);
-        }
-      }, 100);
+        // Use the new agent workflow with streaming progress
+        runAgentWorkflow(messageContent);
+      } else {
+        // Handle general conversation
+        handleGeneralChat(messageContent);
+      }
     } else {
       addChatMessage({
         role: 'user',
@@ -234,6 +237,10 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         });
         
         setJobDescription(messageContent);
+        
+        // Start agent workflow immediately - show loading state right away
+        setIsAgentWorking(true);
+        setV2Progress({ percent: 0, message: 'Starting analysis...' });
         
         // Use the new agent workflow with streaming progress
         runAgentWorkflow(messageContent);

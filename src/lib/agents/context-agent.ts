@@ -232,21 +232,23 @@ Extract ALL skills mentioned, including technical skills, soft skills, tools, an
   },
 
   /**
-   * Research company using GPT-4o or Tavily
+   * Research company using Tavily (primary) or GPT-4o (fallback)
+   * Tavily is preferred for real-time web search with better accuracy
    */
   async doCompanyResearch(companyName: string): Promise<MasterContext['companyResearch'] | undefined> {
-    const gptConfigured = isGPTWebSearchConfigured();
     const tavilyConfigured = isTavilyConfigured();
+    const gptConfigured = isGPTWebSearchConfigured();
 
-    if (!gptConfigured && !tavilyConfigured) {
+    if (!tavilyConfigured && !gptConfigured) {
       console.log('[ContextAgent] No search API configured, skipping company research');
       return undefined;
     }
 
     try {
-      if (gptConfigured) {
-        console.log(`[ContextAgent] Using GPT-4o for company research: ${companyName}`);
-        const research = await researchCompanyWithGPT(companyName);
+      // Prefer Tavily for web search (better real-time results)
+      if (tavilyConfigured) {
+        console.log(`[ContextAgent] Using Tavily for company research: ${companyName}`);
+        const research = await researchCompany(companyName);
         return {
           name: research.name,
           address: research.address,
@@ -257,12 +259,14 @@ Extract ALL skills mentioned, including technical skills, soft skills, tools, an
           techStack: research.techStack,
           recentNews: research.recentNews,
         };
-      } else if (tavilyConfigured) {
-        console.log(`[ContextAgent] Using Tavily for company research: ${companyName}`);
-        const research = await researchCompany(companyName);
+      } else if (gptConfigured) {
+        // Fallback to GPT-4o if Tavily not configured
+        console.log(`[ContextAgent] Using GPT-4o for company research (fallback): ${companyName}`);
+        const research = await researchCompanyWithGPT(companyName);
         return {
           name: research.name,
           address: research.address,
+          website: research.website,
           description: research.description,
           values: research.values,
           culture: research.culture,

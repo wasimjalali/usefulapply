@@ -1,6 +1,6 @@
 /**
  * Anthropic Claude Client
- * Handles all calls to Claude Sonnet 4.5 for premium writing tasks
+ * Handles all calls to Claude Haiku 4.5 for fast, cost-effective AI tasks
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -19,7 +19,7 @@ export interface AnthropicCallOptions {
 }
 
 /**
- * Call Claude Sonnet for premium writing tasks
+ * Call Claude Haiku 4.5 for all AI tasks
  */
 export async function callAnthropic(options: AnthropicCallOptions): Promise<ModelResponse> {
   const { prompt, systemPrompt, temperature = 0.7, maxTokens = 4096 } = options;
@@ -28,7 +28,7 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
   
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-haiku-4-5',
       max_tokens: maxTokens,
       temperature,
       ...(systemPrompt && { system: systemPrompt }),
@@ -47,7 +47,7 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
       },
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-haiku-4-5',
       provider: 'anthropic',
       latencyMs: Date.now() - startTime,
     };
@@ -73,7 +73,7 @@ export async function callAnthropicStream(
   
   try {
     const stream = anthropic.messages.stream({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-haiku-4-5',
       max_tokens: maxTokens,
       temperature,
       ...(systemPrompt && { system: systemPrompt }),
@@ -104,7 +104,7 @@ export async function callAnthropicStream(
         inputTokens,
         outputTokens,
       },
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-haiku-4-5',
       provider: 'anthropic',
       latencyMs: Date.now() - startTime,
     };

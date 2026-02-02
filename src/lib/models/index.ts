@@ -1,7 +1,7 @@
 /**
  * Model Abstraction Layer
  * Unified interface for calling different AI models based on task type
- * All tasks now use GPT-4o mini for unified, cost-effective AI
+ * All tasks now use Claude Haiku 4.5 for fast, cost-effective AI
  */
 
 import { callGemini, callGeminiStream, parseGeminiJSON } from './gemini';
@@ -243,9 +243,9 @@ export function estimateCost(task: TaskType, inputTokens: number, outputTokens: 
     const outputCost = (outputTokens / 1_000_000) * 0.40;
     return inputCost + outputCost;
   } else if (actualProvider === 'anthropic') {
-    // Claude pricing (fallback)
-    const inputCost = (inputTokens / 1_000_000) * 0.80;
-    const outputCost = (outputTokens / 1_000_000) * 4.00;
+    // Claude Haiku 4.5 pricing: $1/$5 per million tokens
+    const inputCost = (inputTokens / 1_000_000) * 1.00;
+    const outputCost = (outputTokens / 1_000_000) * 5.00;
     return inputCost + outputCost;
   } else if (actualProvider === 'deepseek') {
     // DeepSeek V3.2 pricing (cache miss rates)

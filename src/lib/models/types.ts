@@ -1,7 +1,7 @@
 /**
  * Model Types and Interfaces
  * Defines the types for multi-model AI system
- * All tasks now use GPT-4o mini for unified, cost-effective AI
+ * All tasks now use Claude Haiku 4.5 for fast, cost-effective AI
  */
 
 export type ModelProvider = 'anthropic' | 'google' | 'openai' | 'deepseek';
@@ -57,123 +57,123 @@ export interface ModelCallOptions {
   jsonMode?: boolean;
 }
 
-// Model configurations - All tasks use GPT-4o mini
+// Model configurations - All tasks use Claude Haiku 4.5
 export const MODEL_CONFIGS: Record<TaskType, ModelConfig> = {
-  // Analysis tasks - GPT-4o mini
+  // Analysis tasks - Claude Haiku 4.5
   parse_job_description: {
-    model: 'gpt-4o-mini',
-    provider: 'openai',
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
     temperature: 0.3,
     maxTokens: 4096,
   },
   parse_cv: {
-    model: 'gpt-4o-mini',
-    provider: 'openai',
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
     temperature: 0.3,
     maxTokens: 4096,
   },
   extract_skills: {
-    model: 'gpt-4o-mini',
-    provider: 'openai',
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
     temperature: 0.2,
     maxTokens: 2048,
   },
   gap_analysis: {
-    model: 'gpt-4o-mini',
-    provider: 'openai',
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
     temperature: 0.3,
     maxTokens: 4096,
   },
   evaluate_content: {
-    model: 'gpt-4o-mini',
-    provider: 'openai',
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
     temperature: 0.2,
     maxTokens: 2048,
   },
   validate_ats: {
-    model: 'gpt-4o-mini',
-    provider: 'openai',
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
     temperature: 0.1,
     maxTokens: 2048,
   },
   check_limits: {
-    model: 'gpt-4o-mini',
-    provider: 'openai',
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
     temperature: 0.1,
     maxTokens: 1024,
   },
   orchestrate: {
-    model: 'gpt-4o-mini',
-    provider: 'openai',
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
     temperature: 0.3,
     maxTokens: 2048,
   },
   extract_company_info: {
-    model: 'gpt-4o-mini',
-    provider: 'openai',
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
     temperature: 0.2,
     maxTokens: 2048,
   },
 
-  // Writing tasks - GPT-4o mini
+  // Writing tasks - Claude Haiku 4.5
   write_summary: {
-    model: 'gpt-4o-mini',
-    provider: 'openai',
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
     temperature: 0.7,
     maxTokens: 1024,
   },
   write_bullets: {
-    model: 'gpt-4o-mini',
-    provider: 'openai',
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
     temperature: 0.7,
     maxTokens: 2048,
   },
   write_cover_letter: {
-    model: 'gpt-4o-mini',
-    provider: 'openai',
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
     temperature: 0.5,  // Lower for more consistent professional tone
     maxTokens: 2048,
   },
   refine_cover_letter: {
-    model: 'gpt-4o-mini',
-    provider: 'openai',
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
     temperature: 0.4,  // Even lower for editing - we want consistency
     maxTokens: 2048,
   },
   write_email: {
-    model: 'gpt-4o-mini',
-    provider: 'openai',
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
     temperature: 0.5,  // Lower for consistency
     maxTokens: 1024,
   },
   optimize_content: {
-    model: 'gpt-4o-mini',
-    provider: 'openai',
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
     temperature: 0.6,
     maxTokens: 4096,
   },
   general_chat: {
-    model: 'gpt-4o-mini',
-    provider: 'openai',
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
     temperature: 0.7,
     maxTokens: 2048,
   },
   // 3-Agent Architecture tasks
   extract_applicant: {
-    model: 'gpt-4o-mini',
-    provider: 'openai',
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
     temperature: 0.3,
     maxTokens: 4096,
   },
   parse_job: {
-    model: 'gpt-4o-mini',
-    provider: 'openai',
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
     temperature: 0.3,
     maxTokens: 4096,
   },
   optimize_cv: {
-    model: 'gpt-4o-mini',
-    provider: 'openai',
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
     temperature: 0.6,
     maxTokens: 8192,
   },
