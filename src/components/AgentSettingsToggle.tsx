@@ -152,7 +152,7 @@ export function AgentSettingsToggle({
             <p className="text-xs text-warm-gray mb-2">Powered by</p>
             <div className="flex flex-wrap gap-2">
               <span className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded-full">
-                GPT-4o mini (All Tasks)
+                Claude Haiku 4.5 (All Tasks)
               </span>
             </div>
           </div>

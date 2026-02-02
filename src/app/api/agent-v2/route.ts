@@ -159,8 +159,8 @@ export async function POST(request: NextRequest) {
             index: i,
           })),
           models: {
-            analysis: 'gpt-4o-mini',
-            writing: 'gpt-4o-mini',
+            analysis: 'claude-haiku-4.5',
+            writing: 'claude-haiku-4.5',
           },
         })}\n\n`));
 

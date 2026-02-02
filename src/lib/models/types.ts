@@ -7,7 +7,7 @@
 export type ModelProvider = 'anthropic' | 'google' | 'openai' | 'deepseek';
 
 export type TaskType =
-  // Analysis tasks (GPT-4o mini - fast & cost-effective)
+  // Analysis tasks (Claude Haiku 4.5 - fast & cost-effective)
   | 'parse_job_description'
   | 'parse_cv'
   | 'extract_skills'
@@ -21,7 +21,7 @@ export type TaskType =
   | 'extract_applicant'  // Context Agent: extract applicant profile from CV
   | 'parse_job'          // Context Agent: parse job description
   | 'optimize_cv'        // Writer Agent: generate optimized CV
-  // Writing tasks (GPT-4o mini - fast & cost-effective)
+  // Writing tasks (Claude Haiku 4.5 - fast & cost-effective)
   | 'write_summary'
   | 'write_bullets'
   | 'write_cover_letter'

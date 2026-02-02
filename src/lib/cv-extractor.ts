@@ -1,7 +1,7 @@
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
 export async function extractCVData(text: string): Promise<any> {
@@ -80,8 +80,8 @@ ${text}
 
 Return ONLY the JSON object, no other text:`;
 
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+  const response = await anthropic.messages.create({
+    model: 'claude-haiku-4-5',
     max_tokens: 4096,
     messages: [
       {
@@ -91,7 +91,8 @@ Return ONLY the JSON object, no other text:`;
     ],
   });
 
-  const content = response.choices[0]?.message?.content;
+  const textContent = response.content.find(block => block.type === 'text');
+  const content = textContent?.type === 'text' ? textContent.text : null;
   if (content) {
     const jsonText = content.trim().replace(/^```json\n?/, '').replace(/\n?```$/, '');
     return JSON.parse(jsonText);

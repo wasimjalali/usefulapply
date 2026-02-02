@@ -6,8 +6,8 @@ const anthropic = new Anthropic({
 });
 
 // Get model from environment or use default
-// Legacy - kept for backward compatibility but not used
-const MODEL = process.env.CLAUDE_MODEL || 'claude-haiku-4-20250514';
+// All tasks now use Claude Haiku 4.5
+const MODEL = process.env.CLAUDE_MODEL || 'claude-haiku-4-5';
 
 export interface ClaudeMessage {
   role: 'user' | 'assistant';

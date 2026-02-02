@@ -38,8 +38,8 @@ function isRateLimitError(error: unknown): boolean {
 
 /**
  * Main function to call the appropriate model based on task type
- * All tasks now use GPT-4o mini
- * Falls back to DeepSeek if OpenAI hits rate limits
+ * All tasks now use Claude Haiku 4.5
+ * Falls back to DeepSeek if rate limited
  */
 export async function callModel(options: ModelCallOptions): Promise<ModelResponse> {
   const { task, prompt, systemPrompt, temperature, maxTokens, jsonMode } = options;
