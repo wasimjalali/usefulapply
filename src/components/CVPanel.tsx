@@ -104,30 +104,55 @@ function applyChangesToCVData(cvData: CVData, changes: CVChange[]): CVData {
     
     // Apply skills/competencies changes - parse into clean grouped format
     if (sectionLower.includes('skill') || sectionLower.includes('competenc') || sectionLower.includes('kenntnisse')) {
-      // Parse skills from the updated text - handle bullet point format
-      const skillText = change.updated
-        .replace(/\*\*/g, '') // Remove markdown bold
-        .replace(/\n/g, ' '); // Normalize newlines
+      console.log('[CVPanel] Applying skills change, updated text length:', change.updated.length);
       
-      // Split by bullet points (•) and clean up
-      const skillItems = skillText
-        .split(/[•·]/)
-        .map(s => s.trim())
-        .filter(s => s.length > 0 && s.length < 100); // Filter out empty and too-long items
+      // Try to parse categorized skills format first (Category: item1, item2)
+      const categoryPattern = /([A-Za-z&\s]+):\s*([^:]+?)(?=\s+[A-Za-z&\s]+:|$)/g;
+      const groups: Array<{ category: string; items: string[] }> = [];
+      let match;
       
-      if (skillItems.length > 0) {
-        // Group skills into categories of 4-5 items each for clean display
-        const groupSize = 5;
-        const groups: Array<{ category: string; items: string[] }> = [];
+      while ((match = categoryPattern.exec(change.updated)) !== null) {
+        const category = match[1].trim();
+        const itemsText = match[2].trim();
         
-        for (let i = 0; i < skillItems.length; i += groupSize) {
-          const groupItems = skillItems.slice(i, i + groupSize);
-          groups.push({
-            category: '', // No category header for cleaner look
-            items: groupItems,
-          });
+        // Parse items - split by bullet, comma, or newline
+        const items = itemsText
+          .split(/[•·,\n]/)
+          .map(s => s.trim().replace(/^\s*[-–]\s*/, ''))
+          .filter(s => s.length > 2 && s.length < 80);
+        
+        if (items.length > 0) {
+          groups.push({ category, items });
         }
+      }
+      
+      // If no categories found, fall back to flat list parsing
+      if (groups.length === 0) {
+        const skillText = change.updated
+          .replace(/\*\*/g, '') // Remove markdown bold
+          .replace(/\n/g, ' '); // Normalize newlines
         
+        // Split by bullet points (•) and clean up
+        const skillItems = skillText
+          .split(/[•·]/)
+          .map(s => s.trim())
+          .filter(s => s.length > 0 && s.length < 100);
+        
+        if (skillItems.length > 0) {
+          // Group skills into categories of 5 items each
+          const groupSize = 5;
+          for (let i = 0; i < skillItems.length; i += groupSize) {
+            const groupItems = skillItems.slice(i, i + groupSize);
+            groups.push({
+              category: '',
+              items: groupItems,
+            });
+          }
+        }
+      }
+      
+      if (groups.length > 0) {
+        console.log('[CVPanel] Parsed', groups.length, 'skill groups');
         result.skills = groups;
       }
     }
@@ -167,13 +192,61 @@ function applyChangesToCVData(cvData: CVData, changes: CVChange[]): CVData {
       }
     }
     
-    // Apply experience changes - match by company/position
+    // Apply experience changes - match by company/position with flexible matching
     if (sectionLower.includes('experience') || sectionLower.includes('berufserfahrung')) {
-      // Try to find the matching experience entry
-      const expIndex = result.experience.findIndex(exp => 
-        change.section.toLowerCase().includes(exp.company.toLowerCase()) ||
-        change.section.toLowerCase().includes(exp.position.toLowerCase())
-      );
+      console.log('[CVPanel] Applying experience change for section:', change.section);
+      
+      // Try to find the matching experience entry with more flexible matching
+      let expIndex = result.experience.findIndex(exp => {
+        const companyLower = exp.company.toLowerCase();
+        const positionLower = exp.position.toLowerCase();
+        
+        // Direct match
+        if (sectionLower.includes(companyLower) || sectionLower.includes(positionLower)) {
+          return true;
+        }
+        
+        // Partial match - check if key words from section appear in company/position
+        const sectionWords = sectionLower.split(/[\s-]+/).filter(w => w.length > 3);
+        for (const word of sectionWords) {
+          if (companyLower.includes(word) || positionLower.includes(word)) {
+            return true;
+          }
+        }
+        
+        // Match common patterns: "E-Commerce" in section matches "E-Commerce Specialist"
+        if (sectionLower.includes('e-commerce') && positionLower.includes('e-commerce')) return true;
+        if (sectionLower.includes('kursfind') && (companyLower.includes('kursfind') || positionLower.includes('kursfind'))) return true;
+        if (sectionLower.includes('wasim') && (companyLower.includes('wasim') || positionLower.includes('wasim') || companyLower.includes('academy'))) return true;
+        if (sectionLower.includes('social media') && positionLower.includes('social')) return true;
+        if (sectionLower.includes('self-employed') || sectionLower.includes('self employed')) {
+          if (companyLower.includes('self') || companyLower.includes('freelance')) return true;
+        }
+        
+        return false;
+      });
+      
+      // If no match found but section mentions a specific role, try to add as new experience
+      if (expIndex < 0) {
+        console.log('[CVPanel] No matching experience found for:', change.section);
+        // Check if this is a new role that should be added (like Wasim Academy as separate entry)
+        if (sectionLower.includes('wasim academy') || sectionLower.includes('academy role')) {
+          // This is a new entry - add it
+          console.log('[CVPanel] Adding new experience entry for Wasim Academy');
+          const newExp = {
+            id: `exp-wasim-academy-${Date.now()}`,
+            company: 'Wasim Academy',
+            position: 'Founder & Instructor',
+            location: 'Kaiserslautern',
+            startDate: '2022',
+            endDate: '2025',
+            current: false,
+            bullets: [] as string[],
+          };
+          result.experience = [...result.experience, newExp];
+          expIndex = result.experience.length - 1;
+        }
+      }
       
       if (expIndex >= 0 && change.updated) {
         result.experience = [...result.experience];
@@ -193,6 +266,7 @@ function applyChangesToCVData(cvData: CVData, changes: CVChange[]): CVData {
         }
         
         if (bullets.length > 0) {
+          console.log('[CVPanel] Applied', bullets.length, 'bullets to experience:', result.experience[expIndex].position);
           result.experience[expIndex] = {
             ...result.experience[expIndex],
             bullets: bullets,
