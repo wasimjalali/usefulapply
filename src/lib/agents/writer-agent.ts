@@ -286,11 +286,81 @@ SECTIONS TO OPTIMIZE (for ATS keywords and relevance):
    - Must be factual - only use info from CV/Master CV
 
 3. CORE COMPETENCIES / SKILLS:
-   - Maximum 8-10 skills total
-   - Prioritize skills that match job requirements
+   - Maximum 10-12 skills total
    - PRESERVE differentiating skills (AI, automation, builder skills) even if not in JD
    - Can add skills from Master CV if relevant to job
    - Group into 2-3 categories if applicable
+
+=== SKILLS/COMPETENCIES OPTIMIZATION RULES ===
+
+1. NEVER convert specific tools into generic categories
+   
+   WRONG: "Helium 10, Jungle Scout" → "E-Commerce Tools"
+   RIGHT: "Helium 10, Jungle Scout" → "Helium 10, Jungle Scout"
+   
+   WRONG: "ChatGPT, Claude, Gemini" → "AI & Automation"  
+   RIGHT: "ChatGPT, Claude, Gemini" → "AI Tools: ChatGPT, Claude, Gemini"
+
+2. Specific tool names are MORE VALUABLE than generic categories because:
+   - They pass ATS keyword matching
+   - They show real hands-on experience
+   - Recruiters search for specific tools
+
+3. STRUCTURE for skills section:
+   
+   Option A - Grouped with specifics:
+   • E-Commerce: Amazon Seller Central, Helium 10, Jungle Scout
+   • AI & Automation: ChatGPT, Claude, Prompt Engineering, Zapier
+   • Web Development: Next.js, React, JavaScript
+   
+   Option B - Flat list with specifics:
+   • Amazon Seller Central & Vendor Central
+   • PPC Campaign Management
+   • Helium 10, Jungle Scout
+   • AI Tools (ChatGPT, Claude, Gemini)
+   • Next.js, React
+
+4. When selecting which skills to include:
+   - PRIORITIZE skills that match job description keywords
+   - KEEP specific tool names, don't genericize them
+   - Include 8-12 skill items (can be grouped)
+   - Each item can contain multiple related tools
+
+5. NEVER output generic-only skills like:
+   - "E-Commerce Management" (too vague)
+   - "Digital Marketing" (too vague)
+   - "AI & Automation" (too vague without specifics)
+   
+   ALWAYS pair generic category with specific tools:
+   - "E-Commerce Management (Amazon Seller Central, Shopify)" ✓
+   - "AI & Automation (ChatGPT, Claude, Zapier)" ✓
+
+=== SKILL RELEVANCE MATCHING ===
+
+Step 1: Read the job description requirements
+Step 2: Identify which candidate skills DIRECTLY match
+Step 3: Identify which candidate skills are TRANSFERABLE
+Step 4: Prioritize in this order:
+   a) Direct matches (job wants "PPC" → candidate has "PPC Campaign Management")
+   b) Platform matches (job wants "webshop management" → candidate has "Amazon Seller Central")
+   c) Transferable skills (job wants "team leadership" → candidate has "training/coaching")
+   d) Differentiators (AI skills, builder skills - keep even if not in JD)
+
+Step 5: Select top 10-12 skills following this priority
+
+EXAMPLE for E-Commerce Manager role:
+Job requires: SEO, SEA, webshop management, team leadership, analytics
+Candidate has: Amazon Seller Central, Helium 10, PPC campaigns, AI tools, Next.js
+
+Output should be:
+• Amazon Seller Central & Vendor Central (webshop/platform experience)
+• PPC Campaign Management / SEA (direct match)
+• SEO Fundamentals (direct match)
+• Helium 10, Jungle Scout (analytics/e-commerce tools)
+• AI Tools: ChatGPT, Claude (differentiator)
+• Team Training & Coaching (transferable to leadership)
+• Next.js, React (differentiator - builder skills)
+• Data-Driven Decision Making (matches analytics requirement)
 
 4. PROFESSIONAL EXPERIENCE:
    - Keep job titles, companies, and dates exactly as-is
@@ -386,6 +456,7 @@ Nice-to-Have: ${job?.niceToHaveSkills?.join(', ') || 'Not specified'}
 === COMPANY RESEARCH ===
 ${companyResearch ? `
 Company Name: ${companyResearch.name || job?.companyName}
+Company Address: ${companyResearch.address || 'Not available'}
 What They Do: ${companyResearch.description || 'Not available'}
 Company Values: ${companyResearch.values?.join(', ') || 'Not available'}
 Culture: ${companyResearch.culture?.join(', ') || 'Not available'}
@@ -429,6 +500,23 @@ If the job asks for tools the candidate doesn't have:
 - Instead, mention similar tools they DO have
 - Use phrases like "experience with comparable platforms" or "proven ability to master new systems quickly"
 
+=== REQUIRED HEADER FORMAT ===
+
+The cover letter MUST start with this exact header structure:
+
+${applicant?.name || 'Applicant Name'}
+${applicant?.address || 'Address'}
+${applicant?.email || 'Email'}
+${applicant?.phone || 'Phone'}
+
+${today}
+
+Hiring Manager
+${companyResearch?.name || job?.companyName || 'Company'}
+${companyResearch?.address || 'Company Address (if available from research)'}
+
+IMPORTANT: If company address is available from COMPANY RESEARCH section above, include it in the header. If not available, omit the company address line.
+
 INSTRUCTIONS:
 1. Use the Problem-Solution format shown in the structure example
 2. Include at least TWO specific metrics from the candidate's background (ONLY if they exist in the CV)
@@ -437,7 +525,7 @@ INSTRUCTIONS:
 5. The example shows STRUCTURE only - replace ALL bracketed placeholders with actual content from the CV
 6. CRITICAL: Every claim, skill, tool, platform, and metric MUST exist verbatim in the CANDIDATE BACKGROUND section
 7. If the job requires skills not in the CV, show TRANSFERABLE skills instead - NEVER claim missing skills
-8. Include proper header with applicant contact info and date
+8. Start with the REQUIRED HEADER FORMAT above
 9. End with a confident closing line followed by proper signature
 
 REQUIRED SIGNATURE FORMAT:
