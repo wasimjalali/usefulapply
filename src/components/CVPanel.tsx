@@ -7,6 +7,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { CVTemplateRenderer, CV_TEMPLATE_DEFINITIONS } from './cv-templates';
 import { TemplateSelector } from './cv-templates/TemplateSelector';
 import { parsedCVToCVData, structuredCVToCVData } from '@/lib/cv-templates/parser';
+import { parseOptimizedCVToData } from '@/lib/cv-parser/parse-optimized-cv';
 import type { CVData } from '@/lib/cv-templates/types';
 import { 
   FileText, 
@@ -28,464 +29,10 @@ import {
 } from 'lucide-react';
 import { EditableCVCanvas } from './EditableCVCanvas';
 import Link from 'next/link';
-import type { CVChange } from '@/lib/types';
 
-// Helper function to extract summary from optimized CV text
-function extractSummaryFromOptimized(content: string): string | undefined {
-  const summaryPatterns = [
-    /(?:professional\s*summary|summary|profile|objective|berufsprofil)[:\s]*\n?([\s\S]*?)(?=\n\s*(?:experience|education|skills|work|employment|berufserfahrung|ausbildung|kenntnisse)|$)/i,
-  ];
-  
-  for (const pattern of summaryPatterns) {
-    const match = content.match(pattern);
-    if (match && match[1]) {
-      const summary = match[1].trim().split('\n').slice(0, 5).join(' ').trim();
-      if (summary.length > 50) return summary;
-    }
-  }
-  
-  return undefined;
-}
-
-// Parse skills from AI-generated format: "**Category:** skill1, skill2 - **Category2:** skill3, skill4"
-function parseSkillsFromAIFormat(text: string): Array<{ category: string; items: string[] }> {
-  const skills: Array<{ category: string; items: string[] }> = [];
-  
-  // Pattern: **Category Name:** items - or Category Name: items
-  // Split by " - " which separates categories in the AI output
-  const categoryBlocks = text.split(/\s+-\s+/);
-  
-  for (const block of categoryBlocks) {
-    // Match **Category:** or Category: pattern
-    const match = block.match(/\*\*([^*:]+)\*\*[:\s]*(.+)|^([^:]+):\s*(.+)/);
-    if (match) {
-      const category = (match[1] || match[3] || '').trim();
-      const itemsText = (match[2] || match[4] || '').trim();
-      
-      if (category && itemsText) {
-        // Split items by comma, clean up each item
-        const items = itemsText
-          .split(/,/)
-          .map(s => s.trim())
-          .filter(s => s.length > 0 && !s.startsWith('**')); // Filter out empty and markdown artifacts
-        
-        if (items.length > 0) {
-          skills.push({ category, items });
-        }
-      }
-    }
-  }
-  
-  return skills;
-}
-
-// Apply changes from the Changes tab to the CV data
-function applyChangesToCVData(cvData: CVData, changes: CVChange[]): CVData {
-  if (!changes || changes.length === 0) return cvData;
-  
-  const result = { ...cvData, personal: { ...cvData.personal } };
-  
-  for (const change of changes) {
-    const sectionLower = change.section.toLowerCase();
-    
-    // Apply headline/tagline changes
-    if (sectionLower.includes('headline') || sectionLower.includes('tagline') || sectionLower.includes('title')) {
-      if (change.updated) {
-        result.personal.currentTitle = change.updated;
-      }
-    }
-    
-    // Apply summary changes
-    if (sectionLower.includes('summary') || sectionLower.includes('profile') || sectionLower.includes('berufsprofil')) {
-      if (change.updated && change.updated.length > 50) {
-        result.summary = change.updated;
-      }
-    }
-    
-    // Apply skills/competencies changes - parse into clean grouped format
-    if (sectionLower.includes('skill') || sectionLower.includes('competenc') || sectionLower.includes('kenntnisse')) {
-      console.log('[CVPanel] Applying skills change, updated text:', change.updated.substring(0, 200));
-      
-      const groups: Array<{ category: string; items: string[] }> = [];
-      
-      // Method 1: Split by newlines first to find category lines
-      const lines = change.updated.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-      
-      for (const line of lines) {
-        // Check if line contains a category pattern: "Category Name:" or "Category Name •"
-        const categoryMatch = line.match(/^([A-Za-z&\s\-\/]+(?:&[A-Za-z\s]+)?)\s*[:•]\s*(.*)$/);
-        
-        if (categoryMatch) {
-          const category = categoryMatch[1].trim();
-          const itemsText = categoryMatch[2].trim();
-          
-          // Parse items from the rest of the line
-          const items = itemsText
-            .split(/[,•·]/)
-            .map(s => s.trim().replace(/^\s*[-–]\s*/, ''))
-            .filter(s => s.length > 2 && s.length < 100);
-          
-          if (items.length > 0) {
-            groups.push({ category, items });
-          }
-        } else if (line.includes(':') && !line.match(/^\d/)) {
-          // Fallback: any line with colon might be "Category: items"
-          const parts = line.split(':');
-          if (parts.length >= 2 && parts[0].length < 50) {
-            const category = parts[0].trim();
-            const itemsText = parts.slice(1).join(':').trim();
-            
-            const items = itemsText
-              .split(/[,•·]/)
-              .map(s => s.trim().replace(/^\s*[-–]\s*/, ''))
-              .filter(s => s.length > 2 && s.length < 100);
-            
-            if (items.length > 0) {
-              groups.push({ category, items });
-            }
-          }
-        }
-      }
-      
-      // Method 2: If no categories found, try bullet-based parsing
-      if (groups.length === 0) {
-        console.log('[CVPanel] No categories found, trying bullet parsing');
-        const skillText = change.updated.replace(/\*\*/g, '');
-        
-        // Split by bullet points or newlines
-        const skillItems = skillText
-          .split(/[•·\n]/)
-          .map(s => s.trim().replace(/^\s*[-–]\s*/, ''))
-          .filter(s => s.length > 2 && s.length < 100);
-        
-        if (skillItems.length > 0) {
-          // Group skills into categories of 6 items each for display
-          const groupSize = 6;
-          for (let i = 0; i < skillItems.length; i += groupSize) {
-            const groupItems = skillItems.slice(i, i + groupSize);
-            groups.push({
-              category: '',
-              items: groupItems,
-            });
-          }
-        }
-      }
-      
-      if (groups.length > 0) {
-        console.log('[CVPanel] Parsed', groups.length, 'skill groups with items:', groups.map(g => g.items.length));
-        result.skills = groups;
-      } else {
-        console.log('[CVPanel] WARNING: Failed to parse skills from change');
-      }
-    }
-    
-    // Apply certification changes - preserve full text including scores
-    if (sectionLower.includes('certification') || sectionLower.includes('zertifikat')) {
-      console.log('[CVPanel] Applying certification change:', change.updated.substring(0, 150));
-      const parsedCerts = parseCertificationsFromText(change.updated);
-      if (parsedCerts.length > 0) {
-        console.log('[CVPanel] Parsed certifications:', parsedCerts.length);
-        result.certifications = parsedCerts;
-      }
-    }
-    
-    // Apply experience changes - match by company/position using generic word matching
-    if (sectionLower.includes('experience') || sectionLower.includes('berufserfahrung')) {
-      console.log('[CVPanel] Applying experience change for section:', change.section);
-      
-      // Extract significant words from section name (4+ chars, not common words)
-      const commonWords = ['professional', 'experience', 'role', 'position', 'job', 'work', 'the', 'and', 'for'];
-      const sectionWords = sectionLower
-        .split(/[\s\-–_|]+/)
-        .filter(w => w.length >= 4 && !commonWords.includes(w));
-      
-      // Find matching experience by checking if any section word appears in company or position
-      let expIndex = result.experience.findIndex(exp => {
-        const companyLower = exp.company.toLowerCase();
-        const positionLower = exp.position.toLowerCase();
-        
-        // Check each significant word from section
-        for (const word of sectionWords) {
-          if (companyLower.includes(word) || positionLower.includes(word)) {
-            return true;
-          }
-        }
-        
-        // Also check if company/position words appear in section
-        const companyWords = companyLower.split(/[\s\-–_]+/).filter(w => w.length >= 4);
-        const positionWords = positionLower.split(/[\s\-–_]+/).filter(w => w.length >= 4);
-        
-        for (const word of [...companyWords, ...positionWords]) {
-          if (sectionLower.includes(word)) {
-            return true;
-          }
-        }
-        
-        return false;
-      });
-      
-      // If no match found, try matching by index (first experience change → first experience, etc.)
-      if (expIndex < 0 && result.experience.length > 0) {
-        // Count how many experience changes we've already processed
-        const expChangeIndex = changes.filter(c => 
-          c.section.toLowerCase().includes('experience') && 
-          changes.indexOf(c) < changes.indexOf(change)
-        ).length;
-        
-        if (expChangeIndex < result.experience.length) {
-          expIndex = expChangeIndex;
-          console.log('[CVPanel] Using index-based matching, expIndex:', expIndex);
-        }
-      }
-      
-      if (expIndex >= 0 && change.updated) {
-        result.experience = [...result.experience];
-        // Parse bullets - handle multiple formats
-        let bullets: string[] = [];
-        
-        console.log('[CVPanel] Parsing experience bullets from:', change.updated.substring(0, 150));
-        
-        // Method 1: Lines starting with bullet or dash
-        const lines = change.updated.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
-        const bulletLines = lines.filter(l => l.startsWith('-') || l.startsWith('•') || l.startsWith('–'));
-        
-        if (bulletLines.length > 0) {
-          bullets = bulletLines.map(b => b.replace(/^[-•–]\s*/, '').trim()).filter(b => b.length > 10);
-        }
-        
-        // Method 2: Split by inline bullet points
-        if (bullets.length === 0) {
-          const inlineBullets = change.updated.split(/[•·]/).slice(1);
-          if (inlineBullets.length > 0) {
-            bullets = inlineBullets.map(b => b.trim()).filter(b => b.length > 10 && b.length < 300);
-          }
-        }
-        
-        // Method 3: Sentences that look like achievements (start with verb, contain metric)
-        if (bullets.length === 0) {
-          const sentences = change.updated.split(/[.!]\s+/).filter(s => s.length > 20);
-          bullets = sentences
-            .filter(s => s.match(/^(managed|led|developed|created|built|generated|optimized|increased|decreased|achieved|implemented|designed)/i))
-            .map(s => s.trim() + (s.endsWith('.') ? '' : '.'));
-        }
-        
-        if (bullets.length > 0) {
-          console.log('[CVPanel] Applied', bullets.length, 'bullets to experience:', result.experience[expIndex].position);
-          result.experience[expIndex] = {
-            ...result.experience[expIndex],
-            bullets: bullets,
-          };
-        } else {
-          console.log('[CVPanel] WARNING: No bullets parsed from experience change');
-        }
-        
-        // Issue 1.4: Also update company name to remove "(Side Project)" if present in change
-        // Parse header format: "Position | Company, Location | Date"
-        const headerMatch = change.updated.match(/^([^|•\n]+)\|([^,|•\n]+)/);
-        if (headerMatch) {
-          const newPosition = headerMatch[1].trim();
-          const newCompany = headerMatch[2].trim().replace(/\s*\(Side Project\)/i, '');
-          
-          if (newPosition && newPosition.length > 2) {
-            result.experience[expIndex].position = newPosition;
-          }
-          if (newCompany && newCompany.length > 2) {
-            result.experience[expIndex].company = newCompany;
-          }
-        }
-        
-        // Also clean up any "(Side Project)" from existing company name
-        if (result.experience[expIndex].company) {
-          result.experience[expIndex].company = result.experience[expIndex].company.replace(/\s*\(Side Project\)/i, '');
-        }
-      }
-    }
-    
-    // Apply education changes
-    if (sectionLower.includes('education') || sectionLower.includes('ausbildung')) {
-      // Try to find the matching education entry
-      const eduIndex = result.education.findIndex(edu => 
-        change.section.toLowerCase().includes(edu.institution?.toLowerCase() || '') ||
-        change.section.toLowerCase().includes(edu.degree?.toLowerCase() || '')
-      );
-      
-      if (eduIndex >= 0 && change.updated) {
-        result.education = [...result.education];
-        // Update the education entry with optimized content
-        const lines = change.updated.split(/\n/).filter(l => l.trim());
-        if (lines.length > 0) {
-          // Try to parse degree, field, institution from the updated text
-          const degreeMatch = lines[0].match(/^([^,]+),?\s*(.*)$/);
-          if (degreeMatch) {
-            result.education[eduIndex] = {
-              ...result.education[eduIndex],
-              degree: degreeMatch[1].trim(),
-              field: degreeMatch[2]?.trim() || result.education[eduIndex].field,
-            };
-          }
-        }
-      }
-    }
-    
-    // Apply language changes - improved parsing
-    if (sectionLower.includes('language') || sectionLower.includes('sprach')) {
-      console.log('[CVPanel] Applying language change:', change.updated.substring(0, 100));
-      const parsedLanguages = parseLanguagesFromText(change.updated);
-      if (parsedLanguages.length > 0) {
-        console.log('[CVPanel] Parsed languages:', parsedLanguages);
-        result.languages = parsedLanguages;
-      }
-    }
-    
-    // Apply additional information changes
-    if (sectionLower.includes('additional') || sectionLower.includes('zusätzlich') || sectionLower.includes('sonstig')) {
-      console.log('[CVPanel] Applying additional info change:', change.updated.substring(0, 100));
-      const additionalItems = parseAdditionalInfo(change.updated);
-      if (additionalItems.length > 0) {
-        result.additionalInfo = additionalItems;
-      }
-    }
-  }
-  
-  return result;
-}
-
-// Parse languages from AI-generated text with multiple format support
-function parseLanguagesFromText(text: string): Array<{ language: string; proficiency: string }> {
-  const languages: Array<{ language: string; proficiency: string }> = [];
-  
-  // Split by newlines, bullets, or commas (but be careful with commas inside levels)
-  const lines = text.split(/[\n•]/).map(l => l.trim()).filter(l => l.length > 0);
-  
-  for (const line of lines) {
-    // Skip header text
-    if (line.toLowerCase().includes('languages:') || line.toLowerCase() === 'languages') continue;
-    
-    // Try to parse "Language (Level)" format - e.g., "German (B2 Certified – Verhandlungssicher)"
-    const parenMatch = line.match(/^([^(]+)\s*\(([^)]+)\)/);
-    if (parenMatch) {
-      languages.push({
-        language: parenMatch[1].trim(),
-        proficiency: parenMatch[2].trim(),
-      });
-      continue;
-    }
-    
-    // Try to parse "Language – Level" or "Language - Level" format
-    const dashMatch = line.match(/^(.+?)\s*[–\-—]\s*(.+)$/);
-    if (dashMatch && !dashMatch[1].includes('(')) {
-      languages.push({
-        language: dashMatch[1].trim(),
-        proficiency: dashMatch[2].trim(),
-      });
-      continue;
-    }
-    
-    // If line has content but no level indicator, just use the whole thing
-    if (line.length > 2 && !line.match(/^[,\s]+$/)) {
-      // Check if it's just a language name (no level)
-      const simpleLang = line.replace(/^[-•]\s*/, '').trim();
-      if (simpleLang.length > 0) {
-        languages.push({
-          language: simpleLang,
-          proficiency: '',
-        });
-      }
-    }
-  }
-  
-  return languages;
-}
-
-// Parse additional information section
-function parseAdditionalInfo(text: string): string[] {
-  const items: string[] = [];
-  
-  // Split by bullets, newlines, or semicolons
-  const lines = text.split(/[•\n;]/).map(l => l.trim()).filter(l => l.length > 0);
-  
-  for (const line of lines) {
-    // Skip headers
-    if (line.toLowerCase().includes('additional') && line.toLowerCase().includes('information')) continue;
-    if (line.toLowerCase() === 'additional') continue;
-    
-    // Clean and add valid items
-    const cleaned = line.replace(/^[-•]\s*/, '').trim();
-    if (cleaned.length > 2 && cleaned.length < 200) {
-      items.push(cleaned);
-    }
-  }
-  
-  // Deduplicate
-  return [...new Set(items)];
-}
-
-// Parse certifications from AI-generated text, preserving full details including scores
-function parseCertificationsFromText(text: string): Array<{
-  id: string;
-  name: string;
-  issuer: string;
-  date?: string;
-  fullText?: string;
-}> {
-  const certs: Array<{
-    id: string;
-    name: string;
-    issuer: string;
-    date?: string;
-    fullText?: string;
-  }> = [];
-  
-  // Split by bullet points or newlines
-  const lines = text.split(/[•\n]/).map(l => l.trim()).filter(l => l.length > 5);
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    
-    // Skip header lines
-    if (line.toLowerCase() === 'certifications' || line.toLowerCase().includes('certifications:')) continue;
-    
-    // Try to parse format: "Cert Name – Issuer | Date (Score)"
-    // Keep EVERYTHING including scores in parentheses
-    
-    // Pattern 1: "Name – Issuer | Date" or "Name - Issuer | Date"
-    const pipeMatch = line.match(/^(.+?)\s*[–\-—]\s*(.+?)\s*\|\s*(.+)$/);
-    if (pipeMatch) {
-      certs.push({
-        id: `cert-opt-${i}`,
-        name: pipeMatch[1].replace(/^[-•]\s*/, '').trim(),
-        issuer: pipeMatch[2].trim(),
-        date: pipeMatch[3].trim(),
-        fullText: line.replace(/^[-•]\s*/, '').trim(),
-      });
-      continue;
-    }
-    
-    // Pattern 2: "Name – Issuer" (no date)
-    const dashMatch = line.match(/^(.+?)\s*[–\-—]\s*(.+)$/);
-    if (dashMatch) {
-      certs.push({
-        id: `cert-opt-${i}`,
-        name: dashMatch[1].replace(/^[-•]\s*/, '').trim(),
-        issuer: dashMatch[2].trim(),
-        fullText: line.replace(/^[-•]\s*/, '').trim(),
-      });
-      continue;
-    }
-    
-    // Pattern 3: No pattern match - keep whole line as name
-    if (line.length > 5) {
-      certs.push({
-        id: `cert-opt-${i}`,
-        name: line.replace(/^[-•]\s*/, '').trim(),
-        issuer: '',
-        fullText: line.replace(/^[-•]\s*/, '').trim(),
-      });
-    }
-  }
-  
-  return certs;
-}
+// NOTE: Old patching functions (applyChangesToCVData, parseLanguagesFromText, etc.) 
+// have been removed in favor of the Full Re-parse Architecture.
+// The optimized CV is now fully parsed via parseOptimizedCVToData() instead of patching.
 
 export function CVPanel() {
   const { 
@@ -511,8 +58,7 @@ export function CVPanel() {
   const [editedCVData, setEditedCVData] = useState<CVData | null>(null);
   const cvTemplateRef = useRef<HTMLDivElement>(null);
   
-  // Part 3: Track applied changes to prevent duplicate logging/processing
-  const appliedChangesRef = useRef<Set<string>>(new Set());
+  // Track content hash to prevent duplicate parsing logs
   const lastChangesHashRef = useRef<string>('');
 
   // Parse CV data for template rendering
@@ -537,39 +83,30 @@ export function CVPanel() {
       parsed.personal.photoUrl = profilePhoto.dataUrl;
     }
     
-    // If we have optimized content, apply ALL changes from the Changes tab
-    if (showOptimized && generatedCV) {
-      // First, try to extract summary from the content text
-      let optimized = { ...parsed };
+    // If we have optimized content, use FULL RE-PARSE architecture
+    if (showOptimized && generatedCV?.content) {
+      // Check if content has changed to prevent duplicate parsing
+      const contentHash = generatedCV.content.substring(0, 100);
+      if (contentHash !== lastChangesHashRef.current) {
+        console.log('[CVPanel] Using FULL RE-PARSE for optimized CV');
+        lastChangesHashRef.current = contentHash;
+      }
       
-      // Apply optimized tagline if available
+      // FULL RE-PARSE: Parse the complete optimized CV text into CVData
+      // This replaces the old patching approach with a clean single-source parse
+      const optimizedData = parseOptimizedCVToData(generatedCV.content, parsed);
+      
+      // Apply headline if provided separately (takes priority)
       if (generatedCV.optimizedTagline) {
-        optimized.personal = {
-          ...optimized.personal,
-          currentTitle: generatedCV.optimizedTagline,
-        };
+        optimizedData.personal.currentTitle = generatedCV.optimizedTagline;
       }
       
-      if (generatedCV.content) {
-        const extractedSummary = extractSummaryFromOptimized(generatedCV.content);
-        if (extractedSummary) {
-          optimized.summary = extractedSummary;
-        }
+      // Preserve profile photo from original
+      if (profilePhoto?.dataUrl) {
+        optimizedData.personal.photoUrl = profilePhoto.dataUrl;
       }
       
-      // Then apply all changes from the changes array (skills, certifications, experience, etc.)
-      if (generatedCV.changes && generatedCV.changes.length > 0) {
-        // Part 3: Check if changes have already been processed to prevent duplicate logs
-        const changesHash = JSON.stringify(generatedCV.changes.map(c => c.section + c.updated.substring(0, 50)));
-        if (changesHash !== lastChangesHashRef.current) {
-          console.log('[CVPanel] Processing', generatedCV.changes.length, 'changes (new set)');
-          lastChangesHashRef.current = changesHash;
-          appliedChangesRef.current.clear();
-        }
-        optimized = applyChangesToCVData(optimized, generatedCV.changes);
-      }
-      
-      return optimized;
+      return optimizedData;
     }
     
     return parsed;
