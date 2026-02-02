@@ -79,7 +79,6 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
   const [v2TokenUsage, setV2TokenUsage] = useState<{ inputTokens: number; outputTokens: number; totalTokens: number } | null>(null);
   // Agent settings
   const [enableWebSearch, setEnableWebSearch] = useState(true);
-  const [enableReflection, setEnableReflection] = useState(true);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [messageFeedback, setMessageFeedback] = useState<Record<string, 'positive' | 'negative'>>({});
@@ -339,7 +338,6 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
           certifications: certificationsText,
           action: 'full_optimization',
           enableWebSearch,
-          enableReflection,
         }),
       });
       
@@ -1128,18 +1126,6 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                   >
                     <Globe className="w-3.5 h-3.5" />
                     Web Search
-                  </button>
-                  <button
-                    onClick={() => setEnableReflection(!enableReflection)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                      enableReflection 
-                        ? 'bg-gold-100 text-gold-700 border border-gold-300' 
-                        : 'bg-cream-50 text-warm-gray border border-cream-200 hover:bg-cream-100'
-                    }`}
-                    title="Toggle AI refinement for better results"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Refine
                   </button>
                 </div>
               )}

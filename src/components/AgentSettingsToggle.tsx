@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { 
   Settings2, 
   Globe, 
-  RefreshCw, 
   Sparkles,
   ChevronDown,
   ChevronUp,
@@ -13,17 +12,13 @@ import {
 
 interface AgentSettingsToggleProps {
   enableWebSearch: boolean;
-  enableReflection: boolean;
   onWebSearchChange: (enabled: boolean) => void;
-  onReflectionChange: (enabled: boolean) => void;
   compact?: boolean;
 }
 
 export function AgentSettingsToggle({
   enableWebSearch,
-  enableReflection,
   onWebSearchChange,
-  onReflectionChange,
   compact = false,
 }: AgentSettingsToggleProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -41,17 +36,6 @@ export function AgentSettingsToggle({
           title={enableWebSearch ? 'Company research enabled' : 'Company research disabled'}
         >
           <Globe className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => onReflectionChange(!enableReflection)}
-          className={`p-1.5 rounded-md transition-colors ${
-            enableReflection 
-              ? 'bg-purple-100 text-purple-600' 
-              : 'bg-cream-100 text-warm-gray hover:bg-cream-200'
-          }`}
-          title={enableReflection ? 'Quality refinement enabled' : 'Quality refinement disabled'}
-        >
-          <RefreshCw className="w-4 h-4" />
         </button>
       </div>
     );
@@ -109,40 +93,6 @@ export function AgentSettingsToggle({
               <div className="mt-2 ml-11 flex items-start gap-1.5 text-xs text-blue-600 bg-blue-50 p-2 rounded">
                 <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
                 <span>Uses Tavily to research company culture, values, and recent news</span>
-              </div>
-            )}
-          </div>
-
-          {/* Reflection Toggle */}
-          <div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${enableReflection ? 'bg-purple-100' : 'bg-cream-100'}`}>
-                  <RefreshCw className={`w-4 h-4 ${enableReflection ? 'text-purple-600' : 'text-warm-gray'}`} />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-charcoal">Quality Refinement</p>
-                  <p className="text-xs text-warm-gray">Auto-improve content quality</p>
-                </div>
-              </div>
-              <button
-                onClick={() => onReflectionChange(!enableReflection)}
-                aria-label={enableReflection ? 'Disable quality refinement' : 'Enable quality refinement'}
-                className={`relative w-11 h-6 rounded-full transition-colors ${
-                  enableReflection ? 'bg-purple-500' : 'bg-cream-300'
-                }`}
-              >
-                <div
-                  className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                    enableReflection ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-            {enableReflection && (
-              <div className="mt-2 ml-11 flex items-start gap-1.5 text-xs text-purple-600 bg-purple-50 p-2 rounded">
-                <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                <span>Evaluates and refines content up to 3 times for optimal quality</span>
               </div>
             )}
           </div>
