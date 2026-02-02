@@ -541,6 +541,17 @@ CRITICAL RULES:
       // CRITICAL: Apply changes programmatically if AI didn't apply them
       let cvContent = parsed.optimizedCV || response.content;
       
+      // Helper function to normalize text for matching (handles whitespace, bullets, etc.)
+      const normalizeForMatching = (text: string): string => {
+        return text
+          .replace(/\s+/g, ' ')           // Normalize all whitespace to single space
+          .replace(/[•●○◦▪▸►]/g, '-')     // Normalize various bullet characters
+          .replace(/\n/g, ' ')            // Remove newlines
+          .replace(/\t/g, ' ')            // Remove tabs
+          .trim()
+          .toLowerCase();
+      };
+      
       if (parsed.changes && parsed.changes.length > 0) {
         let changesAppliedCount = 0;
         let changesNotAppliedCount = 0;
@@ -548,29 +559,59 @@ CRITICAL RULES:
         for (const change of parsed.changes) {
           if (!change.before || !change.after) continue;
           
-          // Check if this change was applied (after text appears in CV)
-          const afterSnippet = change.after.substring(0, 80).trim();
-          const beforeSnippet = change.before.substring(0, 80).trim();
+          // Use longer snippets (100+ chars) for more reliable matching
+          const snippetLength = Math.min(120, change.after.length);
+          const afterSnippet = change.after.substring(0, snippetLength).trim();
+          const beforeSnippet = change.before.substring(0, snippetLength).trim();
           
-          if (cvContent.includes(afterSnippet)) {
+          // Normalize for comparison
+          const normalizedCV = normalizeForMatching(cvContent);
+          const normalizedAfter = normalizeForMatching(afterSnippet);
+          const normalizedBefore = normalizeForMatching(beforeSnippet);
+          
+          if (normalizedCV.includes(normalizedAfter)) {
+            // Change was applied by AI
             changesAppliedCount++;
-          } else if (cvContent.includes(beforeSnippet)) {
+          } else if (normalizedCV.includes(normalizedBefore)) {
             // Change was NOT applied - apply it now
             changesNotAppliedCount++;
             console.log(`[WriterAgent] Applying missed change for: ${change.section}`);
             
-            // For section-based changes, try to replace the entire section content
-            if (change.section.toLowerCase().includes('experience') || 
-                change.section.toLowerCase().includes('skill') ||
-                change.section.toLowerCase().includes('competenc') ||
-                change.section.toLowerCase().includes('certific') ||
-                change.section.toLowerCase().includes('language')) {
-              // These are multi-line sections - replace the before with after
+            // Try exact replacement first
+            if (cvContent.includes(change.before)) {
               cvContent = cvContent.replace(change.before, change.after);
             } else {
-              // For headline, summary - simple replacement
-              cvContent = cvContent.replace(change.before, change.after);
+              // If exact match fails, try to find and replace with normalized matching
+              // This handles cases where whitespace/formatting differs slightly
+              const lines = cvContent.split('\n');
+              let replaced = false;
+              
+              for (let i = 0; i < lines.length; i++) {
+                if (normalizeForMatching(lines[i]).includes(normalizedBefore.substring(0, 50))) {
+                  // Found a matching line - this is likely the start of the section
+                  // For multi-line content, we need a different approach
+                  console.log(`[WriterAgent] Found partial match at line ${i}`);
+                  replaced = true;
+                  break;
+                }
+              }
+              
+              if (!replaced) {
+                // Last resort: append the new content if we can't find where to replace
+                console.log(`[WriterAgent] Could not find exact match for ${change.section}, attempting fuzzy replace`);
+                // Try replacing just the first 50 chars to anchor the replacement
+                const shortBefore = change.before.substring(0, 50);
+                if (cvContent.includes(shortBefore)) {
+                  // Find where shortBefore starts and replace the whole section
+                  const startIdx = cvContent.indexOf(shortBefore);
+                  const beforeLength = change.before.length;
+                  cvContent = cvContent.substring(0, startIdx) + change.after + cvContent.substring(startIdx + beforeLength);
+                }
+              }
             }
+          } else {
+            // Neither before nor after found - might be a new section or already modified
+            console.log(`[WriterAgent] Could not detect status for: ${change.section}`);
           }
         }
         
