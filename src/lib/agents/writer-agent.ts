@@ -538,21 +538,52 @@ CRITICAL RULES:
       console.log('  - Changes count:', parsed.changes?.length || 0);
       console.log('  - OptimizedCV length:', parsed.optimizedCV?.length || 0);
       
-      // Verify that changes are actually applied to the CV
-      if (parsed.changes && parsed.changes.length > 0 && parsed.optimizedCV) {
-        // Check if the first change's "after" text appears in the optimizedCV
-        const firstChange = parsed.changes[0];
-        if (firstChange.after && !parsed.optimizedCV.includes(firstChange.after.substring(0, 50))) {
-          console.warn('[WriterAgent] WARNING: Changes may not be applied to optimizedCV!');
-          console.warn('  - First change "after":', firstChange.after.substring(0, 100));
-          console.warn('  - Not found in optimizedCV');
-        } else {
-          console.log('[WriterAgent] ✓ Changes appear to be applied correctly');
+      // CRITICAL: Apply changes programmatically if AI didn't apply them
+      let cvContent = parsed.optimizedCV || response.content;
+      
+      if (parsed.changes && parsed.changes.length > 0) {
+        let changesAppliedCount = 0;
+        let changesNotAppliedCount = 0;
+        
+        for (const change of parsed.changes) {
+          if (!change.before || !change.after) continue;
+          
+          // Check if this change was applied (after text appears in CV)
+          const afterSnippet = change.after.substring(0, 80).trim();
+          const beforeSnippet = change.before.substring(0, 80).trim();
+          
+          if (cvContent.includes(afterSnippet)) {
+            changesAppliedCount++;
+          } else if (cvContent.includes(beforeSnippet)) {
+            // Change was NOT applied - apply it now
+            changesNotAppliedCount++;
+            console.log(`[WriterAgent] Applying missed change for: ${change.section}`);
+            
+            // For section-based changes, try to replace the entire section content
+            if (change.section.toLowerCase().includes('experience') || 
+                change.section.toLowerCase().includes('skill') ||
+                change.section.toLowerCase().includes('competenc') ||
+                change.section.toLowerCase().includes('certific') ||
+                change.section.toLowerCase().includes('language')) {
+              // These are multi-line sections - replace the before with after
+              cvContent = cvContent.replace(change.before, change.after);
+            } else {
+              // For headline, summary - simple replacement
+              cvContent = cvContent.replace(change.before, change.after);
+            }
+          }
+        }
+        
+        console.log(`[WriterAgent] Changes applied by AI: ${changesAppliedCount}`);
+        console.log(`[WriterAgent] Changes applied programmatically: ${changesNotAppliedCount}`);
+        
+        if (changesNotAppliedCount > 0) {
+          console.warn(`[WriterAgent] WARNING: AI failed to apply ${changesNotAppliedCount} changes - applied programmatically`);
         }
       }
       
       // Apply typo corrections to CV content
-      const cvContent = fixTypos(parsed.optimizedCV || response.content);
+      cvContent = fixTypos(cvContent);
       return {
         content: cvContent,
         changes: parsed.changes || [],
