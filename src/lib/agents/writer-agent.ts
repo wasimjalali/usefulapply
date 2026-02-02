@@ -740,28 +740,32 @@ ${today}
 
 Hiring Manager
 ${companyResearch?.name || job?.companyName || 'Company'}
-${companyResearch?.address || '[OMIT IF UNCERTAIN]'}
+${companyResearch?.address ? companyResearch.address : 'Germany'}
 
-=== COMPANY ADDRESS VERIFICATION ===
-CRITICAL: The company address MUST be copied EXACTLY as provided in the COMPANY RESEARCH section.
-- Copy the address CHARACTER FOR CHARACTER - no modifications
-- DO NOT "correct" spelling of city names
-- DO NOT interpret or expand abbreviations
-- "Kastl" must stay "Kastl" - NEVER change to "Kastellaun" or any other city
-- "84556 Kastl" must stay exactly "84556 Kastl"
-- If Company Address shows "Not available" or is empty, OMIT the address line entirely
-- When in doubt, use ONLY: "Hiring Manager\\n${companyResearch?.name || job?.companyName || 'Company'}" without any address
-- NEVER guess, invent, or "improve" address details
+=== COMPANY ADDRESS HANDLING ===
+CRITICAL RULES FOR COMPANY ADDRESS:
+1. If a REAL address is provided above (not "Germany" or empty), use it EXACTLY as shown
+2. If only "Germany" is shown, use ONLY the company name and "Germany" - do NOT invent an address
+3. NEVER use placeholder addresses like "Musterstraße", "123 Example Street", or any fake address
+4. Copy the address CHARACTER FOR CHARACTER - no modifications to spelling
+5. "Kastl" must stay "Kastl" - NEVER change to "Kastellaun" or any other city
 
-CORRECT EXAMPLE (if address is "Maierhof 1, 84556 Kastl"):
+CORRECT EXAMPLES:
+
+If real address found:
 Hiring Manager
-Fliegl Agro-Center GmbH
+${companyResearch?.name || job?.companyName || 'Company'}
 Maierhof 1, 84556 Kastl
 
-WRONG EXAMPLE (AI modified the city):
-Hiring Manager  
-Fliegl Agro-Center GmbH
-Kastellaun, Rheinland  ← WRONG! This is a different city!
+If NO address found (shows "Germany"):
+Hiring Manager
+${companyResearch?.name || job?.companyName || 'Company'}
+Germany
+
+WRONG - NEVER DO THIS:
+Hiring Manager
+Company Name
+Musterstraße 123, 12345 Berlin  ← FAKE ADDRESS - NEVER!
 
 INSTRUCTIONS:
 1. Use the Problem-Solution format shown in the structure example
