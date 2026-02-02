@@ -17,6 +17,93 @@ import type { MasterContext, AgentEventHandler } from './types';
 import { callModel } from '@/lib/models';
 
 // =====================================================
+// COMMON TYPO CORRECTIONS
+// Fixes common misspellings in certifications and tools
+// =====================================================
+
+const TYPO_CORRECTIONS: Record<string, string> = {
+  // Certification/Tool typos
+  'semrash': 'Semrush',
+  'Semrash': 'Semrush',
+  'SEMrash': 'Semrush',
+  'semRash': 'Semrush',
+  'ahrefs': 'Ahrefs',
+  'Ahrefs': 'Ahrefs',
+  'hubspot': 'HubSpot',
+  'Hubspot': 'HubSpot',
+  'mailchimp': 'Mailchimp',
+  'MailChimp': 'Mailchimp',
+  'linkedin': 'LinkedIn',
+  'Linkedin': 'LinkedIn',
+  'youtube': 'YouTube',
+  'Youtube': 'YouTube',
+  'github': 'GitHub',
+  'Github': 'GitHub',
+  'gitlab': 'GitLab',
+  'Gitlab': 'GitLab',
+  'javascript': 'JavaScript',
+  'Javascript': 'JavaScript',
+  'typescript': 'TypeScript',
+  'Typescript': 'TypeScript',
+  'nodejs': 'Node.js',
+  'Nodejs': 'Node.js',
+  'NodeJs': 'Node.js',
+  'reactjs': 'React',
+  'ReactJs': 'React',
+  'vuejs': 'Vue.js',
+  'VueJs': 'Vue.js',
+  'nextjs': 'Next.js',
+  'Nextjs': 'Next.js',
+  'NextJs': 'Next.js',
+  'mongodb': 'MongoDB',
+  'Mongodb': 'MongoDB',
+  'postgresql': 'PostgreSQL',
+  'Postgresql': 'PostgreSQL',
+  'mysql': 'MySQL',
+  'Mysql': 'MySQL',
+  'wordpress': 'WordPress',
+  'Wordpress': 'WordPress',
+  'shopify': 'Shopify',
+  'woocommerce': 'WooCommerce',
+  'Woocommerce': 'WooCommerce',
+  'google analytics': 'Google Analytics',
+  'Google analytics': 'Google Analytics',
+  'google ads': 'Google Ads',
+  'Google ads': 'Google Ads',
+  'facebook ads': 'Facebook Ads',
+  'Facebook ads': 'Facebook Ads',
+  'tiktok': 'TikTok',
+  'Tiktok': 'TikTok',
+  'instagram': 'Instagram',
+  'powerbi': 'Power BI',
+  'PowerBi': 'Power BI',
+  'Powerbi': 'Power BI',
+  'tableau': 'Tableau',
+  'salesforce': 'Salesforce',
+  'jira': 'Jira',
+  'asana': 'Asana',
+  'trello': 'Trello',
+  'slack': 'Slack',
+  'figma': 'Figma',
+  'canva': 'Canva',
+  'photoshop': 'Photoshop',
+  'illustrator': 'Illustrator',
+};
+
+/**
+ * Fix common typos in text (certifications, tools, etc.)
+ */
+function fixTypos(text: string): string {
+  let fixed = text;
+  for (const [typo, correction] of Object.entries(TYPO_CORRECTIONS)) {
+    // Use word boundary regex to avoid partial matches
+    const regex = new RegExp(`\\b${typo}\\b`, 'g');
+    fixed = fixed.replace(regex, correction);
+  }
+  return fixed;
+}
+
+// =====================================================
 // ANTI-CLICHE BLACKLIST
 // Phrases that make cover letters sound AI-generated
 // =====================================================
@@ -539,9 +626,16 @@ ${today}
 
 Hiring Manager
 ${companyResearch?.name || job?.companyName || 'Company'}
-${companyResearch?.address || 'Company Address (if available from research)'}
+${companyResearch?.address || '[OMIT IF UNCERTAIN]'}
 
-IMPORTANT: If company address is available from COMPANY RESEARCH section above, include it in the header. If not available, omit the company address line.
+=== COMPANY ADDRESS VERIFICATION ===
+CRITICAL: Double-check city names from web search before using them.
+- Only use the EXACT address text from COMPANY RESEARCH section
+- DO NOT modify, interpret, or "correct" city names
+- "Kastl" ≠ "Kastellaun" — these are DIFFERENT cities, never substitute
+- If the address looks incomplete, unusual, or you're uncertain, OMIT IT entirely
+- When in doubt, use only: "Hiring Manager\\n${companyResearch?.name || job?.companyName || 'Company'}" without address
+- NEVER guess or invent address details
 
 INSTRUCTIONS:
 1. Use the Problem-Solution format shown in the structure example
@@ -633,6 +727,9 @@ NEVER end a cover letter without the signature. The signature is mandatory.`,
       emit({ type: 'progress', percent: 80, message: 'Polishing cover letter...' });
       coverLetter = await this.refineCoverLetter(coverLetter, context);
     }
+    
+    // Fix common typos in certifications and tool names
+    coverLetter = fixTypos(coverLetter);
     
     return coverLetter;
   },
@@ -744,6 +841,14 @@ INSTRUCTIONS:
 4. End with availability, not "I look forward to hearing from you"
 5. Start with "Hello," as the greeting (do NOT use placeholder like "[Name]")
 
+EMAIL SIGNATURE REQUIREMENT:
+The email MUST end with a professional signature:
+
+Best regards,
+${applicant?.name || 'Applicant Name'}
+
+NEVER send an email without a signature. The signature must be on separate lines.
+
 Return ONLY valid JSON: {"subject": "...", "body": "..."}`,
       systemPrompt: `You are an expert at professional email communication for job applications.
 
@@ -769,11 +874,22 @@ PROHIBITIONS:
 
 STRUCTURE:
 Subject: [Job Title] Application - [Your Name] - [One Key Qualifier]
-Body: Greeting + One sentence hook + one sentence value + one sentence call to action
+Body: Greeting + One sentence hook + one sentence value + one sentence call to action + Signature
+
+SIGNATURE REQUIREMENT:
+- EVERY email MUST end with a signature
+- Format: "Best regards,\\n[Applicant Name]"
+- The signature must be on separate lines from the body text
+- NEVER omit the signature
 
 EXAMPLE:
 Subject: E-Commerce Manager Application - Sarah Chen - €150K Amazon Revenue
-Body: "Hello, I'm applying for the E-Commerce Manager role and wanted to highlight my track record of growing Amazon revenue to €150,000 across four markets. I've attached my CV and cover letter with specific details on how I can bring this same approach to your team. Happy to discuss at your convenience."
+Body: "Hello,
+
+I'm applying for the E-Commerce Manager role and wanted to highlight my track record of growing Amazon revenue to €150,000 across four markets. I've attached my CV and cover letter with specific details on how I can bring this same approach to your team. Happy to discuss at your convenience.
+
+Best regards,
+Sarah Chen"
 
 Return ONLY valid JSON: {"subject": "...", "body": "..."}`,
       jsonMode: true,
@@ -798,12 +914,17 @@ Return ONLY valid JSON: {"subject": "...", "body": "..."}`,
       
       const parsed = JSON.parse(jsonContent);
       // Clean up any placeholder names that slipped through
-      const cleanBody = (parsed.body || response.content)
+      let cleanBody = (parsed.body || response.content)
         .replace(/Hi \[Name\],?/gi, 'Hello,')
         .replace(/Dear \[Name\],?/gi, 'Dear Hiring Team,')
         .replace(/\[Name\]/g, 'Hiring Manager');
+      
+      // Fix common typos in certifications and tool names
+      cleanBody = fixTypos(cleanBody);
+      const cleanSubject = fixTypos(parsed.subject || `Application for ${job?.title || 'Position'} at ${job?.companyName || 'Company'}`);
+      
       return {
-        subject: parsed.subject || `Application for ${job?.title || 'Position'} at ${job?.companyName || 'Company'}`,
+        subject: cleanSubject,
         body: cleanBody,
       };
     } catch (error) {
@@ -819,7 +940,11 @@ Return ONLY valid JSON: {"subject": "...", "body": "..."}`,
         body = lines.slice(1).join('\n').trim();
       }
       
-      return { subject, body };
+      // Fix common typos in fallback case too
+      return { 
+        subject: fixTypos(subject), 
+        body: fixTypos(body) 
+      };
     }
   },
 };
