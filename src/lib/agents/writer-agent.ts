@@ -352,28 +352,29 @@ ${masterCV ? `
 === ADDITIONAL EXPERIENCE (from Master CV) ===
 ${masterCV}` : ''}
 
-=== EXAMPLE OF EXCELLENT COVER LETTER ===
+=== STRUCTURE EXAMPLE (DO NOT COPY CONTENT - USE ONLY AS FORMAT GUIDE) ===
 [Opening - hooks with achievement, shows understanding of company challenge]
-"After leading Amazon marketplace operations that generated 150K in revenue across four markets, I've developed a keen eye for identifying underperforming product listings and transforming them into top sellers. When I saw your E-Commerce Manager role, I recognized the exact challenge I've been solving for the past three years."
+"After [SPECIFIC ACHIEVEMENT WITH METRIC FROM CV], I've developed [RELEVANT SKILL FROM CV]. When I saw your [JOB TITLE] role, I recognized [CONNECTION TO THEIR CHALLENGE]."
 
 [Value paragraph - specific experience matched to their needs]
-"At my previous company, I inherited a stagnant Amazon presence with declining sales. Within six months, I restructured the PPC strategy, optimized 200+ listings for the A9 algorithm, and built an automated inventory system that cut stockouts by 40%. The result: a 67% increase in revenue and expansion into two new markets. I'm looking to bring this same systematic approach to your team."
+"At [PREVIOUS COMPANY FROM CV], I [SPECIFIC ACCOMPLISHMENT FROM CV]. [DESCRIBE PROCESS/ACTIONS FROM CV]. The result: [METRIC FROM CV IF AVAILABLE, OTHERWISE QUALITATIVE OUTCOME]. I'm looking to bring this same [APPROACH/SKILL FROM CV] to your team."
 
 [Company knowledge - shows research]
-"I've been following your expansion into the agricultural equipment space, and I'm particularly impressed by your recent sustainability initiative. My experience optimizing supply chains for seasonal products aligns well with the unique inventory challenges in this sector."
+"I've been following [SPECIFIC COMPANY FACT FROM RESEARCH], and I'm particularly impressed by [SPECIFIC INITIATIVE/VALUE]. My experience [RELEVANT EXPERIENCE FROM CV] aligns well with [THEIR SPECIFIC CHALLENGE/GOAL]."
 
 [Confident close - specific and action-oriented]
-"I'd welcome the opportunity to discuss how my marketplace optimization experience can accelerate your e-commerce growth. I'm available for a call this week or next at your convenience."
-=== END EXAMPLE ===
+"I'd welcome the opportunity to discuss how my [SPECIFIC SKILL FROM CV] can help [SPECIFIC COMPANY GOAL]. I'm available for a call this week or next at your convenience."
+=== END STRUCTURE EXAMPLE ===
 
 INSTRUCTIONS:
-1. Use the Problem-Solution format shown in the example
-2. Include at least TWO specific metrics from the candidate's background
+1. Use the Problem-Solution format shown in the structure example
+2. Include at least TWO specific metrics from the candidate's background (ONLY if they exist in the CV)
 3. Reference something specific from the company research (if available)
 4. Keep between 250-350 words
-5. Do NOT copy the example - adapt it to this specific candidate and role
-6. Verify every claim exists in the CV - never invent achievements
-7. Include proper header with applicant contact info and date
+5. The example shows STRUCTURE only - replace ALL bracketed placeholders with actual content from the CV
+6. CRITICAL: Every claim, skill, tool, platform, and metric MUST exist verbatim in the CANDIDATE BACKGROUND section
+7. If the job requires skills not in the CV, show TRANSFERABLE skills instead - NEVER claim missing skills
+8. Include proper header with applicant contact info and date
 
 Write the complete cover letter now:`,
       systemPrompt: `You are an expert cover letter writer specializing in the US and UK job markets.
@@ -417,11 +418,15 @@ WHAT TO DO INSTEAD:
 - Instead of "valuable asset": Demonstrate value with metrics
 - Instead of generic close: "I'd welcome the chance to discuss how my [specific skill] can help [specific company goal]."
 
-CRITICAL ANTI-HALLUCINATION RULE:
-- NEVER invent skills, experiences, achievements, or metrics
-- ONLY reference information explicitly stated in the CANDIDATE BACKGROUND section
-- If the CV lacks specific metrics, use qualitative descriptions instead of making up numbers
-- Every claim must be verifiable from the provided context
+CRITICAL ANTI-HALLUCINATION RULES:
+1. NEVER claim experience with tools, platforms, or technologies not explicitly listed in the CANDIDATE BACKGROUND
+2. NEVER invent metrics (percentages, numbers, dollar amounts) - only use exact numbers from the CV
+3. If the job requires skills the candidate doesn't have, DO NOT claim them - instead, show transferable skills
+4. The structure example uses placeholders - do NOT copy its specific content, only its format
+5. ONLY reference information explicitly stated in the CANDIDATE BACKGROUND or ADDITIONAL EXPERIENCE sections
+6. If the CV lacks specific metrics, use qualitative descriptions instead of making up numbers
+7. Every claim must be verifiable by looking at the provided CV text
+8. When mentioning tools/platforms (e.g., Shopify, Magento, AWS), verify they appear in the CV first
 
 OUTPUT: Plain text only. No markdown. No bullet points. Professional letter format.`,
     });
@@ -445,7 +450,7 @@ OUTPUT: Plain text only. No markdown. No bullet points. Professional letter form
     originalLetter: string,
     context: MasterContext
   ): Promise<string> {
-    const { applicant, job, companyResearch } = context;
+    const { applicant, job, companyResearch, rawCV, masterCV } = context;
 
     const response = await callModel({
       task: 'refine_cover_letter',
@@ -454,6 +459,10 @@ OUTPUT: Plain text only. No markdown. No bullet points. Professional letter form
 === ORIGINAL COVER LETTER ===
 ${originalLetter}
 
+=== CANDIDATE'S ACTUAL CV (for verification) ===
+${rawCV}
+${masterCV ? `\n\nADDITIONAL EXPERIENCE:\n${masterCV}` : ''}
+
 === CONTEXT ===
 Applicant: ${applicant?.name}
 Target Role: ${job?.title} at ${job?.companyName}
@@ -461,27 +470,34 @@ Company Research Available: ${companyResearch ? 'Yes' : 'No'}
 
 === EDITING CHECKLIST ===
 
-1. OPENING CHECK:
+1. HALLUCINATION CHECK (CRITICAL - DO THIS FIRST):
+   - Read every claim, skill, tool, platform, and metric in the letter
+   - Verify each one appears in the CANDIDATE'S ACTUAL CV above
+   - If ANY claim is not in the CV, REMOVE IT or replace with actual CV content
+   - Common hallucinations to check: Shopify, Magento, AWS, specific percentages, dollar amounts
+   - If the letter claims experience the CV doesn't show, REWRITE using only CV content
+
+2. OPENING CHECK:
    - Does it start with a cliche like "I am writing to apply" or "I am excited"?
    - If yes: Rewrite to lead with an achievement or insight
    
-2. SPECIFICITY CHECK:
+3. SPECIFICITY CHECK:
    - Are there at least 2 specific metrics/numbers?
-   - If no: Add metrics from the context if available
+   - If no: Add metrics ONLY if they exist in the CV
    
-3. COMPANY KNOWLEDGE CHECK:
+4. COMPANY KNOWLEDGE CHECK:
    - Does it mention something specific about the company?
    - If no and research is available: Add a specific reference
    
-4. CLOSING CHECK:
+5. CLOSING CHECK:
    - Does it end with "Thank you for considering" or "I look forward to hearing"?
    - If yes: Rewrite with a confident, specific call to action
    
-5. TONE CHECK:
+6. TONE CHECK:
    - Does any sentence sound robotic or AI-generated?
    - If yes: Rewrite in more natural language
    
-6. LENGTH CHECK:
+7. LENGTH CHECK:
    - Is it between 250-350 words?
    - If too long: Cut filler. If too short: Add specific value.
 
@@ -498,7 +514,7 @@ Company Research Available: ${companyResearch ? 'Yes' : 'No'}
 Return ONLY the improved cover letter. No explanations, no "Here's the improved version", no markdown. Just the plain text letter.
 
 If the original is already excellent (rare), return it unchanged.`,
-      systemPrompt: 'You are a ruthless editor. Your job is to make this cover letter sound human, specific, and compelling. Cut cliches without mercy. Add specificity where vague. Return only the improved letter.',
+      systemPrompt: 'You are a ruthless editor focused on ACCURACY and quality. Your #1 priority is removing any claims not in the CV. Cut cliches without mercy. Add specificity where vague, but NEVER invent facts. Return only the improved letter.',
     });
 
     return response.content || originalLetter;
