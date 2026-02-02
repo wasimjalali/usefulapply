@@ -309,9 +309,12 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
   const runAgentWorkflow = async (jobDescription: string) => {
     if (!currentCV) return;
     
+    // Set loading state immediately - DO NOT reset v2Progress here!
+    // v2Progress is already set to { percent: 0, message: 'Starting analysis...' } before this function is called
     setIsAgentWorking(true);
     setAgentSteps([]);
-    setV2Progress(null);
+    // Keep the initial progress message, don't set to null
+    // setV2Progress(null); // REMOVED - this was clearing the loading indicator
     setV2Reflection(null);
     setV2Models(null);
     setV2Evaluation(null);
@@ -996,7 +999,35 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
           </div>
         ))}
 
-        {/* Agent Steps Progress V2 - shown after messages */}
+        {/* Immediate loading indicator - shows right away when agent starts */}
+        {isAgentWorking && agentSteps.length === 0 && v2Progress && (
+          <div className="flex gap-3">
+            <div className="p-1 bg-navy-100 rounded-full h-fit flex-shrink-0">
+              <img src="/karko-ai.png" alt="KarKo AI" className="w-6 h-6 object-contain" />
+            </div>
+            <div className="flex-1">
+              <div className="bg-white rounded-lg border border-cream-200 p-4">
+                <div className="flex items-center gap-3">
+                  <Loader2 className="w-5 h-5 text-gold-500 animate-spin" />
+                  <div>
+                    <p className="text-sm font-medium text-navy-800">{v2Progress.message}</p>
+                    <p className="text-xs text-warm-gray mt-1">AI agents are preparing your application...</p>
+                  </div>
+                </div>
+                {v2Progress.percent > 0 && (
+                  <div className="mt-3 h-1.5 bg-cream-200 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-gold-400 to-gold-500 transition-all duration-300"
+                      style={{ width: `${v2Progress.percent}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Agent Steps Progress V2 - shown when steps arrive */}
         {isAgentWorking && agentSteps.length > 0 && (
           <div className="flex gap-3">
             <div className="p-1 bg-navy-100 rounded-full h-fit flex-shrink-0">

@@ -528,8 +528,10 @@ CRITICAL RULES:
       }
       
       const parsed = JSON.parse(jsonContent);
+      // Apply typo corrections to CV content
+      const cvContent = fixTypos(parsed.optimizedCV || response.content);
       return {
-        content: parsed.optimizedCV || response.content,
+        content: cvContent,
         changes: parsed.changes || [],
       };
     } catch (error) {
@@ -540,12 +542,12 @@ CRITICAL RULES:
       // If it looks like it contains a CV structure, use it
       if (content.includes('PROFESSIONAL') || content.includes('EXPERIENCE') || content.includes('EDUCATION')) {
         return {
-          content: content,
+          content: fixTypos(content),
           changes: [],
         };
       }
       return {
-        content: response.content,
+        content: fixTypos(response.content),
         changes: [],
       };
     }
