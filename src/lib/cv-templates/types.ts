@@ -876,6 +876,9 @@ export interface CVData {
     technologies?: string[];
     url?: string;
   }>;
+  
+  // Additional information (work authorization, driver's license, etc.)
+  additionalInfo?: string[];
 }
 
 // Template definitions - Consolidated Premium Templates (January 2026)

@@ -355,6 +355,26 @@ export function USPremiumATSTemplate({
             </div>
           </section>
         )}
+
+        {/* Additional Information */}
+        {data.additionalInfo && data.additionalInfo.length > 0 && (
+          <section>
+            <h2 
+              className="text-sm font-bold uppercase tracking-widest mb-3 pb-1 border-b"
+              style={{ color: premiumColors.primary, borderColor: premiumColors.border }}
+            >
+              Additional Information
+            </h2>
+            <div className="text-sm" style={{ color: premiumColors.text }}>
+              {data.additionalInfo.map((item, idx) => (
+                <span key={idx}>
+                  {item}
+                  {idx < data.additionalInfo!.length - 1 && ' • '}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
       {/* Print footer with page number */}

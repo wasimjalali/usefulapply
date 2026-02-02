@@ -179,38 +179,13 @@ function applyChangesToCVData(cvData: CVData, changes: CVChange[]): CVData {
       }
     }
     
-    // Apply certification changes
+    // Apply certification changes - preserve full text including scores
     if (sectionLower.includes('certification') || sectionLower.includes('zertifikat')) {
-      // Parse certifications - handle both bullet-separated and comma/newline formats
-      let certItems: string[] = [];
-      
-      // Try splitting by bullet points first
-      if (change.updated.includes('•') || change.updated.includes('·')) {
-        certItems = change.updated.split(/[•·]/)
-          .map(s => s.trim())
-          .filter(s => s.length > 5);
-      } else {
-        // Fall back to comma/newline split
-        certItems = change.updated.split(/[,\n]/)
-          .map(s => s.trim())
-          .filter(s => s.length > 5);
-      }
-      
-      if (certItems.length > 0) {
-        result.certifications = certItems.map((cert, idx) => {
-          // Try to parse "Cert Name - Issuer, Date" format
-          const parts = cert.split(/\s*[-–]\s*/);
-          const name = parts[0]?.replace(/^[-•]\s*/, '').trim() || cert;
-          const issuer = parts[1]?.trim() || '';
-          const date = parts[2]?.trim();
-          
-          return {
-            id: `cert-opt-${idx}`,
-            name,
-            issuer,
-            date,
-          };
-        });
+      console.log('[CVPanel] Applying certification change:', change.updated.substring(0, 150));
+      const parsedCerts = parseCertificationsFromText(change.updated);
+      if (parsedCerts.length > 0) {
+        console.log('[CVPanel] Parsed certifications:', parsedCerts.length);
+        result.certifications = parsedCerts;
       }
     }
     
@@ -303,6 +278,26 @@ function applyChangesToCVData(cvData: CVData, changes: CVChange[]): CVData {
         } else {
           console.log('[CVPanel] WARNING: No bullets parsed from experience change');
         }
+        
+        // Issue 1.4: Also update company name to remove "(Side Project)" if present in change
+        // Parse header format: "Position | Company, Location | Date"
+        const headerMatch = change.updated.match(/^([^|•\n]+)\|([^,|•\n]+)/);
+        if (headerMatch) {
+          const newPosition = headerMatch[1].trim();
+          const newCompany = headerMatch[2].trim().replace(/\s*\(Side Project\)/i, '');
+          
+          if (newPosition && newPosition.length > 2) {
+            result.experience[expIndex].position = newPosition;
+          }
+          if (newCompany && newCompany.length > 2) {
+            result.experience[expIndex].company = newCompany;
+          }
+        }
+        
+        // Also clean up any "(Side Project)" from existing company name
+        if (result.experience[expIndex].company) {
+          result.experience[expIndex].company = result.experience[expIndex].company.replace(/\s*\(Side Project\)/i, '');
+        }
       }
     }
     
@@ -332,27 +327,164 @@ function applyChangesToCVData(cvData: CVData, changes: CVChange[]): CVData {
       }
     }
     
-    // Apply language changes
+    // Apply language changes - improved parsing
     if (sectionLower.includes('language') || sectionLower.includes('sprach')) {
-      // Parse languages from the updated text
-      const langLines = change.updated.split(/[,\n]/).map(s => s.trim()).filter(s => s.length > 0);
-      if (langLines.length > 0) {
-        result.languages = langLines.map(line => {
-          // Parse format: "Language – Level" or "Language (Level)"
-          const match = line.match(/([^–(]+)[–(]\s*([^)]+)\)?/);
-          if (match) {
-            return {
-              language: match[1].trim(),
-              proficiency: match[2].trim(),
-            };
-          }
-          return { language: line, proficiency: '' };
-        });
+      console.log('[CVPanel] Applying language change:', change.updated.substring(0, 100));
+      const parsedLanguages = parseLanguagesFromText(change.updated);
+      if (parsedLanguages.length > 0) {
+        console.log('[CVPanel] Parsed languages:', parsedLanguages);
+        result.languages = parsedLanguages;
+      }
+    }
+    
+    // Apply additional information changes
+    if (sectionLower.includes('additional') || sectionLower.includes('zusätzlich') || sectionLower.includes('sonstig')) {
+      console.log('[CVPanel] Applying additional info change:', change.updated.substring(0, 100));
+      const additionalItems = parseAdditionalInfo(change.updated);
+      if (additionalItems.length > 0) {
+        result.additionalInfo = additionalItems;
       }
     }
   }
   
   return result;
+}
+
+// Parse languages from AI-generated text with multiple format support
+function parseLanguagesFromText(text: string): Array<{ language: string; proficiency: string }> {
+  const languages: Array<{ language: string; proficiency: string }> = [];
+  
+  // Split by newlines, bullets, or commas (but be careful with commas inside levels)
+  const lines = text.split(/[\n•]/).map(l => l.trim()).filter(l => l.length > 0);
+  
+  for (const line of lines) {
+    // Skip header text
+    if (line.toLowerCase().includes('languages:') || line.toLowerCase() === 'languages') continue;
+    
+    // Try to parse "Language (Level)" format - e.g., "German (B2 Certified – Verhandlungssicher)"
+    const parenMatch = line.match(/^([^(]+)\s*\(([^)]+)\)/);
+    if (parenMatch) {
+      languages.push({
+        language: parenMatch[1].trim(),
+        proficiency: parenMatch[2].trim(),
+      });
+      continue;
+    }
+    
+    // Try to parse "Language – Level" or "Language - Level" format
+    const dashMatch = line.match(/^(.+?)\s*[–\-—]\s*(.+)$/);
+    if (dashMatch && !dashMatch[1].includes('(')) {
+      languages.push({
+        language: dashMatch[1].trim(),
+        proficiency: dashMatch[2].trim(),
+      });
+      continue;
+    }
+    
+    // If line has content but no level indicator, just use the whole thing
+    if (line.length > 2 && !line.match(/^[,\s]+$/)) {
+      // Check if it's just a language name (no level)
+      const simpleLang = line.replace(/^[-•]\s*/, '').trim();
+      if (simpleLang.length > 0) {
+        languages.push({
+          language: simpleLang,
+          proficiency: '',
+        });
+      }
+    }
+  }
+  
+  return languages;
+}
+
+// Parse additional information section
+function parseAdditionalInfo(text: string): string[] {
+  const items: string[] = [];
+  
+  // Split by bullets, newlines, or semicolons
+  const lines = text.split(/[•\n;]/).map(l => l.trim()).filter(l => l.length > 0);
+  
+  for (const line of lines) {
+    // Skip headers
+    if (line.toLowerCase().includes('additional') && line.toLowerCase().includes('information')) continue;
+    if (line.toLowerCase() === 'additional') continue;
+    
+    // Clean and add valid items
+    const cleaned = line.replace(/^[-•]\s*/, '').trim();
+    if (cleaned.length > 2 && cleaned.length < 200) {
+      items.push(cleaned);
+    }
+  }
+  
+  // Deduplicate
+  return [...new Set(items)];
+}
+
+// Parse certifications from AI-generated text, preserving full details including scores
+function parseCertificationsFromText(text: string): Array<{
+  id: string;
+  name: string;
+  issuer: string;
+  date?: string;
+  fullText?: string;
+}> {
+  const certs: Array<{
+    id: string;
+    name: string;
+    issuer: string;
+    date?: string;
+    fullText?: string;
+  }> = [];
+  
+  // Split by bullet points or newlines
+  const lines = text.split(/[•\n]/).map(l => l.trim()).filter(l => l.length > 5);
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Skip header lines
+    if (line.toLowerCase() === 'certifications' || line.toLowerCase().includes('certifications:')) continue;
+    
+    // Try to parse format: "Cert Name – Issuer | Date (Score)"
+    // Keep EVERYTHING including scores in parentheses
+    
+    // Pattern 1: "Name – Issuer | Date" or "Name - Issuer | Date"
+    const pipeMatch = line.match(/^(.+?)\s*[–\-—]\s*(.+?)\s*\|\s*(.+)$/);
+    if (pipeMatch) {
+      certs.push({
+        id: `cert-opt-${i}`,
+        name: pipeMatch[1].replace(/^[-•]\s*/, '').trim(),
+        issuer: pipeMatch[2].trim(),
+        date: pipeMatch[3].trim(),
+        fullText: line.replace(/^[-•]\s*/, '').trim(),
+      });
+      continue;
+    }
+    
+    // Pattern 2: "Name – Issuer" (no date)
+    const dashMatch = line.match(/^(.+?)\s*[–\-—]\s*(.+)$/);
+    if (dashMatch) {
+      certs.push({
+        id: `cert-opt-${i}`,
+        name: dashMatch[1].replace(/^[-•]\s*/, '').trim(),
+        issuer: dashMatch[2].trim(),
+        fullText: line.replace(/^[-•]\s*/, '').trim(),
+      });
+      continue;
+    }
+    
+    // Pattern 3: No pattern match - keep whole line as name
+    if (line.length > 5) {
+      certs.push({
+        id: `cert-opt-${i}`,
+        name: line.replace(/^[-•]\s*/, '').trim(),
+        issuer: '',
+        fullText: line.replace(/^[-•]\s*/, '').trim(),
+      });
+    }
+  }
+  
+  return certs;
 }
 
 export function CVPanel() {
@@ -378,6 +510,10 @@ export function CVPanel() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedCVData, setEditedCVData] = useState<CVData | null>(null);
   const cvTemplateRef = useRef<HTMLDivElement>(null);
+  
+  // Part 3: Track applied changes to prevent duplicate logging/processing
+  const appliedChangesRef = useRef<Set<string>>(new Set());
+  const lastChangesHashRef = useRef<string>('');
 
   // Parse CV data for template rendering
   // PRIORITY: Use structuredCV (from AI parsing) when available - it has proper skills/languages arrays
@@ -423,6 +559,13 @@ export function CVPanel() {
       
       // Then apply all changes from the changes array (skills, certifications, experience, etc.)
       if (generatedCV.changes && generatedCV.changes.length > 0) {
+        // Part 3: Check if changes have already been processed to prevent duplicate logs
+        const changesHash = JSON.stringify(generatedCV.changes.map(c => c.section + c.updated.substring(0, 50)));
+        if (changesHash !== lastChangesHashRef.current) {
+          console.log('[CVPanel] Processing', generatedCV.changes.length, 'changes (new set)');
+          lastChangesHashRef.current = changesHash;
+          appliedChangesRef.current.clear();
+        }
         optimized = applyChangesToCVData(optimized, generatedCV.changes);
       }
       

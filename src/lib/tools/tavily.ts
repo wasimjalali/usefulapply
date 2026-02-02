@@ -268,6 +268,42 @@ function extractWebsite(results: SearchResult[], companyName: string): string {
 }
 
 /**
+ * Validate that an address is real (not a placeholder/fake)
+ * Rejects common German placeholder addresses like "Musterstraße"
+ */
+function isValidAddress(address: string): boolean {
+  if (!address || address.length < 5) return false;
+  
+  // Reject placeholder/fake addresses (German and English)
+  const invalidPatterns = [
+    /musterstra[ßs]e/i,        // "Example Street" in German
+    /beispielstra[ßs]e/i,      // "Example Street" in German
+    /teststra[ßs]e/i,          // "Test Street"
+    /musterweg/i,              // "Example Way"
+    /beispielweg/i,            // "Example Way"
+    /^123\s/,                  // Starts with 123 (common placeholder)
+    /test.*street/i,           // Test street
+    /placeholder/i,            // Placeholder
+    /example.*street/i,        // Example street
+    /sample.*address/i,        // Sample address
+    /^street\s+\d+$/i,         // Generic "Street 123"
+    /^address.*unknown/i,      // Address unknown
+    /nicht.*verfügbar/i,       // Not available (German)
+    /not.*available/i,         // Not available
+    /^n\/?a$/i,                // N/A
+  ];
+  
+  const isInvalid = invalidPatterns.some(pattern => pattern.test(address));
+  
+  if (isInvalid) {
+    console.log(`[Tavily] Rejected placeholder address: "${address}"`);
+    return false;
+  }
+  
+  return true;
+}
+
+/**
  * Extract company address from search results with improved logic
  * CRITICAL: Returns EXACT text from search results - NO modification or interpretation
  * The address must pass through unchanged to prevent city name errors (e.g., Kastl ≠ Kastellaun)
@@ -281,9 +317,11 @@ function extractAddress(results: SearchResult[], answer: string | undefined, com
     const match = result.content.match(germanAddressPattern);
     if (match && match[1]) {
       const address = match[1].trim();
-      // Return EXACT match - no modification
-      console.log(`[Tavily] Found exact address: "${address}"`);
-      return address;
+      // Validate address is not a placeholder
+      if (isValidAddress(address)) {
+        console.log(`[Tavily] Found exact address: "${address}"`);
+        return address;
+      }
     }
   }
 
@@ -298,7 +336,7 @@ function extractAddress(results: SearchResult[], answer: string | undefined, com
       const match = result.content.match(pattern);
       if (match && match[1]) {
         const address = match[1].trim().replace(/[.,]$/, '');
-        if (address.length > 10 && address.length < 150) {
+        if (address.length > 10 && address.length < 150 && isValidAddress(address)) {
           console.log(`[Tavily] Found address from location pattern: "${address}"`);
           return address;
         }
@@ -311,8 +349,10 @@ function extractAddress(results: SearchResult[], answer: string | undefined, com
     const postalMatch = answer.match(/([A-Za-zäöüÄÖÜß\s]+\s+\d+[a-z]?\s*,?\s*\d{4,5}\s+[A-Za-zäöüÄÖÜß\s-]+)/i);
     if (postalMatch && postalMatch[1]) {
       const address = postalMatch[1].trim();
-      console.log(`[Tavily] Found address from answer: "${address}"`);
-      return address;
+      if (isValidAddress(address)) {
+        console.log(`[Tavily] Found address from answer: "${address}"`);
+        return address;
+      }
     }
   }
 
@@ -329,7 +369,7 @@ function extractAddress(results: SearchResult[], answer: string | undefined, com
       const match = result.content.match(pattern);
       if (match && match[1]) {
         const location = match[1].trim();
-        if (location.length > 3 && location.length < 100) {
+        if (location.length > 3 && location.length < 100 && isValidAddress(location)) {
           console.log(`[Tavily] Found city/region: "${location}"`);
           return location;
         }

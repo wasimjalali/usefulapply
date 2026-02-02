@@ -299,6 +299,30 @@ export function USProfessionalTemplate({ data, template }: Props) {
               </ul>
             </section>
           )}
+
+          {/* Additional Information */}
+          {data.additionalInfo && data.additionalInfo.length > 0 && (
+            <section>
+              <h2 
+                className="text-lg font-bold mb-2 flex items-center gap-2"
+                style={{ color: colors.primary, fontFamily: template.fonts.heading }}
+              >
+                <span 
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: colors.accent }}
+                />
+                Additional Information
+              </h2>
+              <div className="pl-4 text-sm" style={{ color: colors.text }}>
+                {data.additionalInfo.map((item, idx) => (
+                  <span key={idx}>
+                    {item}
+                    {idx < data.additionalInfo!.length - 1 && ' • '}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </div>
