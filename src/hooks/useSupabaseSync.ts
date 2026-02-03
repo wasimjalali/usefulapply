@@ -2,7 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAppStore } from '@/store/useAppStore';
+import { useAppStore, ApplicationSession } from '@/store/useAppStore';
+import { createClient } from '@/lib/supabase/client';
 import {
   getSessions,
   createSession as createSupabaseSession,
@@ -12,44 +13,149 @@ import {
   addChatMessage as addSupabaseChatMessage,
 } from '@/lib/supabase';
 
+// Type for Supabase application_sessions row
+interface SupabaseSessionRow {
+  id: string;
+  user_id: string;
+  job_title: string | null;
+  company: string | null;
+  job_description: string | null;
+  job_url: string | null;
+  match_score: number | null;
+  matching_skills: string[] | null;
+  missing_skills: string[] | null;
+  suggestions: string[] | null;
+  requirements: any | null;
+  gaps: any | null;
+  generated_cv: any | null;
+  cover_letter: any | null;
+  email: any | null;
+  company_research: any | null;
+  company_address: string | null;
+  company_contact_person: string | null;
+  cv_edits: any[] | null;
+  optimized_pdf_path: string | null;
+  optimized_cv_text: string | null;
+  email_subject: string | null;
+  email_body: string | null;
+  selected_template: string | null;
+  status: string | null;
+  cover_letter_language: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 /**
  * Hook to sync application sessions with Supabase
  * This runs in the background and syncs data when changes occur
+ * 
+ * CRITICAL: This hook now PULLS data FROM Supabase on mount to enable cross-browser sync
  */
 export function useSupabaseSync() {
   const { user } = useAuth();
   const { 
     sessions, 
     currentSession,
+    setSessions,
     setCurrentCV,
     setStructuredCV,
   } = useAppStore();
   
   const lastSyncedSessionRef = useRef<string | null>(null);
   const isInitialLoadRef = useRef(true);
+  const supabase = createClient();
 
-  // Load sessions from Supabase on initial mount
+  // CRITICAL: Load sessions from Supabase on mount and populate Zustand store
   useEffect(() => {
-    const loadSessions = async () => {
-      if (!user || !isInitialLoadRef.current) return;
+    const loadSessionsFromSupabase = async () => {
+      if (!user) return;
+      
+      // Only run on initial load
+      if (!isInitialLoadRef.current) return;
+      isInitialLoadRef.current = false;
+      
+      console.log('[SupabaseSync] Loading sessions from Supabase for user:', user.id);
       
       try {
-        const supabaseSessions = await getSessions(user.id);
+        const { data, error } = await supabase
+          .from('application_sessions')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false }) as { data: SupabaseSessionRow[] | null; error: any };
         
-        // If Supabase has sessions but local store doesn't, we could sync them
-        // For now, we just log - full sync would require more complex merging
-        if (supabaseSessions.length > 0) {
-          console.log('[SupabaseSync] Found', supabaseSessions.length, 'sessions in Supabase');
+        if (error) {
+          console.error('[SupabaseSync] Error loading sessions:', error);
+          return;
         }
         
-        isInitialLoadRef.current = false;
-      } catch (error) {
-        console.error('[SupabaseSync] Error loading sessions:', error);
+        if (data && data.length > 0) {
+          console.log('[SupabaseSync] Found', data.length, 'sessions in Supabase');
+          
+          // Convert Supabase format to Zustand store format
+          const supabaseSessions: ApplicationSession[] = data.map((row) => ({
+            id: row.id,
+            jobTitle: row.job_title || '',
+            company: row.company || '',
+            jobDescription: row.job_description || '',
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+            matchScore: row.match_score ?? undefined, // Convert null to undefined
+            matchingSkills: row.matching_skills || [],
+            missingSkills: row.missing_skills || [],
+            suggestions: row.suggestions || [],
+            requirements: row.requirements ?? null,
+            gaps: row.gaps ?? null,
+            generatedCV: row.generated_cv ?? null,
+            coverLetter: row.cover_letter ?? null,
+            email: row.email ?? null,
+            companyResearch: row.company_research ? {
+              ...row.company_research,
+              address: row.company_address || row.company_research?.address,
+              contactPerson: row.company_contact_person || row.company_research?.contactPerson,
+            } : null,
+            cvEdits: row.cv_edits || [],
+            optimizedPdfRef: row.optimized_pdf_path ? { 
+              id: row.id, 
+              fileName: 'optimized.pdf', 
+              size: 0, 
+              type: 'optimized' as const, 
+              createdAt: row.created_at,
+              url: row.optimized_pdf_path 
+            } : undefined,
+            chatMessages: [], // Chat messages loaded separately if needed
+          }));
+          
+          // Get current localStorage sessions
+          const { sessions: localSessions } = useAppStore.getState();
+          
+          // MERGE STRATEGY: Supabase is source of truth
+          // Keep any local sessions that aren't in Supabase yet (unsaved drafts with local IDs)
+          const supabaseIds = new Set(supabaseSessions.map(s => s.id));
+          const localOnlySessions = localSessions.filter(s => 
+            s.id.startsWith('session-') && !supabaseIds.has(s.id)
+          );
+          
+          // Combine: Supabase sessions + local-only sessions (unsaved drafts)
+          const mergedSessions = [...supabaseSessions, ...localOnlySessions];
+          
+          // CRITICAL: Populate the Zustand store with sessions from Supabase
+          setSessions(mergedSessions);
+          
+          console.log('[SupabaseSync] Store populated with sessions:', {
+            fromSupabase: supabaseSessions.length,
+            localOnly: localOnlySessions.length,
+            total: mergedSessions.length,
+          });
+        } else {
+          console.log('[SupabaseSync] No sessions found in Supabase for this user');
+        }
+      } catch (err) {
+        console.error('[SupabaseSync] Failed to load sessions:', err);
       }
     };
-
-    loadSessions();
-  }, [user]);
+    
+    loadSessionsFromSupabase();
+  }, [user, setSessions]);
 
   // Sync current session to Supabase when it changes
   useEffect(() => {
@@ -95,6 +201,15 @@ export function useSupabaseSync() {
             email: currentSession.email,
             company_research: currentSession.companyResearch,
             cv_edits: currentSession.cvEdits,
+            // New fields for enhanced data persistence
+            optimized_cv_text: (currentSession as any).optimizedCVText,
+            email_subject: (currentSession as any).emailSubject,
+            email_body: (currentSession as any).emailBody,
+            selected_template: (currentSession as any).selectedTemplate,
+            status: (currentSession as any).status,
+            cover_letter_language: (currentSession as any).coverLetterLanguage,
+            company_address: currentSession.companyResearch?.address,
+            company_contact_person: currentSession.companyResearch?.contactPerson,
           });
           
           if (error) {

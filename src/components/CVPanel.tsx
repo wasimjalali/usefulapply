@@ -104,6 +104,21 @@ export function CVPanel() {
         optimizedData.personal.photoUrl = photoDataUrl;
       }
       
+      // === CV RENDER DEBUG (Task 1.5) ===
+      console.log('=== CV RENDER DEBUG ===');
+      console.log('[CVPanel] Raw optimized text length:', optimizedContent?.length);
+      console.log('[CVPanel] Parsed CV data:', optimizedData);
+      console.log('[CVPanel] Experience entries:', optimizedData?.experience?.length, 'entries');
+      optimizedData?.experience?.forEach((exp, idx) => {
+        console.log(`[CVPanel] Experience ${idx + 1}: ${exp.position} | Bullets: ${exp.bullets?.length || 0}`);
+      });
+      console.log('[CVPanel] Skills categories:', optimizedData?.skills?.length, 'categories');
+      optimizedData?.skills?.forEach((cat, idx) => {
+        console.log(`[CVPanel] Skill category ${idx + 1}: "${cat.category}" | Items: ${cat.items?.length || 0}`);
+      });
+      console.log('[CVPanel] Languages:', optimizedData?.languages?.length);
+      console.log('=== END CV DEBUG ===');
+      
       return optimizedData;
     }
     

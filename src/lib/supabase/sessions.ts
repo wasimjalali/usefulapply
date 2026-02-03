@@ -9,6 +9,7 @@ export interface ApplicationSession {
   job_title?: string;
   company?: string;
   job_description: string;
+  job_url?: string;
   match_score?: number;
   matching_skills: string[];
   missing_skills: string[];
@@ -19,8 +20,16 @@ export interface ApplicationSession {
   cover_letter?: any;
   email?: any;
   company_research?: any;
+  company_address?: string;
+  company_contact_person?: string;
   cv_edits: any[];
   optimized_pdf_path?: string;
+  optimized_cv_text?: string;
+  email_subject?: string;
+  email_body?: string;
+  selected_template?: string;
+  status?: 'draft' | 'completed' | 'sent' | 'interview' | 'rejected' | 'accepted';
+  cover_letter_language?: string;
   created_at: string;
   updated_at: string;
 }

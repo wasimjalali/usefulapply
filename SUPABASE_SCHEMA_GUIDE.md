@@ -1032,3 +1032,187 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 4. Update store to sync with Supabase instead of localStorage
 5. Add login/signup pages
 6. Migrate existing localStorage data to Supabase on first login
+
+---
+
+## Part 6: Required Schema Updates (NEW TABLES/COLUMNS TO CREATE)
+
+> **⚠️ IMPORTANT:** Run the following SQL statements in your Supabase SQL Editor to add missing columns and features required for full data persistence.
+
+### 6.1 Add Missing Columns to `application_sessions` Table
+
+The existing `application_sessions` table needs additional columns for complete job application tracking:
+
+```sql
+-- =====================================================
+-- ADD MISSING COLUMNS TO application_sessions TABLE
+-- Run this in Supabase SQL Editor
+-- =====================================================
+
+-- Add job URL field
+ALTER TABLE application_sessions 
+ADD COLUMN IF NOT EXISTS job_url TEXT;
+
+-- Add company research fields (for storing web search results)
+ALTER TABLE application_sessions 
+ADD COLUMN IF NOT EXISTS company_address TEXT;
+
+ALTER TABLE application_sessions 
+ADD COLUMN IF NOT EXISTS company_contact_person TEXT;
+
+-- Add optimized CV text (raw text for easy copying)
+ALTER TABLE application_sessions 
+ADD COLUMN IF NOT EXISTS optimized_cv_text TEXT;
+
+-- Add separate email fields (instead of just JSONB)
+ALTER TABLE application_sessions 
+ADD COLUMN IF NOT EXISTS email_subject TEXT;
+
+ALTER TABLE application_sessions 
+ADD COLUMN IF NOT EXISTS email_body TEXT;
+
+-- Add template selection tracking
+ALTER TABLE application_sessions 
+ADD COLUMN IF NOT EXISTS selected_template TEXT DEFAULT 'premium-ats';
+
+-- Add application status tracking
+ALTER TABLE application_sessions 
+ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'draft' 
+CHECK (status IN ('draft', 'completed', 'sent', 'interview', 'rejected', 'accepted'));
+
+-- Add cover letter language tracking
+ALTER TABLE application_sessions 
+ADD COLUMN IF NOT EXISTS cover_letter_language TEXT DEFAULT 'de';
+
+-- Create index on status for filtering
+CREATE INDEX IF NOT EXISTS idx_sessions_status ON application_sessions(status);
+```
+
+### 6.2 Verify Columns Were Added
+
+After running the above SQL, verify with:
+
+```sql
+-- Check all columns exist
+SELECT column_name, data_type, column_default
+FROM information_schema.columns
+WHERE table_name = 'application_sessions'
+ORDER BY ordinal_position;
+```
+
+### 6.3 Updated `application_sessions` Table Schema (Complete)
+
+After running the migrations, your `application_sessions` table should have this complete schema:
+
+```sql
+-- COMPLETE application_sessions TABLE SCHEMA (for reference)
+-- This is NOT to run - just shows the expected final state
+
+CREATE TABLE application_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  
+  -- Job info
+  job_title TEXT,
+  company TEXT,
+  job_description TEXT NOT NULL,
+  job_url TEXT,                              -- NEW
+  
+  -- Company research results
+  company_address TEXT,                       -- NEW
+  company_contact_person TEXT,                -- NEW
+  company_research JSONB,
+  
+  -- Analysis results
+  match_score INTEGER CHECK (match_score >= 0 AND match_score <= 100),
+  matching_skills TEXT[] DEFAULT '{}',
+  missing_skills TEXT[] DEFAULT '{}',
+  suggestions TEXT[] DEFAULT '{}',
+  requirements JSONB,
+  gaps JSONB,
+  
+  -- Generated CV content
+  generated_cv JSONB,
+  optimized_cv_text TEXT,                     -- NEW: Raw text for copying
+  optimized_pdf_path TEXT,
+  
+  -- Cover letter
+  cover_letter JSONB,
+  cover_letter_language TEXT DEFAULT 'de',    -- NEW
+  
+  -- Email
+  email JSONB,
+  email_subject TEXT,                         -- NEW
+  email_body TEXT,                            -- NEW
+  
+  -- Template & Status
+  selected_template TEXT DEFAULT 'premium-ats', -- NEW
+  status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'completed', 'sent', 'interview', 'rejected', 'accepted')), -- NEW
+  
+  -- CV edits tracking
+  cv_edits JSONB DEFAULT '[]',
+  
+  -- Timestamps
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+---
+
+## Part 7: TypeScript Types Update
+
+After running the SQL migrations, update `src/lib/supabase/types.ts` to include the new fields:
+
+```typescript
+// Add to application_sessions Row type:
+application_sessions: {
+  Row: {
+    // ... existing fields ...
+    job_url: string | null                    // NEW
+    company_address: string | null            // NEW
+    company_contact_person: string | null     // NEW
+    optimized_cv_text: string | null          // NEW
+    email_subject: string | null              // NEW
+    email_body: string | null                 // NEW
+    selected_template: string                 // NEW
+    status: 'draft' | 'completed' | 'sent' | 'interview' | 'rejected' | 'accepted'  // NEW
+    cover_letter_language: string             // NEW
+  }
+  // Update Insert and Update types similarly
+}
+```
+
+---
+
+## Checklist: Tables & Columns Status
+
+### Existing Tables (Already Created) ✅
+- [x] `profiles` - User profiles with subscription info
+- [x] `documents` - CVs and Master CVs storage
+- [x] `profile_photos` - Profile photos for EU CVs
+- [x] `application_sessions` - Job applications (base table)
+- [x] `chat_messages` - Chat history per session
+- [x] `subscriptions` - Subscription & billing
+- [x] `connected_accounts` - OAuth connections
+- [x] `message_feedback` - AI response feedback
+- [x] `subscription_plans` - Pricing tiers
+- [x] `user_credits` - User credit balances
+- [x] `credit_transactions` - Credit audit trail
+- [x] `addon_credit_packs` - Purchasable credit packs
+
+### New Columns to Add (Run Part 6.1 SQL) ⚠️
+- [ ] `application_sessions.job_url` - Job posting URL
+- [ ] `application_sessions.company_address` - Company address from research
+- [ ] `application_sessions.company_contact_person` - Contact person name
+- [ ] `application_sessions.optimized_cv_text` - Raw optimized CV text
+- [ ] `application_sessions.email_subject` - Email subject line
+- [ ] `application_sessions.email_body` - Email body text
+- [ ] `application_sessions.selected_template` - Selected CV template
+- [ ] `application_sessions.status` - Application status tracking
+- [ ] `application_sessions.cover_letter_language` - Cover letter language
+
+### Storage Buckets (Already Created) ✅
+- [x] `cv-files` - Original CV/Master CV files
+- [x] `profile-photos` - User profile photos
+- [x] `generated-pdfs` - Generated optimized PDFs

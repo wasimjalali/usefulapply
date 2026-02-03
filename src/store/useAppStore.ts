@@ -188,6 +188,9 @@ interface AppActions {
   // Reset
   resetAll: () => void;
   resetGenerated: () => void;
+  
+  // Supabase sync actions
+  setSessions: (sessions: ApplicationSession[]) => void;
 }
 
 const initialState: AppState = {
@@ -418,6 +421,12 @@ export const useAppStore = create<AppState & AppActions>()(
         requirements: null,
         gaps: null,
       }),
+      
+      // Supabase sync actions
+      setSessions: (sessions: ApplicationSession[]) => {
+        console.log('[AppStore] setSessions called with', sessions.length, 'sessions');
+        set({ sessions });
+      },
     }),
     {
       name: 'job-copilot-storage',

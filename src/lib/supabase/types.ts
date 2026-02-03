@@ -142,6 +142,7 @@ export interface Database {
           job_title: string | null
           company: string | null
           job_description: string
+          job_url: string | null
           match_score: number | null
           matching_skills: string[]
           missing_skills: string[]
@@ -152,8 +153,16 @@ export interface Database {
           cover_letter: Json | null
           email: Json | null
           company_research: Json | null
+          company_address: string | null
+          company_contact_person: string | null
           cv_edits: Json
           optimized_pdf_path: string | null
+          optimized_cv_text: string | null
+          email_subject: string | null
+          email_body: string | null
+          selected_template: string
+          status: 'draft' | 'completed' | 'sent' | 'interview' | 'rejected' | 'accepted'
+          cover_letter_language: string
           created_at: string
           updated_at: string
         }
@@ -163,6 +172,7 @@ export interface Database {
           job_title?: string | null
           company?: string | null
           job_description: string
+          job_url?: string | null
           match_score?: number | null
           matching_skills?: string[]
           missing_skills?: string[]
@@ -173,8 +183,16 @@ export interface Database {
           cover_letter?: Json | null
           email?: Json | null
           company_research?: Json | null
+          company_address?: string | null
+          company_contact_person?: string | null
           cv_edits?: Json
           optimized_pdf_path?: string | null
+          optimized_cv_text?: string | null
+          email_subject?: string | null
+          email_body?: string | null
+          selected_template?: string
+          status?: 'draft' | 'completed' | 'sent' | 'interview' | 'rejected' | 'accepted'
+          cover_letter_language?: string
           created_at?: string
           updated_at?: string
         }
@@ -184,6 +202,7 @@ export interface Database {
           job_title?: string | null
           company?: string | null
           job_description?: string
+          job_url?: string | null
           match_score?: number | null
           matching_skills?: string[]
           missing_skills?: string[]
@@ -194,8 +213,16 @@ export interface Database {
           cover_letter?: Json | null
           email?: Json | null
           company_research?: Json | null
+          company_address?: string | null
+          company_contact_person?: string | null
           cv_edits?: Json
           optimized_pdf_path?: string | null
+          optimized_cv_text?: string | null
+          email_subject?: string | null
+          email_body?: string | null
+          selected_template?: string
+          status?: 'draft' | 'completed' | 'sent' | 'interview' | 'rejected' | 'accepted'
+          cover_letter_language?: string
           created_at?: string
           updated_at?: string
         }

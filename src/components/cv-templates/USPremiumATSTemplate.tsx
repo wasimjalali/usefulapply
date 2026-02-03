@@ -172,24 +172,58 @@ export function USPremiumATSTemplate({
             >
               Core Competencies
             </h2>
-            {/* Clean pill/tag design for skills */}
-            <div className="flex flex-wrap gap-2">
-              {data.skills.flatMap((group, groupIdx) => 
-                group.items.map((skill, skillIdx) => (
-                  <span 
-                    key={`${groupIdx}-${skillIdx}`}
-                    className="px-2.5 py-1 text-xs font-medium rounded"
-                    style={{ 
-                      backgroundColor: premiumColors.highlight,
-                      color: premiumColors.primary,
-                      border: `1px solid ${premiumColors.border}`,
-                    }}
-                  >
-                    {skill}
-                  </span>
-                ))
-              )}
-            </div>
+            {/* Check if skills have categories - render categorized or flat */}
+            {data.skills.some(group => group.category && group.category.trim()) ? (
+              /* Categorized skills rendering */
+              <div className="space-y-3">
+                {data.skills.map((group, groupIdx) => (
+                  <div key={groupIdx} className="skill-category">
+                    {group.category && group.category.trim() && (
+                      <h4 
+                        className="text-xs font-semibold mb-1.5"
+                        style={{ color: premiumColors.text }}
+                      >
+                        {group.category}
+                      </h4>
+                    )}
+                    <div className="flex flex-wrap gap-1.5">
+                      {group.items.map((skill, skillIdx) => (
+                        <span 
+                          key={skillIdx}
+                          className="px-2 py-0.5 text-xs font-medium rounded"
+                          style={{ 
+                            backgroundColor: premiumColors.highlight,
+                            color: premiumColors.primary,
+                            border: `1px solid ${premiumColors.border}`,
+                          }}
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* Flat skills rendering (fallback) */
+              <div className="flex flex-wrap gap-2">
+                {data.skills.flatMap((group, groupIdx) => 
+                  group.items.map((skill, skillIdx) => (
+                    <span 
+                      key={`${groupIdx}-${skillIdx}`}
+                      className="px-2.5 py-1 text-xs font-medium rounded"
+                      style={{ 
+                        backgroundColor: premiumColors.highlight,
+                        color: premiumColors.primary,
+                        border: `1px solid ${premiumColors.border}`,
+                      }}
+                    >
+                      {skill}
+                    </span>
+                  ))
+                )}
+              </div>
+            )}
           </section>
         )}
 

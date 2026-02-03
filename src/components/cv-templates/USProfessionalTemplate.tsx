@@ -194,21 +194,53 @@ export function USProfessionalTemplate({ data, template }: Props) {
               />
               Skills & Expertise
             </h2>
-            <div className="pl-4 flex flex-wrap gap-2">
-              {data.skills.flatMap(group => group.items).map((skill, idx) => (
-                <span 
-                  key={idx}
-                  className="px-3 py-1 text-xs font-medium rounded-full"
-                  style={{ 
-                    backgroundColor: `${colors.primary}10`,
-                    color: colors.primary,
-                    border: `1px solid ${colors.primary}30`,
-                  }}
-                >
-                  {skill}
-                </span>
-              ))}
-            </div>
+            {/* Check if skills have categories - render categorized or flat */}
+            {data.skills.some(group => group.category && group.category.trim()) ? (
+              // Categorized skills rendering
+              <div className="pl-4 space-y-3">
+                {data.skills.map((group, groupIdx) => (
+                  <div key={groupIdx} className="skill-category">
+                    {group.category && group.category.trim() && (
+                      <h4 className="text-xs font-semibold mb-1.5" style={{ color: colors.secondary }}>
+                        {group.category}
+                      </h4>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {group.items.map((skill, skillIdx) => (
+                        <span 
+                          key={skillIdx}
+                          className="px-3 py-1 text-xs font-medium rounded-full"
+                          style={{ 
+                            backgroundColor: `${colors.primary}10`,
+                            color: colors.primary,
+                            border: `1px solid ${colors.primary}30`,
+                          }}
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              // Flat skills rendering (fallback)
+              <div className="pl-4 flex flex-wrap gap-2">
+                {data.skills.flatMap(group => group.items).map((skill, idx) => (
+                  <span 
+                    key={idx}
+                    className="px-3 py-1 text-xs font-medium rounded-full"
+                    style={{ 
+                      backgroundColor: `${colors.primary}10`,
+                      color: colors.primary,
+                      border: `1px solid ${colors.primary}30`,
+                    }}
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            )}
           </section>
         )}
 

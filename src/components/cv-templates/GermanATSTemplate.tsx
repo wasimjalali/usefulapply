@@ -163,20 +163,54 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
             >
               {GERMAN_HEADERS.skills}
             </h2>
-            <div className="flex flex-wrap gap-2">
-              {data.skills.flatMap(group => group.items).map((skill, idx) => (
-                <span 
-                  key={idx}
-                  className="px-2 py-0.5 text-xs rounded"
-                  style={{ 
-                    backgroundColor: colors.headerBg,
-                    color: colors.text,
-                  }}
-                >
-                  {skill}
-                </span>
-              ))}
-            </div>
+            {/* Check if skills have categories - render categorized or flat */}
+            {data.skills.some(group => group.category && group.category.trim()) ? (
+              /* Categorized skills rendering */
+              <div className="space-y-2">
+                {data.skills.map((group, groupIdx) => (
+                  <div key={groupIdx}>
+                    {group.category && group.category.trim() && (
+                      <h4 
+                        className="text-xs font-semibold mb-1"
+                        style={{ color: colors.text }}
+                      >
+                        {group.category}
+                      </h4>
+                    )}
+                    <div className="flex flex-wrap gap-1.5">
+                      {group.items.map((skill, skillIdx) => (
+                        <span 
+                          key={skillIdx}
+                          className="px-2 py-0.5 text-xs rounded"
+                          style={{ 
+                            backgroundColor: colors.headerBg,
+                            color: colors.text,
+                          }}
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* Flat skills rendering (fallback) */
+              <div className="flex flex-wrap gap-2">
+                {data.skills.flatMap(group => group.items).map((skill, idx) => (
+                  <span 
+                    key={idx}
+                    className="px-2 py-0.5 text-xs rounded"
+                    style={{ 
+                      backgroundColor: colors.headerBg,
+                      color: colors.text,
+                    }}
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            )}
           </section>
         )}
 
