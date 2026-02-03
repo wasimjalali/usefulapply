@@ -63,6 +63,57 @@ export interface ApplicationSession {
   requirements: JobRequirements | null;
   gaps: GapAnalysis | null;
   generatedCV: GeneratedCV | null;
+  // Solution B: Structured CV data from AI (no parsing needed)
+  optimizedCVData?: {
+    personal: {
+      fullName: string;
+      email: string;
+      phone?: string;
+      currentTitle?: string;
+      address?: string;
+      city?: string;
+      country?: string;
+      linkedIn?: string;
+      website?: string;
+      github?: string;
+    };
+    summary?: string;
+    experience: Array<{
+      id: string;
+      company: string;
+      position: string;
+      location?: string;
+      startDate: string;
+      endDate?: string;
+      current?: boolean;
+      bullets: string[];
+    }>;
+    education: Array<{
+      id: string;
+      institution: string;
+      degree: string;
+      field?: string;
+      location?: string;
+      startDate?: string;
+      endDate?: string;
+      grade?: string;
+      highlights?: string[];
+    }>;
+    skills: Array<{
+      category: string;
+      items: string[];
+    }>;
+    languages: Array<{
+      language: string;
+      proficiency: string;
+    }>;
+    certifications: Array<{
+      id: string;
+      name: string;
+      issuer: string;
+      date?: string;
+    }>;
+  };
   coverLetter: GeneratedCoverLetter | null;
   email: GeneratedEmail | null;
   companyResearch: CompanyResearch | null;

@@ -45,6 +45,7 @@ export function CVPanel() {
   } = useAppStore();
   
   const generatedCV = currentSession?.generatedCV;
+  const optimizedCVData = currentSession?.optimizedCVData;  // Solution B: Structured JSON from AI
   const gaps = currentSession?.gaps;
   const changes = generatedCV?.changes || [];
   
@@ -86,44 +87,62 @@ export function CVPanel() {
       parsed.personal.photoUrl = photoDataUrl;
     }
     
-    // If we have optimized content, use FULL RE-PARSE architecture
-    if (showOptimized && optimizedContent) {
-      console.log('[CVPanel] Using FULL RE-PARSE for optimized CV');
+    // SOLUTION B: If we have optimizedCVData (structured JSON from AI), use it directly
+    // This eliminates text parsing and prevents duplication issues
+    if (showOptimized && optimizedCVData) {
+      console.log('[CVPanel] Using SOLUTION B - Structured JSON from AI (no parsing needed)');
       
-      // FULL RE-PARSE: Parse the complete optimized CV text into CVData
-      // This replaces the old patching approach with a clean single-source parse
+      // Convert optimizedCVData to CVData format
+      const directData: CVData = {
+        personal: {
+          fullName: optimizedCVData.personal.fullName,
+          email: optimizedCVData.personal.email,
+          phone: optimizedCVData.personal.phone || '',
+          currentTitle: optimizedCVData.personal.currentTitle,
+          address: optimizedCVData.personal.address,
+          city: optimizedCVData.personal.city,
+          country: optimizedCVData.personal.country,
+          linkedIn: optimizedCVData.personal.linkedIn,
+          website: optimizedCVData.personal.website,
+          github: optimizedCVData.personal.github,
+          photoUrl: photoDataUrl,
+        },
+        summary: optimizedCVData.summary,
+        experience: optimizedCVData.experience,
+        education: optimizedCVData.education,
+        skills: optimizedCVData.skills,
+        languages: optimizedCVData.languages,
+        certifications: optimizedCVData.certifications,
+      };
+      
+      console.log('=== CV RENDER DEBUG (Solution B) ===');
+      console.log('[CVPanel] Experience entries:', directData.experience?.length);
+      console.log('[CVPanel] Skills categories:', directData.skills?.length);
+      console.log('[CVPanel] Languages:', directData.languages?.length);
+      console.log('=== END CV DEBUG ===');
+      
+      return directData;
+    }
+    
+    // FALLBACK: If no optimizedCVData, use legacy text parsing
+    if (showOptimized && optimizedContent) {
+      console.log('[CVPanel] FALLBACK: Using text parsing for optimized CV');
+      
       const optimizedData = parseOptimizedCVToData(optimizedContent, parsed);
       
-      // Apply headline if provided separately (takes priority)
       if (optimizedTagline) {
         optimizedData.personal.currentTitle = optimizedTagline;
       }
       
-      // Preserve profile photo from original
       if (photoDataUrl) {
         optimizedData.personal.photoUrl = photoDataUrl;
       }
-      
-      // === CV RENDER DEBUG (Task 1.5) ===
-      console.log('=== CV RENDER DEBUG ===');
-      console.log('[CVPanel] Raw optimized text length:', optimizedContent?.length);
-      console.log('[CVPanel] Parsed CV data:', optimizedData);
-      console.log('[CVPanel] Experience entries:', optimizedData?.experience?.length, 'entries');
-      optimizedData?.experience?.forEach((exp, idx) => {
-        console.log(`[CVPanel] Experience ${idx + 1}: ${exp.position} | Bullets: ${exp.bullets?.length || 0}`);
-      });
-      console.log('[CVPanel] Skills categories:', optimizedData?.skills?.length, 'categories');
-      optimizedData?.skills?.forEach((cat, idx) => {
-        console.log(`[CVPanel] Skill category ${idx + 1}: "${cat.category}" | Items: ${cat.items?.length || 0}`);
-      });
-      console.log('[CVPanel] Languages:', optimizedData?.languages?.length);
-      console.log('=== END CV DEBUG ===');
       
       return optimizedData;
     }
     
     return parsed;
-  }, [currentCV, structuredCV, optimizedContent, optimizedTagline, showOptimized, photoDataUrl]);
+  }, [currentCV, structuredCV, optimizedContent, optimizedTagline, showOptimized, photoDataUrl, optimizedCVData]);
 
   const handleCopy = async (text: string) => {
     await navigator.clipboard.writeText(text);

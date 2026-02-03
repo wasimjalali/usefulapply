@@ -195,6 +195,7 @@ export async function POST(request: NextRequest) {
               match: ctx.match,
               // Generated documents
               optimizedCV: ctx.optimizedCV,
+              optimizedCVData: ctx.optimizedCVData,  // Solution B: Structured JSON
               coverLetter: ctx.coverLetter,
               applicationEmail: ctx.applicationEmail,
               // Full context for debugging

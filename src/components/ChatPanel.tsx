@@ -478,6 +478,13 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                   });
                 }
                 
+                // Solution B: Store structured CV data from AI (no parsing needed)
+                if (ctx?.optimizedCVData) {
+                  useAppStore.getState().updateCurrentSession({
+                    optimizedCVData: ctx.optimizedCVData,
+                  });
+                }
+                
                 // Store cover letter - the new architecture returns it as a complete formatted string
                 // We store it with empty structured fields since the body contains everything
                 if (ctx?.coverLetter) {

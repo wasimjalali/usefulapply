@@ -174,7 +174,7 @@ export const MODEL_CONFIGS: Record<TaskType, ModelConfig> = {
   optimize_cv: {
     model: 'claude-haiku-4-5',
     provider: 'anthropic',
-    temperature: 0.6,
+    temperature: 0.4,  // Lower for JSON structure consistency while allowing creative writing
     maxTokens: 8192,
   },
 };

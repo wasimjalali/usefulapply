@@ -264,10 +264,11 @@ export const writerAgent = {
     const outputLang = this.getOutputLanguage(context);
     console.log('[WRITER_AGENT] Output language:', outputLang);
 
-    // 1) Generate optimized CV
+    // 1) Generate optimized CV using Solution B (Structured JSON)
     emit({ type: 'progress', percent: 55, message: 'Generating optimized CV...' });
-    const optimizedCV = await this.generateOptimizedCV(context);
-    context.optimizedCV = optimizedCV;
+    const { cvData, legacyCV } = await this.generateOptimizedCVData(context);
+    context.optimizedCVData = cvData;
+    context.optimizedCV = legacyCV; // Keep for backward compatibility
 
     // 2) Generate cover letter
     emit({ type: 'progress', percent: 75, message: 'Writing cover letter...' });
@@ -283,8 +284,368 @@ export const writerAgent = {
   },
 
   /**
-   * Generate optimized CV content
-   * Returns both the optimized CV and a list of changes made
+   * SOLUTION B: Generate optimized CV as structured JSON (CVData format)
+   * AI outputs structured data directly - no text parsing needed
+   * Eliminates duplication issues caused by text parsing failures
+   */
+  async generateOptimizedCVData(context: MasterContext): Promise<{
+    cvData: NonNullable<MasterContext['optimizedCVData']>;
+    legacyCV: { content: string; changes: Array<{ section: string; before: string; after: string; reason: string }> };
+  }> {
+    const { applicant, job, companyResearch, match, rawCV, masterCV } = context;
+    
+    const outputLang = this.getOutputLanguage(context);
+    const isGerman = outputLang === 'de';
+    
+    console.log('[WRITER_AGENT] Generating structured CV data (Solution B) in language:', outputLang);
+
+    const companyContext = companyResearch ? `
+COMPANY RESEARCH:
+Company: ${companyResearch.name}
+Description: ${companyResearch.description || 'N/A'}
+Culture: ${companyResearch.culture?.join(', ') || 'N/A'}
+Values: ${companyResearch.values?.join(', ') || 'N/A'}
+Tech Stack: ${companyResearch.techStack?.join(', ') || 'N/A'}
+` : '';
+
+    const matchContext = match ? `
+SKILL MATCH ANALYSIS:
+Matching Skills: ${match.matchingSkills.join(', ')}
+Missing Skills (from JD): ${match.missingSkills.join(', ')}
+` : '';
+
+    const response = await callModel({
+      task: 'optimize_cv',
+      prompt: `You are the Writer Agent. Generate an OPTIMIZED CV as a STRUCTURED JSON OBJECT.
+
+=== YOUR ROLE ===
+You are NOT writing a document - you are generating a DATA PAYLOAD for a frontend application.
+The Context Agent has already analyzed the job and CV. Your job is to FORMAT and ARTICULATE the optimized content.
+
+=== TARGET JOB ===
+Title: ${job?.title || 'Unknown'}
+Company: ${job?.companyName || 'Unknown'}
+Required Skills: ${job?.requiredSkills?.join(', ') || 'N/A'}
+Nice-to-Have: ${job?.niceToHaveSkills?.join(', ') || 'N/A'}
+${companyContext}
+${matchContext}
+
+=== PRIMARY CV (source of truth for personal info) ===
+${rawCV}
+
+${masterCV ? `=== MASTER CV (additional experiences/skills to draw from) ===
+${masterCV}` : ''}
+
+=== OPTIMIZATION STRATEGY ===
+
+1. PERSONAL INFO: Copy EXACTLY from Primary CV (name, email, phone, address, LinkedIn, GitHub)
+
+2. HEADLINE (currentTitle): Optimize for the target job
+   - Max 3-4 keywords separated by " | "
+   - Example: "E-Commerce Specialist | Digital Marketing | Amazon Expert"
+
+3. SUMMARY: 3-4 sentences with metrics from CV, keywords from job
+
+4. EXPERIENCE: 
+   - Combine relevant entries from Primary CV AND Master CV
+   - Each entry needs: company, position, location, startDate, endDate, bullets (3-5 per role)
+   - Use action verbs, include metrics
+   - Generate unique IDs for each entry (exp-1, exp-2, etc.)
+
+5. SKILLS: Group into 2-4 categories with specific tool names
+   - NEVER genericize tools (keep "Helium 10" not "E-Commerce Tools")
+   - Preserve AI/automation skills even if not in job description
+
+6. EDUCATION: Copy from Primary CV exactly
+
+7. LANGUAGES: Copy from Primary CV exactly (with proficiency levels)
+
+8. CERTIFICATIONS: Select 4-5 most relevant, no credential IDs
+
+=== LANGUAGE ===
+${isGerman ? `Generate ALL content in GERMAN. Use German date format (Januar 2025 – Gegenwart).` : 'Generate content in English.'}
+
+=== OUTPUT FORMAT (STRICT JSON) ===
+
+Return ONLY this JSON structure - no markdown, no preamble, no explanation:
+
+{
+  "personal": {
+    "fullName": "string",
+    "email": "string",
+    "phone": "string (optional)",
+    "currentTitle": "string - the optimized headline",
+    "address": "string (optional)",
+    "city": "string (optional)",
+    "country": "string (optional)",
+    "linkedIn": "string (optional)",
+    "website": "string (optional)",
+    "github": "string (optional)"
+  },
+  "summary": "string - 3-4 sentences",
+  "experience": [
+    {
+      "id": "exp-1",
+      "company": "string",
+      "position": "string",
+      "location": "string (optional)",
+      "startDate": "string (e.g., 'January 2024' or 'Januar 2024')",
+      "endDate": "string or null if current",
+      "current": true/false,
+      "bullets": ["achievement 1", "achievement 2", "achievement 3"]
+    }
+  ],
+  "education": [
+    {
+      "id": "edu-1",
+      "institution": "string",
+      "degree": "string",
+      "field": "string (optional)",
+      "location": "string (optional)",
+      "startDate": "string (optional)",
+      "endDate": "string (optional)",
+      "grade": "string (optional)",
+      "highlights": ["string"] (optional)
+    }
+  ],
+  "skills": [
+    {
+      "category": "Category Name (e.g., 'E-Commerce & Marketplaces')",
+      "items": ["Specific Tool 1", "Specific Tool 2"]
+    }
+  ],
+  "languages": [
+    {
+      "language": "string",
+      "proficiency": "string (e.g., 'Native', 'C1', 'B2')"
+    }
+  ],
+  "certifications": [
+    {
+      "id": "cert-1",
+      "name": "string",
+      "issuer": "string",
+      "date": "string (optional)"
+    }
+  ]
+}
+
+=== CRITICAL RULES ===
+1. Output ONLY valid JSON - no markdown code blocks, no text before or after
+2. NEVER invent skills, experiences, or achievements not in the CVs
+3. Use the EXACT dates from the original CVs
+4. Generate unique IDs for experience, education, certifications (exp-1, edu-1, cert-1, etc.)
+5. Bullets must be achievement-focused with action verbs
+6. Skills must include SPECIFIC TOOL NAMES, not generic categories`,
+      systemPrompt: `You are the Writer Agent for Job Copilot. Output ONLY valid JSON matching the CVData schema. No markdown, no explanation, no preamble. The frontend will render your JSON directly - if you mess up the structure, the app breaks.`,
+      jsonMode: true,
+    });
+
+    try {
+      // Clean the response
+      let jsonContent = response.content.trim();
+      
+      // Remove markdown code blocks if present
+      if (jsonContent.startsWith('```json')) {
+        jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      // Find JSON object
+      const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonContent = jsonMatch[0];
+      }
+      
+      const parsed = JSON.parse(jsonContent);
+      
+      console.log('[WRITER_AGENT] Solution B - Parsed structured CV data:');
+      console.log('  - Personal:', parsed.personal?.fullName);
+      console.log('  - Experience entries:', parsed.experience?.length || 0);
+      console.log('  - Skill categories:', parsed.skills?.length || 0);
+      console.log('  - Education entries:', parsed.education?.length || 0);
+      
+      // Validate required fields and provide defaults
+      const cvData: NonNullable<MasterContext['optimizedCVData']> = {
+        personal: {
+          fullName: parsed.personal?.fullName || applicant?.name || 'Unknown',
+          email: parsed.personal?.email || applicant?.email || '',
+          phone: parsed.personal?.phone,
+          currentTitle: parsed.personal?.currentTitle,
+          address: parsed.personal?.address,
+          city: parsed.personal?.city,
+          country: parsed.personal?.country,
+          linkedIn: parsed.personal?.linkedIn,
+          website: parsed.personal?.website,
+          github: parsed.personal?.github,
+        },
+        summary: parsed.summary || '',
+        experience: (parsed.experience || []).map((exp: Record<string, unknown>, idx: number) => ({
+          id: exp.id as string || `exp-${idx + 1}`,
+          company: exp.company as string || '',
+          position: exp.position as string || '',
+          location: exp.location as string | undefined,
+          startDate: exp.startDate as string || '',
+          endDate: exp.endDate as string | undefined,
+          current: exp.current as boolean || false,
+          bullets: (exp.bullets as string[]) || [],
+        })),
+        education: (parsed.education || []).map((edu: Record<string, unknown>, idx: number) => ({
+          id: edu.id as string || `edu-${idx + 1}`,
+          institution: edu.institution as string || '',
+          degree: edu.degree as string || '',
+          field: edu.field as string | undefined,
+          location: edu.location as string | undefined,
+          startDate: edu.startDate as string | undefined,
+          endDate: edu.endDate as string | undefined,
+          grade: edu.grade as string | undefined,
+          highlights: edu.highlights as string[] | undefined,
+        })),
+        skills: (parsed.skills || []).map((skill: Record<string, unknown>) => ({
+          category: skill.category as string || '',
+          items: (skill.items as string[]) || [],
+        })),
+        languages: (parsed.languages || []).map((lang: Record<string, unknown>) => ({
+          language: lang.language as string || '',
+          proficiency: lang.proficiency as string || '',
+        })),
+        certifications: (parsed.certifications || []).map((cert: Record<string, unknown>, idx: number) => ({
+          id: cert.id as string || `cert-${idx + 1}`,
+          name: cert.name as string || '',
+          issuer: cert.issuer as string || '',
+          date: cert.date as string | undefined,
+        })),
+      };
+      
+      // Generate legacy text format for backward compatibility
+      const legacyContent = this.cvDataToText(cvData, isGerman);
+      
+      return {
+        cvData,
+        legacyCV: {
+          content: fixTypos(legacyContent),
+          changes: [], // No longer tracking changes in Solution B
+        },
+      };
+    } catch (error) {
+      console.error('[WRITER_AGENT] Failed to parse structured CV JSON:', error);
+      console.error('[WRITER_AGENT] Raw response:', response.content.substring(0, 500));
+      
+      // Fallback: return empty structure with original applicant data
+      const fallbackData: NonNullable<MasterContext['optimizedCVData']> = {
+        personal: {
+          fullName: applicant?.name || 'Unknown',
+          email: applicant?.email || '',
+          phone: applicant?.phone,
+          currentTitle: applicant?.headline,
+          address: applicant?.address,
+        },
+        summary: '',
+        experience: [],
+        education: [],
+        skills: [],
+        languages: [],
+        certifications: [],
+      };
+      
+      return {
+        cvData: fallbackData,
+        legacyCV: {
+          content: rawCV,
+          changes: [],
+        },
+      };
+    }
+  },
+
+  /**
+   * Convert CVData to plain text format (for backward compatibility)
+   */
+  cvDataToText(cvData: NonNullable<MasterContext['optimizedCVData']>, isGerman: boolean): string {
+    const lines: string[] = [];
+    
+    // Personal info
+    lines.push(cvData.personal.fullName);
+    if (cvData.personal.currentTitle) lines.push(cvData.personal.currentTitle);
+    const contactParts = [
+      cvData.personal.email,
+      cvData.personal.phone,
+      cvData.personal.city,
+      cvData.personal.linkedIn,
+    ].filter(Boolean);
+    if (contactParts.length) lines.push(contactParts.join(' | '));
+    lines.push('');
+    
+    // Summary
+    if (cvData.summary) {
+      lines.push(isGerman ? 'PROFIL' : 'PROFESSIONAL SUMMARY');
+      lines.push(cvData.summary);
+      lines.push('');
+    }
+    
+    // Skills
+    if (cvData.skills.length) {
+      lines.push(isGerman ? 'FÄHIGKEITEN' : 'CORE COMPETENCIES');
+      for (const skill of cvData.skills) {
+        if (skill.category) {
+          lines.push(`${skill.category}: ${skill.items.join(', ')}`);
+        } else {
+          lines.push(skill.items.join(', '));
+        }
+      }
+      lines.push('');
+    }
+    
+    // Experience
+    if (cvData.experience.length) {
+      lines.push(isGerman ? 'BERUFSERFAHRUNG' : 'PROFESSIONAL EXPERIENCE');
+      for (const exp of cvData.experience) {
+        const datePart = exp.current 
+          ? `${exp.startDate} – ${isGerman ? 'Gegenwart' : 'Present'}`
+          : `${exp.startDate} – ${exp.endDate || ''}`;
+        lines.push(`${exp.position} | ${exp.company} | ${datePart}`);
+        if (exp.location) lines.push(exp.location);
+        for (const bullet of exp.bullets) {
+          lines.push(`• ${bullet}`);
+        }
+        lines.push('');
+      }
+    }
+    
+    // Education
+    if (cvData.education.length) {
+      lines.push(isGerman ? 'AUSBILDUNG' : 'EDUCATION');
+      for (const edu of cvData.education) {
+        lines.push(`${edu.degree}${edu.field ? ` in ${edu.field}` : ''}`);
+        lines.push(`${edu.institution}${edu.endDate ? ` | ${edu.endDate}` : ''}`);
+        lines.push('');
+      }
+    }
+    
+    // Languages
+    if (cvData.languages.length) {
+      lines.push(isGerman ? 'SPRACHEN' : 'LANGUAGES');
+      for (const lang of cvData.languages) {
+        lines.push(`${lang.language}: ${lang.proficiency}`);
+      }
+      lines.push('');
+    }
+    
+    // Certifications
+    if (cvData.certifications.length) {
+      lines.push(isGerman ? 'ZERTIFIKATE' : 'CERTIFICATIONS');
+      for (const cert of cvData.certifications) {
+        lines.push(`${cert.name} – ${cert.issuer}${cert.date ? ` | ${cert.date}` : ''}`);
+      }
+    }
+    
+    return lines.join('\n');
+  },
+
+  /**
+   * LEGACY: Generate optimized CV content as text
+   * Kept for backward compatibility - use generateOptimizedCVData instead
    */
   async generateOptimizedCV(context: MasterContext): Promise<{ content: string; changes: Array<{ section: string; before: string; after: string; reason: string }> }> {
     const { applicant, job, companyResearch, match, rawCV, masterCV } = context;

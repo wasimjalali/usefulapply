@@ -48,6 +48,58 @@ export interface CompanyResearchData {
   recentNews: string[];
 }
 
+// Solution B: Structured CV data type (matches MasterContext.optimizedCVData)
+export interface OptimizedCVData {
+  personal: {
+    fullName: string;
+    email: string;
+    phone?: string;
+    currentTitle?: string;
+    address?: string;
+    city?: string;
+    country?: string;
+    linkedIn?: string;
+    website?: string;
+    github?: string;
+  };
+  summary?: string;
+  experience: Array<{
+    id: string;
+    company: string;
+    position: string;
+    location?: string;
+    startDate: string;
+    endDate?: string;
+    current?: boolean;
+    bullets: string[];
+  }>;
+  education: Array<{
+    id: string;
+    institution: string;
+    degree: string;
+    field?: string;
+    location?: string;
+    startDate?: string;
+    endDate?: string;
+    grade?: string;
+    highlights?: string[];
+  }>;
+  skills: Array<{
+    category: string;
+    items: string[];
+  }>;
+  languages: Array<{
+    language: string;
+    proficiency: string;
+  }>;
+  certifications: Array<{
+    id: string;
+    name: string;
+    issuer: string;
+    date?: string;
+  }>;
+}
+
 export interface AgentV2Result {
   requirements?: {
     title: string;
@@ -71,6 +123,7 @@ export interface AgentV2Result {
   };
   evaluation?: AgentV2Evaluation;
   companyResearch?: CompanyResearchData;
+  optimizedCVData?: OptimizedCVData;  // Solution B: Structured JSON from AI
   coverLetter?: string;  // Now directly a string
   email?: string;        // Now directly a string
   globalContext?: unknown;
