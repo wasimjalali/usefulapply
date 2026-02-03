@@ -120,6 +120,7 @@ export interface MasterContext {
       endDate?: string;
       current?: boolean;
       bullets: string[];
+      technologies?: string[];
     }>;
     education: Array<{
       id: string;
@@ -146,11 +147,24 @@ export interface MasterContext {
       issuer: string;
       date?: string;
     }>;
+    // NEW: Optimization analysis for "Changes" tab
+    analysis?: OptimizationAnalysis;
   };
   coverLetter?: string;
   applicationEmail?: { subject: string; body: string };
 
   metadata?: Record<string, unknown>;
+}
+
+/**
+ * OptimizationAnalysis - Data for the "Changes" tab
+ * AI must populate this to explain what optimizations were made
+ */
+export interface OptimizationAnalysis {
+  summary: string;                   // 2-sentence strategy summary
+  key_changes: string[];             // List of specific changes made
+  ats_compatibility: number;         // Estimated ATS score 0-100
+  missing_keywords_added: string[];  // Keywords added for ATS
 }
 
 // Event types for streaming progress

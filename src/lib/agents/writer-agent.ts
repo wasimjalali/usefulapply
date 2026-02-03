@@ -316,11 +316,11 @@ Missing Skills (from JD): ${match.missingSkills.join(', ')}
 
     const response = await callModel({
       task: 'optimize_cv',
-      prompt: `You are the Writer Agent. Generate an OPTIMIZED CV as a STRUCTURED JSON OBJECT.
+      prompt: `You are an Expert Resume Architect & Career Strategist for a "Job Copilot" system.
 
 === YOUR ROLE ===
-You are NOT writing a document - you are generating a DATA PAYLOAD for a frontend application.
-The Context Agent has already analyzed the job and CV. Your job is to FORMAT and ARTICULATE the optimized content.
+You are NOT writing a document - you are generating a DATA PAYLOAD (JSON Object) for a frontend application.
+The Context Agent has already analyzed the job and CV. Your job is to FORMAT, ARTICULATE, and OPTIMIZE the content.
 
 === TARGET JOB ===
 Title: ${job?.title || 'Unknown'}
@@ -336,6 +336,20 @@ ${rawCV}
 ${masterCV ? `=== MASTER CV (additional experiences/skills to draw from) ===
 ${masterCV}` : ''}
 
+=== 🛡️ SANITIZATION & QUALITY CONTROL ===
+1. **OCR Artifact Removal:** The user's original data may contain OCR errors or broken characters (e.g., "요", "ន", broken pipes "|", random symbols). AGGRESSIVELY STRIP these out. If a certification name looks like "Amazon Ads 요", correct it to "Amazon Ads".
+2. **Language Consistency:** Detect the language of the Job Description. Write ALL content (Summary, Bullets, Cover Letter) in that language.
+   - Exception: Do NOT translate proper nouns (e.g., "React.js", "Seller Central", company names).
+3. **No Hallucinations:** Do NOT invent experiences, skills, or metrics. If a date is missing, omit it rather than guessing.
+
+=== 📏 LENGTH & FORMAT CONSTRAINTS ===
+To ensure the CV fits on 2 pages and remains readable:
+1. **Work Experience:** Select ONLY the **top 3-4 roles** most relevant to this job. Group older/irrelevant roles or omit them.
+2. **Bullet Points:** Write exactly **3-5 high-impact bullets** per role. No paragraphs.
+   - Bad: "I was responsible for managing the team and..."
+   - Good: "Led a team of 5 to increase revenue by 20%..."
+3. **Skills:** Max **8-10 skills** per category. Prioritize skills mentioned in the Job Description.
+
 === OPTIMIZATION STRATEGY ===
 
 1. PERSONAL INFO: Copy EXACTLY from Primary CV (name, email, phone, address, LinkedIn, GitHub)
@@ -347,20 +361,31 @@ ${masterCV}` : ''}
 3. SUMMARY: 3-4 sentences with metrics from CV, keywords from job
 
 4. EXPERIENCE: 
-   - Combine relevant entries from Primary CV AND Master CV
-   - Each entry needs: company, position, location, startDate, endDate, bullets (3-5 per role)
-   - Use action verbs, include metrics
+   - Select TOP 3-4 most relevant roles from Primary CV AND Master CV
+   - Each entry needs: company, position, location, startDate, endDate, bullets (3-5 per role), technologies
+   - Use action verbs, include metrics where available
    - Generate unique IDs for each entry (exp-1, exp-2, etc.)
 
 5. SKILLS: Group into 2-4 categories with specific tool names
    - NEVER genericize tools (keep "Helium 10" not "E-Commerce Tools")
    - Preserve AI/automation skills even if not in job description
+   - Max 8-10 items per category
 
 6. EDUCATION: Copy from Primary CV exactly
 
 7. LANGUAGES: Copy from Primary CV exactly (with proficiency levels)
 
-8. CERTIFICATIONS: Select 4-5 most relevant, no credential IDs
+8. CERTIFICATIONS: Select 4-5 most relevant, CLEAN any OCR artifacts from names
+
+=== 🧠 "CHANGES" TAB LOGIC ===
+You MUST populate the "analysis" object to explain your work to the user:
+- summary: Explain your high-level strategy in 2 sentences (e.g., "Translated profile to German and emphasized Shop-Systeme experience.")
+- key_changes: A list of 4-6 specific improvements made:
+  * Example: "Renamed 'Marketing Specialist' to 'E-Commerce Manager' to match job title."
+  * Example: "Added 'Zapier' and 'Claude API' to Skills section."
+  * Example: "Quantified 'Sales experience' with specific revenue numbers (€150k)."
+- ats_compatibility: Your estimated ATS compatibility score (0-100)
+- missing_keywords_added: List of keywords from the job description that you added to the CV
 
 === LANGUAGE ===
 ${isGerman ? `Generate ALL content in GERMAN. Use German date format (Januar 2025 – Gegenwart).` : 'Generate content in English.'}
@@ -392,7 +417,8 @@ Return ONLY this JSON structure - no markdown, no preamble, no explanation:
       "startDate": "string (e.g., 'January 2024' or 'Januar 2024')",
       "endDate": "string or null if current",
       "current": true/false,
-      "bullets": ["achievement 1", "achievement 2", "achievement 3"]
+      "bullets": ["achievement 1", "achievement 2", "achievement 3"],
+      "technologies": ["Tool1", "Tool2"]
     }
   ],
   "education": [
@@ -423,11 +449,17 @@ Return ONLY this JSON structure - no markdown, no preamble, no explanation:
   "certifications": [
     {
       "id": "cert-1",
-      "name": "string",
+      "name": "string (CLEAN - no OCR artifacts)",
       "issuer": "string",
       "date": "string (optional)"
     }
-  ]
+  ],
+  "analysis": {
+    "summary": "2-sentence strategy summary",
+    "key_changes": ["Change 1", "Change 2", "Change 3", "Change 4"],
+    "ats_compatibility": 85,
+    "missing_keywords_added": ["keyword1", "keyword2"]
+  }
 }
 
 === CRITICAL RULES ===
@@ -436,8 +468,10 @@ Return ONLY this JSON structure - no markdown, no preamble, no explanation:
 3. Use the EXACT dates from the original CVs
 4. Generate unique IDs for experience, education, certifications (exp-1, edu-1, cert-1, etc.)
 5. Bullets must be achievement-focused with action verbs
-6. Skills must include SPECIFIC TOOL NAMES, not generic categories`,
-      systemPrompt: `You are the Writer Agent for Job Copilot. Output ONLY valid JSON matching the CVData schema. No markdown, no explanation, no preamble. The frontend will render your JSON directly - if you mess up the structure, the app breaks.`,
+6. Skills must include SPECIFIC TOOL NAMES, not generic categories
+7. ALWAYS include the "analysis" object - it powers the Changes tab
+8. CLEAN all OCR artifacts from certification names and other text`,
+      systemPrompt: `You are the Writer Agent for Job Copilot. Output ONLY valid JSON matching the CVData schema. No markdown, no explanation, no preamble. The frontend will render your JSON directly - if you mess up the structure, the app breaks. CRITICAL: Always include the "analysis" object with summary, key_changes, ats_compatibility, and missing_keywords_added fields.`,
       jsonMode: true,
     });
 
@@ -490,6 +524,7 @@ Return ONLY this JSON structure - no markdown, no preamble, no explanation:
           endDate: exp.endDate as string | undefined,
           current: exp.current as boolean || false,
           bullets: (exp.bullets as string[]) || [],
+          technologies: (exp.technologies as string[]) || undefined,
         })),
         education: (parsed.education || []).map((edu: Record<string, unknown>, idx: number) => ({
           id: edu.id as string || `edu-${idx + 1}`,
@@ -516,6 +551,13 @@ Return ONLY this JSON structure - no markdown, no preamble, no explanation:
           issuer: cert.issuer as string || '',
           date: cert.date as string | undefined,
         })),
+        // NEW: Parse analysis object for Changes tab
+        analysis: parsed.analysis ? {
+          summary: parsed.analysis.summary as string || '',
+          key_changes: (parsed.analysis.key_changes as string[]) || [],
+          ats_compatibility: (parsed.analysis.ats_compatibility as number) || 0,
+          missing_keywords_added: (parsed.analysis.missing_keywords_added as string[]) || [],
+        } : undefined,
       };
       
       // Generate legacy text format for backward compatibility

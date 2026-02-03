@@ -606,7 +606,69 @@ export function CVPanel() {
           </div>
         ) : (
           <div className="h-full overflow-auto p-6">
-            {changes.length > 0 ? (
+            {/* NEW: Use analysis from optimizedCVData (Solution B) */}
+            {optimizedCVData?.analysis ? (
+              <div className="space-y-6">
+                {/* 1. Strategy Summary */}
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                  <h3 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    Optimization Strategy
+                  </h3>
+                  <p className="text-blue-800 text-sm">{optimizedCVData.analysis.summary}</p>
+                </div>
+
+                {/* 2. ATS Compatibility Score */}
+                <div className="bg-sage-50 p-4 rounded-lg border border-sage-100">
+                  <h3 className="font-bold text-sage-900 mb-2">ATS Compatibility</h3>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 bg-sage-200 rounded-full h-3">
+                      <div 
+                        className="bg-sage-600 h-3 rounded-full transition-all duration-500"
+                        style={{ width: `${optimizedCVData.analysis.ats_compatibility}%` }}
+                      />
+                    </div>
+                    <span className="font-bold text-sage-700 text-lg">
+                      {optimizedCVData.analysis.ats_compatibility}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* 3. Key Changes List */}
+                <div>
+                  <h3 className="font-bold mb-3 flex items-center gap-2 text-charcoal">
+                    <Sparkles className="w-4 h-4 text-navy-600" />
+                    Key Improvements Made
+                  </h3>
+                  <ul className="space-y-2">
+                    {optimizedCVData.analysis.key_changes.map((change, i) => (
+                      <li key={i} className="flex items-start gap-2 p-2 bg-white rounded border border-cream-200">
+                        <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm text-charcoal">{change}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* 4. Missing Keywords Added */}
+                {optimizedCVData.analysis.missing_keywords_added.length > 0 && (
+                  <div>
+                    <h3 className="font-bold mb-3 text-charcoal">Keywords Added for ATS</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {optimizedCVData.analysis.missing_keywords_added.map((keyword, i) => (
+                        <span 
+                          key={i} 
+                          className="px-2 py-1 bg-green-100 text-green-700 rounded text-sm font-medium"
+                        >
+                          + {keyword}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : changes.length > 0 ? (
+              /* Fallback: Legacy changes format */
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-4">
                   <Sparkles className="w-5 h-5 text-navy-600" />

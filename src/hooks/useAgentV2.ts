@@ -72,6 +72,7 @@ export interface OptimizedCVData {
     endDate?: string;
     current?: boolean;
     bullets: string[];
+    technologies?: string[];
   }>;
   education: Array<{
     id: string;
@@ -98,6 +99,13 @@ export interface OptimizedCVData {
     issuer: string;
     date?: string;
   }>;
+  // NEW: Analysis for Changes tab
+  analysis?: {
+    summary: string;
+    key_changes: string[];
+    ats_compatibility: number;
+    missing_keywords_added: string[];
+  };
 }
 
 export interface AgentV2Result {

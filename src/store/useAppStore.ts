@@ -113,6 +113,13 @@ export interface ApplicationSession {
       issuer: string;
       date?: string;
     }>;
+    // NEW: Analysis for Changes tab
+    analysis?: {
+      summary: string;
+      key_changes: string[];
+      ats_compatibility: number;
+      missing_keywords_added: string[];
+    };
   };
   coverLetter: GeneratedCoverLetter | null;
   email: GeneratedEmail | null;

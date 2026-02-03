@@ -203,8 +203,25 @@ export function useSupabaseSync() {
           } else if (newSession) {
             console.log('[SupabaseSync] Created session in Supabase:', newSession.id);
             
+            // CRITICAL FIX: Update local session ID to match Supabase UUID
+            // This ensures chat messages get synced to the correct session
+            const oldSessionId = currentSession.id;
+            const updatedSession = {
+              ...currentSession,
+              id: newSession.id, // Replace local ID with Supabase UUID
+            };
+            
+            // Update the store with the new session ID
+            useAppStore.setState((state) => ({
+              currentSession: updatedSession,
+              sessions: state.sessions.map((s) => 
+                s.id === oldSessionId ? updatedSession : s
+              ),
+            }));
+            
+            console.log('[SupabaseSync] Updated local session ID:', oldSessionId, '->', newSession.id);
+            
             // Immediately update the new session with full data (job_title, company, etc.)
-            // This ensures the session has all the data even though we keep the local ID
             if (currentSession.jobTitle || currentSession.company) {
               await updateSupabaseSession(newSession.id, {
                 job_title: currentSession.jobTitle,
@@ -220,6 +237,22 @@ export function useSupabaseSync() {
                 company_research: currentSession.companyResearch,
               });
               console.log('[SupabaseSync] Updated new session with full data');
+            }
+            
+            // Sync any existing chat messages to Supabase with the new session ID
+            if (currentSession.chatMessages && currentSession.chatMessages.length > 0) {
+              console.log('[SupabaseSync] Syncing', currentSession.chatMessages.length, 'chat messages to new session');
+              for (const msg of currentSession.chatMessages) {
+                try {
+                  await addSupabaseChatMessage(newSession.id, user.id, {
+                    role: msg.role,
+                    content: msg.content,
+                    actions: msg.actions,
+                  });
+                } catch (err) {
+                  console.error('[SupabaseSync] Error syncing chat message:', err);
+                }
+              }
             }
           }
         } else {
