@@ -214,64 +214,119 @@ function parseExperienceSection(
   
   const experiences: CVData['experience'] = [];
   
-  // Strategy: Split by patterns that indicate new job entries
-  // A new entry starts with "Position | Company" pattern (contains pipe separator)
+  // Enhanced parsing strategy:
+  // 1. Detect new entries by multiple patterns (not just pipe)
+  // 2. Track all lines and classify them properly
+  // 3. Ensure bullets are captured for ALL entries
   
   const lines = content.split('\n');
   let currentEntry: {
     headerLines: string[];
     bullets: string[];
+    location?: string;
+    dates?: string;
   } | null = null;
   
-  for (const line of lines) {
+  // Helper: Check if line looks like a new job entry header
+  const isNewEntryHeader = (line: string): boolean => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.length < 5) return false;
+    
+    // Pattern 1: Contains pipe separator (e.g., "Position | Company")
+    if (trimmed.includes('|') && !trimmed.startsWith('|') && trimmed.length > 10) {
+      return true;
+    }
+    
+    // Pattern 2: Job title patterns (Co-Founder, Manager, Specialist, etc.)
+    const jobTitlePatterns = /^(Co-Founder|Founder|CEO|CTO|CFO|COO|Director|Manager|Specialist|Expert|Lead|Senior|Junior|Head of|Chief|VP|Vice President|Consultant|Analyst|Developer|Engineer|Designer|Coordinator|Assistant|Associate|Intern|Trainee|Volunteer)/i;
+    if (jobTitlePatterns.test(trimmed) && !trimmed.startsWith('•') && !trimmed.startsWith('-')) {
+      return true;
+    }
+    
+    // Pattern 3: "Title at Company" or "Title – Company"
+    if (/^[A-Z][^•\-\*]+\s+(at|–|—|@)\s+[A-Z]/i.test(trimmed)) {
+      return true;
+    }
+    
+    return false;
+  };
+  
+  // Helper: Check if line is a bullet point
+  const isBulletLine = (line: string): boolean => {
+    const trimmed = line.trim();
+    return trimmed.startsWith('•') || 
+           trimmed.startsWith('-') || 
+           trimmed.startsWith('*') ||
+           trimmed.startsWith('–') ||
+           trimmed.startsWith('▪') ||
+           trimmed.startsWith('►');
+  };
+  
+  // Helper: Check if line is a date/location line
+  const isMetadataLine = (line: string): boolean => {
+    const trimmed = line.trim();
+    // Date patterns
+    if (/\d{4}/.test(trimmed) || /Present|Current/i.test(trimmed)) return true;
+    // Location patterns (city names, countries)
+    if (/^[A-Z][a-z]+(?:,\s*[A-Z][a-z]+)?\s*$/.test(trimmed)) return true;
+    // Short non-sentence lines (likely metadata)
+    if (trimmed.length < 50 && !trimmed.endsWith('.') && !isBulletLine(trimmed)) return true;
+    return false;
+  };
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     const trimmedLine = line.trim();
     if (!trimmedLine) continue;
     
     // Check if this is a bullet point
-    const isBullet = trimmedLine.startsWith('•') || 
-                     trimmedLine.startsWith('-') || 
-                     trimmedLine.startsWith('*') ||
-                     trimmedLine.startsWith('–');
-    
-    if (isBullet) {
+    if (isBulletLine(trimmedLine)) {
       // Add to current entry's bullets
       if (currentEntry) {
-        const bulletText = trimmedLine.replace(/^[•\-\*–]\s*/, '').trim();
+        const bulletText = trimmedLine.replace(/^[•\-\*–▪►]\s*/, '').trim();
         if (bulletText.length > 5) {
           currentEntry.bullets.push(bulletText);
         }
       }
-    } else {
-      // Check if this is a NEW job entry (must have pipe separator = "Position | Company")
-      // This is the key indicator that separates entries
-      const isNewEntry = trimmedLine.includes('|') && 
-                         !trimmedLine.startsWith('|') && 
-                         trimmedLine.length > 10;
+      continue;
+    }
+    
+    // Check if this is a new job entry header
+    if (isNewEntryHeader(trimmedLine)) {
+      // Save previous entry if exists
+      if (currentEntry && currentEntry.headerLines.length > 0) {
+        const parsed = parseExperienceFromLines(currentEntry.headerLines, currentEntry.bullets);
+        if (parsed) {
+          console.log(`[ParseOptimizedCV] Parsed entry: ${parsed.position} at ${parsed.company} with ${parsed.bullets.length} bullets`);
+          experiences.push(parsed);
+        }
+      }
       
-      if (isNewEntry) {
-        // Save previous entry if exists
-        if (currentEntry && currentEntry.headerLines.length > 0) {
-          const parsed = parseExperienceFromLines(currentEntry.headerLines, currentEntry.bullets);
-          if (parsed) experiences.push(parsed);
-        }
-        
-        // Start new entry
-        currentEntry = {
-          headerLines: [trimmedLine],
-          bullets: [],
-        };
-      } else if (currentEntry) {
-        // This is additional info for current entry (date line, location, etc.)
-        // Only add to header if we haven't started bullets yet
-        if (currentEntry.bullets.length === 0) {
-          // Check if it's a date line or other metadata
-          const isDateLine = trimmedLine.match(/\d{4}/) || trimmedLine.match(/Present/i);
-          const isShortLine = trimmedLine.length < 60 && !trimmedLine.endsWith('.');
-          
-          if (isDateLine || isShortLine) {
-            currentEntry.headerLines.push(trimmedLine);
-          }
-        }
+      // Start new entry
+      currentEntry = {
+        headerLines: [trimmedLine],
+        bullets: [],
+      };
+      continue;
+    }
+    
+    // If we have a current entry and this is metadata, add to header
+    if (currentEntry && isMetadataLine(trimmedLine)) {
+      // Only add to header if we haven't collected many bullets yet
+      // (to avoid mixing up entries)
+      if (currentEntry.bullets.length <= 1) {
+        currentEntry.headerLines.push(trimmedLine);
+      }
+      continue;
+    }
+    
+    // If line doesn't match any pattern but looks like content, 
+    // it might be a continuation of the previous line or a bullet without marker
+    if (currentEntry && trimmedLine.length > 20 && /^[A-Z]/.test(trimmedLine)) {
+      // Treat as bullet if it starts with action verb
+      const actionVerbs = /^(Managed|Developed|Created|Built|Led|Delivered|Achieved|Generated|Increased|Reduced|Implemented|Designed|Executed|Trained|Coached|Optimized|Launched|Established|Coordinated|Collaborated)/i;
+      if (actionVerbs.test(trimmedLine)) {
+        currentEntry.bullets.push(trimmedLine);
       }
     }
   }
@@ -279,7 +334,10 @@ function parseExperienceSection(
   // Don't forget the last entry
   if (currentEntry && currentEntry.headerLines.length > 0) {
     const parsed = parseExperienceFromLines(currentEntry.headerLines, currentEntry.bullets);
-    if (parsed) experiences.push(parsed);
+    if (parsed) {
+      console.log(`[ParseOptimizedCV] Parsed entry: ${parsed.position} at ${parsed.company} with ${parsed.bullets.length} bullets`);
+      experiences.push(parsed);
+    }
   }
   
   // Deduplicate by company name (in case of parsing errors)
@@ -291,7 +349,11 @@ function parseExperienceSection(
     return true;
   });
   
+  // Log detailed debug info
   console.log('[ParseOptimizedCV] Parsed', deduped.length, 'experience entries (after dedup)');
+  deduped.forEach((exp, idx) => {
+    console.log(`[ParseOptimizedCV] Entry ${idx + 1}: ${exp.position} | ${exp.company} | Bullets: ${exp.bullets.length}`);
+  });
   
   return deduped.length > 0 ? deduped : (originalExperience || []);
 }
@@ -625,6 +687,24 @@ function parseCertificationsSection(sections: Map<string, string>): CVData['cert
   
   const certifications: CVData['certifications'] = [];
   
+  // Helper: Strip certification IDs from text
+  const stripCertificationIds = (text: string): string => {
+    return text
+      // Remove "ID: xxx" patterns
+      .replace(/\s*ID:\s*[a-zA-Z0-9\-]+/gi, '')
+      // Remove standalone UUID-like patterns
+      .replace(/\s*[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/gi, '')
+      // Remove short alphanumeric IDs (like "8e478390df")
+      .replace(/\s*ID:\s*[a-zA-Z0-9]{6,}/gi, '')
+      // Remove verification codes
+      .replace(/\s*Verification\s*(?:Code|ID)?:\s*[a-zA-Z0-9\-]+/gi, '')
+      // Remove credential IDs
+      .replace(/\s*Credential\s*ID:\s*[a-zA-Z0-9\-]+/gi, '')
+      // Clean up any double spaces left behind
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  };
+  
   // Split by bullet points or newlines
   const entries = content.split(/[•\n]/).map(e => e.trim()).filter(e => e.length > 5);
   
@@ -632,19 +712,22 @@ function parseCertificationsSection(sections: Map<string, string>): CVData['cert
     // Skip section headers
     if (entry.toUpperCase() === 'CERTIFICATIONS' || entry.toUpperCase() === 'CERTIFICATES') continue;
     
-    let name = entry;
+    // Strip IDs from the entry first
+    const cleanEntry = stripCertificationIds(entry);
+    
+    let name = cleanEntry;
     let issuer = '';
     let date = '';
     
     // Pattern 1: "Name – Issuer | Date (Score)" - keep everything including score
-    const fullMatch = entry.match(/^(.+?)\s*[–\-—]\s*(.+?)(?:\s*\|\s*(.+))?$/);
+    const fullMatch = cleanEntry.match(/^(.+?)\s*[–\-—]\s*(.+?)(?:\s*\|\s*(.+))?$/);
     if (fullMatch) {
       name = fullMatch[1].replace(/^[•\-]\s*/, '').trim();
       issuer = fullMatch[2].trim();
       date = fullMatch[3]?.trim() || '';
     } else {
       // Pattern 2: Try parentheses format: "Name (Issuer)"
-      const issuerMatch = entry.match(/^(.+?)\s*\(([^)]+)\)/);
+      const issuerMatch = cleanEntry.match(/^(.+?)\s*\(([^)]+)\)/);
       if (issuerMatch) {
         name = issuerMatch[1].replace(/^[•\-]\s*/, '').trim();
         // Check if it's actually a score in parentheses
@@ -654,8 +737,10 @@ function parseCertificationsSection(sections: Map<string, string>): CVData['cert
       }
     }
     
-    // Clean up name
-    name = name.replace(/^[•\-]\s*/, '').trim();
+    // Clean up name - also strip any remaining ID patterns
+    name = stripCertificationIds(name.replace(/^[•\-]\s*/, '')).trim();
+    issuer = stripCertificationIds(issuer).trim();
+    date = stripCertificationIds(date).trim();
     
     if (name.length > 3) {
       certifications.push({

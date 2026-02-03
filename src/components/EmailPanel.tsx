@@ -144,15 +144,30 @@ export function EmailPanel() {
     
     if (!email?.subject || !email?.body) {
       console.error('[EMAIL] Missing subject or body!');
+      alert('Email content is not ready yet. Please wait for the email to be generated.');
       return;
     }
     
     // Properly encode subject and body for mailto link
     const encodedSubject = encodeURIComponent(email.subject);
-    const encodedBody = encodeURIComponent(email.body);
+    
+    // Truncate body if too long (mailto has ~2000 char limit in some browsers)
+    let bodyToEncode = email.body;
+    const maxBodyLength = 1500; // Leave room for subject and mailto: prefix
+    if (bodyToEncode.length > maxBodyLength) {
+      bodyToEncode = bodyToEncode.substring(0, maxBodyLength) + '\n\n[Email truncated - please paste the full content from the app]';
+      console.log('[EMAIL] Body truncated due to length');
+    }
+    
+    const encodedBody = encodeURIComponent(bodyToEncode);
     const mailtoLink = `mailto:?subject=${encodedSubject}&body=${encodedBody}`;
     
     console.log('[EMAIL] Mailto link created, length:', mailtoLink.length);
+    
+    // Check if link is too long
+    if (mailtoLink.length > 2000) {
+      console.warn('[EMAIL] Mailto link exceeds 2000 chars, may not work in all browsers');
+    }
     
     // Use window.location.href for better compatibility with email clients
     window.location.href = mailtoLink;

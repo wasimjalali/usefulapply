@@ -924,13 +924,16 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                     {/* Action Buttons - Lovable style with vertical list and connecting lines */}
                     {message.actions && message.actions.length > 0 && (
                       <div className="mt-4 space-y-0">
-                        {message.actions.map((action, index) => (
+                        {/* Filter out 'none' actions and render buttons */}
+                        {message.actions
+                          .filter(action => action.action !== 'none')
+                          .map((action, index, filteredActions) => (
                           <div key={index} className="flex items-stretch">
                             {/* Connecting line */}
                             <div className="flex flex-col items-center mr-3">
                               <div className={`w-px bg-cream-300 ${index === 0 ? 'h-2' : 'h-2'}`} />
                               <div className="w-2 h-2 rounded-full border-2 border-cream-400 bg-white flex-shrink-0" />
-                              <div className={`w-px bg-cream-300 flex-1 ${index === (message.actions?.length ?? 0) - 1 ? 'opacity-0' : ''}`} />
+                              <div className={`w-px bg-cream-300 flex-1 ${index === filteredActions.length - 1 ? 'opacity-0' : ''}`} />
                             </div>
                             {/* Button */}
                             <button
@@ -945,6 +948,12 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                             </button>
                           </div>
                         ))}
+                        {/* Render hint text (action === 'none') as plain text below buttons */}
+                        {message.actions.some(a => a.action === 'none') && (
+                          <p className="text-sm text-warm-gray mt-3 ml-5 italic">
+                            {message.actions.find(a => a.action === 'none')?.label.replace(/^💡\s*/, '')}
+                          </p>
+                        )}
                       </div>
                     )}
                   </Card>

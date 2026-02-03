@@ -288,6 +288,12 @@ export const writerAgent = {
    */
   async generateOptimizedCV(context: MasterContext): Promise<{ content: string; changes: Array<{ section: string; before: string; after: string; reason: string }> }> {
     const { applicant, job, companyResearch, match, rawCV, masterCV } = context;
+    
+    // Get output language - German or English
+    const outputLang = this.getOutputLanguage(context);
+    const isGerman = outputLang === 'de';
+    
+    console.log('[WRITER_AGENT] Generating CV in language:', outputLang);
 
     const companyContext = companyResearch ? `
 COMPANY RESEARCH:
@@ -476,6 +482,18 @@ Output should be:
    - Maximum 4-5 most relevant certifications
    - Prioritize certifications mentioned in job description
    - Can add from Master CV if relevant
+   - DO NOT include certification IDs, verification codes, or credential numbers
+   - Format: "Certification Name – Issuer | Date" (optionally with score for language tests)
+   - WRONG: "Amazon Ads Foundations – Amazon | ID: b2a13065-a357..."
+   - CORRECT: "Amazon Ads Foundations – Amazon Ads Academy | September 2025"
+
+=== LANGUAGE INSTRUCTION ===
+
+${isGerman ? `CRITICAL: Generate ALL CV content in GERMAN.
+- Section headers in German: "BERUFSERFAHRUNG", "AUSBILDUNG", "FÄHIGKEITEN", "SPRACHEN", "ZERTIFIKATE"
+- Use German date format: DD.MM.YYYY or "Januar 2025 – Gegenwart"
+- Professional German business language
+- Keep personal info (name, email, phone) as-is` : 'Generate CV content in English.'}
 
 === OUTPUT FORMAT ===
 
@@ -671,6 +689,12 @@ CRITICAL RULES:
   async generateCoverLetter(context: MasterContext, emit?: AgentEventHandler): Promise<string> {
     const { applicant, job, companyResearch, rawCV, masterCV } = context;
     
+    // Get output language
+    const outputLang = this.getOutputLanguage(context);
+    const isGerman = outputLang === 'de';
+    
+    console.log('[WRITER_AGENT] Generating cover letter in language:', outputLang);
+    
     // Debug logging for company research data flow
     console.log('[WRITER_AGENT] Generating cover letter with company data:', {
       hasCompanyResearch: !!companyResearch,
@@ -804,6 +828,14 @@ INSTRUCTIONS:
 8. Start with the REQUIRED HEADER FORMAT above
 9. End with a confident closing line followed by proper signature
 
+=== LANGUAGE INSTRUCTION ===
+${isGerman ? `CRITICAL: Write the ENTIRE cover letter in GERMAN.
+- Use formal German "Sie" form
+- German business letter format
+- Closing: "Mit freundlichen Grüßen," instead of "Best regards,"
+- German date format: "3. Februar 2026"
+- Keep name and contact details as-is` : 'Write the cover letter in English.'}
+
 REQUIRED SIGNATURE FORMAT:
 The cover letter MUST end with exactly this format:
 
@@ -908,6 +940,12 @@ NEVER end a cover letter without the signature. The signature is mandatory.`,
    */
   async generateApplicationEmail(context: MasterContext): Promise<{ subject: string; body: string }> {
     const { applicant, job, companyResearch, rawCV } = context;
+    
+    // Get output language
+    const outputLang = this.getOutputLanguage(context);
+    const isGerman = outputLang === 'de';
+    
+    console.log('[WRITER_AGENT] Generating email in language:', outputLang);
 
     const response = await callModel({
       task: 'write_email',
@@ -927,6 +965,13 @@ INSTRUCTIONS:
 3. Must include one specific number/achievement from CV
 4. End with availability, not "I look forward to hearing from you"
 5. Start with "Hello," as the greeting (do NOT use placeholder like "[Name]")
+
+=== LANGUAGE INSTRUCTION ===
+${isGerman ? `CRITICAL: Write the ENTIRE email in GERMAN.
+- Greeting: "Guten Tag," or "Sehr geehrte Damen und Herren,"
+- Closing: "Mit freundlichen Grüßen,"
+- Subject line in German format: "Bewerbung als [Job Title] - [Name]"
+- Professional German business email style` : 'Write the email in English.'}
 
 EMAIL SIGNATURE REQUIREMENT:
 The email MUST end with a professional signature:
