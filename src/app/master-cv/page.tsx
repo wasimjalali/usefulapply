@@ -7,124 +7,243 @@ import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 
 // The Master CV Prompt
-const MASTER_CV_PROMPT = `You are a career documentation specialist. Your task is to help me create a comprehensive "Master CV" - a complete inventory of my professional life that will serve as the source material for tailored job applications.
+const MASTER_CV_PROMPT = `You are helping me create a Master CV — a complete inventory of my professional background. This is NOT a regular CV to send to employers. It's a detailed reference document (5-10 pages) that an AI job application tool will use to generate tailored applications for me.
 
-Please interview me systematically to gather ALL of the following information. Ask questions one section at a time, and probe for specific details, metrics, and achievements.
+=== YOUR INSTRUCTIONS ===
 
-## SECTIONS TO COVER:
+1. Ask me questions ONE SECTION AT A TIME
+2. After each section, summarize what I told you before moving on
+3. Ask follow-up questions to get specific METRICS (revenue, followers, percentages, time saved, etc.)
+4. At the end, compile everything into the structured format below
+5. Remind me to verify all information before using it
 
-### 1. CONTACT INFORMATION
-- Full legal name
-- Professional email
-- Phone number (with country code)
-- City, Country
-- LinkedIn URL
-- Portfolio/Website (if applicable)
-- GitHub/GitLab (if applicable)
+=== RULES ===
 
-### 2. PROFESSIONAL SUMMARY
-- Current professional identity (how you describe yourself)
-- Years of experience
-- Core expertise areas (3-5 main areas)
-- Unique value proposition (what sets you apart)
-- Career aspirations
+- Only include FACTS — no future plans or aspirations
+- Every achievement needs a NUMBER if possible
+- Include YEARS OF EXPERIENCE for each skill
+- Length: 5-10 pages, 3,000-7,000 words (max 15 pages / 15,000 words)
+- No marketing language ("passionate", "driven", "dynamic")
+- Help me identify my PROFESSIONAL MINDSET (see mindset types below)
 
-### 3. WORK EXPERIENCE (For EACH role, gather):
-- Company name and brief description
-- Your exact job title
-- Employment dates (month/year)
-- Location (city, country) and work arrangement (remote/hybrid/onsite)
-- 5-8 bullet points of achievements with METRICS where possible:
-  - Revenue/cost impact
-  - Team size managed
-  - Projects delivered
-  - Efficiency improvements (percentages)
-  - Tools/technologies used
-  - Scale of work (users, transactions, etc.)
+=== SECTIONS TO COVER ===
 
-### 4. EDUCATION
-- Degree(s) and field of study
-- Institution name and location
-- Graduation date
-- GPA (if notable)
-- Relevant coursework
-- Academic achievements/honors
+**Section 1: Personal Information**
+- Full name, date of birth, nationality
+- Current location, email, phone
+- Driver's license, work authorization
+- Open to relocation? Which cities?
 
-### 5. CERTIFICATIONS & LICENSES
-- Certification name
-- Issuing organization
-- Date obtained
-- Expiration date (if applicable)
-- Credential ID
+**Section 2: Professional Mindset**
+- How do you approach work? (Ask me questions to identify my type)
+- What do you do when you face a problem?
+- Have you ever BUILT something to solve a problem?
+- How do you learn new skills?
 
-### 6. SKILLS INVENTORY
-Technical Skills:
-- Programming languages
-- Frameworks and libraries
-- Tools and platforms
-- Databases
-- Cloud services
+Mindset types to identify:
+- Builder Mindset: Creates solutions when facing problems (prove with projects built)
+- Growth Mindset: Constantly learning and improving (prove with skills learned)
+- Analytical Mindset: Makes data-driven decisions (prove with examples)
+- Entrepreneurial Mindset: Takes initiative and ownership (prove with businesses/projects led)
+- Problem-Solver Mindset: Finds solutions others miss (prove with specific outcomes)
+- Systems Mindset: Creates processes and frameworks (prove with systems implemented)
 
-Soft Skills:
-- Leadership abilities
-- Communication skills
-- Problem-solving approaches
+**Section 3: Work Experience**
+For EACH job, ask:
+- Job title, company name, location, dates
+- Main responsibilities
+- ACHIEVEMENTS WITH NUMBERS: revenue, costs saved, growth %, projects completed, team size, etc.
+- Tools and technologies used
+- Problems solved
 
-Domain Knowledge:
-- Industry expertise
-- Specialized knowledge areas
+**Section 4: Projects (Side projects, things built, businesses started)**
+For EACH project, ask:
+- Project name
+- What PROBLEM were you solving?
+- What did you BUILD?
+- What technology/tools?
+- What was the RESULT? (with numbers)
 
-### 7. LANGUAGES
-- Language name
-- Proficiency level (Native, Fluent, Professional, Conversational, Basic)
-- Any certifications (TOEFL, IELTS, etc.)
+**Section 5: Education**
+- Degree, institution, location, year
+- Final grade/GPA
+- Notable achievements
 
-### 8. PROJECTS & PORTFOLIO
-For significant projects:
-- Project name and description
-- Your role
-- Technologies used
-- Outcomes and impact
-- Link (if public)
+**Section 6: Certifications**
+For EACH certification:
+- Exact name, issuer, date
+- Expiration date (if any)
+- Certificate ID or verification link
 
-### 9. PUBLICATIONS & SPEAKING
-- Articles, papers, blog posts
-- Conference talks
-- Podcasts/interviews
-- Any thought leadership
+**Section 7: Skills**
+Ask about skills in categories:
+- Technical/Development (with years)
+- AI & Automation (with years)
+- Marketing (with years)
+- Business/Operations (with years)
+- Soft skills
 
-### 10. VOLUNTEER & COMMUNITY
-- Organization
-- Role
-- Time period
-- Impact
+**Section 8: Languages**
+For EACH language:
+- Language, level (Native/Fluent/Intermediate/Basic)
+- Certification and score (if any)
 
-### 11. AWARDS & RECOGNITION
-- Award name
-- Issuing organization
-- Date
-- Significance
+**Section 9: Quantified Achievements**
+Compile ALL metrics mentioned into one table.
+Ask: "Any other achievements with specific numbers?"
 
-### 12. ADDITIONAL INFORMATION
-- Visa/work authorization status
-- Willingness to relocate
-- Notice period
-- Salary expectations (optional)
-- Hobbies that demonstrate relevant skills
+**Section 10: Available Documents**
+- CV versions (languages?)
+- Certificates as documents
+- Portfolio/GitHub
+- Professional photo
+
+=== OUTPUT FORMAT ===
+
+Structure the final document exactly like this:
 
 ---
 
-## INTERVIEW APPROACH:
+# [Full Name] — Master CV (Skills & Experience Inventory)
 
-1. Start with Section 1 (Contact Info) and work through systematically
-2. For work experience, go role by role, newest first
-3. Push for SPECIFIC NUMBERS and METRICS
-4. Ask follow-up questions to uncover hidden achievements
-5. Help me articulate impact even when I don't have exact numbers
+**Purpose:** Factual reference document for job applications.
+**Last Updated:** [Date]
 
-When complete, compile everything into a well-structured Master CV document that I can use as source material for job applications.
+---
 
-Let's begin! Please start by asking about my contact information.`;
+## Personal Information
+
+- **Full Name:** [X]
+- **Date of Birth:** [X]
+- **Nationality:** [X]
+- **Location:** [X]
+- **Email:** [X]
+- **Phone:** [X]
+- **Driver's License:** [X]
+- **Work Authorization:** [X]
+- **Relocation:** [X]
+
+---
+
+## Professional Mindset — [Type] Approach
+
+*[One sentence describing their approach]*
+
+### How This Shows in My Work:
+
+**Example 1:** [Problem faced] → [What they did] → [Result with metric]
+**Example 2:** [Problem faced] → [What they did] → [Result with metric]
+
+### Ready-to-Use Framing for Applications:
+
+**For Technical Roles:** "[Sentence they can use]"
+**For Business Roles:** "[Sentence they can use]"
+**For Startup Roles:** "[Sentence they can use]"
+
+---
+
+## Projects
+
+### [Project Name]
+**[Date Range]**
+
+- **Problem:** [What they were solving]
+- **Solution:** [What they built]
+- **Technology:** [Stack used]
+- **Results:** [Metrics]
+
+---
+
+## Professional Experience
+
+### [Job Title] | [Company Name]
+**[Location] | [Start Date] – [End Date]**
+
+- [Achievement with metric]
+- [Achievement with metric]
+- Tools: [List]
+
+---
+
+## Education
+
+### [Degree]
+**[Institution] — [Location] | [Year]**
+
+- Grade: [X]
+- Notable: [X]
+
+---
+
+## Certifications
+
+### [Category]
+
+| Certification | Issuer | Date | ID |
+|---------------|--------|------|-----|
+| [Name] | [Issuer] | [Date] | [ID] |
+
+---
+
+## Skills Inventory
+
+### [Category]
+- [Skill] ([X] years)
+- [Skill] ([X] years)
+
+---
+
+## Languages
+
+| Language | Level | Certification |
+|----------|-------|---------------|
+| [X] | [X] | [X] |
+
+---
+
+## Quantified Achievements
+
+| Achievement | Metric | Context |
+|-------------|--------|---------|
+| [X] | [X] | [X] |
+
+---
+
+## Documents Available
+
+1. [Document]
+2. [Document]
+
+---
+
+## Notes for Application Systems
+
+- **Primary Mindset:** [X]
+- **Primary Strength:** [X]
+- **Differentiator:** [X]
+- **Availability:** [X]
+
+---
+
+## ⚠️ Verification Checklist
+
+Before using this Master CV, verify:
+- [ ] All dates are correct
+- [ ] All metrics are accurate
+- [ ] All certification IDs are valid
+- [ ] All skills can be demonstrated
+
+**Verified by:** _________________ **Date:** _____________
+
+---
+
+*This document contains only verified, factual information.*
+
+---
+
+=== NOW START ===
+
+Begin by asking me Section 1: Personal Information.`;
 
 export default function MasterCVPage() {
   const [copied, setCopied] = useState(false);

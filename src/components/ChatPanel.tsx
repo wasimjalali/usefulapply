@@ -525,11 +525,12 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                 // Add completion message
                 addChatMessage({
                   role: 'assistant',
-                  content: `✅ **Analysis Complete!**\n\nYour CV has been optimized for this role.\n\nCheck the **CV tab** to review the changes.\n\n---\n\nTo start a new application, please begin a new chat. Each job application requires a fresh conversation for optimal results.`,
+                  content: `✅ **Analysis Complete!**\n\nYour CV has been optimized for this role.\n\nCheck the **CV tab** to review the changes.`,
                   actions: [
-                    { label: 'View Optimized CV', action: 'view-cv', icon: 'cv' },
-                    { label: 'View Cover Letter', action: 'view-cover-letter', icon: 'cover-letter' },
-                    { label: 'View Email', action: 'view-email', icon: 'email' },
+                    { label: '📄 View Optimized CV', action: 'view-cv', icon: 'cv' },
+                    { label: '✉️ View Cover Letter', action: 'view-cover-letter', icon: 'cover-letter' },
+                    { label: '📧 View Email', action: 'view-email', icon: 'email' },
+                    { label: '💡 To start a new application, begin a new chat', action: 'none' },
                     { label: '🚀 Start New Application', action: 'start-new-application', icon: 'new' },
                   ],
                 });

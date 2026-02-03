@@ -138,17 +138,24 @@ export function EmailPanel() {
   };
 
   const handleOpenInEmail = () => {
-    if (email) {
-      // Properly encode subject and body for mailto link
-      // Handle special characters and long content
-      const encodedSubject = encodeURIComponent(email.subject);
-      const encodedBody = encodeURIComponent(email.body);
-      const mailtoLink = `mailto:?subject=${encodedSubject}&body=${encodedBody}`;
-      
-      // Use window.location.href for better compatibility with email clients
-      // window.open can sometimes open blank page in certain browsers
-      window.location.href = mailtoLink;
+    console.log('[EMAIL] Button clicked');
+    console.log('[EMAIL] Subject:', email?.subject);
+    console.log('[EMAIL] Body length:', email?.body?.length);
+    
+    if (!email?.subject || !email?.body) {
+      console.error('[EMAIL] Missing subject or body!');
+      return;
     }
+    
+    // Properly encode subject and body for mailto link
+    const encodedSubject = encodeURIComponent(email.subject);
+    const encodedBody = encodeURIComponent(email.body);
+    const mailtoLink = `mailto:?subject=${encodedSubject}&body=${encodedBody}`;
+    
+    console.log('[EMAIL] Mailto link created, length:', mailtoLink.length);
+    
+    // Use window.location.href for better compatibility with email clients
+    window.location.href = mailtoLink;
   };
 
   // Show generate button if job description is available but no email yet

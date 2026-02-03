@@ -4,12 +4,13 @@ import { CVData, CVTemplate, CV_TEMPLATE_DEFINITIONS, getTemplateById } from '@/
 import { USPremiumATSTemplate } from './USPremiumATSTemplate';
 import { USModernATSTemplate } from './USModernATSTemplate';
 import { USProfessionalTemplate } from './USProfessionalTemplate';
+import { GermanATSTemplate } from './GermanATSTemplate';
 
 export { CV_TEMPLATE_DEFINITIONS, getTemplateById };
 export type { CVData, CVTemplate };
 
 // Export premium template for direct use
-export { USPremiumATSTemplate };
+export { USPremiumATSTemplate, GermanATSTemplate };
 
 interface CVTemplateRendererProps {
   data: CVData;
@@ -38,7 +39,7 @@ export function CVTemplateRenderer({ data, templateId }: CVTemplateRendererProps
     );
   }
   
-  // Map template IDs to components (3 consolidated templates)
+  // Map template IDs to components (4 templates)
   switch (templateId) {
     case 'premium-ats':
       return <USPremiumATSTemplate data={data} template={template} />;
@@ -48,6 +49,9 @@ export function CVTemplateRenderer({ data, templateId }: CVTemplateRendererProps
     
     case 'executive':
       return <USProfessionalTemplate data={data} template={template} />;
+    
+    case 'german-ats':
+      return <GermanATSTemplate data={data} template={template} />;
     
     // Legacy template ID fallbacks (for existing users)
     case 'us-premium-ats':

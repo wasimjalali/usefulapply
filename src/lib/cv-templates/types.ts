@@ -962,6 +962,31 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
     },
     sectionOrder: ['header', 'summary', 'experience', 'skills', 'education', 'certifications', 'languages'],
   },
+  
+  // 4. German ATS - For German job market (with photo support)
+  {
+    id: 'german-ats',
+    name: '🇩🇪 Deutsch (mit Foto)',
+    description: 'German CV format with photo placeholder. CEFR language levels, German section headers.',
+    region: 'EU',
+    style: 'classic',
+    includesPhoto: true,
+    pageSize: 'a4',
+    colors: {
+      primary: '#1a365d',      // Navy - professional
+      secondary: '#2d3748',    // Dark gray
+      accent: '#2b6cb0',       // Professional blue
+      text: '#1a202c',         // Charcoal
+      textLight: '#4a5568',    // Medium gray
+      background: '#ffffff',
+      headerBg: '#f7fafc',     // Light header
+    },
+    fonts: {
+      heading: 'Arial, Helvetica, sans-serif',  // German standard
+      body: 'Arial, Helvetica, sans-serif',
+    },
+    sectionOrder: ['header', 'photo', 'summary', 'experience', 'education', 'skills', 'languages', 'certifications'],
+  },
 ];
 
 export function getTemplateById(id: string): CVTemplate | undefined {

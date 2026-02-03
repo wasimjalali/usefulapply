@@ -33,15 +33,18 @@ export async function searchCompanyInfo(companyName: string): Promise<CompanyRes
   console.log('[ClaudeWebSearch] Searching for company:', companyName);
   
   try {
+    // Define web search tool with correct type for Anthropic API
+    const webSearchTool = {
+      type: 'web_search_20250305',
+      name: 'web_search',
+    };
+    
+    console.log('[WEB_SEARCH] Tools being sent to API:', JSON.stringify([webSearchTool]));
+    
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1024,
-      tools: [
-        {
-          type: 'web_search' as any,
-          name: 'web_search',
-        }
-      ],
+      tools: [webSearchTool] as any,
       messages: [
         {
           role: 'user',
@@ -82,6 +85,20 @@ If information is not found, use null for that field.`
       ]
     });
 
+    // Log API response content types for debugging
+    console.log('[WEB_SEARCH] API response content types:', 
+      response.content.map(block => block.type));
+    
+    // Check for web search results
+    const webSearchResults = response.content.filter(
+      (block: any) => block.type === 'web_search_tool_result'
+    );
+    console.log('[WEB_SEARCH] Found web search results:', webSearchResults.length);
+    
+    if (webSearchResults.length > 0) {
+      console.log('[WEB_SEARCH] Web search was used successfully');
+    }
+    
     // Extract the text response
     const textContent = response.content.find(c => c.type === 'text');
     if (!textContent || textContent.type !== 'text') {

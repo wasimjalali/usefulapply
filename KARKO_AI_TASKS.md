@@ -4,6 +4,1048 @@
 **Status:** Active  
 **Context:** Follow-up from "Evaluating Karko AI job application output quality" conversation
 
+
+# Karko AI - Remaining Tasks (Round 2)
+
+**Created:** 2026-02-03  
+**Status:** Active  
+**Context:** Follow-up fixes for incomplete tasks from Round 1
+
+---
+
+## ⚠️ CRITICAL NOTICE TO AGENT
+
+The previous implementation was marked as "complete" but multiple critical features are NOT WORKING. This document contains the specific fixes needed.
+
+**Rules:**
+1. Do NOT mark a task complete until you have TESTED it
+2. Add console.log statements and VERIFY they appear in browser console
+3. If you cannot find where to make a change, ASK before guessing
+4. Read each instruction completely before implementing
+
+---
+
+## Progress Tracker
+
+| Task | Status | Tested | Notes |
+|------|--------|--------|-------|
+| Task R1 | ⬜ Not Started | ⬜ | Web Search Fix (CRITICAL) |
+| Task R2 | ⬜ Not Started | ⬜ | Email Panel - Open in Email |
+| Task R3 | ⬜ Not Started | ⬜ | Chat Panel UI Fix |
+| Task R4 | ⬜ Not Started | ⬜ | CV Template Rendering Fix |
+| Task R5 | ⬜ Not Started | ⬜ | German Template Visibility |
+| Task R6 | ⬜ Not Started | ⬜ | Settings Page Pricing Update |
+| Task R7 | ⬜ Not Started | ⬜ | German Language Detection |
+| Task R8 | ⬜ Not Started | ⬜ | Master CV Prompt Update |
+
+---
+
+## Task R1: Web Search Fix (CRITICAL)
+
+**Problem:** Web search is NOT being called at all. The Anthropic API dashboard shows ZERO web search requests. Console logs show no `[WEB_SEARCH]` entries.
+
+### The Root Cause
+
+The web search tool configuration may be incorrect. Here is the CORRECT Anthropic web search configuration:
+
+### Correct Anthropic Web Search Tool Configuration
+
+```javascript
+// The tool definition to pass to the API
+const webSearchTool = {
+  type: "web_search_20250305",
+  name: "web_search",
+  // Optional: restrict to specific domains
+  // allowed_domains: ["example.com"],
+  // Optional: block specific domains
+  // blocked_domains: ["spam.com"],
+  // Optional: user location for localized results
+  // user_location: {
+  //   type: "approximate",
+  //   city: "Berlin",
+  //   country: "DE"
+  // }
+};
+
+// Example API call with web search enabled
+const response = await anthropic.messages.create({
+  model: "claude-3-5-haiku-20241022", // or your model
+  max_tokens: 4096,
+  tools: [webSearchTool],
+  messages: [
+    {
+      role: "user",
+      content: "Search for information about [company name] and include their address"
+    }
+  ]
+});
+```
+
+### Web Search Response Structure
+
+When web search is used, the response contains these block types:
+
+```javascript
+// Response content array can contain:
+{
+  type: "web_search_tool_result",
+  tool_use_id: "string",
+  content: [
+    {
+      type: "web_search_result",
+      encrypted_content: "string", // The search result content
+      page_age: "string",          // How old the page is
+      title: "string",             // Page title
+      url: "string"                // Source URL
+    }
+  ]
+}
+
+// Or an error:
+{
+  type: "web_search_tool_result_error",
+  error_code: "invalid_tool_input" | "unavailable" | "max_uses_exceeded"
+}
+```
+
+### Part A: Find Current Web Search Implementation
+
+1. Search the codebase for:
+   - `web_search`
+   - `WebSearchTool`
+   - `anthropic` API calls
+   - Any search-related functions
+
+2. Identify:
+   - Where is the web search tool defined?
+   - Is it using the correct `type: "web_search_20250305"`?
+   - Is it being passed to the API call?
+
+### Part B: Fix Web Search Tool Definition
+
+Ensure the tool is defined EXACTLY like this:
+
+```javascript
+const tools = [
+  {
+    type: "web_search_20250305",
+    name: "web_search"
+  }
+];
+```
+
+**COMMON MISTAKES TO CHECK:**
+- ❌ Using `type: "web_search"` instead of `type: "web_search_20250305"`
+- ❌ Not including the tool in the `tools` array
+- ❌ Putting the tool in wrong format
+- ❌ Web search toggle state not being read correctly
+
+### Part C: Add Diagnostic Logging
+
+Add these console logs to trace the ENTIRE flow:
+
+```javascript
+// Where web search toggle is read
+console.log('[WEB_SEARCH] Toggle enabled:', isWebSearchEnabled);
+
+// Where API call is made
+console.log('[WEB_SEARCH] Tools being sent to API:', JSON.stringify(tools));
+
+// After API response
+console.log('[WEB_SEARCH] API response content types:', 
+  response.content.map(block => block.type));
+
+// Check for web search results
+const webSearchResults = response.content.filter(
+  block => block.type === 'web_search_tool_result'
+);
+console.log('[WEB_SEARCH] Found results:', webSearchResults.length);
+
+// Log actual results
+if (webSearchResults.length > 0) {
+  console.log('[WEB_SEARCH] Results:', JSON.stringify(webSearchResults, null, 2));
+}
+```
+
+### Part D: Verify Web Search Toggle Connection
+
+The Web Search toggle in the chat input area must:
+1. Update a state variable when toggled
+2. That state must be read when making API calls
+3. When enabled, the web search tool must be included in the `tools` array
+
+```javascript
+// Example of correct implementation
+const makeAPICall = async (message) => {
+  const tools = [];
+  
+  // Check if web search is enabled
+  if (isWebSearchEnabled) {
+    tools.push({
+      type: "web_search_20250305",
+      name: "web_search"
+    });
+    console.log('[WEB_SEARCH] Adding web search tool to request');
+  }
+  
+  const response = await anthropic.messages.create({
+    model: modelName,
+    max_tokens: 4096,
+    tools: tools.length > 0 ? tools : undefined,
+    messages: [...]
+  });
+  
+  return response;
+};
+```
+
+### Part E: Pass Web Search Results to Writer Agent
+
+After getting web search results, they must be passed to the writer agent:
+
+```javascript
+// Extract company info from web search results
+const extractCompanyInfo = (webSearchResults) => {
+  const companyInfo = {
+    address: null,
+    recentNews: [],
+    description: null
+  };
+  
+  // Parse web search results for company information
+  webSearchResults.forEach(result => {
+    if (result.content) {
+      result.content.forEach(item => {
+        // Look for address patterns, news, etc.
+        // Add to companyInfo
+      });
+    }
+  });
+  
+  return companyInfo;
+};
+
+// Pass to writer agent prompt
+const writerPrompt = `
+Company Information from Web Search:
+- Address: ${companyInfo.address || 'Not found'}
+- Recent News: ${companyInfo.recentNews.join(', ') || 'None found'}
+
+Use this information in the cover letter header and body.
+`;
+```
+
+### Testing Checklist
+
+After implementation, test with web search enabled:
+
+1. ⬜ Console shows `[WEB_SEARCH] Toggle enabled: true`
+2. ⬜ Console shows `[WEB_SEARCH] Tools being sent to API: [{"type":"web_search_20250305"...`
+3. ⬜ Console shows `[WEB_SEARCH] Found results: X` (where X > 0)
+4. ⬜ Anthropic API dashboard shows web search usage
+5. ⬜ Cover letter includes company address
+6. ⬜ Cover letter includes company-specific information
+
+---
+
+## Task R2: Email Panel - Open in Email Fix
+
+**Problem:** Clicking "Open in Email" button opens a blank page instead of the user's email client.
+
+### Visual Reference (Button Location)
+
+```
++------------------------------------------------------------------+
+|  Application Email                                                |
+|                                                                   |
+|  [View] [Edit]    [Regenerate] [Copy All] [Open in Email] <--THIS |
+|                                                                   |
+|  SUBJECT LINE                                        [Copy]       |
+|  +------------------------------------------------------------+  |
+|  | E-Commerce Manager Application - Wasim Jalali...           |  |
+|  +------------------------------------------------------------+  |
+|                                                                   |
+|  EMAIL BODY                                          [Copy]       |
+|  +------------------------------------------------------------+  |
+|  | Hello,                                                      |  |
+|  | I'm applying for the E-Commerce Manager role...             |  |
+|  +------------------------------------------------------------+  |
++------------------------------------------------------------------+
+```
+
+### The Fix
+
+The `mailto:` link must be constructed correctly:
+
+```javascript
+// Find the Open in Email button click handler and replace with:
+
+const handleOpenInEmail = () => {
+  // Get subject and body from state
+  const subject = emailSubject; // e.g., "E-Commerce Manager Application..."
+  const body = emailBody;       // The full email body text
+  
+  // Encode for URL
+  const encodedSubject = encodeURIComponent(subject);
+  const encodedBody = encodeURIComponent(body);
+  
+  // Construct mailto link
+  // Note: Leave 'to' empty so user can add recipient
+  const mailtoLink = `mailto:?subject=${encodedSubject}&body=${encodedBody}`;
+  
+  console.log('[EMAIL] Opening mailto link:', mailtoLink.substring(0, 100) + '...');
+  
+  // Open in same window (will trigger email client)
+  window.location.href = mailtoLink;
+};
+```
+
+### Common Mistakes to Check
+
+1. ❌ Using `window.open(mailtoLink)` instead of `window.location.href`
+2. ❌ Not encoding the subject and body with `encodeURIComponent`
+3. ❌ Having empty subject or body variables
+4. ❌ Button not connected to the handler function
+5. ❌ Handler function throwing an error before mailto executes
+
+### Add Debug Logging
+
+```javascript
+const handleOpenInEmail = () => {
+  console.log('[EMAIL] Button clicked');
+  console.log('[EMAIL] Subject:', emailSubject);
+  console.log('[EMAIL] Body length:', emailBody?.length);
+  
+  if (!emailSubject || !emailBody) {
+    console.error('[EMAIL] Missing subject or body!');
+    return;
+  }
+  
+  const mailtoLink = `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+  console.log('[EMAIL] Mailto link created, length:', mailtoLink.length);
+  
+  window.location.href = mailtoLink;
+};
+```
+
+### Testing Checklist
+
+1. ⬜ Console shows `[EMAIL] Button clicked` when clicking the button
+2. ⬜ Console shows subject and body are populated
+3. ⬜ Email client opens (Gmail, Outlook, or default mail app)
+4. ⬜ Subject line is pre-filled correctly
+5. ⬜ Body is pre-filled correctly
+
+---
+
+## Task R3: Chat Panel UI Fix
+
+**Problem:** The "Start New Application" instruction text is appearing in the WRONG location.
+
+### Current (WRONG) Layout
+
+```
++------------------------------------------+
+| ✅ Analysis Complete!                     |
+|                                          |
+| Your CV has been optimized for this role.|
+| Check the CV tab to review the changes.  |
+| ─────────────────────────────────────────|  <-- This line should NOT be here
+| To start a new application, please begin |  <-- This text should NOT be here
+| a new chat. Each job application requires|
+| a fresh conversation for optimal results.|
+|                                          |
+|    [View Optimized CV]                   |
+|    [View Cover Letter]                   |
+|    [View Email]                          |
+|    [🚀 Start New Application]            |
++------------------------------------------+
+```
+
+### Correct Layout
+
+```
++------------------------------------------+
+| ✅ Analysis Complete!                     |
+|                                          |
+| Your CV has been optimized for this role.|
+| Check the CV tab to review the changes.  |
+|                                          |
+|    [View Optimized CV]                   |
+|    [View Cover Letter]                   |
+|    [View Email]                          |
+|                                          |
+| To start a new application, please begin |  <-- Text comes AFTER View Email
+| a new chat. Each job application requires|
+| a fresh conversation for optimal results.|
+|                                          |
+|    [🚀 Start New Application]            |  <-- Button at the very end
++------------------------------------------+
+```
+
+### The Fix
+
+Find the component that renders the completion message and restructure it:
+
+```jsx
+// CORRECT structure
+const CompletionMessage = () => (
+  <div className="completion-message">
+    {/* Part 1: Success header */}
+    <div className="success-header">
+      <span>✅ Analysis Complete!</span>
+    </div>
+    
+    {/* Part 2: Instructions */}
+    <p>Your CV has been optimized for this role.</p>
+    <p>Check the <strong>CV tab</strong> to review the changes.</p>
+    
+    {/* Part 3: Action buttons */}
+    <div className="action-buttons">
+      <button onClick={() => navigateTo('cv')}>
+        📄 View Optimized CV
+      </button>
+      <button onClick={() => navigateTo('coverLetter')}>
+        ✉️ View Cover Letter
+      </button>
+      <button onClick={() => navigateTo('email')}>
+        📧 View Email
+      </button>
+    </div>
+    
+    {/* Part 4: New application guidance - MUST BE AFTER BUTTONS */}
+    <div className="new-application-section">
+      <p className="guidance-text">
+        To start a new application, please begin a new chat. 
+        Each job application requires a fresh conversation for optimal results.
+      </p>
+      <button onClick={startNewChat} className="start-new-btn">
+        🚀 Start New Application
+      </button>
+    </div>
+  </div>
+);
+```
+
+### What to Remove
+
+- Remove the horizontal line/divider between "Check the CV tab" and the buttons
+- Remove any duplicate text that appears before the buttons
+
+### Testing Checklist
+
+1. ⬜ "Analysis Complete" message shows at top
+2. ⬜ "Check the CV tab" text appears next
+3. ⬜ Three view buttons appear (CV, Cover Letter, Email)
+4. ⬜ Instructional text appears AFTER the three view buttons
+5. ⬜ "Start New Application" button appears at the very end
+6. ⬜ No horizontal line between elements
+
+---
+
+## Task R4: CV Template Rendering Fix
+
+**Problem:** Changes made by the AI are showing in the "Changes Made" summary but NOT rendering in the actual CV template.
+
+### Example of the Issue
+
+The AI made these changes to Professional Experience:
+- Expanded from 3 bullets to 6 bullets
+- Added: "Managed complete e-commerce operations..."
+- Added: "Analyzed customer behavior..."
+- Added: "Specialized in FlatFile bulk listing..."
+- Added: "Trained 50+ Amazon business founders..."
+
+But the CV template only shows the original 3 bullets, not the expanded 6.
+
+### Diagnosis Steps
+
+1. Check where the optimized CV data is stored
+2. Check where the CV template reads its data from
+3. Verify they are reading from the SAME source
+
+### Likely Cause
+
+The CV template might be reading from `originalCV` instead of `optimizedCV`, or the optimized experience bullets are not being correctly parsed/stored.
+
+### Console Log Evidence
+
+The console shows:
+```
+[ParseOptimizedCV] Parsed 4 experience entries (after dedup)
+```
+
+But 4 entries might be the number of JOB positions, not the bullets within each position.
+
+### Fix Approach
+
+1. Add logging to see what data the template receives:
+
+```javascript
+// In the CV template component
+console.log('[CV_TEMPLATE] Rendering with data:', {
+  summary: cvData.summary?.substring(0, 50),
+  experienceCount: cvData.experience?.length,
+  firstExperienceBullets: cvData.experience?.[0]?.bullets?.length,
+  allBullets: cvData.experience?.map(exp => ({
+    company: exp.company,
+    bulletCount: exp.bullets?.length
+  }))
+});
+```
+
+2. Compare with what the optimizer outputs:
+
+```javascript
+// After optimization
+console.log('[OPTIMIZER] Generated experience:', {
+  entriesCount: optimizedCV.experience.length,
+  bullets: optimizedCV.experience.map(exp => ({
+    company: exp.company,
+    bullets: exp.bullets
+  }))
+});
+```
+
+3. If the data is correct but not rendering, check the template JSX:
+
+```jsx
+// Make sure you're mapping through bullets correctly
+{experience.bullets && experience.bullets.map((bullet, index) => (
+  <li key={index}>{bullet}</li>
+))}
+```
+
+### Testing Checklist
+
+1. ⬜ Console shows correct number of bullets in optimizer output
+2. ⬜ Console shows same number of bullets in template input
+3. ⬜ All 6 bullets render in the CV template
+4. ⬜ PDF download includes all 6 bullets
+
+---
+
+## Task R5: German Template Visibility
+
+**Problem:** The German CV template was supposedly created but is NOT showing in the template selector with the other 3 templates.
+
+### What Should Exist
+
+The template selector should show 4 options:
+1. Template 1 (English - existing)
+2. Template 2 (English - existing)
+3. Template 3 (English - existing)
+4. German Template (NEW - with photo support)
+
+### Diagnosis Steps
+
+1. Find where templates are defined/listed
+2. Check if German template file exists
+3. Check if it's added to the template list/array
+4. Check if there's a filter excluding it
+
+### Example Template Registry
+
+```javascript
+// templates/index.js or similar
+export const CV_TEMPLATES = [
+  {
+    id: 'template-1',
+    name: 'Modern',
+    language: 'en',
+    component: Template1
+  },
+  {
+    id: 'template-2', 
+    name: 'Classic',
+    language: 'en',
+    component: Template2
+  },
+  {
+    id: 'template-3',
+    name: 'Minimal',
+    language: 'en',
+    component: Template3
+  },
+  // THIS MUST BE ADDED:
+  {
+    id: 'template-german',
+    name: 'Deutsch (mit Foto)',
+    language: 'de',
+    component: GermanTemplate,
+    hasPhoto: true
+  }
+];
+```
+
+### Template Selector Component
+
+```jsx
+// Make sure ALL templates are shown, not filtered
+const TemplateSelector = () => {
+  return (
+    <div className="template-grid">
+      {CV_TEMPLATES.map(template => (
+        <TemplateCard 
+          key={template.id}
+          template={template}
+          onSelect={() => selectTemplate(template.id)}
+        />
+      ))}
+    </div>
+  );
+};
+```
+
+### German Template Requirements
+
+The German template must have:
+- German section headers (Berufserfahrung, Ausbildung, etc.)
+- Photo placeholder in top-right corner
+- Photo size: ~35x45mm (passport style)
+- Connection to document upload for photo
+
+### Testing Checklist
+
+1. ⬜ German template file exists in codebase
+2. ⬜ German template is added to template registry
+3. ⬜ Template selector shows 4 options
+4. ⬜ German template has German section headers
+5. ⬜ Photo placeholder is visible in German template
+
+---
+
+## Task R6: Settings Page Pricing Update
+
+**Problem:** The "Compare Plans" section in Settings > Subscription still shows OLD pricing/credits.
+
+### Visual Reference (Current WRONG State)
+
+```
++------------------+------------------+------------------+
+|     Starter      |      Plus        |       Pro        |
+|     $0/mo        |    $19.99/mo     |    $39.99/mo     |
+|                  |    [Popular]     |                  |
++------------------+------------------+------------------+
+| ✓ 5 apps/month   | ✓ 80+ apps/month | ✓ 150+ apps/month|  <-- WRONG
+| ✓ All templates  | ✓ Add-on credits | ✓ Add-on credits |
+| ✓ CV+CL+Email    | ✓ 1mo rollover   | ✓ 2mo rollover   |
+|                  | ✓ Priority       | ✓ Premium        |
++------------------+------------------+------------------+
+```
+
+### Required Update (CORRECT Values)
+
+```
++------------------+------------------+------------------+
+|     Starter      |      Plus        |       Pro        |
+|     $0/mo        |    $19.99/mo     |    $39.99/mo     |
+|                  |    [Popular]     |                  |
++------------------+------------------+------------------+
+| ✓ 3 apps/month   | ✓ 60 apps/month  | ✓ 120 apps/month |  <-- CORRECT
+| ✓ 6 credits      | ✓ 120 credits    | ✓ 240 credits    |
+| ✓ All templates  | ✓ Add-on credits | ✓ Add-on credits |
+| ✓ CV+CL+Email    | ✓ 1mo rollover   | ✓ 2mo rollover   |
+|                  | ✓ Priority       | ✓ Premium        |
++------------------+------------------+------------------+
+```
+
+### Find and Update
+
+Search for these strings and replace:
+- "5 applications" → "3 applications"
+- "80+ applications" → "60 applications"
+- "150+ applications" → "120 applications"
+
+Also add credit amounts if not shown:
+- Starter: 6 credits
+- Plus: 120 credits
+- Pro: 240 credits
+
+### Files to Check
+
+1. Settings/Subscription page component
+2. Pricing constants file
+3. Any hardcoded values in the UI
+
+### Testing Checklist
+
+1. ⬜ Starter shows "3 applications/month" and "6 credits"
+2. ⬜ Plus shows "60 applications/month" and "120 credits"
+3. ⬜ Pro shows "120 applications/month" and "240 credits"
+4. ⬜ Landing page pricing matches settings page pricing
+
+---
+
+## Task R7: German Language Detection Fix
+
+**Problem:** When pasting a German job description, the AI still generates output in English instead of German.
+
+### Required Behavior
+
+1. If job description is in German → Generate all outputs in German
+2. If job description is in English → Generate all outputs in English
+3. User can override with explicit instruction
+
+### Implementation
+
+Add language detection to the context agent or early in the pipeline:
+
+```javascript
+// Simple language detection
+const detectLanguage = (text) => {
+  // German indicators
+  const germanWords = ['und', 'der', 'die', 'das', 'für', 'mit', 'auf', 'ist', 'bei', 'zur', 'zum', 'wir', 'Sie', 'Ihre', 'haben', 'werden', 'können', 'Erfahrung', 'Kenntnisse'];
+  
+  // Count German words
+  const words = text.toLowerCase().split(/\s+/);
+  const germanCount = words.filter(word => 
+    germanWords.some(gw => word.includes(gw.toLowerCase()))
+  ).length;
+  
+  // If more than 10% of words are German indicators, it's German
+  const ratio = germanCount / words.length;
+  
+  console.log('[LANGUAGE] Detection ratio:', ratio, 'German words found:', germanCount);
+  
+  return ratio > 0.1 ? 'de' : 'en';
+};
+```
+
+### Update Writer Agent Prompt
+
+Add to the writer agent system prompt:
+
+```
+LANGUAGE RULES:
+
+1. DETECT the language of the job description.
+2. If the job description is in German (contains German words like "wir suchen", "Ihre Aufgaben", "Anforderungen"):
+   - Write the CV content in German
+   - Write the cover letter in German
+   - Write the email in German
+   - Use German date format (DD.MM.YYYY)
+   - Use German section headers for CV
+
+3. If the job description is in English:
+   - Write all outputs in English
+   - Use standard date format
+
+4. USER OVERRIDE: If the user explicitly says "generate in German" or "auf Deutsch", 
+   use German regardless of job description language.
+
+5. ALL THREE OUTPUTS (CV, cover letter, email) must be in the SAME language.
+```
+
+### Pass Language to Writer Agent
+
+```javascript
+// In the orchestration code
+const jobLanguage = detectLanguage(jobDescription);
+console.log('[LANGUAGE] Detected language:', jobLanguage);
+
+// Pass to writer agent
+const writerContext = {
+  ...otherContext,
+  outputLanguage: jobLanguage,
+  useGermanTemplate: jobLanguage === 'de'
+};
+```
+
+### Testing Checklist
+
+1. ⬜ Paste German job description → All outputs in German
+2. ⬜ Paste English job description → All outputs in English
+3. ⬜ Console shows `[LANGUAGE] Detected language: de` for German
+4. ⬜ German output uses German CV template
+5. ⬜ German cover letter has proper German format (place, date format)
+
+---
+
+## Task R8: Master CV Prompt Update
+
+**Problem:** The Master CV page exists but needs the prompt content updated to the correct version.
+
+### Location
+
+Find the Master CV page and the section containing the copyable prompt.
+
+### Replace Prompt With This
+
+Replace the current prompt content with the following (this is the COMPLETE prompt):
+
+```
+You are helping me create a Master CV — a complete inventory of my professional background. This is NOT a regular CV to send to employers. It's a detailed reference document (5-10 pages) that an AI job application tool will use to generate tailored applications for me.
+
+=== YOUR INSTRUCTIONS ===
+
+1. Ask me questions ONE SECTION AT A TIME
+2. After each section, summarize what I told you before moving on
+3. Ask follow-up questions to get specific METRICS (revenue, followers, percentages, time saved, etc.)
+4. At the end, compile everything into the structured format below
+5. Remind me to verify all information before using it
+
+=== RULES ===
+
+- Only include FACTS — no future plans or aspirations
+- Every achievement needs a NUMBER if possible
+- Include YEARS OF EXPERIENCE for each skill
+- Length: 5-10 pages, 3,000-7,000 words (max 15 pages / 15,000 words)
+- No marketing language ("passionate", "driven", "dynamic")
+- Help me identify my PROFESSIONAL MINDSET (see mindset types below)
+
+=== SECTIONS TO COVER ===
+
+**Section 1: Personal Information**
+- Full name, date of birth, nationality
+- Current location, email, phone
+- Driver's license, work authorization
+- Open to relocation? Which cities?
+
+**Section 2: Professional Mindset**
+- How do you approach work? (Ask me questions to identify my type)
+- What do you do when you face a problem?
+- Have you ever BUILT something to solve a problem?
+- How do you learn new skills?
+
+Mindset types to identify:
+- Builder Mindset: Creates solutions when facing problems (prove with projects built)
+- Growth Mindset: Constantly learning and improving (prove with skills learned)
+- Analytical Mindset: Makes data-driven decisions (prove with examples)
+- Entrepreneurial Mindset: Takes initiative and ownership (prove with businesses/projects led)
+- Problem-Solver Mindset: Finds solutions others miss (prove with specific outcomes)
+- Systems Mindset: Creates processes and frameworks (prove with systems implemented)
+
+**Section 3: Work Experience**
+For EACH job, ask:
+- Job title, company name, location, dates
+- Main responsibilities
+- ACHIEVEMENTS WITH NUMBERS: revenue, costs saved, growth %, projects completed, team size, etc.
+- Tools and technologies used
+- Problems solved
+
+**Section 4: Projects (Side projects, things built, businesses started)**
+For EACH project, ask:
+- Project name
+- What PROBLEM were you solving?
+- What did you BUILD?
+- What technology/tools?
+- What was the RESULT? (with numbers)
+
+**Section 5: Education**
+- Degree, institution, location, year
+- Final grade/GPA
+- Notable achievements
+
+**Section 6: Certifications**
+For EACH certification:
+- Exact name, issuer, date
+- Expiration date (if any)
+- Certificate ID or verification link
+
+**Section 7: Skills**
+Ask about skills in categories:
+- Technical/Development (with years)
+- AI & Automation (with years)
+- Marketing (with years)
+- Business/Operations (with years)
+- Soft skills
+
+**Section 8: Languages**
+For EACH language:
+- Language, level (Native/Fluent/Intermediate/Basic)
+- Certification and score (if any)
+
+**Section 9: Quantified Achievements**
+Compile ALL metrics mentioned into one table.
+Ask: "Any other achievements with specific numbers?"
+
+**Section 10: Available Documents**
+- CV versions (languages?)
+- Certificates as documents
+- Portfolio/GitHub
+- Professional photo
+
+=== OUTPUT FORMAT ===
+
+Structure the final document exactly like this:
+
+---
+
+# [Full Name] — Master CV (Skills & Experience Inventory)
+
+**Purpose:** Factual reference document for job applications.
+**Last Updated:** [Date]
+
+---
+
+## Personal Information
+
+- **Full Name:** [X]
+- **Date of Birth:** [X]
+- **Nationality:** [X]
+- **Location:** [X]
+- **Email:** [X]
+- **Phone:** [X]
+- **Driver's License:** [X]
+- **Work Authorization:** [X]
+- **Relocation:** [X]
+
+---
+
+## Professional Mindset — [Type] Approach
+
+*[One sentence describing their approach]*
+
+### How This Shows in My Work:
+
+**Example 1:** [Problem faced] → [What they did] → [Result with metric]
+**Example 2:** [Problem faced] → [What they did] → [Result with metric]
+
+### Ready-to-Use Framing for Applications:
+
+**For Technical Roles:** "[Sentence they can use]"
+**For Business Roles:** "[Sentence they can use]"
+**For Startup Roles:** "[Sentence they can use]"
+
+---
+
+## Projects
+
+### [Project Name]
+**[Date Range]**
+
+- **Problem:** [What they were solving]
+- **Solution:** [What they built]
+- **Technology:** [Stack used]
+- **Results:** [Metrics]
+
+---
+
+## Professional Experience
+
+### [Job Title] | [Company Name]
+**[Location] | [Start Date] – [End Date]**
+
+- [Achievement with metric]
+- [Achievement with metric]
+- Tools: [List]
+
+---
+
+## Education
+
+### [Degree]
+**[Institution] — [Location] | [Year]**
+
+- Grade: [X]
+- Notable: [X]
+
+---
+
+## Certifications
+
+### [Category]
+
+| Certification | Issuer | Date | ID |
+|---------------|--------|------|-----|
+| [Name] | [Issuer] | [Date] | [ID] |
+
+---
+
+## Skills Inventory
+
+### [Category]
+- [Skill] ([X] years)
+- [Skill] ([X] years)
+
+---
+
+## Languages
+
+| Language | Level | Certification |
+|----------|-------|---------------|
+| [X] | [X] | [X] |
+
+---
+
+## Quantified Achievements
+
+| Achievement | Metric | Context |
+|-------------|--------|---------|
+| [X] | [X] | [X] |
+
+---
+
+## Documents Available
+
+1. [Document]
+2. [Document]
+
+---
+
+## Notes for Application Systems
+
+- **Primary Mindset:** [X]
+- **Primary Strength:** [X]
+- **Differentiator:** [X]
+- **Availability:** [X]
+
+---
+
+## ⚠️ Verification Checklist
+
+Before using this Master CV, verify:
+- [ ] All dates are correct
+- [ ] All metrics are accurate
+- [ ] All certification IDs are valid
+- [ ] All skills can be demonstrated
+
+**Verified by:** _________________ **Date:** _____________
+
+---
+
+*This document contains only verified, factual information.*
+
+---
+
+=== NOW START ===
+
+Begin by asking me Section 1: Personal Information.
+```
+
+### Testing Checklist
+
+1. ⬜ Master CV page loads correctly
+2. ⬜ Prompt content matches the above exactly
+3. ⬜ Copy button works and copies full prompt
+4. ⬜ "Copied!" feedback appears when copied
+
+---
+
+## Summary: Priority Order
+
+| Priority | Task | Issue |
+|----------|------|-------|
+| 🔴 1 | R1 | Web search not working AT ALL |
+| 🔴 2 | R2 | Open in Email opens blank page |
+| 🔴 3 | R4 | CV changes not rendering in template |
+| 🟡 4 | R3 | Chat UI layout wrong |
+| 🟡 5 | R6 | Settings pricing shows wrong values |
+| 🟡 6 | R5 | German template not visible |
+| 🟡 7 | R7 | German language detection not working |
+| 🟢 8 | R8 | Master CV prompt update |
+
+---
+
+## Final Notes
+
+- Test EVERY fix before marking complete
+- Check browser console for the log statements
+- If a fix doesn't work on first attempt, add more logging to diagnose
+- Update the Progress Tracker after each task
+- Ask for clarification rather than guessing
+
 ---
 
 ## Progress Tracker

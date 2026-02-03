@@ -719,7 +719,7 @@ export default function SettingsPage() {
                         <div className="flex-1">
                           <h4 className="font-semibold text-charcoal">Upgrade to Plus</h4>
                           <p className="text-sm text-warm-gray mt-1">
-                            Get 80+ applications per month, add-on credits, and priority support.
+                            Get 60 applications per month (120 credits), add-on packs, and priority support.
                           </p>
                           <Button variant="gold" size="sm" className="mt-3">
                             <Sparkles className="w-4 h-4 mr-1" />
@@ -742,7 +742,7 @@ export default function SettingsPage() {
                       <ul className="mt-4 space-y-2 text-sm text-warm-gray">
                         <li className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-sage-500" />
-                          5 applications/month
+                          3 applications/month (6 credits)
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-sage-500" />
@@ -765,7 +765,7 @@ export default function SettingsPage() {
                       <ul className="mt-4 space-y-2 text-sm text-warm-gray">
                         <li className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-sage-500" />
-                          80+ applications/month
+                          60 applications/month (120 credits)
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-sage-500" />
@@ -789,7 +789,7 @@ export default function SettingsPage() {
                       <ul className="mt-4 space-y-2 text-sm text-warm-gray">
                         <li className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-sage-500" />
-                          150+ applications/month
+                          120 applications/month (240 credits)
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-sage-500" />

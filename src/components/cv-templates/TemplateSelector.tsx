@@ -1,7 +1,7 @@
 'use client';
 
 import { CV_TEMPLATE_DEFINITIONS } from '@/lib/cv-templates/types';
-import { Check, FileText, Sparkles, Briefcase, Star } from 'lucide-react';
+import { Check, FileText, Sparkles, Briefcase, Star, Globe } from 'lucide-react';
 
 interface TemplateSelectorProps {
   selectedTemplateId: string;
@@ -9,8 +9,7 @@ interface TemplateSelectorProps {
 }
 
 /**
- * Template Selector - Simplified to 3 Premium Templates
- * No region filter needed - all templates are English/Global
+ * Template Selector - 4 Templates (3 English + 1 German)
  */
 export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelectorProps) {
   const getTemplateIcon = (templateId: string) => {
@@ -18,6 +17,7 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
       case 'premium-ats': return Star;
       case 'modern-professional': return Sparkles;
       case 'executive': return Briefcase;
+      case 'german-ats': return Globe;
       default: return FileText;
     }
   };
@@ -27,6 +27,7 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
       case 'premium-ats': return 'Recommended for most jobs';
       case 'modern-professional': return 'Best for tech & startups';
       case 'executive': return 'Best for senior roles';
+      case 'german-ats': return 'For German job market';
       default: return '';
     }
   };
