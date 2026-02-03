@@ -879,12 +879,6 @@ export interface CVData {
   
   // Additional information (work authorization, driver's license, etc.)
   additionalInfo?: string[];
-
-  // Smart Insights for Premium UI (Web View Only)
-  annotations?: Array<{
-    section_id: string;
-    insight: string;
-  }>;
 }
 
 // Template definitions - Consolidated Premium Templates (January 2026)

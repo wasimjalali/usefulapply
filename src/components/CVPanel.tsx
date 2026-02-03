@@ -28,9 +28,9 @@ import {
   Edit3
 } from 'lucide-react';
 import { EditableCVCanvas } from './EditableCVCanvas';
+import { CVLoadingSkeleton } from './ui/skeletons/CVLoadingSkeleton';
+import { ATSSpeedometer } from './dashboard/ATSSpeedometer';
 import Link from 'next/link';
-import { CVLoadingSkeleton } from '@/components/ui/skeletons/CVLoadingSkeleton';
-import { ATSSpeedometer } from '@/components/dashboard/ATSSpeedometer';
 
 // NOTE: Old patching functions (applyChangesToCVData, parseLanguagesFromText, etc.) 
 // have been removed in favor of the Full Re-parse Architecture.
@@ -109,7 +109,6 @@ export function CVPanel() {
           github: optimizedCVData.personal.github,
           photoUrl: photoDataUrl,
         },
-        annotations: optimizedCVData.analysis?.annotations,
         summary: optimizedCVData.summary,
         experience: optimizedCVData.experience,
         education: optimizedCVData.education,
@@ -435,9 +434,7 @@ export function CVPanel() {
       {/* Content Area */}
       <div className="flex-1 overflow-hidden">
         {isLoading ? (
-          <div className="h-full bg-cream-50 p-6 overflow-hidden">
-             <CVLoadingSkeleton />
-          </div>
+          <CVLoadingSkeleton />
         ) : activeTab === 'content' ? (
           <div className="h-full flex flex-col">
             {/* Toolbar */}
@@ -586,6 +583,9 @@ export function CVPanel() {
             {/* NEW: Use analysis from optimizedCVData (Solution B) */}
             {optimizedCVData?.analysis ? (
               <div className="space-y-6">
+                {/* ATS Speedometer */}
+                <ATSSpeedometer score={optimizedCVData.analysis.ats_compatibility} />
+
                 {/* 1. Strategy Summary */}
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
                   <h3 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
@@ -593,11 +593,6 @@ export function CVPanel() {
                     Optimization Strategy
                   </h3>
                   <p className="text-blue-800 text-sm">{optimizedCVData.analysis.summary}</p>
-                </div>
-
-                {/* 2. ATS Compatibility Score */}
-                <div className="flex justify-center py-4">
-                  <ATSSpeedometer score={optimizedCVData.analysis.ats_compatibility} />
                 </div>
 
                 {/* 3. Key Changes List */}

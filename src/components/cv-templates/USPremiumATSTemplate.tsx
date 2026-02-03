@@ -19,7 +19,6 @@
 
 import { CVData, CVTemplate } from '@/lib/cv-templates/types';
 import { Mail, Phone, MapPin, Linkedin, Globe, Github, Award } from 'lucide-react';
-import { SmartTooltip } from '@/components/ui/SmartTooltip';
 
 interface Props {
   data: CVData;
@@ -49,10 +48,6 @@ export function USPremiumATSTemplate({
     headerBg: colors.headerBg || '#f7fafc',
     border: '#e2e8f0',
     highlight: '#ebf8ff',
-  };
-
-  const getInsight = (sectionId: string) => {
-    return data.annotations?.find(a => a.section_id === sectionId)?.insight;
   };
 
   return (
@@ -154,34 +149,31 @@ export function USPremiumATSTemplate({
       <div className="px-10 py-6 space-y-5">
         {/* Professional Summary - Critical for ATS */}
         {data.summary && (
-          <SmartTooltip insight={getInsight('summary')}>
-            <section>
-              <h2 
-                className="text-sm font-bold uppercase tracking-widest mb-3 pb-1 border-b"
-                style={{ color: premiumColors.primary, borderColor: premiumColors.border }}
-              >
-                Professional Summary
-              </h2>
-              <p 
-                className="text-sm leading-relaxed"
-                style={{ color: premiumColors.text }}
-              >
-                {data.summary}
-              </p>
-            </section>
-          </SmartTooltip>
+          <section>
+            <h2 
+              className="text-sm font-bold uppercase tracking-widest mb-3 pb-1 border-b"
+              style={{ color: premiumColors.primary, borderColor: premiumColors.border }}
+            >
+              Professional Summary
+            </h2>
+            <p 
+              className="text-sm leading-relaxed"
+              style={{ color: premiumColors.text }}
+            >
+              {data.summary}
+            </p>
+          </section>
         )}
 
         {/* Core Competencies / Skills - High placement for ATS keyword scanning */}
         {data.skills.length > 0 && (
-          <SmartTooltip insight={getInsight('skills')}>
-            <section>
-              <h2 
-                className="text-sm font-bold uppercase tracking-widest mb-3 pb-1 border-b"
-                style={{ color: premiumColors.primary, borderColor: premiumColors.border }}
-              >
-                Core Competencies
-              </h2>
+          <section>
+            <h2 
+              className="text-sm font-bold uppercase tracking-widest mb-3 pb-1 border-b"
+              style={{ color: premiumColors.primary, borderColor: premiumColors.border }}
+            >
+              Core Competencies
+            </h2>
             {/* Check if skills have categories - render categorized or flat */}
             {data.skills.some(group => group.category && group.category.trim()) ? (
               /* Categorized skills rendering */
@@ -234,8 +226,7 @@ export function USPremiumATSTemplate({
                 )}
               </div>
             )}
-            </section>
-          </SmartTooltip>
+          </section>
         )}
 
         {/* Professional Experience */}
@@ -249,55 +240,53 @@ export function USPremiumATSTemplate({
             </h2>
             <div className="space-y-4">
               {data.experience.map((exp, idx) => (
-                <SmartTooltip key={exp.id || idx} insight={getInsight(exp.id || `experience_${idx}`)}>
-                  <div className="relative">
-                    {/* Role Header */}
-                    <div className="flex justify-between items-baseline mb-1">
-                      <h3 
-                        className="text-base font-bold"
-                        style={{ color: premiumColors.text }}
-                      >
-                        {exp.position}
-                      </h3>
-                      <span 
-                        className="text-sm font-medium whitespace-nowrap ml-4"
-                        style={{ color: premiumColors.textLight }}
-                      >
-                        {exp.startDate} – {exp.current ? 'Present' : exp.endDate}
-                      </span>
-                    </div>
-                    
-                    {/* Company */}
-                    <p 
-                      className="text-sm font-medium mb-2"
-                      style={{ color: premiumColors.accent }}
+                <div key={exp.id || idx} className="relative">
+                  {/* Role Header */}
+                  <div className="flex justify-between items-baseline mb-1">
+                    <h3 
+                      className="text-base font-bold"
+                      style={{ color: premiumColors.text }}
                     >
-                      {exp.company}
-                      {exp.location && (
-                        <span style={{ color: premiumColors.textLight }}> | {exp.location}</span>
-                      )}
-                    </p>
-                    
-                    {/* Bullets - Optimized for ATS */}
-                    {exp.bullets.length > 0 && (
-                      <ul className="space-y-1">
-                        {exp.bullets.map((bullet, bulletIdx) => (
-                          <li 
-                            key={bulletIdx} 
-                            className="text-sm pl-5 relative"
-                            style={{ color: premiumColors.text }}
-                          >
-                            <span 
-                              className="absolute left-0 top-2 w-1.5 h-1.5 rounded-full"
-                              style={{ backgroundColor: premiumColors.accent }}
-                            />
-                            {bullet}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                      {exp.position}
+                    </h3>
+                    <span 
+                      className="text-sm font-medium whitespace-nowrap ml-4"
+                      style={{ color: premiumColors.textLight }}
+                    >
+                      {exp.startDate} – {exp.current ? 'Present' : exp.endDate}
+                    </span>
                   </div>
-                </SmartTooltip>
+                  
+                  {/* Company */}
+                  <p 
+                    className="text-sm font-medium mb-2"
+                    style={{ color: premiumColors.accent }}
+                  >
+                    {exp.company}
+                    {exp.location && (
+                      <span style={{ color: premiumColors.textLight }}> | {exp.location}</span>
+                    )}
+                  </p>
+                  
+                  {/* Bullets - Optimized for ATS */}
+                  {exp.bullets.length > 0 && (
+                    <ul className="space-y-1">
+                      {exp.bullets.map((bullet, bulletIdx) => (
+                        <li 
+                          key={bulletIdx} 
+                          className="text-sm pl-5 relative"
+                          style={{ color: premiumColors.text }}
+                        >
+                          <span 
+                            className="absolute left-0 top-2 w-1.5 h-1.5 rounded-full"
+                            style={{ backgroundColor: premiumColors.accent }}
+                          />
+                          {bullet}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               ))}
             </div>
           </section>

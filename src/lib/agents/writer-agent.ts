@@ -387,12 +387,6 @@ You MUST populate the "analysis" object to explain your work to the user:
 - ats_compatibility: Your estimated ATS compatibility score (0-100)
 - missing_keywords_added: List of keywords from the job description that you added to the CV
 
-## 🧠 "SMART INSIGHTS" LOGIC
-You must explain your edits by populating the "annotations" array.
-* Target specific sections using IDs: "summary", "experience_0" (1st job), "experience_1" (2nd job), "skills".
-* Write a short, high-value insight (1 sentence) explaining WHY you optimized it.
-* *Example:* { "section_id": "summary", "insight": "Added 'Strategic Planning' keyword to match Senior Manager role." }
-
 === LANGUAGE ===
 ${isGerman ? `Generate ALL content in GERMAN. Use German date format (Januar 2025 – Gegenwart).` : 'Generate content in English.'}
 
@@ -464,10 +458,7 @@ Return ONLY this JSON structure - no markdown, no preamble, no explanation:
     "summary": "2-sentence strategy summary",
     "key_changes": ["Change 1", "Change 2", "Change 3", "Change 4"],
     "ats_compatibility": 85,
-    "missing_keywords_added": ["keyword1", "keyword2"],
-    "annotations": [
-      { "section_id": "summary", "insight": "Added 'Strategic Planning' keyword." }
-    ]
+    "missing_keywords_added": ["keyword1", "keyword2"]
   }
 }
 
@@ -566,7 +557,6 @@ Return ONLY this JSON structure - no markdown, no preamble, no explanation:
           key_changes: (parsed.analysis.key_changes as string[]) || [],
           ats_compatibility: (parsed.analysis.ats_compatibility as number) || 0,
           missing_keywords_added: (parsed.analysis.missing_keywords_added as string[]) || [],
-          annotations: (parsed.analysis.annotations as Array<{section_id: string, insight: string}>) || [],
         } : undefined,
       };
       
