@@ -8,6 +8,7 @@ import { Mail, Download, Copy, Check, RefreshCw, ChevronDown, FileText, File, Ed
 import type { GeneratedCoverLetter } from '@/lib/types';
 import { jsPDF } from 'jspdf';
 import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
+import { CoverLetterSkeleton } from '@/components/ui/skeletons/CoverLetterSkeleton';
 
 export function CoverLetterPanel() {
   const { currentSession, isGenerating, setCoverLetter, currentCV, structuredCV } = useAppStore();
@@ -534,9 +535,8 @@ ${letter.signatureName}`;
 
       <div className="flex-1 overflow-auto p-6">
         {isGenerating ? (
-          <div className="flex flex-col items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-navy-600 mb-4"></div>
-            <p className="text-warm-gray">Writing cover letter...</p>
+          <div className="h-full bg-cream-50 p-6 overflow-hidden">
+            <CoverLetterSkeleton />
           </div>
         ) : (
           <Card className="max-w-2xl mx-auto p-8">

@@ -6,6 +6,7 @@ import { Button } from './ui/Button';
 import { useAppStore } from '@/store/useAppStore';
 import { Send, Copy, Check, Mail, RefreshCw, Edit3, Eye } from 'lucide-react';
 import type { GeneratedEmail } from '@/lib/types';
+import { EmailSkeleton } from '@/components/ui/skeletons/EmailSkeleton';
 
 export function EmailPanel() {
   const { 
@@ -294,9 +295,8 @@ export function EmailPanel() {
 
       <div className="flex-1 overflow-auto p-6">
         {isLoadingEmail ? (
-          <div className="flex flex-col items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-navy-600 mb-4"></div>
-            <p className="text-warm-gray">Composing email...</p>
+          <div className="h-full bg-cream-50 p-6 overflow-hidden">
+            <EmailSkeleton />
           </div>
         ) : (
           <Card className="max-w-2xl mx-auto">

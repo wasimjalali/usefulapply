@@ -105,6 +105,10 @@ export interface OptimizedCVData {
     key_changes: string[];
     ats_compatibility: number;
     missing_keywords_added: string[];
+    annotations: Array<{
+      section_id: string;
+      insight: string;
+    }>;
   };
 }
 

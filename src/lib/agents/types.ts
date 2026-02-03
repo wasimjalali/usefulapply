@@ -160,11 +160,17 @@ export interface MasterContext {
  * OptimizationAnalysis - Data for the "Changes" tab
  * AI must populate this to explain what optimizations were made
  */
+export interface CVAnnotation {
+  section_id: string; // e.g., "summary", "experience_0"
+  insight: string;    // e.g., "Quantified impact to match 'Data-Driven' requirement."
+}
+
 export interface OptimizationAnalysis {
   summary: string;                   // 2-sentence strategy summary
   key_changes: string[];             // List of specific changes made
   ats_compatibility: number;         // Estimated ATS score 0-100
   missing_keywords_added: string[];  // Keywords added for ATS
+  annotations: CVAnnotation[];       // <--- NEW
 }
 
 // Event types for streaming progress

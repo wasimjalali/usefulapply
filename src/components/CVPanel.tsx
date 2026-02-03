@@ -29,6 +29,8 @@ import {
 } from 'lucide-react';
 import { EditableCVCanvas } from './EditableCVCanvas';
 import Link from 'next/link';
+import { CVLoadingSkeleton } from '@/components/ui/skeletons/CVLoadingSkeleton';
+import { ATSSpeedometer } from '@/components/dashboard/ATSSpeedometer';
 
 // NOTE: Old patching functions (applyChangesToCVData, parseLanguagesFromText, etc.) 
 // have been removed in favor of the Full Re-parse Architecture.
@@ -107,6 +109,7 @@ export function CVPanel() {
           github: optimizedCVData.personal.github,
           photoUrl: photoDataUrl,
         },
+        annotations: optimizedCVData.analysis?.annotations,
         summary: optimizedCVData.summary,
         experience: optimizedCVData.experience,
         education: optimizedCVData.education,
@@ -432,34 +435,8 @@ export function CVPanel() {
       {/* Content Area */}
       <div className="flex-1 overflow-hidden">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center h-full bg-cream-50">
-            <div className="bg-white rounded-xl shadow-sm border border-cream-200 p-8 max-w-md text-center">
-              {/* Subtle pulsing icon */}
-              <div className="relative mb-6">
-                <div className="w-16 h-16 mx-auto rounded-full bg-navy-50 flex items-center justify-center">
-                  <FileText className="w-8 h-8 text-navy-600" />
-                </div>
-                <div className="absolute inset-0 w-16 h-16 mx-auto rounded-full bg-navy-100 animate-ping opacity-20" />
-              </div>
-              
-              {/* Status text */}
-              <h3 className="text-lg font-semibold text-charcoal mb-2">
-                {isAnalyzing ? 'Analyzing Job Requirements' : 'Optimizing Your CV'}
-              </h3>
-              <p className="text-sm text-warm-gray mb-4">
-                {isAnalyzing 
-                  ? 'Understanding the role requirements and matching with your profile...'
-                  : 'Tailoring your CV for maximum impact and ATS compatibility...'
-                }
-              </p>
-              
-              {/* Progress indicator */}
-              <div className="flex items-center justify-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-navy-400 animate-pulse" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 rounded-full bg-navy-400 animate-pulse" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 rounded-full bg-navy-400 animate-pulse" style={{ animationDelay: '300ms' }} />
-              </div>
-            </div>
+          <div className="h-full bg-cream-50 p-6 overflow-hidden">
+             <CVLoadingSkeleton />
           </div>
         ) : activeTab === 'content' ? (
           <div className="h-full flex flex-col">
@@ -619,19 +596,8 @@ export function CVPanel() {
                 </div>
 
                 {/* 2. ATS Compatibility Score */}
-                <div className="bg-sage-50 p-4 rounded-lg border border-sage-100">
-                  <h3 className="font-bold text-sage-900 mb-2">ATS Compatibility</h3>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 bg-sage-200 rounded-full h-3">
-                      <div 
-                        className="bg-sage-600 h-3 rounded-full transition-all duration-500"
-                        style={{ width: `${optimizedCVData.analysis.ats_compatibility}%` }}
-                      />
-                    </div>
-                    <span className="font-bold text-sage-700 text-lg">
-                      {optimizedCVData.analysis.ats_compatibility}%
-                    </span>
-                  </div>
+                <div className="flex justify-center py-4">
+                  <ATSSpeedometer score={optimizedCVData.analysis.ats_compatibility} />
                 </div>
 
                 {/* 3. Key Changes List */}
