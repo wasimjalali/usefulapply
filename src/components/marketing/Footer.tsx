@@ -68,6 +68,11 @@ export default function Footer() {
                   Terms of Service
                 </Link>
               </li>
+              <li>
+                <Link href="/imprint" className="text-navy-200 hover:text-white text-sm transition-colors">
+                  Imprint
+                </Link>
+              </li>
             </ul>
           </div>
         </div>

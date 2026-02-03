@@ -90,6 +90,10 @@ VALUES
   ('Large Pack', 120, 19.99, 0, 3)
 ON CONFLICT DO NOTHING;
 
+it did not worked error; Error: Failed to run sql query: ERROR: 42703: column "updated_at" of relation "addon_credit_packs" does not exist LINE 7: updated_at = NOW() ^
+
+
+
 -- =====================================================
 -- VERIFICATION QUERIES
 -- =====================================================

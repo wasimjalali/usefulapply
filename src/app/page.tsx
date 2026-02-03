@@ -295,7 +295,7 @@ export default function Home() {
             Ready to Land More Interviews?
           </h2>
           <p className="text-navy-700 mb-8 max-w-2xl mx-auto">
-            Join thousands of job seekers who have transformed their job search with KarKo AI. Start with 3 free applications today.
+            Join ambitious professionals who have transformed their job search with KarKo AI. Start with 3 free applications today.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link

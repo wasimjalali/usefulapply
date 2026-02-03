@@ -35,7 +35,7 @@ export default function AboutPage() {
               That question led to KarKo AI. We built a system that researches companies, analyzes job descriptions, and creates personalized application materials in minutes, not hours.
             </p>
             <p>
-              Today, thousands of job seekers use KarKo AI to apply to more jobs, get more interviews, and land better opportunities. And we are just getting started.
+              Today, KarKo AI helps job seekers apply to more jobs, get more interviews, and land better opportunities. And we are just getting started.
             </p>
           </div>
         </div>
@@ -88,16 +88,16 @@ export default function AboutPage() {
         <div className="max-w-6xl mx-auto">
           <div className="grid sm:grid-cols-3 gap-8 text-center">
             <div>
-              <div className="text-4xl font-bold text-white mb-2">10,000+</div>
-              <div className="text-navy-200">Applications Created</div>
+              <div className="text-4xl font-bold text-white mb-2">Hyper-</div>
+              <div className="text-navy-200">Personalized Applications</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-white mb-2">40 min</div>
+              <div className="text-4xl font-bold text-white mb-2">40+ min</div>
               <div className="text-navy-200">Saved Per Application</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-white mb-2">4.9/5</div>
-              <div className="text-navy-200">User Rating</div>
+              <div className="text-4xl font-bold text-white mb-2">AI-Powered</div>
+              <div className="text-navy-200">Precision Matching</div>
             </div>
           </div>
         </div>
@@ -110,7 +110,7 @@ export default function AboutPage() {
             Ready to Transform Your Job Search?
           </h2>
           <p className="text-navy-700 mb-8 max-w-2xl mx-auto">
-            Join thousands of job seekers who have already discovered a better way to apply.
+            Join ambitious professionals who have discovered a better way to apply.
           </p>
           <Link
             href="/auth/signup"

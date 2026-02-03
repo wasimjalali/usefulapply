@@ -365,7 +365,7 @@ export default function PricingPage() {
             Ready to Transform Your Job Search?
           </h2>
           <p className="text-navy-700 mb-8 max-w-2xl mx-auto">
-            Start with 5 free applications and see how KarKo AI can save you hours on every job application.
+            Start with 3 free applications and see how KarKo AI can save you hours on every job application.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link

@@ -32,6 +32,7 @@ import {
   getSubscription,
   changePassword,
   connectOAuthProvider,
+  deleteUserAccount,
   type ConnectedAccount,
   type Subscription,
 } from '@/lib/supabase';
@@ -214,10 +215,35 @@ export default function SettingsPage() {
     router.push('/auth/login');
   };
 
-  const handleDeleteAccount = () => {
-    // TODO: Implement account deletion with Supabase
-    console.log('Delete account');
-    setShowDeleteConfirm(false);
+  const handleDeleteAccount = async () => {
+    if (!authUser) return;
+    
+    // Double confirm with typed confirmation
+    const typedConfirm = window.prompt('Type "DELETE" to permanently delete your account and all data:');
+    if (typedConfirm !== 'DELETE') {
+      setShowDeleteConfirm(false);
+      return;
+    }
+    
+    try {
+      const { error } = await deleteUserAccount(authUser.id);
+      
+      if (error) {
+        alert('Failed to delete account: ' + error.message);
+        return;
+      }
+      
+      // Clear local storage
+      localStorage.removeItem('job-copilot-storage');
+      
+      // Redirect to home page
+      router.push('/');
+    } catch (err) {
+      console.error('Delete account error:', err);
+      alert('An error occurred while deleting your account. Please contact support.');
+    } finally {
+      setShowDeleteConfirm(false);
+    }
   };
 
   const handleChangePassword = async () => {

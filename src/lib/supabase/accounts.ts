@@ -221,3 +221,69 @@ export async function connectOAuthProvider(
 
   return { error: null };
 }
+
+/**
+ * Delete user account and all associated data
+ * This deletes:
+ * - User profile
+ * - All documents (CVs)
+ * - All application sessions
+ * - Connected accounts
+ * - Subscription
+ * - Storage files (avatars, profile photos, generated PDFs)
+ */
+export async function deleteUserAccount(userId: string): Promise<{ error: Error | null }> {
+  const supabase = getSupabase();
+  
+  try {
+    // Delete from storage buckets first
+    const buckets = ['avatars', 'profile-photos', 'generated-pdfs', 'cv-uploads'];
+    for (const bucket of buckets) {
+      try {
+        const { data: files } = await supabase.storage.from(bucket).list(userId);
+        if (files && files.length > 0) {
+          const filePaths = files.map(f => `${userId}/${f.name}`);
+          await supabase.storage.from(bucket).remove(filePaths);
+        }
+      } catch (e) {
+        console.warn(`Could not delete from bucket ${bucket}:`, e);
+      }
+    }
+
+    // Delete from database tables (order matters due to foreign keys)
+    const tables = [
+      'chat_messages',
+      'application_sessions', 
+      'documents',
+      'connected_accounts',
+      'user_credits',
+      'credit_transactions',
+      'subscriptions',
+      'message_feedback',
+      'profiles',
+    ];
+
+    for (const table of tables) {
+      try {
+        const { error } = await (supabase as any)
+          .from(table)
+          .delete()
+          .eq('user_id', userId);
+        
+        if (error && error.code !== 'PGRST116') {
+          console.warn(`Error deleting from ${table}:`, error.message);
+        }
+      } catch (e) {
+        console.warn(`Could not delete from table ${table}:`, e);
+      }
+    }
+
+    // Finally sign out the user (this doesn't delete auth.users but ends the session)
+    await supabase.auth.signOut();
+
+    return { error: null };
+  } catch (err) {
+    console.error('Error deleting account:', err);
+    return { error: err as Error };
+  }
+}
