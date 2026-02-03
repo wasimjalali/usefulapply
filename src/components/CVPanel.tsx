@@ -278,16 +278,42 @@ export function CVPanel() {
                 width: 100%;
               }
               
+              /* Allow sections to break naturally across pages */
               section { 
-                page-break-inside: avoid;
+                page-break-inside: auto;
+                break-inside: auto;
               }
               
+              /* Keep headers with following content */
               h2, h3 { 
                 page-break-after: avoid;
+                break-after: avoid;
               }
               
+              /* Individual entries can break if needed */
               .mb-4, .mb-3 {
-                page-break-inside: avoid;
+                page-break-inside: auto;
+                break-inside: auto;
+              }
+              
+              /* Experience/education items - avoid break only if short */
+              .experience-item, .education-item {
+                page-break-inside: auto;
+                break-inside: auto;
+              }
+              
+              /* Skill categories can break */
+              .skill-category {
+                page-break-inside: auto;
+                break-inside: auto;
+              }
+              
+              /* Bullets can break across pages */
+              ul, li {
+                page-break-inside: auto;
+                break-inside: auto;
+                orphans: 2;
+                widows: 2;
               }
               
               .cv-template {

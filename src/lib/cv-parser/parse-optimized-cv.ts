@@ -579,62 +579,139 @@ function isLanguageEntry(text: string): boolean {
 
 /**
  * Parse skills section and extract languages separately
+ * Handles multiple formats:
+ * 1. "Category Name: skill1, skill2, skill3"
+ * 2. Category headers on separate lines followed by bullet points
+ * 3. Flat list of skills
  */
 function parseSkillsSection(sections: Map<string, string>): CVData['skills'] {
   const content = sections.get('SKILLS');
   if (!content) return [];
   
   const skills: CVData['skills'] = [];
-  
-  // Look for category patterns: "Category Name:" or "**Category Name:**"
   const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
   
-  for (const line of lines) {
-    // Skip lines that look like languages (they'll be extracted separately)
+  // First, try to detect category headers on separate lines (Format 2)
+  // Category headers are lines that:
+  // - Don't start with bullets (•, -, *, –)
+  // - Are followed by lines that DO start with bullets
+  // - Look like category names (contain & or are short descriptive text)
+  
+  let currentCategory = '';
+  let currentItems: string[] = [];
+  let foundCategoryFormat = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Skip lines that look like languages
     if (isLanguageEntry(line)) continue;
     
-    // Pattern: "Category Name: skill1, skill2, skill3" or "**Category:** skill1, skill2"
-    const categoryMatch = line.match(/^\*?\*?([A-Za-z\s&\/\-]+)\*?\*?\s*:\s*(.+)$/);
+    // Skip section headers
+    if (/^(CORE COMPETENCIES|FÄHIGKEITEN|SKILLS|KOMPETENZEN|KERNKOMPETENZEN|KEY SKILLS|TECHNICAL SKILLS)/i.test(line)) {
+      continue;
+    }
     
-    if (categoryMatch) {
-      const category = categoryMatch[1].trim();
-      const itemsText = categoryMatch[2].trim();
+    // Check if this is a bullet point (skill item)
+    const isBullet = /^[•\-\*–▪►]/.test(line);
+    
+    if (isBullet) {
+      // This is a skill item - add to current category
+      const skill = line.replace(/^[•\-\*–▪►]\s*/, '').trim();
+      if (skill && skill.length > 0 && skill.length < 100 && !isLanguageEntry(skill)) {
+        currentItems.push(skill);
+      }
+    } else {
+      // This might be a category header
+      // Check if next line is a bullet (indicating this is a category header)
+      const nextLine = lines[i + 1];
+      const nextIsBullet = nextLine && /^[•\-\*–▪►]/.test(nextLine);
       
-      // Split items by comma, bullet, or other separators
-      const items = itemsText
-        .split(/[,•·]/)
-        .map(i => i.trim().replace(/^\*\*|\*\*$/g, ''))  // Remove markdown bold
-        .filter(i => i.length > 0 && i.length < 100)
-        .filter(i => !isLanguageEntry(i));  // Filter out language entries
+      // Also check: "Category: skill1, skill2" format
+      const colonMatch = line.match(/^\*?\*?([A-Za-zÀ-ÿ\s&\/\-]+)\*?\*?\s*:\s*(.+)$/);
       
-      if (items.length > 0) {
-        skills.push({ category, items });
+      if (colonMatch) {
+        // Format 1: "Category: skill1, skill2"
+        // Save previous category first
+        if (currentCategory || currentItems.length > 0) {
+          skills.push({ category: currentCategory, items: currentItems });
+          foundCategoryFormat = true;
+        }
+        
+        const category = colonMatch[1].trim();
+        const itemsText = colonMatch[2].trim();
+        const items = itemsText
+          .split(/[,•·]/)
+          .map(i => i.trim().replace(/^\*\*|\*\*$/g, ''))
+          .filter(i => i.length > 0 && i.length < 100)
+          .filter(i => !isLanguageEntry(i));
+        
+        if (items.length > 0) {
+          skills.push({ category, items });
+          foundCategoryFormat = true;
+        }
+        currentCategory = '';
+        currentItems = [];
+      } else if (nextIsBullet || (line.includes('&') && line.length < 60)) {
+        // Format 2: Category header on its own line
+        // Save previous category first
+        if (currentCategory || currentItems.length > 0) {
+          skills.push({ category: currentCategory, items: currentItems });
+          foundCategoryFormat = true;
+        }
+        currentCategory = line;
+        currentItems = [];
+      } else if (line.length > 0 && line.length < 100) {
+        // Could be a skill without bullet, or a category without following bullets
+        // Treat as skill item if we already have a category
+        if (currentCategory) {
+          currentItems.push(line);
+        } else {
+          // Might be a standalone skill or category - check pattern
+          // If it looks like a category name (contains keywords), start new category
+          const looksLikeCategory = /^(E-Commerce|Marketing|AI|Web|Technical|Soft Skills|Digital|Webanalyse|Automation|Development)/i.test(line);
+          if (looksLikeCategory) {
+            currentCategory = line;
+            currentItems = [];
+          } else {
+            // Add as skill to current/default group
+            currentItems.push(line);
+          }
+        }
       }
     }
   }
   
-  // If no categories found, try to parse as flat list
-  if (skills.length === 0) {
+  // Don't forget the last category
+  if (currentCategory || currentItems.length > 0) {
+    skills.push({ category: currentCategory, items: currentItems });
+    if (currentCategory) foundCategoryFormat = true;
+  }
+  
+  // If we found category format, filter out empty categories and return
+  if (foundCategoryFormat && skills.some(g => g.category && g.category.trim())) {
+    const filtered = skills.filter(g => g.items.length > 0);
+    console.log('[ParseOptimizedCV] Parsed', filtered.length, 'skill categories (with headers)');
+    return filtered;
+  }
+  
+  // Fallback: If no categories found, try to parse as flat list
+  if (skills.length === 0 || !skills.some(g => g.category && g.category.trim())) {
     const allItems = content
       .split(/[,\n•·]/)
       .map(i => i.trim())
       .filter(i => i.length > 0 && i.length < 100 && !i.includes(':'))
-      .filter(i => !isLanguageEntry(i));  // Filter out language entries
+      .filter(i => !isLanguageEntry(i))
+      .filter(i => !/^(CORE COMPETENCIES|FÄHIGKEITEN|SKILLS|KOMPETENZEN)/i.test(i));
     
     if (allItems.length > 0) {
-      // Group into chunks of 6-8 for display
-      const chunkSize = 6;
-      for (let i = 0; i < allItems.length; i += chunkSize) {
-        skills.push({
-          category: '',
-          items: allItems.slice(i, i + chunkSize),
-        });
-      }
+      // Return as single group without category (flat list)
+      console.log('[ParseOptimizedCV] Parsed', allItems.length, 'skills as flat list');
+      return [{ category: '', items: allItems }];
     }
   }
   
   console.log('[ParseOptimizedCV] Parsed', skills.length, 'skill categories');
-  
   return skills;
 }
 

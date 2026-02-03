@@ -52,11 +52,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Detect language from job description if not provided
+    const detectLanguage = (text: string): 'en' | 'de' => {
+      const germanIndicators = /\b(und|oder|für|mit|bei|auf|zur|zum|von|dem|den|des|wir|Sie|Ihre|Ihr|uns|werden|haben|sein|Anforderungen|Aufgaben|Verantwortung|Erfahrung|Kenntnisse|Qualifikationen|Bewerbung|Unternehmen|GmbH|AG)\b/gi;
+      const matches = (text.match(germanIndicators) || []).length;
+      return matches >= 5 ? 'de' : 'en';
+    };
+
+    // Get detected language - from context or detect from job description
+    const detectedLanguage = context.detectedLanguage || 
+                             detectLanguage(context.jobDescription || '');
+    
+    console.log('[Regenerate API] Using language:', detectedLanguage);
+
     // Build MasterContext from the provided data
     const masterContext: MasterContext = {
       sessionId: context.sessionId || 'regenerate-session',
       jobDescription: context.jobDescription || '',
       rawCV: context.rawCV || '',
+      detectedLanguage: detectedLanguage,
       applicant: context.applicant,
       job: context.job,
       companyResearch: context.companyResearch,

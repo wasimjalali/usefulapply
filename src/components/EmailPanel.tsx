@@ -138,21 +138,24 @@ export function EmailPanel() {
   };
 
   const handleOpenInEmail = () => {
-    console.log('[EMAIL] Button clicked');
-    console.log('[EMAIL] Subject:', email?.subject);
-    console.log('[EMAIL] Body length:', email?.body?.length);
+    // Use activeEmail which respects edited content
+    const emailToUse = activeEmail || email;
     
-    if (!email?.subject || !email?.body) {
+    console.log('[EMAIL] Button clicked');
+    console.log('[EMAIL] Subject:', emailToUse?.subject);
+    console.log('[EMAIL] Body length:', emailToUse?.body?.length);
+    
+    if (!emailToUse?.subject || !emailToUse?.body) {
       console.error('[EMAIL] Missing subject or body!');
       alert('Email content is not ready yet. Please wait for the email to be generated.');
       return;
     }
     
     // Properly encode subject and body for mailto link
-    const encodedSubject = encodeURIComponent(email.subject);
+    const encodedSubject = encodeURIComponent(emailToUse.subject);
     
     // Truncate body if too long (mailto has ~2000 char limit in some browsers)
-    let bodyToEncode = email.body;
+    let bodyToEncode = emailToUse.body;
     const maxBodyLength = 1500; // Leave room for subject and mailto: prefix
     if (bodyToEncode.length > maxBodyLength) {
       bodyToEncode = bodyToEncode.substring(0, maxBodyLength) + '\n\n[Email truncated - please paste the full content from the app]';
