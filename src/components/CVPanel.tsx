@@ -396,6 +396,23 @@ export function CVPanel() {
   const isLoading = isAnalyzing || isGenerating;
   const displayContent = showOptimized && generatedCV ? generatedCV.content : currentCV.rawText;
 
+  // Show loading if AI is processing, even if we have a CV
+  if (isLoading && currentCV) {
+    return (
+      <div className="h-full flex flex-col bg-cream-50">
+        <div className="px-6 py-4 border-b border-cream-300">
+          <div className="flex items-center gap-3">
+            <FileText className="w-5 h-5 text-navy-600" />
+            <h2 className="text-lg font-semibold text-charcoal">Your CV</h2>
+          </div>
+        </div>
+        <div className="flex-1">
+          <PremiumLoadingSkeleton type="cv" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex flex-col bg-cream-50">
       {/* Header */}
