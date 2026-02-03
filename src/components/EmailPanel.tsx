@@ -7,6 +7,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { Send, Copy, Check, Mail, RefreshCw, Edit3, Eye } from 'lucide-react';
 import type { GeneratedEmail } from '@/lib/types';
 import { EmailSkeleton } from './ui/skeletons/EmailSkeleton';
+import { PremiumLoadingSkeleton } from './ui/skeletons/PremiumLoadingSkeleton';
 
 export function EmailPanel() {
   const { 
@@ -295,7 +296,7 @@ export function EmailPanel() {
 
       <div className="flex-1 overflow-auto p-6">
         {isGenerating || isLoadingEmail ? (
-          <EmailSkeleton />
+          <PremiumLoadingSkeleton type="email" />
         ) : (
           <Card className="max-w-2xl mx-auto">
             {/* Subject Line */}

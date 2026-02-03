@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { EditableCVCanvas } from './EditableCVCanvas';
 import { CVLoadingSkeleton } from './ui/skeletons/CVLoadingSkeleton';
+import { PremiumLoadingSkeleton } from './ui/skeletons/PremiumLoadingSkeleton';
 import { ATSSpeedometer } from './dashboard/ATSSpeedometer';
 import Link from 'next/link';
 
@@ -434,7 +435,7 @@ export function CVPanel() {
       {/* Content Area */}
       <div className="flex-1 overflow-hidden">
         {isLoading ? (
-          <CVLoadingSkeleton />
+          <PremiumLoadingSkeleton type="cv" />
         ) : activeTab === 'content' ? (
           <div className="h-full flex flex-col">
             {/* Toolbar */}
