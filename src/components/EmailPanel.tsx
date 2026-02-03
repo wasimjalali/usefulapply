@@ -172,8 +172,19 @@ export function EmailPanel() {
       console.warn('[EMAIL] Mailto link exceeds 2000 chars, may not work in all browsers');
     }
     
-    // Use window.location.href for better compatibility with email clients
-    window.location.href = mailtoLink;
+    // Use window.open with _self to avoid blank page issues
+    // This is more reliable than window.location.href for mailto links
+    const newWindow = window.open(mailtoLink, '_self');
+    
+    // Fallback: If window.open fails (popup blocked), try creating a hidden link
+    if (!newWindow) {
+      const link = document.createElement('a');
+      link.href = mailtoLink;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   // Show generate button if job description is available but no email yet

@@ -12,6 +12,9 @@ import {
   saveDocument,
   deleteDocument as deleteSupabaseDocument,
   uploadCVFile,
+  uploadProfilePhoto,
+  getProfilePhotoUrl,
+  deleteProfilePhoto,
   type Document as SupabaseDocument,
 } from '@/lib/supabase';
 import { 
@@ -313,9 +316,9 @@ export default function DocumentsPage() {
       return;
     }
     
-    // Convert to base64
+    // Convert to base64 for local storage and immediate display
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const dataUrl = e.target?.result as string;
       const photo: ProfilePhoto = {
         id: `photo-${Date.now()}`,
@@ -323,10 +326,60 @@ export default function DocumentsPage() {
         dataUrl,
         uploadedAt: new Date().toISOString(),
       };
+      
+      // Save to local state immediately for display
       setProfilePhoto(photo);
+      
+      // Also upload to Supabase storage if user is logged in
+      if (user) {
+        try {
+          const { url, error } = await uploadProfilePhoto(user.id, file);
+          if (error) {
+            console.error('Error uploading photo to Supabase:', error);
+          } else if (url) {
+            console.log('[Documents] Profile photo uploaded to Supabase:', url);
+            // Update photo with Supabase URL for cross-device sync
+            setProfilePhoto({
+              ...photo,
+              dataUrl: url, // Use Supabase URL instead of base64
+            });
+          }
+        } catch (err) {
+          console.error('Profile photo upload error:', err);
+        }
+      }
     };
     reader.readAsDataURL(file);
   };
+  
+  // Load profile photo from Supabase on mount
+  useEffect(() => {
+    const loadProfilePhoto = async () => {
+      if (!user || profilePhoto) return; // Skip if already have photo locally
+      
+      try {
+        const { url, error } = await getProfilePhotoUrl(user.id);
+        if (error) {
+          console.error('Error loading profile photo:', error);
+          return;
+        }
+        
+        if (url) {
+          console.log('[Documents] Loaded profile photo from Supabase');
+          setProfilePhoto({
+            id: `photo-supabase`,
+            fileName: 'profile.jpg',
+            dataUrl: url,
+            uploadedAt: new Date().toISOString(),
+          });
+        }
+      } catch (err) {
+        console.error('Error loading profile photo:', err);
+      }
+    };
+    
+    loadProfilePhoto();
+  }, [user]);
 
 
   const handleSave = async () => {
@@ -581,7 +634,13 @@ export default function DocumentsPage() {
                       </div>
                     </div>
                     <button 
-                      onClick={() => setProfilePhoto(null)}
+                      onClick={async () => {
+                        setProfilePhoto(null);
+                        // Also delete from Supabase
+                        if (user) {
+                          await deleteProfilePhoto(user.id);
+                        }
+                      }}
                       className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                       title="Remove photo"
                     >

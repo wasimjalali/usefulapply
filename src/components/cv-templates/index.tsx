@@ -39,10 +39,13 @@ export function CVTemplateRenderer({ data, templateId }: CVTemplateRendererProps
     );
   }
   
+  // Extract photo URL from data.personal if available
+  const photoUrl = data.personal?.photoUrl;
+  
   // Map template IDs to components (4 templates)
   switch (templateId) {
     case 'premium-ats':
-      return <USPremiumATSTemplate data={data} template={template} />;
+      return <USPremiumATSTemplate data={data} template={template} photoUrl={photoUrl} />;
     
     case 'modern-professional':
       return <USModernATSTemplate data={data} template={template} />;
@@ -51,7 +54,7 @@ export function CVTemplateRenderer({ data, templateId }: CVTemplateRendererProps
       return <USProfessionalTemplate data={data} template={template} />;
     
     case 'german-ats':
-      return <GermanATSTemplate data={data} template={template} />;
+      return <GermanATSTemplate data={data} template={template} photoUrl={photoUrl} />;
     
     // Legacy template ID fallbacks (for existing users)
     case 'us-premium-ats':

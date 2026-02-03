@@ -26,6 +26,7 @@ interface Props {
   qualityScore?: number;
   matchScore?: number;
   showScores?: boolean;
+  photoUrl?: string;
 }
 
 export function USPremiumATSTemplate({ 
@@ -34,6 +35,7 @@ export function USPremiumATSTemplate({
   qualityScore,
   matchScore,
   showScores = false,
+  photoUrl,
 }: Props) {
   const { colors } = template;
   

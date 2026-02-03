@@ -182,7 +182,25 @@ export function useSupabaseSync() {
             console.error('[SupabaseSync] Error creating session:', error);
           } else if (newSession) {
             console.log('[SupabaseSync] Created session in Supabase:', newSession.id);
-            // Note: We don't update the local ID to avoid breaking references
+            
+            // Immediately update the new session with full data (job_title, company, etc.)
+            // This ensures the session has all the data even though we keep the local ID
+            if (currentSession.jobTitle || currentSession.company) {
+              await updateSupabaseSession(newSession.id, {
+                job_title: currentSession.jobTitle,
+                company: currentSession.company,
+                match_score: currentSession.matchScore,
+                matching_skills: currentSession.matchingSkills,
+                missing_skills: currentSession.missingSkills,
+                requirements: currentSession.requirements,
+                gaps: currentSession.gaps,
+                generated_cv: currentSession.generatedCV,
+                cover_letter: currentSession.coverLetter,
+                email: currentSession.email,
+                company_research: currentSession.companyResearch,
+              });
+              console.log('[SupabaseSync] Updated new session with full data');
+            }
           }
         } else {
           // Update existing session in Supabase
