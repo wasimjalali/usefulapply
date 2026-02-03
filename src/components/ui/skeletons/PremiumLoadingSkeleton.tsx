@@ -122,22 +122,6 @@ export function PremiumLoadingSkeleton({ type = 'cv', message }: PremiumLoadingS
         <Brain className="w-4 h-4 text-amber-500 animate-pulse" />
         <span className="text-xs text-warm-gray">Powered by Karko AI</span>
       </div>
-
-      <style jsx>{`
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.5s ease-out;
-        }
-      `}</style>
     </div>
   );
 }
