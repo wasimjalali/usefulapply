@@ -790,12 +790,12 @@ ${today}
 
 Hiring Manager
 ${companyResearch?.name || job?.companyName || 'Company'}
-${companyResearch?.address ? companyResearch.address : 'Germany'}
+${companyResearch?.address ? companyResearch.address : '[Insert Company Address]'}
 
 === COMPANY ADDRESS HANDLING ===
 CRITICAL RULES FOR COMPANY ADDRESS:
-1. If a REAL address is provided above (not "Germany" or empty), use it EXACTLY as shown
-2. If only "Germany" is shown, use ONLY the company name and "Germany" - do NOT invent an address
+1. If a REAL address is provided above (not "[Insert Company Address]" placeholder), use it EXACTLY as shown
+2. If "[Insert Company Address]" placeholder is shown, keep it as-is - the user will replace it manually
 3. NEVER use placeholder addresses like "Musterstraße", "123 Example Street", or any fake address
 4. Copy the address CHARACTER FOR CHARACTER - no modifications to spelling
 5. "Kastl" must stay "Kastl" - NEVER change to "Kastellaun" or any other city
@@ -807,10 +807,10 @@ Hiring Manager
 ${companyResearch?.name || job?.companyName || 'Company'}
 Maierhof 1, 84556 Kastl
 
-If NO address found (shows "Germany"):
+If NO address found (shows placeholder):
 Hiring Manager
 ${companyResearch?.name || job?.companyName || 'Company'}
-Germany
+[Insert Company Address]
 
 WRONG - NEVER DO THIS:
 Hiring Manager
