@@ -308,14 +308,33 @@ Extract ALL skills mentioned, including technical skills, soft skills, tools, an
         console.log(`[ContextAgent] Using Claude web search for company research: ${companyName}`);
         const research = await searchCompanyInfo(companyName);
         
-        // Format address from Claude's response
-        const formattedAddress = research.address 
-          ? (research.postalCode 
-              ? `${research.address}, ${research.postalCode} ${research.city || ''}` 
-              : `${research.address}${research.city ? `, ${research.city}` : ''}`)
-          : research.city 
-            ? `${research.city}, ${research.country}` 
-            : undefined;
+        // Format address from Claude's response - be more aggressive about constructing an address
+        let formattedAddress: string | undefined = undefined;
+        
+        if (research.address) {
+          // We have a street address
+          if (research.postalCode && research.city) {
+            formattedAddress = `${research.address}, ${research.postalCode} ${research.city}`;
+          } else if (research.city) {
+            formattedAddress = `${research.address}, ${research.city}`;
+          } else {
+            formattedAddress = research.address;
+          }
+        } else if (research.city) {
+          // No street but we have city
+          if (research.postalCode) {
+            formattedAddress = `${research.postalCode} ${research.city}, ${research.country}`;
+          } else {
+            formattedAddress = `${research.city}, ${research.country}`;
+          }
+        }
+        
+        console.log('[CONTEXT_AGENT] Claude web search address formatting:', {
+          rawAddress: research.address,
+          city: research.city,
+          postalCode: research.postalCode,
+          formattedAddress,
+        });
         
         return {
           name: research.name,

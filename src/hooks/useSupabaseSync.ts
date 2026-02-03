@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAppStore, ApplicationSession } from '@/store/useAppStore';
+import { useAppStore, ApplicationSession, ChatMessage } from '@/store/useAppStore';
 import { createClient } from '@/lib/supabase/client';
 import {
   getSessions,
@@ -122,8 +122,28 @@ export function useSupabaseSync() {
               createdAt: row.created_at,
               url: row.optimized_pdf_path 
             } : undefined,
-            chatMessages: [], // Chat messages loaded separately if needed
+            chatMessages: [], // Will be loaded when session is selected
           }));
+          
+          // Load chat messages for each session from Supabase
+          for (const session of supabaseSessions) {
+            try {
+              const messages = await getChatMessages(session.id);
+              if (messages && messages.length > 0) {
+                // Convert Supabase chat message format to store format
+                session.chatMessages = messages.map((msg: any) => ({
+                  id: msg.id,
+                  role: msg.role,
+                  content: msg.content,
+                  timestamp: msg.created_at,
+                  actions: msg.actions || [],
+                }));
+                console.log(`[SupabaseSync] Loaded ${messages.length} chat messages for session ${session.id}`);
+              }
+            } catch (err) {
+              console.error(`[SupabaseSync] Error loading chat messages for session ${session.id}:`, err);
+            }
+          }
           
           // Get current localStorage sessions
           const { sessions: localSessions } = useAppStore.getState();
@@ -245,6 +265,62 @@ export function useSupabaseSync() {
     const timeoutId = setTimeout(syncSession, 2000);
     return () => clearTimeout(timeoutId);
   }, [user, currentSession]);
+
+  // Track synced chat message IDs to avoid duplicates
+  const syncedMessageIdsRef = useRef<Set<string>>(new Set());
+
+  // Sync chat messages to Supabase when new messages are added
+  useEffect(() => {
+    const syncChatMessages = async () => {
+      if (!user || !currentSession) return;
+      
+      // Skip local sessions (they need to be synced to Supabase first)
+      const isLocalSession = currentSession.id.startsWith('session-');
+      if (isLocalSession) {
+        console.log('[SupabaseSync] Skipping chat sync for local session');
+        return;
+      }
+      
+      // Get new messages that haven't been synced yet
+      const newMessages = currentSession.chatMessages.filter(
+        msg => !syncedMessageIdsRef.current.has(msg.id) && !msg.id.startsWith('msg-')
+      );
+      
+      // Also sync local messages (msg- prefix) that need to be saved to Supabase
+      const localMessages = currentSession.chatMessages.filter(
+        msg => msg.id.startsWith('msg-') && !syncedMessageIdsRef.current.has(msg.id)
+      );
+      
+      // Sync local messages to Supabase
+      for (const msg of localMessages) {
+        try {
+          const { message: savedMessage, error } = await addSupabaseChatMessage(
+            currentSession.id,
+            user.id,
+            {
+              role: msg.role,
+              content: msg.content,
+              actions: msg.actions,
+            }
+          );
+          
+          if (error) {
+            console.error('[SupabaseSync] Error saving chat message:', error);
+          } else if (savedMessage) {
+            // Mark as synced
+            syncedMessageIdsRef.current.add(msg.id);
+            console.log('[SupabaseSync] Saved chat message to Supabase:', savedMessage.id);
+          }
+        } catch (err) {
+          console.error('[SupabaseSync] Chat message sync error:', err);
+        }
+      }
+    };
+    
+    // Debounce chat sync
+    const timeoutId = setTimeout(syncChatMessages, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [user, currentSession?.chatMessages]);
 
   return null;
 }
