@@ -525,11 +525,12 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                 // Add completion message
                 addChatMessage({
                   role: 'assistant',
-                  content: `✅ **Analysis Complete!**\n\nYour CV has been optimized for this role.\n\nCheck the **CV tab** to review the changes.`,
+                  content: `✅ **Analysis Complete!**\n\nYour CV has been optimized for this role.\n\nCheck the **CV tab** to review the changes.\n\n---\n\nTo start a new application, please begin a new chat. Each job application requires a fresh conversation for optimal results.`,
                   actions: [
                     { label: 'View Optimized CV', action: 'view-cv', icon: 'cv' },
                     { label: 'View Cover Letter', action: 'view-cover-letter', icon: 'cover-letter' },
                     { label: 'View Email', action: 'view-email', icon: 'email' },
+                    { label: '🚀 Start New Application', action: 'start-new-application', icon: 'new' },
                   ],
                 });
                 break;
@@ -866,11 +867,11 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
             ) : (
               <>
                 <div className={`rounded-full h-fit flex-shrink-0 ${
-                  message.role === 'user' ? 'p-2 bg-cream-200' : 'p-1 bg-navy-100'
+                  message.role === 'user' ? 'p-2 bg-cream-200' : 'p-2 bg-gradient-to-br from-cyan-500 to-emerald-500'
                 }`}>
                   {message.role === 'user' 
                     ? <User className="w-4 h-4 text-charcoal" />
-                    : <img src="/karko-ai.png" alt="KarKo AI" className="w-6 h-6 object-contain" />
+                    : <Sparkles className="w-4 h-4 text-white" />
                   }
                 </div>
                 <div className="flex-1 min-w-0">
@@ -1000,8 +1001,8 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         {/* Immediate loading indicator - shows right away when agent starts */}
         {isAgentWorking && agentSteps.length === 0 && v2Progress && (
           <div className="flex gap-3">
-            <div className="p-1 bg-navy-100 rounded-full h-fit flex-shrink-0">
-              <img src="/karko-ai.png" alt="KarKo AI" className="w-6 h-6 object-contain" />
+            <div className="p-2 bg-gradient-to-br from-cyan-500 to-emerald-500 rounded-full h-fit flex-shrink-0">
+              <Sparkles className="w-4 h-4 text-white" />
             </div>
             <div className="flex-1">
               <div className="bg-white rounded-lg border border-cream-200 p-4">
@@ -1028,8 +1029,8 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         {/* Agent Steps Progress V2 - shown when steps arrive */}
         {isAgentWorking && agentSteps.length > 0 && (
           <div className="flex gap-3">
-            <div className="p-1 bg-navy-100 rounded-full h-fit flex-shrink-0">
-              <img src="/karko-ai.png" alt="KarKo AI" className="w-6 h-6 object-contain" />
+            <div className="p-2 bg-gradient-to-br from-cyan-500 to-emerald-500 rounded-full h-fit flex-shrink-0">
+              <Sparkles className="w-4 h-4 text-white" />
             </div>
             <div className="flex-1">
               <AgentProgressV2 
@@ -1056,8 +1057,8 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         {/* Typing indicator */}
         {(isTyping || isAnalyzing || isGenerating) && !isAgentWorking && (
           <div className="flex gap-3">
-            <div className="p-1 bg-navy-100 rounded-full h-fit flex-shrink-0">
-              <img src="/karko-ai.png" alt="KarKo AI" className="w-6 h-6 object-contain" />
+            <div className="p-2 bg-gradient-to-br from-cyan-500 to-emerald-500 rounded-full h-fit flex-shrink-0">
+              <Sparkles className="w-4 h-4 text-white" />
             </div>
             <div className="flex items-center gap-2 px-4 py-3 bg-white rounded-lg border border-cream-200">
               <div className="flex gap-1">
@@ -1116,7 +1117,11 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
               {!inputValue.trim() && (
                 <div className="flex items-center gap-2 px-3 pb-3 pt-0 border-t border-cream-100">
                   <button
-                    onClick={() => setEnableWebSearch(!enableWebSearch)}
+                    onClick={() => {
+                      const newValue = !enableWebSearch;
+                      console.log('[WEB_SEARCH_TOGGLE] Enabled:', newValue);
+                      setEnableWebSearch(newValue);
+                    }}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                       enableWebSearch 
                         ? 'bg-gold-100 text-gold-700 border border-gold-300' 

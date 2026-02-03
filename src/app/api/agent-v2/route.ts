@@ -59,7 +59,15 @@ export async function POST(request: NextRequest) {
           currentCV, 
           masterCV, 
           action,
+          enableWebSearch,
         } = body;
+        
+        console.log('[API_AGENT_V2] Request received:', {
+          action,
+          enableWebSearch,
+          hasJobDescription: !!jobDescription,
+          hasMasterCV: !!masterCV,
+        });
         
         if (!jobDescription || !currentCV) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 

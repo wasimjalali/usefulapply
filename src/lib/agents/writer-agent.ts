@@ -232,6 +232,18 @@ export const writerAgent = {
   },
 
   /**
+   * Determine the output language based on detection and user override
+   */
+  getOutputLanguage(context: MasterContext): 'en' | 'de' {
+    // User override takes priority
+    if (context.userLanguageOverride) {
+      return context.userLanguageOverride;
+    }
+    // Otherwise use detected language
+    return context.detectedLanguage || 'en';
+  },
+
+  /**
    * Generate all three documents from MasterContext
    * This is the main entry point for the Writer Agent
    */
@@ -247,6 +259,10 @@ export const writerAgent = {
         content: `⚠️ Some information may be missing: ${validation.warnings.join('; ')}` 
       });
     }
+    
+    // Log output language
+    const outputLang = this.getOutputLanguage(context);
+    console.log('[WRITER_AGENT] Output language:', outputLang);
 
     // 1) Generate optimized CV
     emit({ type: 'progress', percent: 55, message: 'Generating optimized CV...' });
@@ -654,6 +670,16 @@ CRITICAL RULES:
    */
   async generateCoverLetter(context: MasterContext, emit?: AgentEventHandler): Promise<string> {
     const { applicant, job, companyResearch, rawCV, masterCV } = context;
+    
+    // Debug logging for company research data flow
+    console.log('[WRITER_AGENT] Generating cover letter with company data:', {
+      hasCompanyResearch: !!companyResearch,
+      companyName: companyResearch?.name || job?.companyName,
+      companyAddress: companyResearch?.address,
+      hasDescription: !!companyResearch?.description,
+      hasValues: !!(companyResearch?.values && companyResearch.values.length > 0),
+      hasRecentNews: !!(companyResearch?.recentNews && companyResearch.recentNews.length > 0),
+    });
     
     // Get today's date in a professional format
     const today = new Date().toLocaleDateString('en-US', { 

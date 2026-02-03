@@ -129,6 +129,7 @@ export function EmailPanel() {
 
   const handleCopyAll = async () => {
     if (email) {
+      // Format: Subject line followed by blank line and body
       const fullEmail = `Subject: ${email.subject}\n\n${email.body}`;
       await navigator.clipboard.writeText(fullEmail);
       setCopied(true);
@@ -138,8 +139,15 @@ export function EmailPanel() {
 
   const handleOpenInEmail = () => {
     if (email) {
-      const mailtoLink = `mailto:?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`;
-      window.open(mailtoLink, '_blank');
+      // Properly encode subject and body for mailto link
+      // Handle special characters and long content
+      const encodedSubject = encodeURIComponent(email.subject);
+      const encodedBody = encodeURIComponent(email.body);
+      const mailtoLink = `mailto:?subject=${encodedSubject}&body=${encodedBody}`;
+      
+      // Use window.location.href for better compatibility with email clients
+      // window.open can sometimes open blank page in certain browsers
+      window.location.href = mailtoLink;
     }
   };
 
@@ -323,6 +331,7 @@ export function EmailPanel() {
                 <li>• Attach your optimized CV and cover letter as PDFs</li>
                 <li>• Double-check the recipient&apos;s email address</li>
                 <li>• Send during business hours for best visibility</li>
+                <li>• Attach your relevant certifications mentioned in your CV to strengthen your application</li>
                 <li>• Follow up after 5-7 business days if no response</li>
               </ul>
             </div>

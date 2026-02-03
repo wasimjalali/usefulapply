@@ -31,6 +31,7 @@ export const contextAgent = {
     emit: AgentEventHandler
   ): Promise<MasterContext> {
     const startTime = Date.now();
+    console.log('[CONTEXT_AGENT] Starting context building...');
     
     try {
       // Step 0: Load documents from localStorage if not provided
@@ -81,11 +82,24 @@ export const contextAgent = {
       const job = await this.parseJobDescription(context.jobDescription);
       context.job = job;
       
+      // Step 2.5: Detect language from job description
+      const detectedLang = this.detectLanguage(context.jobDescription);
+      context.detectedLanguage = detectedLang;
+      console.log('[CONTEXT_AGENT] Detected language:', detectedLang);
+      
       // Step 3: Company research (parallel with other tasks if possible)
       if (job?.companyName) {
+        console.log('[WEB_SEARCH] Step 1: Triggering company research for:', job.companyName);
         emit({ type: 'progress', percent: 50, message: `Researching ${job.companyName}...` });
         const companyResearch = await this.doCompanyResearch(job.companyName);
         context.companyResearch = companyResearch;
+        
+        console.log('[CONTEXT_AGENT] Company research result:', {
+          hasResearch: !!companyResearch,
+          hasAddress: !!companyResearch?.address,
+          address: companyResearch?.address,
+          description: companyResearch?.description?.substring(0, 100),
+        });
         
         // Emit tool_usage event for frontend visibility
         if (companyResearch) {
@@ -96,6 +110,8 @@ export const contextAgent = {
             display: true,
           });
         }
+      } else {
+        console.log('[WEB_SEARCH] Skipping company research - no company name found in job description');
       }
       
       // Step 4: Compute match analysis
@@ -106,6 +122,16 @@ export const contextAgent = {
       emit({ type: 'progress', percent: 80, message: 'Context building complete' });
       
       console.log(`[ContextAgent] Built context in ${Date.now() - startTime}ms`);
+      console.log('[CONTEXT_AGENT] Final context summary:', {
+        hasApplicant: !!context.applicant,
+        applicantName: context.applicant?.name,
+        hasJob: !!context.job,
+        jobTitle: context.job?.title,
+        companyName: context.job?.companyName,
+        hasCompanyResearch: !!context.companyResearch,
+        companyAddress: context.companyResearch?.address,
+        matchScore: context.match?.score,
+      });
       return context;
       
     } catch (error) {
@@ -351,6 +377,34 @@ Extract ALL skills mentioned, including technical skills, soft skills, tools, an
     }
 
     return undefined;
+  },
+
+  /**
+   * Detect the language of the job description
+   * Returns 'de' for German, 'en' for English (default)
+   */
+  detectLanguage(text: string): 'en' | 'de' {
+    // German indicators - common German words that rarely appear in English job descriptions
+    const germanIndicators = [
+      /\b(und|oder|für|mit|bei|auf|aus|nach|zur|zum|von|dem|den|des|der|die|das|ein|eine|einer|eines|wir|Sie|Ihre|Ihr|uns|werden|haben|sein|kann|können|sind|wird|wurde|werden|müssen|sollen|dürfen|möchten|Anforderungen|Aufgaben|Verantwortung|Erfahrung|Kenntnisse|Qualifikationen|Bewerbung|Stellenanzeige|Arbeitgeber|Mitarbeiter|Unternehmen|GmbH|AG)\b/gi,
+      /\b(Berufserfahrung|Ausbildung|Studium|Abschluss|Vollzeit|Teilzeit|unbefristet|befristet|Gehalt|Vergütung|Arbeitszeit|Homeoffice|flexibel)\b/gi,
+    ];
+    
+    let germanMatches = 0;
+    for (const pattern of germanIndicators) {
+      const matches = text.match(pattern);
+      if (matches) {
+        germanMatches += matches.length;
+      }
+    }
+    
+    // If we find significant German indicators, it's German
+    // Threshold: at least 10 German words in the text
+    if (germanMatches >= 10) {
+      return 'de';
+    }
+    
+    return 'en';
   },
 
   /**

@@ -28,6 +28,10 @@ export interface MasterContext {
   jobDescription: string;
   rawCV: string;
   masterCV?: string;
+  
+  // Language detection (auto-detected or user override)
+  detectedLanguage?: 'en' | 'de';
+  userLanguageOverride?: 'en' | 'de';
 
   // Applicant profile (extracted from CV by Context Agent)
   applicant?: {

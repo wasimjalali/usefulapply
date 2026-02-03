@@ -148,14 +148,50 @@ body {
     page-break-after: always;
   }
   
+  /* Allow sections to break across pages naturally */
   .cv-template section {
-    page-break-inside: avoid;
+    page-break-inside: auto;
+    break-inside: auto;
   }
   
+  /* Keep section headers with at least some content */
   .cv-template h2,
   .cv-template h3 {
     page-break-after: avoid;
+    break-after: avoid;
   }
+  
+  /* Prevent orphaned/widowed lines */
+  .cv-template p,
+  .cv-template li {
+    orphans: 2;
+    widows: 2;
+  }
+  
+  /* Individual experience/education items can break if needed */
+  .cv-template .experience-item,
+  .cv-template .education-item {
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+}
+
+/* CV Template page break styles for PDF generation */
+.cv-template section {
+  page-break-inside: auto;
+  break-inside: auto;
+}
+
+.cv-template h2,
+.cv-template h3 {
+  page-break-after: avoid;
+  break-after: avoid;
+}
+
+.cv-template p,
+.cv-template li {
+  orphans: 2;
+  widows: 2;
 }
 
 /* Typing indicator animation delays */

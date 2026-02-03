@@ -23,7 +23,7 @@ export default function Home() {
                 href="/auth/signup"
                 className="w-full sm:w-auto px-8 py-4 bg-gold-400 text-white font-semibold rounded-xl hover:bg-gold-500 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
               >
-                Start Free — 5 Applications
+                Start Free — 3 Applications
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <Link
@@ -256,25 +256,25 @@ export default function Home() {
             Simple, Honest Pricing
           </h2>
           <p className="text-warm-gray mb-8 max-w-2xl mx-auto">
-            Start free with 5 applications. Upgrade when you need more. No hidden fees, no surprises.
+            Start free with 3 applications. Upgrade when you need more. No hidden fees, no surprises.
           </p>
 
           <div className="grid sm:grid-cols-3 gap-6 mb-8">
             <div className="bg-white rounded-xl p-6 border border-cream-200">
               <h3 className="font-semibold text-charcoal mb-2">Starter</h3>
               <div className="text-3xl font-bold text-navy-600 mb-2">Free</div>
-              <p className="text-warm-gray text-sm">5 applications to try it out</p>
+              <p className="text-warm-gray text-sm">3 applications to try it out</p>
             </div>
             <div className="bg-white rounded-xl p-6 border-2 border-gold-400 shadow-lg">
               <div className="text-xs font-bold text-gold-500 mb-2">MOST POPULAR</div>
               <h3 className="font-semibold text-charcoal mb-2">Plus</h3>
               <div className="text-3xl font-bold text-navy-600 mb-2">$19.99<span className="text-lg font-normal text-warm-gray">/mo</span></div>
-              <p className="text-warm-gray text-sm">80+ applications per month</p>
+              <p className="text-warm-gray text-sm">60 applications per month</p>
             </div>
             <div className="bg-white rounded-xl p-6 border border-cream-200">
               <h3 className="font-semibold text-charcoal mb-2">Pro</h3>
               <div className="text-3xl font-bold text-navy-600 mb-2">$39.99<span className="text-lg font-normal text-warm-gray">/mo</span></div>
-              <p className="text-warm-gray text-sm">150+ applications per month</p>
+              <p className="text-warm-gray text-sm">120 applications per month</p>
             </div>
           </div>
 
@@ -295,7 +295,7 @@ export default function Home() {
             Ready to Land More Interviews?
           </h2>
           <p className="text-navy-700 mb-8 max-w-2xl mx-auto">
-            Join thousands of job seekers who have transformed their job search with KarKo AI. Start with 5 free applications today.
+            Join thousands of job seekers who have transformed their job search with KarKo AI. Start with 3 free applications today.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
