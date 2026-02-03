@@ -89,10 +89,7 @@ export function PremiumLoadingSkeleton({ type = 'cv', message }: PremiumLoadingS
           <div
             key={index}
             className="flex items-center gap-3 opacity-0 animate-fade-in"
-            style={{
-              animationDelay: `${step.delay}ms`,
-              animationFillMode: 'forwards',
-            }}
+            style={{ animationDelay: `${step.delay}ms` }}
           >
             {/* Step Icon */}
             <div className="relative">
