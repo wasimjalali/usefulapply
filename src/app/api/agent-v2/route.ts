@@ -28,7 +28,17 @@ interface AgentRequest {
   certifications?: string;
   action: 'full_optimization' | 'analyze_only' | 'generate_cv' | 'generate_cover_letter' | 'generate_email';
   emailType?: 'application' | 'followup' | 'thankyou';
-  writerStrategy?: string;  // NEW: Strategy from fit assessment
+  writerStrategy?: string;
+  jobInfo?: { title: string; companyName: string };
+}
+
+export interface OrchestratorInput {
+  sessionId: string;
+  jobDescription: string;
+  primaryCV: string;
+  masterCV?: string;
+  writerStrategy?: string;
+  jobInfo?: { title: string; companyName: string };
 }
 
 export async function POST(request: NextRequest) {
@@ -54,7 +64,7 @@ export async function POST(request: NextRequest) {
         setServerSupabaseClient(supabase);
 
         const body: AgentRequest = await request.json();
-        const { jobDescription, currentCV, masterCV, certifications, action, writerStrategy } = body;
+        const { jobDescription, currentCV, masterCV, certifications, action, writerStrategy, jobInfo } = body;
         
         console.log('[API_AGENT_V2] Request received:', {
           action,
@@ -168,7 +178,8 @@ export async function POST(request: NextRequest) {
             jobDescription,
             primaryCV: currentCV,
             masterCV,
-            writerStrategy,  // Pass the strategy from fit assessment
+            writerStrategy,
+            jobInfo,
           }, eventHandler);
           
           if (result.success && result.data) {

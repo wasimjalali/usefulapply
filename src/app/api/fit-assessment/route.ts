@@ -28,6 +28,13 @@ interface FitAssessmentResult {
   writer_strategy: string;
   fit_score: 'strong' | 'good' | 'weak';
   match_percentage?: number;
+  job_info?: {
+    title: string;
+    companyName: string;
+    location?: string;
+    requiredSkills: string[];
+    niceToHaveSkills: string[];
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -227,8 +234,17 @@ You must return a strict JSON object:
   "chat_message": "### 🎯 Fit Assessment: [Strong/Good/Weak Match] (XX%)\\n\\n**The Verdict:** [1 paragraph connecting user skill to JD pain point]\\n\\n**⚠️ The Gaps:**\\n- [Critical gap 1]\\n- [Critical gap 2, or 'None']\\n\\n**💡 The Strategy:** [2 sentences on how to frame the CV]",
   "writer_strategy": "Focus on X. Emphasize Y. Address gap in Z by highlighting transferable skills. Use keywords: A, B, C.",
   "fit_score": "strong|good|weak",
-  "match_percentage": 85
+  "match_percentage": 85,
+  "job_info": {
+    "title": "Extracted Job Title",
+    "companyName": "Extracted Company Name", 
+    "location": "Location or null",
+    "requiredSkills": ["skill1", "skill2"],
+    "niceToHaveSkills": ["skill3"]
+  }
 }
+
+CRITICAL: The job_info section MUST contain the actual company name and job title extracted from the JD. This is essential for document generation.
 
 FORMATTING RULES:
 1. Max 150 words in chat_message - be concise

@@ -98,6 +98,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
   // NEW: State for fit assessment workflow
   const [pendingStrategy, setPendingStrategy] = useState<string | null>(null);
   const [pendingJobDescription, setPendingJobDescription] = useState<string | null>(null);
+  const [pendingJobInfo, setPendingJobInfo] = useState<{ title: string; companyName: string } | null>(null);
 
   const MESSAGE_COLLAPSE_LENGTH = 300; // Characters before collapsing
 
@@ -357,7 +358,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
       
       const decoder = new TextDecoder();
       let buffer = '';
-      let fitResult: { chat_message: string; writer_strategy: string; fit_score: string } | null = null;
+      let fitResult: { chat_message: string; writer_strategy: string; fit_score: string; job_info?: { title: string; companyName: string } } | null = null;
       
       while (true) {
         const { done, value } = await reader.read();
@@ -385,9 +386,12 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
               case 'fit_assessment_complete':
                 fitResult = data.result;
                 
-                // Store the strategy for later use
+                // Store the strategy and job info for later use
                 if (fitResult?.writer_strategy) {
                   setPendingStrategy(fitResult.writer_strategy);
+                }
+                if (fitResult?.job_info) {
+                  setPendingJobInfo(fitResult.job_info);
                 }
                 
                 // Add the fit assessment message to chat
@@ -452,13 +456,10 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
           masterCV: masterCV?.rawText,
           certifications: certificationsText,
           action: 'full_optimization',
-          writerStrategy: pendingStrategy,  // Pass the strategy from fit assessment
+          writerStrategy: pendingStrategy,
+          jobInfo: pendingJobInfo,
         }),
       });
-      
-      if (!response.ok) {
-        throw new Error('Agent workflow failed');
-      }
       
       const reader = response.body?.getReader();
       if (!reader) throw new Error('No response stream');
@@ -730,6 +731,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         // Clear pending state and reset
         setPendingStrategy(null);
         setPendingJobDescription(null);
+        setPendingJobInfo(null);
         useAppStore.setState({ 
           currentSession: null,
           jobDescription: '',

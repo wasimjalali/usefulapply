@@ -323,9 +323,28 @@ Extract ALL skills mentioned, including technical skills, soft skills, tools, an
       context.applicant = applicant;
 
       // Step 2: Parse job description using BASIC extraction (no AI call)
+      // BUT if job info was already provided from fit assessment, use that
       emit({ type: 'progress', percent: 50, message: 'Loading job requirements...' });
-      const job = this.extractBasicJobInfo(context.jobDescription);
-      context.job = job;
+      
+      let job: MasterContext['job'];
+      if (context.job?.title && context.job?.companyName) {
+        // Use job info from fit assessment
+        job = context.job;
+        console.log('[CONTEXT_AGENT] Using pre-parsed job info from fit assessment:', {
+          title: job.title,
+          companyName: job.companyName,
+        });
+      } else {
+        // Extract from JD using basic extraction
+        job = this.extractBasicJobInfo(context.jobDescription);
+        context.job = job;
+        
+        console.log('[CONTEXT_AGENT] Extracted job info:', {
+          title: job?.title,
+          companyName: job?.companyName,
+          hasRequiredSkills: job?.requiredSkills?.length > 0,
+        });
+      }
 
       // Step 3: Detect language
       context.detectedLanguage = this.detectLanguage(context.jobDescription);
