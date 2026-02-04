@@ -41,13 +41,3 @@ export {
   getRelatedSkills,
   isRAGConfigured,
 } from './skills';
-
-// Export from gap-analyzer
-export {
-  type EnhancedGapAnalysis,
-  type ExtractedSkills,
-  extractJobSkills,
-  extractCVSkills,
-  analyzeGapsWithRAG,
-  quickSkillMatch,
-} from './gap-analyzer';
