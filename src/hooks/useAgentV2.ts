@@ -138,7 +138,6 @@ export interface AgentV2Result {
 }
 
 export interface AgentV2Options {
-  enableWebSearch?: boolean;
   enableReflection?: boolean;
   action?: 'full_optimization' | 'analyze_only' | 'generate_cv' | 'generate_cover_letter' | 'generate_email';
   emailType?: 'application' | 'followup' | 'thankyou';
@@ -205,7 +204,6 @@ export function useAgentV2(): UseAgentV2Return {
           certifications,
           action: options.action || 'full_optimization',
           emailType: options.emailType,
-          enableWebSearch: options.enableWebSearch ?? true,
           enableReflection: options.enableReflection ?? true,
         }),
       });

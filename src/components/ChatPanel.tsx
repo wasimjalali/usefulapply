@@ -18,7 +18,6 @@ interface AgentStepData {
   agent?: string;
 }
 import { AgentProgressV2 } from './AgentProgressV2';
-import { AgentSettingsToggle } from './AgentSettingsToggle';
 // QualityScoreCard removed from chat panel - now only in CV panel sidebar
 import { useAppStore } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
@@ -88,7 +87,6 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   // Agent settings
-  const [enableWebSearch, setEnableWebSearch] = useState(true);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [messageFeedback, setMessageFeedback] = useState<Record<string, 'positive' | 'negative'>>({});
@@ -344,7 +342,6 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
           masterCV: masterCV?.rawText,
           certifications: certificationsText,
           action: 'full_optimization',
-          enableWebSearch,
         }),
       });
       
@@ -1136,28 +1133,6 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                   <Send className="w-4 h-4 text-white" />
                 </button>
               </div>
-              
-              {/* Toggle buttons row - only show when input is empty */}
-              {!inputValue.trim() && (
-                <div className="flex items-center gap-2 px-3 pb-3 pt-0 border-t border-cream-100">
-                  <button
-                    onClick={() => {
-                      const newValue = !enableWebSearch;
-                      console.log('[WEB_SEARCH_TOGGLE] Enabled:', newValue);
-                      setEnableWebSearch(newValue);
-                    }}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                      enableWebSearch 
-                        ? 'bg-gold-100 text-gold-700 border border-gold-300' 
-                        : 'bg-cream-50 text-warm-gray border border-cream-200 hover:bg-cream-100'
-                    }`}
-                    title="Toggle web search for company research"
-                  >
-                    <Globe className="w-3.5 h-3.5" />
-                    Web Search
-                  </button>
-                </div>
-              )}
             </div>
           </div>
           

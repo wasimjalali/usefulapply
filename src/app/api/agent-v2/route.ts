@@ -28,7 +28,6 @@ interface AgentRequest {
   certifications?: string;
   action: 'full_optimization' | 'analyze_only' | 'generate_cv' | 'generate_cover_letter' | 'generate_email';
   emailType?: 'application' | 'followup' | 'thankyou';
-  enableWebSearch?: boolean;
 }
 
 export async function POST(request: NextRequest) {
@@ -59,12 +58,10 @@ export async function POST(request: NextRequest) {
           currentCV, 
           masterCV, 
           action,
-          enableWebSearch,
         } = body;
         
         console.log('[API_AGENT_V2] Request received:', {
           action,
-          enableWebSearch,
           hasJobDescription: !!jobDescription,
           hasMasterCV: !!masterCV,
         });

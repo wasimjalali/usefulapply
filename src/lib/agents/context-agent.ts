@@ -12,14 +12,8 @@
  */
 
 import type { MasterContext, AgentEventHandler } from './types';
-import { researchCompany, isTavilyConfigured } from '@/lib/tools/tavily';
-import { researchCompanyWithGPT, isGPTWebSearchConfigured } from '@/lib/tools/gpt-web-search';
-import { searchCompanyInfo } from '@/lib/tools/claude-web-search';
 import { callModel } from '@/lib/models';
 import { loadApplicantDocuments } from '@/lib/storage/applicantStore';
-
-// Feature flag: Use Claude web search as primary (more accurate for addresses)
-const USE_CLAUDE_WEB_SEARCH = true;
 
 export const contextAgent = {
   /**
@@ -294,107 +288,11 @@ Extract ALL skills mentioned, including technical skills, soft skills, tools, an
   },
 
   /**
-   * Research company using Claude web search (primary), GPT-4o (fallback), or Tavily (last resort)
-   * Claude web search provides the most accurate address extraction
+   * Research company - web search removed
+   * Returns undefined as company research is no longer performed
    */
   async doCompanyResearch(companyName: string): Promise<MasterContext['companyResearch'] | undefined> {
-    const tavilyConfigured = isTavilyConfigured();
-    const gptConfigured = isGPTWebSearchConfigured();
-    const claudeConfigured = !!process.env.ANTHROPIC_API_KEY;
-
-    // Try Claude web search first (most accurate for addresses)
-    if (USE_CLAUDE_WEB_SEARCH && claudeConfigured) {
-      try {
-        console.log(`[ContextAgent] Using Claude web search for company research: ${companyName}`);
-        const research = await searchCompanyInfo(companyName);
-        
-        // Format address from Claude's response - be more aggressive about constructing an address
-        let formattedAddress: string | undefined = undefined;
-        
-        if (research.address) {
-          // We have a street address
-          if (research.postalCode && research.city) {
-            formattedAddress = `${research.address}, ${research.postalCode} ${research.city}`;
-          } else if (research.city) {
-            formattedAddress = `${research.address}, ${research.city}`;
-          } else {
-            formattedAddress = research.address;
-          }
-        } else if (research.city) {
-          // No street but we have city
-          if (research.postalCode) {
-            formattedAddress = `${research.postalCode} ${research.city}, ${research.country}`;
-          } else {
-            formattedAddress = `${research.city}, ${research.country}`;
-          }
-        }
-        
-        console.log('[CONTEXT_AGENT] Claude web search address formatting:', {
-          rawAddress: research.address,
-          city: research.city,
-          postalCode: research.postalCode,
-          formattedAddress,
-        });
-        
-        return {
-          name: research.name,
-          address: formattedAddress,
-          website: research.website || undefined,
-          description: research.description || undefined,
-          values: research.values,
-          culture: research.culture,
-          techStack: undefined,
-          recentNews: undefined,
-        };
-      } catch (error) {
-        console.error('[ContextAgent] Claude web search failed, trying fallback:', error);
-      }
-    }
-
-    // Fallback to GPT-4o web search
-    if (gptConfigured) {
-      try {
-        console.log(`[ContextAgent] Using GPT-4o for company research (fallback): ${companyName}`);
-        const research = await researchCompanyWithGPT(companyName);
-        return {
-          name: research.name,
-          address: research.address,
-          website: research.website,
-          description: research.description,
-          values: research.values,
-          culture: research.culture,
-          techStack: research.techStack,
-          recentNews: research.recentNews,
-        };
-      } catch (error) {
-        console.error('[ContextAgent] GPT web search failed:', error);
-      }
-    }
-
-    // Last resort: Tavily
-    if (tavilyConfigured) {
-      try {
-        console.log(`[ContextAgent] Using Tavily for company research (last resort): ${companyName}`);
-        const research = await researchCompany(companyName);
-        return {
-          name: research.name,
-          address: research.address,
-          website: research.website,
-          description: research.description,
-          values: research.values,
-          culture: research.culture,
-          techStack: research.techStack,
-          recentNews: research.recentNews,
-        };
-      } catch (error) {
-        console.error('[ContextAgent] Tavily research failed:', error);
-      }
-    }
-
-    if (!tavilyConfigured && !gptConfigured && !claudeConfigured) {
-      console.log('[ContextAgent] No search API configured, skipping company research');
-    }
-
+    console.log('[ContextAgent] Company research via web search disabled');
     return undefined;
   },
 
