@@ -1,14 +1,13 @@
 /**
- * Context Agent - Research + RAG + JD Analysis
+ * Context Agent - CV Analysis + JD Analysis
  * 
  * Responsibilities:
- * 1. Load applicant documents from localStorage/IndexedDB (RAG source)
- * 2. Extract applicant profile from CV documents (RAG-style)
+ * 1. Load applicant documents from storage (RAG source)
+ * 2. Extract applicant profile from CV documents
  * 3. Parse job description for requirements
- * 4. Run company research (Tavily/GPT search)
- * 5. Compute skill match analysis
+ * 4. Compute skill match analysis
  * 
- * This agent is the "information funnel" - it gathers all data needed by the Writer.
+ * Note: Web search for company research has been removed.
  */
 
 import type { MasterContext, AgentEventHandler } from './types';
@@ -76,37 +75,10 @@ export const contextAgent = {
       const job = await this.parseJobDescription(context.jobDescription);
       context.job = job;
       
-      // Step 2.5: Detect language from job description
+      // Step 3: Detect language from job description
       const detectedLang = this.detectLanguage(context.jobDescription);
       context.detectedLanguage = detectedLang;
       console.log('[CONTEXT_AGENT] Detected language:', detectedLang);
-      
-      // Step 3: Company research (parallel with other tasks if possible)
-      if (job?.companyName) {
-        console.log('[WEB_SEARCH] Step 1: Triggering company research for:', job.companyName);
-        emit({ type: 'progress', percent: 50, message: `Researching ${job.companyName}...` });
-        const companyResearch = await this.doCompanyResearch(job.companyName);
-        context.companyResearch = companyResearch;
-        
-        console.log('[CONTEXT_AGENT] Company research result:', {
-          hasResearch: !!companyResearch,
-          hasAddress: !!companyResearch?.address,
-          address: companyResearch?.address,
-          description: companyResearch?.description?.substring(0, 100),
-        });
-        
-        // Emit tool_usage event for frontend visibility
-        if (companyResearch) {
-          emit({
-            type: 'tool_usage',
-            tool: 'company_research',
-            output: companyResearch,
-            display: true,
-          });
-        }
-      } else {
-        console.log('[WEB_SEARCH] Skipping company research - no company name found in job description');
-      }
       
       // Step 4: Compute match analysis
       emit({ type: 'progress', percent: 70, message: 'Computing skill match...' });
@@ -122,8 +94,6 @@ export const contextAgent = {
         hasJob: !!context.job,
         jobTitle: context.job?.title,
         companyName: context.job?.companyName,
-        hasCompanyResearch: !!context.companyResearch,
-        companyAddress: context.companyResearch?.address,
         matchScore: context.match?.score,
       });
       return context;

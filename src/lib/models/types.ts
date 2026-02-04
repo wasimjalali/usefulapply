@@ -21,6 +21,7 @@ export type TaskType =
   | 'extract_applicant'  // Context Agent: extract applicant profile from CV
   | 'parse_job'          // Context Agent: parse job description
   | 'optimize_cv'        // Writer Agent: generate optimized CV
+  | 'fit_assessment'     // NEW: Fit assessment analysis
   // Writing tasks (Claude Haiku 4.5 - fast & cost-effective)
   | 'write_summary'
   | 'write_bullets'
@@ -176,6 +177,13 @@ export const MODEL_CONFIGS: Record<TaskType, ModelConfig> = {
     provider: 'anthropic',
     temperature: 0.4,  // Lower for JSON structure consistency while allowing creative writing
     maxTokens: 8192,
+  },
+  // NEW: Fit assessment task
+  fit_assessment: {
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
+    temperature: 0.3,
+    maxTokens: 4096,
   },
 };
 

@@ -22,6 +22,7 @@ export interface OrchestratorInput {
   jobDescription: string;
   primaryCV: string;
   masterCV?: string;
+  writerStrategy?: string;  // NEW: Strategy from fit assessment
 }
 
 /**
@@ -39,6 +40,7 @@ export async function runJobCopilot(
     jobDescription: input.jobDescription,
     rawCV: input.primaryCV,
     masterCV: input.masterCV,
+    writerStrategy: input.writerStrategy,
   };
 
   try {

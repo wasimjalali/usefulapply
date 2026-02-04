@@ -15,7 +15,7 @@ import {
   type MasterContext,
 } from '@/lib/agents';
 import { createClient } from '@/lib/supabase/server';
-import { checkAndDeductCredits, formatCreditErrorResponse } from '@/lib/middleware/creditCheck';
+import { deductCreditsRPC, checkCreditBalanceRPC, CREDIT_COSTS } from '@/lib/supabase/credits';
 import { setServerSupabaseClient, clearServerSupabaseClient } from '@/lib/supabase/credits';
 
 export const runtime = 'nodejs';
@@ -28,6 +28,7 @@ interface AgentRequest {
   certifications?: string;
   action: 'full_optimization' | 'analyze_only' | 'generate_cv' | 'generate_cover_letter' | 'generate_email';
   emailType?: 'application' | 'followup' | 'thankyou';
+  writerStrategy?: string;  // NEW: Strategy from fit assessment
 }
 
 export async function POST(request: NextRequest) {
@@ -53,17 +54,13 @@ export async function POST(request: NextRequest) {
         setServerSupabaseClient(supabase);
 
         const body: AgentRequest = await request.json();
-        const { 
-          jobDescription, 
-          currentCV, 
-          masterCV, 
-          action,
-        } = body;
+        const { jobDescription, currentCV, masterCV, certifications, action, writerStrategy } = body;
         
         console.log('[API_AGENT_V2] Request received:', {
           action,
           hasJobDescription: !!jobDescription,
           hasMasterCV: !!masterCV,
+          hasWriterStrategy: !!writerStrategy,
         });
         
         if (!jobDescription || !currentCV) {
@@ -75,15 +72,18 @@ export async function POST(request: NextRequest) {
           return;
         }
 
-        // Check and deduct credits for full application (2 credits)
-        const creditResult = await checkAndDeductCredits(user.id, 'FULL_APPLICATION');
+        // Check if user has enough credits for full generation (1.5 credits)
+        const balanceCheck = await checkCreditBalanceRPC(user.id, CREDIT_COSTS.FULL_GENERATION);
         
-        if (!creditResult.success) {
+        if (!balanceCheck.hasEnough) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
             type: 'error', 
             code: 'INSUFFICIENT_CREDITS',
-            message: creditResult.error || 'Insufficient credits',
-            details: formatCreditErrorResponse(creditResult),
+            message: `Insufficient credits. Required: ${CREDIT_COSTS.FULL_GENERATION}, Available: ${balanceCheck.available}`,
+            details: {
+              required: CREDIT_COSTS.FULL_GENERATION,
+              available: balanceCheck.available,
+            },
           })}\n\n`));
           controller.close();
           return;
@@ -92,8 +92,8 @@ export async function POST(request: NextRequest) {
         // Send credit deduction info to client
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
           type: 'credits_deducted', 
-          creditsUsed: 2,
-          remainingCredits: creditResult.remainingCredits,
+          creditsUsed: 0,
+          remainingCredits: balanceCheck.available,
         })}\n\n`));
 
         // Set up event handler to stream progress
@@ -168,6 +168,7 @@ export async function POST(request: NextRequest) {
             jobDescription,
             primaryCV: currentCV,
             masterCV,
+            writerStrategy,  // Pass the strategy from fit assessment
           }, eventHandler);
           
           if (result.success && result.data) {
@@ -176,13 +177,11 @@ export async function POST(request: NextRequest) {
             results = {
               // Job info
               job: ctx.job,
-              // Company research
-              companyResearch: ctx.companyResearch,
-              // Match info (no longer shown but kept for data)
+              // Match info
               match: ctx.match,
               // Generated documents
               optimizedCV: ctx.optimizedCV,
-              optimizedCVData: ctx.optimizedCVData,  // Solution B: Structured JSON
+              optimizedCVData: ctx.optimizedCVData,
               coverLetter: ctx.coverLetter,
               applicationEmail: ctx.applicationEmail,
               // Full context for debugging
@@ -193,12 +192,12 @@ export async function POST(request: NextRequest) {
           }
         } else {
           // For other actions, run full optimization for now
-          // TODO: Implement specific actions if needed
           const result = await runJobCopilot({
             sessionId: `session-${Date.now()}`,
             jobDescription,
             primaryCV: currentCV,
             masterCV,
+            writerStrategy,
           }, eventHandler);
           
           if (result.success && result.data) {
@@ -207,6 +206,24 @@ export async function POST(request: NextRequest) {
             throw new Error(result.error || 'Workflow failed');
           }
         }
+
+        // Deduct 1.5 credits after successful generation
+        const deductResult = await deductCreditsRPC(user.id, 'FULL_GENERATION', {
+          description: 'Full application generation (CV + Cover Letter + Email)',
+        });
+
+        if (!deductResult.success) {
+          // Log error but don't fail - generation already succeeded
+          console.error('[API_AGENT_V2] Failed to deduct credits:', deductResult.error);
+        }
+
+        // Send credit deduction info to client
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+          type: 'credits_deducted', 
+          creditsUsed: CREDIT_COSTS.FULL_GENERATION,
+          remainingCredits: deductResult.remainingCredits,
+          transactionType: 'full_generation',
+        })}\n\n`));
 
         // Send workflow complete with final results
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 

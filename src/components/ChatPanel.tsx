@@ -95,6 +95,10 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
 
+  // NEW: State for fit assessment workflow
+  const [pendingStrategy, setPendingStrategy] = useState<string | null>(null);
+  const [pendingJobDescription, setPendingJobDescription] = useState<string | null>(null);
+
   const MESSAGE_COLLAPSE_LENGTH = 300; // Characters before collapsing
 
   const toggleMessageExpanded = (messageId: string) => {
@@ -202,12 +206,15 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
       if (isJobDescription) {
         setJobDescription(messageContent);
         
-        // Start agent workflow immediately - show loading state right away
+        // Start fit assessment first (0.5 credits)
         setIsAgentWorking(true);
-        setV2Progress({ percent: 0, message: 'Starting analysis...' });
+        setV2Progress({ percent: 0, message: 'Analyzing job fit...' });
         
-        // Use the new agent workflow with streaming progress
-        runAgentWorkflow(messageContent);
+        // Store job description for later use
+        setPendingJobDescription(messageContent);
+        
+        // Run fit assessment workflow
+        runFitAssessment(messageContent);
       } else {
         // Handle general conversation
         handleGeneralChat(messageContent);
@@ -243,12 +250,15 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         
         setJobDescription(messageContent);
         
-        // Start agent workflow immediately - show loading state right away
+        // Start fit assessment first (0.5 credits)
         setIsAgentWorking(true);
-        setV2Progress({ percent: 0, message: 'Starting analysis...' });
+        setV2Progress({ percent: 0, message: 'Analyzing job fit...' });
         
-        // Use the new agent workflow with streaming progress
-        runAgentWorkflow(messageContent);
+        // Store job description for later use
+        setPendingJobDescription(messageContent);
+        
+        // Run fit assessment workflow
+        runFitAssessment(messageContent);
       } else {
         // Handle follow-up questions or general chat
         handleGeneralChat(messageContent);
@@ -309,25 +319,126 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
     }
   };
 
-  // Run the agent workflow with streaming progress updates
-  const runAgentWorkflow = async (jobDescription: string) => {
+  // Run the fit assessment (Step 1: 0.5 credits)
+  const runFitAssessment = async (jobDescription: string) => {
     if (!currentCV) return;
     
-    // Set loading state immediately - DO NOT reset v2Progress here!
-    // v2Progress is already set to { percent: 0, message: 'Starting analysis...' } before this function is called
     setIsAgentWorking(true);
     setAgentSteps([]);
-    // Keep the initial progress message, don't set to null
-    // setV2Progress(null); // REMOVED - this was clearing the loading indicator
+    setV2Progress({ percent: 10, message: 'Analyzing job fit...' });
     setV2Reflection(null);
     setV2Models(null);
     setV2TokenUsage(null);
     
     try {
-      // Get all documents from the store for comprehensive analysis
       const { masterCV, certifications } = useAppStore.getState();
       
-      // Format certifications as text for the AI to analyze
+      const certificationsText = certifications.length > 0 
+        ? certifications.map(cert => `- ${cert.fileName}`).join('\n')
+        : undefined;
+      
+      const response = await fetch('/api/fit-assessment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobDescription,
+          currentCV: currentCV.rawText,
+          masterCV: masterCV?.rawText,
+          certifications: certificationsText,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Fit assessment failed');
+      }
+      
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No response stream');
+      
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fitResult: { chat_message: string; writer_strategy: string; fit_score: string } | null = null;
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+        
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          
+          try {
+            const data = JSON.parse(line.slice(6));
+            
+            switch (data.type) {
+              case 'progress':
+                setV2Progress({ percent: data.percent, message: data.message });
+                break;
+                
+              case 'credits_deducted':
+                console.log(`[Fit Assessment] Credits deducted: ${data.creditsUsed}`);
+                break;
+                
+              case 'fit_assessment_complete':
+                fitResult = data.result;
+                
+                // Store the strategy for later use
+                if (fitResult?.writer_strategy) {
+                  setPendingStrategy(fitResult.writer_strategy);
+                }
+                
+                // Add the fit assessment message to chat
+                addChatMessage({
+                  role: 'assistant',
+                  content: fitResult?.chat_message || 'Analysis complete.',
+                  actions: [
+                    { label: '✅ Apply for this Job', action: 'apply-for-job', icon: 'cv' },
+                    { label: '🔄 Start New Application', action: 'start-new-application', icon: 'new' },
+                  ],
+                });
+                break;
+                
+              case 'error':
+                addChatMessage({
+                  role: 'assistant',
+                  content: `❌ Sorry, something went wrong: ${data.message}. Please try again.`,
+                });
+                break;
+            }
+          } catch (e) {
+            console.error('Failed to parse SSE data:', e);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Fit assessment error:', error);
+      addChatMessage({
+        role: 'assistant',
+        content: '❌ Sorry, the fit assessment failed. Please try again.',
+      });
+    } finally {
+      setIsAgentWorking(false);
+      setV2Progress(null);
+    }
+  };
+
+  // Run full generation after user confirms (Step 2: 1.5 credits)
+  const runFullGeneration = async () => {
+    if (!currentCV || !pendingJobDescription || !pendingStrategy) return;
+    
+    setIsAgentWorking(true);
+    setAgentSteps([]);
+    setV2Progress({ percent: 0, message: 'Starting full application generation...' });
+    setV2Reflection(null);
+    setV2Models(null);
+    setV2TokenUsage(null);
+    
+    try {
+      const { masterCV, certifications } = useAppStore.getState();
+      
       const certificationsText = certifications.length > 0 
         ? certifications.map(cert => `- ${cert.fileName}`).join('\n')
         : undefined;
@@ -336,11 +447,12 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          jobDescription,
+          jobDescription: pendingJobDescription,
           currentCV: currentCV.rawText,
           masterCV: masterCV?.rawText,
           certifications: certificationsText,
           action: 'full_optimization',
+          writerStrategy: pendingStrategy,  // Pass the strategy from fit assessment
         }),
       });
       
@@ -375,7 +487,6 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                   description: s.description,
                   status: 'pending' as const,
                 })));
-                // V2: Store model info
                 if (data.models) {
                   setV2Models(data.models);
                 }
@@ -407,12 +518,10 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                 ));
                 break;
               
-              // V2: Progress updates
               case 'progress':
                 setV2Progress({ percent: data.percent, message: data.message });
                 break;
               
-              // V2: Reflection loop updates
               case 'reflection':
                 setV2Reflection({
                   iteration: data.iteration,
@@ -422,9 +531,8 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                 break;
                 
               case 'workflow_complete':
-                // Update the store with results from 3-Agent Architecture
                 const { results } = data;
-                const ctx = results.context; // MasterContext from new architecture
+                const ctx = results.context;
                 
                 // Map new context format to store format
                 if (ctx?.job) {
@@ -448,7 +556,6 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                   });
                 }
                 
-                // Map match analysis to gaps format
                 if (ctx?.match) {
                   useAppStore.getState().updateCurrentSession({
                     gaps: {
@@ -465,7 +572,6 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                   });
                 }
                 
-                // Store optimized CV content (now includes changes)
                 if (ctx?.optimizedCV) {
                   useAppStore.getState().updateCurrentSession({
                     generatedCV: {
@@ -481,15 +587,12 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                   });
                 }
                 
-                // Solution B: Store structured CV data from AI (no parsing needed)
                 if (ctx?.optimizedCVData) {
                   useAppStore.getState().updateCurrentSession({
                     optimizedCVData: ctx.optimizedCVData,
                   });
                 }
                 
-                // Store cover letter - the new architecture returns it as a complete formatted string
-                // We store it with empty structured fields since the body contains everything
                 if (ctx?.coverLetter) {
                   useAppStore.getState().updateCurrentSession({
                     coverLetter: {
@@ -507,14 +610,13 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                         street: '',
                       },
                       salutation: '',
-                      body: ctx.coverLetter, // Full formatted cover letter
+                      body: ctx.coverLetter,
                       closing: '',
                       signatureName: '',
                     },
                   });
                 }
                 
-                // Store email - now comes as { subject, body } from Writer Agent
                 if (ctx?.applicationEmail) {
                   useAppStore.getState().updateCurrentSession({
                     email: {
@@ -525,25 +627,25 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                   });
                 }
                 
-                // Store company research
-                if (ctx?.companyResearch) {
-                  useAppStore.getState().updateCurrentSession({
-                    companyResearch: ctx.companyResearch,
-                  });
-                }
+                // Clear pending state
+                setPendingStrategy(null);
+                setPendingJobDescription(null);
                 
                 // Add completion message
                 addChatMessage({
                   role: 'assistant',
-                  content: `✅ **Analysis Complete!**\n\nYour CV has been optimized for this role.\n\nCheck the **CV tab** to review the changes.`,
+                  content: `✅ **Application Package Complete!**\n\nYour CV, cover letter, and email have been optimized for this role.\n\nCheck the tabs to review all documents.`,
                   actions: [
                     { label: '📄 View Optimized CV', action: 'view-cv', icon: 'cv' },
                     { label: '✉️ View Cover Letter', action: 'view-cover-letter', icon: 'cover-letter' },
                     { label: '📧 View Email', action: 'view-email', icon: 'email' },
-                    { label: '💡 To start a new application, begin a new chat', action: 'none' },
-                    { label: '🚀 Start New Application', action: 'start-new-application', icon: 'new' },
+                    { label: '� Start New Application', action: 'start-new-application', icon: 'new' },
                   ],
                 });
+                break;
+                
+              case 'credits_deducted':
+                console.log(`[Full Generation] Credits deducted: ${data.creditsUsed}`);
                 break;
                 
               case 'error':
@@ -559,13 +661,14 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         }
       }
     } catch (error) {
-      console.error('Agent workflow error:', error);
+      console.error('Full generation error:', error);
       addChatMessage({
         role: 'assistant',
-        content: '❌ Sorry, the analysis failed. Please try again.',
+        content: '❌ Sorry, the document generation failed. Please try again.',
       });
     } finally {
       setIsAgentWorking(false);
+      setV2Progress(null);
     }
   };
 
@@ -619,9 +722,14 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         onTabChange?.('email');
         await handleGenerateEmail();
         break;
+      case 'apply-for-job':
+        // User wants to proceed with full generation (1.5 credits)
+        await runFullGeneration();
+        break;
       case 'start-new-application':
-        // Create a completely new session - this ensures the next message triggers the agent workflow
-        // Setting currentSession to null makes the code treat the next message as a new application
+        // Clear pending state and reset
+        setPendingStrategy(null);
+        setPendingJobDescription(null);
         useAppStore.setState({ 
           currentSession: null,
           jobDescription: '',
