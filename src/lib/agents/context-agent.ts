@@ -185,10 +185,27 @@ CRITICAL: Only extract information that EXISTS in the CV. Do not invent or assum
     const emailMatch = cvText.match(/[\w.-]+@[\w.-]+\.\w+/);
     const phoneMatch = cvText.match(/(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
     
+    // Try to extract address - look for patterns like street names, cities, postal codes
+    let address: string | undefined;
+    
+    // Look for common address patterns in first 10 lines
+    for (let i = 1; i < Math.min(lines.length, 10); i++) {
+      const line = lines[i];
+      // Skip email/phone lines
+      if (line.includes('@') || /^[\d\s\+\-\(\)]+$/.test(line)) continue;
+      // Look for street indicators (str, street, rue, etc.) or city/postal patterns
+      if (/\b(str|street|st\.?|rue|avenue|ave|road|rd|weg|straße|platz|gasse)\b/i.test(line) ||
+          /\b\d{4,5}\s+[a-zA-Z\s]+/.test(line)) {
+        address = line;
+        break;
+      }
+    }
+    
     return {
       name,
       email: emailMatch?.[0] || '',
       phone: phoneMatch?.[0] || undefined,
+      address,
       skills: [],
       tools: [],
       languages: [],
