@@ -272,7 +272,6 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
             hasCV: !!currentCV,
             cvSummary: currentCV?.sections?.summary?.substring(0, 500),
             hasAnalysis: !!currentSession?.gaps,
-            matchScore: currentSession?.gaps?.matchScore,
             jobTitle: currentSession?.jobTitle,
             company: currentSession?.company,
             // Include master CV and certifications info

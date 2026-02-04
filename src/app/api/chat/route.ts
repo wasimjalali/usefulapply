@@ -5,7 +5,6 @@ interface ChatContext {
   hasCV: boolean;
   cvSummary?: string;
   hasAnalysis: boolean;
-  matchScore?: number;
   jobTitle?: string;
   company?: string;
   // Master CV and certifications
@@ -60,7 +59,6 @@ Current user state:
 
   if (context.hasAnalysis) {
     prompt += `
-- Match score: ${context.matchScore}%
 - Job title: ${context.jobTitle || 'Unknown'}
 - Company: ${context.company || 'Unknown'}`;
   }
