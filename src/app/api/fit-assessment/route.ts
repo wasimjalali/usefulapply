@@ -213,11 +213,19 @@ Be honest but constructive. If it's a bad fit, say so diplomatically.
 ## OUTPUT FORMAT (JSON ONLY)
 You must return a strict JSON object:
 {
-  "chat_message": "### Fit Assessment: [Strong Match/Good Match/Weak Match] (XX%)\\n\\nYour assessment here...\\n\\n**Strong Points:**\\n- Point 1\\n- Point 2\\n\\n**Areas to Address:**\\n- Gap 1\\n\\n**Strategy:** Brief strategy for the writer agent...",
+  "chat_message": "### 🎯 Fit Assessment: [Strong Match/Good Match/Weak Match] (XX%)\\n\\nYour honest assessment here... Be specific about what matches and what doesn't.\\n\\n**✅ Strong Points**\\n- Point 1 (include specific details like €150K Revenue)\\n- Point 2\\n\\n**⚠️ Areas to Address**\\n- **Gap:** Specific gap with explanation\\n- **Gap:** Another gap if applicable\\n\\n**💡 Strategy for Application**\\nBrief actionable strategy for the writer agent...",
   "writer_strategy": "Focus on X. Emphasize Y. Address gap in Z by highlighting transferable skills. Use keywords: A, B, C.",
   "fit_score": "strong|good|weak",
   "match_percentage": 85
 }
+
+FORMATTING RULES:
+1. Start with ### 🎯 Fit Assessment: [Result] (XX%)
+2. Use **✅ Strong Points** for strengths section
+3. Use **⚠️ Areas to Address** for gaps section  
+4. Use **💡 Strategy for Application** for strategy section
+5. Bold key metrics (e.g., **€150K Revenue**, **5 years experience**)
+6. Be honest - if it's a weak fit, say so diplomatically
 
 CRITICAL RULES:
 1. Return ONLY valid JSON - no markdown, no code blocks, no explanations
