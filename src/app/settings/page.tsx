@@ -350,7 +350,7 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
               <Link 
-                href="/"
+                href="/dashboard"
                 className="flex items-center gap-2 text-warm-gray hover:text-charcoal transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-5 h-5" />

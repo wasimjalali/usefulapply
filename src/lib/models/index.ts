@@ -42,7 +42,7 @@ function isRateLimitError(error: unknown): boolean {
  * Falls back to DeepSeek if rate limited
  */
 export async function callModel(options: ModelCallOptions): Promise<ModelResponse> {
-  const { task, prompt, systemPrompt, temperature, maxTokens, jsonMode } = options;
+  const { task, prompt, systemPrompt, temperature, maxTokens, jsonMode, conversationHistory } = options;
   
   const config = getModelConfig(task);
   
@@ -116,6 +116,7 @@ export async function callModel(options: ModelCallOptions): Promise<ModelRespons
       temperature: finalTemp,
       maxTokens: finalMaxTokens,
       jsonMode,
+      conversationHistory,
     });
   }
   

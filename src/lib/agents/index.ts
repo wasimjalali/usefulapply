@@ -1,24 +1,27 @@
 /**
- * Agents Index - 3-Agent Architecture
+ * Agents Index - Single Agent Architecture
  * 
- * Agents:
- * 1. Orchestrator - Coordinates the workflow
- * 2. Context Agent - Gathers all information (CV parsing, JD parsing, research)
- * 3. Writer Agent - Generates all documents (CV, cover letter, email)
+ * Migrated from 3-agent system to unified single agent:
+ * - Unified Writer Agent: Handles all context building and document generation
+ * 
+ * REMOVED:
+ * - Orchestrator Agent (merged into unified)
+ * - Context Agent (merged into unified)
+ * - RAG System (AI-native skill matching)
+ * - Company Research (relies on job description context)
  */
 
 // Export types
 export * from './types';
 
-// Export the 3 agents
-export { contextAgent } from './context-agent';
-export { writerAgent } from './writer-agent';
+// Export the unified agent
 export { 
-  orchestratorAgent, 
+  unifiedWriterAgent,
   runJobCopilot,
   type OrchestrationResult,
-  type OrchestratorInput,
-} from './orchestrator-agent';
+  type UnifiedAgentInput,
+  COVER_LETTER_BLACKLIST,
+} from './unified-writer-agent';
 
 // Convenience function to run the full optimization workflow
 export async function optimizeCV(
@@ -28,8 +31,8 @@ export async function optimizeCV(
   options?: {
     onEvent?: import('./types').AgentEventHandler;
   }
-): Promise<import('./orchestrator-agent').OrchestrationResult | null> {
-  const { runJobCopilot } = await import('./orchestrator-agent');
+): Promise<import('./unified-writer-agent').OrchestrationResult | null> {
+  const { runJobCopilot } = await import('./unified-writer-agent');
   
   const emit = options?.onEvent || (() => {});
   

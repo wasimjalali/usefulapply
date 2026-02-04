@@ -43,7 +43,8 @@ import {
   Check,
   CheckCircle2,
   Circle,
-  Globe
+  Square,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface ChatPanelProps {
@@ -61,32 +62,22 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
     setJobDescription,
     isAnalyzing,
     isGenerating,
+    isAgentWorking,
+    setIsAgentWorking,
     sessions,
     loadSession,
-    // Agent state from store
-    isAgentWorking,
-    agentSteps,
-    v2Progress,
-    v2Reflection,
-    v2Models,
-    v2TokenUsage,
-    setIsAgentWorking,
-    setAgentSteps,
-    setV2Progress,
-    setV2Reflection,
-    setV2Models,
-    setV2TokenUsage,
-    resetAgentState,
   } = useAppStore();
 
   const [inputValue, setInputValue] = useState('');
   const [showHistory, setShowHistory] = useState(false);
-  // isTyping remains local as it's UI-specific
   const [isTyping, setIsTyping] = useState(false);
-  // Agent state now comes from store
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  // Agent settings
+  const [agentSteps, setAgentSteps] = useState<AgentStepData[]>([]);
+  // V2 Agent state
+  const [v2Progress, setV2Progress] = useState<{ percent: number; message: string } | null>(null);
+  const [v2Reflection, setV2Reflection] = useState<{ iteration: number; status: 'started' | 'completed'; improved?: boolean } | null>(null);
+  const [v2Models, setV2Models] = useState<{ analysis: string; writing: string } | null>(null);
+  const [v2Evaluation, setV2Evaluation] = useState<{ score: number; passed: boolean; improvements: string[] } | null>(null);
+  const [v2TokenUsage, setV2TokenUsage] = useState<{ inputTokens: number; outputTokens: number; totalTokens: number } | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [messageFeedback, setMessageFeedback] = useState<Record<string, 'positive' | 'negative'>>({});
@@ -94,11 +85,10 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
   const [feedbackModal, setFeedbackModal] = useState<{ messageId: string; content: string; type: 'positive' | 'negative' } | null>(null);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
-
-  // NEW: State for fit assessment workflow
-  const [pendingStrategy, setPendingStrategy] = useState<string | null>(null);
-  const [pendingJobDescription, setPendingJobDescription] = useState<string | null>(null);
-  const [pendingJobInfo, setPendingJobInfo] = useState<{ title: string; companyName: string } | null>(null);
+  // Abort controller for stopping generation
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const MESSAGE_COLLAPSE_LENGTH = 300; // Characters before collapsing
 
@@ -161,6 +151,32 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
     setFeedbackText('');
   };
 
+  // Stop the ongoing generation
+  const handleStopGeneration = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    // Reset all loading states
+    setIsAgentWorking(false);
+    setIsTyping(false);
+    setV2Progress(null);
+    setAgentSteps([]);
+    
+    // Add a system message with action to start new application
+    addChatMessage({
+      role: 'assistant',
+      content: '⚠️ Generation stopped. No problem! When you\'re ready, paste a new job description to start a fresh application.',
+      actions: [
+        {
+          label: 'Start New Application',
+          action: 'start-new-application',
+          icon: 'new',
+        }
+      ],
+    });
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -207,15 +223,12 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
       if (isJobDescription) {
         setJobDescription(messageContent);
         
-        // Start fit assessment first (0.5 credits)
+        // Start agent workflow immediately - show loading state right away
         setIsAgentWorking(true);
-        setV2Progress({ percent: 0, message: 'Analyzing job fit...' });
+        setV2Progress({ percent: 0, message: 'Starting analysis...' });
         
-        // Store job description for later use
-        setPendingJobDescription(messageContent);
-        
-        // Run fit assessment workflow
-        runFitAssessment(messageContent);
+        // Use the new agent workflow with streaming progress
+        runAgentWorkflow(messageContent);
       } else {
         // Handle general conversation
         handleGeneralChat(messageContent);
@@ -251,15 +264,12 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         
         setJobDescription(messageContent);
         
-        // Start fit assessment first (0.5 credits)
+        // Start agent workflow immediately - show loading state right away
         setIsAgentWorking(true);
-        setV2Progress({ percent: 0, message: 'Analyzing job fit...' });
+        setV2Progress({ percent: 0, message: 'Starting analysis...' });
         
-        // Store job description for later use
-        setPendingJobDescription(messageContent);
-        
-        // Run fit assessment workflow
-        runFitAssessment(messageContent);
+        // Use the new agent workflow with streaming progress
+        runAgentWorkflow(messageContent);
       } else {
         // Handle follow-up questions or general chat
         handleGeneralChat(messageContent);
@@ -270,9 +280,19 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
   const handleGeneralChat = async (message: string) => {
     setIsTyping(true);
     
+    // Create abort controller for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    
     try {
       // Get all documents from store for comprehensive context
       const { masterCV, certifications } = useAppStore.getState();
+      
+      // Get recent chat history for context (last 10 messages)
+      const recentMessages = messages.slice(-10).map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      }));
       
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -291,8 +311,15 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
             hasCertifications: certifications.length > 0,
             certificationsCount: certifications.length,
             certificationsList: certifications.map(c => c.fileName).join(', '),
+            // Include chat history for context awareness
+            chatHistory: recentMessages,
+            // Generated content awareness - so AI knows what it created
+            hasGeneratedCV: !!currentSession?.generatedCV,
+            hasGeneratedCoverLetter: !!currentSession?.coverLetter,
+            hasGeneratedEmail: !!currentSession?.email,
           },
         }),
+        signal: controller.signal,
       });
 
       if (response.ok) {
@@ -310,6 +337,10 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         });
       }
     } catch (error) {
+      // Check if this was an abort
+      if (error instanceof Error && error.name === 'AbortError') {
+        return; // Don't show error message, handled by handleStopGeneration
+      }
       // Fallback response on error
       addChatMessage({
         role: 'assistant',
@@ -317,28 +348,38 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
       });
     } finally {
       setIsTyping(false);
+      abortControllerRef.current = null;
     }
   };
 
-  // Run the fit assessment (Step 1: 0.5 credits)
-  const runFitAssessment = async (jobDescription: string) => {
+  // Run the agent workflow with streaming progress updates
+  const runAgentWorkflow = async (jobDescription: string) => {
     if (!currentCV) return;
     
+    // Set loading state immediately - DO NOT reset v2Progress here!
+    // v2Progress is already set to { percent: 0, message: 'Starting analysis...' } before this function is called
     setIsAgentWorking(true);
     setAgentSteps([]);
-    setV2Progress({ percent: 10, message: 'Analyzing job fit...' });
+    // Keep the initial progress message, don't set to null
+    // setV2Progress(null); // REMOVED - this was clearing the loading indicator
     setV2Reflection(null);
     setV2Models(null);
+    setV2Evaluation(null);
     setV2TokenUsage(null);
     
     try {
+      // Get all documents from the store for comprehensive analysis
       const { masterCV, certifications } = useAppStore.getState();
       
+      // Format certifications as text for the AI to analyze
       const certificationsText = certifications.length > 0 
         ? certifications.map(cert => `- ${cert.fileName}`).join('\n')
         : undefined;
       
-      const response = await fetch('/api/fit-assessment', {
+      // Create abort controller for this request
+      abortControllerRef.current = new AbortController();
+      
+      const response = await fetch('/api/agent-v2', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -346,120 +387,14 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
           currentCV: currentCV.rawText,
           masterCV: masterCV?.rawText,
           certifications: certificationsText,
+          action: 'full_optimization',
         }),
+        signal: abortControllerRef.current.signal,
       });
       
       if (!response.ok) {
-        throw new Error('Fit assessment failed');
+        throw new Error('Agent workflow failed');
       }
-      
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error('No response stream');
-      
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let fitResult: { chat_message: string; writer_strategy: string; fit_score: string; job_info?: { title: string; companyName: string } } | null = null;
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop() || '';
-        
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          
-          try {
-            const data = JSON.parse(line.slice(6));
-            
-            switch (data.type) {
-              case 'progress':
-                setV2Progress({ percent: data.percent, message: data.message });
-                break;
-                
-              case 'credits_deducted':
-                console.log(`[Fit Assessment] Credits deducted: ${data.creditsUsed}`);
-                break;
-                
-              case 'fit_assessment_complete':
-                fitResult = data.result;
-                
-                // Store the strategy and job info for later use
-                if (fitResult?.writer_strategy) {
-                  setPendingStrategy(fitResult.writer_strategy);
-                }
-                if (fitResult?.job_info) {
-                  setPendingJobInfo(fitResult.job_info);
-                }
-                
-                // Add the fit assessment message to chat
-                addChatMessage({
-                  role: 'assistant',
-                  content: fitResult?.chat_message || 'Analysis complete.',
-                  actions: [
-                    { label: '✅ Apply for this Job', action: 'apply-for-job', icon: 'cv' },
-                    { label: '🔄 Start New Application', action: 'start-new-application', icon: 'new' },
-                  ],
-                });
-                break;
-                
-              case 'error':
-                addChatMessage({
-                  role: 'assistant',
-                  content: `❌ Sorry, something went wrong: ${data.message}. Please try again.`,
-                });
-                break;
-            }
-          } catch (e) {
-            console.error('Failed to parse SSE data:', e);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Fit assessment error:', error);
-      addChatMessage({
-        role: 'assistant',
-        content: '❌ Sorry, the fit assessment failed. Please try again.',
-      });
-    } finally {
-      setIsAgentWorking(false);
-      setV2Progress(null);
-    }
-  };
-
-  // Run full generation after user confirms (Step 2: 1.5 credits)
-  const runFullGeneration = async () => {
-    if (!currentCV || !pendingJobDescription || !pendingStrategy) return;
-    
-    setIsAgentWorking(true);
-    setAgentSteps([]);
-    setV2Progress({ percent: 0, message: 'Starting full application generation...' });
-    setV2Reflection(null);
-    setV2Models(null);
-    setV2TokenUsage(null);
-    
-    try {
-      const { masterCV, certifications } = useAppStore.getState();
-      
-      const certificationsText = certifications.length > 0 
-        ? certifications.map(cert => `- ${cert.fileName}`).join('\n')
-        : undefined;
-      
-      const response = await fetch('/api/agent-v2', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jobDescription: pendingJobDescription,
-          currentCV: currentCV.rawText,
-          masterCV: masterCV?.rawText,
-          certifications: certificationsText,
-          action: 'full_optimization',
-          writerStrategy: pendingStrategy,
-          jobInfo: pendingJobInfo,
-        }),
-      });
       
       const reader = response.body?.getReader();
       if (!reader) throw new Error('No response stream');
@@ -488,6 +423,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                   description: s.description,
                   status: 'pending' as const,
                 })));
+                // V2: Store model info
                 if (data.models) {
                   setV2Models(data.models);
                 }
@@ -519,10 +455,12 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                 ));
                 break;
               
+              // V2: Progress updates
               case 'progress':
                 setV2Progress({ percent: data.percent, message: data.message });
                 break;
               
+              // V2: Reflection loop updates
               case 'reflection':
                 setV2Reflection({
                   iteration: data.iteration,
@@ -532,8 +470,9 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                 break;
                 
               case 'workflow_complete':
+                // Update the store with results from Karko AI
                 const { results } = data;
-                const ctx = results.context;
+                const ctx = results.context; // MasterContext from Karko AI
                 
                 // Map new context format to store format
                 if (ctx?.job) {
@@ -557,6 +496,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                   });
                 }
                 
+                // Map match analysis to gaps format
                 if (ctx?.match) {
                   useAppStore.getState().updateCurrentSession({
                     gaps: {
@@ -573,6 +513,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                   });
                 }
                 
+                // Store optimized CV content (now includes changes)
                 if (ctx?.optimizedCV) {
                   useAppStore.getState().updateCurrentSession({
                     generatedCV: {
@@ -588,12 +529,15 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                   });
                 }
                 
+                // Solution B: Store structured CV data from AI (no parsing needed)
                 if (ctx?.optimizedCVData) {
                   useAppStore.getState().updateCurrentSession({
                     optimizedCVData: ctx.optimizedCVData,
                   });
                 }
                 
+                // Store cover letter - the new architecture returns it as a complete formatted string
+                // We store it with empty structured fields since the body contains everything
                 if (ctx?.coverLetter) {
                   useAppStore.getState().updateCurrentSession({
                     coverLetter: {
@@ -611,13 +555,14 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                         street: '',
                       },
                       salutation: '',
-                      body: ctx.coverLetter,
+                      body: ctx.coverLetter, // Full formatted cover letter
                       closing: '',
                       signatureName: '',
                     },
                   });
                 }
                 
+                // Store email - comes as { subject, body } from Karko AI
                 if (ctx?.applicationEmail) {
                   useAppStore.getState().updateCurrentSession({
                     email: {
@@ -628,25 +573,25 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                   });
                 }
                 
-                // Clear pending state
-                setPendingStrategy(null);
-                setPendingJobDescription(null);
+                // Store company research
+                if (ctx?.companyResearch) {
+                  useAppStore.getState().updateCurrentSession({
+                    companyResearch: ctx.companyResearch,
+                  });
+                }
                 
                 // Add completion message
                 addChatMessage({
                   role: 'assistant',
-                  content: `✅ **Application Package Complete!**\n\nYour CV, cover letter, and email have been optimized for this role.\n\nCheck the tabs to review all documents.`,
+                  content: `✅ **Analysis Complete!**\n\nYour CV has been optimized for this role.\n\nCheck the **CV tab** to review the changes.`,
                   actions: [
                     { label: '📄 View Optimized CV', action: 'view-cv', icon: 'cv' },
                     { label: '✉️ View Cover Letter', action: 'view-cover-letter', icon: 'cover-letter' },
                     { label: '📧 View Email', action: 'view-email', icon: 'email' },
-                    { label: '� Start New Application', action: 'start-new-application', icon: 'new' },
+                    { label: '💡 To start a new application, begin a new chat', action: 'none' },
+                    { label: '🚀 Start New Application', action: 'start-new-application', icon: 'new' },
                   ],
                 });
-                break;
-                
-              case 'credits_deducted':
-                console.log(`[Full Generation] Credits deducted: ${data.creditsUsed}`);
                 break;
                 
               case 'error':
@@ -662,14 +607,19 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         }
       }
     } catch (error) {
-      console.error('Full generation error:', error);
+      // Check if it was an abort error (user stopped generation)
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Generation stopped by user');
+        return; // Don't show error message, we already handled it in handleStopGeneration
+      }
+      console.error('Agent workflow error:', error);
       addChatMessage({
         role: 'assistant',
-        content: '❌ Sorry, the document generation failed. Please try again.',
+        content: '❌ Sorry, the analysis failed. Please try again.',
       });
     } finally {
       setIsAgentWorking(false);
-      setV2Progress(null);
+      abortControllerRef.current = null;
     }
   };
 
@@ -723,15 +673,9 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         onTabChange?.('email');
         await handleGenerateEmail();
         break;
-      case 'apply-for-job':
-        // User wants to proceed with full generation (1.5 credits)
-        await runFullGeneration();
-        break;
       case 'start-new-application':
-        // Clear pending state and reset
-        setPendingStrategy(null);
-        setPendingJobDescription(null);
-        setPendingJobInfo(null);
+        // Create a completely new session - this ensures the next message triggers the agent workflow
+        // Setting currentSession to null makes the code treat the next message as a new application
         useAppStore.setState({ 
           currentSession: null,
           jobDescription: '',
@@ -744,7 +688,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
 
   const handleGenerateCoverLetter = async () => {
     const { currentSession } = useAppStore.getState();
-    // Cover letter is already generated by the 3-agent workflow
+    // Cover letter is already generated by Karko AI
     // Just navigate to the tab
     if (currentSession?.coverLetter) {
       addChatMessage({
@@ -764,7 +708,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
 
   const handleGenerateEmail = async () => {
     const { currentSession } = useAppStore.getState();
-    // Email is already generated by the 3-agent workflow
+    // Email is already generated by Karko AI
     // Just navigate to the tab
     if (currentSession?.email) {
       addChatMessage({
@@ -875,17 +819,11 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
       {/* Header */}
       <div className="px-4 py-3 border-b border-cream-300 bg-white">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img 
-              src="/karko-ai.png" 
-              alt="KarKo AI" 
-              className="h-8 w-auto"
-            />
-            <div>
-              <h2 className="text-sm font-semibold text-charcoal">KarKo AI</h2>
-              <p className="text-xs text-warm-gray">Hyper-Personalized Job Agent</p>
-            </div>
-          </div>
+          {/* Brand Name - Styled like the logo */}
+          <h1 className="text-xl font-bold tracking-tight">
+            <span className="text-navy-700">Karko</span>
+            <span className="text-gold-500 ml-1">AI</span>
+          </h1>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowHistory(!showHistory)}
@@ -947,15 +885,15 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         {/* Welcome message */}
         {!currentSession && messages.length === 0 && (
           <div className="flex gap-3">
-            <div className="p-2 bg-navy-100 rounded-full h-fit">
-              <Bot className="w-4 h-4 text-navy-600" />
+            <div className="p-2 bg-gradient-to-br from-navy-600 to-navy-700 rounded-full h-fit">
+              <Sparkles className="w-4 h-4 text-gold-400" />
             </div>
             <div className="flex-1">
               <Card padding="sm" className="bg-white border-cream-200">
                 <MarkdownText 
                   content={currentCV 
                     ? "👋 Great, your CV is uploaded! **Paste a job description** below and I'll:\n\n1. Analyze the requirements\n2. Optimize your CV for the role\n3. Generate a tailored cover letter\n\nJust paste the job posting to get started!"
-                    : "👋 Welcome to KarKo AI! I'm your AI-powered application assistant.\n\nTo get started:\n1. **Upload your CV** in the Documents section\n2. Paste a job description here\n3. I'll optimize everything for you!"
+                    : "👋 Welcome to Karko AI! I'm your AI-powered application assistant.\n\nTo get started:\n1. **Upload your CV** in the Documents section\n2. Paste a job description here\n3. I'll optimize everything for you!"
                   }
                   className="text-sm text-charcoal"
                 />
@@ -988,11 +926,11 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
             ) : (
               <>
                 <div className={`rounded-full h-fit flex-shrink-0 ${
-                  message.role === 'user' ? 'p-2 bg-cream-200' : 'p-2 bg-gradient-to-br from-cyan-500 to-emerald-500'
+                  message.role === 'user' ? 'p-2 bg-cream-200' : 'p-2 bg-gradient-to-br from-navy-600 to-navy-700'
                 }`}>
                   {message.role === 'user' 
                     ? <User className="w-4 h-4 text-charcoal" />
-                    : <Sparkles className="w-4 h-4 text-white" />
+                    : <Sparkles className="w-4 h-4 text-gold-400" />
                   }
                 </div>
                 <div className="flex-1 min-w-0">
@@ -1131,8 +1069,8 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         {/* Immediate loading indicator - shows right away when agent starts */}
         {isAgentWorking && agentSteps.length === 0 && v2Progress && (
           <div className="flex gap-3">
-            <div className="p-2 bg-gradient-to-br from-cyan-500 to-emerald-500 rounded-full h-fit flex-shrink-0">
-              <Sparkles className="w-4 h-4 text-white" />
+            <div className="p-2 bg-gradient-to-br from-navy-600 to-navy-700 rounded-full h-fit flex-shrink-0">
+              <Sparkles className="w-4 h-4 text-gold-400" />
             </div>
             <div className="flex-1">
               <div className="bg-white rounded-lg border border-cream-200 p-4">
@@ -1140,7 +1078,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                   <Loader2 className="w-5 h-5 text-gold-500 animate-spin" />
                   <div>
                     <p className="text-sm font-medium text-navy-800">{v2Progress.message}</p>
-                    <p className="text-xs text-warm-gray mt-1">AI agents are preparing your application...</p>
+                    <p className="text-xs text-warm-gray mt-1">Karko AI is preparing your application...</p>
                   </div>
                 </div>
                 {v2Progress.percent > 0 && (
@@ -1159,8 +1097,8 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         {/* Agent Steps Progress V2 - shown when steps arrive */}
         {isAgentWorking && agentSteps.length > 0 && (
           <div className="flex gap-3">
-            <div className="p-2 bg-gradient-to-br from-cyan-500 to-emerald-500 rounded-full h-fit flex-shrink-0">
-              <Sparkles className="w-4 h-4 text-white" />
+            <div className="p-2 bg-gradient-to-br from-navy-600 to-navy-700 rounded-full h-fit flex-shrink-0">
+              <Sparkles className="w-4 h-4 text-gold-400" />
             </div>
             <div className="flex-1">
               <AgentProgressV2 
@@ -1184,20 +1122,20 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         
         {/* Quality Score Card removed from chat - now only shown in CV panel sidebar */}
         
-        {/* Typing indicator */}
+        {/* Typing indicator - Karko AI branded */}
         {(isTyping || isAnalyzing || isGenerating) && !isAgentWorking && (
           <div className="flex gap-3">
-            <div className="p-2 bg-gradient-to-br from-cyan-500 to-emerald-500 rounded-full h-fit flex-shrink-0">
-              <Sparkles className="w-4 h-4 text-white" />
+            <div className="p-2 bg-gradient-to-br from-navy-500 to-navy-600 rounded-full h-fit flex-shrink-0">
+              <Sparkles className="w-4 h-4 text-gold-400" />
             </div>
-            <div className="flex items-center gap-2 px-4 py-3 bg-white rounded-lg border border-cream-200">
+            <div className="flex items-center gap-2 px-4 py-3 bg-white rounded-lg border border-navy-200">
               <div className="flex gap-1">
-                <span className="w-2 h-2 bg-navy-400 rounded-full animate-bounce typing-dot-1" />
-                <span className="w-2 h-2 bg-navy-400 rounded-full animate-bounce typing-dot-2" />
-                <span className="w-2 h-2 bg-navy-400 rounded-full animate-bounce typing-dot-3" />
+                <span className="w-2 h-2 bg-gold-400 rounded-full animate-bounce typing-dot-1" />
+                <span className="w-2 h-2 bg-gold-500 rounded-full animate-bounce typing-dot-2" />
+                <span className="w-2 h-2 bg-gold-400 rounded-full animate-bounce typing-dot-3" />
               </div>
-              <span className="text-sm text-warm-gray ml-2">
-                {isAnalyzing ? 'Analyzing job requirements...' : isGenerating ? 'Generating content...' : 'Thinking...'}
+              <span className="text-sm text-navy-600 ml-2 font-medium">
+                {isAnalyzing ? 'Karko AI is analyzing...' : isGenerating ? 'Karko AI is generating...' : 'Karko AI is thinking...'}
               </span>
             </div>
           </div>
@@ -1210,7 +1148,11 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
       <div className="p-4 bg-gradient-to-t from-cream-100 to-cream-50">
         <div className="relative">
           {/* Main input container with gold border */}
-          <div className="relative bg-white rounded-2xl border-2 border-gold-300/60 shadow-lg shadow-gold-100/40 overflow-hidden focus-within:border-gold-400 focus-within:shadow-gold-200/50 transition-all duration-200">
+          <div className={`relative bg-white rounded-2xl border-2 shadow-lg overflow-hidden transition-all duration-200 ${
+            isAgentWorking 
+              ? 'border-gold-400 shadow-gold-200/50' 
+              : 'border-gold-300/60 shadow-gold-100/40 focus-within:border-gold-400 focus-within:shadow-gold-200/50'
+          }`}>
             
             <div className="relative flex flex-col">
               {/* Input row */}
@@ -1225,31 +1167,42 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                       ? "Paste a job description or ask me anything..." 
                       : "Upload your CV first to get started..."
                     }
-                    disabled={!currentCV || isAnalyzing || isGenerating || isTyping}
+                    disabled={!currentCV || isAnalyzing || isGenerating || isTyping || isAgentWorking}
                     className="chat-input-textarea w-full px-1 py-1 text-sm bg-transparent focus:outline-none focus:ring-0 border-none resize-none disabled:opacity-50 placeholder:text-warm-gray min-h-[24px] max-h-[150px]"
                     rows={1}
                   />
                 </div>
                 
-                {/* Send button - circular with gradient */}
-                <button
-                  onClick={handleSend}
-                  disabled={!inputValue.trim() || !currentCV || isAnalyzing || isGenerating || isTyping}
-                  title="Send message"
-                  aria-label="Send message"
-                  className="flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 disabled:from-cream-300 disabled:to-cream-400 disabled:cursor-not-allowed flex items-center justify-center shadow-md transition-all duration-200 hover:shadow-lg hover:scale-105 disabled:hover:scale-100"
-                >
-                  <Send className="w-4 h-4 text-white" />
-                </button>
+                {/* Send/Stop button - circular with gradient */}
+                {(isAgentWorking || isTyping) ? (
+                  <button
+                    onClick={handleStopGeneration}
+                    title="Stop generation"
+                    aria-label="Stop generation"
+                    className="flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 flex items-center justify-center shadow-md transition-all duration-200 hover:shadow-lg animate-pulse cursor-pointer"
+                  >
+                    <Square className="w-3.5 h-3.5 text-white fill-white" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSend}
+                    disabled={!inputValue.trim() || !currentCV || isAnalyzing || isGenerating || isTyping}
+                    title="Send message"
+                    aria-label="Send message"
+                    className="flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 disabled:from-cream-300 disabled:to-cream-400 disabled:cursor-not-allowed flex items-center justify-center shadow-md transition-all duration-200 hover:shadow-lg hover:scale-105 disabled:hover:scale-100"
+                  >
+                    <Send className="w-4 h-4 text-white" />
+                  </button>
+                )}
               </div>
             </div>
           </div>
           
-          {/* Bottom info bar */}
-          <div className="flex items-center justify-center mt-3 gap-2">
-            <Sparkles className="w-3 h-3 text-gold-500" />
+          {/* Bottom info bar - AI warning */}
+          <div className="flex items-center justify-center mt-3 gap-1.5">
+            <AlertTriangle className="w-3 h-3 text-warm-gray" />
             <p className="text-xs text-warm-gray">
-              {currentCV ? 'AI-powered optimization' : 'Upload your CV to enable chat'}
+              AI can make mistakes. Please verify important information.
             </p>
           </div>
         </div>

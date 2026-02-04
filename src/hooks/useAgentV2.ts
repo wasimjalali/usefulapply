@@ -1,11 +1,13 @@
 /**
  * useAgentV2 Hook
- * Handles 3-Agent workflow with streaming progress
+ * Handles Karko AI unified agent workflow with streaming progress
  * 
- * Agents:
- * 1. Orchestrator - Coordinates the workflow
- * 2. Context Agent - Gathers CV, JD, and company research
- * 3. Writer Agent - Generates CV, cover letter, and email
+ * Karko AI performs:
+ * 1. CV and Job Description Analysis
+ * 2. Skill Matching and Gap Analysis
+ * 3. Optimized CV Generation
+ * 4. Cover Letter Composition
+ * 5. Application Email Generation
  */
 
 import { useState, useCallback } from 'react';
@@ -18,6 +20,7 @@ export interface AgentV2Step {
   agent?: string;
   result?: unknown;
   error?: string;
+  tokens?: { input: number; output: number };
 }
 
 export interface AgentV2Progress {
@@ -150,6 +153,7 @@ export interface UseAgentV2Return {
   reflection: AgentV2Reflection | null;
   result: AgentV2Result | null;
   error: string | null;
+  companyResearch: CompanyResearchData | null;  // NEW: Live company research data
   models: { analysis: string; writing: string } | null;
   runWorkflow: (
     jobDescription: string,
@@ -169,6 +173,7 @@ export function useAgentV2(): UseAgentV2Return {
   const [result, setResult] = useState<AgentV2Result | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [models, setModels] = useState<{ analysis: string; writing: string } | null>(null);
+  const [companyResearch, setCompanyResearch] = useState<CompanyResearchData | null>(null);
 
   const reset = useCallback(() => {
     setIsWorking(false);
@@ -178,6 +183,7 @@ export function useAgentV2(): UseAgentV2Return {
     setResult(null);
     setError(null);
     setModels(null);
+    setCompanyResearch(null);
   }, []);
 
   const runWorkflow = useCallback(async (
@@ -250,7 +256,12 @@ export function useAgentV2(): UseAgentV2Return {
 
               case 'step_complete':
                 setSteps(prev => prev.map((step, idx) =>
-                  idx === data.index ? { ...step, status: 'completed' as const, result: data.result } : step
+                  idx === data.index ? { 
+                    ...step, 
+                    status: 'completed' as const, 
+                    result: data.result,
+                    tokens: data.tokens,
+                  } : step
                 ));
                 break;
 
@@ -285,6 +296,14 @@ export function useAgentV2(): UseAgentV2Return {
                 triggerCreditUpdate();
                 break;
 
+              case 'tool_usage':
+                // NEW: Handle tool_usage events for frontend visibility
+                if (data.tool === 'company_research' && data.display) {
+                  setCompanyResearch(data.output as CompanyResearchData);
+                  console.log('[useAgentV2] Company research received:', data.output);
+                }
+                break;
+
               case 'error':
                 setError(data.message);
                 break;
@@ -314,6 +333,7 @@ export function useAgentV2(): UseAgentV2Return {
     result,
     error,
     models,
+    companyResearch,  // NEW: Expose company research data
     runWorkflow,
     reset,
   };

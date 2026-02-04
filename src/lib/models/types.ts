@@ -17,11 +17,10 @@ export type TaskType =
   | 'check_limits'
   | 'orchestrate'
   | 'extract_company_info'
-  // 3-Agent Architecture tasks
-  | 'extract_applicant'  // Context Agent: extract applicant profile from CV
-  | 'parse_job'          // Context Agent: parse job description
-  | 'optimize_cv'        // Writer Agent: generate optimized CV
-  | 'fit_assessment'     // NEW: Fit assessment analysis
+  // Karko AI tasks
+  | 'extract_applicant'  // Parse applicant profile from CV
+  | 'parse_job'          // Analyze job description requirements
+  | 'optimize_cv'        // Generate optimized CV
   // Writing tasks (Claude Haiku 4.5 - fast & cost-effective)
   | 'write_summary'
   | 'write_bullets'
@@ -49,6 +48,11 @@ export interface ModelResponse {
   latencyMs: number;
 }
 
+export interface ConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export interface ModelCallOptions {
   task: TaskType;
   prompt: string;
@@ -56,6 +60,7 @@ export interface ModelCallOptions {
   temperature?: number;
   maxTokens?: number;
   jsonMode?: boolean;
+  conversationHistory?: ConversationMessage[];
 }
 
 // Model configurations - All tasks use Claude Haiku 4.5
@@ -159,7 +164,7 @@ export const MODEL_CONFIGS: Record<TaskType, ModelConfig> = {
     temperature: 0.7,
     maxTokens: 2048,
   },
-  // 3-Agent Architecture tasks
+  // Karko AI tasks
   extract_applicant: {
     model: 'claude-haiku-4-5',
     provider: 'anthropic',
@@ -177,13 +182,6 @@ export const MODEL_CONFIGS: Record<TaskType, ModelConfig> = {
     provider: 'anthropic',
     temperature: 0.4,  // Lower for JSON structure consistency while allowing creative writing
     maxTokens: 8192,
-  },
-  // NEW: Fit assessment task
-  fit_assessment: {
-    model: 'claude-haiku-4-5',
-    provider: 'anthropic',
-    temperature: 0.3,
-    maxTokens: 4096,
   },
 };
 

@@ -47,67 +47,87 @@ export interface ActionDetail {
   tokens?: { input: number; output: number };
 }
 
-// 3-Agent Architecture Step Configuration
+// Karko AI Unified Agent Step Configuration
 const STEP_CONFIG: Record<string, { 
   icon: React.ElementType; 
   label: string;
   agent: string;
   actions: string[];
 }> = {
-  // CONTEXT AGENT - Gathers all information
+  // ANALYSIS - Parse CV and job requirements
+  analysis: { 
+    icon: Brain, 
+    label: 'Parsing CV & Requirements',
+    agent: 'Karko AI',
+    actions: [
+      'Extracting applicant profile from CV',
+      'Parsing personal information',
+      'Identifying skills and experience',
+    ]
+  },
+  // MATCHING - Skill match analysis
+  matching: { 
+    icon: Search, 
+    label: 'Skill Matching',
+    agent: 'Karko AI',
+    actions: [
+      'Parsing job description requirements',
+      'Computing skill match score',
+      'Identifying skill gaps',
+    ]
+  },
+  // CV GENERATION - Optimize CV
+  cv_generation: { 
+    icon: FileText, 
+    label: 'Optimizing CV',
+    agent: 'Karko AI',
+    actions: [
+      'Tailoring headline for position',
+      'Enhancing experience bullets',
+      'Prioritizing relevant skills',
+    ]
+  },
+  // COVER LETTER - Write cover letter
+  cover_letter: { 
+    icon: Pencil, 
+    label: 'Composing Cover Letter',
+    agent: 'Karko AI',
+    actions: [
+      'Crafting personalized opening',
+      'Highlighting key qualifications',
+      'Writing compelling conclusion',
+    ]
+  },
+  // EMAIL - Generate application email
+  email: { 
+    icon: Award, 
+    label: 'Generating Email',
+    agent: 'Karko AI',
+    actions: [
+      'Writing professional subject line',
+      'Composing concise body',
+      'Adding call to action',
+    ]
+  },
+  // Legacy step IDs for backward compatibility
   context: { 
     icon: Brain, 
-    label: 'Context Agent',
-    agent: 'Context Agent',
+    label: 'Analyzing Documents',
+    agent: 'Karko AI',
     actions: [
       'Extracting applicant profile from CV',
       'Parsing job description requirements',
-      'Researching company information',
       'Computing skill match analysis',
     ]
   },
-  // WRITER AGENT - Generates all documents
   writing: { 
     icon: Pencil, 
-    label: 'Writer Agent',
-    agent: 'Writer Agent',
+    label: 'Generating Documents',
+    agent: 'Karko AI',
     actions: [
       'Generating optimized CV',
       'Writing cover letter',
       'Composing application email',
-    ]
-  },
-  // Legacy step IDs for backward compatibility
-  research: { 
-    icon: Globe, 
-    label: 'Company Research',
-    agent: 'Context Agent',
-    actions: [
-      'Searching company overview',
-      'Finding company culture & values',
-      'Discovering tech stack',
-      'Fetching recent news',
-    ]
-  },
-  analyze: { 
-    icon: Search, 
-    label: 'Analysis',
-    agent: 'Context Agent',
-    actions: [
-      'Parsing job requirements',
-      'Extracting skills from CV',
-      'Computing skill gaps',
-    ]
-  },
-  write: { 
-    icon: Pencil, 
-    label: 'Content Generation',
-    agent: 'Writer Agent',
-    actions: [
-      'Generating professional summary',
-      'Optimizing headline',
-      'Enhancing experience bullets',
-      'Selecting core skills',
     ]
   },
 };
@@ -183,48 +203,77 @@ export function AgentProgressV2({
     });
   };
 
-  const totalTokens = tokenUsage?.totalTokens || 0;
-
   return (
     <div className="mb-4">
-      {/* Simple progress message */}
+      {/* Karko AI header */}
+      {isWorking && (
+        <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gold-200">
+          <Sparkles className="w-4 h-4 text-gold-500" />
+          <span className="text-sm font-medium text-navy-700">Karko AI</span>
+          {progress && (
+            <span className="text-xs text-warm-gray ml-auto">{progress.percent}%</span>
+          )}
+        </div>
+      )}
+
+      {/* Progress message with navy/gold styling */}
       {progress && (
-        <div className="flex items-center gap-2 text-sm text-neutral-600 mb-2">
-          <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+        <div className="flex items-center gap-2 text-sm text-navy-600 mb-3">
+          <Loader2 className="w-4 h-4 animate-spin text-gold-500" />
           <span>{progress.message}</span>
         </div>
       )}
 
-      {/* Simple step list */}
-      <div className="space-y-1">
+      {/* Step list with navy/gold colors */}
+      <div className="space-y-2">
         {steps.map((step) => {
           const config = STEP_CONFIG[step.id];
           if (!config) return null;
+          const StepIcon = config.icon;
           
           return (
             <div 
               key={step.id} 
-              className={`flex items-center gap-2 text-sm py-1 ${
-                step.status === 'completed' ? 'text-emerald-600' : 
-                step.status === 'running' ? 'text-amber-600' : 
-                step.status === 'error' ? 'text-red-500' :
-                'text-neutral-400'
+              className={`flex items-center gap-3 text-sm py-2 px-3 rounded-lg transition-all ${
+                step.status === 'completed' 
+                  ? 'bg-gold-50 text-navy-700 border border-gold-200' 
+                  : step.status === 'running' 
+                    ? 'bg-navy-50 text-navy-700 border border-navy-200' 
+                    : step.status === 'error' 
+                      ? 'bg-red-50 text-red-600 border border-red-200'
+                      : 'bg-cream-50 text-warm-gray border border-cream-200'
               }`}
             >
-              {step.status === 'running' ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin flex-shrink-0" />
-              ) : step.status === 'completed' ? (
-                <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
-              ) : step.status === 'error' ? (
-                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-              ) : (
-                <Circle className="w-3.5 h-3.5 flex-shrink-0" />
-              )}
-              <span className={step.status === 'running' ? 'font-medium' : ''}>
+              {/* Step icon */}
+              <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
+                step.status === 'completed' 
+                  ? 'bg-gold-100' 
+                  : step.status === 'running' 
+                    ? 'bg-navy-100' 
+                    : 'bg-cream-100'
+              }`}>
+                {step.status === 'running' ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-navy-600" />
+                ) : step.status === 'completed' ? (
+                  <CheckCircle2 className="w-4 h-4 text-gold-600" />
+                ) : step.status === 'error' ? (
+                  <AlertCircle className="w-4 h-4 text-red-500" />
+                ) : (
+                  <StepIcon className="w-4 h-4 text-warm-gray" />
+                )}
+              </div>
+
+              {/* Step label */}
+              <span className={`flex-grow ${step.status === 'running' ? 'font-medium' : ''}`}>
                 {config.label}
               </span>
+
+              {/* Status indicator */}
               {step.status === 'completed' && (
-                <span className="text-xs text-neutral-400 ml-auto">✓</span>
+                <span className="text-xs text-gold-600 font-medium">Done</span>
+              )}
+              {step.status === 'running' && (
+                <span className="text-xs text-navy-500">Processing...</span>
               )}
             </div>
           );
@@ -290,19 +339,6 @@ export function AgentProgressV2({
               ? `Refining (iteration ${reflection.iteration})`
               : `Refined ${reflection.iteration}x`
             }
-          </span>
-        </div>
-      )}
-
-      {/* Token usage footer */}
-      {tokenUsage && tokenUsage.totalTokens > 0 && (
-        <div className="px-4 py-2 border-t border-neutral-100 bg-neutral-50/30 flex items-center justify-between text-xs text-neutral-500">
-          <div className="flex items-center gap-3">
-            <span>Input: {tokenUsage.inputTokens.toLocaleString()}</span>
-            <span>Output: {tokenUsage.outputTokens.toLocaleString()}</span>
-          </div>
-          <span className="font-medium text-neutral-600">
-            Total: {tokenUsage.totalTokens.toLocaleString()}
           </span>
         </div>
       )}

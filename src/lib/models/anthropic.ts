@@ -4,7 +4,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import type { ModelResponse } from './types';
+import type { ModelResponse, ConversationMessage } from './types';
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -17,13 +17,14 @@ export interface AnthropicCallOptions {
   temperature?: number;
   maxTokens?: number;
   jsonMode?: boolean;
+  conversationHistory?: ConversationMessage[];
 }
 
 /**
  * Call Claude Haiku 4.5 for all AI tasks
  */
 export async function callAnthropic(options: AnthropicCallOptions): Promise<ModelResponse> {
-  const { prompt, systemPrompt, temperature = 0.7, maxTokens = 4096, jsonMode = false } = options;
+  const { prompt, systemPrompt, temperature = 0.7, maxTokens = 4096, jsonMode = false, conversationHistory } = options;
   
   const startTime = Date.now();
   
@@ -34,15 +35,26 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
     finalSystemPrompt = finalSystemPrompt + jsonInstruction;
   }
   
+  // Build messages array with conversation history if provided
+  const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+  
+  if (conversationHistory && conversationHistory.length > 0) {
+    // Add conversation history
+    for (const msg of conversationHistory) {
+      messages.push({ role: msg.role, content: msg.content });
+    }
+  } else {
+    // Just add the current prompt
+    messages.push({ role: 'user', content: prompt });
+  }
+  
   try {
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5',
       max_tokens: maxTokens,
       temperature,
       ...(finalSystemPrompt && { system: finalSystemPrompt }),
-      messages: [
-        { role: 'user', content: prompt }
-      ],
+      messages,
     });
     
     // Extract text content

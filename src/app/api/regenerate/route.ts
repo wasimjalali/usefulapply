@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writerAgent } from '@/lib/agents/writer-agent';
+import { unifiedWriterAgent } from '@/lib/agents/unified-writer-agent';
 import type { MasterContext } from '@/lib/agents/types';
 import { createClient } from '@/lib/supabase/server';
 import { checkAndDeductCredits, formatCreditErrorResponse } from '@/lib/middleware/creditCheck';
@@ -7,7 +7,7 @@ import { setServerSupabaseClient, clearServerSupabaseClient } from '@/lib/supaba
 
 /**
  * API endpoint for regenerating cover letter or email
- * Uses the Writer Agent from the 3-agent architecture
+ * Uses the Unified Writer Agent (single agent architecture)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -78,20 +78,22 @@ export async function POST(request: NextRequest) {
     };
 
     if (type === 'cover-letter') {
-      const coverLetter = await writerAgent.generateCoverLetter(masterContext);
+      const { result: coverLetter, tokens } = await unifiedWriterAgent.generateCoverLetter(masterContext);
       clearServerSupabaseClient();
       return NextResponse.json({ 
         coverLetter,
         creditsDeducted: 1,
         remainingCredits: creditResult.remainingCredits,
+        tokens,
       });
     } else if (type === 'email') {
-      const email = await writerAgent.generateApplicationEmail(masterContext);
+      const { result: email, tokens } = await unifiedWriterAgent.generateApplicationEmail(masterContext);
       clearServerSupabaseClient();
       return NextResponse.json({ 
         email,
         creditsDeducted: 1,
         remainingCredits: creditResult.remainingCredits,
+        tokens,
       });
     } else {
       clearServerSupabaseClient();

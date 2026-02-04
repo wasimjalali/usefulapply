@@ -403,7 +403,7 @@ export default function DocumentsPage() {
         <div className="mb-8">
           {/* Back Navigation */}
           <Link 
-            href="/"
+            href="/dashboard"
             className="inline-flex items-center gap-2 text-navy-600 hover:text-navy-700 transition-colors mb-6 group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
@@ -699,7 +699,7 @@ export default function DocumentsPage() {
                 </>
               )}
             </div>
-            <Link href="/">
+            <Link href="/dashboard">
               <Button 
                 variant="gold" 
                 size="lg"

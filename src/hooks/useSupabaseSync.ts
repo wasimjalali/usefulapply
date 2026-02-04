@@ -11,6 +11,8 @@ import {
   deleteSession as deleteSupabaseSession,
   getChatMessages,
   addChatMessage as addSupabaseChatMessage,
+  getDocumentByType,
+  getProfilePhotoUrl,
 } from '@/lib/supabase';
 
 // Type for Supabase application_sessions row
@@ -59,11 +61,88 @@ export function useSupabaseSync() {
     setSessions,
     setCurrentCV,
     setStructuredCV,
+    setMasterCV,
+    setProfilePhoto,
+    currentCV,
+    masterCV,
+    profilePhoto,
   } = useAppStore();
   
   const lastSyncedSessionRef = useRef<string | null>(null);
   const isInitialLoadRef = useRef(true);
+  const docsLoadedRef = useRef(false);
   const supabase = createClient();
+
+  // CRITICAL: Load documents (primary CV, master CV, profile photo) from Supabase on mount
+  useEffect(() => {
+    const loadDocumentsFromSupabase = async () => {
+      if (!user) return;
+      
+      // Only run once per session
+      if (docsLoadedRef.current) return;
+      docsLoadedRef.current = true;
+      
+      console.log('[SupabaseSync] Loading documents from Supabase for user:', user.id);
+      
+      try {
+        // Load primary CV, master CV, and profile photo in parallel
+        const [primaryDoc, masterDoc, photoResult] = await Promise.all([
+          getDocumentByType(user.id, 'primary_cv'),
+          getDocumentByType(user.id, 'master_cv'),
+          getProfilePhotoUrl(user.id),
+        ]);
+        
+        // Load primary CV if exists in Supabase but not in local store
+        if (primaryDoc && !currentCV) {
+          console.log('[SupabaseSync] Loading primary CV from Supabase:', primaryDoc.file_name);
+          setCurrentCV({
+            rawText: primaryDoc.raw_text || '',
+            sections: primaryDoc.sections || {},
+            fileName: primaryDoc.file_name,
+            fileType: primaryDoc.file_type,
+          });
+          if (primaryDoc.structured_data) {
+            setStructuredCV(primaryDoc.structured_data);
+          }
+        }
+        
+        // Load master CV if exists in Supabase but not in local store
+        if (masterDoc && !masterCV) {
+          console.log('[SupabaseSync] Loading master CV from Supabase:', masterDoc.file_name);
+          setMasterCV({
+            rawText: masterDoc.raw_text || '',
+            sections: masterDoc.sections || {},
+            fileName: masterDoc.file_name,
+            fileType: masterDoc.file_type,
+            allSkills: masterDoc.all_skills || [],
+            allExperiences: masterDoc.all_experiences || [],
+            allEducation: masterDoc.all_education || [],
+          });
+        }
+        
+        // Load profile photo if exists in Supabase but not in local store
+        if (photoResult.url && !profilePhoto) {
+          console.log('[SupabaseSync] Loading profile photo from Supabase');
+          setProfilePhoto({
+            id: `photo-supabase-${Date.now()}`,
+            fileName: 'profile.jpg',
+            dataUrl: photoResult.url,
+            uploadedAt: new Date().toISOString(),
+          });
+        }
+        
+        console.log('[SupabaseSync] Documents loaded:', {
+          primaryCV: primaryDoc ? primaryDoc.file_name : 'not found',
+          masterCV: masterDoc ? masterDoc.file_name : 'not found',
+          profilePhoto: photoResult.url ? 'loaded' : 'not found',
+        });
+      } catch (err) {
+        console.error('[SupabaseSync] Failed to load documents:', err);
+      }
+    };
+    
+    loadDocumentsFromSupabase();
+  }, [user, currentCV, masterCV, profilePhoto, setCurrentCV, setStructuredCV, setMasterCV, setProfilePhoto]);
 
   // CRITICAL: Load sessions from Supabase on mount and populate Zustand store
   useEffect(() => {

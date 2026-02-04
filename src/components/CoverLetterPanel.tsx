@@ -8,11 +8,10 @@ import { Mail, Download, Copy, Check, RefreshCw, ChevronDown, FileText, File, Ed
 import type { GeneratedCoverLetter } from '@/lib/types';
 import { jsPDF } from 'jspdf';
 import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
-import { CoverLetterSkeleton } from './ui/skeletons/CoverLetterSkeleton';
-import { PremiumLoadingSkeleton } from './ui/skeletons/PremiumLoadingSkeleton';
+import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 
 export function CoverLetterPanel() {
-  const { currentSession, isGenerating, setCoverLetter, currentCV, structuredCV } = useAppStore();
+  const { currentSession, isGenerating, isAgentWorking, setCoverLetter, currentCV, structuredCV } = useAppStore();
   const coverLetter = currentSession?.coverLetter;
   const generatedCV = currentSession?.generatedCV;
   const requirements = currentSession?.requirements;
@@ -376,6 +375,17 @@ ${letter.signatureName}`;
     }
   };
 
+  // Show loading indicator during full generation workflow
+  if (!coverLetter && isAgentWorking) {
+    return (
+      <KarkoAIStepIndicator 
+        stepType="cover_letter" 
+        isLoading={true}
+        message="Composing your tailored cover letter..."
+      />
+    );
+  }
+
   // Show generate button if CV is ready but no cover letter yet
   if (!coverLetter && currentCV && jobDescription) {
     return (
@@ -535,8 +545,12 @@ ${letter.signatureName}`;
       </div>
 
       <div className="flex-1 overflow-auto p-6">
-        {isGenerating || isLoadingCoverLetter ? (
-          <PremiumLoadingSkeleton type="coverletter" />
+        {isGenerating || isLoadingCoverLetter || isAgentWorking ? (
+          <KarkoAIStepIndicator 
+            stepType="cover_letter" 
+            isLoading={true}
+            message="Crafting a personalized cover letter that highlights your qualifications..."
+          />
         ) : (
           <Card className="max-w-2xl mx-auto p-8">
             {isEditMode ? (

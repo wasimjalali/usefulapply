@@ -115,7 +115,7 @@ const faqs = [
   },
   {
     question: 'How does the AI personalization work?',
-    answer: 'Our 3 AI agents research the company, analyze the job description, compare it with your CV, and generate hyper-personalized documents that highlight your most relevant experience.',
+    answer: 'Karko AI researches the company, analyzes the job description, and compares it with your CV and experience to generate hyper-personalized documents that highlight your most relevant skills and achievements.',
   },
   {
     question: 'Are all features available in all tiers?',

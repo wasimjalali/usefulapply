@@ -6,14 +6,14 @@ import { Button } from './ui/Button';
 import { useAppStore } from '@/store/useAppStore';
 import { Send, Copy, Check, Mail, RefreshCw, Edit3, Eye } from 'lucide-react';
 import type { GeneratedEmail } from '@/lib/types';
-import { EmailSkeleton } from './ui/skeletons/EmailSkeleton';
-import { PremiumLoadingSkeleton } from './ui/skeletons/PremiumLoadingSkeleton';
+import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 
 export function EmailPanel() {
   const { 
     currentSession,
     updateCurrentSession,
-    isGenerating 
+    isGenerating,
+    isAgentWorking,
   } = useAppStore();
   
   const email = currentSession?.email;
@@ -174,20 +174,29 @@ export function EmailPanel() {
       console.warn('[EMAIL] Mailto link exceeds 2000 chars, may not work in all browsers');
     }
     
-    // Use window.open with _self to avoid blank page issues
-    // This is more reliable than window.location.href for mailto links
-    const newWindow = window.open(mailtoLink, '_self');
+    // Create a hidden anchor element and click it
+    // This is the most reliable way to trigger mailto links across browsers
+    const link = document.createElement('a');
+    link.href = mailtoLink;
+    link.target = '_blank'; // Opens in new tab/window if mailto fails
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     
-    // Fallback: If window.open fails (popup blocked), try creating a hidden link
-    if (!newWindow) {
-      const link = document.createElement('a');
-      link.href = mailtoLink;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
+    console.log('[EMAIL] Mailto link clicked successfully');
   };
+
+  // Show loading indicator during full generation workflow
+  if (!email && isAgentWorking) {
+    return (
+      <KarkoAIStepIndicator 
+        stepType="email" 
+        isLoading={true}
+        message="Generating your application email..."
+      />
+    );
+  }
 
   // Show generate button if job description is available but no email yet
   if (!email && jobDescription) {
@@ -295,8 +304,12 @@ export function EmailPanel() {
       </div>
 
       <div className="flex-1 overflow-auto p-6">
-        {isGenerating || isLoadingEmail ? (
-          <PremiumLoadingSkeleton type="email" />
+        {isLoadingEmail || isGenerating || isAgentWorking ? (
+          <KarkoAIStepIndicator 
+            stepType="email" 
+            isLoading={true}
+            message="Composing a professional application email..."
+          />
         ) : (
           <Card className="max-w-2xl mx-auto">
             {/* Subject Line */}

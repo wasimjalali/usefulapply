@@ -145,19 +145,6 @@ export interface ChatAction {
   icon?: 'cv' | 'cover-letter' | 'email' | 'new';
 }
 
-export interface AgentStepData {
-  function: string;
-  description: string;
-  status: 'pending' | 'running' | 'completed' | 'error';
-  result?: {
-    matchScore?: number;
-    matchingSkills?: string[];
-    missingSkills?: string[];
-  };
-  error?: string;
-  agent?: string;
-}
-
 export interface ProfilePhoto {
   id: string;
   fileName: string;
@@ -203,17 +190,10 @@ export interface AppState {
   // UI State (don't persist)
   isAnalyzing: boolean;
   isGenerating: boolean;
+  isAgentWorking: boolean;  // True when Karko AI agent is running full workflow
   isPdfGenerating: boolean;
   activeTab: 'cv' | 'cover-letter' | 'email';
   error: string | null;
-  
-  // Agent State (shared across panels)
-  isAgentWorking: boolean;
-  agentSteps: AgentStepData[];
-  v2Progress: { percent: number; message: string } | null;
-  v2Reflection: { iteration: number; status: 'started' | 'completed'; improved?: boolean } | null;
-  v2Models: { analysis: string; writing: string } | null;
-  v2TokenUsage: { inputTokens: number; outputTokens: number; totalTokens: number } | null;
 }
 
 interface AppActions {
@@ -260,18 +240,10 @@ interface AppActions {
   // UI actions
   setIsAnalyzing: (value: boolean) => void;
   setIsGenerating: (value: boolean) => void;
+  setIsAgentWorking: (value: boolean) => void;
   setIsPdfGenerating: (value: boolean) => void;
   setActiveTab: (tab: 'cv' | 'cover-letter' | 'email') => void;
   setError: (error: string | null) => void;
-  
-  // Agent actions
-  setIsAgentWorking: (value: boolean) => void;
-  setAgentSteps: (steps: AgentStepData[] | ((prev: AgentStepData[]) => AgentStepData[])) => void;
-  setV2Progress: (progress: { percent: number; message: string } | null) => void;
-  setV2Reflection: (reflection: { iteration: number; status: 'started' | 'completed'; improved?: boolean } | null) => void;
-  setV2Models: (models: { analysis: string; writing: string } | null) => void;
-  setV2TokenUsage: (usage: { inputTokens: number; outputTokens: number; totalTokens: number } | null) => void;
-  resetAgentState: () => void;
   
   // Reset
   resetAll: () => void;
@@ -299,16 +271,10 @@ const initialState: AppState = {
   email: null,
   isAnalyzing: false,
   isGenerating: false,
+  isAgentWorking: false,
   isPdfGenerating: false,
   activeTab: 'cv',
   error: null,
-  // Agent State
-  isAgentWorking: false,
-  agentSteps: [],
-  v2Progress: null,
-  v2Reflection: null,
-  v2Models: null,
-  v2TokenUsage: null,
 };
 
 export const useAppStore = create<AppState & AppActions>()(
@@ -503,27 +469,10 @@ export const useAppStore = create<AppState & AppActions>()(
       // UI actions (not persisted)
       setIsAnalyzing: (value) => set({ isAnalyzing: value }),
       setIsGenerating: (value) => set({ isGenerating: value }),
+      setIsAgentWorking: (value) => set({ isAgentWorking: value }),
       setIsPdfGenerating: (value: boolean) => set({ isPdfGenerating: value }),
       setActiveTab: (tab) => set({ activeTab: tab }),
       setError: (error) => set({ error }),
-
-      // Agent actions (not persisted)
-      setIsAgentWorking: (value) => set({ isAgentWorking: value }),
-      setAgentSteps: (steps) => set((state) => ({ 
-        agentSteps: typeof steps === 'function' ? steps(state.agentSteps) : steps 
-      })),
-      setV2Progress: (progress) => set({ v2Progress: progress }),
-      setV2Reflection: (reflection) => set({ v2Reflection: reflection }),
-      setV2Models: (models) => set({ v2Models: models }),
-      setV2TokenUsage: (usage) => set({ v2TokenUsage: usage }),
-      resetAgentState: () => set({
-        isAgentWorking: false,
-        agentSteps: [],
-        v2Progress: null,
-        v2Reflection: null,
-        v2Models: null,
-        v2TokenUsage: null,
-      }),
 
       // Reset
       resetAll: () => set(initialState),

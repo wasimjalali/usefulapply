@@ -28,9 +28,7 @@ import {
   Edit3
 } from 'lucide-react';
 import { EditableCVCanvas } from './EditableCVCanvas';
-import { CVLoadingSkeleton } from './ui/skeletons/CVLoadingSkeleton';
-import { PremiumLoadingSkeleton } from './ui/skeletons/PremiumLoadingSkeleton';
-import { ATSSpeedometer } from './dashboard/ATSSpeedometer';
+import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import Link from 'next/link';
 
 // NOTE: Old patching functions (applyChangesToCVData, parseLanguagesFromText, etc.) 
@@ -44,11 +42,8 @@ export function CVPanel() {
     currentSession,
     isGenerating,
     isAnalyzing,
-    profilePhoto,
-    // Agent state from store
     isAgentWorking,
-    agentSteps,
-    v2Progress,
+    profilePhoto,
   } = useAppStore();
   
   const generatedCV = currentSession?.generatedCV;
@@ -400,23 +395,6 @@ export function CVPanel() {
   const isLoading = isAnalyzing || isGenerating || isAgentWorking;
   const displayContent = showOptimized && generatedCV ? generatedCV.content : currentCV.rawText;
 
-  // Show loading if AI is processing, even if we have a CV
-  if (isLoading && currentCV) {
-    return (
-      <div className="h-full flex flex-col bg-cream-50">
-        <div className="px-6 py-4 border-b border-cream-300">
-          <div className="flex items-center gap-3">
-            <FileText className="w-5 h-5 text-navy-600" />
-            <h2 className="text-lg font-semibold text-charcoal">Your CV</h2>
-          </div>
-        </div>
-        <div className="flex-1">
-          <PremiumLoadingSkeleton type="cv" />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="h-full flex flex-col bg-cream-50">
       {/* Header */}
@@ -456,7 +434,14 @@ export function CVPanel() {
       {/* Content Area */}
       <div className="flex-1 overflow-hidden">
         {isLoading ? (
-          <PremiumLoadingSkeleton type="cv" />
+          <KarkoAIStepIndicator 
+            stepType="cv" 
+            isLoading={true}
+            message={isAnalyzing 
+              ? 'Understanding job requirements and matching with your profile...'
+              : 'Tailoring your CV for maximum impact and ATS compatibility...'
+            }
+          />
         ) : activeTab === 'content' ? (
           <div className="h-full flex flex-col">
             {/* Toolbar */}
@@ -605,28 +590,41 @@ export function CVPanel() {
             {/* NEW: Use analysis from optimizedCVData (Solution B) */}
             {optimizedCVData?.analysis ? (
               <div className="space-y-6">
-                {/* ATS Speedometer */}
-                <ATSSpeedometer score={optimizedCVData.analysis.ats_compatibility} />
-
                 {/* 1. Strategy Summary */}
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                  <h3 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4" />
+                <div className="bg-gradient-to-r from-navy-50 to-navy-100 p-4 rounded-lg border border-navy-200">
+                  <h3 className="font-bold text-navy-800 mb-2 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-gold-600" />
                     Optimization Strategy
                   </h3>
-                  <p className="text-blue-800 text-sm">{optimizedCVData.analysis.summary}</p>
+                  <p className="text-navy-700 text-sm">{optimizedCVData.analysis.summary}</p>
+                </div>
+
+                {/* 2. ATS Compatibility Score */}
+                <div className="bg-cream-50 p-4 rounded-lg border border-cream-200">
+                  <h3 className="font-bold text-navy-800 mb-2">ATS Compatibility</h3>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 bg-cream-200 rounded-full h-3">
+                      <div 
+                        className="bg-gradient-to-r from-gold-400 to-gold-500 h-3 rounded-full transition-all duration-500"
+                        style={{ width: `${optimizedCVData.analysis.ats_compatibility}%` }}
+                      />
+                    </div>
+                    <span className="font-bold text-navy-700 text-lg">
+                      {optimizedCVData.analysis.ats_compatibility}%
+                    </span>
+                  </div>
                 </div>
 
                 {/* 3. Key Changes List */}
                 <div>
-                  <h3 className="font-bold mb-3 flex items-center gap-2 text-charcoal">
-                    <Sparkles className="w-4 h-4 text-navy-600" />
+                  <h3 className="font-bold mb-3 flex items-center gap-2 text-navy-800">
+                    <Sparkles className="w-4 h-4 text-gold-500" />
                     Key Improvements Made
                   </h3>
                   <ul className="space-y-2">
                     {optimizedCVData.analysis.key_changes.map((change, i) => (
-                      <li key={i} className="flex items-start gap-2 p-2 bg-white rounded border border-cream-200">
-                        <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                      <li key={i} className="flex items-start gap-2 p-3 bg-white rounded-lg border border-cream-200 shadow-sm">
+                        <CheckCircle className="w-4 h-4 text-gold-500 mt-0.5 flex-shrink-0" />
                         <span className="text-sm text-charcoal">{change}</span>
                       </li>
                     ))}
@@ -636,12 +634,12 @@ export function CVPanel() {
                 {/* 4. Missing Keywords Added */}
                 {optimizedCVData.analysis.missing_keywords_added.length > 0 && (
                   <div>
-                    <h3 className="font-bold mb-3 text-charcoal">Keywords Added for ATS</h3>
+                    <h3 className="font-bold mb-3 text-navy-800">Keywords Added for ATS</h3>
                     <div className="flex flex-wrap gap-2">
                       {optimizedCVData.analysis.missing_keywords_added.map((keyword, i) => (
                         <span 
                           key={i} 
-                          className="px-2 py-1 bg-green-100 text-green-700 rounded text-sm font-medium"
+                          className="px-3 py-1.5 bg-gold-50 text-gold-700 rounded-full text-sm font-medium border border-gold-200"
                         >
                           + {keyword}
                         </span>

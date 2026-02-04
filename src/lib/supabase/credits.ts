@@ -23,7 +23,7 @@ const getSupabaseClient = () => serverSupabaseClient || getUntypedSupabase();
 export interface UserCredits {
   id: string;
   user_id: string;
-  monthly_credits: number;  // Now supports decimals (0.5, 1.5)
+  monthly_credits: number;
   rollover_credits: number;
   addon_credits: number;
   plan_tier: 'starter' | 'plus' | 'pro';
@@ -36,7 +36,7 @@ export interface UserCredits {
 export interface CreditTransaction {
   id: string;
   user_id: string;
-  amount: number;  // Now supports decimals (e.g., -0.5, -1.5)
+  amount: number;
   transaction_type: string;
   session_id?: string;
   description?: string;
@@ -79,10 +79,7 @@ export interface AddonCreditPack {
 // =====================================================
 
 export const CREDIT_COSTS = {
-  FIT_ANALYSIS: 0.5,        // NEW: Initial fit assessment
-  FULL_GENERATION: 1.5,     // NEW: Full application (CV + Cover Letter + Email)
-  // Legacy costs (kept for backwards compatibility)
-  FULL_APPLICATION: 2,      // DEPRECATED: Use FIT_ANALYSIS + FULL_GENERATION instead
+  FULL_APPLICATION: 2,      // CV + Cover Letter + Email
   CV_OPTIMIZATION: 1,       // CV only
   COVER_LETTER_REGEN: 1,    // Cover letter regeneration
   EMAIL_REGEN: 1,           // Email regeneration
@@ -387,107 +384,6 @@ export async function deductCredits(
     success: true,
     remainingCredits: totalAfter,
     error: null,
-  };
-}
-
-// =====================================================
-// DECIMAL CREDIT DEDUCTION (RPC-based)
-// =====================================================
-
-/**
- * Deduct credits using RPC function for decimal support
- * Use this for FIT_ANALYSIS (0.5) and FULL_GENERATION (1.5)
- */
-export async function deductCreditsRPC(
-  userId: string,
-  action: 'FIT_ANALYSIS' | 'FULL_GENERATION',
-  options?: {
-    sessionId?: string;
-    description?: string;
-  }
-): Promise<{
-  success: boolean;
-  remainingCredits: number;
-  error: Error | null;
-}> {
-  const supabase = getSupabaseClient();
-  const amount = CREDIT_COSTS[action];
-
-  // Use the RPC function for atomic decimal deduction
-  const { data, error } = await supabase.rpc('deduct_user_credits', {
-    p_user_id: userId,
-    p_amount: amount,
-    p_transaction_type: action.toLowerCase(),
-    p_session_id: options?.sessionId || null,
-    p_description: options?.description || `${action} credit deduction`,
-  });
-
-  if (error) {
-    console.error('[deductCreditsRPC] RPC error:', error);
-    return {
-      success: false,
-      remainingCredits: 0,
-      error: new Error(error.message),
-    };
-  }
-
-  // RPC returns an array with one row
-  const result = data?.[0];
-  if (!result) {
-    return {
-      success: false,
-      remainingCredits: 0,
-      error: new Error('Invalid RPC response'),
-    };
-  }
-
-  return {
-    success: result.success,
-    remainingCredits: Number(result.remaining_credits),
-    error: result.error_message ? new Error(result.error_message) : null,
-  };
-}
-
-/**
- * Check credit balance using RPC for decimal support
- */
-export async function checkCreditBalanceRPC(
-  userId: string,
-  amount: number
-): Promise<{
-  hasEnough: boolean;
-  available: number;
-  required: number;
-}> {
-  const supabase = getSupabaseClient();
-
-  const { data, error } = await supabase.rpc('check_credit_balance', {
-    p_user_id: userId,
-    p_amount: amount,
-  });
-
-  if (error) {
-    console.error('[checkCreditBalanceRPC] RPC error:', error);
-    return {
-      hasEnough: false,
-      available: 0,
-      required: amount,
-    };
-  }
-
-  const result = data?.[0];
-  if (!result) {
-    return {
-      hasEnough: false,
-      available: 0,
-      required: amount,
-    };
-  }
-
-  return {
-    hasEnough: result.has_enough,
-    available: Number(result.available),
-    required: Number(result.required),
   };
 }
 
