@@ -210,29 +210,41 @@ Analyze the fit honestly. Assess whether this is a:
 
 Be honest but constructive. If it's a bad fit, say so diplomatically.
 
+## OUTPUT CONSTRAINTS (STRICT)
+The chat_message field must be concise (Max 150 words). Do NOT write a report.
+
+Structure:
+1. **The Verdict:** 1 Paragraph (2-3 sentences). State the Score and the #1 reason they match (Connect User Skill -> JD Pain Point).
+2. **The Gaps:** Max 2-3 Bullet points. Only list the *critical* missing requirements (e.g. Missing Skills, Wrong Industry). If none, list "None".
+3. **The Strategy:** 1 Paragraph (2 sentences). How will you frame the CV to fix the gaps?
+
+## TONE
+Direct, Strategic, Coach-like. No fluff.
+
 ## OUTPUT FORMAT (JSON ONLY)
 You must return a strict JSON object:
 {
-  "chat_message": "### 🎯 Fit Assessment: [Strong Match/Good Match/Weak Match] (XX%)\\n\\nYour honest assessment here... Be specific about what matches and what doesn't.\\n\\n**✅ Strong Points**\\n- Point 1 (include specific details like €150K Revenue)\\n- Point 2\\n\\n**⚠️ Areas to Address**\\n- **Gap:** Specific gap with explanation\\n- **Gap:** Another gap if applicable\\n\\n**💡 Strategy for Application**\\nBrief actionable strategy for the writer agent...",
+  "chat_message": "### 🎯 Fit Assessment: [Strong/Good/Weak Match] (XX%)\\n\\n**The Verdict:** [1 paragraph connecting user skill to JD pain point]\\n\\n**⚠️ The Gaps:**\\n- [Critical gap 1]\\n- [Critical gap 2, or 'None']\\n\\n**💡 The Strategy:** [2 sentences on how to frame the CV]",
   "writer_strategy": "Focus on X. Emphasize Y. Address gap in Z by highlighting transferable skills. Use keywords: A, B, C.",
   "fit_score": "strong|good|weak",
   "match_percentage": 85
 }
 
 FORMATTING RULES:
-1. Start with ### 🎯 Fit Assessment: [Result] (XX%)
-2. Use **✅ Strong Points** for strengths section
-3. Use **⚠️ Areas to Address** for gaps section  
-4. Use **💡 Strategy for Application** for strategy section
-5. Bold key metrics (e.g., **€150K Revenue**, **5 years experience**)
-6. Be honest - if it's a weak fit, say so diplomatically
+1. Max 150 words in chat_message - be concise
+2. Start with ### 🎯 Fit Assessment: [Result] (XX%)
+3. Use **The Verdict:** for the main assessment paragraph
+4. Use **⚠️ The Gaps:** for missing requirements (max 2-3 bullets)
+5. Use **💡 The Strategy:** for the framing approach (2 sentences)
+6. Bold key metrics (e.g., **€150K Revenue**, **5 years experience**)
+7. Be honest - if it's a weak fit, say so diplomatically
 
 CRITICAL RULES:
 1. Return ONLY valid JSON - no markdown, no code blocks, no explanations
-2. chat_message must be professional but conversational
+2. chat_message must be direct and strategic - no fluff
 3. Include specific match percentage (0-100)
 4. writer_strategy should guide document generation
-5. Be honest about fit quality`;
+5. Be honest about fit quality - focus on critical gaps only`;
 
   const userPrompt = `Analyze the fit between this CV and Job Description:
 
