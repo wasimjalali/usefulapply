@@ -258,12 +258,126 @@ Extract ALL skills mentioned, including technical skills, soft skills, tools, an
   },
 
   /**
-   * Research company - web search removed
-   * Returns undefined as company research is no longer performed
+   * Build minimal context without expensive AI calls
+   * Used when writerStrategy is already provided from fit assessment
    */
-  async doCompanyResearch(companyName: string): Promise<MasterContext['companyResearch'] | undefined> {
-    console.log('[ContextAgent] Company research via web search disabled');
-    return undefined;
+  async buildMinimalContext(
+    context: MasterContext,
+    emit: AgentEventHandler
+  ): Promise<MasterContext> {
+    console.log('[CONTEXT_AGENT] Building minimal context (bypass mode)...');
+    
+    try {
+      // Step 0: Load documents from localStorage if not provided
+      if (!context.rawCV) {
+        emit({ type: 'progress', percent: 5, message: 'Loading documents from storage...' });
+        const docs = await loadApplicantDocuments(context.sessionId);
+        if (docs.primaryCV) {
+          context.rawCV = docs.primaryCV;
+        }
+        if (docs.masterCV) {
+          context.masterCV = docs.masterCV;
+        }
+        if (docs.certifications && docs.certifications.length > 0) {
+          const certText = '\n\nCERTIFICATIONS:\n' + docs.certifications.join('\n');
+          context.masterCV = (context.masterCV || '') + certText;
+        }
+      }
+
+      if (!context.rawCV) {
+        throw new Error('No CV content available. Please upload a CV first.');
+      }
+
+      // Step 1: Extract applicant profile using BASIC extraction (no AI call)
+      emit({ type: 'progress', percent: 20, message: 'Loading applicant profile...' });
+      const applicant = this.extractBasicProfile(context.rawCV);
+      
+      // If masterCV exists, try to extract additional info (still basic, no AI)
+      if (context.masterCV) {
+        const masterProfile = this.extractBasicProfile(context.masterCV);
+        // Merge skills and experiences
+        if (applicant && masterProfile) {
+          applicant.skills = [...new Set([...(applicant.skills || []), ...(masterProfile.skills || [])])];
+          applicant.tools = [...new Set([...(applicant.tools || []), ...(masterProfile.tools || [])])];
+          applicant.experiences = [...(applicant.experiences || []), ...(masterProfile.experiences || [])];
+        }
+      }
+      
+      context.applicant = applicant;
+
+      // Step 2: Parse job description using BASIC extraction (no AI call)
+      emit({ type: 'progress', percent: 50, message: 'Loading job requirements...' });
+      const job = this.extractBasicJobInfo(context.jobDescription);
+      context.job = job;
+
+      // Step 3: Detect language
+      context.detectedLanguage = this.detectLanguage(context.jobDescription);
+
+      // Step 4: Compute match analysis (lightweight, no AI)
+      emit({ type: 'progress', percent: 80, message: 'Computing skill match...' });
+      const match = this.computeMatch(applicant, job);
+      context.match = match;
+
+      emit({ type: 'progress', percent: 95, message: 'Context loaded' });
+      
+      console.log('[CONTEXT_AGENT] Minimal context built (bypass mode):', {
+        hasApplicant: !!context.applicant,
+        hasJob: !!context.job,
+        matchScore: context.match?.score,
+        usingSavedStrategy: !!context.writerStrategy,
+      });
+      
+      return context;
+      
+    } catch (error) {
+      console.error('[ContextAgent] Error building minimal context:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Fallback: Extract basic job info without AI
+   */
+  extractBasicJobInfo(jobDescription: string): MasterContext['job'] {
+    const lines = jobDescription.split('\n').map(l => l.trim()).filter(Boolean);
+    
+    // Try to extract title from first line or common patterns
+    let title = 'Unknown Position';
+    let companyName = 'Unknown Company';
+    
+    // Look for "at Company" or "- Company" patterns
+    const atMatch = jobDescription.match(/(?:at|@|-|–)\s+([A-Z][A-Za-z0-9\s&]+)(?:\s|$|\n)/i);
+    if (atMatch) {
+      companyName = atMatch[1].trim();
+    }
+    
+    // First non-empty line is often the title
+    if (lines.length > 0 && lines[0].length < 100) {
+      title = lines[0].replace(/^#+\s*/, '');
+    }
+    
+    // Extract skills by looking for common keywords
+    const skillKeywords = [
+      'python', 'javascript', 'typescript', 'react', 'node', 'sql', 'aws', 
+      'docker', 'kubernetes', 'git', 'agile', 'scrum', 'leadership',
+      'communication', 'management', 'analysis', 'design', 'marketing'
+    ];
+    const requiredSkills: string[] = [];
+    const descLower = jobDescription.toLowerCase();
+    
+    for (const skill of skillKeywords) {
+      if (descLower.includes(skill)) {
+        requiredSkills.push(skill);
+      }
+    }
+
+    return {
+      title,
+      companyName,
+      requiredSkills,
+      niceToHaveSkills: [],
+      responsibilities: [],
+    };
   },
 
   /**

@@ -47,12 +47,25 @@ export async function runJobCopilot(
     // ============================================
     // STEP 1: Context Building (Context Agent)
     // ============================================
-    emit({ type: 'step_started', step: { id: 'context', description: 'Gathering all information' } });
-    emit({ type: 'progress', percent: 10, message: 'Building context...' });
+    // SKIP if writerStrategy is already provided from fit assessment
+    if (input.writerStrategy) {
+      emit({ type: 'step_started', step: { id: 'context', description: 'Using saved context from fit assessment' } });
+      emit({ type: 'progress', percent: 10, message: 'Loading saved analysis...' });
+      
+      // Minimal context building - just parse the basics for the writer
+      // The writerStrategy contains all the intelligence from the fit assessment
+      context = await contextAgent.buildMinimalContext(context, emit);
+      
+      emit({ type: 'step_completed', step: { id: 'context', description: 'Context loaded from fit assessment' } });
+    } else {
+      // Full context building (original flow)
+      emit({ type: 'step_started', step: { id: 'context', description: 'Gathering all information' } });
+      emit({ type: 'progress', percent: 10, message: 'Building context...' });
 
-    context = await contextAgent.buildContext(context, emit);
+      context = await contextAgent.buildContext(context, emit);
 
-    emit({ type: 'step_completed', step: { id: 'context', description: 'Context ready' } });
+      emit({ type: 'step_completed', step: { id: 'context', description: 'Context ready' } });
+    }
 
     // Validate critical data
     if (!context.applicant?.name) {

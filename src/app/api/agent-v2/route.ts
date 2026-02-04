@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
         };
 
         // Define workflow steps
-        const steps = getWorkflowSteps(action);
+        const steps = getWorkflowSteps(action, !!writerStrategy);
         
         // Send workflow start
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
@@ -255,14 +255,27 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper to get workflow steps based on action - 3-Agent Architecture
-function getWorkflowSteps(action: string): Array<{ id: string; description: string }> {
+function getWorkflowSteps(action: string, hasStrategy?: boolean): Array<{ id: string; description: string }> {
   switch (action) {
     case 'full_optimization':
+      if (hasStrategy) {
+        // Bypass mode - skip Context Agent
+        return [
+          { id: 'context', description: 'Loading saved context from fit assessment' },
+          { id: 'writing', description: 'Writer Agent: Generating CV, cover letter, and email' },
+        ];
+      }
       return [
         { id: 'context', description: 'Context Agent: Gathering CV, JD, and company info' },
         { id: 'writing', description: 'Writer Agent: Generating CV, cover letter, and email' },
       ];
     default:
+      if (hasStrategy) {
+        return [
+          { id: 'context', description: 'Loading saved context' },
+          { id: 'writing', description: 'Writer Agent: Generating documents' },
+        ];
+      }
       return [
         { id: 'context', description: 'Context Agent: Gathering information' },
         { id: 'writing', description: 'Writer Agent: Generating documents' },
