@@ -362,15 +362,49 @@ Extract ALL skills mentioned, including technical skills, soft skills, tools, an
     let title = 'Unknown Position';
     let companyName = 'Unknown Company';
     
-    // Look for "at Company" or "- Company" patterns
-    const atMatch = jobDescription.match(/(?:at|@|-|–)\s+([A-Z][A-Za-z0-9\s&]+)(?:\s|$|\n)/i);
-    if (atMatch) {
-      companyName = atMatch[1].trim();
-    }
-    
     // First non-empty line is often the title
     if (lines.length > 0 && lines[0].length < 100) {
       title = lines[0].replace(/^#+\s*/, '');
+    }
+    
+    // Try multiple patterns to find company name
+    const companyPatterns = [
+      // "at Company Name" or "@ Company Name"
+      /(?:at|@|bei)\s+([A-Z][A-Za-z0-9\s&.-]+?)(?:\s+(?:is|we|has|sucht|suchten|bietet|\.|-|\n|$))/i,
+      // "Company Name is hiring"
+      /^([A-Z][A-Za-z0-9\s&.-]+?)(?:\s+(?:is|are|sucht|suchten|bietet))/im,
+      // "Join Company Name" or "Work at Company Name"
+      /(?:join|work|arbeiten|anstellung)\s+(?:at|bei)?\s*([A-Z][A-Za-z0-9\s&.-]+?)(?:\s|$|\n)/i,
+      // Company name followed by "GmbH", "AG", "Inc", "Ltd", etc.
+      /([A-Z][A-Za-z0-9\s&.-]+?\s+(?:GmbH|AG|Inc\.?|Ltd\.?|LLC|Corp\.?|Company|Co\.))/i,
+    ];
+    
+    for (const pattern of companyPatterns) {
+      const match = jobDescription.match(pattern);
+      if (match && match[1]) {
+        companyName = match[1].trim();
+        // Clean up common suffixes that might be captured
+        companyName = companyName.replace(/\s+(?:is|are|sucht|bietet|\.|-)$/i, '').trim();
+        if (companyName && companyName.length > 2) {
+          break;
+        }
+      }
+    }
+    
+    // If still unknown, try to find any capitalized word that might be a company
+    if (companyName === 'Unknown Company') {
+      // Look for patterns like "Uber", "Amazon" in the first few lines
+      for (let i = 0; i < Math.min(lines.length, 5); i++) {
+        const line = lines[i];
+        // Skip the title line
+        if (line === title) continue;
+        // Look for a standalone capitalized word or company-like pattern
+        const wordMatch = line.match(/\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+)*)\b/);
+        if (wordMatch && wordMatch[1].length > 2 && !wordMatch[1].match(/^(We|Our|The|This|These|Those|Your|Job|Role|Position|Title)$/i)) {
+          companyName = wordMatch[1];
+          break;
+        }
+      }
     }
     
     // Extract skills by looking for common keywords
