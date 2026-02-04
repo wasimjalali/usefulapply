@@ -1130,8 +1130,6 @@ Date: ${today}
 Job Title: ${job?.title || 'Position'}
 Company: ${job?.companyName || 'Company'}
 Location: ${job?.location || 'Not specified'}
-Key Requirements: ${job?.requiredSkills?.join(', ') || 'Not specified'}
-Nice-to-Have: ${job?.niceToHaveSkills?.join(', ') || 'Not specified'}
 
 === COMPANY RESEARCH ===
 ${companyResearch ? `
@@ -1182,9 +1180,8 @@ If the job asks for tools the candidate doesn't have:
 
 === REQUIRED HEADER FORMAT ===
 
-The cover letter MUST start with this EXACT header structure. DO NOT insert job requirements or any other text between these sections:
+The cover letter MUST start with this EXACT header - 5 lines for recipient block:
 
---- APPLICANT SECTION (Your Contact Info) ---
 ${applicant?.name || 'Applicant Name'}
 ${applicant?.address || 'Address'}
 ${applicant?.email || 'Email'}
@@ -1192,15 +1189,18 @@ ${applicant?.phone || 'Phone'}
 
 ${today}
 
---- RECIPIENT SECTION (Company Info) ---
 Hiring Manager
 ${companyResearch?.name || job?.companyName || 'Company'}
 ${companyResearch?.address ? companyResearch.address : '[Insert Company Address]'}
 
---- LETTER BODY STARTS HERE ---
 Dear Hiring Manager,
 
-[Your opening paragraph...]
+ABSOLUTE RULE: The recipient block (Hiring Manager through Address) must contain ONLY:
+1. "Hiring Manager"
+2. Company name  
+3. Company address OR "[Insert Company Address]"
+
+NEVER put job requirements, skills, or JD text in the recipient block. This causes formatting errors.
 
 === COMPANY ADDRESS HANDLING ===
 CRITICAL RULES FOR COMPANY ADDRESS:
