@@ -173,8 +173,7 @@ export type AgentEvent =
   | { type: 'step_completed'; step: { id: string; description?: string } }
   | { type: 'step_error'; step: { id: string }; error: string }
   | { type: 'message'; content: string }
-  | { type: 'progress'; percent: number; message: string }
-  | { type: 'tool_usage'; tool: string; output: unknown; display?: boolean };
+  | { type: 'progress'; percent: number; message: string };
 
 export type AgentEventHandler = (event: AgentEvent) => void;
 

@@ -150,7 +150,6 @@ export interface UseAgentV2Return {
   reflection: AgentV2Reflection | null;
   result: AgentV2Result | null;
   error: string | null;
-  companyResearch: CompanyResearchData | null;  // NEW: Live company research data
   models: { analysis: string; writing: string } | null;
   runWorkflow: (
     jobDescription: string,
@@ -170,7 +169,6 @@ export function useAgentV2(): UseAgentV2Return {
   const [result, setResult] = useState<AgentV2Result | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [models, setModels] = useState<{ analysis: string; writing: string } | null>(null);
-  const [companyResearch, setCompanyResearch] = useState<CompanyResearchData | null>(null);
 
   const reset = useCallback(() => {
     setIsWorking(false);
@@ -180,7 +178,6 @@ export function useAgentV2(): UseAgentV2Return {
     setResult(null);
     setError(null);
     setModels(null);
-    setCompanyResearch(null);
   }, []);
 
   const runWorkflow = useCallback(async (
@@ -288,14 +285,6 @@ export function useAgentV2(): UseAgentV2Return {
                 triggerCreditUpdate();
                 break;
 
-              case 'tool_usage':
-                // NEW: Handle tool_usage events for frontend visibility
-                if (data.tool === 'company_research' && data.display) {
-                  setCompanyResearch(data.output as CompanyResearchData);
-                  console.log('[useAgentV2] Company research received:', data.output);
-                }
-                break;
-
               case 'error':
                 setError(data.message);
                 break;
@@ -325,7 +314,6 @@ export function useAgentV2(): UseAgentV2Return {
     result,
     error,
     models,
-    companyResearch,  // NEW: Expose company research data
     runWorkflow,
     reset,
   };
