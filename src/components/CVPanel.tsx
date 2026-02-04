@@ -45,6 +45,10 @@ export function CVPanel() {
     isGenerating,
     isAnalyzing,
     profilePhoto,
+    // Agent state from store
+    isAgentWorking,
+    agentSteps,
+    v2Progress,
   } = useAppStore();
   
   const generatedCV = currentSession?.generatedCV;
@@ -393,7 +397,7 @@ export function CVPanel() {
     );
   }
 
-  const isLoading = isAnalyzing || isGenerating;
+  const isLoading = isAnalyzing || isGenerating || isAgentWorking;
   const displayContent = showOptimized && generatedCV ? generatedCV.content : currentCV.rawText;
 
   // Show loading if AI is processing, even if we have a CV

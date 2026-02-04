@@ -64,19 +64,29 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
     isGenerating,
     sessions,
     loadSession,
+    // Agent state from store
+    isAgentWorking,
+    agentSteps,
+    v2Progress,
+    v2Reflection,
+    v2Models,
+    v2TokenUsage,
+    setIsAgentWorking,
+    setAgentSteps,
+    setV2Progress,
+    setV2Reflection,
+    setV2Models,
+    setV2TokenUsage,
+    resetAgentState,
   } = useAppStore();
 
   const [inputValue, setInputValue] = useState('');
   const [showHistory, setShowHistory] = useState(false);
+  // isTyping remains local as it's UI-specific
   const [isTyping, setIsTyping] = useState(false);
-  const [agentSteps, setAgentSteps] = useState<AgentStepData[]>([]);
-  const [isAgentWorking, setIsAgentWorking] = useState(false);
-  // V2 Agent state
-  const [v2Progress, setV2Progress] = useState<{ percent: number; message: string } | null>(null);
-  const [v2Reflection, setV2Reflection] = useState<{ iteration: number; status: 'started' | 'completed'; improved?: boolean } | null>(null);
-  const [v2Models, setV2Models] = useState<{ analysis: string; writing: string } | null>(null);
-  const [v2Evaluation, setV2Evaluation] = useState<{ score: number; passed: boolean; improvements: string[] } | null>(null);
-  const [v2TokenUsage, setV2TokenUsage] = useState<{ inputTokens: number; outputTokens: number; totalTokens: number } | null>(null);
+  // Agent state now comes from store
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   // Agent settings
   const [enableWebSearch, setEnableWebSearch] = useState(true);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
@@ -86,8 +96,6 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
   const [feedbackModal, setFeedbackModal] = useState<{ messageId: string; content: string; type: 'positive' | 'negative' } | null>(null);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const MESSAGE_COLLAPSE_LENGTH = 300; // Characters before collapsing
 
@@ -316,7 +324,6 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
     // setV2Progress(null); // REMOVED - this was clearing the loading indicator
     setV2Reflection(null);
     setV2Models(null);
-    setV2Evaluation(null);
     setV2TokenUsage(null);
     
     try {
