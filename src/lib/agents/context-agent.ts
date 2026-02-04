@@ -342,7 +342,7 @@ Extract ALL skills mentioned, including technical skills, soft skills, tools, an
         console.log('[CONTEXT_AGENT] Extracted job info:', {
           title: job?.title,
           companyName: job?.companyName,
-          hasRequiredSkills: job?.requiredSkills?.length > 0,
+          hasRequiredSkills: job?.requiredSkills && job.requiredSkills.length > 0,
         });
       }
 
