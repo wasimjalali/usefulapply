@@ -205,10 +205,15 @@ export const unifiedWriterAgent = {
 
     const response = await callModel({
       task: 'extract_applicant',
-      prompt: `Extract the applicant's profile from this CV. Only include information that is explicitly stated in the document.
+      prompt: `Extract the applicant's complete profile from the provided CV documents. You may have TWO sources: a Primary CV and a Master CV. Extract and MERGE information from BOTH sources.
 
-CV CONTENT:
 ${combinedCV}
+
+EXTRACTION RULES:
+- Personal info (name, email, phone, address): Use PRIMARY CV as the source of truth
+- Skills, tools, experiences, certifications: COMBINE from BOTH CVs, deduplicate
+- The Master CV is a comprehensive inventory - it may contain many more skills and experiences than the Primary CV
+- Extract ALL skills and tools from BOTH sources - do not leave any out
 
 Return a JSON object with this exact structure:
 {
@@ -217,8 +222,8 @@ Return a JSON object with this exact structure:
   "phone": "Phone number or null if not found",
   "address": "Location/address or null if not found",
   "headline": "Professional headline/title or null",
-  "skills": ["list", "of", "technical", "skills"],
-  "tools": ["list", "of", "tools", "and", "technologies"],
+  "skills": ["list", "of", "ALL", "technical", "skills", "from", "BOTH", "CVs"],
+  "tools": ["list", "of", "ALL", "tools", "and", "technologies", "from", "BOTH", "CVs"],
   "languages": ["spoken", "languages"],
   "experiences": [
     {
@@ -229,11 +234,11 @@ Return a JSON object with this exact structure:
       "bullets": ["achievement 1", "achievement 2"]
     }
   ],
-  "certifications": ["list", "of", "certifications"]
+  "certifications": ["list", "of", "ALL", "certifications", "from", "BOTH", "CVs"]
 }
 
-CRITICAL: Only extract information that EXISTS in the CV. Do not invent or assume anything.`,
-      systemPrompt: 'You are a precise CV parser. Extract only factual information present in the document. Return valid JSON only.',
+CRITICAL: Only extract information that EXISTS in either the Primary CV or Master CV. Do not invent or assume anything. But DO extract from BOTH sources.`,
+      systemPrompt: 'You are a precise CV parser. Extract factual information from ALL provided documents (Primary CV and Master CV). Merge and deduplicate. Return valid JSON only.',
       jsonMode: true,
     });
 
@@ -608,15 +613,62 @@ Return ONLY this JSON structure - no markdown, no preamble, no explanation:
   }
 }
 
+=== ATS OPTIMIZATION (2026 STANDARDS) ===
+1. SECTION HEADERS: Use ONLY these standard ATS-recognized headers:
+   - "Professional Summary" or "Summary" (or German equivalent)
+   - "Professional Experience" or "Work Experience"
+   - "Education"
+   - "Skills" or "Core Competencies"
+   - "Certifications"
+   - "Languages"
+   NEVER use creative headers like "What I Bring", "My Journey", or "Areas of Expertise"
+
+2. KEYWORD MIRRORING: Use EXACT phrases from the job description, not synonyms.
+   - JD says "project management" → write "project management" (NOT "managing projects")
+   - JD says "data analysis" → write "data analysis" (NOT "analyzing data")
+   - Include both acronyms AND full forms: "SEO (Search Engine Optimization)"
+   - Place JD keywords in Skills section FIRST, then in bullet points
+
+3. BULLET FORMAT (CAR Method - Challenge → Action → Result):
+   - "Reduced customer churn by 15% by implementing automated retention workflows"
+   - Every bullet MUST start with a strong action verb
+   - Every bullet SHOULD include at least one metric/number if available in the CV
+   - No action verb used more than twice across ALL bullets in the entire CV
+   - HIGH-IMPACT VERBS: Achieved, Accelerated, Delivered, Generated, Implemented, Launched, Optimized, Reduced, Scaled, Streamlined, Transformed
+
+4. SKILLS SECTION: List JD keywords FIRST, then additional relevant skills
+   - Match EXACT terminology from job posting
+   - Include tool versions where relevant (e.g., "Python 3.x", "React 18")
+   - Both hard skills AND relevant soft skills from JD
+
+=== DUAL-CV SOURCE RULES (CRITICAL) ===
+You have TWO sources of truth for the applicant:
+1. PRIMARY CV: The applicant's current/main resume - use for personal info, current role, dates
+2. MASTER CV: A comprehensive inventory of ALL skills, experiences, certifications, and achievements
+   - The Master CV may contain 5-10x more content than the Primary CV
+   - ALWAYS mine the Master CV for additional relevant experiences, metrics, and skills
+   - If the JD requires a skill found in the Master CV but not the Primary CV, INCLUDE it
+   - Use Master CV achievements/metrics to strengthen bullet points
+   - The Master CV is the applicant's COMPLETE professional history
+
+SOURCING PRIORITY:
+- Personal info: PRIMARY CV (name, email, phone, address)
+- Experience selection: BOTH CVs - pick the most relevant roles from either source
+- Skills/tools: BOTH CVs - combine and deduplicate
+- Metrics/achievements: BOTH CVs - use the most impressive relevant numbers
+- Certifications: BOTH CVs - select most relevant to the JD
+- Education: PRIMARY CV first, supplement from Master CV if needed
+
 === CRITICAL RULES ===
 1. Output ONLY valid JSON - no markdown code blocks, no text before or after
-2. NEVER invent skills, experiences, or achievements not in the CVs
+2. NEVER invent skills, experiences, or achievements not in EITHER the Primary CV or Master CV
 3. Use the EXACT dates from the original CVs
 4. Generate unique IDs for experience, education, certifications (exp-1, edu-1, cert-1, etc.)
-5. Bullets must be achievement-focused with action verbs
+5. Bullets must be achievement-focused with action verbs (CAR method)
 6. Skills must include SPECIFIC TOOL NAMES, not generic categories
 7. ALWAYS include the "analysis" object - it powers the Changes tab
-8. CLEAN all OCR artifacts from certification names and other text`,
+8. CLEAN all OCR artifacts from certification names and other text
+9. Every skill, metric, and claim MUST be traceable to either the Primary CV or Master CV`,
         cache_control: { type: 'ephemeral' as const },
       },
     ];
@@ -928,14 +980,42 @@ CRITICAL ANTI-HALLUCINATION RULES (READ FIRST - VIOLATION IS UNACCEPTABLE):
 WRITING STYLE:
 - Write like a confident professional, not a job applicant begging for consideration
 - Use active voice and strong verbs
-- Be specific and concrete - but ONLY with facts from the CV
+- Be specific and concrete - but ONLY with facts from the Primary CV and Master CV
 - Sound human - slightly conversational, not robotic
-- Match the company's tone (startup = casual, corporate = professional)
+
+=== 2026 COVER LETTER STANDARDS ===
+
+1. BREVITY (CRITICAL): Maximum 250 words in the body (excluding header/signature).
+   - Each paragraph: 2-3 sentences MAX
+   - Total: 3 paragraphs only (opening hook, value, close)
+   - 66% of recruiters prefer half a page or less - respect their time
+
+2. COMPANY CHALLENGE DETECTION: Mine the job description for pain points.
+   - Look for verbs: "improve", "develop", "build", "scale", "optimize", "transform", "grow", "lead"
+   - These reveal problems the company is trying to solve
+   - Reference the inferred challenge in your opening paragraph
+   - Example: JD says "scale our e-commerce operations" → opening addresses scaling challenges
+
+3. KEYWORD MIRRORING: Include 3-5 EXACT phrases from the job description in the cover letter body.
+   - This helps ATS matching AND shows the recruiter you read the posting
+   - Integrate naturally, never stuff keywords awkwardly
+   - Example: JD says "cross-functional collaboration" → use that exact phrase
+
+4. TONE MATCHING:
+   - JD uses "you'll", "we're", casual language → write conversationally
+   - JD uses "the ideal candidate", "responsibilities include" → write formally
+   - Match the energy and formality level of the job posting
+
+5. DUAL-CV SOURCING (CRITICAL):
+   - Draw achievements and metrics from BOTH the Primary CV AND Master CV
+   - The Master CV is a comprehensive inventory - mine it for the BEST metrics
+   - If the Primary CV lacks a relevant achievement but the Master CV has one, USE IT
+   - Every claim must exist in at least one of the two CV sources
 
 STRUCTURE (Problem-Solution Format):
-1. Opening hook (1-2 sentences): Lead with a REAL achievement from the CV
-2. Value paragraph (3-4 sentences): Connect ACTUAL experience to their needs with REAL metrics
-3. Confident close (1-2 sentences): Clear call to action
+1. Opening hook (1-2 sentences): Lead with a REAL achievement from the CV + reference a company challenge inferred from the JD
+2. Value paragraph (2-3 sentences): Connect ACTUAL experience to their needs with REAL metrics from EITHER CV
+3. Confident close (1-2 sentences): Clear, specific call to action
 4. Signature: "Best regards," followed by applicant's full name
 
 ABSOLUTE PROHIBITIONS:
@@ -948,8 +1028,10 @@ ABSOLUTE PROHIBITIONS:
 - "References available upon request"
 - "I look forward to hearing from you"
 - Em-dashes (—) - use regular dashes (-) instead
-- ANY claim about tools, metrics, or experience not in the CV
+- ANY claim about tools, metrics, or experience not in EITHER the Primary CV or Master CV
 - NEVER invent a street address for the company - use "[Insert Company Address]" instead
+- Paragraphs longer than 3 sentences
+- Generic filler phrases that add no value
 
 OUTPUT FORMAT:
 - Plain text only
@@ -961,21 +1043,22 @@ OUTPUT FORMAT:
 === COVER LETTER STRUCTURE (Problem-Solution Format) ===
 
 [Opening - hooks with achievement from CV, shows understanding of company challenge]
-"After [INSERT EXACT METRIC FROM CV - e.g., revenue, followers, years experience], I've developed [SKILL RELEVANT TO JOB]. When I saw your [JOB TITLE] role, I recognized the exact challenge I've been solving: [CONNECT TO JOB REQUIREMENTS]."
+"After [INSERT EXACT METRIC FROM PRIMARY CV OR MASTER CV], I've developed [SKILL RELEVANT TO JOB]. When I saw your [JOB TITLE] role, I recognized the exact challenge I've been solving: [INFER CHALLENGE FROM JD VERBS]."
 
 [Value paragraph - specific experience matched to their needs using ONLY CV facts]
-"In my role as [EXACT TITLE FROM CV], I [EXACT ACHIEVEMENT FROM CV WITH EXACT METRIC]. I also [SECOND ACHIEVEMENT FROM CV]. My experience with [TOOLS ACTUALLY LISTED IN CV] positions me to [BENEFIT TO COMPANY]."
+"In my role as [EXACT TITLE FROM CV], I [EXACT ACHIEVEMENT WITH EXACT METRIC FROM EITHER CV]. My experience with [TOOLS ACTUALLY LISTED IN EITHER CV] positions me to [BENEFIT TO COMPANY]."
 
 [Confident close - specific and action-oriented]
 "I'd welcome the opportunity to discuss how my [SKILL FROM CV] experience can [BENEFIT]. I'm available for a call this week or next."
 
 INSTRUCTIONS:
 1. Use the Problem-Solution format shown in the structure
-2. Include at least TWO specific metrics from the candidate's background (ONLY if they exist in the CV)
-3. Keep between 250-350 words (excluding header and signature)
-4. CRITICAL: Every claim, skill, tool, platform, and metric MUST exist verbatim in the CANDIDATE BACKGROUND section
-5. If the job requires skills not in the CV, show TRANSFERABLE skills instead - NEVER claim missing skills
-6. NEVER omit the signature. A cover letter without a signature is incomplete.`,
+2. Include at least TWO specific metrics from the candidate's background (from EITHER Primary CV or Master CV)
+3. Keep UNDER 250 words in the body (excluding header and signature) - brevity is critical
+4. CRITICAL: Every claim, skill, tool, platform, and metric MUST exist in EITHER the Primary CV or Master CV
+5. If the job requires skills not in either CV, show TRANSFERABLE skills instead - NEVER claim missing skills
+6. Include 3-5 exact keyword phrases from the job description
+7. NEVER omit the signature. A cover letter without a signature is incomplete.`,
         cache_control: { type: 'ephemeral' as const },
       },
     ];
@@ -998,12 +1081,15 @@ Location: ${job?.location || 'Not specified'}
 Key Requirements: ${job?.requiredSkills?.join(', ') || 'Not specified'}
 Nice-to-Have: ${job?.niceToHaveSkills?.join(', ') || 'Not specified'}
 
-=== CANDIDATE BACKGROUND ===
+=== PRIMARY CV (main resume) ===
 ${rawCV}
 ${masterCV ? `
 
-=== ADDITIONAL EXPERIENCE (from Master CV) ===
+=== MASTER CV (comprehensive skills & experience inventory - mine this for best metrics) ===
 ${masterCV}` : ''}
+
+=== FULL JOB DESCRIPTION (use for keyword mirroring and challenge detection) ===
+${context.jobDescription}
 
 === REQUIRED HEADER FORMAT ===
 
@@ -1059,7 +1145,7 @@ Write the complete cover letter now (including signature):`,
    * Returns JSON with separate subject and body fields
    */
   async generateApplicationEmail(context: MasterContext): Promise<WithTokens<{ subject: string; body: string }>> {
-    const { applicant, job, rawCV } = context;
+    const { applicant, job, rawCV, masterCV } = context;
     
     const outputLang = this.getOutputLanguage(context);
     const isGerman = outputLang === 'de';
@@ -1073,16 +1159,23 @@ Write the complete cover letter now (including signature):`,
 APPLICANT: ${applicant?.name || 'Applicant'}
 JOB TITLE: ${job?.title || 'Position'}
 COMPANY: ${job?.companyName || 'Company'}
+KEY JD REQUIREMENT: ${job?.requiredSkills?.[0] || 'Not specified'}
 
-TOP ACHIEVEMENT FROM CV (use the most impressive metric):
+TOP ACHIEVEMENTS FROM CVs (use the most impressive metric from EITHER source):
+
+PRIMARY CV HIGHLIGHTS:
 ${rawCV?.slice(0, 500) || 'No CV provided'}
+${masterCV ? `
+MASTER CV HIGHLIGHTS (comprehensive experience inventory):
+${masterCV.slice(0, 500)}` : ''}
 
 INSTRUCTIONS:
-1. Subject line format: [Job Title] Application - [Name] - [One impressive metric or qualifier]
-2. Body: Maximum 4 sentences
-3. Must include one specific number/achievement from CV
-4. End with availability, not "I look forward to hearing from you"
+1. Subject line format: [Job Title] Application - [Name] - [One impressive metric or JD keyword]
+2. Body: Maximum 3 sentences (excluding greeting and signature)
+3. Must include one specific number/achievement from EITHER the Primary CV or Master CV
+4. End with specific availability, not "I look forward to hearing from you"
 5. Start with "Hello," as the greeting (do NOT use placeholder like "[Name]")
+6. Include one exact keyword from the job description in the body
 
 === LANGUAGE INSTRUCTION ===
 ${isGerman ? `CRITICAL: Write the ENTIRE email in GERMAN.
@@ -1112,6 +1205,13 @@ STYLE:
 - Professional but warm - not robotic
 - One clear purpose per email
 - Subject line that stands out without being gimmicky
+- Include one JD keyword in the subject line for ATS email parsing
+
+DUAL-CV SOURCING:
+- You have TWO sources: Primary CV and Master CV
+- Use the MOST impressive metric from EITHER source
+- The Master CV is a comprehensive inventory - mine it for the best achievement
+- Every claim must exist in at least one CV source
 
 PROHIBITIONS:
 - "I am writing to express my interest..."
@@ -1119,12 +1219,12 @@ PROHIBITIONS:
 - "I hope this email finds you well"
 - "To Whom It May Concern"
 - "I look forward to hearing from you"
-- Multiple paragraphs - keep it to 3-4 sentences max
+- More than 3 sentences in the body (excluding greeting/signature)
 - "[Name]" or any bracketed placeholder in the output
 
 STRUCTURE:
-Subject: [Job Title] Application - [Your Name] - [One Key Qualifier]
-Body: Greeting + One sentence hook + one sentence value + one sentence call to action + Signature
+Subject: [Job Title] Application - [Your Name] - [One Key Qualifier or JD Keyword]
+Body: Greeting + One sentence hook with metric + one sentence value + one sentence call to action + Signature
 
 SIGNATURE REQUIREMENT:
 - EVERY email MUST end with a signature
