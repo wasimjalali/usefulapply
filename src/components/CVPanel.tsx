@@ -179,7 +179,7 @@ export function CVPanel() {
             /* Critical: Hide browser headers and footers */
             @page {
               size: ${isUSTemplate ? 'letter' : 'A4'};
-              margin: 0.5in;
+              margin: 0.75in; /* Professional CV margin - 54pt */
             }
             
             * {
@@ -190,9 +190,9 @@ export function CVPanel() {
             
             html, body {
               font-family: Arial, Helvetica, sans-serif;
-              font-size: 12pt;
+              font-size: 10.5pt; /* Base body text size */
               line-height: 1.4;
-              color: #1a1a2e;
+              color: #1a1a1a;
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
               background: white;
@@ -206,61 +206,128 @@ export function CVPanel() {
               padding: 0;
             }
             
-            /* Typography - Use !important to override inline styles */
-            h1 { font-size: 24pt !important; font-weight: bold !important; margin-bottom: 4pt !important; }
-            h2 { font-size: 12pt !important; font-weight: bold !important; text-transform: uppercase !important; letter-spacing: 1pt !important; margin-bottom: 6pt !important; padding-bottom: 2pt !important; }
-            h3 { font-size: 11pt !important; font-weight: bold !important; margin-bottom: 2pt !important; }
-            h4 { font-size: 9pt !important; font-weight: bold !important; text-transform: uppercase !important; letter-spacing: 0.5pt !important; margin-bottom: 4pt !important; }
-            p, li, span, div { font-size: 10.5pt !important; line-height: 1.4 !important; }
+            /* ===========================================
+               PROFESSIONAL CV TYPOGRAPHY (HR Standard)
+               - Name: 20pt (bold)
+               - Section Headers: 12pt (bold, uppercase)
+               - Job/Degree Titles: 11pt (bold)
+               - Category Headers: 9pt (bold, uppercase)
+               - Body Text: 10.5pt (summary, bullets, skills)
+               - Secondary Text: 9pt (dates, locations)
+               =========================================== */
             
-            /* Override inline fontSize styles for consistency */
-            [style*="fontSize"] { font-size: 10.5pt !important; }
-            h1[style*="fontSize"] { font-size: 24pt !important; }
-            h2[style*="fontSize"] { font-size: 12pt !important; }
-            h3[style*="fontSize"] { font-size: 11pt !important; }
-            h4[style*="fontSize"] { font-size: 9pt !important; }
+            /* Name - 20pt bold */
+            h1 { 
+              font-size: 20pt !important; 
+              font-weight: bold !important; 
+              margin-bottom: 4pt !important; 
+              letter-spacing: -0.3pt !important;
+            }
+            
+            /* Section Headers - 12pt bold uppercase */
+            h2 { 
+              font-size: 12pt !important; 
+              font-weight: bold !important; 
+              text-transform: uppercase !important; 
+              letter-spacing: 1pt !important; 
+              margin-bottom: 8pt !important; 
+              padding-bottom: 4pt !important; 
+            }
+            
+            /* Job/Degree Titles - 11pt bold */
+            h3 { 
+              font-size: 11pt !important; 
+              font-weight: bold !important; 
+              margin-bottom: 2pt !important; 
+            }
+            
+            /* Category Headers (skills) - 9pt bold uppercase */
+            h4 { 
+              font-size: 9pt !important; 
+              font-weight: bold !important; 
+              text-transform: uppercase !important; 
+              letter-spacing: 0.5pt !important; 
+              margin-bottom: 4pt !important; 
+            }
+            
+            /* Body Text - 10.5pt */
+            p, li, span { 
+              font-size: 10.5pt !important; 
+              line-height: 1.4 !important; 
+            }
+            
+            /* Ensure divs don't override body text size (except for containers) */
+            div:not(.cv-container):not(.cv-template) { 
+              font-size: inherit !important; 
+            }
+            
+            /* Bold text styling */
+            strong, b { 
+              font-weight: bold !important; 
+            }
+            
+            /* Override ALL inline fontSize styles for consistency */
+            [style*="fontSize: '10px'"], 
+            [style*="fontSize: '11px'"], 
+            [style*="fontSize: '12px'"], 
+            [style*="fontSize: '13px'"] { 
+              font-size: 10.5pt !important; 
+            }
+            
+            [style*="fontSize: '14px'"] { 
+              font-size: 12pt !important; 
+            }
+            
+            [style*="fontSize: '28px'"], 
+            [style*="fontSize: '24px'"] { 
+              font-size: 20pt !important; 
+            }
             
             /* Spacing */
-            section { margin-bottom: 10pt; }
-            ul { padding-left: 10pt; margin: 0; }
-            li { margin-bottom: 2pt; }
+            section { margin-bottom: 12pt !important; }
+            ul { padding-left: 12pt !important; margin: 0 !important; }
+            li { margin-bottom: 2pt !important; }
             
             /* Grid layouts */
             .grid { display: grid; }
             .flex { display: flex; }
-            .gap-2 { gap: 6px; }
-            .gap-3 { gap: 8px; }
-            .gap-4 { gap: 10px; }
-            .gap-6 { gap: 14px; }
+            .gap-2 { gap: 6pt !important; }
+            .gap-3 { gap: 8pt !important; }
+            .gap-4 { gap: 10pt !important; }
+            .gap-6 { gap: 14pt !important; }
             
             /* Padding overrides */
-            .px-8 { padding-left: 20px !important; padding-right: 20px !important; }
-            .py-6 { padding-top: 12px !important; padding-bottom: 12px !important; }
-            .py-5 { padding-top: 10px !important; padding-bottom: 10px !important; }
-            .p-6 { padding: 12px !important; }
-            .space-y-5 > * + * { margin-top: 10px !important; }
-            .space-y-4 > * + * { margin-top: 8px !important; }
-            .space-y-3 > * + * { margin-top: 6px !important; }
-            .mb-6 { margin-bottom: 12px !important; }
-            .mb-4 { margin-bottom: 8px !important; }
-            .mb-3 { margin-bottom: 6px !important; }
-            .mt-4 { margin-top: 8px !important; }
+            .px-8 { padding-left: 16pt !important; padding-right: 16pt !important; }
+            .py-6 { padding-top: 12pt !important; padding-bottom: 12pt !important; }
+            .py-5 { padding-top: 10pt !important; padding-bottom: 10pt !important; }
+            .p-6 { padding: 12pt !important; }
+            .space-y-5 > * + * { margin-top: 10pt !important; }
+            .space-y-4 > * + * { margin-top: 8pt !important; }
+            .space-y-3 > * + * { margin-top: 6pt !important; }
+            .mb-6 { margin-bottom: 12pt !important; }
+            .mb-4 { margin-bottom: 8pt !important; }
+            .mb-3 { margin-bottom: 6pt !important; }
+            .mt-4 { margin-top: 8pt !important; }
             
-            /* Text sizes */
-            .text-3xl { font-size: 28pt !important; }
-            .text-2xl { font-size: 18pt !important; }
-            .text-sm { font-size: 11pt !important; }
-            .text-xs { font-size: 10pt !important; }
+            /* Tailwind text size overrides - standardize to our scale */
+            .text-3xl { font-size: 20pt !important; } /* Name */
+            .text-2xl { font-size: 12pt !important; } /* Section headers */
+            .text-xl { font-size: 11pt !important; }  /* Job titles */
+            .text-lg { font-size: 10.5pt !important; } /* Body */
+            .text-base { font-size: 10.5pt !important; } /* Body */
+            .text-sm { font-size: 10pt !important; }  /* Slightly smaller */
+            .text-xs { font-size: 9pt !important; }   /* Dates, secondary */
             
-            /* Colors */
+            /* Colors - preserve print colors */
             [style*="background"] { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            [style*="color"] { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             
             /* Images */
             img { max-width: 100%; height: auto; -webkit-print-color-adjust: exact !important; }
-            .w-28 { width: 80px !important; }
-            .h-36 { height: 100px !important; }
-            .w-32 { width: 90px !important; }
-            .h-40 { height: 110px !important; }
+            .w-28 { width: 80pt !important; }
+            .h-36 { height: 100pt !important; }
+            .w-32 { width: 90pt !important; }
+            .h-40 { height: 110pt !important; }
             
             /* Hide scrollbars */
             ::-webkit-scrollbar { display: none; }
