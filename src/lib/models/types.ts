@@ -42,6 +42,8 @@ export interface ModelResponse {
   usage: {
     inputTokens: number;
     outputTokens: number;
+    cacheCreationInputTokens?: number;
+    cacheReadInputTokens?: number;
   };
   model: string;
   provider: ModelProvider;
@@ -53,10 +55,18 @@ export interface ConversationMessage {
   content: string;
 }
 
+export interface CacheableContentBlock {
+  type: 'text';
+  text: string;
+  cache_control?: { type: 'ephemeral' };
+}
+
 export interface ModelCallOptions {
   task: TaskType;
   prompt: string;
   systemPrompt?: string;
+  /** Structured system blocks with cache_control for Anthropic prompt caching */
+  systemBlocks?: CacheableContentBlock[];
   temperature?: number;
   maxTokens?: number;
   jsonMode?: boolean;

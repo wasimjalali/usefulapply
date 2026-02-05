@@ -4,7 +4,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import type { ModelResponse, ConversationMessage } from './types';
+import type { ModelResponse, ConversationMessage, CacheableContentBlock } from './types';
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -14,6 +14,8 @@ const anthropic = new Anthropic({
 export interface AnthropicCallOptions {
   prompt: string;
   systemPrompt?: string;
+  /** Structured system blocks with cache_control for prompt caching */
+  systemBlocks?: CacheableContentBlock[];
   temperature?: number;
   maxTokens?: number;
   jsonMode?: boolean;
@@ -24,27 +26,39 @@ export interface AnthropicCallOptions {
  * Call Claude Haiku 4.5 for all AI tasks
  */
 export async function callAnthropic(options: AnthropicCallOptions): Promise<ModelResponse> {
-  const { prompt, systemPrompt, temperature = 0.7, maxTokens = 4096, jsonMode = false, conversationHistory } = options;
+  const { prompt, systemPrompt, systemBlocks, temperature = 0.7, maxTokens = 4096, jsonMode = false, conversationHistory } = options;
   
   const startTime = Date.now();
   
-  // For JSON mode, enhance the system prompt to ensure valid JSON output
-  let finalSystemPrompt = systemPrompt || '';
-  if (jsonMode) {
-    const jsonInstruction = '\n\nIMPORTANT: You MUST respond with ONLY valid JSON. No markdown code blocks, no explanations, no text before or after the JSON. Start your response with { and end with }. Ensure all strings are properly escaped.';
-    finalSystemPrompt = finalSystemPrompt + jsonInstruction;
+  // Build system parameter: use structured blocks (with cache_control) if provided, else plain string
+  let systemParam: string | Array<{ type: 'text'; text: string; cache_control?: { type: 'ephemeral' } }> | undefined;
+  
+  if (systemBlocks && systemBlocks.length > 0) {
+    // Structured system blocks with cache_control support
+    const blocks = [...systemBlocks];
+    if (jsonMode) {
+      blocks.push({
+        type: 'text',
+        text: 'IMPORTANT: You MUST respond with ONLY valid JSON. No markdown code blocks, no explanations, no text before or after the JSON. Start your response with { and end with }. Ensure all strings are properly escaped.',
+      });
+    }
+    systemParam = blocks;
+  } else if (systemPrompt) {
+    let finalSystemPrompt = systemPrompt;
+    if (jsonMode) {
+      finalSystemPrompt += '\n\nIMPORTANT: You MUST respond with ONLY valid JSON. No markdown code blocks, no explanations, no text before or after the JSON. Start your response with { and end with }. Ensure all strings are properly escaped.';
+    }
+    systemParam = finalSystemPrompt;
   }
   
   // Build messages array with conversation history if provided
   const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
   
   if (conversationHistory && conversationHistory.length > 0) {
-    // Add conversation history
     for (const msg of conversationHistory) {
       messages.push({ role: msg.role, content: msg.content });
     }
   } else {
-    // Just add the current prompt
     messages.push({ role: 'user', content: prompt });
   }
   
@@ -53,7 +67,7 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
       model: 'claude-haiku-4-5',
       max_tokens: maxTokens,
       temperature,
-      ...(finalSystemPrompt && { system: finalSystemPrompt }),
+      ...(systemParam && { system: systemParam }),
       messages,
     });
     
@@ -61,11 +75,22 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
     const textContent = response.content.find(block => block.type === 'text');
     const content = textContent?.type === 'text' ? textContent.text : '';
     
+    // Extract cache metrics from usage (if available)
+    const usage = response.usage as unknown as Record<string, number>;
+    
+    const cacheCreation = usage.cache_creation_input_tokens || 0;
+    const cacheRead = usage.cache_read_input_tokens || 0;
+    if (cacheCreation > 0 || cacheRead > 0) {
+      console.log(`[Anthropic Cache] write=${cacheCreation} read=${cacheRead} input=${usage.input_tokens} output=${usage.output_tokens}`);
+    }
+    
     return {
       content,
       usage: {
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
+        cacheCreationInputTokens: cacheCreation || undefined,
+        cacheReadInputTokens: cacheRead || undefined,
       },
       model: 'claude-haiku-4-5',
       provider: 'anthropic',

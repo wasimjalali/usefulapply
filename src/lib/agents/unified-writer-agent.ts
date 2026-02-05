@@ -456,30 +456,26 @@ Matching Skills: ${match.matchingSkills.join(', ')}
 Missing Skills (from JD): ${match.missingSkills.join(', ')}
 ` : '';
 
-    const response = await callModel({
-      task: 'optimize_cv',
-      prompt: `You are an Expert Resume Architect & Career Strategist for a "Job Copilot" system.
+    // ---- PROMPT CACHING: Static instructions go into cacheable system blocks ----
+    // The CV optimization rules + JSON schema are ~3,000+ tokens of static content
+    // that is identical across every call. By placing them in system blocks with
+    // cache_control, Haiku 4.5 can cache this prefix (min 4,096 tokens).
+    // Cache reads cost 10% of base input price = ~90% savings on these tokens.
+    const cvOptimizationSystemBlocks = [
+      {
+        type: 'text' as const,
+        text: `You are the Writer Agent for Job Copilot - an Expert Resume Architect & Career Strategist.
 
 === YOUR ROLE ===
 You are NOT writing a document - you are generating a DATA PAYLOAD (JSON Object) for a frontend application.
 Your job is to FORMAT, ARTICULATE, and OPTIMIZE the content based on the CV and job description.
-
-=== TARGET JOB ===
-Title: ${job?.title || 'Unknown'}
-Company: ${job?.companyName || 'Unknown'}
-Required Skills: ${job?.requiredSkills?.join(', ') || 'N/A'}
-Nice-to-Have: ${job?.niceToHaveSkills?.join(', ') || 'N/A'}
-${matchContext}
-
-=== PRIMARY CV (source of truth for personal info) ===
-${rawCV}
-
-${masterCV ? `=== MASTER CV (additional experiences/skills to draw from) ===
-${masterCV}` : ''}
+Output ONLY valid JSON matching the CVData schema. No markdown, no explanation, no preamble.
+The frontend will render your JSON directly - if you mess up the structure, the app breaks.
+CRITICAL: Always include the "analysis" object with summary, key_changes, ats_compatibility, and missing_keywords_added fields.
 
 === 🛡️ SANITIZATION & QUALITY CONTROL ===
 1. **OCR Artifact Removal:** The user's original data may contain OCR errors or broken characters (e.g., "요", "ន", broken pipes "|", random symbols). AGGRESSIVELY STRIP these out. If a certification name looks like "Amazon Ads 요", correct it to "Amazon Ads".
-2. **Language Consistency:** Write ALL content (Summary, Bullets) in ${isGerman ? 'GERMAN' : 'ENGLISH'}.
+2. **Language Consistency:** Write ALL content (Summary, Bullets) in the language specified in the user prompt.
    - Exception: Do NOT translate proper nouns (e.g., "React.js", "Seller Central", company names).
 3. **No Hallucinations:** Do NOT invent experiences, skills, or metrics. If a date is missing, omit it rather than guessing.
 
@@ -539,9 +535,6 @@ You MUST populate the "analysis" object to explain your work to the user:
 - key_changes: A list of 4-6 specific improvements made
 - ats_compatibility: Your estimated ATS compatibility score (0-100)
 - missing_keywords_added: List of keywords from the job description that you added to the CV
-
-=== LANGUAGE ===
-${isGerman ? `Generate ALL content in GERMAN. Use German date format (Januar 2025 – Gegenwart).` : 'Generate content in English.'}
 
 === OUTPUT FORMAT (STRICT JSON) ===
 
@@ -624,7 +617,30 @@ Return ONLY this JSON structure - no markdown, no preamble, no explanation:
 6. Skills must include SPECIFIC TOOL NAMES, not generic categories
 7. ALWAYS include the "analysis" object - it powers the Changes tab
 8. CLEAN all OCR artifacts from certification names and other text`,
-      systemPrompt: `You are the Writer Agent for Job Copilot. Output ONLY valid JSON matching the CVData schema. No markdown, no explanation, no preamble. The frontend will render your JSON directly - if you mess up the structure, the app breaks. CRITICAL: Always include the "analysis" object with summary, key_changes, ats_compatibility, and missing_keywords_added fields.`,
+        cache_control: { type: 'ephemeral' as const },
+      },
+    ];
+
+    const response = await callModel({
+      task: 'optimize_cv',
+      prompt: `=== TARGET JOB ===
+Title: ${job?.title || 'Unknown'}
+Company: ${job?.companyName || 'Unknown'}
+Required Skills: ${job?.requiredSkills?.join(', ') || 'N/A'}
+Nice-to-Have: ${job?.niceToHaveSkills?.join(', ') || 'N/A'}
+${matchContext}
+
+=== PRIMARY CV (source of truth for personal info) ===
+${rawCV}
+
+${masterCV ? `=== MASTER CV (additional experiences/skills to draw from) ===
+${masterCV}` : ''}
+
+=== LANGUAGE ===
+${isGerman ? `Generate ALL content in GERMAN. Use German date format (Januar 2025 – Gegenwart).` : 'Generate content in English.'}
+
+Generate the optimized CV JSON now.`,
+      systemBlocks: cvOptimizationSystemBlocks,
       jsonMode: true,
     });
 
@@ -883,87 +899,13 @@ Return ONLY this JSON structure - no markdown, no preamble, no explanation:
       day: 'numeric' 
     });
 
-    const response = await callModel({
-      task: 'write_cover_letter',
-      prompt: `Write a cover letter using the Problem-Solution format.
-
-=== APPLICANT INFO ===
-Name: ${applicant?.name || 'Applicant'}
-Email: ${applicant?.email || ''}
-Phone: ${applicant?.phone || ''}
-Address: ${applicant?.address || ''}
-Date: ${today}
-
-=== TARGET POSITION ===
-Job Title: ${job?.title || 'Position'}
-Company: ${job?.companyName || 'Company'}
-Location: ${job?.location || 'Not specified'}
-Key Requirements: ${job?.requiredSkills?.join(', ') || 'Not specified'}
-Nice-to-Have: ${job?.niceToHaveSkills?.join(', ') || 'Not specified'}
-
-=== CANDIDATE BACKGROUND ===
-${rawCV}
-${masterCV ? `
-
-=== ADDITIONAL EXPERIENCE (from Master CV) ===
-${masterCV}` : ''}
-
-=== COVER LETTER STRUCTURE (Problem-Solution Format) ===
-
-[Opening - hooks with achievement from CV, shows understanding of company challenge]
-"After [INSERT EXACT METRIC FROM CV - e.g., revenue, followers, years experience], I've developed [SKILL RELEVANT TO JOB]. When I saw your [JOB TITLE] role, I recognized the exact challenge I've been solving: [CONNECT TO JOB REQUIREMENTS]."
-
-[Value paragraph - specific experience matched to their needs using ONLY CV facts]
-"In my role as [EXACT TITLE FROM CV], I [EXACT ACHIEVEMENT FROM CV WITH EXACT METRIC]. I also [SECOND ACHIEVEMENT FROM CV]. My experience with [TOOLS ACTUALLY LISTED IN CV] positions me to [BENEFIT TO COMPANY]."
-
-[Confident close - specific and action-oriented]
-"I'd welcome the opportunity to discuss how my [SKILL FROM CV] experience can [BENEFIT]. I'm available for a call this week or next."
-
-=== REQUIRED HEADER FORMAT ===
-
-The cover letter MUST start with this exact header structure:
-
-${applicant?.name || 'Applicant Name'}
-${applicant?.address || 'Address'}
-${applicant?.email || 'Email'}
-${applicant?.phone || 'Phone'}
-
-${today}
-
-Hiring Manager
-${job?.companyName || 'Company'}
-[Insert Company Address]
-
-IMPORTANT: Under the company name, write exactly "[Insert Company Address]" - do NOT invent or guess a street address.
-
-=== LANGUAGE INSTRUCTION ===
-${isGerman ? `CRITICAL: Write the ENTIRE cover letter in GERMAN.
-- Use formal German "Sie" form
-- German business letter format
-- Closing: "Mit freundlichen Grüßen," instead of "Best regards,"
-- German date format: "3. Februar 2026"
-- Keep name and contact details as-is` : 'Write the cover letter in English.'}
-
-REQUIRED SIGNATURE FORMAT:
-The cover letter MUST end with exactly this format:
-
-[Your closing sentence about availability/next steps]
-
-Best regards,
-
-${applicant?.name || 'Applicant Name'}
-
-NEVER omit the signature. A cover letter without a signature is incomplete.
-
-INSTRUCTIONS:
-1. Use the Problem-Solution format shown in the structure
-2. Include at least TWO specific metrics from the candidate's background (ONLY if they exist in the CV)
-3. Keep between 250-350 words (excluding header and signature)
-4. CRITICAL: Every claim, skill, tool, platform, and metric MUST exist verbatim in the CANDIDATE BACKGROUND section
-5. If the job requires skills not in the CV, show TRANSFERABLE skills instead - NEVER claim missing skills
-
-Write the complete cover letter now (including signature):`,
-      systemPrompt: `You are an expert cover letter writer specializing in the US and UK job markets.
+    // ---- PROMPT CACHING: Static cover letter rules into cacheable system blocks ----
+    // The anti-hallucination rules, writing style, prohibitions, and structure template
+    // are identical across every cover letter call. Combined ~1,500+ tokens.
+    const coverLetterSystemBlocks = [
+      {
+        type: 'text' as const,
+        text: `You are an expert cover letter writer specializing in the US and UK job markets.
 
 CRITICAL ANTI-HALLUCINATION RULES (READ FIRST - VIOLATION IS UNACCEPTABLE):
 
@@ -1014,7 +956,91 @@ OUTPUT FORMAT:
 - No markdown
 - No bullet points
 - Professional letter format
-- MUST include signature block at the end`,
+- MUST include signature block at the end
+
+=== COVER LETTER STRUCTURE (Problem-Solution Format) ===
+
+[Opening - hooks with achievement from CV, shows understanding of company challenge]
+"After [INSERT EXACT METRIC FROM CV - e.g., revenue, followers, years experience], I've developed [SKILL RELEVANT TO JOB]. When I saw your [JOB TITLE] role, I recognized the exact challenge I've been solving: [CONNECT TO JOB REQUIREMENTS]."
+
+[Value paragraph - specific experience matched to their needs using ONLY CV facts]
+"In my role as [EXACT TITLE FROM CV], I [EXACT ACHIEVEMENT FROM CV WITH EXACT METRIC]. I also [SECOND ACHIEVEMENT FROM CV]. My experience with [TOOLS ACTUALLY LISTED IN CV] positions me to [BENEFIT TO COMPANY]."
+
+[Confident close - specific and action-oriented]
+"I'd welcome the opportunity to discuss how my [SKILL FROM CV] experience can [BENEFIT]. I'm available for a call this week or next."
+
+INSTRUCTIONS:
+1. Use the Problem-Solution format shown in the structure
+2. Include at least TWO specific metrics from the candidate's background (ONLY if they exist in the CV)
+3. Keep between 250-350 words (excluding header and signature)
+4. CRITICAL: Every claim, skill, tool, platform, and metric MUST exist verbatim in the CANDIDATE BACKGROUND section
+5. If the job requires skills not in the CV, show TRANSFERABLE skills instead - NEVER claim missing skills
+6. NEVER omit the signature. A cover letter without a signature is incomplete.`,
+        cache_control: { type: 'ephemeral' as const },
+      },
+    ];
+
+    const response = await callModel({
+      task: 'write_cover_letter',
+      prompt: `Write a cover letter using the Problem-Solution format.
+
+=== APPLICANT INFO ===
+Name: ${applicant?.name || 'Applicant'}
+Email: ${applicant?.email || ''}
+Phone: ${applicant?.phone || ''}
+Address: ${applicant?.address || ''}
+Date: ${today}
+
+=== TARGET POSITION ===
+Job Title: ${job?.title || 'Position'}
+Company: ${job?.companyName || 'Company'}
+Location: ${job?.location || 'Not specified'}
+Key Requirements: ${job?.requiredSkills?.join(', ') || 'Not specified'}
+Nice-to-Have: ${job?.niceToHaveSkills?.join(', ') || 'Not specified'}
+
+=== CANDIDATE BACKGROUND ===
+${rawCV}
+${masterCV ? `
+
+=== ADDITIONAL EXPERIENCE (from Master CV) ===
+${masterCV}` : ''}
+
+=== REQUIRED HEADER FORMAT ===
+
+The cover letter MUST start with this exact header structure:
+
+${applicant?.name || 'Applicant Name'}
+${applicant?.address || 'Address'}
+${applicant?.email || 'Email'}
+${applicant?.phone || 'Phone'}
+
+${today}
+
+Hiring Manager
+${job?.companyName || 'Company'}
+[Insert Company Address]
+
+IMPORTANT: Under the company name, write exactly "[Insert Company Address]" - do NOT invent or guess a street address.
+
+=== LANGUAGE INSTRUCTION ===
+${isGerman ? `CRITICAL: Write the ENTIRE cover letter in GERMAN.
+- Use formal German "Sie" form
+- German business letter format
+- Closing: "Mit freundlichen Grüßen," instead of "Best regards,"
+- German date format: "3. Februar 2026"
+- Keep name and contact details as-is` : 'Write the cover letter in English.'}
+
+REQUIRED SIGNATURE FORMAT:
+The cover letter MUST end with exactly this format:
+
+[Your closing sentence about availability/next steps]
+
+Best regards,
+
+${applicant?.name || 'Applicant Name'}
+
+Write the complete cover letter now (including signature):`,
+      systemBlocks: coverLetterSystemBlocks,
     });
 
     const tokens: TokenUsage = {
