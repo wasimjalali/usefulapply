@@ -179,7 +179,7 @@ export function CVPanel() {
             /* Critical: Hide browser headers and footers */
             @page {
               size: ${isUSTemplate ? 'letter' : 'A4'};
-              margin: 0.75in; /* Professional CV margin - 54pt */
+              margin: 0; /* Zero browser margin - template internal padding controls margins */
             }
             
             * {

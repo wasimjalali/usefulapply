@@ -61,7 +61,7 @@ export function USPremiumATSTemplate({
         lineHeight: 1.2,  // 2026: Tighter line spacing (1.15-1.2)
         pageBreakAfter: 'auto',
         pageBreakInside: 'auto',
-        padding: '0.92in',  // 2026: 66pt margins (~0.92in)
+        padding: '0.5in 0.75in',  // 2026 Standard: 0.5in top/bottom, 0.75in left/right
       }}
     >
       {/* Quality/Match Score Badge (only shown in preview, not print) */}
