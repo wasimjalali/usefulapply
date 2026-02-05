@@ -2,7 +2,7 @@
 
 **Location:** `/src/app/`  
 **Purpose:** Next.js pages for marketing, dashboard, and user-facing features  
-**Last Updated:** February 5, 2026
+**Last Updated:** February 5, 2026 (Marketing Pages Redesign)
 
 ---
 
@@ -16,14 +16,14 @@ The application has 11 main pages: landing page, dashboard, documents management
 
 | Page | Path | Type | Lines | Purpose | Status |
 |------|------|------|-------|---------|--------|
-| Landing | `/page.tsx` | Marketing | 322 | Homepage with hero, features, CTA | ✅ Active |
+| Landing | `/page.tsx` | Marketing | ~520 | Homepage with hero, features, Master CV section, CTA | ✅ Redesigned |
 | Dashboard | `/dashboard/page.tsx` | App | 209 | Main application interface | ✅ Active |
 | Documents | `/documents/page.tsx` | App | 718 | CV/Master CV upload & management | ✅ Active |
 | Settings | `/settings/page.tsx` | App | 994 | User profile, account, subscription | ✅ Active |
-| Master CV | `/master-cv/page.tsx` | Marketing | 530 | Master CV creation guide | ✅ Active |
-| About | `/about/page.tsx` | Marketing | 129 | Company story and values | ✅ Active |
-| Pricing | `/pricing/page.tsx` | Marketing | 391 | Pricing tiers and FAQ | ✅ Active |
-| Contact | `/contact/page.tsx` | Marketing | 214 | Contact form | ⚠️ Non-functional |
+| Master CV | `/master-cv/page.tsx` | Marketing | ~550 | Master CV creation guide | ✅ Redesigned |
+| About | `/about/page.tsx` | Marketing | ~260 | Founder story, values, photo | ✅ Redesigned |
+| Pricing | `/pricing/page.tsx` | Marketing | ~470 | Pricing tiers, ROI calculator, FAQ | ✅ Redesigned |
+| Contact | `/contact/page.tsx` | Marketing | ~232 | Contact form | ✅ Redesigned (form still simulated) |
 | Privacy | `/privacy/page.tsx` | Legal | 151 | Privacy policy | ✅ Active |
 | Terms | `/terms/page.tsx` | Legal | ~150 | Terms of service | ✅ Active |
 | Imprint | `/imprint/page.tsx` | Legal | ~80 | Legal imprint | ✅ Active |
@@ -32,57 +32,51 @@ The application has 11 main pages: landing page, dashboard, documents management
 
 ## Detailed Page Analysis
 
-### 1. Landing Page (`/page.tsx`) - 322 lines
+### 1. Landing Page (`/page.tsx`) - ~520 lines ✅ REDESIGNED
 
 **Purpose:** Marketing homepage with hero section, features, and CTAs
 
-**Current State:**
-- ✅ Hero section with value proposition
+**Current State (Post-Redesign):**
+- ✅ Hero with "Save 45+ minutes per application" badge (removed fake 4.9/5 rating)
 - ✅ Problem/solution comparison
-- ✅ "How It Works" 3-step process
-- ✅ Features grid (6 features)
+- ✅ "How It Works" 3-step process (Step 1: Upload Master CV, Step 2: mentions fit analysis)
+- ✅ Features grid (8 features including Fit Analysis, AI Company Analysis, AI Self-Refinement)
 - ✅ Social proof section
-- ✅ Pricing preview
+- ✅ Pricing preview ($29.99 Plus, $49.99 Pro)
+- ✅ **NEW: "What is a Master CV?" section** near bottom with link to /master-cv
 - ✅ Final CTA
 - ✅ Navbar and Footer components
 
-**Key Sections:**
-1. **Hero** (lines 12-41): "Job Applications That Actually Get You Interviews"
-   - CTA: "Start Free — 3 Applications" ✅ Correct
-   - Secondary CTA: "See How It Works"
-   
-2. **Problem/Solution** (lines 44-95): Before/After comparison
-   - Without KarKo: 40+ minutes per application
-   - With KarKo: Under 3 minutes
+**Key Changes (Feb 5, 2026):**
+1. **Removed** 4.9/5 rating (pre-launch) → replaced with time savings badge
+2. **Reframed** "company research" → "AI company analysis from job description" (no web search)
+3. **Added** Fit Analysis feature (strong/good/weak fit before generation)
+4. **Reframed** "AI Refinement Chat" → "AI Self-Refinement" (auto-iteration)
+5. **Changed** "Upload Your CV" → "Upload Your Master CV"
+6. **Added** "What is a Master CV?" section near bottom
 
-3. **How It Works** (lines 98-146): 3-step process
-   - Upload CV → Paste Job → Get Package
-
-4. **Features** (lines 149-201): 6 feature cards
-   - Smart Company Research
-   - ATS-Optimized
-   - Instant Personalization
-   - Save 40+ Minutes
-   - Complete Package
-   - Refine with AI
-
-**Leftover Code Issues:**
-- ✅ No significant leftover code
-- ✅ Copy correctly shows "3 free applications"
-
-**Recommendations:**
-- Consider A/B testing different hero copy
-- Add testimonials section if available
+**Features Grid (8 features):**
+- AI Company Analysis (from job description)
+- ATS-Optimized Documents
+- Fit Analysis (strong/good/weak)
+- Hyper-Personalization
+- Save 45+ Minutes
+- Complete Application Package
+- AI Self-Refinement Iterations
+- US & EU Templates
 
 ---
 
-### 2. Dashboard Page (`/dashboard/page.tsx`) - 209 lines
+### 2. Dashboard Page (`/dashboard/page.tsx`) - 209 lines ✅ UI ENHANCED
 
 **Purpose:** Main application interface with CV/Cover Letter/Email panels and chat
 
-**Current State:**
+**Current State (Post-Redesign):**
 - ✅ Authentication required (redirects to login)
-- ✅ Resizable chat panel (360-650px)
+- ✅ Resizable chat panel (360-650px) with gold resize handle
+- ✅ **Premium tab bar**: White header with shadow, gold active tab indicator, gold-tinted icons
+- ✅ **Profile avatar**: Navy gradient with gold ring accent
+- ✅ Responsive Documents link (hidden text on small screens)
 - ✅ Tab navigation (CV, Cover Letter, Email)
 - ✅ Credit indicator in header
 - ✅ Links to Documents and Settings
@@ -221,120 +215,102 @@ File Upload → Parse API → Store Locally → Upload to Supabase → Save Meta
 
 ---
 
-### 5. Master CV Page (`/master-cv/page.tsx`) - 530 lines
+### 5. Master CV Page (`/master-cv/page.tsx`) - ~550 lines ✅ REDESIGNED
 
 **Purpose:** Educational page with Master CV creation prompt for ChatGPT/Claude
 
-**Current State:**
-- ✅ Marketing page with Navbar/Footer
-- ✅ Copy-to-clipboard functionality
-- ✅ Comprehensive Master CV prompt (3000+ words)
-- ✅ Structured sections guide
-- ✅ Professional mindset identification
-- ✅ Quantified achievements focus
+**Current State (Post-Redesign):**
+- ✅ Gradient hero text with trust badge
+- ✅ Redesigned comparison table (Regular CV vs Master CV) with detail descriptions
+- ✅ "RECOMMENDED" badge on Master CV card
+- ✅ Gold uppercase section labels (Understanding, Benefits, Simple Process, The Prompt, Contents)
+- ✅ 3-step process with connecting line
+- ✅ Gradient copy button in prompt section
+- ✅ Navy gradient CTA matching other pages
+- ✅ Consistent py-20 spacing
 
 **Key Features:**
-1. **Master CV Prompt** (lines 10-400): Complete prompt for AI assistants
-   - 10 sections to cover
-   - Emphasis on metrics and numbers
-   - Professional mindset identification
-   - 5-10 pages output format
-
-2. **Copy Button** (lines 450-480): One-click copy to clipboard
-   - Shows checkmark on success
-   - Resets after 2 seconds
-
-3. **Why Master CV Section** (lines 500-530): Benefits explanation
-
-**Leftover Code Issues:**
-- ✅ No significant leftover code
-- ✅ Well-structured educational content
-
-**Recommendations:**
-- Consider adding example Master CV
-- Add video tutorial
-- Track copy button usage for analytics
+1. **Master CV Prompt** (lines 10-240): Complete prompt for AI assistants
+2. **Comparison Table**: Regular CV (✗) vs Master CV (✓) with detail descriptions
+3. **Benefits Grid**: 6 cards (Better AI Personalization, Save Hours, Never Miss Achievement, etc.)
+4. **Copy Button**: Gradient styled, shows checkmark on success
+5. **What's Included**: 12-item checklist of Master CV contents
 
 ---
 
-### 6. About Page (`/about/page.tsx`) - 129 lines
+### 6. About Page (`/about/page.tsx`) - ~260 lines ✅ REDESIGNED
 
-**Purpose:** Company story, values, and mission
+**Purpose:** Founder story, company values, and mission
 
-**Current State:**
-- ✅ Marketing page with Navbar/Footer
-- ✅ Company story section
-- ✅ Values grid (4 values)
-- ✅ Stats section (updated with honest metrics)
-- ✅ CTA section
+**Current State (Post-Redesign):**
+- ✅ Personal founder story: "From Job Seeker to Founder"
+- ✅ Timeline: Problem (50+ jobs) → First Attempt (chatbot) → KarKo AI
+- ✅ Values grid (4 values: People First, Quality Over Quantity, Honest & Transparent, Constantly Improving)
+- ✅ Stats section with honest metrics
+- ✅ **NEW: "Meet the Founder" section** with Wasim Jalali photo and quote
+- ✅ Navy gradient CTA section
 
-**Stats Section (lines 87-104):**
-- ✅ "Hyper-Personalized Applications" (not fake number)
-- ✅ "40+ min Saved Per Application" (honest metric)
-- ✅ "AI-Powered Precision Matching" (not fake number)
+**Key Changes (Feb 5, 2026):**
+1. **Rewrote story** with Wasim's personal journey (applying to 50-60 jobs → chatbot → KarKo AI)
+2. **Added founder section** with photo (`/Wasim.png`), name, title (Founder & CEO)
+3. **Quote**: "From a job seeker, to job seekers"
+4. **Reframed** "Agentic, Not Assistive" to remove web research reference
 
-**Values:**
-1. People First
-2. Quality Over Quantity
-3. Honest and Transparent
-4. Constantly Improving
-
-**Leftover Code Issues:**
-- ✅ No fake statistics (previously had "10,000+ applications" - now removed)
-- ✅ Honest, compelling copy
-
-**Recommendations:**
-- Add team section if desired
-- Add customer testimonials when available
+**Founder Photo:** `/public/Wasim.png` (copied from Assets/Wasim.png)
 
 ---
 
-### 7. Pricing Page (`/pricing/page.tsx`) - 391 lines
+### 7. Pricing Page (`/pricing/page.tsx`) - ~470 lines ✅ REDESIGNED
 
-**Purpose:** Display pricing tiers, features, and FAQ
+**Purpose:** Display pricing tiers, features, ROI calculator, and FAQ
 
-**Current State:**
-- ✅ 3 pricing tiers (Starter, Plus, Pro)
+**Current State (Post-Redesign):**
+- ✅ 3 pricing tiers (Starter, Plus, Pro) with updated prices
 - ✅ Credit-based pricing model
-- ✅ Add-on credit packs
-- ✅ Feature comparison table
+- ✅ Updated add-on credit packs
+- ✅ Feature comparison with Fit Analysis, AI Company Analysis, AI Self-Refinement
+- ✅ **NEW: ROI Time Savings Calculator** section
 - ✅ FAQ section (6 questions)
 - ✅ Expandable FAQ items
 
-**Pricing Tiers:**
+**Pricing Tiers (Updated Feb 5, 2026):**
 
-| Tier | Price | Credits | Applications | Rollover |
-|------|-------|---------|--------------|----------|
-| Starter | Free | 6 | 3 | None |
-| Plus | $19.99/mo | 120 | 60 | 1 month |
-| Pro | $39.99/mo | 240 | 120 | 2 months |
+| Tier | Price | Credits | Applications | Rollover | Time Saved |
+|------|-------|---------|--------------|----------|------------|
+| Starter | Free | 6 | 3 | None | 2.25 hrs |
+| Plus | $29.99/mo | 120 | 60 | 1 month | 45 hrs |
+| Pro | $49.99/mo | 240 | 120 | 2 months | 90 hrs |
 
-**Add-on Packs:**
-- Small: 30 credits / 15 apps - $4.99
-- Medium: 60 credits / 30 apps - $9.99 (Best Value)
-- Large: 120 credits / 60 apps - $19.99 (Most Popular)
+**Add-on Packs (Updated Feb 5, 2026):**
+- Small: 30 credits / 15 apps - $7.49
+- Medium: 60 credits / 30 apps - $14.99 (Best Value)
+- Large: 120 credits / 60 apps - $29.99 (Most Popular)
+
+**Key Changes:**
+1. Prices updated: Plus $29.99, Pro $49.99 (was $19.99/$39.99)
+2. Add-on prices updated: $7.49/$14.99/$29.99 (was $4.99/$9.99/$19.99)
+3. Added Fit Analysis, AI Company Analysis, AI Self-Refinement to features
+4. Added ROI Time Savings Calculator section
+5. Removed 'Priority support' from free tier
 
 **Leftover Code Issues:**
-- ⚠️ Lines 200-250: CTA buttons link to `/auth/signup` but don't specify tier
+- ⚠️ CTA buttons link to `/auth/signup` but don't specify tier
 - ⚠️ No Stripe integration for paid plans
-
-**Recommendations:**
-- Add tier parameter to signup links: `/auth/signup?tier=plus`
-- Implement Stripe checkout flow
-- Add annual pricing option
-- Add "Most Popular" badge to Plus tier
 
 ---
 
-### 8. Contact Page (`/contact/page.tsx`) - 214 lines ⚠️
+### 8. Contact Page (`/contact/page.tsx`) - ~232 lines ✅ REDESIGNED
 
 **Purpose:** Contact form for user inquiries
 
-**Current State:**
-- ✅ Marketing page with Navbar/Footer
+**Current State (Post-Redesign):**
+- ✅ Gradient hero text matching design system
+- ✅ Larger contact option cards with hover effects
 - ✅ Email contact info: hello@karko.ai
-- ✅ Live chat placeholder (coming soon)
-- ⚠️ **Contact form is non-functional** (simulated submission)
+- ✅ Live chat placeholder (coming soon, italic)
+- ✅ Gradient submit button
+- ✅ Navy gradient FAQ/CTA section at bottom linking to /pricing
+- ⚠️ **Contact form is still non-functional** (simulated submission)
 
 **Form Fields:**
 - Name
@@ -343,7 +319,7 @@ File Upload → Parse API → Store Locally → Upload to Supabase → Save Meta
 - Message
 
 **Leftover Code Issues:**
-- 🔴 **Lines 19-28: Form submission is fake** - Just simulates with setTimeout
+- 🔴 **Form submission is fake** - Just simulates with setTimeout
 - 🔴 **No actual email sending** - Form doesn't send emails
 - ⚠️ No form validation beyond HTML5 required
 
@@ -481,7 +457,9 @@ if (isLoading) {
 | Date | Change | Files Modified | Reason |
 |------|--------|----------------|--------|
 | Feb 3, 2026 | Updated stats on about page | about/page.tsx | Removed fake statistics |
-| - | - | - | - |
+| Feb 5, 2026 | Complete marketing pages redesign | page.tsx, pricing/page.tsx, about/page.tsx, master-cv/page.tsx, contact/page.tsx | Feature reframing, new pricing, founder story, design system consistency |
+| Feb 5, 2026 | Enhanced Navbar and Footer | Navbar.tsx, Footer.tsx | Backdrop blur, gradient CTA, gold section headers, Master CV link, Image component |
+| Feb 5, 2026 | Application UI/UX premium redesign | dashboard/page.tsx, ChatPanel.tsx, CVPanel.tsx, CoverLetterPanel.tsx, EmailPanel.tsx, ChatMessage.tsx, AgentProgressV2.tsx, settings/page.tsx | Premium headers, pill toggles, gold accents, consistent design system |
 
 ---
 

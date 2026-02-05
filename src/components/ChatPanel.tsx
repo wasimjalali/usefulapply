@@ -574,19 +574,24 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         />
       )}
     
-      <div className="h-full flex flex-col bg-cream-50 border-l border-cream-300">
+      <div className="h-full flex flex-col bg-cream-50 border-l border-cream-200">
         {/* Header */}
-        <div className="px-4 py-3 border-b border-cream-300 bg-white">
+        <div className="px-4 py-3 border-b border-cream-200 bg-white shadow-sm">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold tracking-tight">
-              <span className="text-navy-700">Karko</span>
-              <span className="text-gold-500 ml-1">AI</span>
-            </h1>
             <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-navy-600 to-navy-700 flex items-center justify-center">
+                <Sparkles className="w-3.5 h-3.5 text-gold-400" />
+              </div>
+              <h1 className="text-lg font-bold tracking-tight">
+                <span className="text-navy-700">Karko</span>
+                <span className="text-gold-500 ml-0.5">AI</span>
+              </h1>
+            </div>
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => setShowHistory(!showHistory)}
-                className={`p-2 rounded-lg transition-colors cursor-pointer ${
-                  showHistory ? 'bg-navy-100 text-navy-600' : 'text-warm-gray hover:bg-cream-200'
+                className={`p-2 rounded-lg transition-all cursor-pointer ${
+                  showHistory ? 'bg-navy-50 text-navy-600 shadow-sm' : 'text-warm-gray hover:bg-cream-100 hover:text-navy-600'
                 }`}
                 title="Application History"
               >
@@ -594,7 +599,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
               </button>
               <button
                 onClick={handleNewApplication}
-                className="p-2 rounded-lg text-warm-gray hover:bg-cream-200 transition-colors cursor-pointer"
+                className="p-2 rounded-lg text-warm-gray hover:bg-cream-100 hover:text-navy-600 transition-all cursor-pointer"
                 title="New Application"
               >
                 <Plus className="w-4 h-4" />
@@ -620,11 +625,11 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
           {/* Welcome message */}
           {!currentSession && messages.length === 0 && (
             <div className="flex gap-3">
-              <div className="p-2 bg-gradient-to-br from-navy-600 to-navy-700 rounded-full h-fit">
+              <div className="p-2 bg-gradient-to-br from-navy-600 to-navy-700 rounded-xl h-fit shadow-sm">
                 <Sparkles className="w-4 h-4 text-gold-400" />
               </div>
               <div className="flex-1">
-                <Card padding="sm" className="bg-white border-cream-200">
+                <Card padding="sm" className="bg-white border-cream-200 shadow-sm">
                   <MarkdownText 
                     content={currentCV 
                       ? "👋 Great, your CV is uploaded! **Paste a job description** below and I'll:\n\n1. Analyze the requirements\n2. Optimize your CV for the role\n3. Generate a tailored cover letter\n\nJust paste the job posting to get started!"
@@ -636,7 +641,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                     <div className="mt-3">
                       <button
                         onClick={() => handleAction('navigate-documents')}
-                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-gold-500 text-white rounded-lg hover:bg-gold-600 transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm cursor-pointer"
                       >
                         <FileText className="w-4 h-4" />
                         Upload CV
@@ -645,7 +650,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                     </div>
                   )}
                 </Card>
-                <p className="text-xs text-warm-gray mt-1 ml-1">Just now</p>
+                <p className="text-xs text-warm-gray mt-1.5 ml-1">Just now</p>
               </div>
             </div>
           )}
@@ -664,7 +669,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
           {/* Immediate loading indicator */}
           {isAgentWorking && agentSteps.length === 0 && v2Progress && (
             <div className="flex gap-3">
-              <div className="p-2 bg-gradient-to-br from-navy-600 to-navy-700 rounded-full h-fit flex-shrink-0">
+              <div className="p-2 bg-gradient-to-br from-navy-600 to-navy-700 rounded-xl h-fit flex-shrink-0 shadow-sm">
                 <Sparkles className="w-4 h-4 text-gold-400" />
               </div>
               <div className="flex-1">
@@ -692,7 +697,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
           {/* Agent Steps Progress V2 */}
           {isAgentWorking && agentSteps.length > 0 && (
             <div className="flex gap-3">
-              <div className="p-2 bg-gradient-to-br from-navy-600 to-navy-700 rounded-full h-fit flex-shrink-0">
+              <div className="p-2 bg-gradient-to-br from-navy-600 to-navy-700 rounded-xl h-fit flex-shrink-0 shadow-sm">
                 <Sparkles className="w-4 h-4 text-gold-400" />
               </div>
               <div className="flex-1">
@@ -718,10 +723,10 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
           {/* Typing indicator */}
           {(isTyping || isAnalyzing || isGenerating) && !isAgentWorking && (
             <div className="flex gap-3">
-              <div className="p-2 bg-gradient-to-br from-navy-500 to-navy-600 rounded-full h-fit flex-shrink-0">
+              <div className="p-2 bg-gradient-to-br from-navy-600 to-navy-700 rounded-xl h-fit flex-shrink-0 shadow-sm">
                 <Sparkles className="w-4 h-4 text-gold-400" />
               </div>
-              <div className="flex items-center gap-2 px-4 py-3 bg-white rounded-lg border border-navy-200">
+              <div className="flex items-center gap-2 px-4 py-3 bg-white rounded-xl border border-cream-200 shadow-sm">
                 <div className="flex gap-1">
                   <span className="w-2 h-2 bg-gold-400 rounded-full animate-bounce typing-dot-1" />
                   <span className="w-2 h-2 bg-gold-500 rounded-full animate-bounce typing-dot-2" />

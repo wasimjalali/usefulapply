@@ -9,7 +9,7 @@ import { ChatPanel } from '@/components/ChatPanel';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
-import { FileText, Mail, Send, FolderOpen, Settings, User, Loader2 } from 'lucide-react';
+import { FileText, Mail, Send, FolderOpen, Settings, User, Loader2, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { CreditIndicator } from '@/components/ui/CreditIndicator';
 
@@ -97,40 +97,41 @@ export default function Dashboard() {
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - Results */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Tabs */}
-          <div className="bg-cream-50 border-b border-cream-300 px-4">
-            <div className="flex gap-4">
+          {/* Tabs - Premium Header */}
+          <div className="bg-white border-b border-cream-200 px-4 shadow-sm">
+            <div className="flex items-center gap-1">
+              {/* Main Tabs */}
               <button
                 onClick={() => setActiveTab('cv')}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+                className={`flex items-center gap-2 px-4 py-3.5 text-sm font-medium border-b-2 transition-all cursor-pointer ${
                   activeTab === 'cv'
-                    ? 'border-navy-600 text-navy-600'
-                    : 'border-transparent text-warm-gray hover:text-charcoal'
+                    ? 'border-gold-400 text-navy-700 font-semibold'
+                    : 'border-transparent text-warm-gray hover:text-navy-600 hover:border-cream-300'
                 }`}
               >
-                <FileText className="w-4 h-4" />
+                <FileText className={`w-4 h-4 ${activeTab === 'cv' ? 'text-gold-500' : ''}`} />
                 CV
               </button>
               <button
                 onClick={() => setActiveTab('cover-letter')}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+                className={`flex items-center gap-2 px-4 py-3.5 text-sm font-medium border-b-2 transition-all cursor-pointer ${
                   activeTab === 'cover-letter'
-                    ? 'border-navy-600 text-navy-600'
-                    : 'border-transparent text-warm-gray hover:text-charcoal'
+                    ? 'border-gold-400 text-navy-700 font-semibold'
+                    : 'border-transparent text-warm-gray hover:text-navy-600 hover:border-cream-300'
                 }`}
               >
-                <Mail className="w-4 h-4" />
+                <Mail className={`w-4 h-4 ${activeTab === 'cover-letter' ? 'text-gold-500' : ''}`} />
                 Cover Letter
               </button>
               <button
                 onClick={() => setActiveTab('email')}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+                className={`flex items-center gap-2 px-4 py-3.5 text-sm font-medium border-b-2 transition-all cursor-pointer ${
                   activeTab === 'email'
-                    ? 'border-navy-600 text-navy-600'
-                    : 'border-transparent text-warm-gray hover:text-charcoal'
+                    ? 'border-gold-400 text-navy-700 font-semibold'
+                    : 'border-transparent text-warm-gray hover:text-navy-600 hover:border-cream-300'
                 }`}
               >
-                <Send className="w-4 h-4" />
+                <Send className={`w-4 h-4 ${activeTab === 'email' ? 'text-gold-500' : ''}`} />
                 Email
               </button>
               
@@ -145,19 +146,19 @@ export default function Dashboard() {
               {/* Documents Link */}
               <Link
                 href="/documents"
-                className="flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-warm-gray hover:text-charcoal transition-colors cursor-pointer"
+                className="flex items-center gap-2 px-3 py-3.5 text-sm font-medium text-warm-gray hover:text-navy-600 transition-colors cursor-pointer"
               >
                 <FolderOpen className="w-4 h-4" />
-                Documents
+                <span className="hidden lg:inline">Documents</span>
               </Link>
 
               {/* Settings/Profile Link */}
               <Link
                 href="/settings"
-                className="flex items-center gap-2 px-3 py-3 text-sm font-medium border-b-2 border-transparent text-warm-gray hover:text-charcoal transition-colors cursor-pointer"
+                className="flex items-center gap-2 px-2 py-2 ml-1 cursor-pointer"
                 title="Settings & Profile"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-navy-500 to-navy-600 flex items-center justify-center overflow-hidden">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-navy-500 to-navy-700 flex items-center justify-center overflow-hidden ring-2 ring-gold-300/50 ring-offset-1">
                   {profile?.avatar_url ? (
                     <img 
                       src={profile.avatar_url} 
@@ -185,12 +186,14 @@ export default function Dashboard() {
           {/* Resize Handle */}
           <div
             onMouseDown={handleMouseDown}
-            className={`absolute left-0 top-0 bottom-0 w-1 cursor-col-resize z-10 hover:bg-navy-400 transition-colors ${
-              isResizing ? 'bg-navy-400' : 'bg-transparent hover:bg-navy-200'
+            className={`absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize z-10 transition-colors ${
+              isResizing ? 'bg-gold-400' : 'bg-cream-200 hover:bg-gold-300'
             }`}
             title="Drag to resize"
           >
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 rounded-full bg-cream-400 opacity-0 hover:opacity-100 transition-opacity" />
+            <div className={`absolute left-0.5 top-1/2 -translate-y-1/2 w-0.5 h-16 rounded-full transition-opacity ${
+              isResizing ? 'bg-gold-500 opacity-100' : 'bg-cream-400 opacity-0 hover:opacity-100'
+            }`} />
           </div>
           
           <div className="flex-1 overflow-hidden">

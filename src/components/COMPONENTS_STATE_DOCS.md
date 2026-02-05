@@ -2,13 +2,35 @@
 
 **Location:** `/src/components/`  
 **Purpose:** Reusable React components for the application  
-**Last Updated:** February 5, 2026 (Post-Refactoring)
+**Last Updated:** February 5, 2026 (Post-Refactoring + Marketing Redesign)
 
 ## Recent Refactoring 
 - **ChatPanel split** into 4 modular components (ChatMessage, ChatInput, ChatHistory, FeedbackModal)
 - **Settings page split** into 4 section components (Profile, Account, Subscription, Notifications)
 - **New UI components** created (Input, Select, Modal, Toast)
 - **Store split** completed (useCVStore, useSessionStore, useUIStore)
+
+## Marketing Components Update (Feb 5, 2026)
+- **Navbar.tsx** enhanced: backdrop blur header, gradient CTA button, gold underline hover on nav links, Next.js Image component
+- **Footer.tsx** enhanced: gradient background, gold accent top border, gold uppercase section headers, Master CV link added, "Built by a job seeker, for job seekers" tagline
+
+## Application UI/UX Premium Redesign (Feb 5, 2026)
+- **Dashboard tab bar**: White header with shadow, gold active tab indicator, gold-tinted icons on active, premium profile avatar with gold ring, gold resize handle
+- **ChatPanel**: Branded header with Sparkles icon badge, rounded-xl AI avatars with shadow, gradient Upload CV CTA button, polished typing indicator
+- **ChatMessage**: Rounded-xl avatars, shadow on AI message cards, premium action buttons with gold dot connectors and hover:border-gold-300, timestamps on all messages
+- **CVPanel**: White header with icon badge, pill-style Content/Changes tabs (rounded-xl), pill-style Original/Optimized and View/Edit toggles, better empty state with rounded-2xl icon container
+- **CoverLetterPanel**: Consistent with CVPanel - white header, icon badge, pill-style View/Edit toggle, premium empty states
+- **EmailPanel**: Consistent styling, premium tips section with navy-50/cream-50 gradient and gold bullet points
+- **AgentProgressV2**: Company research card rebranded from blue to navy/gold brand colors with rounded-xl cards
+- **Settings page**: Backdrop blur header, gradient sidebar (from-navy-600 to-navy-700) with gold icon accents, subtle gradient background
+
+### Design System Patterns (App UI)
+- **Headers**: `bg-white border-b border-cream-200 shadow-sm`
+- **Icon badges**: `w-8 h-8 rounded-lg bg-navy-50` with `w-4 h-4 text-navy-600` icon
+- **Pill toggles**: `bg-cream-100 rounded-xl p-1` container, active: `bg-white text-navy-700 shadow-sm font-semibold rounded-lg`
+- **Empty states**: `w-16 h-16 rounded-2xl bg-cream-100` icon container, `text-lg font-semibold` heading
+- **AI avatars**: `rounded-xl bg-gradient-to-br from-navy-600 to-navy-700 shadow-sm`
+- **Action buttons**: `rounded-xl border-cream-200 hover:border-gold-300 hover:shadow-sm`
 
 ---
 

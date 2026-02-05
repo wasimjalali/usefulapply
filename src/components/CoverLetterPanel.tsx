@@ -389,11 +389,13 @@ ${letter.signatureName}`;
   // Show generate button if CV is ready but no cover letter yet
   if (!coverLetter && currentCV && jobDescription) {
     return (
-      <div className="h-full flex items-center justify-center bg-cream-100 p-8">
+      <div className="h-full flex items-center justify-center bg-cream-50 p-8">
         <div className="text-center max-w-md">
-          <Mail className="w-12 h-12 text-navy-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-charcoal mb-2">Generate Cover Letter</h3>
-          <p className="text-sm text-warm-gray mb-6">
+          <div className="w-16 h-16 rounded-2xl bg-navy-50 flex items-center justify-center mx-auto mb-5">
+            <Mail className="w-8 h-8 text-navy-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-charcoal mb-2">Generate Cover Letter</h3>
+          <p className="text-sm text-warm-gray mb-6 leading-relaxed">
             Create a personalized cover letter tailored to this job application.
           </p>
           <Button 
@@ -413,11 +415,13 @@ ${letter.signatureName}`;
   // Show placeholder if CV not ready
   if (!coverLetter) {
     return (
-      <div className="h-full flex items-center justify-center bg-cream-100 p-8">
-        <div className="text-center">
-          <Mail className="w-12 h-12 text-cream-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-warm-gray">No cover letter yet</h3>
-          <p className="text-sm text-warm-gray mt-1">
+      <div className="h-full flex items-center justify-center bg-cream-50 p-8">
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 rounded-2xl bg-cream-100 flex items-center justify-center mx-auto mb-5">
+            <Mail className="w-8 h-8 text-cream-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-charcoal mb-2">No cover letter yet</h3>
+          <p className="text-sm text-warm-gray leading-relaxed">
             Analyze a job to generate a personalized cover letter
           </p>
         </div>
@@ -452,19 +456,21 @@ ${letter.signatureName}`;
 
   return (
     <div className="h-full flex flex-col bg-cream-50">
-      <div className="px-6 py-4 border-b border-cream-300">
+      <div className="px-6 py-3 border-b border-cream-200 bg-white shadow-sm">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Mail className="w-5 h-5 text-navy-600" />
-            <h2 className="text-lg font-semibold text-charcoal">Cover Letter</h2>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-navy-50 flex items-center justify-center">
+              <Mail className="w-4 h-4 text-navy-600" />
+            </div>
+            <h2 className="text-base font-semibold text-charcoal">Cover Letter</h2>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-1.5">
             {/* View/Edit Mode Toggle */}
-            <div className="flex items-center gap-1 mr-2">
+            <div className="flex items-center bg-cream-100 rounded-lg p-0.5 mr-1">
               <button
                 onClick={() => setIsEditMode(false)}
-                className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors cursor-pointer ${
-                  !isEditMode ? 'bg-navy-600 text-white' : 'bg-cream-200 text-warm-gray hover:bg-cream-300'
+                className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                  !isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
                 }`}
                 title="View mode"
               >
@@ -473,8 +479,8 @@ ${letter.signatureName}`;
               </button>
               <button
                 onClick={() => setIsEditMode(true)}
-                className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors cursor-pointer ${
-                  isEditMode ? 'bg-navy-600 text-white' : 'bg-cream-200 text-warm-gray hover:bg-cream-300'
+                className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                  isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
                 }`}
                 title="Edit mode - Make changes directly"
               >

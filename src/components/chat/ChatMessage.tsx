@@ -75,8 +75,8 @@ export function ChatMessage({
 
   return (
     <div className="flex gap-3">
-      <div className={`rounded-full h-fit flex-shrink-0 ${
-        message.role === 'user' ? 'p-2 bg-cream-200' : 'p-2 bg-gradient-to-br from-navy-600 to-navy-700'
+      <div className={`rounded-xl h-fit flex-shrink-0 ${
+        message.role === 'user' ? 'p-2 bg-cream-200' : 'p-2 bg-gradient-to-br from-navy-600 to-navy-700 shadow-sm'
       }`}>
         {message.role === 'user' 
           ? <User className="w-4 h-4 text-charcoal" />
@@ -88,8 +88,8 @@ export function ChatMessage({
         <Card 
           padding="sm" 
           className={`relative ${message.role === 'user' 
-            ? 'bg-cream-200 border-cream-300' 
-            : 'bg-white border-cream-200'
+            ? 'bg-cream-100 border-cream-200' 
+            : 'bg-white border-cream-200 shadow-sm'
           }`}
         >
           {/* Collapsible content for long user messages */}
@@ -140,25 +140,25 @@ export function ChatMessage({
                   {/* Connecting line */}
                   <div className="flex flex-col items-center mr-3">
                     <div className={`w-px bg-cream-300 ${index === 0 ? 'h-2' : 'h-2'}`} />
-                    <div className="w-2 h-2 rounded-full border-2 border-cream-400 bg-white flex-shrink-0" />
+                    <div className="w-2 h-2 rounded-full border-2 border-gold-300 bg-white flex-shrink-0" />
                     <div className={`w-px bg-cream-300 flex-1 ${index === filteredActions.length - 1 ? 'opacity-0' : ''}`} />
                   </div>
                   {/* Button */}
                   <button
                     onClick={() => onAction(action.action)}
-                    className="flex items-center gap-2 px-4 py-2.5 my-1 text-sm font-medium bg-cream-100 text-charcoal border border-cream-300 rounded-lg hover:bg-cream-200 hover:border-cream-400 transition-colors cursor-pointer"
+                    className="flex items-center gap-2 px-4 py-2.5 my-1 text-sm font-medium bg-white text-charcoal border border-cream-200 rounded-xl hover:bg-cream-50 hover:border-gold-300 hover:shadow-sm transition-all cursor-pointer"
                   >
                     {action.icon === 'cv' && <FileText className="w-4 h-4 text-navy-600" />}
                     {action.icon === 'cover-letter' && <Mail className="w-4 h-4 text-gold-600" />}
                     {action.icon === 'email' && <Send className="w-4 h-4 text-sage-600" />}
-                    {action.icon === 'new' && <Plus className="w-4 h-4 text-navy-600" />}
+                    {action.icon === 'new' && <Plus className="w-4 h-4 text-gold-500" />}
                     {action.label}
                   </button>
                 </div>
               ))}
               {/* Render hint text (action === 'none') */}
               {message.actions.some(a => a.action === 'none') && (
-                <p className="text-sm text-warm-gray mt-3 ml-5 italic">
+                <p className="text-xs text-warm-gray mt-3 ml-5 italic">
                   {message.actions.find(a => a.action === 'none')?.label.replace(/^💡\s*/, '')}
                 </p>
               )}
@@ -205,11 +205,9 @@ export function ChatMessage({
           </div>
         )}
         
-        {message.role === 'user' && (
-          <p className="text-xs text-warm-gray mt-1 ml-1">
-            {formatTime(message.timestamp)}
-          </p>
-        )}
+        <p className="text-xs text-warm-gray mt-1.5 ml-1">
+          {formatTime(message.timestamp)}
+        </p>
       </div>
     </div>
   );

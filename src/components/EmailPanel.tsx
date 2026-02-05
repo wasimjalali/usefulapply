@@ -186,11 +186,13 @@ export function EmailPanel() {
   // Show generate button if job description is available but no email yet
   if (!email && jobDescription) {
     return (
-      <div className="h-full flex items-center justify-center bg-cream-100 p-8">
+      <div className="h-full flex items-center justify-center bg-cream-50 p-8">
         <div className="text-center max-w-md">
-          <Send className="w-12 h-12 text-navy-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-charcoal mb-2">Generate Application Email</h3>
-          <p className="text-sm text-warm-gray mb-6">
+          <div className="w-16 h-16 rounded-2xl bg-navy-50 flex items-center justify-center mx-auto mb-5">
+            <Send className="w-8 h-8 text-navy-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-charcoal mb-2">Generate Application Email</h3>
+          <p className="text-sm text-warm-gray mb-6 leading-relaxed">
             Create a professional email to send with your CV and cover letter.
           </p>
           <Button 
@@ -210,11 +212,13 @@ export function EmailPanel() {
   // Show placeholder if CV not ready
   if (!email) {
     return (
-      <div className="h-full flex items-center justify-center bg-cream-100 p-8">
-        <div className="text-center">
-          <Send className="w-12 h-12 text-cream-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-warm-gray">No email yet</h3>
-          <p className="text-sm text-warm-gray mt-1">
+      <div className="h-full flex items-center justify-center bg-cream-50 p-8">
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 rounded-2xl bg-cream-100 flex items-center justify-center mx-auto mb-5">
+            <Send className="w-8 h-8 text-cream-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-charcoal mb-2">No email yet</h3>
+          <p className="text-sm text-warm-gray leading-relaxed">
             Generate a cover letter first, then create an application email
           </p>
         </div>
@@ -224,19 +228,21 @@ export function EmailPanel() {
 
   return (
     <div className="h-full flex flex-col bg-cream-50">
-      <div className="px-6 py-4 border-b border-cream-300">
+      <div className="px-6 py-3 border-b border-cream-200 bg-white shadow-sm">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Send className="w-5 h-5 text-navy-600" />
-            <h2 className="text-lg font-semibold text-charcoal">Application Email</h2>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-navy-50 flex items-center justify-center">
+              <Send className="w-4 h-4 text-navy-600" />
+            </div>
+            <h2 className="text-base font-semibold text-charcoal">Application Email</h2>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-1.5">
             {/* View/Edit Mode Toggle */}
-            <div className="flex items-center gap-1 mr-2">
+            <div className="flex items-center bg-cream-100 rounded-lg p-0.5 mr-1">
               <button
                 onClick={() => setIsEditMode(false)}
-                className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
-                  !isEditMode ? 'bg-navy-600 text-white' : 'bg-cream-200 text-warm-gray hover:bg-cream-300'
+                className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                  !isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
                 }`}
                 title="View mode"
               >
@@ -250,8 +256,8 @@ export function EmailPanel() {
                     setEditedEmail(email);
                   }
                 }}
-                className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
-                  isEditMode ? 'bg-navy-600 text-white' : 'bg-cream-200 text-warm-gray hover:bg-cream-300'
+                className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                  isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
                 }`}
                 title="Edit mode - Make changes directly"
               >
@@ -358,14 +364,17 @@ export function EmailPanel() {
             </div>
 
             {/* Tips */}
-            <div className="mt-6 p-4 bg-sage-50 rounded-lg border border-sage-200">
-              <h4 className="text-sm font-medium text-sage-700 mb-2">Tips for sending</h4>
-              <ul className="text-xs text-sage-600 space-y-1">
-                <li>• Attach your optimized CV and cover letter as PDFs</li>
-                <li>• Double-check the recipient&apos;s email address</li>
-                <li>• Send during business hours for best visibility</li>
-                <li>• Attach your relevant certifications mentioned in your CV to strengthen your application</li>
-                <li>• Follow up after 5-7 business days if no response</li>
+            <div className="mt-6 p-4 bg-gradient-to-br from-navy-50 to-cream-50 rounded-xl border border-navy-100">
+              <h4 className="text-sm font-semibold text-navy-700 mb-3 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-gold-100 flex items-center justify-center text-xs">💡</span>
+                Tips for sending
+              </h4>
+              <ul className="text-xs text-navy-600 space-y-2">
+                <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Attach your optimized CV and cover letter as PDFs</li>
+                <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Double-check the recipient&apos;s email address</li>
+                <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Send during business hours for best visibility</li>
+                <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Attach relevant certifications mentioned in your CV</li>
+                <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Follow up after 5-7 business days if no response</li>
               </ul>
             </div>
           </Card>

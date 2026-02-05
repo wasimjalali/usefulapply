@@ -288,20 +288,20 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-cream-100">
-      <header className="bg-white border-b border-cream-200 sticky top-0 z-50">
+    <div className="min-h-screen bg-gradient-to-br from-cream-50 via-cream-100 to-cream-50">
+      <header className="bg-white/95 backdrop-blur-md border-b border-cream-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-4">
               <Link 
                 href="/dashboard"
-                className="flex items-center gap-2 text-warm-gray hover:text-charcoal transition-colors cursor-pointer"
+                className="flex items-center gap-2 text-warm-gray hover:text-navy-600 transition-colors cursor-pointer group"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
                 <span className="text-sm font-medium">Back to App</span>
               </Link>
             </div>
-            <h1 className="text-lg font-semibold text-charcoal">Settings</h1>
+            <h1 className="text-base font-semibold text-charcoal">Settings</h1>
             <div className="w-24" />
           </div>
         </div>
@@ -311,18 +311,18 @@ export default function SettingsPage() {
         <div className="flex gap-8">
           {/* Sidebar Navigation */}
           <div className="w-64 flex-shrink-0">
-            <nav className="space-y-1">
+            <nav className="space-y-1.5">
               {menuItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => setActiveSection(item.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all cursor-pointer ${
                     activeSection === item.id
-                      ? 'bg-navy-600 text-white shadow-md'
-                      : 'text-charcoal hover:bg-cream-200'
+                      ? 'bg-gradient-to-r from-navy-600 to-navy-700 text-white shadow-md'
+                      : 'text-charcoal hover:bg-white hover:shadow-sm'
                   }`}
                 >
-                  <item.icon className="w-5 h-5" />
+                  <item.icon className={`w-5 h-5 ${activeSection === item.id ? 'text-gold-300' : ''}`} />
                   <div>
                     <p className="font-medium text-sm">{item.label}</p>
                     <p className={`text-xs ${activeSection === item.id ? 'text-navy-200' : 'text-warm-gray'}`}>
@@ -336,7 +336,7 @@ export default function SettingsPage() {
             <div className="mt-8 pt-8 border-t border-cream-200">
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600 transition-all cursor-pointer"
               >
                 <LogOut className="w-5 h-5" />
                 <span className="font-medium text-sm">Log Out</span>

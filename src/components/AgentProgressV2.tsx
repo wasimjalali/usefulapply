@@ -280,44 +280,46 @@ export function AgentProgressV2({
         })}
       </div>
 
-      {/* Company Research Card - THE FIX: Display search results visibly */}
+      {/* Company Research Card */}
       {companyResearch && (
-        <div className="mx-4 my-3 p-4 rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="mt-3 p-4 rounded-xl border border-navy-200 bg-gradient-to-br from-navy-50 to-cream-50">
           <div className="flex items-center gap-2 mb-3">
-            <Building2 className="w-5 h-5 text-blue-600" />
-            <h4 className="font-semibold text-blue-900">{companyResearch.name}</h4>
+            <div className="w-7 h-7 rounded-lg bg-navy-100 flex items-center justify-center">
+              <Building2 className="w-4 h-4 text-navy-600" />
+            </div>
+            <h4 className="font-semibold text-navy-800 text-sm">{companyResearch.name}</h4>
           </div>
           
           {companyResearch.description && (
-            <p className="text-sm text-blue-800 mb-3">{companyResearch.description}</p>
+            <p className="text-xs text-navy-700 mb-3 leading-relaxed">{companyResearch.description}</p>
           )}
           
-          <div className="grid grid-cols-2 gap-3 text-xs">
+          <div className="grid grid-cols-2 gap-2 text-xs">
             {companyResearch.address && (
-              <div className="bg-white/60 rounded p-2">
-                <span className="font-medium text-blue-700 block mb-1">📍 Address</span>
-                <span className="text-blue-900">{companyResearch.address}</span>
+              <div className="bg-white/70 rounded-lg p-2.5">
+                <span className="font-medium text-navy-600 block mb-1">📍 Address</span>
+                <span className="text-charcoal">{companyResearch.address}</span>
               </div>
             )}
             
             {companyResearch.culture && companyResearch.culture.length > 0 && (
-              <div className="bg-white/60 rounded p-2">
-                <span className="font-medium text-blue-700 block mb-1">🎯 Culture</span>
-                <span className="text-blue-900">{companyResearch.culture.slice(0, 2).join(', ')}</span>
+              <div className="bg-white/70 rounded-lg p-2.5">
+                <span className="font-medium text-navy-600 block mb-1">🎯 Culture</span>
+                <span className="text-charcoal">{companyResearch.culture.slice(0, 2).join(', ')}</span>
               </div>
             )}
             
             {companyResearch.techStack && companyResearch.techStack.length > 0 && (
-              <div className="bg-white/60 rounded p-2">
-                <span className="font-medium text-blue-700 block mb-1">💻 Tech Stack</span>
-                <span className="text-blue-900">{companyResearch.techStack.slice(0, 3).join(', ')}</span>
+              <div className="bg-white/70 rounded-lg p-2.5">
+                <span className="font-medium text-navy-600 block mb-1">💻 Tech Stack</span>
+                <span className="text-charcoal">{companyResearch.techStack.slice(0, 3).join(', ')}</span>
               </div>
             )}
             
             {companyResearch.recentNews && companyResearch.recentNews.length > 0 && (
-              <div className="bg-white/60 rounded p-2">
-                <span className="font-medium text-blue-700 block mb-1">📰 Recent News</span>
-                <span className="text-blue-900">{companyResearch.recentNews[0]}</span>
+              <div className="bg-white/70 rounded-lg p-2.5">
+                <span className="font-medium text-navy-600 block mb-1">📰 Recent News</span>
+                <span className="text-charcoal">{companyResearch.recentNews[0]}</span>
               </div>
             )}
           </div>
