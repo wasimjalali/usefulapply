@@ -143,12 +143,7 @@ export function EmailPanel() {
     // Use activeEmail which respects edited content
     const emailToUse = activeEmail || email;
     
-    console.log('[EMAIL] Button clicked');
-    console.log('[EMAIL] Subject:', emailToUse?.subject);
-    console.log('[EMAIL] Body length:', emailToUse?.body?.length);
-    
     if (!emailToUse?.subject || !emailToUse?.body) {
-      console.error('[EMAIL] Missing subject or body!');
       alert('Email content is not ready yet. Please wait for the email to be generated.');
       return;
     }
@@ -161,18 +156,10 @@ export function EmailPanel() {
     const maxBodyLength = 1500; // Leave room for subject and mailto: prefix
     if (bodyToEncode.length > maxBodyLength) {
       bodyToEncode = bodyToEncode.substring(0, maxBodyLength) + '\n\n[Email truncated - please paste the full content from the app]';
-      console.log('[EMAIL] Body truncated due to length');
     }
     
     const encodedBody = encodeURIComponent(bodyToEncode);
     const mailtoLink = `mailto:?subject=${encodedSubject}&body=${encodedBody}`;
-    
-    console.log('[EMAIL] Mailto link created, length:', mailtoLink.length);
-    
-    // Check if link is too long
-    if (mailtoLink.length > 2000) {
-      console.warn('[EMAIL] Mailto link exceeds 2000 chars, may not work in all browsers');
-    }
     
     // Create a hidden anchor element and click it
     // This is the most reliable way to trigger mailto links across browsers
@@ -183,8 +170,6 @@ export function EmailPanel() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
-    console.log('[EMAIL] Mailto link clicked successfully');
   };
 
   // Show loading indicator during full generation workflow

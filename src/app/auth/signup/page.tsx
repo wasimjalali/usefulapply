@@ -7,6 +7,7 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, User } from 'lucide-react
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { checkPasswordStrength } from '@/lib/utils/password-strength';
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -20,6 +21,8 @@ export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  
+  const passwordStrength = checkPasswordStrength(password);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,6 +182,22 @@ export default function SignUpPage() {
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
+              {password && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-warm-gray">Password strength:</span>
+                    <span className={`text-xs font-medium text-${passwordStrength.color}-600`}>
+                      {passwordStrength.feedback}
+                    </span>
+                  </div>
+                  <div className="h-1.5 bg-cream-200 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full bg-${passwordStrength.color}-500 transition-all duration-300`}
+                      style={{ width: `${passwordStrength.percentage}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>

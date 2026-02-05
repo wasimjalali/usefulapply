@@ -118,34 +118,8 @@ export async function createFreeSubscription(userId: string): Promise<{ subscrip
 }
 
 /**
- * Update subscription usage
- */
-export async function incrementApplicationUsage(userId: string): Promise<{ error: Error | null }> {
-  const supabase = getUntypedSupabase();
-
-  // First get current subscription
-  const subscription = await getSubscription(userId);
-  if (!subscription) {
-    return { error: new Error('No active subscription found') };
-  }
-
-  const { error } = await supabase
-    .from('subscriptions')
-    .update({
-      applications_used: subscription.applications_used + 1,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', subscription.id);
-
-  if (error) {
-    return { error: new Error(error.message) };
-  }
-
-  return { error: null };
-}
-
-/**
  * Check if user can create more applications
+ * Note: Now using credit system instead of applications_used counter
  */
 export async function canCreateApplication(userId: string): Promise<boolean> {
   const subscription = await getSubscription(userId);

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { unifiedWriterAgent } from '@/lib/agents/unified-writer-agent';
-import type { MasterContext } from '@/lib/agents/types';
+import { type MasterContext } from '@/lib/agents/types';
 import { createClient } from '@/lib/supabase/server';
 import { checkAndDeductCredits, formatCreditErrorResponse } from '@/lib/middleware/creditCheck';
 import { setServerSupabaseClient, clearServerSupabaseClient } from '@/lib/supabase/credits';
+import { detectLanguage } from '@/lib/utils/language-detector';
 
 /**
  * API endpoint for regenerating cover letter or email
@@ -51,13 +52,6 @@ export async function POST(request: NextRequest) {
         { status: 402 }
       );
     }
-
-    // Detect language from job description if not provided
-    const detectLanguage = (text: string): 'en' | 'de' => {
-      const germanIndicators = /\b(und|oder|für|mit|bei|auf|zur|zum|von|dem|den|des|wir|Sie|Ihre|Ihr|uns|werden|haben|sein|Anforderungen|Aufgaben|Verantwortung|Erfahrung|Kenntnisse|Qualifikationen|Bewerbung|Unternehmen|GmbH|AG)\b/gi;
-      const matches = (text.match(germanIndicators) || []).length;
-      return matches >= 5 ? 'de' : 'en';
-    };
 
     // Get detected language - from context or detect from job description
     const detectedLanguage = context.detectedLanguage || 

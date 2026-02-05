@@ -20,11 +20,26 @@ export default function ContactPage() {
     e.preventDefault();
     setLoading(true);
     
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setSubmitted(true);
-    setLoading(false);
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formState),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSubmitted(true);
+      } else {
+        alert(data.error || 'Failed to submit form. Please try again.');
+      }
+    } catch (error) {
+      console.error('Contact form error:', error);
+      alert('Failed to submit form. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

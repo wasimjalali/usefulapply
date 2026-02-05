@@ -31,10 +31,6 @@ import { EditableCVCanvas } from './EditableCVCanvas';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import Link from 'next/link';
 
-// NOTE: Old patching functions (applyChangesToCVData, parseLanguagesFromText, etc.) 
-// have been removed in favor of the Full Re-parse Architecture.
-// The optimized CV is now fully parsed via parseOptimizedCVToData() instead of patching.
-
 export function CVPanel() {
   const { 
     currentCV,

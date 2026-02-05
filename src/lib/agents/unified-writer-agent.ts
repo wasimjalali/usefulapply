@@ -22,6 +22,11 @@
 import type { MasterContext, AgentEventHandler, AgentResult, TokenUsage } from './types';
 import { callModel } from '@/lib/models';
 import { loadApplicantDocuments } from '@/lib/storage/applicantStore';
+import { fixTypos } from '@/lib/config/typo-corrections';
+import { COVER_LETTER_BLACKLIST } from '@/lib/config/cover-letter-blacklist';
+
+// Re-export for backward compatibility
+export { COVER_LETTER_BLACKLIST };
 
 // =====================================================
 // TOKEN TRACKING
@@ -32,154 +37,6 @@ interface WithTokens<T> {
   result: T;
   tokens: TokenUsage;
 }
-
-// =====================================================
-// TYPO CORRECTIONS
-// Fixes common misspellings in certifications and tools
-// =====================================================
-
-const TYPO_CORRECTIONS: Record<string, string> = {
-  // Certification/Tool typos
-  'semrash': 'Semrush',
-  'Semrash': 'Semrush',
-  'SEMrash': 'Semrush',
-  'semRash': 'Semrush',
-  'ahrefs': 'Ahrefs',
-  'Ahrefs': 'Ahrefs',
-  'hubspot': 'HubSpot',
-  'Hubspot': 'HubSpot',
-  'mailchimp': 'Mailchimp',
-  'MailChimp': 'Mailchimp',
-  'linkedin': 'LinkedIn',
-  'Linkedin': 'LinkedIn',
-  'youtube': 'YouTube',
-  'Youtube': 'YouTube',
-  'github': 'GitHub',
-  'Github': 'GitHub',
-  'gitlab': 'GitLab',
-  'Gitlab': 'GitLab',
-  'javascript': 'JavaScript',
-  'Javascript': 'JavaScript',
-  'typescript': 'TypeScript',
-  'Typescript': 'TypeScript',
-  'nodejs': 'Node.js',
-  'Nodejs': 'Node.js',
-  'NodeJs': 'Node.js',
-  'reactjs': 'React',
-  'ReactJs': 'React',
-  'vuejs': 'Vue.js',
-  'VueJs': 'Vue.js',
-  'nextjs': 'Next.js',
-  'Nextjs': 'Next.js',
-  'NextJs': 'Next.js',
-  'mongodb': 'MongoDB',
-  'Mongodb': 'MongoDB',
-  'postgresql': 'PostgreSQL',
-  'Postgresql': 'PostgreSQL',
-  'mysql': 'MySQL',
-  'Mysql': 'MySQL',
-  'wordpress': 'WordPress',
-  'Wordpress': 'WordPress',
-  'shopify': 'Shopify',
-  'woocommerce': 'WooCommerce',
-  'Woocommerce': 'WooCommerce',
-  'google analytics': 'Google Analytics',
-  'Google analytics': 'Google Analytics',
-  'google ads': 'Google Ads',
-  'Google ads': 'Google Ads',
-  'facebook ads': 'Facebook Ads',
-  'Facebook ads': 'Facebook Ads',
-  'tiktok': 'TikTok',
-  'Tiktok': 'TikTok',
-  'instagram': 'Instagram',
-  'powerbi': 'Power BI',
-  'PowerBi': 'Power BI',
-  'Powerbi': 'Power BI',
-  'tableau': 'Tableau',
-  'salesforce': 'Salesforce',
-  'jira': 'Jira',
-  'asana': 'Asana',
-  'trello': 'Trello',
-  'slack': 'Slack',
-  'figma': 'Figma',
-  'canva': 'Canva',
-  'photoshop': 'Photoshop',
-  'illustrator': 'Illustrator',
-};
-
-/**
- * Fix common typos in text (certifications, tools, etc.)
- */
-function fixTypos(text: string): string {
-  let fixed = text;
-  for (const [typo, correction] of Object.entries(TYPO_CORRECTIONS)) {
-    const regex = new RegExp(`\\b${typo}\\b`, 'g');
-    fixed = fixed.replace(regex, correction);
-  }
-  return fixed;
-}
-
-// =====================================================
-// ANTI-CLICHE BLACKLIST
-// Phrases that make cover letters sound AI-generated
-// =====================================================
-
-export const COVER_LETTER_BLACKLIST = {
-  openings: [
-    "I am writing to apply",
-    "I am excited to apply",
-    "I am writing to express my interest",
-    "I wish to apply",
-    "I would like to apply",
-    "I am submitting my application",
-    "I am reaching out regarding",
-    "I came across your job posting",
-  ],
-  selfDescriptions: [
-    "I am a highly motivated",
-    "I am a dedicated professional",
-    "I am a results-driven",
-    "I am a team player",
-    "I am a hard worker",
-    "I am passionate about",
-    "I am confident that",
-    "I believe I would be",
-    "I am the perfect fit",
-    "I am uniquely qualified",
-    "I think outside the box",
-    "I go the extra mile",
-    "I am a self-starter",
-    "I am detail-oriented",
-    "dynamic professional",
-    "proactive individual",
-  ],
-  closings: [
-    "Thank you for considering my application",
-    "Thank you for your time and consideration",
-    "I look forward to hearing from you",
-    "Please do not hesitate to contact me",
-    "I would welcome the opportunity",
-    "I hope to hear from you soon",
-    "References available upon request",
-    "Please find attached",
-  ],
-  fillers: [
-    "In today's fast-paced",
-    "In this day and age",
-    "leverage my skills",
-    "utilize my experience",
-    "bring to the table",
-    "hit the ground running",
-    "synergy",
-    "paradigm",
-    "circle back",
-    "move the needle",
-  ],
-  greetings: [
-    "To Whom It May Concern",
-    "Dear Sir or Madam",
-  ]
-};
 
 // =====================================================
 // ORCHESTRATION RESULT TYPE

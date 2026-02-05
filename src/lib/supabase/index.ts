@@ -51,7 +51,6 @@ export {
   disconnectAccount,
   getSubscription,
   createFreeSubscription,
-  incrementApplicationUsage,
   canCreateApplication,
   changePassword,
   sendPasswordResetEmail,

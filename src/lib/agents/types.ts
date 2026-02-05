@@ -197,21 +197,3 @@ export interface AgentResult<T = unknown> {
   latencyMs: number;
 }
 
-// Legacy types kept for backward compatibility during migration
-export interface AgentStep {
-  id: string;
-  name: string;
-  description: string;
-  agent: AgentRole;
-  status: AgentStatus;
-}
-
-export interface AgentConfig {
-  maxRetries: number;
-  timeoutMs: number;
-}
-
-export const DEFAULT_AGENT_CONFIG: AgentConfig = {
-  maxRetries: 3,
-  timeoutMs: 60000,
-};

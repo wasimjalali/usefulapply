@@ -1,0 +1,270 @@
+/**
+ * CV Print Styles
+ * Professional print-optimized CSS for CV/Resume PDF generation
+ * Extracted from CVPanel.tsx for maintainability
+ * 
+ * Usage: Import these styles in the print window for PDF generation
+ */
+
+/* Critical: Hide browser headers and footers */
+@page {
+  margin: 0.5in 0.75in; /* Professional standard: 0.5in top/bottom, 0.75in left/right */
+}
+
+@page letter {
+  size: letter;
+  margin: 0.5in 0.75in;
+}
+
+@page a4 {
+  size: A4;
+  margin: 0.5in 0.75in;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10.5pt; /* Base body text size */
+  line-height: 1.4;
+  color: #1a1a1a;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  background: white;
+}
+
+.cv-container {
+  width: 100%;
+  margin: 0 auto;
+  background: white;
+  padding: 0;
+}
+
+.cv-container.letter {
+  max-width: 8.5in;
+}
+
+.cv-container.a4 {
+  max-width: 210mm;
+}
+
+/* ===========================================
+   PROFESSIONAL CV TYPOGRAPHY (HR Standard)
+   - Name: 20pt (bold)
+   - Section Headers: 12pt (bold, uppercase)
+   - Job/Degree Titles: 11pt (bold)
+   - Category Headers: 9pt (bold, uppercase)
+   - Body Text: 10.5pt (summary, bullets, skills)
+   - Secondary Text: 9pt (dates, locations)
+   =========================================== */
+
+/* Name - 20pt bold */
+h1 { 
+  font-size: 20pt !important; 
+  font-weight: bold !important; 
+  margin-bottom: 4pt !important; 
+  letter-spacing: -0.3pt !important;
+}
+
+/* Section Headers - 12pt bold uppercase */
+h2 { 
+  font-size: 12pt !important; 
+  font-weight: bold !important; 
+  text-transform: uppercase !important; 
+  letter-spacing: 1pt !important; 
+  margin-bottom: 8pt !important; 
+  padding-bottom: 4pt !important; 
+}
+
+/* Job/Degree Titles - 11pt bold */
+h3 { 
+  font-size: 11pt !important; 
+  font-weight: bold !important; 
+  margin-bottom: 2pt !important; 
+}
+
+/* Category Headers (skills) - 9pt bold uppercase */
+h4 { 
+  font-size: 9pt !important; 
+  font-weight: bold !important; 
+  text-transform: uppercase !important; 
+  letter-spacing: 0.5pt !important; 
+  margin-bottom: 4pt !important; 
+}
+
+/* Body Text - 10.5pt */
+p, li, span { 
+  font-size: 10.5pt !important; 
+  line-height: 1.4 !important; 
+}
+
+/* Ensure divs don't override body text size (except for containers) */
+div:not(.cv-container):not(.cv-template) { 
+  font-size: inherit !important; 
+}
+
+/* Bold text styling */
+strong, b { 
+  font-weight: bold !important; 
+}
+
+/* Override ALL inline fontSize styles for consistency */
+[style*="fontSize: '10px'"], 
+[style*="fontSize: '11px'"], 
+[style*="fontSize: '12px'"], 
+[style*="fontSize: '13px'"] { 
+  font-size: 10.5pt !important; 
+}
+
+[style*="fontSize: '14px'"] { 
+  font-size: 12pt !important; 
+}
+
+[style*="fontSize: '28px'"], 
+[style*="fontSize: '24px'"] { 
+  font-size: 20pt !important; 
+}
+
+/* Spacing */
+section { margin-bottom: 12pt !important; }
+ul { padding-left: 12pt !important; margin: 0 !important; }
+li { margin-bottom: 2pt !important; }
+
+/* Grid layouts */
+.grid { display: grid; }
+.flex { display: flex; }
+.gap-2 { gap: 6pt !important; }
+.gap-3 { gap: 8pt !important; }
+.gap-4 { gap: 10pt !important; }
+.gap-6 { gap: 14pt !important; }
+
+/* Padding overrides */
+.px-8 { padding-left: 16pt !important; padding-right: 16pt !important; }
+.py-6 { padding-top: 12pt !important; padding-bottom: 12pt !important; }
+.py-5 { padding-top: 10pt !important; padding-bottom: 10pt !important; }
+.p-6 { padding: 12pt !important; }
+.space-y-5 > * + * { margin-top: 10pt !important; }
+.space-y-4 > * + * { margin-top: 8pt !important; }
+.space-y-3 > * + * { margin-top: 6pt !important; }
+.mb-6 { margin-bottom: 12pt !important; }
+.mb-4 { margin-bottom: 8pt !important; }
+.mb-3 { margin-bottom: 6pt !important; }
+.mt-4 { margin-top: 8pt !important; }
+
+/* Tailwind text size overrides - standardize to our scale */
+.text-3xl { font-size: 20pt !important; } /* Name */
+.text-2xl { font-size: 12pt !important; } /* Section headers */
+.text-xl { font-size: 11pt !important; }  /* Job titles */
+.text-lg { font-size: 10.5pt !important; } /* Body */
+.text-base { font-size: 10.5pt !important; } /* Body */
+.text-sm { font-size: 10pt !important; }  /* Slightly smaller */
+.text-xs { font-size: 9pt !important; }   /* Dates, secondary */
+
+/* Colors - preserve print colors */
+[style*="background"] { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+[style*="color"] { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+/* Images */
+img { max-width: 100%; height: auto; -webkit-print-color-adjust: exact !important; }
+.w-28 { width: 80pt !important; }
+.h-36 { height: 100pt !important; }
+.w-32 { width: 90pt !important; }
+.h-40 { height: 110pt !important; }
+
+/* Hide scrollbars */
+::-webkit-scrollbar { display: none; }
+
+/* Remove shadows */
+.shadow-lg, .shadow-md, .shadow, [class*="shadow"] {
+  box-shadow: none !important;
+}
+
+/* Template styling */
+.cv-template {
+  box-shadow: none !important;
+  margin: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: auto !important;
+  /* Keep template padding for proper page margins */
+}
+
+.mx-auto {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.cv-template header {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.cv-template > div:not(header) {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Print-specific styles */
+@media print {
+  html, body {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .cv-container {
+    width: 100%;
+  }
+  
+  /* Ensure @page margins are respected */
+  .cv-template {
+    padding: 0 !important; /* Let @page margin handle all margins for print */
+  }
+  
+  /* Allow sections to break naturally across pages */
+  section { 
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+  
+  /* Keep headers with following content */
+  h2, h3 { 
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+  
+  /* Individual entries can break if needed */
+  .mb-4, .mb-3 {
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+  
+  /* Experience/education items - avoid break only if short */
+  .experience-item, .education-item {
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+  
+  /* Skill categories can break */
+  .skill-category {
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+  
+  /* Bullets can break across pages */
+  ul, li {
+    page-break-inside: auto;
+    break-inside: auto;
+    orphans: 2;
+    widows: 2;
+  }
+  
+  .cv-template {
+    page-break-before: auto;
+    page-break-after: auto;
+  }
+}

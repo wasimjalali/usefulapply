@@ -58,26 +58,39 @@ export async function POST(request: NextRequest) {
     
     // Parse CV - try AI first, fall back to local parsing
     let structuredCV: StructuredCV;
+    let parserUsed: 'anthropic' | 'gemini' | 'local' = 'local';
+    const parseStartTime = Date.now();
     
     if (hasAnthropicKey) {
       try {
+        console.log('[Parser] Using Anthropic Claude for CV parsing');
         structuredCV = await parseWithAnthropic(rawText, region as 'US' | 'EU');
+        parserUsed = 'anthropic';
       } catch (e) {
-        console.warn('Anthropic parsing failed, using local parser:', e);
+        console.warn('[Parser] Anthropic parsing failed, using local parser:', e);
         structuredCV = parseLocally(rawText, region as 'US' | 'EU', file.name);
+        parserUsed = 'local';
       }
     } else if (hasGeminiKey) {
       try {
+        console.log('[Parser] Using Gemini for CV parsing');
         structuredCV = await parseWithGemini(rawText, region as 'US' | 'EU');
+        parserUsed = 'gemini';
       } catch (e) {
-        console.warn('Gemini parsing failed, using local parser:', e);
+        console.warn('[Parser] Gemini parsing failed, using local parser:', e);
         structuredCV = parseLocally(rawText, region as 'US' | 'EU', file.name);
+        parserUsed = 'local';
       }
     } else {
       // No AI available - use local parsing
-      console.log('No AI API keys configured, using local parser');
+      console.log('[Parser] No AI API keys configured, using local parser');
       structuredCV = parseLocally(rawText, region as 'US' | 'EU', file.name);
+      parserUsed = 'local';
     }
+    
+    const parseTime = Date.now() - parseStartTime;
+    console.log(`[Parser] Completed using ${parserUsed} parser in ${parseTime}ms`);
+    console.log(`[Parser] Extracted: ${structuredCV.experience.length} experiences, ${structuredCV.education.length} education entries, ${structuredCV.skills.length} skill categories`);
     
     structuredCV.sourceFileName = file.name;
     structuredCV.sourceFormat = file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx';
@@ -92,6 +105,12 @@ export async function POST(request: NextRequest) {
         size: buffer.length,
       },
       rawText,
+      metadata: {
+        parserUsed,
+        parseTime,
+        region,
+        textLength: rawText.length,
+      },
     });
     
   } catch (error) {

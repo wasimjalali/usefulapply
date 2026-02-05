@@ -6,7 +6,6 @@ import { CVPanel } from '@/components/CVPanel';
 import { CoverLetterPanel } from '@/components/CoverLetterPanel';
 import { EmailPanel } from '@/components/EmailPanel';
 import { ChatPanel } from '@/components/ChatPanel';
-import { StorageCleaner } from '@/components/StorageCleaner';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
@@ -95,8 +94,6 @@ export default function Dashboard() {
 
   return (
     <div className="h-screen flex flex-col bg-cream-100">
-      <StorageCleaner />
-
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - Results */}
         <div className="flex-1 flex flex-col overflow-hidden">
