@@ -179,7 +179,7 @@ export function CVPanel() {
             /* Critical: Hide browser headers and footers */
             @page {
               size: ${isUSTemplate ? 'letter' : 'A4'};
-              margin: 0.1in 0.15in; /* Browser portion: 0.1in top/bottom, 0.15in left/right (combines with template padding for 0.5in/0.75in total) */
+              margin: 0.5in 0.75in; /* Professional standard: 0.5in top/bottom, 0.75in left/right */
             }
             
             * {
