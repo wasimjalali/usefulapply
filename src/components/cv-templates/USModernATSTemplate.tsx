@@ -40,16 +40,24 @@ export function USModernATSTemplate({ data, template }: Props) {
       style={{ 
         width: '8.5in',
         minHeight: '11in',
-        fontFamily: "'Roboto', 'Helvetica Neue', Arial, sans-serif",
-        fontSize: '13px',
-        lineHeight: 1.15,
-        color: modernColors.text,
         backgroundColor: 'white',
-        display: 'flex',
+        padding: '0.4in 0.6in',  // Template portion: combines with browser margin for 0.5in top/bottom, 0.75in left/right
         pageBreakAfter: 'auto',
         pageBreakInside: 'auto',
       }}
     >
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          fontFamily: "'Roboto', 'Helvetica Neue', Arial, sans-serif",
+          fontSize: '13px',
+          lineHeight: 1.15,
+          color: modernColors.text,
+          backgroundColor: 'white',
+          display: 'flex',
+        }}
+      >
       {/* Left Sidebar - 30% */}
       <aside 
         style={{ 
@@ -399,6 +407,7 @@ export function USModernATSTemplate({ data, template }: Props) {
           </section>
         )}
       </main>
+      </div>
     </div>
   );
 }
