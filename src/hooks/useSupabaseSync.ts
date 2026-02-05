@@ -179,7 +179,7 @@ export function useSupabaseSync() {
             jobDescription: row.job_description || '',
             createdAt: row.created_at,
             updatedAt: row.updated_at,
-            matchScore: row.match_score ?? undefined, // Convert null to undefined
+            matchScore: row.match_score ?? undefined,
             matchingSkills: row.matching_skills || [],
             missingSkills: row.missing_skills || [],
             suggestions: row.suggestions || [],
@@ -202,15 +202,37 @@ export function useSupabaseSync() {
               createdAt: row.created_at,
               url: row.optimized_pdf_path 
             } : undefined,
-            chatMessages: [], // Will be loaded when session is selected
+            chatMessages: [],
           }));
           
-          // Load chat messages for each session from Supabase
-          for (const session of supabaseSessions) {
+          // Get current localStorage sessions
+          const { sessions: localSessions } = useAppStore.getState();
+          
+          // MERGE STRATEGY: Supabase is source of truth
+          const supabaseIds = new Set(supabaseSessions.map(s => s.id));
+          const localOnlySessions = localSessions.filter(s => 
+            s.id.startsWith('session-') && !supabaseIds.has(s.id)
+          );
+          
+          const mergedSessions = [...supabaseSessions, ...localOnlySessions];
+          
+          // CRITICAL FIX: Populate the store IMMEDIATELY so UI shows sessions right away
+          // Chat messages will be loaded in the background for recent sessions only
+          setSessions(mergedSessions);
+          
+          console.log('[SupabaseSync] Store populated with sessions (chat messages loading in background):', {
+            fromSupabase: supabaseSessions.length,
+            localOnly: localOnlySessions.length,
+            total: mergedSessions.length,
+          });
+          
+          // Load chat messages only for the 10 most recent sessions (not all)
+          // Other sessions will load messages on-demand when selected
+          const recentSessions = supabaseSessions.slice(0, 10);
+          const messagePromises = recentSessions.map(async (session) => {
             try {
               const messages = await getChatMessages(session.id);
               if (messages && messages.length > 0) {
-                // Convert Supabase chat message format to store format
                 session.chatMessages = messages.map((msg: any) => ({
                   id: msg.id,
                   role: msg.role,
@@ -223,29 +245,13 @@ export function useSupabaseSync() {
             } catch (err) {
               console.error(`[SupabaseSync] Error loading chat messages for session ${session.id}:`, err);
             }
-          }
-          
-          // Get current localStorage sessions
-          const { sessions: localSessions } = useAppStore.getState();
-          
-          // MERGE STRATEGY: Supabase is source of truth
-          // Keep any local sessions that aren't in Supabase yet (unsaved drafts with local IDs)
-          const supabaseIds = new Set(supabaseSessions.map(s => s.id));
-          const localOnlySessions = localSessions.filter(s => 
-            s.id.startsWith('session-') && !supabaseIds.has(s.id)
-          );
-          
-          // Combine: Supabase sessions + local-only sessions (unsaved drafts)
-          const mergedSessions = [...supabaseSessions, ...localOnlySessions];
-          
-          // CRITICAL: Populate the Zustand store with sessions from Supabase
-          setSessions(mergedSessions);
-          
-          console.log('[SupabaseSync] Store populated with sessions:', {
-            fromSupabase: supabaseSessions.length,
-            localOnly: localOnlySessions.length,
-            total: mergedSessions.length,
           });
+          
+          // Load messages in parallel for speed
+          await Promise.all(messagePromises);
+          
+          // Update store again with chat messages populated
+          setSessions([...supabaseSessions, ...localOnlySessions]);
         } else {
           console.log('[SupabaseSync] No sessions found in Supabase for this user');
         }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useAppStore } from '@/store/useAppStore';
@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { EditableCVCanvas } from './EditableCVCanvas';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
+import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 
 export function CVPanel() {
@@ -41,6 +42,7 @@ export function CVPanel() {
     isAgentWorking,
     profilePhoto,
   } = useAppStore();
+  const { profile, updateProfile } = useAuth();
   
   const generatedCV = currentSession?.generatedCV;
   const optimizedCVData = currentSession?.optimizedCVData;  // Solution B: Structured JSON from AI
@@ -83,6 +85,14 @@ export function CVPanel() {
     // Add profile photo if available
     if (photoDataUrl) {
       parsed.personal.photoUrl = photoDataUrl;
+    }
+    
+    // Load personal links from Supabase profile (persisted across sessions)
+    if (profile) {
+      parsed.personal.linkedIn = parsed.personal.linkedIn || (profile as any).linkedin_url || '';
+      parsed.personal.github = parsed.personal.github || (profile as any).github_url || '';
+      parsed.personal.portfolio = parsed.personal.portfolio || (profile as any).portfolio_url || '';
+      parsed.personal.website = parsed.personal.website || (profile as any).website_url || '';
     }
     
     // SOLUTION B: If we have optimizedCVData (structured JSON from AI), use it directly
@@ -151,7 +161,7 @@ export function CVPanel() {
     }
     
     return parsed;
-  }, [currentCV, structuredCV, optimizedContent, optimizedTagline, showOptimized, photoDataUrl, optimizedCVData]);
+  }, [currentCV, structuredCV, optimizedContent, optimizedTagline, showOptimized, photoDataUrl, optimizedCVData, profile]);
 
   const handleCopy = async (text: string) => {
     await navigator.clipboard.writeText(text);
@@ -643,7 +653,18 @@ export function CVPanel() {
                   cvData={editedCVData || cvData}
                   onSave={(updatedData) => {
                     setEditedCVData(updatedData);
-                    // TODO: Persist changes to store
+                    // Persist personal links to Supabase profiles table
+                    const p = updatedData.personal;
+                    const linkUpdates: Record<string, string | null> = {};
+                    if (p.linkedIn !== undefined) linkUpdates.linkedin_url = p.linkedIn || null;
+                    if (p.github !== undefined) linkUpdates.github_url = p.github || null;
+                    if (p.portfolio !== undefined) linkUpdates.portfolio_url = p.portfolio || null;
+                    if (p.website !== undefined) linkUpdates.website_url = p.website || null;
+                    if (Object.keys(linkUpdates).length > 0) {
+                      updateProfile(linkUpdates as any).catch((err: any) =>
+                        console.error('[CVPanel] Failed to save personal links:', err)
+                      );
+                    }
                   }}
                   onAIImprove={async (section, content) => {
                     // TODO: Call AI to improve the section

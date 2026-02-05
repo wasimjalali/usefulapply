@@ -93,11 +93,21 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
     setMessageFeedback(prev => ({ ...prev, [messageId]: type }));
     
     const isValidUUID = currentSession?.id && !currentSession.id.startsWith('session-');
-    await submitMessageFeedback(user.id, messageId, type, {
-      sessionId: isValidUUID ? currentSession.id : undefined,
-      messageContent: content.substring(0, 500),
-      feedbackText: feedbackText.trim() || undefined,
-    });
+    try {
+      const { feedback, error } = await submitMessageFeedback(user.id, messageId, type, {
+        sessionId: isValidUUID ? currentSession!.id : undefined,
+        messageContent: content.substring(0, 500),
+        feedbackText: feedbackText.trim() || undefined,
+      });
+      
+      if (error) {
+        console.error('[ChatPanel] Failed to save feedback to Supabase:', error);
+      } else {
+        console.log('[ChatPanel] Feedback saved successfully:', feedback?.id);
+      }
+    } catch (err) {
+      console.error('[ChatPanel] Feedback submission error:', err);
+    }
     
     setFeedbackSuccess(true);
     
