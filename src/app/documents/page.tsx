@@ -404,17 +404,17 @@ export default function DocumentsPage() {
           {/* Back Navigation */}
           <Link 
             href="/dashboard"
-            className="inline-flex items-center gap-2 text-navy-600 hover:text-navy-700 transition-colors mb-6 group"
+            className="inline-flex items-center gap-2 text-warm-gray hover:text-navy-600 transition-colors mb-6 group"
           >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
             <span className="text-sm font-medium">Back to Application</span>
           </Link>
 
           {/* Title and Save */}
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-gradient-to-br from-navy-500 to-navy-600 rounded-xl shadow-lg">
-                <FolderOpen className="w-7 h-7 text-white" />
+              <div className="p-3 bg-gradient-to-br from-navy-600 to-navy-700 rounded-xl shadow-lg">
+                <FolderOpen className="w-7 h-7 text-gold-300" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-charcoal">Your Documents</h1>
@@ -449,11 +449,11 @@ export default function DocumentsPage() {
           </div>
         </div>
 
-        {/* Auto-save notice - Premium glass effect */}
-        <div className="mb-8 p-4 bg-white/60 backdrop-blur-sm rounded-xl border border-sage-200/50 shadow-sm">
+        {/* Auto-save notice */}
+        <div className="mb-8 p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-cream-200 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-sage-100 rounded-lg">
-              <Sparkles className="w-4 h-4 text-sage-600" />
+            <div className="p-2 bg-navy-50 rounded-lg">
+              <Sparkles className="w-4 h-4 text-gold-500" />
             </div>
             <div>
               <p className="text-sm font-medium text-charcoal">Auto-save enabled</p>
@@ -466,11 +466,11 @@ export default function DocumentsPage() {
 
         <div className="space-y-5">
           {/* Primary CV */}
-          <div className="bg-white rounded-2xl border border-cream-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+          <div className="bg-white rounded-2xl border border-cream-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
             <div className="p-5">
               <div className="flex items-start gap-4">
-                <div className="p-3 bg-gradient-to-br from-navy-500 to-navy-600 rounded-xl shadow-sm">
-                  <FileText className="w-5 h-5 text-white" />
+                <div className="p-3 bg-gradient-to-br from-navy-600 to-navy-700 rounded-xl shadow-sm">
+                  <FileText className="w-5 h-5 text-gold-300" />
                 </div>
                 <div className="flex-1">
                   <h2 className="text-base font-semibold text-charcoal">Primary CV</h2>
@@ -534,7 +534,7 @@ export default function DocumentsPage() {
           </div>
 
           {/* Master CV */}
-          <div className="bg-white rounded-2xl border border-cream-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+          <div className="bg-white rounded-2xl border border-cream-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
             <div className="p-5">
               <div className="flex items-start gap-4">
                 <div className="p-3 bg-gradient-to-br from-gold-400 to-gold-500 rounded-xl shadow-sm">
@@ -602,26 +602,26 @@ export default function DocumentsPage() {
           </div>
 
           {/* Profile Photo (for EU Templates) */}
-          <div className="bg-white rounded-2xl border border-cream-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+          <div className="bg-white rounded-2xl border border-cream-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
             <div className="p-5">
               <div className="flex items-start gap-4">
-                <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-sm">
-                  <Camera className="w-5 h-5 text-white" />
+                <div className="p-3 bg-gradient-to-br from-navy-500 to-navy-600 rounded-xl shadow-sm">
+                  <Camera className="w-5 h-5 text-gold-300" />
                 </div>
                 <div className="flex-1">
                   <h2 className="text-base font-semibold text-charcoal">Profile Photo</h2>
                   <p className="text-sm text-warm-gray mt-0.5">
                     Upload a professional photo for European CV templates.
-                    <span className="text-purple-600 font-medium"> Required for EU/German templates.</span>
+                    <span className="text-navy-600 font-medium"> Required for EU/German templates.</span>
                   </p>
                 </div>
               </div>
               
               <div className="mt-4 ml-14">
                 {profilePhoto ? (
-                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
+                  <div className="flex items-center justify-between p-3 bg-navy-50 rounded-xl border border-navy-200">
                     <div className="flex items-center gap-3">
-                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 ring-2 ring-purple-200">
+                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 ring-2 ring-gold-200">
                         <img 
                           src={profilePhoto.dataUrl} 
                           alt="Profile" 
@@ -630,7 +630,7 @@ export default function DocumentsPage() {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-charcoal">{profilePhoto.fileName}</p>
-                        <p className="text-xs text-purple-600">Photo uploaded</p>
+                        <p className="text-xs text-navy-600">Photo uploaded</p>
                       </div>
                     </div>
                     <button 
@@ -649,9 +649,9 @@ export default function DocumentsPage() {
                   </div>
                 ) : (
                   <label className="block">
-                    <div className="border-2 border-dashed border-purple-300 rounded-xl p-6 text-center cursor-pointer hover:border-purple-400 hover:bg-purple-50/50 transition-all">
-                      <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-purple-100 flex items-center justify-center">
-                        <User className="w-6 h-6 text-purple-500" />
+                    <div className="border-2 border-dashed border-navy-200 rounded-xl p-6 text-center cursor-pointer hover:border-gold-300 hover:bg-cream-50 transition-all">
+                      <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-navy-50 flex items-center justify-center">
+                        <User className="w-6 h-6 text-navy-500" />
                       </div>
                       <p className="text-sm font-medium text-charcoal">
                         Click to upload photo
@@ -674,7 +674,7 @@ export default function DocumentsPage() {
         </div>
 
         {/* Continue Button - Premium footer */}
-        <div className="mt-10 p-5 bg-white/60 backdrop-blur-sm rounded-2xl border border-cream-200/50 shadow-sm">
+        <div className="mt-10 p-5 bg-white/80 backdrop-blur-sm rounded-2xl border border-cream-200 shadow-sm">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               {currentCV ? (

@@ -42,25 +42,25 @@ export function ProfileSection({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-charcoal">Profile Information</h2>
+        <h2 className="text-xl font-bold text-charcoal">Profile Information</h2>
         <p className="text-sm text-warm-gray mt-1">
           Update your personal details and profile photo
         </p>
       </div>
 
       {/* Profile Photo */}
-      <Card className="p-6">
+      <Card className="p-6 rounded-2xl border-cream-200 shadow-sm">
         <h3 className="text-sm font-semibold text-charcoal mb-4">Profile Photo</h3>
         <div className="flex items-center gap-6">
           <div className="relative">
-            <div className="w-24 h-24 rounded-full bg-cream-200 flex items-center justify-center overflow-hidden ring-4 ring-cream-100">
+            <div className="w-24 h-24 rounded-full bg-cream-100 flex items-center justify-center overflow-hidden ring-4 ring-gold-100/50">
               {formData.photoUrl ? (
                 <img src={formData.photoUrl} alt="Profile" className="w-full h-full object-cover" />
               ) : (
                 <User className="w-10 h-10 text-warm-gray" />
               )}
             </div>
-            <label className="absolute bottom-0 right-0 p-2 bg-navy-600 rounded-full text-white hover:bg-navy-700 transition-colors cursor-pointer shadow-lg">
+            <label className="absolute bottom-0 right-0 p-2 bg-gradient-to-br from-navy-600 to-navy-700 rounded-full text-white hover:from-navy-700 hover:to-navy-800 transition-all cursor-pointer shadow-lg">
               <Camera className="w-4 h-4" />
               <input
                 type="file"
@@ -88,7 +88,7 @@ export function ProfileSection({
       </Card>
 
       {/* Personal Information */}
-      <Card className="p-6">
+      <Card className="p-6 rounded-2xl border-cream-200 shadow-sm">
         <h3 className="text-sm font-semibold text-charcoal mb-4">Personal Information</h3>
         <div className="space-y-4">
           <div>
@@ -102,7 +102,7 @@ export function ProfileSection({
                 value={formData.fullName}
                 onChange={(e) => onChange({ fullName: e.target.value })}
                 placeholder="Enter your full name"
-                className="w-full pl-10 pr-4 py-2.5 border border-cream-300 rounded-lg focus:border-navy-500 focus:ring-1 focus:ring-navy-500 focus:outline-none transition-colors"
+                className="w-full pl-10 pr-4 py-2.5 border border-cream-200 rounded-xl bg-white focus:border-gold-400 focus:ring-2 focus:ring-gold-100 focus:outline-none transition-all"
               />
             </div>
           </div>
@@ -118,7 +118,7 @@ export function ProfileSection({
                 value={formData.email}
                 onChange={(e) => onChange({ email: e.target.value })}
                 placeholder="your@email.com"
-                className="w-full pl-10 pr-4 py-2.5 border border-cream-300 rounded-lg focus:border-navy-500 focus:ring-1 focus:ring-navy-500 focus:outline-none transition-colors"
+                className="w-full pl-10 pr-4 py-2.5 border border-cream-200 rounded-xl bg-white focus:border-gold-400 focus:ring-2 focus:ring-gold-100 focus:outline-none transition-all"
               />
             </div>
           </div>
@@ -134,7 +134,7 @@ export function ProfileSection({
                 value={formData.phone}
                 onChange={(e) => onChange({ phone: e.target.value })}
                 placeholder="+1 (555) 000-0000"
-                className="w-full pl-10 pr-4 py-2.5 border border-cream-300 rounded-lg focus:border-navy-500 focus:ring-1 focus:ring-navy-500 focus:outline-none transition-colors"
+                className="w-full pl-10 pr-4 py-2.5 border border-cream-200 rounded-xl bg-white focus:border-gold-400 focus:ring-2 focus:ring-gold-100 focus:outline-none transition-all"
               />
             </div>
           </div>
@@ -150,7 +150,7 @@ export function ProfileSection({
                 value={formData.location}
                 onChange={(e) => onChange({ location: e.target.value })}
                 placeholder="City, Country"
-                className="w-full pl-10 pr-4 py-2.5 border border-cream-300 rounded-lg focus:border-navy-500 focus:ring-1 focus:ring-navy-500 focus:outline-none transition-colors"
+                className="w-full pl-10 pr-4 py-2.5 border border-cream-200 rounded-xl bg-white focus:border-gold-400 focus:ring-2 focus:ring-gold-100 focus:outline-none transition-all"
               />
             </div>
           </div>

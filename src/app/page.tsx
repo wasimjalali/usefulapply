@@ -24,7 +24,7 @@ export default function Home() {
             </div>
 
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-navy-600 mb-6 leading-[1.1] tracking-tight">
-              One Click. Complete Application.{' '}
+              One Click. Complete Job Application.{' '}
               <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">45 Minutes Saved.</span>
             </h1>
             <p className="text-xl md:text-2xl text-warm-gray mb-10 max-w-2xl mx-auto leading-relaxed">

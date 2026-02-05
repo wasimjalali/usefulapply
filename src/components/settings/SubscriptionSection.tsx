@@ -35,30 +35,30 @@ export function SubscriptionSection({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-charcoal">Subscription</h2>
+        <h2 className="text-xl font-bold text-charcoal">Subscription</h2>
         <p className="text-sm text-warm-gray mt-1">
           Manage your subscription and billing
         </p>
       </div>
 
       {/* Current Plan */}
-      <Card className="p-6">
+      <Card className="p-6 rounded-2xl border-cream-200 shadow-sm">
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-semibold text-charcoal">
                 {isFreeTier ? 'Starter Plan' : subscriptionTier === 'plus' ? 'Plus Plan' : 'Pro Plan'}
               </h3>
-              <span className="px-2 py-0.5 text-xs font-medium bg-cream-200 text-warm-gray rounded-full">
+              <span className="px-2 py-0.5 text-xs font-semibold bg-navy-50 text-navy-600 rounded-full border border-navy-100">
                 Current
               </span>
             </div>
             <p className="text-sm text-warm-gray mt-1">
               {totalCredits} credits remaining
             </p>
-            <div className="mt-2 w-full bg-cream-200 rounded-full h-2">
+            <div className="mt-2 w-full bg-cream-200 rounded-full h-2.5">
               <div 
-                className="bg-navy-500 h-2 rounded-full transition-all"
+                className="bg-gradient-to-r from-gold-400 to-gold-500 h-2.5 rounded-full transition-all"
                 style={{ width: `${Math.min((totalCredits / maxCredits) * 100, 100)}%` }}
               />
             </div>
@@ -97,75 +97,81 @@ export function SubscriptionSection({
       </Card>
 
       {/* Plan Comparison */}
-      <Card className="p-6">
+      <Card className="p-6 rounded-2xl border-cream-200 shadow-sm">
         <h3 className="text-sm font-semibold text-charcoal mb-4">Compare Plans</h3>
         <div className="grid grid-cols-3 gap-4">
           {/* Starter */}
-          <div className={`p-4 rounded-xl border-2 ${isFreeTier ? 'border-navy-500 bg-navy-50' : 'border-cream-200'}`}>
+          <div className={`p-4 rounded-xl border-2 transition-all ${
+            isFreeTier ? 'border-gold-400 bg-gold-50/30 shadow-sm' : 'border-cream-200 hover:border-cream-300'
+          }`}>
             <h4 className="font-semibold text-charcoal">Starter</h4>
             <p className="text-2xl font-bold text-charcoal mt-2">$0<span className="text-sm font-normal text-warm-gray">/mo</span></p>
-            <ul className="mt-4 space-y-2 text-sm text-warm-gray">
+            <ul className="mt-4 space-y-2.5 text-sm text-warm-gray">
               <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-sage-500" />
+                <Check className="w-4 h-4 text-sage-500 flex-shrink-0" />
                 3 applications/month (6 credits)
               </li>
               <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-sage-500" />
+                <Check className="w-4 h-4 text-sage-500 flex-shrink-0" />
                 All CV templates
               </li>
               <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-sage-500" />
+                <Check className="w-4 h-4 text-sage-500 flex-shrink-0" />
                 CV + Cover Letter + Email
               </li>
             </ul>
           </div>
 
           {/* Plus */}
-          <div className={`p-4 rounded-xl border-2 ${subscriptionTier === 'plus' ? 'border-navy-500 bg-navy-50' : 'border-cream-200'} relative`}>
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gold-500 text-white text-xs font-medium rounded-full">
+          <div className={`p-4 rounded-xl border-2 transition-all relative ${
+            subscriptionTier === 'plus' ? 'border-gold-400 bg-gold-50/30 shadow-sm' : 'border-cream-200 hover:border-cream-300'
+          }`}>
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-gold-400 to-gold-500 text-white text-xs font-semibold rounded-full shadow-sm">
               Popular
             </div>
             <h4 className="font-semibold text-charcoal">Plus</h4>
             <p className="text-2xl font-bold text-charcoal mt-2">$19.99<span className="text-sm font-normal text-warm-gray">/mo</span></p>
-            <ul className="mt-4 space-y-2 text-sm text-warm-gray">
+            <ul className="mt-4 space-y-2.5 text-sm text-warm-gray">
               <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-sage-500" />
+                <Check className="w-4 h-4 text-sage-500 flex-shrink-0" />
                 60 applications/month (120 credits)
               </li>
               <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-sage-500" />
+                <Check className="w-4 h-4 text-sage-500 flex-shrink-0" />
                 Add-on credits available
               </li>
               <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-sage-500" />
+                <Check className="w-4 h-4 text-sage-500 flex-shrink-0" />
                 1 month credit rollover
               </li>
               <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-sage-500" />
+                <Check className="w-4 h-4 text-sage-500 flex-shrink-0" />
                 Priority support
               </li>
             </ul>
           </div>
 
           {/* Pro */}
-          <div className={`p-4 rounded-xl border-2 ${subscriptionTier === 'pro' ? 'border-navy-500 bg-navy-50' : 'border-cream-200'}`}>
+          <div className={`p-4 rounded-xl border-2 transition-all ${
+            subscriptionTier === 'pro' ? 'border-gold-400 bg-gold-50/30 shadow-sm' : 'border-cream-200 hover:border-cream-300'
+          }`}>
             <h4 className="font-semibold text-charcoal">Pro</h4>
             <p className="text-2xl font-bold text-charcoal mt-2">$39.99<span className="text-sm font-normal text-warm-gray">/mo</span></p>
-            <ul className="mt-4 space-y-2 text-sm text-warm-gray">
+            <ul className="mt-4 space-y-2.5 text-sm text-warm-gray">
               <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-sage-500" />
+                <Check className="w-4 h-4 text-gold-500 flex-shrink-0" />
                 120 applications/month (240 credits)
               </li>
               <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-sage-500" />
+                <Check className="w-4 h-4 text-gold-500 flex-shrink-0" />
                 Add-on credits available
               </li>
               <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-sage-500" />
+                <Check className="w-4 h-4 text-gold-500 flex-shrink-0" />
                 2 months credit rollover
               </li>
               <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-sage-500" />
+                <Check className="w-4 h-4 text-gold-500 flex-shrink-0" />
                 Premium support
               </li>
             </ul>

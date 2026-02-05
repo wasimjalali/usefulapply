@@ -471,11 +471,11 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
                   role: 'assistant',
                   content: `✅ **Analysis Complete!**\n\nYour CV has been optimized for this role.\n\nCheck the **CV tab** to review the changes.`,
                   actions: [
-                    { label: '📄 View Optimized CV', action: 'view-cv', icon: 'cv' },
-                    { label: '✉️ View Cover Letter', action: 'view-cover-letter', icon: 'cover-letter' },
-                    { label: '📧 View Email', action: 'view-email', icon: 'email' },
-                    { label: '💡 To start a new application, begin a new chat', action: 'none' },
-                    { label: '🚀 Start New Application', action: 'start-new-application', icon: 'new' },
+                    { label: 'View Optimized CV', action: 'view-cv', icon: 'cv' },
+                    { label: 'View Cover Letter', action: 'view-cover-letter', icon: 'cover-letter' },
+                    { label: 'View Email', action: 'view-email', icon: 'email' },
+                    { label: 'To start a new application, begin a new chat', action: 'none' },
+                    { label: 'Start New Application', action: 'start-new-application', icon: 'new' },
                   ],
                 });
                 break;
