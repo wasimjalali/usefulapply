@@ -374,7 +374,10 @@ export function CVPanel() {
                 width: 100%;
               }
               
-              /* DO NOT strip template padding - let it work with @page margin */
+              /* Ensure @page margins are respected */
+              .cv-template {
+                padding: 0 !important; /* Let @page margin handle all margins for print */
+              }
               
               /* Allow sections to break naturally across pages */
               section { 
