@@ -539,10 +539,8 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         onTabChange?.('email');
         break;
       case 'start-new-application':
-        useAppStore.setState({ 
-          currentSession: null,
-          jobDescription: '',
-        });
+        useAppStore.getState().clearCurrentSession();
+        useAppStore.getState().setJobDescription('');
         setJobDescription('');
         setAgentSteps([]);
         break;

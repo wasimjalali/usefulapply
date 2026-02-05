@@ -66,6 +66,21 @@ export const useAppStore = () => {
   };
 };
 
+/**
+ * Static getState() for accessing store state outside of React components.
+ * Combines all three stores into a single state object.
+ */
+useAppStore.getState = () => ({
+  ...useCVStore.getState(),
+  ...useSessionStore.getState(),
+  ...useUIStore.getState(),
+  resetAll: () => {
+    useCVStore.getState().resetCVData();
+    useSessionStore.getState().resetGenerated();
+    useUIStore.getState().resetUI();
+  },
+});
+
 // Re-export individual stores for direct access
 export { useCVStore } from './useCVStore';
 export { useSessionStore } from './useSessionStore';

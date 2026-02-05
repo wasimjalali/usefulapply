@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppStore, ApplicationSession, ChatMessage } from '@/store/useAppStore';
+import { useSessionStore } from '@/store/useSessionStore';
 import { createClient } from '@/lib/supabase/client';
 import {
   getSessions,
@@ -291,12 +292,13 @@ export function useSupabaseSync() {
             };
             
             // Update the store with the new session ID
-            useAppStore.setState((state) => ({
-              currentSession: updatedSession,
-              sessions: state.sessions.map((s) => 
+            const sessionStore = useSessionStore.getState();
+            sessionStore.updateCurrentSession({ id: newSession.id });
+            sessionStore.setSessions(
+              sessionStore.sessions.map((s) => 
                 s.id === oldSessionId ? updatedSession : s
-              ),
-            }));
+              )
+            );
             
             console.log('[SupabaseSync] Updated local session ID:', oldSessionId, '->', newSession.id);
             
