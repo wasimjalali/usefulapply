@@ -38,6 +38,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
   
   return (
     <div 
+      className="cv-template"
       style={{ 
         width: '8.5in',
         minHeight: '11in',

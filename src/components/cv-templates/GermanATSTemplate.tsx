@@ -43,6 +43,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
   
   return (
     <div 
+      className="cv-template"
       style={{ 
         width: '210mm',
         minHeight: '297mm',
@@ -68,7 +69,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
       <aside 
         style={{ 
           width: '70mm',
-          padding: '22px 14px',
+          padding: '0 12px 0 0',  // Zero left padding (outer handles it), small right padding for gap
           backgroundColor: germanColors.headerBg,
           borderRight: `2px solid ${germanColors.primary}`,
           overflow: 'hidden', // Prevent text overflow to main column
@@ -265,7 +266,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
       </aside>
 
       {/* Main Content */}
-      <main style={{ flex: 1, padding: '22px 22px 22px 18px' }}>
+      <main style={{ flex: 1, padding: '0 0 0 12px' }}>  {/* Zero right padding (outer handles it), small left padding for gap */}
         {/* Name and Title */}
         <header style={{ marginBottom: '20px', paddingBottom: '12px', borderBottom: `2px solid ${germanColors.primary}` }}>
           <h1 

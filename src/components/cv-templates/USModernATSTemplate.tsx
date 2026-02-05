@@ -37,6 +37,7 @@ export function USModernATSTemplate({ data, template }: Props) {
   
   return (
     <div 
+      className="cv-template"
       style={{ 
         width: '8.5in',
         minHeight: '11in',
@@ -62,7 +63,7 @@ export function USModernATSTemplate({ data, template }: Props) {
       <aside 
         style={{ 
           width: '30%',
-          padding: '36px 18px',
+          padding: '0 12px 0 0',  // Zero left padding (outer handles it), small right padding for gap
           backgroundColor: modernColors.sidebar,
           overflow: 'hidden', // Prevent text overflow to main column
         }}
@@ -260,7 +261,7 @@ export function USModernATSTemplate({ data, template }: Props) {
       </aside>
 
       {/* Main Content - 70% */}
-      <main style={{ width: '70%', padding: '36px 28px' }}>
+      <main style={{ width: '70%', padding: '0 0 0 12px' }}>  {/* Zero right padding (outer handles it), small left padding for gap */}
         {/* Professional Summary */}
         {data.summary && (
           <section style={{ marginBottom: '20px' }}>
