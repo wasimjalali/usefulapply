@@ -46,7 +46,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
         lineHeight: 1.15,
         color: executiveColors.text,
         backgroundColor: 'white',
-        padding: '0.5in 0.75in', // 2026 Standard: 0.5in top/bottom, 0.75in left/right
+        padding: '0', // Browser @page margin handles print margins
         pageBreakAfter: 'auto',
         pageBreakInside: 'auto',
       }}
