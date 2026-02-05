@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, FileText, Search, Zap, Clock, Target, CheckCircle, Star, Shield, Globe, MessageSquare, Sparkles, BarChart3, Users } from 'lucide-react';
+import { ArrowRight, FileText, Search, Zap, Clock, Target, CheckCircle, Star, Shield, Globe, MessageSquare, Sparkles, BarChart3, Users, TrendingUp, HelpCircle } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 
@@ -28,7 +28,7 @@ export default function Home() {
               <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">45 Minutes Saved.</span>
             </h1>
             <p className="text-xl md:text-2xl text-warm-gray mb-10 max-w-2xl mx-auto leading-relaxed">
-              Paste a job description. Get a tailored CV, cover letter, and email — all personalized with company research — in under 3 minutes.
+              Paste a job description. Get a tailored CV, cover letter, and email — all personalized to the job and company — in under 3 minutes.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
@@ -59,11 +59,9 @@ export default function Home() {
                 <span className="ml-2 font-medium">Trusted by job seekers worldwide</span>
               </div>
               <div className="hidden sm:block w-px h-4 bg-cream-300" />
-              <div className="flex items-center gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-gold-400 text-gold-400" />
-                ))}
-                <span className="ml-1 font-medium">4.9/5 rating</span>
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-gold-400" />
+                <span className="font-medium">Save 45+ minutes per application</span>
               </div>
             </div>
           </div>
@@ -138,7 +136,7 @@ export default function Home() {
                 {[
                   { text: 'Under 3 minutes per application', detail: 'AI generates everything in one click' },
                   { text: 'Hyper-personalized documents', detail: 'Every word tailored to the specific job' },
-                  { text: 'Automatic company research', detail: 'AI researches culture, news, and values' },
+                  { text: 'AI company analysis', detail: 'AI extracts culture, values, and requirements from the job posting' },
                   { text: 'ATS-optimized formatting', detail: 'Passes every applicant tracking system' },
                   { text: 'Apply to 10x more jobs', detail: 'More applications, more interviews' },
                 ].map((item, i) => (
@@ -176,15 +174,15 @@ export default function Home() {
             {[
               {
                 step: '1',
-                title: 'Upload Your CV',
-                description: 'Upload your master CV once. KarKo AI parses your skills, experience, and achievements to build your professional profile.',
+                title: 'Upload Your Master CV',
+                description: 'Upload your master CV or primary CV once. KarKo AI parses your skills, experience, and achievements to build your professional profile.',
                 icon: FileText,
                 color: 'navy',
               },
               {
                 step: '2',
                 title: 'Paste the Job Description',
-                description: 'Drop in any job posting. Our AI analyzes requirements, identifies skill matches, and researches the company automatically.',
+                description: 'Drop in any job posting. Our AI analyzes requirements, runs a fit analysis, and identifies skill matches automatically.',
                 icon: Search,
                 color: 'gold',
               },
@@ -243,8 +241,8 @@ export default function Home() {
               },
               {
                 icon: Search,
-                title: 'Built-in Company Research',
-                description: 'AI automatically researches the company culture, recent news, and values to make your application stand out.',
+                title: 'AI Company Analysis',
+                description: 'AI extracts company culture, values, and key requirements directly from the job description to personalize your application.',
               },
               {
                 icon: Shield,
@@ -252,9 +250,14 @@ export default function Home() {
                 description: 'Every document is formatted to pass Applicant Tracking Systems. Your application actually gets seen by humans.',
               },
               {
+                icon: TrendingUp,
+                title: 'Fit Analysis',
+                description: 'Before generating your application, AI compares your profile to the job and tells you if it is a strong, good, or weak fit.',
+              },
+              {
                 icon: MessageSquare,
-                title: 'AI Refinement Chat',
-                description: 'Not perfect on the first try? Chat with our AI to refine any section until it matches your voice perfectly.',
+                title: 'AI Self-Refinement',
+                description: 'Our AI automatically iterates and refines your documents before delivering them — ensuring the highest quality output.',
               },
               {
                 icon: BarChart3,
@@ -301,7 +304,7 @@ export default function Home() {
               {
                 icon: Target,
                 title: 'Personalized Cover Letter',
-                items: ['Company-specific opening paragraph', 'Skill-to-requirement matching', 'Culture-aware tone and language', 'Compelling call to action'],
+                items: ['Company-specific opening paragraph', 'Skill-to-requirement matching', 'Tone adapted to company culture', 'Compelling call to action'],
                 accent: 'gold',
               },
               {
@@ -457,6 +460,56 @@ export default function Home() {
               Compare plans in detail
               <ArrowRight className="w-4 h-4" />
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* What is a Master CV? */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Master CV</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
+                Don&apos;t Have a Master CV?
+              </h2>
+              <p className="text-warm-gray leading-relaxed mb-4">
+                A Master CV is a comprehensive document (5-10 pages) that contains your complete professional history — every job, skill, achievement, and certification. It is not something you send to employers. It is the source material that KarKo AI draws from to create perfectly tailored applications.
+              </p>
+              <p className="text-warm-gray leading-relaxed mb-6">
+                Most people do not have one, and that is okay. We have built a free guided process that helps you create yours in about 30 minutes using any AI chatbot.
+              </p>
+              <Link
+                href="/master-cv"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-navy-600 text-white font-semibold rounded-xl hover:bg-navy-700 transition-colors shadow-md"
+              >
+                Learn How to Create Yours
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+            <div className="bg-white rounded-2xl p-8 border border-cream-200 shadow-sm">
+              <h3 className="text-lg font-bold text-charcoal mb-4">What a Master CV Includes</h3>
+              <ul className="space-y-3">
+                {[
+                  'Complete work history with metrics',
+                  'All skills with years of experience',
+                  'Every certification and qualification',
+                  'Side projects and portfolio work',
+                  'Languages and proficiency levels',
+                  'Professional mindset and approach',
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-sm">
+                    <CheckCircle className="w-4 h-4 text-sage-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-warm-gray">{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-6 p-4 bg-gold-50 rounded-xl border border-gold-200">
+                <p className="text-sm text-gold-700">
+                  <strong>Pro tip:</strong> The more detailed your Master CV, the better KarKo AI can personalize your applications.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>

@@ -259,68 +259,81 @@ export default function MasterCVPage() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8">
+      <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gold-100 rounded-full text-gold-700 text-sm font-medium mb-6">
-            <Sparkles className="w-4 h-4" />
-            The Foundation of Great Applications
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-cream-300 rounded-full text-sm text-charcoal mb-8 shadow-sm">
+            <Sparkles className="w-4 h-4 text-gold-400" />
+            <span className="font-medium">The Foundation of Great Applications</span>
           </div>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-navy-600 mb-6 leading-tight">
-            Create Your Master CV
+            Create Your{' '}
+            <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">Master CV</span>
           </h1>
-          <p className="text-xl text-warm-gray max-w-2xl mx-auto">
-            The complete skills inventory that powers hyper-personalized job applications. 
-            Build it once, use it for every application.
+          <p className="text-xl text-warm-gray max-w-2xl mx-auto leading-relaxed">
+            A Master CV is a comprehensive skills inventory (5-10 pages) that powers hyper-personalized job applications. Build it once, use it for every application.
           </p>
         </div>
       </section>
 
       {/* What is a Master CV */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-navy-600 mb-4">
+          <div className="text-center mb-14">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Understanding</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
               What is a Master CV?
             </h2>
-            <p className="text-warm-gray max-w-2xl mx-auto">
-              A Master CV is your comprehensive professional document — containing EVERYTHING about your career, 
-              not just what fits on 2 pages.
+            <p className="text-lg text-warm-gray max-w-2xl mx-auto">
+              It is not something you send to employers. It is a detailed reference document containing your complete professional history — so KarKo AI can create perfectly tailored applications.
             </p>
           </div>
 
           {/* Comparison Table */}
-          <div className="grid md:grid-cols-2 gap-8 mb-12">
-            <div className="bg-red-50 rounded-2xl p-8 border border-red-100">
-              <h3 className="text-lg font-semibold text-red-700 mb-4">Regular CV</h3>
-              <ul className="space-y-3">
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            <div className="bg-white rounded-2xl p-8 border border-red-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-red-500" />
+                </div>
+                <h3 className="text-lg font-bold text-red-700">Regular CV</h3>
+              </div>
+              <ul className="space-y-4">
                 {[
-                  '1-2 pages maximum',
-                  'Tailored to ONE specific job',
-                  'Many achievements left out',
-                  'Created from scratch each time',
-                  'Easy to forget past achievements',
+                  { text: '1-2 pages maximum', detail: 'Forced to leave out relevant experience' },
+                  { text: 'Tailored to ONE specific job', detail: 'Start from scratch each time' },
+                  { text: 'Many achievements left out', detail: 'Easy to forget past wins' },
                 ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3 text-red-700">
-                    <span className="text-red-400 mt-1">✗</span>
-                    <span>{item}</span>
+                  <li key={i} className="flex items-start gap-3">
+                    <span className="text-red-400 font-bold mt-0.5 text-lg leading-none">&#x2715;</span>
+                    <div>
+                      <span className="font-medium text-charcoal">{item.text}</span>
+                      <p className="text-sm text-warm-gray mt-0.5">{item.detail}</p>
+                    </div>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="bg-sage-50 rounded-2xl p-8 border border-sage-100">
-              <h3 className="text-lg font-semibold text-sage-700 mb-4">Master CV</h3>
-              <ul className="space-y-3">
+            <div className="bg-white rounded-2xl p-8 border-2 border-sage-200 shadow-md relative">
+              <div className="absolute -top-3 left-6 px-3 py-1 bg-sage-500 text-white text-xs font-bold rounded-full">RECOMMENDED</div>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-sage-100 rounded-xl flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-sage-600" />
+                </div>
+                <h3 className="text-lg font-bold text-sage-700">Master CV</h3>
+              </div>
+              <ul className="space-y-4">
                 {[
-                  '5-10+ pages of everything',
-                  'Complete career inventory',
-                  'ALL achievements documented',
-                  'Source material for every application',
-                  'Nothing forgotten or overlooked',
+                  { text: '5-10+ pages of everything', detail: 'Complete career inventory' },
+                  { text: 'ALL achievements documented', detail: 'Nothing forgotten or overlooked' },
+                  { text: 'Source material for every application', detail: 'AI picks the most relevant content' },
                 ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3 text-sage-700">
+                  <li key={i} className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-sage-500 flex-shrink-0 mt-0.5" />
-                    <span>{item}</span>
+                    <div>
+                      <span className="font-medium text-charcoal">{item.text}</span>
+                      <p className="text-sm text-warm-gray mt-0.5">{item.detail}</p>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -330,10 +343,11 @@ export default function MasterCVPage() {
       </section>
 
       {/* Why You Need One */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-navy-600 mb-4">
+          <div className="text-center mb-14">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Benefits</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
               Why You Need a Master CV
             </h2>
           </div>
@@ -343,7 +357,7 @@ export default function MasterCVPage() {
               {
                 icon: Target,
                 title: 'Better AI Personalization',
-                description: 'KarKo AI draws from your complete history to find the MOST relevant experience for each job.',
+                description: 'KarKo AI draws from your complete history to find the most relevant experience for each job.',
               },
               {
                 icon: Clock,
@@ -358,7 +372,7 @@ export default function MasterCVPage() {
               {
                 icon: Sparkles,
                 title: 'Stronger Cover Letters',
-                description: 'With more material to draw from, your cover letters can include specific, relevant examples.',
+                description: 'With more material to draw from, your cover letters include specific, relevant examples.',
               },
               {
                 icon: CheckCircle,
@@ -373,12 +387,12 @@ export default function MasterCVPage() {
             ].map((benefit, i) => {
               const Icon = benefit.icon;
               return (
-                <div key={i} className="bg-white rounded-xl p-6 hover:shadow-md transition-shadow">
+                <div key={i} className="bg-white rounded-2xl p-6 border border-cream-200 hover:shadow-md transition-shadow">
                   <div className="w-12 h-12 bg-navy-100 rounded-xl flex items-center justify-center mb-4">
                     <Icon className="w-6 h-6 text-navy-600" />
                   </div>
-                  <h3 className="text-lg font-semibold text-charcoal mb-2">{benefit.title}</h3>
-                  <p className="text-warm-gray text-sm">{benefit.description}</p>
+                  <h3 className="text-lg font-bold text-charcoal mb-2">{benefit.title}</h3>
+                  <p className="text-warm-gray text-sm leading-relaxed">{benefit.description}</p>
                 </div>
               );
             })}
@@ -387,29 +401,31 @@ export default function MasterCVPage() {
       </section>
 
       {/* How to Create */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-navy-600 mb-4">
+          <div className="text-center mb-14">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Simple Process</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
               How to Create Your Master CV
             </h2>
-            <p className="text-warm-gray">
-              Use the prompt below with any AI chatbot (Claude, ChatGPT, Gemini) to create your Master CV through a guided interview.
+            <p className="text-lg text-warm-gray max-w-2xl mx-auto">
+              Use the prompt below with any AI chatbot (Claude, ChatGPT, Gemini) to create your Master CV through a guided interview. It takes about 30 minutes.
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-6 mb-12">
+          <div className="grid sm:grid-cols-3 gap-8 mb-14 relative">
+            <div className="hidden sm:block absolute top-8 left-[20%] right-[20%] h-0.5 bg-gradient-to-r from-gold-200 via-gold-400 to-gold-200" />
             {[
               { step: '1', title: 'Copy the Prompt', description: 'Click the copy button below to get the Master CV creation prompt.' },
               { step: '2', title: 'Paste into AI Chat', description: 'Open Claude, ChatGPT, or Gemini and paste the prompt.' },
               { step: '3', title: 'Answer Questions', description: 'The AI will interview you systematically to capture everything.' },
             ].map((item) => (
-              <div key={item.step} className="text-center">
-                <div className="inline-flex items-center justify-center w-10 h-10 bg-gold-400 text-white font-bold rounded-full mb-3">
-                  {item.step}
+              <div key={item.step} className="text-center relative">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gold-100 rounded-2xl mb-4 shadow-sm relative z-10">
+                  <span className="text-2xl font-bold text-gold-500">{item.step}</span>
                 </div>
-                <h3 className="text-lg font-semibold text-charcoal mb-2">{item.title}</h3>
-                <p className="text-warm-gray text-sm">{item.description}</p>
+                <h3 className="text-lg font-bold text-charcoal mb-2">{item.title}</h3>
+                <p className="text-warm-gray text-sm leading-relaxed">{item.description}</p>
               </div>
             ))}
           </div>
@@ -417,13 +433,14 @@ export default function MasterCVPage() {
       </section>
 
       {/* The Prompt Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-navy-600">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-navy-600">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-white mb-4">
+          <div className="text-center mb-10">
+            <p className="text-sm font-semibold text-gold-400 uppercase tracking-widest mb-3">The Prompt</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
               The Master CV Prompt
             </h2>
-            <p className="text-navy-200">
+            <p className="text-lg text-navy-200">
               Copy this prompt and paste it into your favorite AI chatbot to get started.
             </p>
           </div>
@@ -434,7 +451,7 @@ export default function MasterCVPage() {
               <span className="text-sm font-medium text-navy-200">Master CV Creation Prompt</span>
               <button
                 onClick={handleCopyPrompt}
-                className="flex items-center gap-2 px-4 py-2 bg-gold-400 text-white rounded-lg hover:bg-gold-500 transition-colors font-medium"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-lg hover:from-gold-500 hover:to-gold-600 transition-all font-medium shadow-md cursor-pointer"
               >
                 {copied ? (
                   <>
@@ -463,10 +480,11 @@ export default function MasterCVPage() {
       </section>
 
       {/* What's Included */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-navy-600 mb-4">
+          <div className="text-center mb-14">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Contents</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
               What Your Master CV Will Include
             </h2>
           </div>
@@ -486,9 +504,9 @@ export default function MasterCVPage() {
               'Awards & Recognition',
               'Additional Career Information',
             ].map((item, i) => (
-              <div key={i} className="flex items-center gap-3 bg-white rounded-lg p-4 border border-cream-200">
+              <div key={i} className="flex items-center gap-3 bg-white rounded-xl p-4 border border-cream-200 hover:shadow-sm transition-shadow">
                 <CheckCircle className="w-5 h-5 text-sage-500 flex-shrink-0" />
-                <span className="text-charcoal">{item}</span>
+                <span className="text-charcoal font-medium">{item}</span>
               </div>
             ))}
           </div>
@@ -496,25 +514,26 @@ export default function MasterCVPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-gold-400 to-gold-500">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-navy-600 mb-4">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="max-w-4xl mx-auto text-center relative">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             Ready to Create Your Master CV?
           </h2>
-          <p className="text-navy-700 mb-8 max-w-2xl mx-auto">
-            Copy the prompt above, create your Master CV, then upload it to KarKo AI to supercharge your job applications.
+          <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
+            Copy the prompt above, create your Master CV in about 30 minutes, then upload it to KarKo AI to supercharge your job applications.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={handleCopyPrompt}
-              className="w-full sm:w-auto px-8 py-4 bg-navy-600 text-white font-semibold rounded-xl hover:bg-navy-700 transition-colors shadow-lg flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg flex items-center justify-center gap-2 text-lg cursor-pointer"
             >
               {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
               {copied ? 'Prompt Copied!' : 'Copy the Prompt'}
             </button>
             <Link
               href="/auth/signup"
-              className="w-full sm:w-auto px-8 py-4 bg-white text-navy-600 font-semibold rounded-xl hover:bg-cream-50 transition-colors flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-10 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold rounded-xl hover:bg-white/20 transition-all flex items-center justify-center gap-2 text-lg"
             >
               Sign Up to Upload
               <ArrowRight className="w-5 h-5" />

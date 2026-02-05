@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, Users, Target, Heart, Zap, Sparkles, Clock, Shield, Globe } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
@@ -28,16 +29,19 @@ export default function AboutPage() {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Our Story</p>
-              <h2 className="text-3xl font-bold text-navy-600 mb-6">From Frustration to Innovation</h2>
+              <h2 className="text-3xl font-bold text-navy-600 mb-6">From Job Seeker to Founder</h2>
               <div className="space-y-4 text-warm-gray leading-relaxed">
                 <p>
-                  It started with a number: <strong className="text-charcoal">45 minutes</strong>. That is how long the average job seeker spends on a single application — rewriting their CV, researching the company, crafting a cover letter, and drafting an email. Multiply that by dozens of applications, and job searching becomes a full-time job.
+                  KarKo AI was born from personal experience. As a job seeker, I was applying to <strong className="text-charcoal">50-60 jobs</strong> at a time — rewriting my CV, researching companies, crafting cover letters, and drafting emails. It was exhausting and incredibly time-consuming.
                 </p>
                 <p>
-                  We asked: what if AI could handle all of that in one intelligent workflow? Not just fill in templates, but actually <strong className="text-charcoal">research the company</strong>, <strong className="text-charcoal">analyze the job requirements</strong>, and <strong className="text-charcoal">generate personalized documents</strong> that make recruiters take notice?
+                  I first tried building a solution inside a chatbot — a custom project that would help generate my application materials. But even with that setup, each application still took <strong className="text-charcoal">45 minutes or more</strong>. The manual back-and-forth was the bottleneck.
                 </p>
                 <p>
-                  That question became KarKo AI — an agentic system that compresses 45 minutes of work into under 3 minutes, without sacrificing the personalization that gets you interviews.
+                  That is when I decided to build KarKo AI — a fully agentic system that does everything in <strong className="text-charcoal">one automated workflow</strong>: analyze the job, extract company insights, run a fit analysis, and generate a complete application package in under 3 minutes.
+                </p>
+                <p>
+                  I built it for myself first. When I saw the results — more interviews, less time wasted — I knew this had to be shared with other job seekers facing the same struggle.
                 </p>
               </div>
             </div>
@@ -49,7 +53,7 @@ export default function AboutPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-charcoal">The Problem</p>
-                    <p className="text-sm text-warm-gray">45+ minutes per application, generic documents, low response rates</p>
+                    <p className="text-sm text-warm-gray">Applying to 50+ jobs, 45 minutes each — job searching became a full-time job</p>
                   </div>
                 </div>
                 <div className="w-px h-6 bg-cream-300 ml-5" />
@@ -58,8 +62,8 @@ export default function AboutPage() {
                     <Sparkles className="w-5 h-5 text-gold-500" />
                   </div>
                   <div>
-                    <p className="font-semibold text-charcoal">The Insight</p>
-                    <p className="text-sm text-warm-gray">AI can research, analyze, and write — all in one agentic workflow</p>
+                    <p className="font-semibold text-charcoal">The First Attempt</p>
+                    <p className="text-sm text-warm-gray">Built a chatbot project — still took 45 min per application</p>
                   </div>
                 </div>
                 <div className="w-px h-6 bg-cream-300 ml-5" />
@@ -68,8 +72,8 @@ export default function AboutPage() {
                     <Zap className="w-5 h-5 text-sage-600" />
                   </div>
                   <div>
-                    <p className="font-semibold text-charcoal">The Result</p>
-                    <p className="text-sm text-warm-gray">Complete, personalized applications in under 3 minutes</p>
+                    <p className="font-semibold text-charcoal">KarKo AI</p>
+                    <p className="text-sm text-warm-gray">Fully agentic workflow — complete applications in under 3 minutes</p>
                   </div>
                 </div>
               </div>
@@ -93,7 +97,7 @@ export default function AboutPage() {
               {
                 icon: Sparkles,
                 title: 'Agentic, Not Assistive',
-                description: 'Other tools help you format a resume. KarKo AI is an autonomous agent that researches, analyzes, writes, and refines — delivering a complete application package in one workflow.',
+                description: 'Other tools help you format a resume. KarKo AI is an autonomous agent that analyzes, writes, and self-refines — delivering a complete application package in one workflow.',
               },
               {
                 icon: Target,
@@ -186,6 +190,43 @@ export default function AboutPage() {
                 <div className="text-navy-200 text-sm font-medium">{stat.label}</div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Founder Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Meet the Founder</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-navy-600">Built by a Job Seeker, for Job Seekers</h2>
+          </div>
+          <div className="bg-cream-50 rounded-2xl p-8 md:p-10 border border-cream-200">
+            <div className="flex flex-col md:flex-row items-center gap-8">
+              <div className="flex-shrink-0">
+                <div className="w-32 h-32 md:w-40 md:h-40 rounded-2xl overflow-hidden border-4 border-white shadow-lg">
+                  <Image
+                    src="/Wasim.png"
+                    alt="Wasim Jalali — Founder & CEO of KarKo AI"
+                    width={160}
+                    height={160}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-charcoal mb-1">Wasim Jalali</h3>
+                <p className="text-sm font-medium text-gold-500 mb-4">Founder & CEO</p>
+                <div className="space-y-3 text-warm-gray leading-relaxed">
+                  <p>
+                    &ldquo;I was applying to 50-60 jobs at a time and spending hours on each application. I first tried building a solution inside a chatbot, but it still took 45 minutes per application. That frustration led me to build KarKo AI — a tool that does in 3 minutes what used to take me an hour.
+                  </p>
+                  <p>
+                    I built it for myself first, saw real results, and knew I had to share it with every job seeker going through the same struggle. From a job seeker, to job seekers — that is what KarKo AI is all about.&rdquo;
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

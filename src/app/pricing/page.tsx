@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Check, X, Sparkles, Zap, Crown, ArrowRight, ChevronDown, FileText, Search, Shield, MessageSquare, Globe, BarChart3 } from 'lucide-react';
+import { Check, X, Sparkles, Zap, Crown, ArrowRight, ChevronDown, FileText, Search, Shield, MessageSquare, Globe, BarChart3, TrendingUp, Clock, Calculator } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 
@@ -23,15 +23,15 @@ const tiers = [
     features: [
       { name: 'Agentic AI application generation', included: true, highlight: true },
       { name: 'Personalized CV, cover letter & email', included: true, highlight: true },
-      { name: 'Web search & company research', included: true, highlight: false },
+      { name: 'Fit analysis (strong/good/weak)', included: true, highlight: false },
+      { name: 'AI company analysis from job description', included: true, highlight: false },
       { name: 'All CV templates (US & EU)', included: true, highlight: false },
       { name: 'ATS-optimized formatting', included: true, highlight: false },
-      { name: 'Skill gap analysis', included: true, highlight: false },
+      { name: 'AI self-refinement iterations', included: true, highlight: false },
       { name: 'PDF export', included: true, highlight: false },
       { name: 'Application history (30 days)', included: true, highlight: false },
       { name: 'Add-on credit packs', included: false, highlight: false },
       { name: 'Credit rollover', included: false, highlight: false },
-      { name: 'Priority support', included: false, highlight: false },
     ],
     cta: 'Start Free',
     ctaVariant: 'outline' as const,
@@ -51,15 +51,15 @@ const tiers = [
     features: [
       { name: 'Agentic AI application generation', included: true, highlight: true },
       { name: 'Personalized CV, cover letter & email', included: true, highlight: true },
-      { name: 'Web search & company research', included: true, highlight: false },
+      { name: 'Fit analysis (strong/good/weak)', included: true, highlight: false },
+      { name: 'AI company analysis from job description', included: true, highlight: false },
       { name: 'All CV templates (US & EU)', included: true, highlight: false },
       { name: 'ATS-optimized formatting', included: true, highlight: false },
-      { name: 'Skill gap analysis', included: true, highlight: false },
+      { name: 'AI self-refinement iterations', included: true, highlight: false },
       { name: 'PDF export', included: true, highlight: false },
       { name: 'Application history (unlimited)', included: true, highlight: false },
       { name: 'Add-on credit packs', included: true, highlight: false },
       { name: 'Credit rollover (1 month)', included: true, highlight: false },
-      { name: 'Priority email support', included: true, highlight: false },
     ],
     cta: 'Get Plus',
     ctaVariant: 'primary' as const,
@@ -79,15 +79,15 @@ const tiers = [
     features: [
       { name: 'Agentic AI application generation', included: true, highlight: true },
       { name: 'Personalized CV, cover letter & email', included: true, highlight: true },
-      { name: 'Web search & company research', included: true, highlight: false },
+      { name: 'Fit analysis (strong/good/weak)', included: true, highlight: false },
+      { name: 'AI company analysis from job description', included: true, highlight: false },
       { name: 'All CV templates (US & EU)', included: true, highlight: false },
       { name: 'ATS-optimized formatting', included: true, highlight: false },
-      { name: 'Skill gap analysis', included: true, highlight: false },
+      { name: 'AI self-refinement iterations', included: true, highlight: false },
       { name: 'PDF export', included: true, highlight: false },
       { name: 'Application history (unlimited)', included: true, highlight: false },
       { name: 'Add-on credit packs', included: true, highlight: false },
       { name: 'Credit rollover (2 months)', included: true, highlight: false },
-      { name: 'Premium support (24h response)', included: true, highlight: false },
     ],
     cta: 'Get Pro',
     ctaVariant: 'secondary' as const,
@@ -96,9 +96,9 @@ const tiers = [
 
 // Add-on credit packs
 const addonPacks = [
-  { name: 'Small Pack', credits: 30, applications: 15, price: 4.99, discount: null },
-  { name: 'Medium Pack', credits: 60, applications: 30, price: 9.99, discount: 'Best Value' },
-  { name: 'Large Pack', credits: 120, applications: 60, price: 19.99, discount: 'Most Popular' },
+  { name: 'Small Pack', credits: 30, applications: 15, price: 7.49, discount: null },
+  { name: 'Medium Pack', credits: 60, applications: 30, price: 14.99, discount: 'Best Value' },
+  { name: 'Large Pack', credits: 120, applications: 60, price: 29.99, discount: 'Most Popular' },
 ];
 
 // FAQ items
@@ -109,7 +109,7 @@ const faqs = [
   },
   {
     question: 'Are all features the same across plans?',
-    answer: 'Yes! Every plan includes the full agentic AI workflow: company research, skill gap analysis, ATS-optimized templates, AI refinement chat, and PDF export. The only difference between plans is the number of monthly credits.',
+    answer: 'Yes! Every plan includes the full agentic AI workflow: AI company analysis, fit analysis, skill gap analysis, ATS-optimized templates, AI self-refinement, and PDF export. The only difference between plans is the number of monthly credits.',
   },
   {
     question: 'What happens if I run out of credits?',
@@ -125,7 +125,7 @@ const faqs = [
   },
   {
     question: 'How is KarKo different from other resume builders?',
-    answer: 'Most tools just help you format a resume. KarKo AI is an agentic system that researches the company, analyzes the job description, generates a tailored CV, writes a personalized cover letter, and drafts a professional email — all automatically in one workflow.',
+    answer: 'Most tools just help you format a resume. KarKo AI is an agentic system that analyzes the job description, extracts company insights, runs a fit analysis, generates a tailored CV, writes a personalized cover letter, and drafts a professional email — all automatically in one workflow.',
   },
 ];
 
@@ -158,11 +158,11 @@ export default function PricingPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {[
                 { icon: Sparkles, label: 'Agentic AI' },
-                { icon: Search, label: 'Company Research' },
+                { icon: Search, label: 'Company Analysis' },
                 { icon: Shield, label: 'ATS Optimized' },
                 { icon: Globe, label: 'US & EU Templates' },
+                { icon: TrendingUp, label: 'Fit Analysis' },
                 { icon: MessageSquare, label: 'AI Refinement' },
-                { icon: BarChart3, label: 'Skill Analysis' },
               ].map((item, i) => {
                 const Icon = item.icon;
                 return (
@@ -417,6 +417,44 @@ export default function PricingPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ROI Time Savings Calculator */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Time Savings</p>
+            <h2 className="text-3xl font-bold text-navy-600 mb-3">
+              How Much Time Will You Save?
+            </h2>
+            <p className="text-warm-gray max-w-xl mx-auto">
+              Each application saves you approximately 45 minutes of manual work. Here is what that looks like per plan.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-6">
+            {[
+              { plan: 'Starter', apps: 3, hours: '2.25', price: 'Free', color: 'cream' },
+              { plan: 'Plus', apps: 60, hours: '45', price: '$29.99/mo', color: 'gold' },
+              { plan: 'Pro', apps: 120, hours: '90', price: '$49.99/mo', color: 'navy' },
+            ].map((tier, i) => (
+              <div key={i} className={`rounded-2xl p-8 text-center border ${
+                tier.color === 'gold' ? 'bg-white border-gold-300 shadow-lg' : 'bg-white border-cream-200'
+              }`}>
+                <h3 className="font-bold text-charcoal text-lg mb-1">{tier.plan}</h3>
+                <p className="text-sm text-warm-gray mb-4">{tier.price}</p>
+                <div className="w-16 h-16 bg-navy-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <Clock className="w-8 h-8 text-navy-600" />
+                </div>
+                <div className="text-4xl font-bold text-navy-600 mb-1">{tier.hours}</div>
+                <div className="text-sm font-medium text-charcoal mb-1">hours saved</div>
+                <div className="text-xs text-warm-gray">per month ({tier.apps} apps × 45 min)</div>
+              </div>
+            ))}
+          </div>
+          <p className="text-center text-sm text-warm-gray mt-8">
+            Based on the average time of 45 minutes to manually research a company, tailor a CV, write a cover letter, and draft an application email.
+          </p>
         </div>
       </section>
 

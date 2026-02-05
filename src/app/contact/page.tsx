@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Mail, MessageSquare, Send, CheckCircle } from 'lucide-react';
+import { Mail, MessageSquare, Send, CheckCircle, ArrowRight } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 
@@ -47,12 +47,14 @@ export default function ContactPage() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
+      <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl sm:text-5xl font-bold text-navy-600 mb-6">
-            Get in Touch
+          <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-4">Contact</p>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-navy-600 mb-6 leading-tight">
+            Get in{' '}
+            <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">Touch</span>
           </h1>
-          <p className="text-xl text-warm-gray max-w-2xl mx-auto">
+          <p className="text-xl text-warm-gray max-w-2xl mx-auto leading-relaxed">
             Have a question, feedback, or just want to say hi? We would love to hear from you.
           </p>
         </div>
@@ -62,35 +64,35 @@ export default function ContactPage() {
       <section className="py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <div className="grid sm:grid-cols-2 gap-6 mb-12">
-            <div className="bg-white rounded-xl p-6 border border-cream-200 text-center">
-              <div className="w-12 h-12 bg-gold-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Mail className="w-6 h-6 text-gold-500" />
+            <div className="bg-white rounded-2xl p-8 border border-cream-200 text-center shadow-sm hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 bg-gold-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-7 h-7 text-gold-500" />
               </div>
-              <h3 className="text-lg font-semibold text-charcoal mb-2">Email Us</h3>
+              <h3 className="text-lg font-bold text-charcoal mb-2">Email Us</h3>
               <p className="text-warm-gray text-sm mb-3">For general inquiries and support</p>
               <a 
                 href="mailto:hello@karko.ai" 
-                className="text-navy-600 font-medium hover:text-navy-700 transition-colors"
+                className="text-navy-600 font-semibold hover:text-navy-700 transition-colors"
               >
                 hello@karko.ai
               </a>
             </div>
-            <div className="bg-white rounded-xl p-6 border border-cream-200 text-center">
-              <div className="w-12 h-12 bg-sage-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <MessageSquare className="w-6 h-6 text-sage-500" />
+            <div className="bg-white rounded-2xl p-8 border border-cream-200 text-center shadow-sm hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 bg-sage-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="w-7 h-7 text-sage-500" />
               </div>
-              <h3 className="text-lg font-semibold text-charcoal mb-2">Live Chat</h3>
+              <h3 className="text-lg font-bold text-charcoal mb-2">Live Chat</h3>
               <p className="text-warm-gray text-sm mb-3">Available Mon-Fri, 9am-5pm EST</p>
-              <span className="text-warm-gray text-sm">Coming soon</span>
+              <span className="text-warm-gray text-sm italic">Coming soon</span>
             </div>
           </div>
         </div>
       </section>
 
       {/* Contact Form */}
-      <section className="py-8 pb-16 px-4 sm:px-6 lg:px-8">
+      <section className="py-8 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-2xl p-8 border border-cream-200 shadow-sm">
+          <div className="bg-white rounded-2xl p-8 md:p-10 border border-cream-200 shadow-md">
             <h2 className="text-2xl font-bold text-navy-600 mb-6 text-center">
               Send Us a Message
             </h2>
@@ -186,7 +188,7 @@ export default function ContactPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gold-400 text-white font-semibold rounded-xl hover:bg-gold-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {loading ? (
                     'Sending...'
@@ -204,20 +206,21 @@ export default function ContactPage() {
       </section>
 
       {/* FAQ Link */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 bg-cream-50">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-2xl font-bold text-navy-600 mb-4">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="max-w-4xl mx-auto text-center relative">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             Looking for Quick Answers?
           </h2>
-          <p className="text-warm-gray mb-6">
+          <p className="text-lg text-navy-200 mb-8">
             Check out our pricing page for frequently asked questions about credits, plans, and features.
           </p>
           <Link
-            href="/pricing#faq"
-            className="inline-flex items-center gap-2 text-navy-600 font-medium hover:text-navy-700 transition-colors"
+            href="/pricing"
+            className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg"
           >
-            View FAQ
-            <span>→</span>
+            View Pricing & FAQ
+            <ArrowRight className="w-5 h-5" />
           </Link>
         </div>
       </section>
