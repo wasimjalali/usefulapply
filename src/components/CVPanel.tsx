@@ -206,11 +206,19 @@ export function CVPanel() {
               padding: 0;
             }
             
-            /* Typography */
-            h1 { font-size: 28pt; font-weight: bold; margin-bottom: 4pt; }
-            h2 { font-size: 18pt; font-weight: bold; text-transform: uppercase; letter-spacing: 0.3pt; margin-bottom: 6pt; padding-bottom: 2pt; }
-            h3 { font-size: 14pt; font-weight: bold; margin-bottom: 2pt; }
-            p, li, span { font-size: 12pt; line-height: 1.4; }
+            /* Typography - Use !important to override inline styles */
+            h1 { font-size: 24pt !important; font-weight: bold !important; margin-bottom: 4pt !important; }
+            h2 { font-size: 12pt !important; font-weight: bold !important; text-transform: uppercase !important; letter-spacing: 1pt !important; margin-bottom: 6pt !important; padding-bottom: 2pt !important; }
+            h3 { font-size: 11pt !important; font-weight: bold !important; margin-bottom: 2pt !important; }
+            h4 { font-size: 9pt !important; font-weight: bold !important; text-transform: uppercase !important; letter-spacing: 0.5pt !important; margin-bottom: 4pt !important; }
+            p, li, span, div { font-size: 10.5pt !important; line-height: 1.4 !important; }
+            
+            /* Override inline fontSize styles for consistency */
+            [style*="fontSize"] { font-size: 10.5pt !important; }
+            h1[style*="fontSize"] { font-size: 24pt !important; }
+            h2[style*="fontSize"] { font-size: 12pt !important; }
+            h3[style*="fontSize"] { font-size: 11pt !important; }
+            h4[style*="fontSize"] { font-size: 9pt !important; }
             
             /* Spacing */
             section { margin-bottom: 10pt; }
