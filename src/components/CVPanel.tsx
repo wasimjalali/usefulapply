@@ -344,7 +344,7 @@ export function CVPanel() {
               width: 100% !important;
               max-width: 100% !important;
               min-height: auto !important;
-              padding: 0 !important;
+              /* Keep template padding for proper page margins */
             }
             
             .mx-auto {
@@ -373,6 +373,8 @@ export function CVPanel() {
               .cv-container {
                 width: 100%;
               }
+              
+              /* DO NOT strip template padding - let it work with @page margin */
               
               /* Allow sections to break naturally across pages */
               section { 
