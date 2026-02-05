@@ -2,7 +2,7 @@
 
 **Location:** `/src/lib/models/`  
 **Purpose:** Model abstraction layer for AI provider routing  
-**Last Updated:** February 5, 2026
+**Last Updated:** February 5, 2026 (Post-Prompt Caching Implementation)
 
 ---
 
@@ -106,15 +106,18 @@ The models directory provides a unified interface for calling different AI model
 
 ---
 
-### 2. types.ts (~150 lines) - Type Definitions
+### 2. types.ts (~210 lines) - Type Definitions
 
 **Purpose:** Type definitions for model system and task configurations
 
 **Current State:**
 - ✅ TaskType enum for all AI tasks
 - ✅ ModelConfig for each task
-- ✅ ModelResponse interface
+- ✅ ModelResponse interface (with cache metrics)
 - ✅ Provider-specific types
+- ✅ **NEW: `CacheableContentBlock` type for prompt caching**
+- ✅ **NEW: `systemBlocks` option in `ModelCallOptions`**
+- ✅ **NEW: `cacheCreationInputTokens` / `cacheReadInputTokens` in usage**
 
 **Key Types:**
 
@@ -161,9 +164,9 @@ All tasks now use Claude Haiku 4.5:
 
 ---
 
-### 3. anthropic.ts (~300 lines) - Claude Integration
+### 3. anthropic.ts (~180 lines) - Claude Integration
 
-**Purpose:** Anthropic Claude API integration
+**Purpose:** Anthropic Claude API integration with prompt caching
 
 **Current State:**
 - ✅ Claude Haiku 4.5 support
@@ -171,11 +174,20 @@ All tasks now use Claude Haiku 4.5:
 - ✅ JSON mode support
 - ✅ Conversation history support
 - ✅ Token usage tracking
+- ✅ **NEW: Prompt caching via `cache_control` on system blocks**
+- ✅ **NEW: Cache metrics logging (`cache_creation_input_tokens`, `cache_read_input_tokens`)**
 
 **Key Functions:**
-- `callAnthropic()` - Standard call
+- `callAnthropic()` - Standard call (supports `systemBlocks` with `cache_control`)
 - `callAnthropicStream()` - Streaming call
 - `parseAnthropicJSON()` - Extract JSON from response
+
+**Prompt Caching:**
+- Accepts `systemBlocks: CacheableContentBlock[]` for structured system prompts
+- Each block can have `cache_control: { type: 'ephemeral' }` for 5-min caching
+- Haiku 4.5 minimum cacheable prefix: 4,096 tokens
+- Cache reads cost 10% of base input price (~90% savings)
+- Cache metrics logged: `[Anthropic Cache] write=X read=Y input=Z output=W`
 
 **Leftover Code Issues:**
 - ✅ No significant leftover code

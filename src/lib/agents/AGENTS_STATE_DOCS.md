@@ -2,7 +2,7 @@
 
 **Location:** `/src/lib/agents/`  
 **Purpose:** Unified AI agent architecture for job application generation  
-**Last Updated:** February 5, 2026
+**Last Updated:** February 5, 2026 (Post-Prompt Caching Implementation)
 
 ---
 
@@ -56,6 +56,9 @@ The agents directory contains the **Karko AI Unified Agent** - a single intellig
 - ✅ Token usage tracking
 - ✅ Language detection (EN/DE)
 - ✅ Structured JSON output (Solution B)
+- ✅ **NEW: Prompt caching for CV optimization (~3,000+ tokens cached)**
+- ✅ **NEW: Prompt caching for cover letter (~1,500+ tokens cached)**
+- ✅ **NEW: Static instructions moved to `systemBlocks` with `cache_control`**
 
 **Key Features:**
 
@@ -134,15 +137,19 @@ export const COVER_LETTER_BLACKLIST = {
 - Call to action
 - Returns { subject, body }
 
+**Prompt Caching (NEW):**
+- CV optimization: Static rules + JSON schema (~3,000+ tokens) in cached system blocks
+- Cover letter: Anti-hallucination rules + structure template (~1,500+ tokens) in cached system blocks
+- Dynamic content (CV text, job details) stays in user prompt (uncached)
+- Cache hits within 5-min TTL save ~90% on cached token costs
+
 **Leftover Code Issues:**
 - ✅ No significant leftover code
 - ✅ Well-architected unified agent
-- ⚠️ Lines 200-400: Could extract helper functions to separate utilities
-- ⚠️ Typo corrections list could be moved to separate config file
+- ✅ Typo corrections extracted to `/src/lib/config/typo-corrections.ts`
+- ✅ Blacklist extracted to `/src/lib/config/cover-letter-blacklist.ts`
 
 **Recommendations:**
-- Extract typo corrections to `/src/lib/config/typo-corrections.ts`
-- Extract blacklist to `/src/lib/config/cover-letter-blacklist.ts`
 - Add more language support (FR, ES, IT)
 - Add quality scoring for generated content
 
@@ -359,8 +366,8 @@ interface WithTokens<T> {
 - None - unified agent is clean and well-architected
 
 ### Medium Priority
-1. **Extract typo corrections** to config file
-2. **Extract blacklist** to config file
+1. ~~**Extract typo corrections** to config file~~ ✅ DONE
+2. ~~**Extract blacklist** to config file~~ ✅ DONE
 3. **Remove legacy types** from types.ts (lines 200-218)
 
 ### Low Priority
