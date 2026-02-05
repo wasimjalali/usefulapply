@@ -2,7 +2,7 @@
 
 **Location:** `/src/lib/agents/`  
 **Purpose:** Unified AI agent architecture for job application generation  
-**Last Updated:** February 5, 2026 (Post-Prompt Caching Implementation)
+**Last Updated:** February 5, 2026 (Post-Prompt Caching + 2026 ATS Enhancements)
 
 ---
 
@@ -59,6 +59,11 @@ The agents directory contains the **Karko AI Unified Agent** - a single intellig
 - ✅ **NEW: Prompt caching for CV optimization (~3,000+ tokens cached)**
 - ✅ **NEW: Prompt caching for cover letter (~1,500+ tokens cached)**
 - ✅ **NEW: Static instructions moved to `systemBlocks` with `cache_control`**
+- ✅ **NEW: 2026 ATS optimization standards (keyword mirroring, CAR bullets, standard headers)**
+- ✅ **NEW: Dual-CV sourcing (Primary CV + Master CV) enforced in ALL prompts**
+- ✅ **NEW: Cover letter brevity enforcement (250 words max, 3 paragraphs)**
+- ✅ **NEW: Company challenge detection from JD verbs**
+- ✅ **NEW: Email tightened to 3 sentences + JD keyword in subject**
 
 **Key Features:**
 
@@ -142,6 +147,27 @@ export const COVER_LETTER_BLACKLIST = {
 - Cover letter: Anti-hallucination rules + structure template (~1,500+ tokens) in cached system blocks
 - Dynamic content (CV text, job details) stays in user prompt (uncached)
 - Cache hits within 5-min TTL save ~90% on cached token costs
+
+**2026 ATS Standards (NEW):**
+- Standard section headers enforcement (ATS-recognized only)
+- Keyword mirroring: exact JD phrases, not synonyms
+- CAR method bullet format (Challenge → Action → Result)
+- Action verb diversity (no verb used more than twice)
+- Skills section: JD keywords first, tool versions included
+
+**Dual-CV Sourcing (NEW):**
+- All prompts reference BOTH Primary CV and Master CV
+- Master CV = comprehensive inventory of ALL skills, experiences, certifications
+- Sourcing priority: personal info from Primary, skills/metrics from BOTH
+- extractApplicantProfile merges and deduplicates from both sources
+- Cover letter and email draw best metrics from either CV source
+
+**Cover Letter 2026 Standards (NEW):**
+- Brevity: max 250 words body, 2-3 sentences per paragraph
+- Company challenge detection from JD verbs
+- 3-5 exact JD keyword phrases mirrored in body
+- Tone matching (casual vs formal based on JD language)
+- Full job description passed for keyword extraction
 
 **Leftover Code Issues:**
 - ✅ No significant leftover code
