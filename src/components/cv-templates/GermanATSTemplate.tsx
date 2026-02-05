@@ -142,28 +142,28 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
               </div>
             )}
             {data.personal.linkedIn && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '10px' }}>
+              <a href={data.personal.linkedIn} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '10px', color: germanColors.text, textDecoration: 'none' }}>
                 <Linkedin style={{ width: '12px', height: '12px', color: germanColors.primary, flexShrink: 0, marginTop: '2px' }} />
-                <span style={{ color: germanColors.text }}>LinkedIn</span>
-              </div>
+                <span>LinkedIn</span>
+              </a>
             )}
             {data.personal.github && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '10px' }}>
+              <a href={data.personal.github} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '10px', color: germanColors.text, textDecoration: 'none' }}>
                 <Github style={{ width: '12px', height: '12px', color: germanColors.primary, flexShrink: 0, marginTop: '2px' }} />
-                <span style={{ color: germanColors.text }}>GitHub</span>
-              </div>
+                <span>GitHub</span>
+              </a>
             )}
             {data.personal.portfolio && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '10px' }}>
+              <a href={data.personal.portfolio} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '10px', color: germanColors.text, textDecoration: 'none' }}>
                 <Globe style={{ width: '12px', height: '12px', color: germanColors.primary, flexShrink: 0, marginTop: '2px' }} />
-                <span style={{ color: germanColors.text }}>Portfolio</span>
-              </div>
+                <span>Portfolio</span>
+              </a>
             )}
             {data.personal.website && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '10px' }}>
+              <a href={data.personal.website} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '10px', color: germanColors.text, textDecoration: 'none' }}>
                 <Globe style={{ width: '12px', height: '12px', color: germanColors.primary, flexShrink: 0, marginTop: '2px' }} />
-                <span style={{ color: germanColors.text }}>Webseite</span>
-              </div>
+                <span>Webseite</span>
+              </a>
             )}
           </div>
         </div>

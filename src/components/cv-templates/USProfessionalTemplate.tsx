@@ -112,28 +112,28 @@ export function USProfessionalTemplate({ data, template }: Props) {
             </div>
           )}
           {data.personal.linkedIn && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <a href={data.personal.linkedIn} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
               <Linkedin style={{ width: '12px', height: '12px', color: executiveColors.primary }} />
               <span>LinkedIn</span>
-            </div>
+            </a>
           )}
           {data.personal.github && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <a href={data.personal.github} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
               <Github style={{ width: '12px', height: '12px', color: executiveColors.primary }} />
               <span>GitHub</span>
-            </div>
+            </a>
           )}
           {data.personal.portfolio && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <a href={data.personal.portfolio} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
               <Globe style={{ width: '12px', height: '12px', color: executiveColors.primary }} />
               <span>Portfolio</span>
-            </div>
+            </a>
           )}
           {data.personal.website && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <a href={data.personal.website} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
               <Globe style={{ width: '12px', height: '12px', color: executiveColors.primary }} />
               <span>Website</span>
-            </div>
+            </a>
           )}
         </div>
       </header>

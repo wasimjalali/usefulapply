@@ -150,6 +150,7 @@ export function USPremiumATSTemplate({
           {data.personal.linkedIn && (
             <a 
               href={data.personal.linkedIn} 
+              target="_blank" rel="noopener noreferrer"
               style={{ display: 'flex', alignItems: 'center', gap: '6px', color: premiumColors.textLight, textDecoration: 'none' }}
             >
               <Linkedin style={{ width: '14px', height: '14px' }} />
@@ -159,6 +160,7 @@ export function USPremiumATSTemplate({
           {data.personal.github && (
             <a 
               href={data.personal.github} 
+              target="_blank" rel="noopener noreferrer"
               style={{ display: 'flex', alignItems: 'center', gap: '6px', color: premiumColors.textLight, textDecoration: 'none' }}
             >
               <Github style={{ width: '14px', height: '14px' }} />
@@ -168,6 +170,7 @@ export function USPremiumATSTemplate({
           {data.personal.portfolio && (
             <a 
               href={data.personal.portfolio} 
+              target="_blank" rel="noopener noreferrer"
               style={{ display: 'flex', alignItems: 'center', gap: '6px', color: premiumColors.textLight, textDecoration: 'none' }}
             >
               <Globe style={{ width: '14px', height: '14px' }} />
@@ -177,6 +180,7 @@ export function USPremiumATSTemplate({
           {data.personal.website && (
             <a 
               href={data.personal.website} 
+              target="_blank" rel="noopener noreferrer"
               style={{ display: 'flex', alignItems: 'center', gap: '6px', color: premiumColors.textLight, textDecoration: 'none' }}
             >
               <Globe style={{ width: '14px', height: '14px' }} />

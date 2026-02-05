@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Users, Target, Heart, Zap } from 'lucide-react';
+import { ArrowRight, Users, Target, Heart, Zap, Sparkles, Clock, Shield, Globe } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 
@@ -9,73 +9,161 @@ export default function AboutPage() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8">
+      <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl sm:text-5xl font-bold text-navy-600 mb-6">
-            We Believe Job Searching Should Not Be a Full-Time Job
+          <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-4">About KarKo AI</p>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-navy-600 mb-6 leading-tight">
+            We Built the Job Application Tool{' '}
+            <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">We Wished We Had</span>
           </h1>
-          <p className="text-xl text-warm-gray max-w-2xl mx-auto">
-            KarKo AI was built by job seekers, for job seekers. We know the frustration of spending hours on applications that go nowhere.
+          <p className="text-xl text-warm-gray max-w-2xl mx-auto leading-relaxed">
+            KarKo AI was born from a simple frustration: talented people spending hours on applications that go nowhere. We built an agentic AI system that does the work for you — so you can focus on what matters.
           </p>
         </div>
       </section>
 
       {/* Our Story */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-navy-600 mb-8 text-center">Our Story</h2>
-          <div className="prose prose-lg max-w-none text-warm-gray">
-            <p className="mb-6">
-              It started with a simple observation: talented people were spending 40+ minutes on each job application, only to hear nothing back. The process was broken.
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Our Story</p>
+              <h2 className="text-3xl font-bold text-navy-600 mb-6">From Frustration to Innovation</h2>
+              <div className="space-y-4 text-warm-gray leading-relaxed">
+                <p>
+                  It started with a number: <strong className="text-charcoal">45 minutes</strong>. That is how long the average job seeker spends on a single application — rewriting their CV, researching the company, crafting a cover letter, and drafting an email. Multiply that by dozens of applications, and job searching becomes a full-time job.
+                </p>
+                <p>
+                  We asked: what if AI could handle all of that in one intelligent workflow? Not just fill in templates, but actually <strong className="text-charcoal">research the company</strong>, <strong className="text-charcoal">analyze the job requirements</strong>, and <strong className="text-charcoal">generate personalized documents</strong> that make recruiters take notice?
+                </p>
+                <p>
+                  That question became KarKo AI — an agentic system that compresses 45 minutes of work into under 3 minutes, without sacrificing the personalization that gets you interviews.
+                </p>
+              </div>
+            </div>
+            <div className="bg-cream-50 rounded-2xl p-8 border border-cream-200">
+              <div className="space-y-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Clock className="w-5 h-5 text-red-500" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-charcoal">The Problem</p>
+                    <p className="text-sm text-warm-gray">45+ minutes per application, generic documents, low response rates</p>
+                  </div>
+                </div>
+                <div className="w-px h-6 bg-cream-300 ml-5" />
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-gold-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-5 h-5 text-gold-500" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-charcoal">The Insight</p>
+                    <p className="text-sm text-warm-gray">AI can research, analyze, and write — all in one agentic workflow</p>
+                  </div>
+                </div>
+                <div className="w-px h-6 bg-cream-300 ml-5" />
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-sage-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Zap className="w-5 h-5 text-sage-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-charcoal">The Result</p>
+                    <p className="text-sm text-warm-gray">Complete, personalized applications in under 3 minutes</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* What Makes Us Different */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-14">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Our Difference</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">Why KarKo AI Exists</h2>
+            <p className="text-lg text-warm-gray max-w-2xl mx-auto">
+              Most job tools solve one piece of the puzzle. We built an end-to-end system that handles the entire application process.
             </p>
-            <p className="mb-6">
-              We asked ourselves: what if AI could handle the repetitive parts of job applications while keeping the personal touch that makes applications stand out?
-            </p>
-            <p className="mb-6">
-              That question led to KarKo AI. We built a system that researches companies, analyzes job descriptions, and creates personalized application materials in minutes, not hours.
-            </p>
-            <p>
-              Today, KarKo AI helps job seekers apply to more jobs, get more interviews, and land better opportunities. And we are just getting started.
-            </p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-8">
+            {[
+              {
+                icon: Sparkles,
+                title: 'Agentic, Not Assistive',
+                description: 'Other tools help you format a resume. KarKo AI is an autonomous agent that researches, analyzes, writes, and refines — delivering a complete application package in one workflow.',
+              },
+              {
+                icon: Target,
+                title: 'Personalization at Scale',
+                description: 'Every document is tailored to the specific job and company. We do not believe in generic templates — we believe in applications that make recruiters stop and read.',
+              },
+              {
+                icon: Globe,
+                title: 'Built for Global Job Seekers',
+                description: 'Professional templates for US and EU markets. German Lebenslauf, US ATS-optimized formats, and region-appropriate cover letters — all built in.',
+              },
+              {
+                icon: Shield,
+                title: 'ATS-First Design',
+                description: 'Every template is engineered to pass Applicant Tracking Systems. Your application gets seen by humans, not filtered out by software.',
+              },
+            ].map((value, i) => {
+              const Icon = value.icon;
+              return (
+                <div key={i} className="bg-white rounded-2xl p-8 border border-cream-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="w-14 h-14 bg-gold-100 rounded-xl flex items-center justify-center mb-5">
+                    <Icon className="w-7 h-7 text-gold-500" />
+                  </div>
+                  <h3 className="text-xl font-bold text-charcoal mb-3">{value.title}</h3>
+                  <p className="text-warm-gray leading-relaxed">{value.description}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
       {/* Our Values */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-navy-600 mb-12 text-center">What We Stand For</h2>
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="text-center mb-14">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Our Values</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-navy-600">What We Stand For</h2>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               {
                 icon: Users,
                 title: 'People First',
-                description: 'We build for real job seekers with real challenges. Every feature starts with understanding what you actually need.',
+                description: 'Every feature starts with understanding what real job seekers actually need.',
               },
               {
                 icon: Target,
                 title: 'Quality Over Quantity',
-                description: 'We would rather help you send 20 great applications than 100 generic ones. Personalization matters.',
+                description: '20 great applications beat 100 generic ones. Personalization wins interviews.',
               },
               {
                 icon: Heart,
-                title: 'Honest and Transparent',
-                description: 'No hidden fees, no dark patterns, no BS. We tell you exactly what you get and what it costs.',
+                title: 'Radically Transparent',
+                description: 'No hidden fees, no dark patterns. You know exactly what you get and what it costs.',
               },
               {
                 icon: Zap,
-                title: 'Constantly Improving',
-                description: 'AI is evolving fast, and so are we. We are always working to make your applications even better.',
+                title: 'Always Improving',
+                description: 'AI evolves fast. So do we. Your applications get better with every update.',
               },
             ].map((value, i) => {
               const Icon = value.icon;
               return (
-                <div key={i} className="bg-white rounded-xl p-8 border border-cream-200">
-                  <div className="w-12 h-12 bg-gold-100 rounded-xl flex items-center justify-center mb-4">
-                    <Icon className="w-6 h-6 text-gold-500" />
+                <div key={i} className="text-center p-6">
+                  <div className="w-14 h-14 bg-navy-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <Icon className="w-7 h-7 text-navy-600" />
                   </div>
-                  <h3 className="text-xl font-semibold text-charcoal mb-3">{value.title}</h3>
-                  <p className="text-warm-gray">{value.description}</p>
+                  <h3 className="text-lg font-bold text-charcoal mb-2">{value.title}</h3>
+                  <p className="text-warm-gray text-sm leading-relaxed">{value.description}</p>
                 </div>
               );
             })}
@@ -84,41 +172,49 @@ export default function AboutPage() {
       </section>
 
       {/* Stats */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-navy-600">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-navy-600">
         <div className="max-w-6xl mx-auto">
-          <div className="grid sm:grid-cols-3 gap-8 text-center">
-            <div>
-              <div className="text-4xl font-bold text-white mb-2">Hyper-</div>
-              <div className="text-navy-200">Personalized Applications</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold text-white mb-2">40+ min</div>
-              <div className="text-navy-200">Saved Per Application</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold text-white mb-2">AI-Powered</div>
-              <div className="text-navy-200">Precision Matching</div>
-            </div>
+          <div className="grid sm:grid-cols-4 gap-8 text-center">
+            {[
+              { value: '45+ min', label: 'Saved Per Application' },
+              { value: '<3 min', label: 'To Generate Full Package' },
+              { value: '3-in-1', label: 'CV + Cover Letter + Email' },
+              { value: '100%', label: 'ATS-Optimized Output' },
+            ].map((stat, i) => (
+              <div key={i}>
+                <div className="text-3xl md:text-4xl font-bold text-gold-400 mb-2">{stat.value}</div>
+                <div className="text-navy-200 text-sm font-medium">{stat.label}</div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-gold-400 to-gold-500">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-navy-600 mb-4">
-            Ready to Transform Your Job Search?
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="max-w-4xl mx-auto text-center relative">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Ready to Experience the Difference?
           </h2>
-          <p className="text-navy-700 mb-8 max-w-2xl mx-auto">
-            Join ambitious professionals who have discovered a better way to apply.
+          <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
+            Start with 3 free applications. No credit card required. See why job seekers are switching to KarKo AI.
           </p>
-          <Link
-            href="/auth/signup"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-navy-600 text-white font-semibold rounded-xl hover:bg-navy-700 transition-colors shadow-lg"
-          >
-            Get Started Free
-            <ArrowRight className="w-5 h-5" />
-          </Link>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="/auth/signup"
+              className="px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg inline-flex items-center gap-2"
+            >
+              Get Started Free
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+            <Link
+              href="/pricing"
+              className="px-10 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold rounded-xl hover:bg-white/20 transition-all text-lg"
+            >
+              View Pricing
+            </Link>
+          </div>
         </div>
       </section>
 

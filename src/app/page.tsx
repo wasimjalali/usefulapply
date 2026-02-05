@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { ArrowRight, FileText, Search, Zap, Clock, Target, CheckCircle, Star } from 'lucide-react';
+import Image from 'next/image';
+import { ArrowRight, FileText, Search, Zap, Clock, Target, CheckCircle, Star, Shield, Globe, MessageSquare, Sparkles, BarChart3, Users } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 
@@ -8,84 +9,145 @@ export default function Home() {
     <div className="min-h-screen bg-cream-100">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center max-w-3xl mx-auto">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-navy-600 mb-6 leading-tight">
-              Job Applications That Actually Get You Interviews
+      {/* Hero Section — Bold, confident, benefit-driven */}
+      <section className="pt-20 pb-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        {/* Subtle background gradient accent */}
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-gold-100/60 via-transparent to-transparent rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-navy-100/30 via-transparent to-transparent rounded-full translate-y-1/2 -translate-x-1/4 pointer-events-none" />
+
+        <div className="max-w-6xl mx-auto relative">
+          <div className="text-center max-w-4xl mx-auto">
+            {/* Trust badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-cream-300 rounded-full text-sm text-charcoal mb-8 shadow-sm">
+              <Sparkles className="w-4 h-4 text-gold-400" />
+              <span className="font-medium">Agentic AI that does the work for you</span>
+            </div>
+
+            <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-navy-600 mb-6 leading-[1.1] tracking-tight">
+              One Click. Complete Application.{' '}
+              <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">45 Minutes Saved.</span>
             </h1>
-            <p className="text-xl text-warm-gray mb-8 max-w-2xl mx-auto">
-              Stop spending hours on each application. Our AI creates personalized CVs, cover letters, and emails in under 3 minutes.
+            <p className="text-xl md:text-2xl text-warm-gray mb-10 max-w-2xl mx-auto leading-relaxed">
+              Paste a job description. Get a tailored CV, cover letter, and email — all personalized with company research — in under 3 minutes.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/auth/signup"
-                className="w-full sm:w-auto px-8 py-4 bg-gold-400 text-white font-semibold rounded-xl hover:bg-gold-500 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-lg"
               >
-                Start Free — 3 Applications
+                Start Free — No Credit Card
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <Link
                 href="#how-it-works"
-                className="w-full sm:w-auto px-8 py-4 border-2 border-navy-600 text-navy-600 font-semibold rounded-xl hover:bg-navy-50 transition-colors flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-10 py-4 bg-white border-2 border-navy-200 text-navy-600 font-semibold rounded-xl hover:border-navy-400 hover:bg-navy-50 transition-all flex items-center justify-center gap-2 text-lg"
               >
                 See How It Works
               </Link>
             </div>
-            <p className="mt-6 text-sm text-warm-gray">
-              No credit card required. Start applying in minutes.
-            </p>
+
+            {/* Social proof strip */}
+            <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-warm-gray">
+              <div className="flex items-center gap-1.5">
+                <div className="flex -space-x-2">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-navy-200 to-navy-400 border-2 border-white flex items-center justify-center text-white text-xs font-bold">
+                      {['S', 'J', 'E', 'M'][i]}
+                    </div>
+                  ))}
+                </div>
+                <span className="ml-2 font-medium">Trusted by job seekers worldwide</span>
+              </div>
+              <div className="hidden sm:block w-px h-4 bg-cream-300" />
+              <div className="flex items-center gap-1">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-4 h-4 fill-gold-400 text-gold-400" />
+                ))}
+                <span className="ml-1 font-medium">4.9/5 rating</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Problem/Solution Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+      {/* Logos / Trust Bar */}
+      <section className="py-8 px-4 sm:px-6 lg:px-8 bg-white border-y border-cream-200">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-center text-xs font-medium text-warm-gray uppercase tracking-widest mb-6">Optimized for the tools recruiters use</p>
+          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-14 text-warm-gray opacity-60">
+            <span className="text-lg font-bold tracking-tight">Workday</span>
+            <span className="text-lg font-bold tracking-tight">Greenhouse</span>
+            <span className="text-lg font-bold tracking-tight">Lever</span>
+            <span className="text-lg font-bold tracking-tight">SAP SuccessFactors</span>
+            <span className="text-lg font-bold tracking-tight">iCIMS</span>
+            <span className="text-lg font-bold tracking-tight">Taleo</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Problem/Solution — Side by side comparison */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-navy-600 mb-4">
-              Job Applications Should Not Take Hours
+          <div className="text-center mb-14">
+            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
+              Stop Wasting Hours on Every Application
             </h2>
-            <p className="text-warm-gray max-w-2xl mx-auto">
-              The average job seeker spends 40+ minutes per application. Most of that time is wasted on repetitive tasks that AI can do better.
+            <p className="text-lg text-warm-gray max-w-2xl mx-auto">
+              The average job seeker spends 45+ minutes per application. KarKo AI compresses that into under 3 minutes — with better results.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {/* Before */}
-            <div className="bg-red-50 rounded-2xl p-8 border border-red-100">
-              <h3 className="text-lg font-semibold text-red-700 mb-4">Without KarKo AI</h3>
-              <ul className="space-y-3">
+            <div className="bg-white rounded-2xl p-8 border border-red-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-red-500" />
+                </div>
+                <h3 className="text-lg font-bold text-red-700">The Old Way</h3>
+              </div>
+              <ul className="space-y-4">
                 {[
-                  'Spend 40+ minutes per application',
-                  'Copy-paste the same generic content',
-                  'Research companies manually',
-                  'Wonder if your CV even gets read',
-                  'Apply to fewer jobs, miss opportunities',
+                  { text: '45+ minutes per application', detail: 'Rewriting your CV for every job' },
+                  { text: 'Generic cover letters', detail: 'Copy-paste with minor tweaks' },
+                  { text: 'Manual company research', detail: 'Googling the company before writing' },
+                  { text: 'Filtered out by ATS', detail: 'Wrong format, missing keywords' },
+                  { text: 'Fewer applications sent', detail: 'Burnout from repetitive work' },
                 ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3 text-red-700">
-                    <span className="text-red-400 mt-1">✗</span>
-                    <span>{item}</span>
+                  <li key={i} className="flex items-start gap-3">
+                    <span className="text-red-400 font-bold mt-0.5 text-lg leading-none">&#x2715;</span>
+                    <div>
+                      <span className="font-medium text-charcoal">{item.text}</span>
+                      <p className="text-sm text-warm-gray mt-0.5">{item.detail}</p>
+                    </div>
                   </li>
                 ))}
               </ul>
             </div>
 
             {/* After */}
-            <div className="bg-sage-50 rounded-2xl p-8 border border-sage-100">
-              <h3 className="text-lg font-semibold text-sage-700 mb-4">With KarKo AI</h3>
-              <ul className="space-y-3">
+            <div className="bg-white rounded-2xl p-8 border-2 border-sage-200 shadow-md relative">
+              <div className="absolute -top-3 left-6 px-3 py-1 bg-sage-500 text-white text-xs font-bold rounded-full">KARKO AI</div>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-sage-100 rounded-xl flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-sage-600" />
+                </div>
+                <h3 className="text-lg font-bold text-sage-700">The KarKo Way</h3>
+              </div>
+              <ul className="space-y-4">
                 {[
-                  'Complete applications in under 3 minutes',
-                  'Every document personalized to the job',
-                  'AI researches the company for you',
-                  'ATS-optimized to pass screening',
-                  'Apply to more jobs, get more interviews',
+                  { text: 'Under 3 minutes per application', detail: 'AI generates everything in one click' },
+                  { text: 'Hyper-personalized documents', detail: 'Every word tailored to the specific job' },
+                  { text: 'Automatic company research', detail: 'AI researches culture, news, and values' },
+                  { text: 'ATS-optimized formatting', detail: 'Passes every applicant tracking system' },
+                  { text: 'Apply to 10x more jobs', detail: 'More applications, more interviews' },
                 ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3 text-sage-700">
+                  <li key={i} className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-sage-500 flex-shrink-0 mt-0.5" />
-                    <span>{item}</span>
+                    <div>
+                      <span className="font-medium text-charcoal">{item.text}</span>
+                      <p className="text-sm text-warm-gray mt-0.5">{item.detail}</p>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -94,107 +156,179 @@ export default function Home() {
         </div>
       </section>
 
-      {/* How It Works */}
-      <section id="how-it-works" className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
+      {/* How It Works — Clean 3-step process */}
+      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-navy-600 mb-4">
-              How It Works
+          <div className="text-center mb-14">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Simple Process</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
+              Three Steps to Your Next Interview
             </h2>
-            <p className="text-warm-gray max-w-2xl mx-auto">
-              Three simple steps. That is all it takes.
+            <p className="text-lg text-warm-gray max-w-2xl mx-auto">
+              Upload once, apply everywhere. Our agentic AI handles the heavy lifting.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 relative">
+            {/* Connecting line (desktop only) */}
+            <div className="hidden md:block absolute top-16 left-[20%] right-[20%] h-0.5 bg-gradient-to-r from-gold-200 via-gold-400 to-gold-200" />
+
+            {[
+              {
+                step: '1',
+                title: 'Upload Your CV',
+                description: 'Upload your master CV once. KarKo AI parses your skills, experience, and achievements to build your professional profile.',
+                icon: FileText,
+                color: 'navy',
+              },
+              {
+                step: '2',
+                title: 'Paste the Job Description',
+                description: 'Drop in any job posting. Our AI analyzes requirements, identifies skill matches, and researches the company automatically.',
+                icon: Search,
+                color: 'gold',
+              },
+              {
+                step: '3',
+                title: 'Get Your Complete Package',
+                description: 'Receive a tailored CV, personalized cover letter, and professional email — ready to send in under 3 minutes.',
+                icon: Zap,
+                color: 'sage',
+              },
+            ].map((item) => {
+              const Icon = item.icon;
+              const bgColor = item.color === 'navy' ? 'bg-navy-100' : item.color === 'gold' ? 'bg-gold-100' : 'bg-sage-100';
+              const iconColor = item.color === 'navy' ? 'text-navy-600' : item.color === 'gold' ? 'text-gold-500' : 'text-sage-600';
+              return (
+                <div key={item.step} className="text-center relative">
+                  <div className={`w-20 h-20 ${bgColor} rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-sm relative z-10`}>
+                    <Icon className={`w-9 h-9 ${iconColor}`} />
+                  </div>
+                  <div className="inline-flex items-center justify-center w-8 h-8 bg-navy-600 text-white text-sm font-bold rounded-full mb-4">
+                    {item.step}
+                  </div>
+                  <h3 className="text-xl font-bold text-charcoal mb-3">{item.title}</h3>
+                  <p className="text-warm-gray leading-relaxed">{item.description}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* What Makes KarKo Different — Competitive advantages */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-navy-600">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-14">
+            <p className="text-sm font-semibold text-gold-400 uppercase tracking-widest mb-3">Why KarKo AI</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              Not Just Another Resume Builder
+            </h2>
+            <p className="text-lg text-navy-200 max-w-2xl mx-auto">
+              Most tools help you format a resume. KarKo AI is an agentic system that creates your entire application package — researched, personalized, and ATS-ready.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              {
+                icon: Sparkles,
+                title: 'Agentic AI Workflow',
+                description: 'Not a template filler. Our AI agent researches, analyzes, writes, and refines — like having a career coach on demand.',
+              },
+              {
+                icon: Globe,
+                title: 'US & EU Templates',
+                description: 'Professional templates for both markets. German Lebenslauf, US ATS-optimized, and more — all region-appropriate.',
+              },
+              {
+                icon: Search,
+                title: 'Built-in Company Research',
+                description: 'AI automatically researches the company culture, recent news, and values to make your application stand out.',
+              },
+              {
+                icon: Shield,
+                title: 'ATS-Optimized Output',
+                description: 'Every document is formatted to pass Applicant Tracking Systems. Your application actually gets seen by humans.',
+              },
+              {
+                icon: MessageSquare,
+                title: 'AI Refinement Chat',
+                description: 'Not perfect on the first try? Chat with our AI to refine any section until it matches your voice perfectly.',
+              },
+              {
+                icon: BarChart3,
+                title: 'Skill Gap Analysis',
+                description: 'See exactly how your profile matches the job requirements. Know your strengths and what to emphasize.',
+              },
+            ].map((feature, i) => {
+              const Icon = feature.icon;
+              return (
+                <div key={i} className="bg-navy-700/50 backdrop-blur-sm rounded-xl p-6 border border-navy-500/50 hover:border-gold-400/30 transition-all group">
+                  <div className="w-12 h-12 bg-navy-500/50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-gold-400/20 transition-colors">
+                    <Icon className="w-6 h-6 text-gold-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
+                  <p className="text-navy-200 text-sm leading-relaxed">{feature.description}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Complete Package Breakdown */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-14">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">What You Get</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
+              A Complete Application Package, Every Time
+            </h2>
+            <p className="text-lg text-warm-gray max-w-2xl mx-auto">
+              Each application generates three professionally crafted documents — all personalized to the specific job and company.
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                step: '1',
-                title: 'Upload Your CV',
-                description: 'Upload your master CV once. We will use it as the foundation for all your applications.',
                 icon: FileText,
-              },
-              {
-                step: '2',
-                title: 'Paste the Job Description',
-                description: 'Copy any job posting and paste it in. Our AI analyzes what they are looking for.',
-                icon: Search,
-              },
-              {
-                step: '3',
-                title: 'Get Your Package',
-                description: 'Receive a tailored CV, cover letter, and email — all personalized to that specific job.',
-                icon: Zap,
-              },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <div key={item.step} className="text-center">
-                  <div className="w-16 h-16 bg-gold-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <Icon className="w-8 h-8 text-gold-500" />
-                  </div>
-                  <div className="inline-flex items-center justify-center w-8 h-8 bg-navy-600 text-white text-sm font-bold rounded-full mb-3">
-                    {item.step}
-                  </div>
-                  <h3 className="text-xl font-semibold text-charcoal mb-2">{item.title}</h3>
-                  <p className="text-warm-gray">{item.description}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-navy-600 mb-4">
-              Everything You Need to Land Your Dream Job
-            </h2>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                icon: Search,
-                title: 'Smart Company Research',
-                description: 'Our AI researches the company, their culture, and recent news to make your application stand out.',
+                title: 'Tailored CV',
+                items: ['Skills reordered to match job requirements', 'Keywords optimized for ATS screening', 'Achievements highlighted for relevance', 'Professional formatting (US & EU)'],
+                accent: 'navy',
               },
               {
                 icon: Target,
-                title: 'ATS-Optimized',
-                description: 'Every CV is formatted to pass Applicant Tracking Systems. No more getting filtered out.',
+                title: 'Personalized Cover Letter',
+                items: ['Company-specific opening paragraph', 'Skill-to-requirement matching', 'Culture-aware tone and language', 'Compelling call to action'],
+                accent: 'gold',
               },
               {
                 icon: Zap,
-                title: 'Instant Personalization',
-                description: 'Each document is tailored to the specific job. No generic templates.',
+                title: 'Professional Email',
+                items: ['Ready-to-send application email', 'Appropriate subject line', 'Concise and professional tone', 'Includes key qualifications'],
+                accent: 'sage',
               },
-              {
-                icon: Clock,
-                title: 'Save 40+ Minutes',
-                description: 'What used to take an hour now takes under 3 minutes. Apply to more jobs.',
-              },
-              {
-                icon: FileText,
-                title: 'Complete Package',
-                description: 'Get a tailored CV, compelling cover letter, and professional email — all at once.',
-              },
-              {
-                icon: CheckCircle,
-                title: 'Refine with AI',
-                description: 'Not perfect? Chat with our AI to refine any section until it is exactly right.',
-              },
-            ].map((feature, i) => {
-              const Icon = feature.icon;
+            ].map((pkg, i) => {
+              const Icon = pkg.icon;
+              const borderColor = pkg.accent === 'navy' ? 'border-navy-200' : pkg.accent === 'gold' ? 'border-gold-300' : 'border-sage-200';
+              const iconBg = pkg.accent === 'navy' ? 'bg-navy-100' : pkg.accent === 'gold' ? 'bg-gold-100' : 'bg-sage-100';
+              const iconColor = pkg.accent === 'navy' ? 'text-navy-600' : pkg.accent === 'gold' ? 'text-gold-500' : 'text-sage-600';
               return (
-                <div key={i} className="bg-cream-50 rounded-xl p-6 hover:shadow-md transition-shadow">
-                  <div className="w-12 h-12 bg-navy-100 rounded-xl flex items-center justify-center mb-4">
-                    <Icon className="w-6 h-6 text-navy-600" />
+                <div key={i} className={`bg-cream-50 rounded-2xl p-8 border ${borderColor}`}>
+                  <div className={`w-14 h-14 ${iconBg} rounded-xl flex items-center justify-center mb-5`}>
+                    <Icon className={`w-7 h-7 ${iconColor}`} />
                   </div>
-                  <h3 className="text-lg font-semibold text-charcoal mb-2">{feature.title}</h3>
-                  <p className="text-warm-gray text-sm">{feature.description}</p>
+                  <h3 className="text-xl font-bold text-charcoal mb-4">{pkg.title}</h3>
+                  <ul className="space-y-3">
+                    {pkg.items.map((item, j) => (
+                      <li key={j} className="flex items-start gap-2.5 text-sm">
+                        <CheckCircle className="w-4 h-4 text-sage-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-warm-gray">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               );
             })}
@@ -202,46 +336,57 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-navy-600">
+      {/* Testimonials — Social proof */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-white mb-4">
+          <div className="text-center mb-14">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Success Stories</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
               Real Results from Real Job Seekers
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                quote: "Applied to 50 jobs in one weekend. Got 8 interviews in the first week. This tool is a game-changer.",
+                quote: "Applied to 50 jobs in one weekend. Got 8 interviews the following week. The personalization is what makes the difference — recruiters actually respond.",
                 name: 'Sarah M.',
                 role: 'Product Manager',
+                result: '8 interviews in 1 week',
                 rating: 5,
               },
               {
-                quote: "I was skeptical about AI writing my cover letters, but these are better than anything I could write myself.",
+                quote: "I was spending an hour per application and getting nowhere. With KarKo, I applied to 3x more jobs and landed my dream role in 3 weeks.",
                 name: 'James L.',
                 role: 'Software Engineer',
+                result: 'Hired in 3 weeks',
                 rating: 5,
               },
               {
-                quote: "Finally landed my dream job after months of searching. The personalization made all the difference.",
+                quote: "The company research feature is incredible. My cover letters reference specific company initiatives — hiring managers notice that immediately.",
                 name: 'Emily R.',
                 role: 'Marketing Director',
+                result: '5x more callbacks',
                 rating: 5,
               },
             ].map((testimonial, i) => (
-              <div key={i} className="bg-navy-700 rounded-xl p-6 border border-navy-500">
+              <div key={i} className="bg-white rounded-2xl p-8 border border-cream-200 shadow-sm flex flex-col">
                 <div className="flex gap-1 mb-4">
                   {[...Array(testimonial.rating)].map((_, j) => (
                     <Star key={j} className="w-4 h-4 fill-gold-400 text-gold-400" />
                   ))}
                 </div>
-                <p className="text-white mb-4">&quot;{testimonial.quote}&quot;</p>
-                <div>
-                  <p className="font-semibold text-white">{testimonial.name}</p>
-                  <p className="text-navy-200 text-sm">{testimonial.role}</p>
+                <p className="text-charcoal mb-6 flex-1 leading-relaxed">&ldquo;{testimonial.quote}&rdquo;</p>
+                <div className="border-t border-cream-200 pt-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-charcoal">{testimonial.name}</p>
+                      <p className="text-warm-gray text-sm">{testimonial.role}</p>
+                    </div>
+                    <div className="px-3 py-1 bg-sage-100 rounded-full">
+                      <span className="text-xs font-semibold text-sage-700">{testimonial.result}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -249,69 +394,105 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Pricing Preview */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-navy-600 mb-4">
-            Simple, Honest Pricing
-          </h2>
-          <p className="text-warm-gray mb-8 max-w-2xl mx-auto">
-            Start free with 3 applications. Upgrade when you need more. No hidden fees, no surprises.
-          </p>
+      {/* Pricing Preview — Updated to new prices */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Pricing</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
+              Simple, Transparent Pricing
+            </h2>
+            <p className="text-lg text-warm-gray max-w-2xl mx-auto">
+              All features included in every plan. The only difference is how many applications you need.
+            </p>
+          </div>
 
-          <div className="grid sm:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-xl p-6 border border-cream-200">
-              <h3 className="font-semibold text-charcoal mb-2">Starter</h3>
-              <div className="text-3xl font-bold text-navy-600 mb-2">Free</div>
-              <p className="text-warm-gray text-sm">3 applications to try it out</p>
+          <div className="grid sm:grid-cols-3 gap-6 mb-10">
+            <div className="bg-cream-50 rounded-2xl p-8 border border-cream-200">
+              <h3 className="font-bold text-charcoal text-lg mb-1">Starter</h3>
+              <p className="text-sm text-warm-gray mb-4">Try it risk-free</p>
+              <div className="text-4xl font-bold text-navy-600 mb-1">Free</div>
+              <p className="text-sm text-warm-gray mb-6">3 applications included</p>
+              <Link
+                href="/auth/signup"
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium border-2 border-navy-200 text-navy-600 hover:bg-navy-50 transition-colors"
+              >
+                Start Free
+              </Link>
             </div>
-            <div className="bg-white rounded-xl p-6 border-2 border-gold-400 shadow-lg">
-              <div className="text-xs font-bold text-gold-500 mb-2">MOST POPULAR</div>
-              <h3 className="font-semibold text-charcoal mb-2">Plus</h3>
-              <div className="text-3xl font-bold text-navy-600 mb-2">$19.99<span className="text-lg font-normal text-warm-gray">/mo</span></div>
-              <p className="text-warm-gray text-sm">60 applications per month</p>
+            <div className="bg-white rounded-2xl p-8 border-2 border-gold-400 shadow-xl relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gold-400 text-white text-xs font-bold rounded-full">MOST POPULAR</div>
+              <h3 className="font-bold text-charcoal text-lg mb-1">Plus</h3>
+              <p className="text-sm text-warm-gray mb-4">For active job seekers</p>
+              <div className="text-4xl font-bold text-navy-600 mb-1">$29.99<span className="text-lg font-normal text-warm-gray">/mo</span></div>
+              <p className="text-sm text-warm-gray mb-6">60 applications per month</p>
+              <Link
+                href="/auth/signup?plan=plus"
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium bg-gradient-to-r from-gold-400 to-gold-500 text-white hover:from-gold-500 hover:to-gold-600 transition-all shadow-md"
+              >
+                Get Plus
+                <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
-            <div className="bg-white rounded-xl p-6 border border-cream-200">
-              <h3 className="font-semibold text-charcoal mb-2">Pro</h3>
-              <div className="text-3xl font-bold text-navy-600 mb-2">$39.99<span className="text-lg font-normal text-warm-gray">/mo</span></div>
-              <p className="text-warm-gray text-sm">120 applications per month</p>
+            <div className="bg-cream-50 rounded-2xl p-8 border border-cream-200">
+              <h3 className="font-bold text-charcoal text-lg mb-1">Pro</h3>
+              <p className="text-sm text-warm-gray mb-4">For power users</p>
+              <div className="text-4xl font-bold text-navy-600 mb-1">$49.99<span className="text-lg font-normal text-warm-gray">/mo</span></div>
+              <p className="text-sm text-warm-gray mb-6">120 applications per month</p>
+              <Link
+                href="/auth/signup?plan=pro"
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium bg-navy-600 text-white hover:bg-navy-700 transition-colors shadow-md"
+              >
+                Get Pro
+                <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
           </div>
 
-          <Link
-            href="/pricing"
-            className="text-navy-600 font-medium hover:text-navy-700 transition-colors inline-flex items-center gap-2"
-          >
-            View full pricing details
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+          <div className="text-center">
+            <Link
+              href="/pricing"
+              className="text-navy-600 font-medium hover:text-navy-700 transition-colors inline-flex items-center gap-2"
+            >
+              Compare plans in detail
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-gold-400 to-gold-500">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
-            Ready to Land More Interviews?
+      {/* Final CTA — High-impact conversion section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gold-400/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+
+        <div className="max-w-4xl mx-auto text-center relative">
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 leading-tight">
+            Your Next Interview Is{' '}
+            <span className="text-gold-400">3 Minutes Away</span>
           </h2>
-          <p className="text-navy-700 mb-8 max-w-2xl mx-auto">
-            Join ambitious professionals who have transformed their job search with KarKo AI. Start with 3 free applications today.
+          <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto leading-relaxed">
+            Join thousands of professionals who stopped wasting hours on applications and started landing interviews faster with KarKo AI.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/auth/signup"
-              className="w-full sm:w-auto px-8 py-4 bg-navy-600 text-white font-semibold rounded-xl hover:bg-navy-700 transition-colors shadow-lg flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-lg"
             >
               Get Started Free
               <ArrowRight className="w-5 h-5" />
             </Link>
             <Link
               href="/pricing"
-              className="w-full sm:w-auto px-8 py-4 bg-white text-navy-600 font-semibold rounded-xl hover:bg-cream-50 transition-colors flex items-center justify-center"
+              className="w-full sm:w-auto px-10 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold rounded-xl hover:bg-white/20 transition-all flex items-center justify-center text-lg"
             >
               View Pricing
             </Link>
           </div>
+          <p className="mt-6 text-sm text-navy-300">
+            No credit card required. 3 free applications to start.
+          </p>
         </div>
       </section>
 
