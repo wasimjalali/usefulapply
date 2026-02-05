@@ -147,6 +147,24 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                 <span style={{ color: germanColors.text }}>LinkedIn</span>
               </div>
             )}
+            {data.personal.github && (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '10px' }}>
+                <Github style={{ width: '12px', height: '12px', color: germanColors.primary, flexShrink: 0, marginTop: '2px' }} />
+                <span style={{ color: germanColors.text }}>GitHub</span>
+              </div>
+            )}
+            {data.personal.portfolio && (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '10px' }}>
+                <Globe style={{ width: '12px', height: '12px', color: germanColors.primary, flexShrink: 0, marginTop: '2px' }} />
+                <span style={{ color: germanColors.text }}>Portfolio</span>
+              </div>
+            )}
+            {data.personal.website && (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '10px' }}>
+                <Globe style={{ width: '12px', height: '12px', color: germanColors.primary, flexShrink: 0, marginTop: '2px' }} />
+                <span style={{ color: germanColors.text }}>Webseite</span>
+              </div>
+            )}
           </div>
         </div>
 

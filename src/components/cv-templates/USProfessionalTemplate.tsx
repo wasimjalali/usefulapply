@@ -117,6 +117,24 @@ export function USProfessionalTemplate({ data, template }: Props) {
               <span>LinkedIn</span>
             </div>
           )}
+          {data.personal.github && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Github style={{ width: '12px', height: '12px', color: executiveColors.primary }} />
+              <span>GitHub</span>
+            </div>
+          )}
+          {data.personal.portfolio && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Globe style={{ width: '12px', height: '12px', color: executiveColors.primary }} />
+              <span>Portfolio</span>
+            </div>
+          )}
+          {data.personal.website && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Globe style={{ width: '12px', height: '12px', color: executiveColors.primary }} />
+              <span>Website</span>
+            </div>
+          )}
         </div>
       </header>
 

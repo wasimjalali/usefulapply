@@ -91,18 +91,21 @@ export function CVPanel() {
       console.log('[CVPanel] Using SOLUTION B - Structured JSON from AI (no parsing needed)');
       
       // Convert optimizedCVData to CVData format
+      // IMPORTANT: Preserve personal links from original CV if AI didn't return them
+      // This prevents users from re-entering LinkedIn/GitHub/Portfolio/Website for each application
       const directData: CVData = {
         personal: {
           fullName: optimizedCVData.personal.fullName,
           email: optimizedCVData.personal.email,
           phone: optimizedCVData.personal.phone || '',
           currentTitle: optimizedCVData.personal.currentTitle,
-          address: optimizedCVData.personal.address,
-          city: optimizedCVData.personal.city,
-          country: optimizedCVData.personal.country,
-          linkedIn: optimizedCVData.personal.linkedIn,
-          website: optimizedCVData.personal.website,
-          github: optimizedCVData.personal.github,
+          address: optimizedCVData.personal.address || parsed?.personal.address,
+          city: optimizedCVData.personal.city || parsed?.personal.city,
+          country: optimizedCVData.personal.country || parsed?.personal.country,
+          linkedIn: optimizedCVData.personal.linkedIn || parsed?.personal.linkedIn,
+          website: optimizedCVData.personal.website || parsed?.personal.website,
+          github: optimizedCVData.personal.github || parsed?.personal.github,
+          portfolio: parsed?.personal.portfolio,
           photoUrl: photoDataUrl,
         },
         summary: optimizedCVData.summary,
@@ -134,6 +137,14 @@ export function CVPanel() {
       
       if (photoDataUrl) {
         optimizedData.personal.photoUrl = photoDataUrl;
+      }
+      
+      // Preserve personal links from original CV if not in optimized
+      if (parsed) {
+        optimizedData.personal.linkedIn = optimizedData.personal.linkedIn || parsed.personal.linkedIn;
+        optimizedData.personal.github = optimizedData.personal.github || parsed.personal.github;
+        optimizedData.personal.website = optimizedData.personal.website || parsed.personal.website;
+        optimizedData.personal.portfolio = optimizedData.personal.portfolio || parsed.personal.portfolio;
       }
       
       return optimizedData;

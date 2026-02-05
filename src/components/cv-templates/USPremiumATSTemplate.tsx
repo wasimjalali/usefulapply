@@ -174,6 +174,15 @@ export function USPremiumATSTemplate({
               <span>Portfolio</span>
             </a>
           )}
+          {data.personal.website && (
+            <a 
+              href={data.personal.website} 
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', color: premiumColors.textLight, textDecoration: 'none' }}
+            >
+              <Globe style={{ width: '14px', height: '14px' }} />
+              <span>Website</span>
+            </a>
+          )}
         </div>
       </header>
 

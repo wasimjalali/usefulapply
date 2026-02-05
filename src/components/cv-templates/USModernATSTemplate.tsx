@@ -142,6 +142,18 @@ export function USModernATSTemplate({ data, template }: Props) {
                 <span>GitHub</span>
               </div>
             )}
+            {data.personal.portfolio && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: modernColors.text }}>
+                <Globe style={{ width: '12px', height: '12px', color: modernColors.primary }} />
+                <span>Portfolio</span>
+              </div>
+            )}
+            {data.personal.website && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: modernColors.text }}>
+                <Globe style={{ width: '12px', height: '12px', color: modernColors.primary }} />
+                <span>Website</span>
+              </div>
+            )}
           </div>
         </div>
 
