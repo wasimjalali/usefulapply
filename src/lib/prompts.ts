@@ -153,42 +153,45 @@ ${gaps}
 
 3. **CORE COMPETENCIES / SKILLS SECTION**
    ${targetRegion === 'US' ? `
-   - Total Skills: 12-20 skills
-   - Categories: 3-5 categories
-   - Skills per Category: 3-6 skills` : ''}
+   - Total Skills: 15-25 skills
+   - Categories: MAXIMUM 5 categories (strictly enforced, Languages is separate)
+   - Skills per Category: MAXIMUM 5 skills (strictly enforced)` : ''}
    ${targetRegion === 'Germany' ? `
    - Total Skills: 10-15 skills
-   - Categories: 3-4 categories
-   - Skills per Category: 2-4 skills` : ''}
+   - Categories: MAXIMUM 5 categories (strictly enforced, Languages is separate)
+   - Skills per Category: MAXIMUM 5 skills (strictly enforced)` : ''}
    ${targetRegion === 'EU' ? `
    - Total Skills: 10-18 skills
-   - Categories: 3-4 categories
-   - Skills per Category: 3-5 skills` : ''}
+   - Categories: MAXIMUM 5 categories (strictly enforced, Languages is separate)
+   - Skills per Category: MAXIMUM 5 skills (strictly enforced)` : ''}
    - Format: CATEGORY HEADER: skill1, skill2, skill3...
    - Prioritize top 5 skills at TOP of section (ATS scans first)
    - Group by: Technical Skills, Programming Languages, Tools & Platforms, Soft Skills
 
-4. **WORK EXPERIENCE BULLETS**
-   ${experienceLevel === 'entry' ? `
-   - Bullets per Role: 2-3 bullets
-   - Characters per Bullet: 80-140 characters
-   - Words per Bullet: 12-20 words` : ''}
-   ${experienceLevel === 'mid' ? `
-   - Bullets per Role: 4-6 bullets (recent), 4-6 bullets (older)
-   - Characters per Bullet: 75-160 characters
-   - Words per Bullet: 11-22 words` : ''}
-   ${experienceLevel === 'senior' ? `
-   - Bullets per Role: 5-8 bullets (recent), 2-3 bullets (older)
-   - Characters per Bullet: 80-180 characters
-   - Words per Bullet: 12-25 words` : ''}
+4. **EXPERIENCE SELECTION RULES (CRITICAL)**
+   - **Role Limit:** Select ONLY the top 3-4 most relevant roles. NO MORE.
+   - **Selection Criteria:** Prioritize roles that:
+     * Match the target Job Title or industry
+     * Have the most recent dates (2020-Present preferred)
+     * Demonstrate skills explicitly listed in the Job Description
+   - **Omission Policy:**
+     * Drop roles >10 years old unless it's the only work history
+     * Drop completely irrelevant roles (e.g., "Waiter" for "E-Commerce Manager")
+
+5. **WORK EXPERIENCE BULLETS (STRICT LIMITS)**
+   - **Most Recent/Relevant Role:** Exactly 4 high-impact bullets
+   - **Second Role:** Exactly 3-4 bullets
+   - **Older Roles (3rd/4th):** Exactly 3 bullets each
+   - **TOTAL Bullets:** NEVER exceed 15 bullets across the entire CV
    ${targetRegion === 'Germany' ? `
-   - Germany Override: 4-5 bullets per role, 70-150 chars per bullet` : ''}
+   - Germany: 70-150 chars per bullet` : ''}
+   - Characters per Bullet: 75-160 characters
    - Structure: [Action Verb] + [Achievement] + [Metric] + [Business Impact]
    - MUST include quantifiable metric in EVERY bullet (%, $, #, time saved)
    - Use STRONG action verbs: Increased, Reduced, Optimized, Led, Launched, Developed, Implemented, Generated, Grew
    - AVOID weak verbs: Responsible for, Helped, Participated, Worked on, Assisted
 
-5. **EDUCATION SECTION**
+6. **EDUCATION SECTION**
    - List most recent 2 degrees only
    ${targetRegion === 'US' ? `- Characters per Degree: 150-250` : ''}
    ${targetRegion === 'Germany' ? `- Characters per Degree: 120-220` : ''}
@@ -196,14 +199,14 @@ ${gaps}
    - Include GPA ONLY if >3.5/4.0 (US) or <2.0 (Germany, where 1.0 is best)
    - Format: [Degree] | [Institution] | [City, Country] | [Date]
 
-6. **CERTIFICATIONS**
+7. **CERTIFICATIONS**
    ${targetRegion === 'US' ? `- List 3-6 most relevant certifications` : ''}
    ${targetRegion === 'Germany' ? `- List 3-5 most relevant certifications (Weiterbildungen)` : ''}
    ${targetRegion === 'EU' ? `- List 3-6 most relevant certifications` : ''}
    - Format: [Certification Name] | [Issuing Organization] | [MM/YYYY]
    - Priority: Industry-recognized > Job-specific > Professional development
 
-7. **LANGUAGES** ${targetRegion !== 'US' ? '(CEFR MANDATORY for EU/Germany)' : ''}
+8. **LANGUAGES** ${targetRegion !== 'US' ? '(CEFR MANDATORY for EU/Germany)' : ''}
    ${targetRegion === 'US' ? `
    - List 2-4 languages
    - Format: Descriptive (Fluent, Native, Conversational)` : ''}
@@ -217,6 +220,7 @@ RULES:
 - Only use content that exists in the provided CVs
 - Maintain professional, authentic voice
 - Follow character/word limits STRICTLY for target region
+- Maximum 3-4 roles, maximum 15 total bullets
 
 Respond ONLY with valid JSON in this exact format:
 {
@@ -459,9 +463,9 @@ Job Requirements: ${jobRequirements}
 Target Region: ${targetRegion}
 
 LIMITS:
-${targetRegion === 'US' ? '- Total: 12-20 skills, 3-5 categories, 3-6 per category' : ''}
-${targetRegion === 'Germany' ? '- Total: 10-15 skills, 3-4 categories, 2-4 per category' : ''}
-${targetRegion === 'EU' ? '- Total: 10-18 skills, 3-4 categories, 3-5 per category' : ''}
+${targetRegion === 'US' ? '- Total: 15-25 skills, MAX 5 categories (Languages separate), MAX 5 skills per category (strictly enforced)' : ''}
+${targetRegion === 'Germany' ? '- Total: 10-15 skills, MAX 5 categories (Languages separate), MAX 5 skills per category (strictly enforced)' : ''}
+${targetRegion === 'EU' ? '- Total: 10-18 skills, MAX 5 categories (Languages separate), MAX 5 skills per category (strictly enforced)' : ''}
 
 STEPS:
 1. Extract 15-20 keywords from job description

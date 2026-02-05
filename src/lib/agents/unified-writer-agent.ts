@@ -628,9 +628,22 @@ ${masterCV}` : ''}
 
 === 📏 LENGTH & FORMAT CONSTRAINTS ===
 To ensure the CV fits on 2 pages and remains readable:
-1. **Work Experience:** Select ONLY the **top 3-4 roles** most relevant to this job. Group older/irrelevant roles or omit them.
-2. **Bullet Points:** Write exactly **3-5 high-impact bullets** per role. No paragraphs.
-3. **Skills:** Max **8-10 skills** per category. Prioritize skills mentioned in the Job Description.
+
+=== EXPERIENCE SELECTION RULES (CRITICAL) ===
+1. **Quantity Limit:** Select ONLY the top 3-4 roles from the Master CV and Primary CV combined.
+2. **Selection Criteria:** Prioritize roles that:
+   - Match the target Job Title or industry.
+   - Have the most recent dates (2020-Present preferred).
+   - Demonstrate skills explicitly listed in the Job Description.
+3. **Bullet Point Limit (Strict):**
+   - **Most Recent/Relevant Role:** Exactly 4 high-impact bullets.
+   - **Second Role:** Exactly 3-4 bullets.
+   - **Older Roles (3rd/4th):** Exactly 3 bullets each.
+   - **Total Bullets:** NEVER exceed 15 total bullets across the entire CV.
+4. **Omission Policy:** 
+   - If a role is >10 years old, DO NOT include it unless it's the only work history available.
+   - If a role is completely irrelevant (e.g., "Waiter" for "E-Commerce Manager"), DROP it completely.
+5. **Skills:** MAXIMUM **5 categories** (strictly enforced, Languages is separate). MAXIMUM **5 skills** per category (strictly enforced). Prioritize skills mentioned in the Job Description.
 
 === OPTIMIZATION STRATEGY ===
 
@@ -642,16 +655,20 @@ To ensure the CV fits on 2 pages and remains readable:
 
 3. SUMMARY: 3-4 sentences with metrics from CV, keywords from job
 
-4. EXPERIENCE: 
-   - Select TOP 3-4 most relevant roles from Primary CV AND Master CV
-   - Each entry needs: company, position, location, startDate, endDate, bullets (3-5 per role), technologies
+4. EXPERIENCE (STRICT LIMITS): 
+   - Select TOP 3-4 most relevant roles ONLY (no more!)
+   - Most recent role: EXACTLY 4 bullets
+   - Older roles: EXACTLY 3 bullets each
+   - TOTAL bullets across entire CV: MAX 15
+   - Drop roles >10 years old or completely irrelevant
+   - Each entry needs: company, position, location, startDate, endDate, bullets, technologies
    - Use action verbs, include metrics where available
    - Generate unique IDs for each entry (exp-1, exp-2, etc.)
 
-5. SKILLS: Group into 2-4 categories with specific tool names
+5. SKILLS: Group into MAX 5 categories with specific tool names (Languages is 6th, handled separately)
    - NEVER genericize tools (keep "Helium 10" not "E-Commerce Tools")
    - Preserve AI/automation skills even if not in job description
-   - Max 8-10 items per category
+   - Max 5 items per category (strictly enforced)
 
 6. EDUCATION: Copy from Primary CV exactly
 
@@ -762,15 +779,41 @@ Return ONLY this JSON structure - no markdown, no preamble, no explanation:
     try {
       let jsonContent = response.content.trim();
       
+      // Remove markdown code blocks if present
       if (jsonContent.startsWith('```json')) {
         jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
       } else if (jsonContent.startsWith('```')) {
         jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
       }
       
-      const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        jsonContent = jsonMatch[0];
+      // Extract only the first complete JSON object (handle AI adding extra text after)
+      let braceCount = 0;
+      let jsonStart = -1;
+      let jsonEnd = -1;
+      
+      for (let i = 0; i < jsonContent.length; i++) {
+        const char = jsonContent[i];
+        if (char === '{') {
+          if (braceCount === 0) jsonStart = i;
+          braceCount++;
+        } else if (char === '}') {
+          braceCount--;
+          if (braceCount === 0 && jsonStart !== -1) {
+            jsonEnd = i + 1;
+            break; // Found complete JSON object
+          }
+        }
+      }
+      
+      if (jsonStart !== -1 && jsonEnd !== -1) {
+        jsonContent = jsonContent.substring(jsonStart, jsonEnd);
+        console.log('[UnifiedAgent] Extracted JSON from position', jsonStart, 'to', jsonEnd);
+      } else {
+        // Fallback to regex if brace counting fails
+        const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          jsonContent = jsonMatch[0];
+        }
       }
       
       const parsed = JSON.parse(jsonContent);

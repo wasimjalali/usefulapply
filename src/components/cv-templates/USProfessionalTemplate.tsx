@@ -26,337 +26,458 @@ interface Props {
 }
 
 export function USProfessionalTemplate({ data, template }: Props) {
-  const { colors } = template;
+  // 2026 Design Refresh: Executive palette
+  const executiveColors = {
+    primary: '#702459',      // Burgundy accent
+    text: '#1A1A1A',         // Near-black for body
+    textLight: '#4A5568',    // Muted grey for secondary
+    accent: '#702459',       // Burgundy for highlights
+    summaryBg: '#FAF5F7',    // Light pink-tinted background for summary
+    border: '#702459',       // Burgundy borders
+  };
   
   return (
     <div 
-      className="cv-template us-professional bg-white shadow-lg mx-auto overflow-hidden print:shadow-none"
       style={{ 
         width: '8.5in',
         minHeight: '11in',
-        fontFamily: template.fonts.body,
-        color: colors.text,
+        fontFamily: "'Source Sans Pro', 'Helvetica Neue', Arial, sans-serif",
+        fontSize: '12px',
+        lineHeight: 1.15,
+        color: executiveColors.text,
+        backgroundColor: 'white',
+        padding: '44px 36px 44px 60px', // 66pt margins - wide left margin for executive elegance
         pageBreakAfter: 'auto',
         pageBreakInside: 'auto',
       }}
     >
-      {/* Dark Header with Gold Accent - Full width background */}
-      <header 
-        className="py-6 text-white"
-        style={{ backgroundColor: colors.headerBg }}
-      >
-        <div className="px-10">
-          <h1 
-            className="text-3xl font-bold tracking-wide mb-1"
-            style={{ fontFamily: template.fonts.heading }}
-          >
-            {data.personal.fullName || 'Your Name'}
-          </h1>
+      {/* Header - Name and Contact */}
+      <header style={{ marginBottom: '24px', paddingBottom: '16px', borderBottom: `2px solid ${executiveColors.primary}` }}>
+        <h1 
+          style={{ 
+            fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif",
+            fontSize: '28px',
+            fontWeight: 'bold',
+            color: executiveColors.primary,
+            marginBottom: '4px',
+            letterSpacing: '0.5px',
+          }}
+        >
+          {data.personal.fullName || 'Your Name'}
+        </h1>
         
-        {/* Professional Tagline/Title */}
+        {/* Professional Title */}
         {data.personal.currentTitle && (
-          <p className="text-base font-medium opacity-90 mb-2">
+          <p 
+            style={{ 
+              fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif",
+              fontSize: '14px',
+              fontWeight: '600',
+              color: executiveColors.textLight,
+              marginBottom: '12px',
+            }}
+          >
             {data.personal.currentTitle}
           </p>
         )}
         
+        {/* Contact Info - Single line */}
         <div 
-          className="w-16 h-1 mb-4"
-          style={{ backgroundColor: colors.accent }}
-        />
-        
-        <div className="flex flex-wrap gap-4 text-sm opacity-90">
+          style={{ 
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: '16px',
+            fontSize: '12px',
+            color: executiveColors.textLight,
+          }}
+        >
           {data.personal.email && (
-            <span className="flex items-center gap-1.5">
-              <Mail className="w-4 h-4" />
-              {data.personal.email}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Mail style={{ width: '12px', height: '12px', color: executiveColors.primary }} />
+              <span>{data.personal.email}</span>
+            </div>
           )}
           {data.personal.phone && (
-            <span className="flex items-center gap-1.5">
-              <Phone className="w-4 h-4" />
-              {data.personal.phone}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Phone style={{ width: '12px', height: '12px', color: executiveColors.primary }} />
+              <span>{data.personal.phone}</span>
+            </div>
           )}
-          {(data.personal.address || data.personal.city || data.personal.country) && (
-            <span className="flex items-center gap-1.5">
-              <MapPin className="w-4 h-4" />
-              {[data.personal.address, data.personal.city, data.personal.country].filter(Boolean).join(', ')}
-            </span>
+          {(data.personal.city || data.personal.country) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <MapPin style={{ width: '12px', height: '12px', color: executiveColors.primary }} />
+              <span>{[data.personal.city, data.personal.country].filter(Boolean).join(', ')}</span>
+            </div>
           )}
           {data.personal.linkedIn && (
-            <span className="flex items-center gap-1.5">
-              <Linkedin className="w-4 h-4" />
-              LinkedIn
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Linkedin style={{ width: '12px', height: '12px', color: executiveColors.primary }} />
+              <span>LinkedIn</span>
+            </div>
           )}
-          {data.personal.github && (
-            <span className="flex items-center gap-1.5">
-              <Github className="w-4 h-4" />
-              GitHub
-            </span>
-          )}
-          {data.personal.portfolio && (
-            <span className="flex items-center gap-1.5">
-              <Globe className="w-4 h-4" />
-              Portfolio
-            </span>
-          )}
-          {data.personal.website && (
-            <span className="flex items-center gap-1.5">
-              <Globe className="w-4 h-4" />
-              Website
-            </span>
-          )}
-        </div>
         </div>
       </header>
 
-      <div className="px-8 py-6 space-y-5">
-        {/* Executive Summary */}
-        {data.summary && (
-          <section>
-            <h2 
-              className="text-lg font-bold mb-2 flex items-center gap-2"
-              style={{ color: colors.primary, fontFamily: template.fonts.heading }}
-            >
-              <span 
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: colors.accent }}
-              />
-              Executive Summary
-            </h2>
-            <p className="text-sm leading-relaxed pl-4" style={{ color: colors.secondary }}>
-              {data.summary}
-            </p>
-          </section>
-        )}
+      {/* Executive Summary - Shaded box */}
+      {data.summary && (
+        <section 
+          style={{ 
+            marginBottom: '24px',
+            padding: '16px 20px',
+            backgroundColor: executiveColors.summaryBg,
+            borderLeft: `3px solid ${executiveColors.primary}`,
+          }}
+        >
+          <h2 
+            style={{ 
+              fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif",
+              fontSize: '14px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              letterSpacing: '1.5px',
+              color: executiveColors.primary,
+              marginBottom: '8px',
+            }}
+          >
+            EXECUTIVE SUMMARY
+          </h2>
+          <p style={{ fontSize: '12px', lineHeight: 1.5, color: executiveColors.text }}>
+            {data.summary}
+          </p>
+        </section>
+      )}
 
-        {/* Professional Experience */}
-        {data.experience.length > 0 && (
-          <section>
-            <h2 
-              className="text-lg font-bold mb-3 flex items-center gap-2"
-              style={{ color: colors.primary, fontFamily: template.fonts.heading }}
-            >
-              <span 
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: colors.accent }}
-              />
-              Professional Experience
-            </h2>
-            <div className="space-y-4 pl-4">
-              {data.experience.map((exp) => (
-                <div key={exp.id} className="border-l-2 pl-4" style={{ borderColor: colors.accent }}>
-                  <div className="flex justify-between items-start mb-1">
-                    <div>
-                      <h3 className="font-bold" style={{ color: colors.primary }}>
-                        {exp.position}
-                      </h3>
-                      <p className="text-sm font-medium" style={{ color: colors.secondary }}>
-                        {exp.company}
-                        {exp.location && <span className="font-normal"> | {exp.location}</span>}
-                      </p>
-                    </div>
-                    <span 
-                      className="text-xs px-2 py-1 rounded"
-                      style={{ backgroundColor: colors.headerBg, color: 'white' }}
+      {/* Core Competencies - 2026: 3-Column Grid with Languages integrated */}
+      {(data.skills.length > 0 || data.languages.length > 0) && (
+        <section style={{ marginBottom: '24px' }}>
+          <h2 
+            style={{ 
+              fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif",
+              fontSize: '14px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              letterSpacing: '1.5px',
+              color: executiveColors.primary,
+              marginBottom: '12px',
+              paddingBottom: '6px',
+              borderBottom: `2px solid ${executiveColors.primary}`,
+            }}
+          >
+            CORE COMPETENCIES
+          </h2>
+          {/* 2026 Premium: 3-Column Grid Layout - Max 5 categories + Languages */}
+          <div 
+            style={{ 
+              display: 'flex', 
+              flexWrap: 'wrap', 
+              justifyContent: 'flex-start', 
+              gap: '20px',
+            }}
+          >
+            {/* First row: 2 skill categories + Languages */}
+            {data.skills.slice(0, 2).map((group, groupIdx) => (
+              <div key={groupIdx} style={{ flex: '1', minWidth: '30%', maxWidth: '32%' }}>
+                <h4 
+                  style={{ 
+                    color: executiveColors.primary, 
+                    fontWeight: 700, 
+                    fontSize: '10px', 
+                    marginBottom: '6px', 
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px',
+                  }}
+                >
+                  {group.category}
+                </h4>
+                <div style={{ margin: 0 }}>
+                  {group.items.slice(0, 5).map((skill, idx) => (
+                    <div 
+                      key={idx} 
+                      style={{ 
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '6px',
+                        fontSize: '12px',
+                        lineHeight: 1.4,
+                        marginBottom: '3px',
+                        color: executiveColors.text,
+                      }}
                     >
-                      {exp.startDate} – {exp.current ? 'Present' : exp.endDate}
-                    </span>
-                  </div>
-                  {exp.bullets.length > 0 && (
-                    <ul className="mt-2 space-y-1">
-                      {exp.bullets.map((bullet, idx) => (
-                        <li key={idx} className="text-sm flex gap-2" style={{ color: colors.text }}>
-                          <span style={{ color: colors.accent }}>▸</span>
-                          <span>{bullet}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Skills & Expertise */}
-        {data.skills.length > 0 && (
-          <section>
-            <h2 
-              className="text-lg font-bold mb-2 flex items-center gap-2"
-              style={{ color: colors.primary, fontFamily: template.fonts.heading }}
-            >
-              <span 
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: colors.accent }}
-              />
-              Skills & Expertise
-            </h2>
-            {/* Check if skills have categories - render categorized or flat */}
-            {data.skills.some(group => group.category && group.category.trim()) ? (
-              // Categorized skills rendering
-              <div className="pl-4 space-y-3">
-                {data.skills.map((group, groupIdx) => (
-                  <div key={groupIdx} className="skill-category">
-                    {group.category && group.category.trim() && (
-                      <h4 className="text-xs font-semibold mb-1.5" style={{ color: colors.secondary }}>
-                        {group.category}
-                      </h4>
-                    )}
-                    <div className="flex flex-wrap gap-2">
-                      {group.items.map((skill, skillIdx) => (
-                        <span 
-                          key={skillIdx}
-                          className="px-3 py-1 text-xs font-medium rounded-full"
-                          style={{ 
-                            backgroundColor: `${colors.primary}10`,
-                            color: colors.primary,
-                            border: `1px solid ${colors.primary}30`,
-                          }}
-                        >
-                          {skill}
-                        </span>
-                      ))}
+                      <span style={{ flexShrink: 0 }}>•</span>
+                      <span>{skill}</span>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            ) : (
-              // Flat skills rendering (fallback)
-              <div className="pl-4 flex flex-wrap gap-2">
-                {data.skills.flatMap(group => group.items).map((skill, idx) => (
-                  <span 
-                    key={idx}
-                    className="px-3 py-1 text-xs font-medium rounded-full"
-                    style={{ 
-                      backgroundColor: `${colors.primary}10`,
-                      color: colors.primary,
-                      border: `1px solid ${colors.primary}30`,
-                    }}
-                  >
-                    {skill}
-                  </span>
-                ))}
+            ))}
+            
+            {/* Languages Column - Integrated into first row */}
+            {data.languages.length > 0 && (
+              <div style={{ flex: '1', minWidth: '30%', maxWidth: '32%' }}>
+                <h4 
+                  style={{ 
+                    color: executiveColors.primary, 
+                    fontWeight: 700, 
+                    fontSize: '10px', 
+                    marginBottom: '6px', 
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px',
+                  }}
+                >
+                  LANGUAGES
+                </h4>
+                <div style={{ margin: 0 }}>
+                  {data.languages.map((lang, idx) => (
+                    <div 
+                      key={idx} 
+                      style={{ 
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '6px',
+                        fontSize: '12px',
+                        lineHeight: 1.4,
+                        marginBottom: '3px',
+                        color: executiveColors.text,
+                      }}
+                    >
+                      <span style={{ flexShrink: 0 }}>•</span>
+                      <span>
+                        <strong>{lang.language}:</strong> {lang.proficiency}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-          </section>
-        )}
-
-        {/* Education */}
-        {data.education.length > 0 && (
-          <section>
-            <h2 
-              className="text-lg font-bold mb-2 flex items-center gap-2"
-              style={{ color: colors.primary, fontFamily: template.fonts.heading }}
+          </div>
+          
+          {/* Second row: Additional skill categories (3rd-5th) - 3-column layout */}
+          {data.skills.length > 2 && (
+            <div 
+              style={{ 
+                display: 'flex', 
+                flexWrap: 'wrap', 
+                justifyContent: 'flex-start', 
+                gap: '20px',
+                marginTop: '12px',
+              }}
             >
-              <span 
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: colors.accent }}
-              />
-              Education
-            </h2>
-            <div className="pl-4 space-y-2">
-              {data.education.map((edu) => (
-                <div key={edu.id} className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold text-sm" style={{ color: colors.primary }}>
-                      {edu.degree}{edu.field && ` in ${edu.field}`}
-                    </h3>
-                    <p className="text-sm" style={{ color: colors.textLight }}>
-                      {edu.institution}
-                    </p>
+              {data.skills.slice(2, 5).map((group, groupIdx) => (
+                <div key={groupIdx} style={{ flex: '1', minWidth: '30%', maxWidth: '32%' }}>
+                  <h4 
+                    style={{ 
+                      color: executiveColors.primary, 
+                      fontWeight: 700, 
+                      fontSize: '10px', 
+                      marginBottom: '6px', 
+                      textTransform: 'uppercase',
+                      letterSpacing: '1px',
+                    }}
+                  >
+                    {group.category}
+                  </h4>
+                  <div style={{ margin: 0 }}>
+                    {group.items.slice(0, 5).map((skill, idx) => (
+                      <div 
+                        key={idx} 
+                        style={{ 
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '6px',
+                          fontSize: '12px',
+                          lineHeight: 1.4,
+                          marginBottom: '3px',
+                          color: executiveColors.text,
+                        }}
+                      >
+                        <span style={{ flexShrink: 0 }}>•</span>
+                        <span>{skill}</span>
+                      </div>
+                    ))}
                   </div>
-                  {edu.endDate && (
-                    <span className="text-xs" style={{ color: colors.textLight }}>
-                      {edu.endDate}
-                    </span>
-                  )}
                 </div>
               ))}
             </div>
-          </section>
-        )}
-
-        <div className="grid grid-cols-2 gap-6">
-          {/* Certifications */}
-          {data.certifications.length > 0 && (
-            <section>
-              <h2 
-                className="text-lg font-bold mb-2 flex items-center gap-2"
-                style={{ color: colors.primary, fontFamily: template.fonts.heading }}
-              >
-                <span 
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: colors.accent }}
-                />
-                Certifications
-              </h2>
-              <ul className="pl-4 space-y-2">
-                {data.certifications.map((cert) => (
-                  <li key={cert.id} className="text-sm">
-                    <div style={{ color: colors.text }}>{cert.name}</div>
-                    {(cert.issuer || cert.date) && (
-                      <div className="text-xs" style={{ color: colors.textLight }}>
-                        {cert.issuer}{cert.issuer && cert.date ? ' • ' : ''}{cert.date}
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </section>
           )}
+        </section>
+      )}
 
-          {/* Languages */}
-          {data.languages.length > 0 && (
-            <section>
-              <h2 
-                className="text-lg font-bold mb-2 flex items-center gap-2"
-                style={{ color: colors.primary, fontFamily: template.fonts.heading }}
-              >
-                <span 
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: colors.accent }}
-                />
-                Languages
-              </h2>
-              <ul className="pl-4 space-y-1">
-                {data.languages.map((lang, idx) => (
-                  <li key={idx} className="text-sm">
-                    <span style={{ color: colors.text }}>{lang.language}</span>
-                    <span style={{ color: colors.textLight }}> – {lang.proficiency}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {/* Additional Information */}
-          {data.additionalInfo && data.additionalInfo.length > 0 && (
-            <section>
-              <h2 
-                className="text-lg font-bold mb-2 flex items-center gap-2"
-                style={{ color: colors.primary, fontFamily: template.fonts.heading }}
-              >
-                <span 
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: colors.accent }}
-                />
-                Additional Information
-              </h2>
-              <div className="pl-4 text-sm" style={{ color: colors.text }}>
-                {data.additionalInfo.map((item, idx) => (
-                  <span key={idx}>
-                    {item}
-                    {idx < data.additionalInfo!.length - 1 && ' • '}
+      {/* Professional Experience */}
+      {data.experience.length > 0 && (
+        <section style={{ marginBottom: '24px' }}>
+          <h2 
+            style={{ 
+              fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif",
+              fontSize: '14px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              letterSpacing: '1.5px',
+              color: executiveColors.primary,
+              marginBottom: '14px',
+              paddingBottom: '6px',
+              borderBottom: `2px solid ${executiveColors.primary}`,
+            }}
+          >
+            PROFESSIONAL EXPERIENCE
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            {data.experience.map((exp) => (
+              <div key={exp.id}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+                  <h3 
+                    style={{ 
+                      fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif",
+                      fontSize: '13px',
+                      fontWeight: 'bold',
+                      color: executiveColors.text,
+                    }}
+                  >
+                    {exp.position}
+                  </h3>
+                  <span style={{ fontSize: '12px', whiteSpace: 'nowrap', color: executiveColors.textLight }}>
+                    {exp.startDate} – {exp.current ? 'Present' : exp.endDate}
                   </span>
-                ))}
+                </div>
+                <p 
+                  style={{ 
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    marginBottom: '8px',
+                    color: executiveColors.primary,
+                  }}
+                >
+                  {exp.company}
+                  {exp.location && <span style={{ color: executiveColors.textLight }}> | {exp.location}</span>}
+                </p>
+                {/* Explicit bullet characters for PDF compatibility */}
+                {exp.bullets.length > 0 && (
+                  <div style={{ marginTop: '6px', marginLeft: '4px' }}>
+                    {exp.bullets.map((bullet, idx) => (
+                      <div 
+                        key={idx} 
+                        style={{ 
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '8px',
+                          fontSize: '12px',
+                          lineHeight: 1.5,
+                          marginBottom: '4px',
+                          color: executiveColors.text,
+                        }}
+                      >
+                        <span style={{ flexShrink: 0, marginTop: '2px' }}>•</span>
+                        <span>{bullet}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            </section>
-          )}
-        </div>
-      </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Education */}
+      {data.education.length > 0 && (
+        <section style={{ marginBottom: '24px' }}>
+          <h2 
+            style={{ 
+              fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif",
+              fontSize: '14px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              letterSpacing: '1.5px',
+              color: executiveColors.primary,
+              marginBottom: '8px',
+              paddingBottom: '6px',
+              borderBottom: `2px solid ${executiveColors.primary}`,
+            }}
+          >
+            EDUCATION
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {data.education.map((edu) => (
+              <div key={edu.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <div>
+                  <h3 
+                    style={{ 
+                      fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif",
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      color: executiveColors.text,
+                    }}
+                  >
+                    {edu.degree}{edu.field && ` in ${edu.field}`}
+                  </h3>
+                  <p style={{ fontSize: '12px', color: executiveColors.textLight }}>
+                    {edu.institution}
+                    {edu.grade && <span> | GPA: {edu.grade}</span>}
+                  </p>
+                </div>
+                {edu.endDate && (
+                  <span style={{ fontSize: '12px', whiteSpace: 'nowrap', color: executiveColors.textLight }}>
+                    {edu.endDate}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Certifications - Languages section REMOVED (now integrated into Core Competencies grid) */}
+      {data.certifications.length > 0 && (
+        <section style={{ marginBottom: '24px' }}>
+          <h2 
+            style={{ 
+              fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif",
+              fontSize: '13px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              letterSpacing: '1.5px',
+              color: executiveColors.primary,
+              marginBottom: '8px',
+              paddingBottom: '4px',
+              borderBottom: `2px solid ${executiveColors.primary}`,
+            }}
+          >
+            CERTIFICATIONS
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '24px', rowGap: '4px' }}>
+            {data.certifications.map((cert) => (
+              <div key={cert.id} style={{ fontSize: '12px' }}>
+                <span style={{ fontWeight: '500', color: executiveColors.text }}>{cert.name}</span>
+                {cert.issuer && <span style={{ color: executiveColors.textLight }}> ({cert.issuer})</span>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Additional Information */}
+      {data.additionalInfo && data.additionalInfo.length > 0 && (
+        <section style={{ marginTop: '24px' }}>
+          <h2 
+            style={{ 
+              fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif",
+              fontSize: '13px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              letterSpacing: '1.5px',
+              color: executiveColors.primary,
+              marginBottom: '8px',
+              paddingBottom: '4px',
+              borderBottom: `2px solid ${executiveColors.primary}`,
+            }}
+          >
+            ADDITIONAL INFORMATION
+          </h2>
+          <p style={{ fontSize: '12px', color: executiveColors.text }}>
+            {data.additionalInfo.join(' • ')}
+          </p>
+        </section>
+      )}
     </div>
   );
 }

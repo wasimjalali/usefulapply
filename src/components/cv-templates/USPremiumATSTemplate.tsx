@@ -39,15 +39,15 @@ export function USPremiumATSTemplate({
 }: Props) {
   const { colors } = template;
   
-  // Premium color palette
+  // 2026 Premium "Trust" Palette - Navy, clean, executive
   const premiumColors = {
-    primary: colors.primary || '#1a365d',
-    accent: colors.accent || '#2b6cb0',
-    text: colors.text || '#1a202c',
-    textLight: colors.textLight || '#4a5568',
-    headerBg: colors.headerBg || '#f7fafc',
-    border: '#e2e8f0',
-    highlight: '#ebf8ff',
+    primary: '#0F3057',      // Deep Navy - Trust & Authority
+    accent: '#0F3057',       // Same navy for consistency
+    text: '#1A1A1A',         // Almost Black - softer than pure black
+    textLight: '#4a5568',    // Muted grey for secondary text
+    headerBg: '#FFFFFF',     // Clean white background
+    border: '#0F3057',       // Navy borders
+    highlight: '#f0f4f8',    // Very light blue-grey for skill pills
   };
 
   return (
@@ -56,11 +56,12 @@ export function USPremiumATSTemplate({
       style={{ 
         width: '8.5in',
         minHeight: '11in',
-        fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
+        fontFamily: "'Arial', 'Helvetica', sans-serif",  // 2026: Clean sans-serif body
         color: premiumColors.text,
-        lineHeight: 1.5,
+        lineHeight: 1.2,  // 2026: Tighter line spacing (1.15-1.2)
         pageBreakAfter: 'auto',
         pageBreakInside: 'auto',
+        padding: '0.92in',  // 2026: 66pt margins (~0.92in)
       }}
     >
       {/* Quality/Match Score Badge (only shown in preview, not print) */}
@@ -83,11 +84,17 @@ export function USPremiumATSTemplate({
         </div>
       )}
 
-      {/* Header - Clean, ATS-optimized */}
-      <header className="px-10 py-6 border-b-2" style={{ borderColor: premiumColors.primary }}>
+      {/* Header - Clean, ATS-optimized with 2026 Navy theme */}
+      <header style={{ paddingBottom: '16px', borderBottom: `2px solid ${premiumColors.primary}`, marginBottom: '20px' }}>
         <h1 
-          className="text-3xl font-bold tracking-tight mb-1"
-          style={{ color: premiumColors.primary }}
+          style={{ 
+            fontFamily: "'Georgia', 'Times New Roman', serif",  // 2026: Serif headers for authority
+            fontSize: '28px',
+            fontWeight: 'bold',
+            letterSpacing: '-0.5px',
+            marginBottom: '4px',
+            color: premiumColors.primary,
+          }}
         >
           {data.personal.fullName || 'Your Name'}
         </h1>
@@ -95,8 +102,13 @@ export function USPremiumATSTemplate({
         {/* Professional Headline */}
         {data.personal.currentTitle && (
           <p 
-            className="text-lg font-medium mb-4"
-            style={{ color: premiumColors.accent }}
+            style={{ 
+              fontFamily: "'Georgia', 'Times New Roman', serif",
+              fontSize: '16px',
+              fontWeight: 500,
+              marginBottom: '12px',
+              color: premiumColors.primary,
+            }}
           >
             {data.personal.currentTitle}
           </p>
@@ -104,126 +116,248 @@ export function USPremiumATSTemplate({
         
         {/* Contact Info - Single line for ATS */}
         <div 
-          className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm"
-          style={{ color: premiumColors.textLight }}
+          style={{ 
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            columnGap: '16px',
+            rowGap: '4px',
+            fontSize: '12px',
+            color: premiumColors.textLight,
+          }}
         >
           {data.personal.email && (
-            <a href={`mailto:${data.personal.email}`} className="flex items-center gap-1.5 hover:text-blue-600">
-              <Mail className="w-4 h-4" />
+            <a 
+              href={`mailto:${data.personal.email}`} 
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', color: premiumColors.textLight, textDecoration: 'none' }}
+            >
+              <Mail style={{ width: '14px', height: '14px' }} />
               <span>{data.personal.email}</span>
             </a>
           )}
           {data.personal.phone && (
-            <span className="flex items-center gap-1.5">
-              <Phone className="w-4 h-4" />
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Phone style={{ width: '14px', height: '14px' }} />
               <span>{data.personal.phone}</span>
             </span>
           )}
           {(data.personal.address || data.personal.city || data.personal.country) && (
-            <span className="flex items-center gap-1.5">
-              <MapPin className="w-4 h-4" />
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <MapPin style={{ width: '14px', height: '14px' }} />
               <span>{[data.personal.address, data.personal.city, data.personal.country].filter(Boolean).join(', ')}</span>
             </span>
           )}
           {data.personal.linkedIn && (
-            <a href={data.personal.linkedIn} className="flex items-center gap-1.5 hover:text-blue-600">
-              <Linkedin className="w-4 h-4" />
+            <a 
+              href={data.personal.linkedIn} 
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', color: premiumColors.textLight, textDecoration: 'none' }}
+            >
+              <Linkedin style={{ width: '14px', height: '14px' }} />
               <span>LinkedIn</span>
             </a>
           )}
           {data.personal.github && (
-            <a href={data.personal.github} className="flex items-center gap-1.5 hover:text-blue-600">
-              <Github className="w-4 h-4" />
+            <a 
+              href={data.personal.github} 
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', color: premiumColors.textLight, textDecoration: 'none' }}
+            >
+              <Github style={{ width: '14px', height: '14px' }} />
               <span>GitHub</span>
             </a>
           )}
           {data.personal.portfolio && (
-            <a href={data.personal.portfolio} className="flex items-center gap-1.5 hover:text-blue-600">
-              <Globe className="w-4 h-4" />
+            <a 
+              href={data.personal.portfolio} 
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', color: premiumColors.textLight, textDecoration: 'none' }}
+            >
+              <Globe style={{ width: '14px', height: '14px' }} />
               <span>Portfolio</span>
             </a>
           )}
         </div>
       </header>
 
-      <div className="px-10 py-6 space-y-5">
+      <div style={{ marginTop: '20px' }}>
         {/* Professional Summary - Critical for ATS */}
         {data.summary && (
-          <section>
+          <section style={{ marginBottom: '20px' }}>
             <h2 
-              className="text-sm font-bold uppercase tracking-widest mb-3 pb-1 border-b"
-              style={{ color: premiumColors.primary, borderColor: premiumColors.border }}
+              style={{ 
+                fontFamily: "'Georgia', 'Times New Roman', serif",
+                fontSize: '14px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '2px',
+                marginBottom: '8px',
+                paddingBottom: '6px',
+                borderBottom: `2px solid ${premiumColors.primary}`,
+                color: premiumColors.primary,
+              }}
             >
-              Professional Summary
+              PROFESSIONAL SUMMARY
             </h2>
             <p 
-              className="text-sm leading-relaxed"
-              style={{ color: premiumColors.text }}
+              style={{ 
+                fontSize: '12px',
+                lineHeight: 1.5,
+                color: premiumColors.text,
+              }}
             >
               {data.summary}
             </p>
           </section>
         )}
 
-        {/* Core Competencies / Skills - High placement for ATS keyword scanning */}
-        {data.skills.length > 0 && (
-          <section>
+        {/* Core Competencies / Skills - 2026: 3-Column Grid with Languages integrated */}
+        {(data.skills.length > 0 || data.languages.length > 0) && (
+          <section style={{ marginBottom: '20px' }}>
             <h2 
-              className="text-sm font-bold uppercase tracking-widest mb-3 pb-1 border-b"
-              style={{ color: premiumColors.primary, borderColor: premiumColors.border }}
+              style={{ 
+                fontFamily: "'Georgia', 'Times New Roman', serif",
+                fontSize: '14px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '2px',
+                marginBottom: '12px',
+                paddingBottom: '6px',
+                borderBottom: `2px solid ${premiumColors.primary}`,
+                color: premiumColors.primary,
+              }}
             >
-              Core Competencies
+              CORE COMPETENCIES
             </h2>
-            {/* Check if skills have categories - render categorized or flat */}
-            {data.skills.some(group => group.category && group.category.trim()) ? (
-              /* Categorized skills rendering */
-              <div className="space-y-3">
-                {data.skills.map((group, groupIdx) => (
-                  <div key={groupIdx} className="skill-category">
-                    {group.category && group.category.trim() && (
-                      <h4 
-                        className="text-xs font-semibold mb-1.5"
-                        style={{ color: premiumColors.text }}
+            {/* 2026 Premium: 3-Column Grid Layout - Max 5 categories + Languages */}
+            <div 
+              style={{ 
+                display: 'flex', 
+                flexWrap: 'wrap', 
+                justifyContent: 'flex-start', 
+                gap: '20px',
+              }}
+            >
+              {/* First row: 2 skill categories + Languages */}
+              {data.skills.slice(0, 2).map((group, groupIdx) => (
+                <div key={groupIdx} style={{ flex: '1', minWidth: '30%', maxWidth: '32%' }}>
+                  <h4 
+                    style={{ 
+                      color: premiumColors.primary, 
+                      fontWeight: 700, 
+                      fontSize: '10px', 
+                      marginBottom: '6px', 
+                      textTransform: 'uppercase',
+                      letterSpacing: '1px',
+                    }}
+                  >
+                    {group.category}
+                  </h4>
+                  <div style={{ margin: 0 }}>
+                    {group.items.slice(0, 5).map((skill, idx) => (
+                      <div 
+                        key={idx} 
+                        style={{ 
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '6px',
+                          fontSize: '12px',
+                          lineHeight: 1.4,
+                          marginBottom: '3px',
+                          color: premiumColors.text,
+                        }}
                       >
-                        {group.category}
-                      </h4>
-                    )}
-                    <div className="flex flex-wrap gap-1.5">
-                      {group.items.map((skill, skillIdx) => (
-                        <span 
-                          key={skillIdx}
-                          className="px-2 py-0.5 text-xs font-medium rounded"
+                        <span style={{ flexShrink: 0 }}>•</span>
+                        <span>{skill}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              
+              {/* Languages Column - Integrated into first row */}
+              {data.languages.length > 0 && (
+                <div style={{ flex: '1', minWidth: '30%', maxWidth: '32%' }}>
+                  <h4 
+                    style={{ 
+                      color: premiumColors.primary, 
+                      fontWeight: 700, 
+                      fontSize: '10px', 
+                      marginBottom: '6px', 
+                      textTransform: 'uppercase',
+                      letterSpacing: '1px',
+                    }}
+                  >
+                    LANGUAGES
+                  </h4>
+                  <div style={{ margin: 0 }}>
+                    {data.languages.map((lang, idx) => (
+                      <div 
+                        key={idx} 
+                        style={{ 
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '6px',
+                          fontSize: '12px',
+                          lineHeight: 1.4,
+                          marginBottom: '3px',
+                          color: premiumColors.text,
+                        }}
+                      >
+                        <span style={{ flexShrink: 0 }}>•</span>
+                        <span>
+                          <strong>{lang.language}:</strong> {lang.proficiency}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Second row: Additional skill categories (3rd-5th) - 3-column layout */}
+            {data.skills.length > 2 && (
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  flexWrap: 'wrap', 
+                  justifyContent: 'flex-start', 
+                  gap: '20px',
+                  marginTop: '12px',
+                }}
+              >
+                {data.skills.slice(2, 5).map((group, groupIdx) => (
+                  <div key={groupIdx} style={{ flex: '1', minWidth: '30%', maxWidth: '32%' }}>
+                    <h4 
+                      style={{ 
+                        color: premiumColors.primary, 
+                        fontWeight: 700, 
+                        fontSize: '10px', 
+                        marginBottom: '6px', 
+                        textTransform: 'uppercase',
+                        letterSpacing: '1px',
+                      }}
+                    >
+                      {group.category}
+                    </h4>
+                    <div style={{ margin: 0 }}>
+                      {group.items.slice(0, 5).map((skill, idx) => (
+                        <div 
+                          key={idx} 
                           style={{ 
-                            backgroundColor: premiumColors.highlight,
-                            color: premiumColors.primary,
-                            border: `1px solid ${premiumColors.border}`,
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '6px',
+                            fontSize: '12px',
+                            lineHeight: 1.4,
+                            marginBottom: '3px',
+                            color: premiumColors.text,
                           }}
                         >
-                          {skill}
-                        </span>
+                          <span style={{ flexShrink: 0 }}>•</span>
+                          <span>{skill}</span>
+                        </div>
                       ))}
                     </div>
                   </div>
                 ))}
-              </div>
-            ) : (
-              /* Flat skills rendering (fallback) */
-              <div className="flex flex-wrap gap-2">
-                {data.skills.flatMap((group, groupIdx) => 
-                  group.items.map((skill, skillIdx) => (
-                    <span 
-                      key={`${groupIdx}-${skillIdx}`}
-                      className="px-2.5 py-1 text-xs font-medium rounded"
-                      style={{ 
-                        backgroundColor: premiumColors.highlight,
-                        color: premiumColors.primary,
-                        border: `1px solid ${premiumColors.border}`,
-                      }}
-                    >
-                      {skill}
-                    </span>
-                  ))
-                )}
               </div>
             )}
           </section>
@@ -231,27 +365,45 @@ export function USPremiumATSTemplate({
 
         {/* Professional Experience */}
         {data.experience.length > 0 && (
-          <section>
+          <section style={{ marginBottom: '20px' }}>
             <h2 
-              className="text-sm font-bold uppercase tracking-widest mb-3 pb-1 border-b"
-              style={{ color: premiumColors.primary, borderColor: premiumColors.border }}
+              style={{ 
+                fontFamily: "'Georgia', 'Times New Roman', serif",
+                fontSize: '14px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '2px',
+                marginBottom: '8px',
+                paddingBottom: '6px',
+                borderBottom: `2px solid ${premiumColors.primary}`,
+                color: premiumColors.primary,
+              }}
             >
-              Professional Experience
+              PROFESSIONAL EXPERIENCE
             </h2>
-            <div className="space-y-4">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {data.experience.map((exp, idx) => (
-                <div key={exp.id || idx} className="relative">
+                <div key={exp.id || idx} style={{ position: 'relative' }}>
                   {/* Role Header */}
-                  <div className="flex justify-between items-baseline mb-1">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
                     <h3 
-                      className="text-base font-bold"
-                      style={{ color: premiumColors.text }}
+                      style={{ 
+                        fontFamily: "'Georgia', 'Times New Roman', serif",
+                        fontSize: '13px',
+                        fontWeight: 'bold',
+                        color: premiumColors.text,
+                      }}
                     >
                       {exp.position}
                     </h3>
                     <span 
-                      className="text-sm font-medium whitespace-nowrap ml-4"
-                      style={{ color: premiumColors.textLight }}
+                      style={{ 
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        whiteSpace: 'nowrap',
+                        marginLeft: '16px',
+                        color: premiumColors.textLight,
+                      }}
                     >
                       {exp.startDate} – {exp.current ? 'Present' : exp.endDate}
                     </span>
@@ -259,8 +411,12 @@ export function USPremiumATSTemplate({
                   
                   {/* Company */}
                   <p 
-                    className="text-sm font-medium mb-2"
-                    style={{ color: premiumColors.accent }}
+                    style={{ 
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      marginBottom: '8px',
+                      color: premiumColors.accent,
+                    }}
                   >
                     {exp.company}
                     {exp.location && (
@@ -268,23 +424,27 @@ export function USPremiumATSTemplate({
                     )}
                   </p>
                   
-                  {/* Bullets - Optimized for ATS */}
+                  {/* Bullets - Explicit bullet characters for PDF compatibility */}
                   {exp.bullets.length > 0 && (
-                    <ul className="space-y-1">
+                    <div style={{ marginTop: '6px', marginLeft: '4px' }}>
                       {exp.bullets.map((bullet, bulletIdx) => (
-                        <li 
+                        <div 
                           key={bulletIdx} 
-                          className="text-sm pl-5 relative"
-                          style={{ color: premiumColors.text }}
+                          style={{ 
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '8px',
+                            fontSize: '12px',
+                            lineHeight: 1.4,
+                            marginBottom: '4px',
+                            color: premiumColors.text,
+                          }}
                         >
-                          <span 
-                            className="absolute left-0 top-2 w-1.5 h-1.5 rounded-full"
-                            style={{ backgroundColor: premiumColors.accent }}
-                          />
-                          {bullet}
-                        </li>
+                          <span style={{ flexShrink: 0, marginTop: '2px' }}>•</span>
+                          <span>{bullet}</span>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   )}
                 </div>
               ))}
@@ -294,27 +454,42 @@ export function USPremiumATSTemplate({
 
         {/* Education */}
         {data.education.length > 0 && (
-          <section>
+          <section style={{ marginBottom: '20px' }}>
             <h2 
-              className="text-sm font-bold uppercase tracking-widest mb-3 pb-1 border-b"
-              style={{ color: premiumColors.primary, borderColor: premiumColors.border }}
+              style={{ 
+                fontFamily: "'Georgia', 'Times New Roman', serif",
+                fontSize: '14px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '2px',
+                marginBottom: '8px',
+                paddingBottom: '6px',
+                borderBottom: `2px solid ${premiumColors.primary}`,
+                color: premiumColors.primary,
+              }}
             >
-              Education
+              EDUCATION
             </h2>
-            <div className="space-y-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {data.education.map((edu, idx) => (
-                <div key={edu.id || idx} className="flex justify-between items-baseline">
+                <div key={edu.id || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <div>
                     <h3 
-                      className="text-sm font-semibold"
-                      style={{ color: premiumColors.text }}
+                      style={{ 
+                        fontFamily: "'Georgia', 'Times New Roman', serif",
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        color: premiumColors.text,
+                      }}
                     >
                       {edu.degree}
-                      {edu.field && <span className="font-normal"> in {edu.field}</span>}
+                      {edu.field && <span style={{ fontWeight: 'normal' }}> in {edu.field}</span>}
                     </h3>
                     <p 
-                      className="text-sm"
-                      style={{ color: premiumColors.textLight }}
+                      style={{ 
+                        fontSize: '12px',
+                        color: premiumColors.textLight,
+                      }}
                     >
                       {edu.institution}
                       {edu.grade && <span> • GPA: {edu.grade}</span>}
@@ -322,8 +497,12 @@ export function USPremiumATSTemplate({
                   </div>
                   {edu.endDate && (
                     <span 
-                      className="text-sm whitespace-nowrap ml-4"
-                      style={{ color: premiumColors.textLight }}
+                      style={{ 
+                        fontSize: '12px',
+                        whiteSpace: 'nowrap',
+                        marginLeft: '16px',
+                        color: premiumColors.textLight,
+                      }}
                     >
                       {edu.endDate}
                     </span>
@@ -336,22 +515,40 @@ export function USPremiumATSTemplate({
 
         {/* Certifications */}
         {data.certifications.length > 0 && (
-          <section>
+          <section style={{ marginBottom: '20px' }}>
             <h2 
-              className="text-sm font-bold uppercase tracking-widest mb-3 pb-1 border-b"
-              style={{ color: premiumColors.primary, borderColor: premiumColors.border }}
+              style={{ 
+                fontFamily: "'Georgia', 'Times New Roman', serif",
+                fontSize: '14px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '2px',
+                marginBottom: '8px',
+                paddingBottom: '6px',
+                borderBottom: `2px solid ${premiumColors.primary}`,
+                color: premiumColors.primary,
+              }}
             >
-              Certifications
+              CERTIFICATIONS
             </h2>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '24px', rowGap: '6px' }}>
               {data.certifications.map((cert, idx) => (
                 <div 
                   key={cert.id || idx} 
-                  className="flex items-center gap-2 text-sm"
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    fontSize: '12px' 
+                  }}
                 >
                   <Award 
-                    className="w-3.5 h-3.5 flex-shrink-0"
-                    style={{ color: premiumColors.accent }}
+                    style={{ 
+                      width: '14px', 
+                      height: '14px', 
+                      flexShrink: 0,
+                      color: premiumColors.accent,
+                    }}
                   />
                   <span style={{ color: premiumColors.text }}>
                     {cert.name}
@@ -365,43 +562,27 @@ export function USPremiumATSTemplate({
           </section>
         )}
 
-        {/* Languages */}
-        {data.languages.length > 0 && (
-          <section>
-            <h2 
-              className="text-sm font-bold uppercase tracking-widest mb-3 pb-1 border-b"
-              style={{ color: premiumColors.primary, borderColor: premiumColors.border }}
-            >
-              Languages
-            </h2>
-            <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-              {data.languages.map((lang, idx) => (
-                <span key={idx}>
-                  <span 
-                    className="font-medium"
-                    style={{ color: premiumColors.text }}
-                  >
-                    {lang.language}
-                  </span>
-                  <span style={{ color: premiumColors.textLight }}>
-                    {' '}— {lang.proficiency}
-                  </span>
-                </span>
-              ))}
-            </div>
-          </section>
-        )}
+        {/* Languages section REMOVED - now integrated into Core Competencies grid above */}
 
         {/* Additional Information */}
         {data.additionalInfo && data.additionalInfo.length > 0 && (
-          <section>
+          <section style={{ marginBottom: '20px' }}>
             <h2 
-              className="text-sm font-bold uppercase tracking-widest mb-3 pb-1 border-b"
-              style={{ color: premiumColors.primary, borderColor: premiumColors.border }}
+              style={{ 
+                fontFamily: "'Georgia', 'Times New Roman', serif",
+                fontSize: '14px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '2px',
+                marginBottom: '8px',
+                paddingBottom: '6px',
+                borderBottom: `2px solid ${premiumColors.primary}`,
+                color: premiumColors.primary,
+              }}
             >
-              Additional Information
+              ADDITIONAL INFORMATION
             </h2>
-            <div className="text-sm" style={{ color: premiumColors.text }}>
+            <div style={{ fontSize: '12px', color: premiumColors.text }}>
               {data.additionalInfo.map((item, idx) => (
                 <span key={idx}>
                   {item}

@@ -25,198 +25,310 @@ interface Props {
 }
 
 export function USModernATSTemplate({ data, template }: Props) {
-  const { colors } = template;
+  // 2026 Design Refresh: Modern Professional palette
+  const modernColors = {
+    primary: '#2C7A7B',      // Teal accent
+    text: '#1A1A1A',         // Near-black for body
+    textLight: '#4A5568',    // Muted grey for secondary
+    sidebar: '#F7FAFC',      // Faint grey sidebar
+    accent: '#2C7A7B',       // Teal for highlights
+    border: '#E2E8F0',       // Light border
+  };
   
   return (
     <div 
-      className="cv-template us-modern-ats bg-white shadow-lg mx-auto print:shadow-none"
       style={{ 
         width: '8.5in',
         minHeight: '11in',
-        fontFamily: template.fonts.body,
-        color: colors.text,
+        fontFamily: "'Roboto', 'Helvetica Neue', Arial, sans-serif",
+        fontSize: '13px',
+        lineHeight: 1.15,
+        color: modernColors.text,
+        backgroundColor: 'white',
+        display: 'flex',
         pageBreakAfter: 'auto',
         pageBreakInside: 'auto',
       }}
     >
-      {/* Header - Clean ATS-friendly design with full-width background */}
-      <header 
-        className="py-5"
-        style={{ backgroundColor: colors.headerBg }}
+      {/* Left Sidebar - 30% */}
+      <aside 
+        style={{ 
+          width: '30%',
+          padding: '36px 18px',
+          backgroundColor: modernColors.sidebar,
+          overflow: 'hidden', // Prevent text overflow to main column
+        }}
       >
-        <div className="px-10">
-          <h1 
-            className="text-2xl font-bold mb-1"
-            style={{ color: colors.primary }}
-          >
-            {data.personal.fullName || 'Your Name'}
-          </h1>
+        {/* Name in sidebar */}
+        <h1 
+          style={{ 
+            fontFamily: "'Roboto', 'Helvetica Neue', Arial, sans-serif",
+            fontSize: '22px',
+            fontWeight: 'bold',
+            color: modernColors.primary,
+            marginBottom: '8px',
+          }}
+        >
+          {data.personal.fullName || 'Your Name'}
+        </h1>
         
-        {/* Professional Tagline/Title */}
+        {/* Professional Title */}
         {data.personal.currentTitle && (
           <p 
-            className="text-sm font-medium mb-3"
-            style={{ color: colors.textLight }}
+            style={{ 
+              fontSize: '12px',
+              fontWeight: '500',
+              color: modernColors.textLight,
+              marginBottom: '20px',
+            }}
           >
             {data.personal.currentTitle}
           </p>
         )}
         
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm" style={{ color: colors.textLight }}>
-          {data.personal.email && (
-            <span className="flex items-center gap-1">
-              <Mail className="w-3.5 h-3.5" />
-              {data.personal.email}
-            </span>
-          )}
-          {data.personal.phone && (
-            <span className="flex items-center gap-1">
-              <Phone className="w-3.5 h-3.5" />
-              {data.personal.phone}
-            </span>
-          )}
-          {(data.personal.address || data.personal.city || data.personal.country) && (
-            <span className="flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5" />
-              {[data.personal.address, data.personal.city, data.personal.country].filter(Boolean).join(', ')}
-            </span>
-          )}
-          {data.personal.linkedIn && (
-            <span className="flex items-center gap-1">
-              <Linkedin className="w-3.5 h-3.5" />
-              LinkedIn
-            </span>
-          )}
-          {data.personal.github && (
-            <span className="flex items-center gap-1">
-              <Github className="w-3.5 h-3.5" />
-              GitHub
-            </span>
-          )}
-          {data.personal.portfolio && (
-            <span className="flex items-center gap-1">
-              <Globe className="w-3.5 h-3.5" />
-              Portfolio
-            </span>
-          )}
-          {data.personal.website && (
-            <span className="flex items-center gap-1">
-              <Globe className="w-3.5 h-3.5" />
-              Website
-            </span>
-          )}
+        {/* Contact Info */}
+        <div style={{ marginBottom: '24px' }}>
+          <h2 
+            style={{ 
+              fontSize: '11px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+              color: modernColors.primary,
+              marginBottom: '8px',
+              paddingBottom: '4px',
+              borderBottom: `2px solid ${modernColors.primary}`,
+            }}
+          >
+            CONTACT
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px' }}>
+            {data.personal.email && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: modernColors.text }}>
+                <Mail style={{ width: '12px', height: '12px', color: modernColors.primary }} />
+                <span>{data.personal.email}</span>
+              </div>
+            )}
+            {data.personal.phone && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: modernColors.text }}>
+                <Phone style={{ width: '12px', height: '12px', color: modernColors.primary }} />
+                <span>{data.personal.phone}</span>
+              </div>
+            )}
+            {(data.personal.city || data.personal.country) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: modernColors.text }}>
+                <MapPin style={{ width: '12px', height: '12px', color: modernColors.primary }} />
+                <span>{[data.personal.city, data.personal.country].filter(Boolean).join(', ')}</span>
+              </div>
+            )}
+            {data.personal.linkedIn && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: modernColors.text }}>
+                <Linkedin style={{ width: '12px', height: '12px', color: modernColors.primary }} />
+                <span>LinkedIn</span>
+              </div>
+            )}
+            {data.personal.github && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: modernColors.text }}>
+                <Github style={{ width: '12px', height: '12px', color: modernColors.primary }} />
+                <span>GitHub</span>
+              </div>
+            )}
+          </div>
         </div>
-        </div>
-      </header>
 
-      <div className="px-8 py-5 space-y-4">
-        {/* Summary - Important for ATS */}
-        {data.summary && (
-          <section>
+        {/* Skills in Sidebar - Grouped by category */}
+        {data.skills.length > 0 && (
+          <div style={{ marginBottom: '24px' }}>
             <h2 
-              className="text-sm font-bold uppercase tracking-wider mb-2"
-              style={{ color: colors.primary }}
+              style={{ 
+                fontSize: '13px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                color: modernColors.primary,
+                marginBottom: '8px',
+                paddingBottom: '4px',
+                borderBottom: `2px solid ${modernColors.primary}`,
+              }}
             >
-              Professional Summary
+              KEY SKILLS
             </h2>
-            <p className="text-sm leading-relaxed" style={{ color: colors.secondary }}>
+            {/* Grouped skills by category - max 5 per category */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {data.skills.map((group, groupIdx) => (
+                <div key={groupIdx} style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                  <div 
+                    style={{ 
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      color: modernColors.text,
+                      marginBottom: '4px',
+                    }}
+                  >
+                    {group.category}:
+                  </div>
+                  <div style={{ marginLeft: '8px' }}>
+                    {group.items.slice(0, 5).map((skill, idx) => (
+                      <div 
+                        key={idx} 
+                        style={{ 
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '6px',
+                          fontSize: '12px',
+                          lineHeight: 1.3,
+                          marginBottom: '2px',
+                          color: modernColors.text,
+                        }}
+                      >
+                        <span style={{ flexShrink: 0 }}>•</span>
+                        <span style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>{skill}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Languages in Sidebar */}
+        {data.languages.length > 0 && (
+          <div style={{ marginBottom: '24px' }}>
+            <h2 
+              style={{ 
+                fontSize: '11px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                color: modernColors.primary,
+                marginBottom: '8px',
+                paddingBottom: '4px',
+                borderBottom: `2px solid ${modernColors.primary}`,
+              }}
+            >
+              LANGUAGES
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {data.languages.map((lang, idx) => (
+                <div key={idx} style={{ fontSize: '12px' }}>
+                  <span style={{ fontWeight: '500', color: modernColors.text }}>{lang.language}</span>
+                  <span style={{ color: modernColors.textLight }}> — {lang.proficiency}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Certifications in Sidebar */}
+        {data.certifications.length > 0 && (
+          <div>
+            <h2 
+              style={{ 
+                fontSize: '11px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                color: modernColors.primary,
+                marginBottom: '8px',
+                paddingBottom: '4px',
+                borderBottom: `2px solid ${modernColors.primary}`,
+              }}
+            >
+              CERTIFICATIONS
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {data.certifications.map((cert) => (
+                <div key={cert.id} style={{ fontSize: '11px' }}>
+                  <div style={{ fontWeight: '500', color: modernColors.text }}>{cert.name}</div>
+                  {cert.issuer && (
+                    <div style={{ fontSize: '10px', color: modernColors.textLight }}>{cert.issuer}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </aside>
+
+      {/* Main Content - 70% */}
+      <main style={{ width: '70%', padding: '36px 28px' }}>
+        {/* Professional Summary */}
+        {data.summary && (
+          <section style={{ marginBottom: '20px' }}>
+            <h2 
+              style={{ 
+                fontSize: '14px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                color: modernColors.primary,
+                marginBottom: '8px',
+                paddingBottom: '4px',
+                borderBottom: `2px solid ${modernColors.primary}`,
+              }}
+            >
+              PROFESSIONAL SUMMARY
+            </h2>
+            <p style={{ fontSize: '12px', lineHeight: 1.5, color: modernColors.text }}>
               {data.summary}
             </p>
           </section>
         )}
 
-        {/* Skills - Placed high for ATS keyword scanning */}
-        {data.skills.length > 0 && (
-          <section>
-            <h2 
-              className="text-sm font-bold uppercase tracking-wider mb-2"
-              style={{ color: colors.primary }}
-            >
-              Core Competencies
-            </h2>
-            {/* Check if skills have categories - render categorized or flat */}
-            {data.skills.some(group => group.category && group.category.trim()) ? (
-              // Categorized skills rendering
-              <div className="space-y-2">
-                {data.skills.map((group, groupIdx) => (
-                  <div key={groupIdx} className="skill-category">
-                    {group.category && group.category.trim() && (
-                      <h4 className="text-xs font-semibold mb-1" style={{ color: colors.text }}>
-                        {group.category}
-                      </h4>
-                    )}
-                    <div className="flex flex-wrap gap-2">
-                      {group.items.map((skill, skillIdx) => (
-                        <span 
-                          key={skillIdx}
-                          className="px-2 py-0.5 text-xs rounded"
-                          style={{ 
-                            backgroundColor: colors.headerBg,
-                            color: colors.text,
-                          }}
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              // Flat skills rendering (fallback)
-              <div className="flex flex-wrap gap-2">
-                {data.skills.flatMap(group => group.items).map((skill, idx) => (
-                  <span 
-                    key={idx}
-                    className="px-2 py-0.5 text-xs rounded"
-                    style={{ 
-                      backgroundColor: colors.headerBg,
-                      color: colors.text,
-                    }}
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* Experience */}
+        {/* Professional Experience */}
         {data.experience.length > 0 && (
-          <section>
+          <section style={{ marginBottom: '20px' }}>
             <h2 
-              className="text-sm font-bold uppercase tracking-wider mb-3"
-              style={{ color: colors.primary }}
+              style={{ 
+                fontSize: '14px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                color: modernColors.primary,
+                marginBottom: '12px',
+                paddingBottom: '4px',
+                borderBottom: `2px solid ${modernColors.primary}`,
+              }}
             >
-              Professional Experience
+              PROFESSIONAL EXPERIENCE
             </h2>
-            <div className="space-y-4">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {data.experience.map((exp) => (
                 <div key={exp.id}>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-bold text-sm" style={{ color: colors.text }}>
-                        {exp.position}
-                      </h3>
-                      <p className="text-sm" style={{ color: colors.accent }}>
-                        {exp.company}
-                        {exp.location && <span style={{ color: colors.textLight }}> | {exp.location}</span>}
-                      </p>
-                    </div>
-                    <span className="text-xs whitespace-nowrap" style={{ color: colors.textLight }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+                    <h3 style={{ fontSize: '13px', fontWeight: 'bold', color: modernColors.text }}>
+                      {exp.position}
+                    </h3>
+                    <span style={{ fontSize: '12px', whiteSpace: 'nowrap', color: modernColors.textLight }}>
                       {exp.startDate} – {exp.current ? 'Present' : exp.endDate}
                     </span>
                   </div>
+                  <p style={{ fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: modernColors.primary }}>
+                    {exp.company}
+                    {exp.location && <span style={{ color: modernColors.textLight }}> | {exp.location}</span>}
+                  </p>
+                  {/* Explicit bullet characters for PDF compatibility */}
                   {exp.bullets.length > 0 && (
-                    <ul className="mt-1.5 space-y-0.5">
+                    <div style={{ marginTop: '4px', marginLeft: '4px' }}>
                       {exp.bullets.map((bullet, idx) => (
-                        <li key={idx} className="text-sm pl-4 relative" style={{ color: colors.secondary }}>
-                          <span className="absolute left-0">•</span>
-                          {bullet}
-                        </li>
+                        <div 
+                          key={idx} 
+                          style={{ 
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '8px',
+                            fontSize: '12px',
+                            lineHeight: 1.4,
+                            marginBottom: '3px',
+                            color: modernColors.text,
+                          }}
+                        >
+                          <span style={{ flexShrink: 0, marginTop: '1px' }}>•</span>
+                          <span>{bullet}</span>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   )}
                 </div>
               ))}
@@ -226,27 +338,35 @@ export function USModernATSTemplate({ data, template }: Props) {
 
         {/* Education */}
         {data.education.length > 0 && (
-          <section>
+          <section style={{ marginBottom: '20px' }}>
             <h2 
-              className="text-sm font-bold uppercase tracking-wider mb-2"
-              style={{ color: colors.primary }}
+              style={{ 
+                fontSize: '14px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                color: modernColors.primary,
+                marginBottom: '8px',
+                paddingBottom: '4px',
+                borderBottom: `2px solid ${modernColors.primary}`,
+              }}
             >
-              Education
+              EDUCATION
             </h2>
-            <div className="space-y-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {data.education.map((edu) => (
-                <div key={edu.id} className="flex justify-between items-start">
+                <div key={edu.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <div>
-                    <h3 className="font-semibold text-sm" style={{ color: colors.text }}>
+                    <h3 style={{ fontSize: '13px', fontWeight: '600', color: modernColors.text }}>
                       {edu.degree}{edu.field && `, ${edu.field}`}
                     </h3>
-                    <p className="text-sm" style={{ color: colors.textLight }}>
+                    <p style={{ fontSize: '12px', color: modernColors.textLight }}>
                       {edu.institution}
                       {edu.grade && <span> | GPA: {edu.grade}</span>}
                     </p>
                   </div>
                   {edu.endDate && (
-                    <span className="text-xs" style={{ color: colors.textLight }}>
+                    <span style={{ fontSize: '12px', whiteSpace: 'nowrap', color: modernColors.textLight }}>
                       {edu.endDate}
                     </span>
                   )}
@@ -256,73 +376,29 @@ export function USModernATSTemplate({ data, template }: Props) {
           </section>
         )}
 
-        {/* Certifications */}
-        {data.certifications.length > 0 && (
-          <section>
-            <h2 
-              className="text-sm font-bold uppercase tracking-wider mb-2"
-              style={{ color: colors.primary }}
-            >
-              Certifications
-            </h2>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-              {data.certifications.map((cert) => (
-                <div key={cert.id} className="text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: colors.accent }} />
-                    <span style={{ color: colors.text }}>{cert.name}</span>
-                  </div>
-                  {(cert.issuer || cert.date) && (
-                    <div className="text-xs ml-3.5" style={{ color: colors.textLight }}>
-                      {cert.issuer}{cert.issuer && cert.date ? ' • ' : ''}{cert.date}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Languages */}
-        {data.languages.length > 0 && (
-          <section>
-            <h2 
-              className="text-sm font-bold uppercase tracking-wider mb-2"
-              style={{ color: colors.primary }}
-            >
-              Languages
-            </h2>
-            <div className="flex gap-4 text-sm">
-              {data.languages.map((lang, idx) => (
-                <span key={idx}>
-                  <span style={{ color: colors.text }}>{lang.language}</span>
-                  <span style={{ color: colors.textLight }}> ({lang.proficiency})</span>
-                </span>
-              ))}
-            </div>
-          </section>
-        )}
-
         {/* Additional Information */}
         {data.additionalInfo && data.additionalInfo.length > 0 && (
           <section>
             <h2 
-              className="text-sm font-bold uppercase tracking-wider mb-2"
-              style={{ color: colors.primary }}
+              style={{ 
+                fontSize: '14px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                color: modernColors.primary,
+                marginBottom: '8px',
+                paddingBottom: '4px',
+                borderBottom: `2px solid ${modernColors.primary}`,
+              }}
             >
-              Additional Information
+              ADDITIONAL INFORMATION
             </h2>
-            <div className="text-sm" style={{ color: colors.text }}>
-              {data.additionalInfo.map((item, idx) => (
-                <span key={idx}>
-                  {item}
-                  {idx < data.additionalInfo!.length - 1 && ' • '}
-                </span>
-              ))}
-            </div>
+            <p style={{ fontSize: '12px', color: modernColors.text }}>
+              {data.additionalInfo.join(' • ')}
+            </p>
           </section>
         )}
-      </div>
+      </main>
     </div>
   );
 }

@@ -75,11 +75,11 @@ export const SUMMARY_LIMITS = {
   },
 } as const;
 
-// 3. SKILLS SECTION LIMITS
+// 3. SKILLS SECTION LIMITS (Languages is separate 6th category)
 export const SKILLS_LIMITS = {
-  US: { totalSkills: { min: 12, max: 20 }, categories: { min: 3, max: 5 }, perCategory: { min: 3, max: 6 }, totalChars: { min: 300, max: 500 } },
-  Germany: { totalSkills: { min: 10, max: 15 }, categories: { min: 3, max: 4 }, perCategory: { min: 2, max: 4 }, totalChars: { min: 250, max: 400 } },
-  EU: { totalSkills: { min: 10, max: 18 }, categories: { min: 3, max: 4 }, perCategory: { min: 3, max: 5 }, totalChars: { min: 280, max: 480 } },
+  US: { totalSkills: { min: 15, max: 25 }, categories: { min: 3, max: 5 }, perCategory: { min: 3, max: 5 }, totalChars: { min: 300, max: 500 } },
+  Germany: { totalSkills: { min: 10, max: 15 }, categories: { min: 3, max: 5 }, perCategory: { min: 2, max: 5 }, totalChars: { min: 250, max: 400 } },
+  EU: { totalSkills: { min: 10, max: 18 }, categories: { min: 3, max: 5 }, perCategory: { min: 3, max: 5 }, totalChars: { min: 280, max: 480 } },
 } as const;
 
 // 4. EXPERIENCE BULLET POINT LIMITS
@@ -90,12 +90,20 @@ export const EXPERIENCE_BULLET_LIMITS = {
   Germany: { chars: { min: 70, max: 150 }, words: { min: 10, max: 20 } },
 } as const;
 
-// Experience bullets per role by experience level
+// 2026 Standard: Strict role and bullet limits to ensure 2-page CV
+export const EXPERIENCE_ROLE_LIMITS = {
+  maxRoles: 4,           // Maximum 3-4 roles total
+  minRoles: 2,           // At least 2 roles for credibility
+  maxTotalBullets: 15,   // NEVER exceed 15 bullets across entire CV
+  roleAgeLimit: 10,      // Drop roles older than 10 years
+} as const;
+
+// Experience bullets per role (2026 Standard: 4-3-3 pattern)
 export const EXPERIENCE_BULLETS_PER_ROLE = {
-  entry: { recentRole: { min: 2, max: 3 }, olderRoles: { min: 2, max: 3 } },
-  mid: { recentRole: { min: 4, max: 6 }, olderRoles: { min: 4, max: 6 } },
-  senior: { recentRole: { min: 5, max: 8 }, olderRoles: { min: 2, max: 3 } },
-  Germany: { recentRole: { min: 4, max: 5 }, olderRoles: { min: 3, max: 4 } },
+  mostRecentRole: { min: 3, max: 4 },    // Most recent: exactly 4 bullets
+  secondRole: { min: 3, max: 4 },        // Second role: 3-4 bullets
+  olderRoles: { min: 2, max: 3 },        // 3rd/4th roles: exactly 3 bullets
+  Germany: { mostRecent: 4, older: 3 },  // Germany: 4 + 3 pattern
 } as const;
 
 // 5. EDUCATION SECTION LIMITS
