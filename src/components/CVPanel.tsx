@@ -497,7 +497,7 @@ export function CVPanel() {
   return (
     <div className="h-full flex flex-col bg-cream-50">
       {/* Header */}
-      <div className="px-6 py-3 border-b border-cream-200 bg-white shadow-sm">
+      <div className="px-3 sm:px-6 py-2.5 sm:py-3 border-b border-cream-200 bg-white shadow-sm">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-navy-50 flex items-center justify-center">
@@ -546,7 +546,7 @@ export function CVPanel() {
         ) : activeTab === 'content' ? (
           <div className="h-full flex flex-col">
             {/* Toolbar */}
-            <div className="px-4 py-2.5 bg-white border-b border-cream-200 flex items-center justify-between flex-wrap gap-2">
+            <div className="px-2.5 sm:px-4 py-2 sm:py-2.5 bg-white border-b border-cream-200 flex items-center justify-between flex-wrap gap-1.5 sm:gap-2">
               <div className="flex items-center gap-2">
                 {/* Original/Optimized Toggle */}
                 {generatedCV && (
@@ -650,7 +650,7 @@ export function CVPanel() {
             )}
             
             {/* CV Content - View Mode or Edit Mode */}
-            <div className="flex-1 overflow-auto p-6 bg-gray-100">
+            <div className="flex-1 overflow-auto p-2 sm:p-6 bg-gray-100">
               {isEditMode && cvData ? (
                 /* Edit Mode - Editable Canvas */
                 <EditableCVCanvas

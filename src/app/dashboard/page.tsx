@@ -9,7 +9,7 @@ import { ChatPanel } from '@/components/ChatPanel';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
-import { FileText, Mail, Send, FolderOpen, Settings, User, Loader2, Sparkles } from 'lucide-react';
+import { FileText, Mail, Send, FolderOpen, Settings, User, Loader2, Sparkles, MessageCircle, X } from 'lucide-react';
 import Link from 'next/link';
 import { CreditIndicator } from '@/components/ui/CreditIndicator';
 
@@ -18,6 +18,7 @@ export default function Dashboard() {
   const {
     activeTab,
     setActiveTab,
+    isAgentWorking,
   } = useAppStore();
 
   const { user, profile, isLoading } = useAuth();
@@ -28,6 +29,7 @@ export default function Dashboard() {
   // Resizable chat panel state - ALL HOOKS MUST BE BEFORE EARLY RETURNS
   const [chatPanelWidth, setChatPanelWidth] = useState(440);
   const [isResizing, setIsResizing] = useState(false);
+  const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
   const MIN_CHAT_WIDTH = 360;
   const MAX_CHAT_WIDTH = 650;
 
@@ -38,6 +40,8 @@ export default function Dashboard() {
 
   const handleTabChange = useCallback((tab: 'cv' | 'cover-letter' | 'email') => {
     setActiveTab(tab);
+    // On mobile, auto-close chat drawer when switching to a content tab
+    setIsMobileChatOpen(false);
   }, [setActiveTab]);
 
   // Redirect to login if not authenticated
@@ -47,7 +51,17 @@ export default function Dashboard() {
     }
   }, [isLoading, user, router]);
 
-  // Resize effect
+  // Auto-close mobile chat drawer when agent finishes working
+  const [wasAgentWorking, setWasAgentWorking] = useState(false);
+  useEffect(() => {
+    if (wasAgentWorking && !isAgentWorking) {
+      // Agent just finished — close chat drawer so user sees results
+      setIsMobileChatOpen(false);
+    }
+    setWasAgentWorking(isAgentWorking);
+  }, [isAgentWorking, wasAgentWorking]);
+
+  // Resize effect (desktop only)
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
@@ -74,6 +88,16 @@ export default function Dashboard() {
     };
   }, [isResizing]);
 
+  // Lock body scroll when mobile chat drawer is open
+  useEffect(() => {
+    if (isMobileChatOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobileChatOpen]);
+
   // Show loading state while checking auth
   if (isLoading) {
     return (
@@ -95,15 +119,15 @@ export default function Dashboard() {
   return (
     <div className="h-screen flex flex-col bg-cream-100">
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Results */}
+        {/* Left Panel - Results (full width on mobile) */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Tabs - Premium Header */}
-          <div className="bg-white border-b border-cream-200 px-4 shadow-sm">
-            <div className="flex items-center gap-1">
+          <div className="bg-white border-b border-cream-200 px-2 sm:px-4 shadow-sm">
+            <div className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto scrollbar-hide">
               {/* Main Tabs */}
               <button
                 onClick={() => setActiveTab('cv')}
-                className={`flex items-center gap-2 px-4 py-3.5 text-sm font-medium border-b-2 transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-3 sm:py-3.5 text-xs sm:text-sm font-medium border-b-2 transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === 'cv'
                     ? 'border-gold-400 text-navy-700 font-semibold'
                     : 'border-transparent text-warm-gray hover:text-navy-600 hover:border-cream-300'
@@ -114,18 +138,19 @@ export default function Dashboard() {
               </button>
               <button
                 onClick={() => setActiveTab('cover-letter')}
-                className={`flex items-center gap-2 px-4 py-3.5 text-sm font-medium border-b-2 transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-3 sm:py-3.5 text-xs sm:text-sm font-medium border-b-2 transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === 'cover-letter'
                     ? 'border-gold-400 text-navy-700 font-semibold'
                     : 'border-transparent text-warm-gray hover:text-navy-600 hover:border-cream-300'
                 }`}
               >
                 <Mail className={`w-4 h-4 ${activeTab === 'cover-letter' ? 'text-gold-500' : ''}`} />
-                Cover Letter
+                <span className="hidden sm:inline">Cover Letter</span>
+                <span className="sm:hidden">Letter</span>
               </button>
               <button
                 onClick={() => setActiveTab('email')}
-                className={`flex items-center gap-2 px-4 py-3.5 text-sm font-medium border-b-2 transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-3 sm:py-3.5 text-xs sm:text-sm font-medium border-b-2 transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === 'email'
                     ? 'border-gold-400 text-navy-700 font-semibold'
                     : 'border-transparent text-warm-gray hover:text-navy-600 hover:border-cream-300'
@@ -146,7 +171,7 @@ export default function Dashboard() {
               {/* Documents Link */}
               <Link
                 href="/documents"
-                className="flex items-center gap-2 px-3 py-3.5 text-sm font-medium text-warm-gray hover:text-navy-600 transition-colors cursor-pointer"
+                className="flex items-center gap-2 px-2 sm:px-3 py-3.5 text-sm font-medium text-warm-gray hover:text-navy-600 transition-colors cursor-pointer"
               >
                 <FolderOpen className="w-4 h-4" />
                 <span className="hidden lg:inline">Documents</span>
@@ -155,10 +180,10 @@ export default function Dashboard() {
               {/* Settings/Profile Link */}
               <Link
                 href="/settings"
-                className="flex items-center gap-2 px-2 py-2 ml-1 cursor-pointer"
+                className="flex items-center gap-2 px-1 sm:px-2 py-2 ml-0.5 sm:ml-1 cursor-pointer"
                 title="Settings & Profile"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-navy-500 to-navy-700 flex items-center justify-center overflow-hidden ring-2 ring-gold-300/50 ring-offset-1">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-navy-500 to-navy-700 flex items-center justify-center overflow-hidden ring-2 ring-gold-300/50 ring-offset-1">
                   {profile?.avatar_url ? (
                     <img 
                       src={profile.avatar_url} 
@@ -166,7 +191,7 @@ export default function Dashboard() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <User className="w-4 h-4 text-white" />
+                    <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                   )}
                 </div>
               </Link>
@@ -181,8 +206,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Right Panel - Chat (Resizable) */}
-        <div className="relative flex" style={{ width: chatPanelWidth }}>
+        {/* Right Panel - Chat (Desktop: resizable side panel) */}
+        <div className="hidden md:flex relative" style={{ width: chatPanelWidth }}>
           {/* Resize Handle */}
           <div
             onMouseDown={handleMouseDown}
@@ -203,6 +228,60 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Chat Drawer Overlay */}
+      {isMobileChatOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black/40 z-40 transition-opacity"
+          onClick={() => setIsMobileChatOpen(false)}
+        />
+      )}
+
+      {/* Mobile Chat Drawer */}
+      <div 
+        className={`md:hidden fixed inset-y-0 right-0 w-full max-w-md z-50 transform transition-transform duration-300 ease-in-out ${
+          isMobileChatOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        <div className="h-full flex flex-col bg-cream-50 shadow-2xl">
+          {/* Mobile Chat Header with Close Button */}
+          <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-cream-200 shadow-sm">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-gold-400" />
+              <span className="text-sm font-semibold text-navy-700">KarKo AI Chat</span>
+            </div>
+            <button
+              onClick={() => setIsMobileChatOpen(false)}
+              className="p-2 rounded-lg text-warm-gray hover:bg-cream-100 hover:text-navy-600 transition-all cursor-pointer"
+              aria-label="Close chat"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <ChatPanel 
+              onTabChange={handleTabChange}
+              isMobileDrawer={true}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Floating Chat Toggle Button */}
+      <button
+        onClick={() => setIsMobileChatOpen(!isMobileChatOpen)}
+        className={`md:hidden fixed bottom-6 right-6 z-30 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all cursor-pointer ${
+          isMobileChatOpen
+            ? 'bg-navy-600 text-white scale-0 opacity-0'
+            : 'bg-gradient-to-r from-gold-400 to-gold-500 text-white scale-100 opacity-100 hover:shadow-xl hover:from-gold-500 hover:to-gold-600 active:scale-95'
+        }`}
+        aria-label="Open chat"
+      >
+        <MessageCircle className="w-6 h-6" />
+        {isAgentWorking && (
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white animate-pulse" />
+        )}
+      </button>
     </div>
   );
 }

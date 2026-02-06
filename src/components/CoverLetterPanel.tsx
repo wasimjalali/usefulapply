@@ -456,8 +456,8 @@ ${letter.signatureName}`;
 
   return (
     <div className="h-full flex flex-col bg-cream-50">
-      <div className="px-6 py-3 border-b border-cream-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between">
+      <div className="px-3 sm:px-6 py-2.5 sm:py-3 border-b border-cream-200 bg-white shadow-sm">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-navy-50 flex items-center justify-center">
               <Mail className="w-4 h-4 text-navy-600" />
@@ -550,7 +550,7 @@ ${letter.signatureName}`;
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-3 sm:p-6">
         {isGenerating || isLoadingCoverLetter || isAgentWorking ? (
           <KarkoAIStepIndicator 
             stepType="cover_letter" 

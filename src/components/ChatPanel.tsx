@@ -26,6 +26,7 @@ import KarkoLogo from '@/components/KarkoLogo';
 interface ChatPanelProps {
   onTabChange?: (tab: 'cv' | 'cover-letter' | 'email') => void;
   onAnalyze?: () => void;
+  isMobileDrawer?: boolean;
 }
 
 // AgentStepData type for V2 progress tracking
@@ -42,7 +43,7 @@ interface AgentStepData {
   agent?: string;
 }
 
-export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
+export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: ChatPanelProps) {
   const { user } = useAuth();
   const {
     currentCV,
@@ -742,8 +743,9 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         />
       )}
     
-      <div className="h-full flex flex-col bg-cream-50 border-l border-cream-200">
-        {/* Header */}
+      <div className={`h-full flex flex-col bg-cream-50 ${isMobileDrawer ? '' : 'border-l border-cream-200'}`}>
+        {/* Header — hidden in mobile drawer mode (drawer provides its own) */}
+        {!isMobileDrawer && (
         <div className="px-4 py-3 border-b border-cream-200 bg-white shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -769,6 +771,29 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
             </div>
           </div>
         </div>
+        )}
+
+        {/* Mobile drawer mini toolbar */}
+        {isMobileDrawer && (
+        <div className="flex items-center justify-end gap-1 px-3 py-1.5 border-b border-cream-100 bg-cream-50">
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className={`p-2 rounded-lg transition-all cursor-pointer ${
+              showHistory ? 'bg-navy-50 text-navy-600 shadow-sm' : 'text-warm-gray hover:bg-cream-100 hover:text-navy-600'
+            }`}
+            title="Application History"
+          >
+            <History className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleNewApplication}
+            className="p-2 rounded-lg text-warm-gray hover:bg-cream-100 hover:text-navy-600 transition-all cursor-pointer"
+            title="New Application"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+        )}
 
         {/* History Sidebar */}
         {showHistory && (
