@@ -7,10 +7,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -83,6 +85,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function handleCheckoutCompleted(session: any) {
+  const supabase = getSupabaseAdmin();
   const userId = session.metadata?.userId;
   const customerId = session.customer;
   const type = session.metadata?.type;
@@ -159,6 +162,7 @@ async function handleCheckoutCompleted(session: any) {
 }
 
 async function handleSubscriptionUpdate(subscription: any) {
+  const supabase = getSupabaseAdmin();
   const customerId = subscription.customer;
 
   // Get user by customer ID
@@ -204,6 +208,7 @@ async function handleSubscriptionUpdate(subscription: any) {
 }
 
 async function handleSubscriptionDeleted(subscription: any) {
+  const supabase = getSupabaseAdmin();
   const customerId = subscription.customer;
 
   // Get user by customer ID
@@ -236,6 +241,7 @@ async function handleSubscriptionDeleted(subscription: any) {
 }
 
 async function handlePaymentSucceeded(invoice: any) {
+  const supabase = getSupabaseAdmin();
   const customerId = invoice.customer;
   const subscriptionId = invoice.subscription;
 
@@ -269,6 +275,7 @@ async function handlePaymentSucceeded(invoice: any) {
 }
 
 async function handlePaymentFailed(invoice: any) {
+  const supabase = getSupabaseAdmin();
   const customerId = invoice.customer;
 
   // Get user by customer ID

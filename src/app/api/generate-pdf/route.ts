@@ -4,10 +4,12 @@ import { createClient } from '@supabase/supabase-js';
 import type { StructuredCV, CVDate } from '@/lib/types/cv-schema';
 
 // Create Supabase client for server-side usage
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -26,6 +28,7 @@ interface RenderStats {
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = getSupabaseAdmin();
     const { cv, templateId, userId }: GeneratePDFRequest = await request.json();
     
     if (!cv || !cv.personal?.fullName) {
