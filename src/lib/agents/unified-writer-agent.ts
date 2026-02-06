@@ -133,7 +133,7 @@ export const unifiedWriterAgent = {
 
       // Step 4: Compute skill match (AI-based, no RAG)
       emit({ type: 'progress', percent: 35, message: 'Analyzing skill match...' });
-      context.match = await this.computeSkillMatch(context.applicant, context.job);
+      context.match = await this.computeSkillMatch(context.applicant, context.job, context.masterCV);
 
       emit({ type: 'step_completed', step: { id: 'matching', description: 'Skills matched' }, tokens: jobResult.tokens });
 
@@ -400,7 +400,8 @@ Return valid JSON only. No explanation or preamble.`,
    */
   async computeSkillMatch(
     applicant: MasterContext['applicant'],
-    job: MasterContext['job']
+    job: MasterContext['job'],
+    masterCVText?: string
   ): Promise<MasterContext['match']> {
     if (!applicant || !job) {
       return { score: 0, matchingSkills: [], missingSkills: [] };
@@ -438,14 +439,29 @@ Return valid JSON only. No explanation or preamble.`,
 5. SOFT SKILLS: Match soft skills based on demonstrated experience in the candidate's work history, not just listed keywords.
 6. PARTIAL MATCHES: If the candidate has genuinely related experience in the same domain, count it as a match.
 7. HONESTY: Do not inflate. If there is genuinely no connection between a required skill and anything in the candidate's profile, mark it as missing.
+8. MATCHING ACCURACY: A skill is MATCHING only if the EXACT tool/technology (or a direct synonym) appears in the applicant's documents.
+   NOT matches (different products/tools):
+   - "Google SEO Fundamentals" ≠ "Google Analytics"
+   - "Amazon Seller Central" ≠ "Amazon Advertising Console"
+   - "JavaScript" ≠ "Python"
+   ARE matches (same tool, different naming):
+   - "Node.js" = "Node"
+   - "Helium 10" = "Helium10"
+   When uncertain, mark as MISSING. False negatives are far less harmful than false positives.
 </matching_rules>
 
-=== CANDIDATE SKILLS ===
+=== CANDIDATE SKILLS (from extracted profile) ===
 ${applicantSkillsList.join(', ')}
 
 === CANDIDATE EXPERIENCE ===
 ${experienceContext}
+${masterCVText ? `
+=== MASTER CV RAW TEXT (comprehensive skills inventory — treat as authoritative) ===
+${masterCVText}
 
+IMPORTANT: A skill listed in EITHER the extracted profile OR the Master CV raw text counts as a candidate skill.
+The Master CV is the complete skills inventory. If a skill appears in the Master CV but not the extracted profile, it is still a real skill the candidate has.
+` : ''}
 === JOB REQUIRED SKILLS ===
 ${requiredSkills.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
@@ -584,7 +600,7 @@ Return ONLY valid JSON, no explanation.`,
       context.detectedLanguage = this.detectLanguage(context.jobDescription);
       
       emit({ type: 'progress', percent: 50, message: 'Analyzing skill match...' });
-      context.match = await this.computeSkillMatch(context.applicant, context.job);
+      context.match = await this.computeSkillMatch(context.applicant, context.job, context.masterCV);
       emit({ type: 'step_completed', step: { id: 'matching', description: 'Skills matched' }, tokens: jobResult.tokens });
 
       // Step 3: Generate fit assessment
@@ -726,7 +742,17 @@ Skills: ${applicant?.skills?.map(s => String(s)).join(', ') || 'Not specified'}
 Tools: ${applicant?.tools?.map(s => String(s)).join(', ') || 'Not specified'}
 Experience: ${experienceSummary}
 Certifications: ${applicant?.certifications?.map(s => String(s)).join(', ') || 'None listed'}
+${context.masterCV ? `
+=== MASTER CV (comprehensive skills & experience inventory) ===
+${context.masterCV}
 
+FIT ASSESSMENT DATA SOURCES:
+Assess the candidate against ALL available documents:
+1. Primary CV - the uploaded resume
+2. Master CV - the comprehensive skills and experience inventory (shown above)
+
+A skill in EITHER document is a candidate skill. Only mark as MISSING if absent from BOTH.
+` : ''}
 === JOB REQUIREMENTS ===
 Title: ${job?.title || 'Position'}
 Company: ${job?.companyName || 'Company'}
@@ -870,15 +896,33 @@ Reproduce language levels exactly as stated in the source CVs. Do not upgrade or
 - Grundkenntnisse = A1-A2 (basic)
 A B2 certificate must be presented as B2 — labeling it as "verhandlungssicher" is factually incorrect and will be caught by any German HR professional. Only label a language as "verhandlungssicher" if the source CV documents C1 level or higher.
 
-RULE 4 — SKILL INFERENCE (STRICT):
-You may ONLY add skills to the CV that are:
-1. Explicitly listed in the original CV or Master CV, OR
-2. Directly demonstrated by a project or achievement described in the CV/Master CV
-You may NOT add skills that are:
-- Inferred from adjacent or similar skills (e.g., do NOT add "Google Analytics" just because the CV lists "SEO" and "Keyword Research")
-- Common in the industry but not evidenced by the applicant
-- Required by the job description but not present in the applicant's background
-If a required skill is missing, flag it in the fit assessment as a GAP, not in the CV as a claimed skill.
+RULE 4 — SKILL ACCURACY (HIGHEST PRIORITY — OVERRIDES ATS OPTIMIZATION):
+
+This rule has HIGHER priority than ATS optimization. If there is ANY conflict between
+improving ATS score and maintaining skill accuracy, skill accuracy WINS.
+
+You may ONLY include a skill, tool, or technology in the CV if:
+1. It is EXPLICITLY listed by name in the Primary CV OR Master CV
+2. It is DIRECTLY used in a described project (e.g., "Technology Stack: Next.js" → can list Next.js)
+
+You may NEVER include a skill if:
+- It is only IMPLIED by adjacent skills ("Amazon Seller Central" does NOT imply "Amazon Advertising Console")
+- It is required by the JD but absent from the applicant's documents
+- Adding it would improve the ATS score (ATS score is secondary to accuracy)
+- It is industry-standard but the applicant hasn't listed it ("knows Node.js" does NOT imply "knows Python")
+
+CONCRETE EXAMPLES OF VIOLATIONS:
+- Master CV: "Google SEO Fundamentals" → Adding "Google Analytics" = FORBIDDEN (different product)
+- Master CV: "Amazon Seller Central" → Adding "Amazon Advertising Console" = FORBIDDEN (different tool)
+- Master CV: "Node.js, Next.js" → Adding "Python" = FORBIDDEN (different language)
+- Master CV: "Listing Optimization" → Adding "A/B Testing" = FORBIDDEN (different methodology)
+- Master CV: "Supabase" → Adding "FastAPI" = FORBIDDEN (different technology)
+
+IF A JD KEYWORD HAS NO MATCH IN THE APPLICANT'S DOCUMENTS:
+→ Do NOT add it to the CV
+→ Do NOT add it to missing_keywords_added
+→ The fit assessment already flagged it as a gap
+→ Accept a lower ATS compatibility score — honesty is the product's value proposition
 
 RULE 5 — SKILL CATEGORIZATION:
 Categorize each skill based on its actual technical function, not based on which job description category it would best fit into. A database tool belongs under "Database/Backend," a web framework belongs under "Web Development," an analytics platform belongs under "Analytics," etc.
@@ -935,9 +979,23 @@ To ensure the CV fits on 2 pages and remains readable:
    - Max 5 items per category (strictly enforced)
 
 6. EDUCATION: Copy from Primary CV exactly
-   - For non-German qualifications mapped to German equivalents: use the recognized equivalent name + grade, NO redundant descriptors
-   - CORRECT: "Allgemeine Hochschulreife (Abitur-Äquivalent) | Note: 92,43%"
-   - INCORRECT: "Allgemeine Hochschulreife (Abitur-Äquivalent) in Allgemeinbildung"
+
+   EDUCATION FORMATTING (MANDATORY — NO EXCEPTIONS):
+
+   REMOVE these phrases from ALL education lines:
+   - "in Allgemeinbildung" — ALWAYS DELETE THIS
+   - "in General Education" — ALWAYS DELETE THIS
+   These are redundant with "Allgemeine Hochschulreife" / "General University Entrance Qualification"
+
+   CORRECT:
+   - German: "Allgemeine Hochschulreife (Abitur-Äquivalent) | Note: 92,43%"
+   - English: "General University Entrance Qualification (Abitur Equivalent) | Grade: 92.43%"
+
+   WRONG (never output these):
+   - "...in Allgemeinbildung" ← DELETE "in Allgemeinbildung"
+   - "...in General Education" ← DELETE "in General Education"
+
+   If the source CV contains these phrases, REMOVE them during optimization.
    - For US/UK market: "High School Diploma GPA: 92.43%"
    - Do NOT add "in [field]" if the degree name already implies the field (e.g., "Allgemeine Hochschulreife" already means general education)
 
@@ -950,7 +1008,7 @@ You MUST populate the "analysis" object to explain your work to the user:
 - summary: Explain your high-level strategy in 2 sentences
 - key_changes: A list of 4-6 specific improvements made
 - ats_compatibility: Your estimated ATS compatibility score (0-100)
-- missing_keywords_added: List of keywords from the job description that you added to the CV
+- missing_keywords_added: List of EXISTING applicant skills that you repositioned or rephrased to better match ATS keywords from the JD. Only include skills the applicant ALREADY HAD in their Primary CV or Master CV. This is a report of what you REPOSITIONED, not what you INVENTED.
 
 === OUTPUT FORMAT (STRICT JSON) ===
 
@@ -1025,32 +1083,53 @@ Return ONLY this JSON structure - no markdown, no preamble, no explanation:
 }
 
 === ATS OPTIMIZATION (2026 STANDARDS) ===
-1. SECTION HEADERS: Use ONLY these standard ATS-recognized headers:
-   - "Professional Summary" or "Summary" (or German equivalent)
-   - "Professional Experience" or "Work Experience"
-   - "Education"
-   - "Skills" or "Core Competencies"
-   - "Certifications"
-   - "Languages"
-   NEVER use creative headers like "What I Bring", "My Journey", or "Areas of Expertise"
 
-2. KEYWORD MIRRORING: Use EXACT phrases from the job description, not synonyms.
-   - JD says "project management" → write "project management" (NOT "managing projects")
-   - JD says "data analysis" → write "data analysis" (NOT "analyzing data")
-   - Include both acronyms AND full forms: "SEO (Search Engine Optimization)"
-   - Place JD keywords in Skills section FIRST, then in bullet points
+FOUNDATIONAL PRINCIPLE — ACCURACY OVER ATS SCORE:
+ATS optimization means making the applicant's REAL skills more visible to automated systems.
+It does NOT mean adding skills the applicant doesn't have.
+A CV with 70% ATS compatibility and zero fabricated skills is ALWAYS better than
+a CV with 95% ATS compatibility that includes skills the applicant will fail to demonstrate in an interview.
+
+1. SECTION HEADERS: Use ONLY standard ATS-recognized headers:
+   - "Professional Summary" or "Summary" or "Profil"
+   - "Professional Experience" or "Work Experience" or "Berufserfahrung"
+   - "Education" or "Ausbildung"
+   - "Skills" or "Core Competencies" or "Fähigkeiten"
+   - "Certifications" or "Zertifikate"
+   - "Languages" or "Sprachen"
+   NEVER use creative headers like "What I Bring", "My Journey"
+
+2. KEYWORD REPOSITIONING (NOT INJECTION):
+   - Scan the JD for required skills and keywords
+   - Check if the applicant HAS those skills (in Primary CV or Master CV)
+   - If YES: Reposition that skill to be more prominent — move to Skills section header, use exact JD phrasing
+   - If NO: Do NOT add the skill. Leave it out. The fit assessment already flagged it as a gap.
+   - Include both acronyms AND full forms for skills the applicant HAS: "SEO (Search Engine Optimization)"
 
 3. BULLET FORMAT (CAR Method - Challenge → Action → Result):
-   - "Reduced customer churn by 15% by implementing automated retention workflows"
    - Every bullet MUST start with a strong action verb
-   - Every bullet SHOULD include at least one metric/number if available in the CV
-   - No action verb used more than twice across ALL bullets in the entire CV
-   - HIGH-IMPACT VERBS: Achieved, Accelerated, Delivered, Generated, Implemented, Launched, Optimized, Reduced, Scaled, Streamlined, Transformed
+   - Every bullet SHOULD include at least one metric/number when available
+   - No action verb used more than twice across ALL bullets
+   - Bullets must describe things the applicant ACTUALLY DID (from Primary CV or Master CV)
 
-4. SKILLS SECTION: List JD keywords FIRST, then additional relevant skills
-   - Match EXACT terminology from job posting
-   - Include tool versions where relevant (e.g., "Python 3.x", "React 18")
-   - Both hard skills AND relevant soft skills from JD
+4. SKILLS SECTION ORDERING:
+   - List skills that MATCH the JD first (but only skills the applicant actually has)
+   - Then list additional relevant skills from the applicant's background
+   - Match EXACT terminology from job posting WHERE the applicant has the equivalent skill
+   - Example: If JD says "project management" and Master CV shows project management experience → use "Project Management"
+   - Example: If JD says "Kubernetes" and neither CV mentions it → DO NOT ADD IT
+
+5. WHAT "OPTIMIZATION" MEANS:
+   - Rephrasing existing skills to match JD terminology (e.g., "managed teams" → "Project Management")
+   - Reordering sections to put most relevant experience first
+   - Adding metrics from Master CV that Primary CV omitted
+   - Using exact JD phrases for skills the applicant demonstrably has
+   
+   WHAT "OPTIMIZATION" DOES NOT MEAN:
+   - Adding skills not found in any applicant document
+   - Claiming proficiency in tools never mentioned
+   - Inventing experience or achievements
+   - Inferring skills from adjacent knowledge (e.g., "knows Node.js" ≠ "knows Python")
 
 === DUAL-CV SOURCE RULES (CRITICAL) ===
 You have TWO sources of truth for the applicant:
@@ -1077,6 +1156,22 @@ The following fields from the original CV or Master CV must ALWAYS be preserved 
 3. Work Authorization status — if mentioned in Master CV or Primary CV
 4. Location — always include current city
 These fields cost zero space in terms of relevance but can be disqualifying if missing.
+
+DRIVER'S LICENSE PLACEMENT (MANDATORY):
+If Primary CV or Master CV includes a driver's license:
+- Include it in the CV header/contact line OR as a separate line in personal info
+- This MUST appear in the actual CV text output, not just in the analysis/changes metadata
+
+English format:
+jalaliwasim15@gmail.com | +49 163 044 6980 | Kaiserslautern | Driver's License: Class B
+
+German format:
+jalaliwasim15@gmail.com | +49 163 044 6980 | Kaiserslautern | Führerschein: Klasse B
+
+After generating the CV, verify the driver's license text appears in the output.
+
+=== OUTPUT COMPLETENESS ===
+Your CV output must be a COMPLETE, standalone document ending after the last section (Certifications, Languages, or similar). Do NOT append any raw text from the original CV. Nothing follows the last section.
 
 === CRITICAL RULES ===
 1. Output ONLY valid JSON - no markdown code blocks, no text before or after
@@ -1403,6 +1498,17 @@ RULE 5 — VERIFICATION CHECK:
 Before writing any claim, verify: "Does this exact fact appear in the provided source documents?" If uncertain, omit it.
 </anti_hallucination_rules>
 
+COVER LETTER SKILL ACCURACY (HIGHEST PRIORITY):
+
+The cover letter must NEVER claim experience with skills, tools, or technologies not documented in the Primary CV or Master CV. This overrides all other instructions.
+
+FORBIDDEN: "I've executed A/B testing" (if not in Master CV)
+FORBIDDEN: "Proficient in Python" (if not in Master CV)
+FORBIDDEN: "Experience with [tool]" (if not in Master CV)
+
+Sell what the applicant HAS. Never fabricate what they DON'T have.
+If the JD requires a skill the applicant lacks, emphasize transferable skills and learning ability instead.
+
 WRITING STYLE:
 - Write like a confident professional, not a job applicant begging for consideration
 - Use active voice and strong verbs
@@ -1471,23 +1577,21 @@ STRUCTURE (Problem-Solution Format):
 4. Signature: "Best regards," followed by applicant's full name
 
 === LOCATION INTELLIGENCE ===
+
 Before generating the cover letter, check:
-1. Where is the applicant located? (from CV/Master CV)
-2. Where is the job located? (from job description)
-3. Is relocation or hybrid/remote mentioned? (from job description)
-4. Does the Master CV mention relocation readiness?
+1. Applicant's current location (from CV/Master CV)
+2. Job location (from JD)
+3. Master CV relocation preferences - read the EXACT text
 
-IF the applicant and job are in different cities AND the job requires on-site presence:
-- Check if Master CV mentions relocation willingness
-- If YES: Add one sentence in the closing paragraph:
-  English: "I am open to relocating to [city] and available to discuss logistics."
-  German: "Ich bin bereit, nach [Stadt] umzuziehen und stehe für ein Gespräch zur Verfügung."
-- If NO: Do not fabricate relocation willingness. Instead, omit any location reference and let the user decide.
+RELOCATION RULES:
+- If Master CV specifies relocation to specific cities/regions → ONLY mention relocation to those places
+- Example: "Ready to relocate to major German cities" → can mention Munich, Berlin, Hamburg - CANNOT mention New York, Toronto, London
+- If job is in a city/country NOT covered by the Master CV relocation statement → Do NOT mention relocation at all
+- If job is fully remote → Do NOT mention relocation
+- If Master CV has no relocation statement → Do NOT mention relocation
 
-IF the job is fully remote or doesn't mention location requirements:
-- Do not mention location or relocation
-
-NEVER ignore a location mismatch. Addressing it proactively shows professionalism. Ignoring it looks careless.
+NEVER fabricate relocation willingness beyond what the Master CV explicitly states.
+International relocation requires the user to update their Master CV - the AI cannot assume it.
 
 === COMPANY CONTEXT EXTRACTION ===
 Since web search is not available, extract ALL company context from the job description:
@@ -1671,6 +1775,14 @@ EMAIL SUBJECT LINE RULES:
 - NEVER add extra descriptors, skill keywords, or metrics in the subject
 - The subject line is for identification, not selling
 
+SUBJECT LINE LENGTH — STRICT ENFORCEMENT:
+Maximum: 60 characters. No exceptions.
+If job title is too long:
+1. Use only the PRIMARY title (before any "/" or "—" separator in the JD title)
+2. Drop secondary titles or specializations
+3. "Junior Webentwickler / E-Commerce" → use "Junior Webentwickler" only
+After composing the subject line, COUNT characters. If over 60, shorten the job title portion.
+
 ATTACHMENT REFERENCE (REQUIRED — never skip):
 - English: Include "Please find my CV and cover letter attached." or "I've attached my CV and cover letter for your review."
 - German: Include "Anbei finden Sie meinen Lebenslauf und mein Anschreiben." or "Meine vollständigen Bewerbungsunterlagen finden Sie im Anhang."
@@ -1697,6 +1809,8 @@ Return ONLY valid JSON: {"subject": "...", "body": "..."}`,
 <anti_hallucination_rules>
 Only reference skills, tools, metrics, and experience that appear in the provided source CVs. Do not invent numbers or claims. Reproduce language proficiency levels exactly as stated — do not upgrade levels to match job requirements (e.g., B2 stays B2, only C1+ qualifies as verhandlungssicher in the German market). Every claim must be traceable to at least one source document.
 </anti_hallucination_rules>
+
+EMAIL SKILL ACCURACY: Only reference skills and achievements verified in Primary CV or Master CV. Never claim undocumented skills.
 
 GREETING RULE:
 - Since we don't know the hiring manager's name, ALWAYS use: "Hello," or "Hi there,"
