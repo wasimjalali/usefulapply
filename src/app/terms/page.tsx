@@ -47,7 +47,7 @@ export default function TermsPage() {
                 <li>AI suggestions are aids, not guarantees</li>
                 <li>Review all content before submitting to employers</li>
                 <li>We are not responsible for hiring outcomes</li>
-                <li>AI may occasionally produce errors — always verify</li>
+                <li>AI may occasionally produce errors, always verify</li>
               </ul>
             </section>
 

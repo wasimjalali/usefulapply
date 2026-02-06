@@ -25,7 +25,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'KarKo AI — AI-Powered Job Application Assistant',
+    default: 'KarKo AI | AI-Powered Job Application Assistant',
     template: '%s | KarKo AI',
   },
   description:
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: SITE_URL,
     siteName: 'KarKo AI',
-    title: 'KarKo AI — AI-Powered Job Application Assistant',
+    title: 'KarKo AI | AI-Powered Job Application Assistant',
     description:
       'Optimize your CV, generate tailored cover letters, and create professional application emails in minutes with AI.',
     images: [
@@ -61,13 +61,13 @@ export const metadata: Metadata = {
         url: '/karko-ai.png',
         width: 1200,
         height: 630,
-        alt: 'KarKo AI — AI-Powered Job Application Assistant',
+        alt: 'KarKo AI | AI-Powered Job Application Assistant',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'KarKo AI — AI-Powered Job Application Assistant',
+    title: 'KarKo AI | AI-Powered Job Application Assistant',
     description:
       'Optimize your CV, generate tailored cover letters, and create professional application emails in minutes with AI.',
     images: ['/karko-ai.png'],

@@ -9,7 +9,7 @@ import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Pricing tiers data — Updated pricing model
+// Pricing tiers data - Updated pricing model
 const tiers = [
   {
     name: 'Starter',
@@ -109,7 +109,7 @@ const addonPacks = [
 const faqs = [
   {
     question: 'What exactly do I get with each application?',
-    answer: 'Each application generates a complete package: an AI-optimized CV tailored to the job description, a personalized cover letter with company research, and a professional application email — all in under 3 minutes.',
+    answer: 'Each application generates a complete package: an AI-optimized CV tailored to the job description, a personalized cover letter with company research, and a professional application email, all in under 3 minutes.',
   },
   {
     question: 'Are all features the same across plans?',
@@ -129,7 +129,7 @@ const faqs = [
   },
   {
     question: 'How is KarKo different from other resume builders?',
-    answer: 'Most tools just help you format a resume. KarKo AI is an agentic system that analyzes the job description, extracts company insights, runs a fit analysis, generates a tailored CV, writes a personalized cover letter, and drafts a professional email — all automatically in one workflow.',
+    answer: 'Most tools just help you format a resume. KarKo AI is an agentic system that analyzes the job description, extracts company insights, runs a fit analysis, generates a tailored CV, writes a personalized cover letter, and drafts a professional email, all automatically in one workflow.',
   },
 ];
 
@@ -208,7 +208,7 @@ export default function PricingPage() {
           </ScrollReveal>
           <ScrollReveal delay={300}>
           <p className="text-xl text-warm-gray max-w-2xl mx-auto">
-            The full agentic AI workflow is included in every plan — company research, ATS optimization, personalized documents, and more. You only choose how many applications you need.
+            The full agentic AI workflow is included in every plan: company research, ATS optimization, personalized documents, and more. You only choose how many applications you need.
           </p>
           </ScrollReveal>
         </div>

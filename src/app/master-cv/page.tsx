@@ -8,7 +8,7 @@ import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 
 // The Master CV Prompt
-const MASTER_CV_PROMPT = `You are helping me create a Master CV — a complete inventory of my professional background. This is NOT a regular CV to send to employers. It's a detailed reference document (5-10 pages) that an AI job application tool will use to generate tailored applications for me.
+const MASTER_CV_PROMPT = `You are helping me create a Master CV, a complete inventory of my professional background. This is NOT a regular CV to send to employers. It's a detailed reference document (5-10 pages) that an AI job application tool will use to generate tailored applications for me.
 
 === YOUR INSTRUCTIONS ===
 
@@ -20,7 +20,7 @@ const MASTER_CV_PROMPT = `You are helping me create a Master CV — a complete i
 
 === RULES ===
 
-- Only include FACTS — no future plans or aspirations
+- Only include FACTS, no future plans or aspirations
 - Every achievement needs a NUMBER if possible
 - Include YEARS OF EXPERIENCE for each skill
 - Length: 5-10 pages, 3,000-7,000 words (max 15 pages / 15,000 words)
@@ -105,7 +105,7 @@ Structure the final document exactly like this:
 
 ---
 
-# [Full Name] — Master CV (Skills & Experience Inventory)
+# [Full Name] - Master CV (Skills & Experience Inventory)
 
 **Purpose:** Factual reference document for job applications.
 **Last Updated:** [Date]
@@ -126,7 +126,7 @@ Structure the final document exactly like this:
 
 ---
 
-## Professional Mindset — [Type] Approach
+## Professional Mindset - [Type] Approach
 
 *[One sentence describing their approach]*
 
@@ -169,7 +169,7 @@ Structure the final document exactly like this:
 ## Education
 
 ### [Degree]
-**[Institution] — [Location] | [Year]**
+**[Institution] | [Location] | [Year]**
 
 - Grade: [X]
 - Notable: [X]
@@ -292,7 +292,7 @@ export default function MasterCVPage() {
               What is a Master CV?
             </h2>
             <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-              It is not something you send to employers. It is a detailed reference document containing your complete professional history — so KarKo AI can create perfectly tailored applications.
+              It is not something you send to employers. It is a detailed reference document containing your complete professional history, so KarKo AI can create perfectly tailored applications.
             </p>
           </div>
           </ScrollReveal>
@@ -382,7 +382,7 @@ export default function MasterCVPage() {
               {
                 icon: FileText,
                 title: 'Never Miss an Achievement',
-                description: 'That certification, that side project, that award — all captured and available when needed.',
+                description: 'That certification, that side project, that award: all captured and available when needed.',
               },
               {
                 icon: Sparkles,
@@ -392,7 +392,7 @@ export default function MasterCVPage() {
               {
                 icon: CheckCircle,
                 title: 'Interview Preparation',
-                description: 'Your Master CV becomes your interview prep document — refresh your memory before any call.',
+                description: 'Your Master CV becomes your interview prep document. Refresh your memory before any call.',
               },
               {
                 icon: ArrowRight,

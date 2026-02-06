@@ -8,9 +8,9 @@ import { ScrollReveal, StaggerChildren } from '@/components/marketing/ScrollReve
 import { CountUp } from '@/components/marketing/CountUp';
 
 export const metadata: Metadata = {
-  title: 'KarKo AI — AI-Powered Job Application Assistant',
+  title: 'KarKo AI | AI-Powered Job Application Assistant',
   description:
-    'Apply to jobs 10x faster with AI. KarKo AI optimizes your CV for each role, generates tailored cover letters, and creates professional application emails — all in under 3 minutes.',
+    'Apply to jobs 10x faster with AI. KarKo AI optimizes your CV for each role, generates tailored cover letters, and creates professional application emails, all in under 3 minutes.',
   alternates: { canonical: '/' },
 };
 
@@ -43,7 +43,7 @@ export default function Home() {
             </ScrollReveal>
             <ScrollReveal delay={300}>
             <p className="text-xl md:text-2xl text-warm-gray mb-10 max-w-2xl mx-auto leading-relaxed">
-              Paste a job description. Get a tailored CV, cover letter, and email — all personalized to the job and company — in under 3 minutes.
+              Paste a job description. Get a tailored CV, cover letter, and email, all personalized to the job and company, in under 3 minutes.
             </p>
             </ScrollReveal>
             <ScrollReveal delay={450}>
@@ -52,7 +52,7 @@ export default function Home() {
                 href="/auth/signup"
                 className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-lg"
               >
-                Start Free — No Credit Card
+                Start Free, No Credit Card
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <Link
@@ -116,7 +116,7 @@ export default function Home() {
               Stop Wasting Hours on Every Application
             </h2>
             <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-              The average job seeker spends 45+ minutes per application. KarKo AI compresses that into under 3 minutes — with better results.
+              The average job seeker spends 45+ minutes per application. KarKo AI compresses that into under 3 minutes, with better results.
             </p>
           </div>
           </ScrollReveal>
@@ -221,7 +221,7 @@ export default function Home() {
               {
                 step: '3',
                 title: 'Get Your Complete Package',
-                description: 'Receive a tailored CV, personalized cover letter, and professional email — ready to send in under 3 minutes.',
+                description: 'Receive a tailored CV, personalized cover letter, and professional email. Ready to send in under 3 minutes.',
                 icon: Zap,
                 color: 'sage',
               },
@@ -258,7 +258,7 @@ export default function Home() {
               Not Just Another Resume Builder
             </h2>
             <p className="text-lg text-navy-200 max-w-2xl mx-auto">
-              Most tools help you format a resume. KarKo AI is an agentic system that creates your entire application package — researched, personalized, and ATS-ready.
+              Most tools help you format a resume. KarKo AI is an agentic system that creates your entire application package: researched, personalized, and ATS-ready.
             </p>
           </div>
           </ScrollReveal>
@@ -268,12 +268,12 @@ export default function Home() {
               {
                 icon: Sparkles,
                 title: 'Agentic AI Workflow',
-                description: 'Not a template filler. Our AI agent researches, analyzes, writes, and refines — like having a career coach on demand.',
+                description: 'Not a template filler. Our AI agent researches, analyzes, writes, and refines, like having a career coach on demand.',
               },
               {
                 icon: Globe,
                 title: 'US & EU Templates',
-                description: 'Professional templates for both markets. German Lebenslauf, US ATS-optimized, and more — all region-appropriate.',
+                description: 'Professional templates for both markets. German Lebenslauf, US ATS-optimized, and more, all region-appropriate.',
               },
               {
                 icon: Search,
@@ -293,7 +293,7 @@ export default function Home() {
               {
                 icon: MessageSquare,
                 title: 'AI Self-Refinement',
-                description: 'Our AI automatically iterates and refines your documents before delivering them — ensuring the highest quality output.',
+                description: 'Our AI automatically iterates and refines your documents before delivering them, ensuring the highest quality output.',
               },
               {
                 icon: BarChart3,
@@ -328,7 +328,7 @@ export default function Home() {
               A Complete Application Package, Every Time
             </h2>
             <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-              Each application generates three professionally crafted documents — all personalized to the specific job and company.
+              Each application generates three professionally crafted documents, all personalized to the specific job and company.
             </p>
           </div>
           </ScrollReveal>
@@ -396,7 +396,7 @@ export default function Home() {
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                quote: "Applied to 50 jobs in one weekend. Got 8 interviews the following week. The personalization is what makes the difference — recruiters actually respond.",
+                quote: "Applied to 50 jobs in one weekend. Got 8 interviews the following week. The personalization is what makes the difference. Recruiters actually respond.",
                 name: 'Sarah M.',
                 role: 'Product Manager',
                 result: '8 interviews in 1 week',
@@ -410,7 +410,7 @@ export default function Home() {
                 rating: 5,
               },
               {
-                quote: "The company research feature is incredible. My cover letters reference specific company initiatives — hiring managers notice that immediately.",
+                quote: "The company research feature is incredible. My cover letters reference specific company initiatives. Hiring managers notice that immediately.",
                 name: 'Emily R.',
                 role: 'Marketing Director',
                 result: '5x more callbacks',
@@ -531,7 +531,7 @@ export default function Home() {
                 Don&apos;t Have a Master CV?
               </h2>
               <p className="text-warm-gray leading-relaxed mb-4">
-                A Master CV is a comprehensive document (5-10 pages) that contains your complete professional history — every job, skill, achievement, and certification. It is not something you send to employers. It is the source material that KarKo AI draws from to create perfectly tailored applications.
+                A Master CV is a comprehensive document (5-10 pages) that contains your complete professional history: every job, skill, achievement, and certification. It is not something you send to employers. It is the source material that KarKo AI draws from to create perfectly tailored applications.
               </p>
               <p className="text-warm-gray leading-relaxed mb-6">
                 Most people do not have one, and that is okay. We have built a free guided process that helps you create yours in about 30 minutes using any AI chatbot.

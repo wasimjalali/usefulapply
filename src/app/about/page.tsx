@@ -10,7 +10,7 @@ import { CountUp } from '@/components/marketing/CountUp';
 export const metadata: Metadata = {
   title: 'About KarKo AI',
   description:
-    'Learn about KarKo AI — the AI-powered job application assistant built by a job seeker, for job seekers. Our mission is to help you apply smarter and land interviews faster.',
+    'Learn about KarKo AI, the AI-powered job application assistant built by a job seeker, for job seekers. Our mission is to help you apply smarter and land interviews faster.',
   alternates: { canonical: '/about' },
 };
 
@@ -33,7 +33,7 @@ export default function AboutPage() {
           </ScrollReveal>
           <ScrollReveal delay={300}>
           <p className="text-xl text-warm-gray max-w-2xl mx-auto leading-relaxed">
-            KarKo AI was born from a simple frustration: talented people spending hours on applications that go nowhere. We built an agentic AI system that does the work for you — so you can focus on what matters.
+            KarKo AI was born from a simple frustration: talented people spending hours on applications that go nowhere. We built an agentic AI system that does the work for you, so you can focus on what matters.
           </p>
           </ScrollReveal>
         </div>
@@ -49,16 +49,16 @@ export default function AboutPage() {
               <h2 className="text-3xl font-bold text-navy-600 mb-6">From Job Seeker to Founder</h2>
               <div className="space-y-4 text-warm-gray leading-relaxed">
                 <p>
-                  KarKo AI was born from personal experience. As a job seeker, I was applying to <strong className="text-charcoal">50-60 jobs</strong> at a time — rewriting my CV, researching companies, crafting cover letters, and drafting emails. It was exhausting and incredibly time-consuming.
+                  KarKo AI was born from personal experience. As a job seeker, I was applying to <strong className="text-charcoal">50-60 jobs</strong> at a time, rewriting my CV, researching companies, crafting cover letters, and drafting emails. It was exhausting and incredibly time-consuming.
                 </p>
                 <p>
-                  I first tried building a solution inside a chatbot — a custom project that would help generate my application materials. But even with that setup, each application still took <strong className="text-charcoal">45 minutes or more</strong>. The manual back-and-forth was the bottleneck.
+                  I first tried building a solution inside a chatbot, a custom project that would help generate my application materials. But even with that setup, each application still took <strong className="text-charcoal">45 minutes or more</strong>. The manual back-and-forth was the bottleneck.
                 </p>
                 <p>
-                  That is when I decided to build KarKo AI — a fully agentic system that does everything in <strong className="text-charcoal">one automated workflow</strong>: analyze the job, extract company insights, run a fit analysis, and generate a complete application package in under 3 minutes.
+                  That is when I decided to build KarKo AI: a fully agentic system that does everything in <strong className="text-charcoal">one automated workflow</strong>: analyze the job, extract company insights, run a fit analysis, and generate a complete application package in under 3 minutes.
                 </p>
                 <p>
-                  I built it for myself first. When I saw the results — more interviews, less time wasted — I knew this had to be shared with other job seekers facing the same struggle.
+                  I built it for myself first. When I saw the results (more interviews, less time wasted), I knew this had to be shared with other job seekers facing the same struggle.
                 </p>
               </div>
             </div>
@@ -72,7 +72,7 @@ export default function AboutPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-charcoal">The Problem</p>
-                    <p className="text-sm text-warm-gray">Applying to 50+ jobs, 45 minutes each — job searching became a full-time job</p>
+                    <p className="text-sm text-warm-gray">Applying to 50+ jobs, 45 minutes each. Job searching became a full-time job</p>
                   </div>
                 </div>
                 <div className="w-px h-6 bg-cream-300 ml-5" />
@@ -82,7 +82,7 @@ export default function AboutPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-charcoal">The First Attempt</p>
-                    <p className="text-sm text-warm-gray">Built a chatbot project — still took 45 min per application</p>
+                    <p className="text-sm text-warm-gray">Built a chatbot project, still took 45 min per application</p>
                   </div>
                 </div>
                 <div className="w-px h-6 bg-cream-300 ml-5" />
@@ -92,7 +92,7 @@ export default function AboutPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-charcoal">KarKo AI</p>
-                    <p className="text-sm text-warm-gray">Fully agentic workflow — complete applications in under 3 minutes</p>
+                    <p className="text-sm text-warm-gray">Fully agentic workflow: complete applications in under 3 minutes</p>
                   </div>
                 </div>
               </div>
@@ -119,17 +119,17 @@ export default function AboutPage() {
               {
                 icon: Sparkles,
                 title: 'Agentic, Not Assistive',
-                description: 'Other tools help you format a resume. KarKo AI is an autonomous agent that analyzes, writes, and self-refines — delivering a complete application package in one workflow.',
+                description: 'Other tools help you format a resume. KarKo AI is an autonomous agent that analyzes, writes, and self-refines, delivering a complete application package in one workflow.',
               },
               {
                 icon: Target,
                 title: 'Personalization at Scale',
-                description: 'Every document is tailored to the specific job and company. We do not believe in generic templates — we believe in applications that make recruiters stop and read.',
+                description: 'Every document is tailored to the specific job and company. We do not believe in generic templates. We believe in applications that make recruiters stop and read.',
               },
               {
                 icon: Globe,
                 title: 'Built for Global Job Seekers',
-                description: 'Professional templates for US and EU markets. German Lebenslauf, US ATS-optimized formats, and region-appropriate cover letters — all built in.',
+                description: 'Professional templates for US and EU markets. German Lebenslauf, US ATS-optimized formats, and region-appropriate cover letters, all built in.',
               },
               {
                 icon: Shield,
@@ -240,7 +240,7 @@ export default function AboutPage() {
                 <div className="w-64 h-64 md:w-80 md:h-80 rounded-2xl overflow-hidden border-4 border-white shadow-lg">
                   <Image
                     src="/wasim-founder.jpg"
-                    alt="Wasim Jalali — Founder & CEO of KarKo AI"
+                    alt="Wasim Jalali, Founder & CEO of KarKo AI"
                     width={320}
                     height={427}
                     className="w-full h-full object-cover"
@@ -252,10 +252,10 @@ export default function AboutPage() {
                 <p className="text-sm font-medium text-gold-500 mb-4">Founder & CEO</p>
                 <div className="space-y-3 text-warm-gray leading-relaxed">
                   <p>
-                    &ldquo;I was applying to 50-60 jobs at a time and spending hours on each application. I first tried building a solution inside a chatbot, but it still took 45 minutes per application. That frustration led me to build KarKo AI — a tool that does in 3 minutes what used to take me an hour.
+                    &ldquo;I was applying to 50-60 jobs at a time and spending hours on each application. I first tried building a solution inside a chatbot, but it still took 45 minutes per application. That frustration led me to build KarKo AI, a tool that does in 3 minutes what used to take me an hour.
                   </p>
                   <p>
-                    I built it for myself first, saw real results, and knew I had to share it with every job seeker going through the same struggle. From a job seeker, to job seekers — that is what KarKo AI is all about.&rdquo;
+                    I built it for myself first, saw real results, and knew I had to share it with every job seeker going through the same struggle. From a job seeker, to job seekers. That is what KarKo AI is all about.&rdquo;
                   </p>
                 </div>
               </div>
