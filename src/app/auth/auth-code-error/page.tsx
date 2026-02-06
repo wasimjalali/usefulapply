@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
@@ -8,6 +8,20 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 
 export default function AuthCodeErrorPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-cream-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md p-8 text-center">
+          <p className="text-warm-gray">Loading...</p>
+        </Card>
+      </div>
+    }>
+      <AuthCodeErrorContent />
+    </Suspense>
+  );
+}
+
+function AuthCodeErrorContent() {
   const searchParams = useSearchParams();
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [errorDescription, setErrorDescription] = useState<string>('');
