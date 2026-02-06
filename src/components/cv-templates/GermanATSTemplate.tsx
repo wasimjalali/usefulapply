@@ -33,11 +33,11 @@ const GERMAN_HEADERS = {
 export function GermanATSTemplate({ data, template, photoUrl }: Props) {
   // 2026 Design Refresh: German Lebenslauf palette
   const germanColors = {
-    primary: '#004E92',      // German blue accent
+    primary: '#1E3A5F',      // Refined slate blue - elegant & ATS-safe
     text: '#1A1A1A',         // Near-black for body
     textLight: '#4A5568',    // Muted grey for secondary
-    accent: '#004E92',       // Blue for highlights
-    headerBg: '#F7FAFC',     // Light grey header background
+    accent: '#1E3A5F',       // Slate blue for highlights
+    headerBg: '#F8F9FB',     // Subtle cool-grey sidebar background
     border: '#E2E8F0',       // Light border
   };
   
@@ -57,7 +57,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
         style={{
           width: '100%',
           height: '100%',
-          fontFamily: "'Verdana', 'Geneva', 'Tahoma', sans-serif",
+          fontFamily: "'Arial', 'Helvetica Neue', 'Helvetica', sans-serif",
           fontSize: '11px',
           lineHeight: 1.2,
           color: germanColors.text,
@@ -289,7 +289,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
         <header style={{ marginBottom: '20px', paddingBottom: '12px', borderBottom: `2px solid ${germanColors.primary}` }}>
           <h1 
             style={{ 
-              fontFamily: "'Verdana', 'Geneva', 'Tahoma', sans-serif",
+              fontFamily: "'Arial', 'Helvetica Neue', 'Helvetica', sans-serif",
               fontSize: '24px',
               fontWeight: 'bold',
               color: germanColors.primary,

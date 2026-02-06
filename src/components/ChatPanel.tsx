@@ -20,6 +20,7 @@ import {
   History,
   Sparkles,
 } from 'lucide-react';
+import KarkoLogo from '@/components/KarkoLogo';
 
 interface ChatPanelProps {
   onTabChange?: (tab: 'cv' | 'cover-letter' | 'email') => void;
@@ -66,7 +67,10 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
   const [v2TokenUsage, setV2TokenUsage] = useState<{ inputTokens: number; outputTokens: number; totalTokens: number } | null>(null);
   const [messageFeedback, setMessageFeedback] = useState<Record<string, 'positive' | 'negative'>>({});
   const [feedbackModal, setFeedbackModal] = useState<{ messageId: string; content: string; type: 'positive' | 'negative' } | null>(null);
+  const [fitAnalysisContextId, setFitAnalysisContextId] = useState<string | null>(null);
+  const [fitAnalysisJD, setFitAnalysisJD] = useState<string>('');
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
+  const [applicationMode, setApplicationMode] = useState<'analyze_first' | 'apply_directly'>('analyze_first');
   
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -159,8 +163,13 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
       if (isJobDescription) {
         setJobDescription(messageContent);
         setIsAgentWorking(true);
-        setV2Progress({ percent: 0, message: 'Starting analysis...' });
-        runAgentWorkflow(messageContent);
+        if (applicationMode === 'apply_directly') {
+          setV2Progress({ percent: 0, message: 'Generating full application...' });
+          runAgentWorkflow(messageContent);
+        } else {
+          setV2Progress({ percent: 0, message: 'Analyzing job fit...' });
+          runFitAnalysisFlow(messageContent);
+        }
       } else {
         handleGeneralChat(messageContent);
       }
@@ -188,8 +197,13 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         
         setJobDescription(messageContent);
         setIsAgentWorking(true);
-        setV2Progress({ percent: 0, message: 'Starting analysis...' });
-        runAgentWorkflow(messageContent);
+        if (applicationMode === 'apply_directly') {
+          setV2Progress({ percent: 0, message: 'Generating full application...' });
+          runAgentWorkflow(messageContent);
+        } else {
+          setV2Progress({ percent: 0, message: 'Analyzing job fit...' });
+          runFitAnalysisFlow(messageContent);
+        }
       } else {
         handleGeneralChat(messageContent);
       }
@@ -261,7 +275,136 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
     }
   };
 
-  const runAgentWorkflow = async (jobDescription: string) => {
+  const runFitAnalysisFlow = async (jobDescription: string) => {
+    if (!currentCV) return;
+    
+    setIsAgentWorking(true);
+    setAgentSteps([]);
+    setV2Reflection(null);
+    setV2Models(null);
+    setV2TokenUsage(null);
+    setFitAnalysisContextId(null);
+    setFitAnalysisJD(jobDescription);
+    
+    try {
+      const { masterCV } = useAppStore.getState();
+      
+      abortControllerRef.current = new AbortController();
+      
+      const response = await fetch('/api/agent-v2', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobDescription,
+          currentCV: currentCV.rawText,
+          masterCV: masterCV?.rawText,
+          action: 'fit_analysis',
+        }),
+        signal: abortControllerRef.current.signal,
+      });
+      
+      if (!response.ok) throw new Error('Fit analysis failed');
+      
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No response stream');
+      
+      const decoder = new TextDecoder();
+      let buffer = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+        
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          
+          try {
+            const data = JSON.parse(line.slice(6));
+            
+            switch (data.type) {
+              case 'workflow_start':
+                setAgentSteps(data.steps.map((s: any) => ({
+                  function: s.function,
+                  description: s.description,
+                  status: 'pending' as const,
+                })));
+                if (data.models) setV2Models(data.models);
+                break;
+              case 'step_start':
+                setAgentSteps(prev => prev.map((step, idx) => 
+                  idx === data.index ? { ...step, status: 'running' as const, agent: data.agent } : step
+                ));
+                break;
+              case 'step_complete':
+                setAgentSteps(prev => prev.map((step, idx) => 
+                  idx === data.index ? { ...step, status: 'completed' as const, result: data.result } : step
+                ));
+                break;
+              case 'step_error':
+                setAgentSteps(prev => prev.map((step, idx) => 
+                  idx === data.index ? { ...step, status: 'error' as const, error: data.error } : step
+                ));
+                break;
+              case 'progress':
+                setV2Progress({ percent: data.percent, message: data.message });
+                break;
+              case 'fit_analysis_complete': {
+                const { contextId, fitAnalysis, job } = data;
+                setFitAnalysisContextId(contextId);
+                
+                const fitEmoji = fitAnalysis.fitLevel === 'strong' ? '🟢' : fitAnalysis.fitLevel === 'good' ? '🟡' : '🔴';
+                const fitLabel = fitAnalysis.fitLevel === 'strong' ? 'Strong Fit' : fitAnalysis.fitLevel === 'good' ? 'Good Fit' : 'Weak Fit';
+                
+                const matchInfo = fitAnalysis.matchingSkills?.length > 0 
+                  ? `\n\n**Matching Skills:** ${fitAnalysis.matchingSkills.join(', ')}`
+                  : '';
+                const missingInfo = fitAnalysis.missingSkills?.length > 0
+                  ? `\n**Missing Skills:** ${fitAnalysis.missingSkills.join(', ')}`
+                  : '';
+                
+                addChatMessage({
+                  role: 'assistant',
+                  content: `${fitEmoji} **${fitLabel}** for **${job?.title || 'this position'}** at **${job?.companyName || 'this company'}** (${fitAnalysis.score}% match)\n\n${fitAnalysis.assessment}${matchInfo}${missingInfo}`,
+                  actions: [
+                    { label: 'Apply for This Job', action: 'generate-full-application', icon: 'cv' },
+                    { label: 'Start New Application', action: 'skip-job', icon: 'new' },
+                  ],
+                });
+                break;
+              }
+              case 'error':
+                addChatMessage({
+                  role: 'assistant',
+                  content: `❌ Sorry, something went wrong: ${data.message}. Please try again.`,
+                });
+                break;
+            }
+          } catch (e) {
+            console.error('Failed to parse SSE data:', e);
+          }
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Fit analysis stopped by user');
+        return;
+      }
+      console.error('Fit analysis error:', error);
+      addChatMessage({
+        role: 'assistant',
+        content: '❌ Sorry, the fit analysis failed. Please try again.',
+      });
+    } finally {
+      setIsAgentWorking(false);
+      abortControllerRef.current = null;
+    }
+  };
+
+  const runAgentWorkflow = async (jobDescription: string, contextId?: string) => {
     if (!currentCV) return;
     
     setIsAgentWorking(true);
@@ -273,7 +416,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
     try {
       const { masterCV, certifications } = useAppStore.getState();
       const certificationsText = certifications.length > 0 
-        ? certifications.map(cert => `- ${cert.fileName}`).join('\n')
+        ? certifications.map((cert: any) => `- ${cert.fileName}`).join('\n')
         : undefined;
       
       abortControllerRef.current = new AbortController();
@@ -286,7 +429,8 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
           currentCV: currentCV.rawText,
           masterCV: masterCV?.rawText,
           certifications: certificationsText,
-          action: 'full_optimization',
+          action: contextId ? 'generate_with_context' : 'full_optimization',
+          contextId,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -548,7 +692,30 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
       case 'view-email':
         onTabChange?.('email');
         break;
+      case 'generate-full-application':
+        addChatMessage({
+          role: 'assistant',
+          content: '🚀 Generating your full application package...',
+        });
+        setIsAgentWorking(true);
+        setV2Progress({ percent: 0, message: 'Starting document generation...' });
+        runAgentWorkflow(fitAnalysisJD, fitAnalysisContextId || undefined);
+        break;
+      case 'skip-job':
+        setFitAnalysisContextId(null);
+        setFitAnalysisJD('');
+        useAppStore.getState().clearCurrentSession();
+        useAppStore.getState().setJobDescription('');
+        setJobDescription('');
+        setAgentSteps([]);
+        addChatMessage({
+          role: 'assistant',
+          content: 'No problem! Paste a new job description whenever you\'re ready.',
+        });
+        break;
       case 'start-new-application':
+        setFitAnalysisContextId(null);
+        setFitAnalysisJD('');
         useAppStore.getState().clearCurrentSession();
         useAppStore.getState().setJobDescription('');
         setJobDescription('');
@@ -579,13 +746,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
         <div className="px-4 py-3 border-b border-cream-200 bg-white shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-navy-600 to-navy-700 flex items-center justify-center">
-                <Sparkles className="w-3.5 h-3.5 text-gold-400" />
-              </div>
-              <h1 className="text-lg font-bold tracking-tight">
-                <span className="text-navy-700">Karko</span>
-                <span className="text-gold-500 ml-0.5">AI</span>
-              </h1>
+              <KarkoLogo variant="full" size="xs" theme="light" />
             </div>
             <div className="flex items-center gap-1">
               <button
@@ -742,7 +903,7 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
+        {/* Input Area with integrated mode selector */}
         <ChatInput
           value={inputValue}
           onChange={setInputValue}
@@ -754,6 +915,9 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
             ? "Paste a job description or ask me anything..." 
             : "Upload your CV first to get started..."
           }
+          applicationMode={applicationMode}
+          onModeChange={setApplicationMode}
+          showModeSelector={!!currentCV}
         />
       </div>
     </>

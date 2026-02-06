@@ -26,7 +26,8 @@ export default function ImprintPage() {
             <section>
               <h2 className="text-2xl font-semibold text-navy-600 mb-4">Contact</h2>
               <p className="text-warm-gray">
-                Email: <a href="mailto:contact@karko.ai" className="text-navy-600 hover:underline">contact@karko.ai</a>
+                Email: <a href="mailto:hello@karkoai.com" className="text-navy-600 hover:underline">hello@karkoai.com</a><br />
+                Website: <a href="https://www.karkoai.com" className="text-navy-600 hover:underline">www.karkoai.com</a>
               </p>
             </section>
 

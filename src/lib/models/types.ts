@@ -4,7 +4,7 @@
  * All tasks now use Claude Haiku 4.5 for fast, cost-effective AI
  */
 
-export type ModelProvider = 'anthropic' | 'google' | 'openai' | 'deepseek';
+export type ModelProvider = 'anthropic' | 'bedrock';
 
 export type TaskType =
   // Analysis tasks (Claude Haiku 4.5 - fast & cost-effective)
@@ -21,6 +21,8 @@ export type TaskType =
   | 'extract_applicant'  // Parse applicant profile from CV
   | 'parse_job'          // Analyze job description requirements
   | 'optimize_cv'        // Generate optimized CV
+  | 'fit_assessment'     // Pre-generation fit analysis
+  | 'skill_matching'     // LLM-based semantic skill matching (cross-language)
   // Writing tasks (Claude Haiku 4.5 - fast & cost-effective)
   | 'write_summary'
   | 'write_bullets'
@@ -192,6 +194,18 @@ export const MODEL_CONFIGS: Record<TaskType, ModelConfig> = {
     provider: 'anthropic',
     temperature: 0.4,  // Lower for JSON structure consistency while allowing creative writing
     maxTokens: 8192,
+  },
+  fit_assessment: {
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
+    temperature: 0.5,
+    maxTokens: 512,
+  },
+  skill_matching: {
+    model: 'claude-haiku-4-5',
+    provider: 'anthropic',
+    temperature: 0.1,  // Low temp for consistent, deterministic matching
+    maxTokens: 2048,
   },
 };
 

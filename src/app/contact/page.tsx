@@ -71,10 +71,10 @@ export default function ContactPage() {
               <h3 className="text-lg font-bold text-charcoal mb-2">Email Us</h3>
               <p className="text-warm-gray text-sm mb-3">For general inquiries and support</p>
               <a 
-                href="mailto:hello@karko.ai" 
+                href="mailto:hello@karkoai.com" 
                 className="text-navy-600 font-semibold hover:text-navy-700 transition-colors"
               >
-                hello@karko.ai
+                hello@karkoai.com
               </a>
             </div>
             <div className="bg-white rounded-2xl p-8 border border-cream-200 text-center shadow-sm hover:shadow-md transition-shadow">

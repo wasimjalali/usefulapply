@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { unifiedWriterAgent } from '@/lib/agents/unified-writer-agent';
 import { type MasterContext } from '@/lib/agents/types';
 import { createClient } from '@/lib/supabase/server';
-import { checkAndDeductCredits, formatCreditErrorResponse } from '@/lib/middleware/creditCheck';
+import { checkAndDeductCredits, formatCreditErrorResponse, CREDIT_COSTS } from '@/lib/middleware/creditCheck';
 import { setServerSupabaseClient, clearServerSupabaseClient } from '@/lib/supabase/credits';
 import { detectLanguage } from '@/lib/utils/language-detector';
 
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       clearServerSupabaseClient();
       return NextResponse.json({ 
         coverLetter,
-        creditsDeducted: 1,
+        creditsDeducted: CREDIT_COSTS.COVER_LETTER_REGEN,
         remainingCredits: creditResult.remainingCredits,
         tokens,
       });
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       clearServerSupabaseClient();
       return NextResponse.json({ 
         email,
-        creditsDeducted: 1,
+        creditsDeducted: CREDIT_COSTS.EMAIL_REGEN,
         remainingCredits: creditResult.remainingCredits,
         tokens,
       });

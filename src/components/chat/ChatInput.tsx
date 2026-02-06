@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
-import { Send, Square, AlertTriangle } from 'lucide-react';
+import { useRef, useEffect, useState } from 'react';
+import { Send, Square, AlertTriangle, Search, Zap } from 'lucide-react';
 
 interface ChatInputProps {
   value: string;
@@ -11,6 +11,9 @@ interface ChatInputProps {
   disabled?: boolean;
   isWorking?: boolean;
   placeholder?: string;
+  applicationMode?: 'analyze_first' | 'apply_directly';
+  onModeChange?: (mode: 'analyze_first' | 'apply_directly') => void;
+  showModeSelector?: boolean;
 }
 
 export function ChatInput({
@@ -21,8 +24,12 @@ export function ChatInput({
   disabled = false,
   isWorking = false,
   placeholder = "Type a message...",
+  applicationMode = 'analyze_first',
+  onModeChange,
+  showModeSelector = false,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [hoveredMode, setHoveredMode] = useState<string | null>(null);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -42,6 +49,26 @@ export function ChatInput({
   return (
     <div className="p-4 bg-gradient-to-t from-cream-100 to-cream-50">
       <div className="relative">
+        {/* Hover tooltips - rendered OUTSIDE the overflow-hidden container */}
+        {hoveredMode === 'analyze_first' && showModeSelector && !value.trim() && !isWorking && (
+          <div className="absolute bottom-full left-3 mb-1 w-60 bg-navy-700 text-white text-xs rounded-xl p-3.5 shadow-xl z-50">
+            <div className="font-semibold mb-1">Analyze First</div>
+            <p className="text-navy-200 leading-relaxed">Runs a fit analysis to show your match score and skill gaps before generating the full application.</p>
+            <p className="text-navy-300 mt-1.5 italic">Best when you haven&apos;t read the job description yet and want AI to evaluate the fit for you first.</p>
+            <div className="mt-2 text-gold-400 font-medium">0.5 credits (analysis) + 1.5 credits (application)</div>
+            <div className="absolute top-full left-6 w-2.5 h-2.5 bg-navy-700 rotate-45 -mt-1.5" />
+          </div>
+        )}
+        {hoveredMode === 'apply_directly' && showModeSelector && !value.trim() && !isWorking && (
+          <div className="absolute bottom-full left-24 mb-1 w-60 bg-navy-700 text-white text-xs rounded-xl p-3.5 shadow-xl z-50">
+            <div className="font-semibold mb-1">Apply Directly</div>
+            <p className="text-navy-200 leading-relaxed">Skips fit analysis and generates your optimized CV, cover letter, and email immediately.</p>
+            <p className="text-navy-300 mt-1.5 italic">Best when you&apos;ve already read the job description and it matches your qualifications.</p>
+            <div className="mt-2 text-gold-400 font-medium">1.5 credits</div>
+            <div className="absolute top-full left-6 w-2.5 h-2.5 bg-navy-700 rotate-45 -mt-1.5" />
+          </div>
+        )}
+
         {/* Main input container with gold border */}
         <div className={`relative bg-white rounded-2xl border-2 shadow-lg overflow-hidden transition-all duration-200 ${
           isWorking 
@@ -50,6 +77,38 @@ export function ChatInput({
         }`}>
           
           <div className="relative flex flex-col">
+            {/* Mode selector - inside input, hidden when typing */}
+            {showModeSelector && !value.trim() && !isWorking && (
+              <div className="flex items-center gap-1.5 px-3 pt-2.5 pb-0">
+                <button
+                  onClick={() => onModeChange?.('analyze_first')}
+                  onMouseEnter={() => setHoveredMode('analyze_first')}
+                  onMouseLeave={() => setHoveredMode(null)}
+                  className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                    applicationMode === 'analyze_first'
+                      ? 'bg-navy-600 text-white'
+                      : 'bg-cream-100 text-warm-gray hover:bg-cream-200'
+                  }`}
+                >
+                  <Search className="w-3 h-3" />
+                  Analyze First
+                </button>
+                <button
+                  onClick={() => onModeChange?.('apply_directly')}
+                  onMouseEnter={() => setHoveredMode('apply_directly')}
+                  onMouseLeave={() => setHoveredMode(null)}
+                  className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                    applicationMode === 'apply_directly'
+                      ? 'bg-navy-600 text-white'
+                      : 'bg-cream-100 text-warm-gray hover:bg-cream-200'
+                  }`}
+                >
+                  <Zap className="w-3 h-3" />
+                  Apply Directly
+                </button>
+              </div>
+            )}
+
             {/* Input row */}
             <div className="flex items-end gap-2 p-3">
               <div className="flex-1 relative">

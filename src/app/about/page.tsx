@@ -1,8 +1,16 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, Users, Target, Heart, Zap, Sparkles, Clock, Shield, Globe } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
+
+export const metadata: Metadata = {
+  title: 'About KarKo AI',
+  description:
+    'Learn about KarKo AI — the AI-powered job application assistant built by a job seeker, for job seekers. Our mission is to help you apply smarter and land interviews faster.',
+  alternates: { canonical: '/about' },
+};
 
 export default function AboutPage() {
   return (
@@ -204,12 +212,12 @@ export default function AboutPage() {
           <div className="bg-cream-50 rounded-2xl p-8 md:p-10 border border-cream-200">
             <div className="flex flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
-                <div className="w-32 h-32 md:w-40 md:h-40 rounded-2xl overflow-hidden border-4 border-white shadow-lg">
+                <div className="w-64 h-64 md:w-80 md:h-80 rounded-2xl overflow-hidden border-4 border-white shadow-lg">
                   <Image
-                    src="/Wasim.png"
+                    src="/wasim-founder.jpg"
                     alt="Wasim Jalali — Founder & CEO of KarKo AI"
-                    width={160}
-                    height={160}
+                    width={320}
+                    height={427}
                     className="w-full h-full object-cover"
                   />
                 </div>

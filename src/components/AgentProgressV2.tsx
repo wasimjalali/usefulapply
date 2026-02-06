@@ -98,6 +98,17 @@ const STEP_CONFIG: Record<string, {
       'Writing compelling conclusion',
     ]
   },
+  // FIT ASSESSMENT - Pre-generation fit analysis
+  fit_assessment: {
+    icon: Zap,
+    label: 'Assessing Job Fit',
+    agent: 'Karko AI',
+    actions: [
+      'Evaluating skill alignment',
+      'Analyzing experience relevance',
+      'Writing fit assessment',
+    ]
+  },
   // EMAIL - Generate application email
   email: { 
     icon: Award, 

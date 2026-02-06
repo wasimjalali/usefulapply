@@ -29,6 +29,9 @@ export interface UserCredits {
   plan_tier: 'starter' | 'plus' | 'pro';
   last_reset_date: string;
   next_reset_date: string;
+  stripe_customer_id?: string;
+  stripe_subscription_id?: string;
+  subscription_status?: string;
   created_at: string;
   updated_at: string;
 }
@@ -79,10 +82,11 @@ export interface AddonCreditPack {
 // =====================================================
 
 export const CREDIT_COSTS = {
-  FULL_APPLICATION: 2,      // CV + Cover Letter + Email
+  FULL_APPLICATION: 1.5,    // CV + Cover Letter + Email (after fit analysis)
+  FIT_ANALYSIS: 0.5,        // Fit analysis before full generation
   CV_OPTIMIZATION: 1,       // CV only
-  COVER_LETTER_REGEN: 1,    // Cover letter regeneration
-  EMAIL_REGEN: 1,           // Email regeneration
+  COVER_LETTER_REGEN: 0.5,  // Cover letter regeneration
+  EMAIL_REGEN: 0.5,         // Email regeneration
 } as const;
 
 export type CreditAction = keyof typeof CREDIT_COSTS;

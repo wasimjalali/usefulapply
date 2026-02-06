@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, User, Shield, CreditCard, Bell, LogOut, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProfileSection } from '@/components/settings/ProfileSection';
@@ -11,13 +11,9 @@ import { SubscriptionSection } from '@/components/settings/SubscriptionSection';
 import { NotificationsSection } from '@/components/settings/NotificationsSection';
 import { uploadAvatar, deleteAvatar } from '@/lib/supabase/storage';
 import { 
-  getConnectedAccounts, 
-  disconnectAccount, 
   getSubscription,
   changePassword,
-  connectOAuthProvider,
   deleteUserAccount,
-  type ConnectedAccount,
   type Subscription,
 } from '@/lib/supabase';
 import { getUserCredits, type UserCredits } from '@/lib/supabase/credits';
@@ -26,6 +22,7 @@ type SectionType = 'profile' | 'account' | 'subscription' | 'notifications';
 
 export default function SettingsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user: authUser, profile, isLoading: authLoading, signOut, updateProfile } = useAuth();
   
   const [formData, setFormData] = useState({
@@ -37,19 +34,23 @@ export default function SettingsPage() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [activeSection, setActiveSection] = useState<SectionType>('profile');
+  const [activeSection, setActiveSection] = useState<SectionType>(() => {
+    const section = searchParams.get('section');
+    if (section && ['profile', 'account', 'subscription', 'notifications'].includes(section)) {
+      return section as SectionType;
+    }
+    return 'profile';
+  });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
   
-  const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [userCredits, setUserCredits] = useState<UserCredits | null>(null);
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [isConnectingOAuth, setIsConnectingOAuth] = useState<string | null>(null);
   
   const [notifications, setNotifications] = useState({
     tips: true,
@@ -87,12 +88,10 @@ export default function SettingsPage() {
       
       setIsLoadingAccounts(true);
       try {
-        const [accounts, sub, creditsResult] = await Promise.all([
-          getConnectedAccounts(authUser.id),
+        const [sub, creditsResult] = await Promise.all([
           getSubscription(authUser.id),
           getUserCredits(authUser.id),
         ]);
-        setConnectedAccounts(accounts);
         setSubscription(sub);
         if (creditsResult.credits) {
           setUserCredits(creditsResult.credits);
@@ -237,24 +236,56 @@ export default function SettingsPage() {
     }
   };
 
-  const handleConnectOAuth = async (provider: 'google' | 'linkedin') => {
-    setIsConnectingOAuth(provider);
-    const oauthProvider = provider === 'linkedin' ? 'linkedin_oidc' : 'google';
-    const { error } = await connectOAuthProvider(oauthProvider);
-    if (error) {
-      alert('Failed to connect: ' + error.message);
-      setIsConnectingOAuth(null);
+  const handleManageBilling = async () => {
+    if (!authUser) return;
+    try {
+      const res = await fetch('/api/stripe/create-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: authUser.id }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || 'Failed to open billing portal');
+      }
+    } catch {
+      alert('Something went wrong. Please try again.');
     }
   };
 
-  const handleDisconnectAccount = async (provider: 'google' | 'linkedin') => {
+  const handleBuyAddon = async (packSize: string) => {
     if (!authUser) return;
-    
-    const { error } = await disconnectAccount(authUser.id, provider);
-    if (error) {
-      alert('Failed to disconnect: ' + error.message);
+    const res = await fetch('/api/stripe/create-addon-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: authUser.id, packSize }),
+    });
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
     } else {
-      setConnectedAccounts(prev => prev.filter(a => a.provider !== provider));
+      alert(data.error || 'Failed to start checkout');
+    }
+  };
+
+  const handleUpgrade = async (planTier: 'plus' | 'pro') => {
+    if (!authUser) return;
+    try {
+      const res = await fetch('/api/stripe/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: authUser.id, planTier }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || 'Failed to start checkout');
+      }
+    } catch {
+      alert('Something went wrong. Please try again.');
     }
   };
 
@@ -360,13 +391,8 @@ export default function SettingsPage() {
 
             {activeSection === 'account' && (
               <AccountSection
-                connectedAccounts={connectedAccounts}
-                isLoadingAccounts={isLoadingAccounts}
                 onChangePassword={() => setShowPasswordModal(true)}
-                onConnectOAuth={handleConnectOAuth}
-                onDisconnectAccount={handleDisconnectAccount}
                 onDeleteAccount={() => setShowDeleteConfirm(true)}
-                isConnectingOAuth={isConnectingOAuth}
               />
             )}
 
@@ -374,6 +400,10 @@ export default function SettingsPage() {
               <SubscriptionSection
                 subscriptionTier={subscriptionTier}
                 userCredits={userCredits}
+                userId={authUser?.id}
+                onManageBilling={handleManageBilling}
+                onUpgrade={handleUpgrade}
+                onBuyAddon={handleBuyAddon}
               />
             )}
 

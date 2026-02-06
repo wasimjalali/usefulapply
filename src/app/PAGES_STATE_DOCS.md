@@ -2,7 +2,16 @@
 
 **Location:** `/src/app/`  
 **Purpose:** Next.js pages for marketing, dashboard, and user-facing features  
-**Last Updated:** February 5, 2026 (Marketing Pages Redesign)
+**Last Updated:** February 6, 2026 (SEO, Logo, Brand Update)
+
+## SEO & Brand Update (Feb 6, 2026)
+- **layout.tsx**: Full SEO metadata (metadataBase, OpenGraph, Twitter cards, 10 keywords, canonical URLs, robots directives, googleBot config). JSON-LD `SoftwareApplication` schema. Plus Jakarta Sans font added (`--font-plus-jakarta`). KarkoLogo brand favicon (`icon.svg`).
+- **robots.ts** (NEW): Crawler directives — allows public pages, blocks private routes. Allows AI crawlers (GPTBot, ClaudeBot, etc.).
+- **sitemap.ts** (NEW): 9 public pages with priorities.
+- **page.tsx** (homepage): Added per-page metadata with title + description + canonical.
+- **about/page.tsx**: Added per-page metadata. Fixed broken founder image (was HEIF, converted to JPEG `wasim-founder.jpg`).
+- **pricing/layout.tsx** (NEW): Metadata wrapper for client-side pricing page.
+- **contact/layout.tsx** (NEW): Metadata wrapper for client-side contact page.
 
 ---
 
@@ -460,6 +469,17 @@ if (isLoading) {
 | Feb 5, 2026 | Complete marketing pages redesign | page.tsx, pricing/page.tsx, about/page.tsx, master-cv/page.tsx, contact/page.tsx | Feature reframing, new pricing, founder story, design system consistency |
 | Feb 5, 2026 | Enhanced Navbar and Footer | Navbar.tsx, Footer.tsx | Backdrop blur, gradient CTA, gold section headers, Master CV link, Image component |
 | Feb 5, 2026 | Application UI/UX premium redesign | dashboard/page.tsx, ChatPanel.tsx, CVPanel.tsx, CoverLetterPanel.tsx, EmailPanel.tsx, ChatMessage.tsx, AgentProgressV2.tsx, settings/page.tsx | Premium headers, pill toggles, gold accents, consistent design system |
+| Feb 5, 2026 | Documents page brand consistency | documents/page.tsx | Navy/gold icon containers, cream borders, profile photo section rebranded from purple to navy/gold |
+| Feb 5, 2026 | Hero section text update | page.tsx | Changed "Complete Application" to "Complete Job Application" for clarity |
+| Feb 5, 2026 | Settings sub-pages premium styling | ProfileSection.tsx, SubscriptionSection.tsx | Gold focus rings on inputs, rounded-2xl cards, gold progress bar, gold-bordered active plan cards |
+| Feb 5, 2026 | Fix double icons in AI response | ChatPanel.tsx | Removed emoji icons from action labels; Lucide icons already rendered by ChatMessage |
+| Feb 5, 2026 | CV template selector redesign | TemplateSelector.tsx | Brand-consistent navy gradients, gold selected state, premium recommendation tags |
+| Feb 5, 2026 | Fit Analysis API actions | api/agent-v2/route.ts | Added fit_analysis (0.5 credits) and generate_with_context (1.5 credits) actions with server-side context cache |
+| Feb 5, 2026 | Credit pricing update | api/agent-v2/route.ts, api/regenerate/route.ts | FULL_APPLICATION 1.5, FIT_ANALYSIS 0.5, CL/email regen 0.5 each |
+| Feb 6, 2026 | LLM-based semantic skill matching | unified-writer-agent.ts, models/types.ts | Fixes 0% score on cross-language JDs (German skills vs English CV). New skill_matching task type. |
+| Feb 6, 2026 | Anti-hallucination guardrails + language level rules | unified-writer-agent.ts | Zero fabrication policy across CV/CL/email prompts. B2≠verhandlungssicher rule. |
+| Feb 6, 2026 | Structured fit assessment format | unified-writer-agent.ts | Markdown with bold headers + bullets, 120 word limit, maxTokens 500 |
+| Feb 6, 2026 | Complete chat system prompt rewrite | api/chat/route.ts | XML tags (identity, current_user_state, response_rules), multi-language support, scope boundaries, brevity enforcement |
 
 ---
 

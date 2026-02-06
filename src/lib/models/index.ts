@@ -1,13 +1,9 @@
 /**
  * Model Abstraction Layer
- * Unified interface for calling different AI models based on task type
- * All tasks now use Claude Haiku 4.5 for fast, cost-effective AI
+ * All tasks use Claude Haiku 4.5 via Anthropic API (no fallbacks)
  */
 
-import { callGemini, callGeminiStream, parseGeminiJSON } from './gemini';
 import { callAnthropic, callAnthropicStream, parseAnthropicJSON } from './anthropic';
-import { callOpenAI, callOpenAIStream, parseOpenAIJSON } from './openai';
-import { callDeepSeek, callDeepSeekStream, isDeepSeekConfigured } from './deepseek';
 import { 
   type TaskType, 
   type ModelResponse, 
@@ -17,116 +13,32 @@ import {
 } from './types';
 
 export * from './types';
-export { parseGeminiJSON, parseAnthropicJSON, parseOpenAIJSON };
+export { parseAnthropicJSON };
 
 /**
- * Check if an error is a rate limit or quota error that should trigger fallback
- */
-function isRateLimitError(error: unknown): boolean {
-  if (error instanceof Error) {
-    const message = error.message.toLowerCase();
-    return (
-      message.includes('429') ||
-      message.includes('rate limit') ||
-      message.includes('quota') ||
-      message.includes('too many requests') ||
-      message.includes('exceeded')
-    );
-  }
-  return false;
-}
-
-/**
- * Main function to call the appropriate model based on task type
- * All tasks now use Claude Haiku 4.5
- * Falls back to DeepSeek if rate limited
+ * Main function to call Claude Haiku 4.5
  */
 export async function callModel(options: ModelCallOptions): Promise<ModelResponse> {
   const { task, prompt, systemPrompt, systemBlocks, temperature, maxTokens, jsonMode, conversationHistory } = options;
   
   const config = getModelConfig(task);
   
-  // Override config with provided options
   const finalTemp = temperature ?? config.temperature;
   const finalMaxTokens = maxTokens ?? config.maxTokens;
   
-  if (config.provider === 'openai') {
-    try {
-      return await callOpenAI({
-        prompt,
-        systemPrompt,
-        temperature: finalTemp,
-        maxTokens: finalMaxTokens,
-        jsonMode,
-      });
-    } catch (error) {
-      // Fallback to DeepSeek on rate limit errors
-      if (isRateLimitError(error) && isDeepSeekConfigured()) {
-        console.log('[Model] OpenAI rate limited, falling back to DeepSeek...');
-        const deepseekResponse = await callDeepSeek({
-          prompt,
-          systemPrompt,
-          temperature: finalTemp,
-          maxTokens: finalMaxTokens,
-          jsonMode,
-        });
-        return {
-          content: deepseekResponse.content,
-          model: deepseekResponse.model,
-          provider: 'deepseek',
-          usage: deepseekResponse.usage,
-          latencyMs: deepseekResponse.latencyMs,
-        };
-      }
-      throw error;
-    }
-  } else if (config.provider === 'google') {
-    try {
-      return await callGemini({
-        prompt,
-        systemPrompt,
-        temperature: finalTemp,
-        maxTokens: finalMaxTokens,
-        jsonMode,
-      });
-    } catch (error) {
-      if (isRateLimitError(error) && isDeepSeekConfigured()) {
-        console.log('[Model] Gemini rate limited, falling back to DeepSeek...');
-        const deepseekResponse = await callDeepSeek({
-          prompt,
-          systemPrompt,
-          temperature: finalTemp,
-          maxTokens: finalMaxTokens,
-          jsonMode,
-        });
-        return {
-          content: deepseekResponse.content,
-          model: deepseekResponse.model,
-          provider: 'deepseek',
-          usage: deepseekResponse.usage,
-          latencyMs: deepseekResponse.latencyMs,
-        };
-      }
-      throw error;
-    }
-  } else if (config.provider === 'anthropic') {
-    return callAnthropic({
-      prompt,
-      systemPrompt,
-      systemBlocks,
-      temperature: finalTemp,
-      maxTokens: finalMaxTokens,
-      jsonMode,
-      conversationHistory,
-    });
-  }
-  
-  throw new Error(`Unsupported provider: ${config.provider}`);
+  return callAnthropic({
+    prompt,
+    systemPrompt,
+    systemBlocks,
+    temperature: finalTemp,
+    maxTokens: finalMaxTokens,
+    jsonMode,
+    conversationHistory,
+  });
 }
 
 /**
- * Call model with streaming response
- * Falls back to DeepSeek if OpenAI hits rate limits
+ * Call Claude Haiku 4.5 with streaming response
  */
 export async function callModelStream(
   options: ModelCallOptions,
@@ -139,125 +51,32 @@ export async function callModelStream(
   const finalTemp = temperature ?? config.temperature;
   const finalMaxTokens = maxTokens ?? config.maxTokens;
   
-  if (config.provider === 'openai') {
-    try {
-      return await callOpenAIStream(
-        {
-          prompt,
-          systemPrompt,
-          temperature: finalTemp,
-          maxTokens: finalMaxTokens,
-        },
-        onChunk
-      );
-    } catch (error) {
-      if (isRateLimitError(error) && isDeepSeekConfigured()) {
-        console.log('[Model] OpenAI rate limited, falling back to DeepSeek stream...');
-        const deepseekResponse = await callDeepSeekStream(
-          {
-            prompt,
-            systemPrompt,
-            temperature: finalTemp,
-            maxTokens: finalMaxTokens,
-          },
-          onChunk
-        );
-        return {
-          content: deepseekResponse.content,
-          model: deepseekResponse.model,
-          provider: 'deepseek',
-          usage: deepseekResponse.usage,
-          latencyMs: deepseekResponse.latencyMs,
-        };
-      }
-      throw error;
-    }
-  } else if (config.provider === 'google') {
-    try {
-      return await callGeminiStream(
-        {
-          prompt,
-          systemPrompt,
-          temperature: finalTemp,
-          maxTokens: finalMaxTokens,
-        },
-        onChunk
-      );
-    } catch (error) {
-      if (isRateLimitError(error) && isDeepSeekConfigured()) {
-        console.log('[Model] Gemini rate limited, falling back to DeepSeek stream...');
-        const deepseekResponse = await callDeepSeekStream(
-          {
-            prompt,
-            systemPrompt,
-            temperature: finalTemp,
-            maxTokens: finalMaxTokens,
-          },
-          onChunk
-        );
-        return {
-          content: deepseekResponse.content,
-          model: deepseekResponse.model,
-          provider: 'deepseek',
-          usage: deepseekResponse.usage,
-          latencyMs: deepseekResponse.latencyMs,
-        };
-      }
-      throw error;
-    }
-  } else if (config.provider === 'anthropic') {
-    return callAnthropicStream(
-      {
-        prompt,
-        systemPrompt,
-        temperature: finalTemp,
-        maxTokens: finalMaxTokens,
-      },
-      onChunk
-    );
-  }
-  
-  throw new Error(`Unsupported provider: ${config.provider}`);
+  return callAnthropicStream(
+    {
+      prompt,
+      systemPrompt,
+      temperature: finalTemp,
+      maxTokens: finalMaxTokens,
+    },
+    onChunk
+  );
 }
 
 /**
- * Parse JSON from model response (handles both providers)
+ * Parse JSON from model response (handles markdown code blocks)
  */
 export function parseModelJSON<T>(content: string): T {
-  // Both parsers handle markdown code blocks the same way
-  return parseGeminiJSON<T>(content);
+  return parseAnthropicJSON<T>(content);
 }
 
 /**
  * Get estimated cost for a model call (in USD)
+ * Claude Haiku 4.5 pricing: $1/$5 per million tokens
  */
-export function estimateCost(task: TaskType, inputTokens: number, outputTokens: number, provider?: string): number {
-  const config = getModelConfig(task);
-  const actualProvider = provider || config.provider;
-  
-  if (actualProvider === 'openai') {
-    // GPT-4o mini pricing
-    const inputCost = (inputTokens / 1_000_000) * 0.15;
-    const outputCost = (outputTokens / 1_000_000) * 0.60;
-    return inputCost + outputCost;
-  } else if (actualProvider === 'google') {
-    // Gemini pricing (fallback)
-    const inputCost = (inputTokens / 1_000_000) * 0.10;
-    const outputCost = (outputTokens / 1_000_000) * 0.40;
-    return inputCost + outputCost;
-  } else if (actualProvider === 'anthropic') {
-    // Claude Haiku 4.5 pricing: $1/$5 per million tokens
-    const inputCost = (inputTokens / 1_000_000) * 1.00;
-    const outputCost = (outputTokens / 1_000_000) * 5.00;
-    return inputCost + outputCost;
-  } else if (actualProvider === 'deepseek') {
-    // DeepSeek V3.2 pricing (cache miss rates)
-    const inputCost = (inputTokens / 1_000_000) * 0.28;
-    const outputCost = (outputTokens / 1_000_000) * 0.42;
-    return inputCost + outputCost;
-  }
-  
-  return 0;
+export function estimateCost(task: TaskType, inputTokens: number, outputTokens: number): number {
+  const inputCost = (inputTokens / 1_000_000) * 1.00;
+  const outputCost = (outputTokens / 1_000_000) * 5.00;
+  return inputCost + outputCost;
 }
 
 /**

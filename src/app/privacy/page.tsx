@@ -15,7 +15,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-2xl font-semibold text-navy-600 mb-4">1. Introduction</h2>
               <p className="text-warm-gray">
-                Karko AI (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;) operates an AI-powered job application platform. 
+                Karko AI operates an AI-powered job application platform. 
                 This policy explains how we collect, use, and protect your personal data.
               </p>
             </section>
@@ -59,7 +59,7 @@ export default function PrivacyPage() {
 
               <h3 className="text-xl font-medium text-charcoal mb-3 mt-6">3.2 AI Processing</h3>
               <ul className="list-disc pl-6 text-warm-gray space-y-2">
-                <li>Your CV and job descriptions are processed by AI models (Claude, GPT)</li>
+                <li>Your CV and job descriptions are processed by AI models (Anthropic Claude)</li>
                 <li>We do NOT sell your data to third parties</li>
                 <li>AI providers may process data per their terms (see Section 7)</li>
               </ul>
@@ -104,7 +104,6 @@ export default function PrivacyPage() {
               <ul className="list-disc pl-6 text-warm-gray space-y-2">
                 <li>Supabase (database)</li>
                 <li>Anthropic Claude API (AI processing)</li>
-                <li>OpenAI API (AI processing)</li>
                 <li>Stripe (payments, if applicable)</li>
               </ul>
             </section>
@@ -134,7 +133,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-2xl font-semibold text-navy-600 mb-4">11. Contact</h2>
               <p className="text-warm-gray">
-                Email: <a href="mailto:privacy@karko.ai" className="text-navy-600 hover:underline">privacy@karko.ai</a>
+                Email: <a href="mailto:hello@karkoai.com" className="text-navy-600 hover:underline">hello@karkoai.com</a>
               </p>
               <p className="text-warm-gray mt-2">
                 Address: ISRAR Group LLC, 30 N Gould St Ste N, Sheridan, WY 82801, USA

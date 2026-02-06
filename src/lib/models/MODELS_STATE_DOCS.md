@@ -2,13 +2,23 @@
 
 **Location:** `/src/lib/models/`  
 **Purpose:** Model abstraction layer for AI provider routing  
-**Last Updated:** February 5, 2026 (Post-Prompt Caching Implementation)
+**Last Updated:** February 6, 2026 (Anthropic-Only Simplification)
+
+---
+
+## Fallback Removal (Feb 6, 2026)
+- **Deleted** `openai.ts`, `deepseek.ts`, `gemini.ts` — no longer needed
+- **Uninstalled** `openai` and `@google/generative-ai` npm packages
+- **Rewrote** `index.ts` from 280→97 lines — removed all fallback logic, multi-provider routing, `isRateLimitError()`. Now purely calls Anthropic.
+- **Simplified** `types.ts` — `ModelProvider` narrowed from 5 types to `'anthropic' | 'bedrock'`
+- **Removed** `parseWithGemini()` from `src/app/api/parse-cv/route.ts` and Gemini fallback branch
+- **All tasks** now exclusively use Claude Haiku 4.5 via Anthropic API (no fallbacks)
 
 ---
 
 ## Overview
 
-The models directory provides a unified interface for calling different AI models (Anthropic Claude, OpenAI GPT, Google Gemini, DeepSeek). All tasks now use **Claude Haiku 4.5** as primary model with automatic fallback to DeepSeek on rate limits.
+The models directory provides a unified interface for calling Claude Haiku 4.5 via Anthropic API. All tasks use a single model with no fallbacks.
 
 ---
 
@@ -16,12 +26,12 @@ The models directory provides a unified interface for calling different AI model
 
 | File | Lines | Purpose | Status |
 |------|-------|---------|--------|
-| index.ts | 279 | Main model router and abstraction | ✅ Active |
-| types.ts | ~150 | Type definitions and task configs | ✅ Active |
-| anthropic.ts | ~300 | Claude API integration | ✅ Active |
-| openai.ts | ~250 | GPT API integration | ✅ Active |
-| gemini.ts | ~250 | Gemini API integration | ✅ Active |
-| deepseek.ts | ~200 | DeepSeek API integration (fallback) | ✅ Active |
+| index.ts | 97 | Main model abstraction (Anthropic only) | ✅ Active |
+| types.ts | ~220 | Type definitions and task configs | ✅ Active |
+| anthropic.ts | ~300 | Claude API integration (direct + Bedrock) | ✅ Active |
+| ~~openai.ts~~ | — | ~~GPT API integration~~ | ❌ Deleted |
+| ~~gemini.ts~~ | — | ~~Gemini API integration~~ | ❌ Deleted |
+| ~~deepseek.ts~~ | — | ~~DeepSeek API integration~~ | ❌ Deleted |
 
 ---
 

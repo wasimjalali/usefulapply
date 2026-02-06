@@ -35,6 +35,25 @@ export const STRIPE_PRICES = {
 } as const;
 
 /**
+ * Price IDs for add-on credit packs
+ * Set these in your .env.local file
+ */
+export const STRIPE_ADDON_PRICES = {
+  SMALL: process.env.STRIPE_PRICE_ID_ADDON_SMALL || '',
+  MEDIUM: process.env.STRIPE_PRICE_ID_ADDON_MEDIUM || '',
+  LARGE: process.env.STRIPE_PRICE_ID_ADDON_LARGE || '',
+} as const;
+
+/**
+ * Map addon price IDs to credit amounts
+ */
+export const ADDON_CREDIT_MAP: Record<string, number> = {
+  [STRIPE_ADDON_PRICES.SMALL]: 30,
+  [STRIPE_ADDON_PRICES.MEDIUM]: 60,
+  [STRIPE_ADDON_PRICES.LARGE]: 120,
+};
+
+/**
  * Plan configurations
  */
 export const PLANS = {
@@ -46,14 +65,14 @@ export const PLANS = {
   },
   plus: {
     name: 'Plus',
-    price: 19.99,
+    price: 29.99,
     priceId: STRIPE_PRICES.PLUS,
-    credits: 160,
+    credits: 120,
     features: ['60 applications/month', 'Add-on credits', '1 month rollover', 'Priority support'],
   },
   pro: {
     name: 'Pro',
-    price: 39.99,
+    price: 49.99,
     priceId: STRIPE_PRICES.PRO,
     credits: 300,
     features: ['120 applications/month', 'Add-on credits', '2 months rollover', 'Premium support'],

@@ -160,6 +160,15 @@ export interface MasterContext {
   coverLetter?: string;
   applicationEmail?: { subject: string; body: string };
 
+  // Fit analysis result (pre-generation assessment)
+  fitAnalysis?: {
+    fitLevel: 'strong' | 'good' | 'weak';
+    score: number;           // 0-100 from computeSkillMatch
+    assessment: string;      // 1-2 paragraph AI-written assessment
+    matchingSkills: string[];
+    missingSkills: string[];
+  };
+
   metadata?: Record<string, unknown>;
 }
 

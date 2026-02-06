@@ -103,7 +103,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-2xl font-semibold text-navy-600 mb-4">11. Contact</h2>
               <p className="text-warm-gray">
-                Email: <a href="mailto:legal@karko.ai" className="text-navy-600 hover:underline">legal@karko.ai</a>
+                Email: <a href="mailto:hello@karkoai.com" className="text-navy-600 hover:underline">hello@karkoai.com</a>
               </p>
               <p className="text-warm-gray mt-2">
                 Address: ISRAR Group LLC, 30 N Gould St Ste N, Sheridan, WY 82801, USA

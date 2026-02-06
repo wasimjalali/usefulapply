@@ -8,7 +8,6 @@ export const maxDuration = 60;
 
 // Check if we have the required API keys
 const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
-const hasGeminiKey = !!process.env.GOOGLE_AI_API_KEY;
 const hasBlobStorage = !!process.env.BLOB_READ_WRITE_TOKEN;
 
 export async function POST(request: NextRequest) {
@@ -58,7 +57,7 @@ export async function POST(request: NextRequest) {
     
     // Parse CV - try AI first, fall back to local parsing
     let structuredCV: StructuredCV;
-    let parserUsed: 'anthropic' | 'gemini' | 'local' = 'local';
+    let parserUsed: 'anthropic' | 'local' = 'local';
     const parseStartTime = Date.now();
     
     if (hasAnthropicKey) {
@@ -68,16 +67,6 @@ export async function POST(request: NextRequest) {
         parserUsed = 'anthropic';
       } catch (e) {
         console.warn('[Parser] Anthropic parsing failed, using local parser:', e);
-        structuredCV = parseLocally(rawText, region as 'US' | 'EU', file.name);
-        parserUsed = 'local';
-      }
-    } else if (hasGeminiKey) {
-      try {
-        console.log('[Parser] Using Gemini for CV parsing');
-        structuredCV = await parseWithGemini(rawText, region as 'US' | 'EU');
-        parserUsed = 'gemini';
-      } catch (e) {
-        console.warn('[Parser] Gemini parsing failed, using local parser:', e);
         structuredCV = parseLocally(rawText, region as 'US' | 'EU', file.name);
         parserUsed = 'local';
       }
@@ -204,22 +193,6 @@ function parseLocally(rawText: string, region: 'US' | 'EU', fileName: string): S
   }
   
   return cv;
-}
-
-/**
- * Parse CV using Gemini 3 Flash
- */
-async function parseWithGemini(rawText: string, region: 'US' | 'EU'): Promise<StructuredCV> {
-  const { GoogleGenerativeAI } = await import('@google/generative-ai');
-  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || '');
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-  
-  const prompt = getParsingPrompt(rawText);
-  
-  const result = await model.generateContent(prompt);
-  const content = result.response.text();
-  
-  return parseAIResponse(content, region);
 }
 
 /**

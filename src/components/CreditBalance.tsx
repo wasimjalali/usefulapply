@@ -184,7 +184,7 @@ export default function CreditBalance({ variant = 'compact', showUpgrade = true 
         {(credits.plan_tier === 'plus' || credits.plan_tier === 'pro') && (
           <Link
             href="/pricing#addons"
-            className="flex-1 px-4 py-2 border border-navy-600 text-navy-600 text-sm font-medium rounded-lg hover:bg-navy-50 transition-colors text-center"
+            className="flex-1 px-4 py-2 bg-navy-600 text-white text-sm font-medium rounded-lg hover:bg-navy-700 transition-colors text-center"
           >
             Buy Credits
           </Link>

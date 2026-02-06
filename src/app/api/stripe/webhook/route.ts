@@ -85,14 +85,64 @@ export async function POST(req: NextRequest) {
 async function handleCheckoutCompleted(session: any) {
   const userId = session.metadata?.userId;
   const customerId = session.customer;
-  const subscriptionId = session.subscription;
+  const type = session.metadata?.type;
 
   if (!userId) {
     console.error('No userId in session metadata');
     return;
   }
 
-  // Update user with Stripe customer ID
+  // Handle add-on credit purchases (one-time payment)
+  if (type === 'addon_credits') {
+    const creditsToAdd = parseInt(session.metadata?.creditsToAdd || '0', 10);
+    const packSize = session.metadata?.packSize || 'unknown';
+    if (creditsToAdd <= 0) {
+      console.error('Invalid creditsToAdd in addon checkout:', session.metadata);
+      return;
+    }
+
+    // Get current credits for balance tracking
+    const { data: currentCredits } = await supabase
+      .from('user_credits')
+      .select('monthly_credits, rollover_credits, addon_credits')
+      .eq('user_id', userId)
+      .single();
+
+    const addonBefore = currentCredits?.addon_credits || 0;
+    const totalBefore = (currentCredits?.monthly_credits || 0) + (currentCredits?.rollover_credits || 0) + addonBefore;
+    const newAddonCredits = addonBefore + creditsToAdd;
+    const totalAfter = totalBefore + creditsToAdd;
+
+    const { error } = await supabase
+      .from('user_credits')
+      .update({
+        addon_credits: newAddonCredits,
+        stripe_customer_id: customerId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Failed to add addon credits:', error);
+    } else {
+      // Log the credit transaction
+      await supabase.from('credit_transactions').insert({
+        user_id: userId,
+        amount: creditsToAdd,
+        transaction_type: 'addon_purchase',
+        description: `Purchased ${packSize} add-on pack (${creditsToAdd} credits)`,
+        metadata: { packSize, stripeSessionId: session.id },
+        balance_before: totalBefore,
+        balance_after: totalAfter,
+      });
+      console.log(`[Stripe Webhook] Added ${creditsToAdd} addon credits for user ${userId}`);
+    }
+    return;
+  }
+
+  // Handle subscription checkout
+  const subscriptionId = session.subscription;
+
   const { error } = await supabase
     .from('user_credits')
     .update({

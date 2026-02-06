@@ -83,7 +83,7 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
   if (compact) {
     return (
       <Link 
-        href="/settings"
+        href="/settings?section=subscription"
         className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-cream-100 transition-colors"
         title={`${totalCredits} credits remaining`}
       >
@@ -149,12 +149,41 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
               )}
             </div>
 
+            {/* Credit Costs */}
             <div className="pt-2 border-t border-cream-200">
+              <div className="text-xs font-semibold text-charcoal mb-2">Credit Usage</div>
+              <div className="space-y-1.5 text-xs text-warm-gray">
+                <div className="flex justify-between">
+                  <span>Fit Analysis</span>
+                  <span className="font-medium text-charcoal">0.5</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Full Application</span>
+                  <span className="font-medium text-charcoal">1.5</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Cover Letter Regen</span>
+                  <span className="font-medium text-charcoal">0.5</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Email Regen</span>
+                  <span className="font-medium text-charcoal">0.5</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-cream-200 space-y-2">
               <Link
-                href="/settings"
+                href="/pricing#addons"
+                className="block w-full text-center text-sm font-medium px-3 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors"
+              >
+                Buy More Credits
+              </Link>
+              <Link
+                href="/settings?section=subscription"
                 className="block w-full text-center text-sm font-medium text-navy-600 hover:text-navy-700 transition-colors"
               >
-                Manage Credits →
+                Manage Subscription →
               </Link>
             </div>
           </div>

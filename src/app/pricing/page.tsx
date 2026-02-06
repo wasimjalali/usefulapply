@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Check, X, Sparkles, Zap, Crown, ArrowRight, ChevronDown, FileText, Search, Shield, MessageSquare, Globe, BarChart3, TrendingUp, Clock, Calculator } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Check, X, Sparkles, Zap, Crown, ArrowRight, ChevronDown, FileText, Search, Shield, MessageSquare, Globe, BarChart3, TrendingUp, Clock, Calculator, Loader2 } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Pricing tiers data — Updated pricing model
 const tiers = [
@@ -95,10 +97,11 @@ const tiers = [
 ];
 
 // Add-on credit packs
+// TODO: Replace priceId values with actual Stripe Price IDs
 const addonPacks = [
-  { name: 'Small Pack', credits: 30, applications: 15, price: 7.49, discount: null },
-  { name: 'Medium Pack', credits: 60, applications: 30, price: 14.99, discount: 'Best Value' },
-  { name: 'Large Pack', credits: 120, applications: 60, price: 29.99, discount: 'Most Popular' },
+  { name: 'Small Pack', credits: 30, applications: 15, price: 7.49, discount: null, priceId: 'price_addon_small' },
+  { name: 'Medium Pack', credits: 60, applications: 30, price: 14.99, discount: 'Best Value', priceId: 'price_addon_medium' },
+  { name: 'Large Pack', credits: 120, applications: 60, price: 29.99, discount: 'Most Popular', priceId: 'price_addon_large' },
 ];
 
 // FAQ items
@@ -131,6 +134,60 @@ const faqs = [
 
 export default function PricingPage() {
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [loadingAddon, setLoadingAddon] = useState<string | null>(null);
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const handleSubscribe = async (planTier: string) => {
+    if (!user) {
+      router.push(`/auth/signup?plan=${planTier}`);
+      return;
+    }
+    setLoadingPlan(planTier);
+    try {
+      const res = await fetch('/api/stripe/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, planTier }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || 'Failed to start checkout');
+      }
+    } catch {
+      alert('Something went wrong. Please try again.');
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
+  const handleBuyAddon = async (packSize: string) => {
+    if (!user) {
+      router.push('/auth/login');
+      return;
+    }
+    setLoadingAddon(packSize);
+    try {
+      const res = await fetch('/api/stripe/create-addon-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, packSize }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || 'Failed to start checkout');
+      }
+    } catch {
+      alert('Something went wrong. Please try again.');
+    } finally {
+      setLoadingAddon(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-cream-100">
@@ -264,19 +321,34 @@ export default function PricingPage() {
                     </div>
 
                     {/* CTA Button */}
-                    <Link
-                      href={tier.price === 0 ? '/auth/signup' : `/auth/signup?plan=${tier.tier}`}
-                      className={`w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold transition-all mb-6 ${
-                        tier.ctaVariant === 'primary'
-                          ? 'bg-gradient-to-r from-gold-400 to-gold-500 text-white hover:from-gold-500 hover:to-gold-600 shadow-md hover:shadow-lg'
-                          : tier.ctaVariant === 'secondary'
-                            ? 'bg-navy-600 text-white hover:bg-navy-700 shadow-md'
-                            : 'border-2 border-navy-200 text-navy-600 hover:bg-navy-50 hover:border-navy-400'
-                      }`}
-                    >
-                      {tier.cta}
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
+                    {tier.price === 0 ? (
+                      <Link
+                        href="/auth/signup"
+                        className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold transition-all mb-6 border-2 border-navy-200 text-navy-600 hover:bg-navy-50 hover:border-navy-400"
+                      >
+                        {tier.cta}
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => handleSubscribe(tier.tier)}
+                        disabled={loadingPlan === tier.tier}
+                        className={`w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold transition-all mb-6 cursor-pointer disabled:opacity-60 ${
+                          tier.ctaVariant === 'primary'
+                            ? 'bg-gradient-to-r from-gold-400 to-gold-500 text-white hover:from-gold-500 hover:to-gold-600 shadow-md hover:shadow-lg'
+                            : 'bg-navy-600 text-white hover:bg-navy-700 shadow-md'
+                        }`}
+                      >
+                        {loadingPlan === tier.tier ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <>
+                            {tier.cta}
+                            <ArrowRight className="w-4 h-4" />
+                          </>
+                        )}
+                      </button>
+                    )}
 
                     {/* Features */}
                     <ul className="space-y-3">
@@ -319,22 +391,31 @@ export default function PricingPage() {
               Credits are simple. Each action costs a fixed number of credits. No surprises.
             </p>
           </div>
-          <div className="grid sm:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="text-center p-8 bg-cream-50 rounded-2xl border border-cream-200">
+              <div className="w-14 h-14 bg-navy-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <BarChart3 className="w-7 h-7 text-navy-600" />
+              </div>
+              <div className="text-3xl font-bold text-navy-600 mb-1">0.5</div>
+              <div className="text-sm font-semibold text-charcoal mb-2">credits</div>
+              <div className="text-sm font-medium text-charcoal">Fit Analysis</div>
+              <div className="text-xs text-warm-gray mt-2">Job fit score + skill gaps</div>
+            </div>
             <div className="text-center p-8 bg-cream-50 rounded-2xl border border-cream-200">
               <div className="w-14 h-14 bg-gold-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <FileText className="w-7 h-7 text-gold-500" />
               </div>
-              <div className="text-3xl font-bold text-navy-600 mb-1">2</div>
+              <div className="text-3xl font-bold text-navy-600 mb-1">1.5</div>
               <div className="text-sm font-semibold text-charcoal mb-2">credits</div>
               <div className="text-sm font-medium text-charcoal">Full Application</div>
               <div className="text-xs text-warm-gray mt-2">CV + Cover Letter + Email</div>
             </div>
             <div className="text-center p-8 bg-cream-50 rounded-2xl border border-cream-200">
-              <div className="w-14 h-14 bg-navy-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <MessageSquare className="w-7 h-7 text-navy-600" />
+              <div className="w-14 h-14 bg-sage-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="w-7 h-7 text-sage-600" />
               </div>
-              <div className="text-3xl font-bold text-navy-600 mb-1">1</div>
-              <div className="text-sm font-semibold text-charcoal mb-2">credit</div>
+              <div className="text-3xl font-bold text-navy-600 mb-1">0.5</div>
+              <div className="text-sm font-semibold text-charcoal mb-2">credits</div>
               <div className="text-sm font-medium text-charcoal">Cover Letter Regen</div>
               <div className="text-xs text-warm-gray mt-2">Regenerate with new tone</div>
             </div>
@@ -342,8 +423,8 @@ export default function PricingPage() {
               <div className="w-14 h-14 bg-sage-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <Zap className="w-7 h-7 text-sage-600" />
               </div>
-              <div className="text-3xl font-bold text-navy-600 mb-1">1</div>
-              <div className="text-sm font-semibold text-charcoal mb-2">credit</div>
+              <div className="text-3xl font-bold text-navy-600 mb-1">0.5</div>
+              <div className="text-sm font-semibold text-charcoal mb-2">credits</div>
               <div className="text-sm font-medium text-charcoal">Email Regen</div>
               <div className="text-xs text-warm-gray mt-2">Regenerate application email</div>
             </div>
@@ -352,7 +433,7 @@ export default function PricingPage() {
       </section>
 
       {/* Add-on Credits Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
+      <section id="addons" className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50 scroll-mt-20">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-10">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Add-ons</p>
@@ -377,6 +458,17 @@ export default function PricingPage() {
                 <div className="text-sm font-semibold text-sage-600 mb-4">{pack.applications} applications</div>
                 <div className="text-2xl font-bold text-navy-600">${pack.price}</div>
                 <div className="text-xs text-warm-gray mt-1">one-time purchase</div>
+                <button
+                  onClick={() => handleBuyAddon(pack.name.split(' ')[0].toLowerCase())}
+                  disabled={loadingAddon === pack.name.split(' ')[0].toLowerCase()}
+                  className="mt-4 w-full px-4 py-2.5 bg-navy-600 text-white text-sm font-semibold rounded-xl hover:bg-navy-700 transition-colors cursor-pointer disabled:opacity-60"
+                >
+                  {loadingAddon === pack.name.split(' ')[0].toLowerCase() ? (
+                    <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                  ) : (
+                    `Buy ${pack.credits} Credits`
+                  )}
+                </button>
               </div>
             ))}
           </div>

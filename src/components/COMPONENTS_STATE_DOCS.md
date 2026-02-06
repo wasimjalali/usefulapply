@@ -14,6 +14,26 @@
 - **Navbar.tsx** enhanced: backdrop blur header, gradient CTA button, gold underline hover on nav links, Next.js Image component
 - **Footer.tsx** enhanced: gradient background, gold accent top border, gold uppercase section headers, Master CV link added, "Built by a job seeker, for job seekers" tagline
 
+## Auth & Settings Simplification (Feb 6, 2026)
+- **Login page** (`auth/login/page.tsx`): Replaced "KarKo AI" text with `<KarkoLogo variant="full" size="lg" theme="light" />`. Removed Google Sign-In button, divider, and `signInWithGoogle` usage.
+- **Signup page** (`auth/signup/page.tsx`): Same logo replacement. Removed Google Sign-In button, divider, and `signInWithGoogle` usage.
+- **AccountSection.tsx**: Removed entire Connected Accounts section (Google + LinkedIn connect/disconnect). Simplified props to just `onChangePassword` and `onDeleteAccount`. Kept Password, 2FA, and Danger Zone sections.
+- **Settings page** (`settings/page.tsx`): Removed `getConnectedAccounts`, `disconnectAccount`, `connectOAuthProvider`, `ConnectedAccount` imports. Removed `connectedAccounts` state, `handleConnectOAuth`, `handleDisconnectAccount` functions. Simplified `AccountSection` usage.
+
+## Brand Logo & SEO Update (Feb 6, 2026)
+- **KarkoLogo.tsx** (NEW): SVG logo component with 3 variants (`full`, `icon`, `wordmark`), 5 sizes (`xs`–`xl`), light/dark themes. Brand colors: Navy `#0F1B3D`, Gold `#C8A44E`. Font: Plus Jakarta Sans 800. Exports `KARKO_BRAND` color constants.
+- **Navbar.tsx**: Replaced old `Image` + text logo with `<KarkoLogo variant="full" size="sm" theme="light" />`
+- **Footer.tsx**: Replaced old `Image` + text logo with `<KarkoLogo variant="full" size="lg" theme="dark" />`. Added homepage tagline: "One Click. Complete Job Application. 45 Minutes Saved."
+- **ChatPanel.tsx**: Replaced inline Sparkles icon + text header with `<KarkoLogo variant="full" size="xs" theme="light" />`
+- **layout.tsx**: Added Plus Jakarta Sans font (`--font-plus-jakarta`), full SEO metadata (OpenGraph, Twitter cards, keywords, canonical URLs, robots directives, googleBot config), JSON-LD structured data (`SoftwareApplication` schema with pricing offers)
+- **icon.svg** (NEW): SVG favicon — navy rounded rect with gold "K" monogram
+- **robots.ts** (NEW): Crawler directives — allows public pages, blocks `/api/`, `/dashboard/`, `/documents/`, `/master-cv/`, `/settings/`, `/auth/`. Explicitly allows GPTBot, ChatGPT-User, Google-Extended, ClaudeBot, anthropic-ai
+- **sitemap.ts** (NEW): Lists 9 public pages with priorities (homepage=1.0, pricing=0.9, about=0.8, signup=0.7, etc.)
+- **Per-page metadata**: Added to homepage (`page.tsx`), about (`about/page.tsx`), pricing (`pricing/layout.tsx`), contact (`contact/layout.tsx`)
+- **About page**: Fixed broken founder image — `Wasim.png` was HEIF format (iPhone), converted to `wasim-founder.jpg` (proper JPEG)
+- **German CV template**: Updated font from Verdana to Arial (ATS-safe), color from `#004E92` to `#1E3A5F` (refined slate blue)
+- **Bedrock API**: Added AWS Bearer Token support for Amazon Bedrock API calls (uses `AWS_BEARER_TOKEN_BEDROCK` env var)
+
 ## Application UI/UX Premium Redesign (Feb 5, 2026)
 - **Dashboard tab bar**: White header with shadow, gold active tab indicator, gold-tinted icons on active, premium profile avatar with gold ring, gold resize handle
 - **ChatPanel**: Branded header with Sparkles icon badge, rounded-xl AI avatars with shadow, gradient Upload CV CTA button, polished typing indicator
@@ -23,6 +43,17 @@
 - **EmailPanel**: Consistent styling, premium tips section with navy-50/cream-50 gradient and gold bullet points
 - **AgentProgressV2**: Company research card rebranded from blue to navy/gold brand colors with rounded-xl cards
 - **Settings page**: Backdrop blur header, gradient sidebar (from-navy-600 to-navy-700) with gold icon accents, subtle gradient background
+
+## UI/UX Refinements Round 2 (Feb 5, 2026)
+- **ChatPanel**: Fixed double icons in AI response action buttons - removed emoji from labels (Lucide icons already rendered by ChatMessage)
+- **TemplateSelector**: Complete redesign - brand-consistent navy gradients for template previews, gold selected state (border-gold-400, ring-gold-100), premium recommendation tags with brand colors
+- **ProfileSection**: Rounded-2xl cards, gold focus rings on inputs (focus:border-gold-400 focus:ring-gold-100), gold photo ring (ring-gold-100/50), gradient camera button
+- **SubscriptionSection**: Gold gradient progress bar, gold-bordered active plan cards, gold checkmarks for Pro tier, gradient Popular badge, rounded-2xl cards
+- **Documents page**: Navy/gold icon containers (replacing purple for photo section), cream borders, navy-50/gold-500 auto-save notice, consistent shadow treatment
+
+## Fit Analysis Feature (Feb 5, 2026)
+- **ChatPanel**: New `runFitAnalysisFlow()` function replaces direct `runAgentWorkflow()` on JD detection. Handles `fit_analysis_complete` SSE event. Shows fit assessment message with 🟢/🟡/🔴 badge, score, assessment paragraph, matching/missing skills. Action buttons: "Apply for This Job" (triggers `generate_with_context`) and "Start New Application" (skips). New state: `fitAnalysisContextId`, `fitAnalysisJD`.
+- **AgentProgressV2**: Added `fit_assessment` step config with Zap icon, "Assessing Job Fit" label, and 3 sub-actions for progress display
 
 ### Design System Patterns (App UI)
 - **Headers**: `bg-white border-b border-cream-200 shadow-sm`

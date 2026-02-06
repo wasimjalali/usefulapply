@@ -21,6 +21,8 @@ export {
   type OrchestrationResult,
   type UnifiedAgentInput,
   COVER_LETTER_BLACKLIST,
+  runFitAnalysis,
+  runWithContext,
 } from './unified-writer-agent';
 
 // Convenience function to run the full optimization workflow

@@ -133,7 +133,7 @@ export const unifiedWriterAgent = {
 
       // Step 4: Compute skill match (AI-based, no RAG)
       emit({ type: 'progress', percent: 35, message: 'Analyzing skill match...' });
-      context.match = this.computeSkillMatch(context.applicant, context.job);
+      context.match = await this.computeSkillMatch(context.applicant, context.job);
 
       emit({ type: 'step_completed', step: { id: 'matching', description: 'Skills matched' }, tokens: jobResult.tokens });
 
@@ -238,7 +238,13 @@ Return a JSON object with this exact structure:
 }
 
 CRITICAL: Only extract information that EXISTS in either the Primary CV or Master CV. Do not invent or assume anything. But DO extract from BOTH sources.`,
-      systemPrompt: 'You are a precise CV parser. Extract factual information from ALL provided documents (Primary CV and Master CV). Merge and deduplicate. Return valid JSON only.',
+      systemPrompt: `You are a precise CV parser that extracts factual information from provided documents.
+
+<extraction_rules>
+Extract and merge information from ALL provided CV documents (Primary CV and Master CV if available). Deduplicate entries that appear in both sources. Only extract facts that are explicitly stated — do not infer, assume, or fabricate any information. If a field is not present in any source document, return null for that field. Preserve exact numbers, dates, and proficiency levels as stated in the source documents.
+</extraction_rules>
+
+Return valid JSON only. No explanation or preamble.`,
       jsonMode: true,
     });
 
@@ -316,7 +322,13 @@ Return a JSON object with this exact structure:
 }
 
 Extract ALL skills mentioned, including technical skills, soft skills, tools, and frameworks.`,
-      systemPrompt: 'You are a job description parser. Extract comprehensive requirements. Return valid JSON only.',
+      systemPrompt: `You are a job description parser that extracts structured requirements from job postings in any language.
+
+<parsing_rules>
+Extract ALL skills, requirements, and qualifications mentioned in the job description — including technical skills, soft skills, tools, frameworks, language requirements, and certifications. Preserve the original language of skill names as they appear in the job description. If the JD is in German, extract skills in German. If in English, extract in English. Distinguish between must-have requirements and nice-to-have preferences. Extract the company name, job title, location, and work type if mentioned. If a field is not present in the job description, return null for that field.
+</parsing_rules>
+
+Return valid JSON only. No explanation or preamble.`,
       jsonMode: true,
     });
 
@@ -383,9 +395,105 @@ Extract ALL skills mentioned, including technical skills, soft skills, tools, an
 
   /**
    * Compute skill match between applicant and job requirements
-   * AI-native matching - no RAG system needed
+   * Uses LLM-based semantic matching for cross-language and conceptual matching
+   * Falls back to string matching if LLM call fails
    */
-  computeSkillMatch(
+  async computeSkillMatch(
+    applicant: MasterContext['applicant'],
+    job: MasterContext['job']
+  ): Promise<MasterContext['match']> {
+    if (!applicant || !job) {
+      return { score: 0, matchingSkills: [], missingSkills: [] };
+    }
+
+    const toStr = (s: unknown): string => (typeof s === 'string' ? s : String(s ?? '')).trim();
+    
+    const applicantSkillsList = [
+      ...(applicant.skills || []).map(toStr),
+      ...(applicant.tools || []).map(toStr),
+      ...(applicant.languages || []).map(toStr),
+    ].filter(Boolean);
+
+    const requiredSkills = (job.requiredSkills || []).map(toStr).filter(Boolean);
+    
+    if (requiredSkills.length === 0) {
+      return { score: 0, matchingSkills: [], missingSkills: [] };
+    }
+
+    // Also include experience context for semantic matching
+    const experienceContext = applicant.experiences?.map(e => 
+      `${e.title} at ${e.company}: ${e.bullets?.slice(0, 2).join('; ') || ''}`
+    ).join('\n') || '';
+
+    try {
+      const response = await callModel({
+        task: 'skill_matching',
+        prompt: `You are an expert recruiter performing a skill match analysis. Compare the candidate's skills and experience against the job requirements. Use SEMANTIC matching — skills don't need to be exact string matches.
+
+<matching_rules>
+1. CROSS-LANGUAGE MATCHING: Skills expressed in different languages that refer to the same concept or domain are matches. A skill in English and its equivalent in German (or any other language) should be matched if they describe the same competency area.
+2. CONCEPTUAL MATCHING: Skills that are closely related within the same professional domain count as matches. A specific tool matches a broader category it belongs to, and vice versa.
+3. EXPERIENCE-BASED MATCHING: If the candidate's work experience clearly demonstrates a competency even though it is not explicitly listed as a skill, count it as a match. Years of self-employment demonstrate independence; teaching experience demonstrates communication skills; managing suppliers demonstrates coordination skills.
+4. LANGUAGE PROFICIENCY: Match language requirements honestly using CEFR standards. B2 does NOT match requirements for "verhandlungssicher" or "business-fluent" (which require C1-C2). C1+ or "Fluent" CAN match "verhandlungssicher." Native speakers match native-level requirements.
+5. SOFT SKILLS: Match soft skills based on demonstrated experience in the candidate's work history, not just listed keywords.
+6. PARTIAL MATCHES: If the candidate has genuinely related experience in the same domain, count it as a match.
+7. HONESTY: Do not inflate. If there is genuinely no connection between a required skill and anything in the candidate's profile, mark it as missing.
+</matching_rules>
+
+=== CANDIDATE SKILLS ===
+${applicantSkillsList.join(', ')}
+
+=== CANDIDATE EXPERIENCE ===
+${experienceContext}
+
+=== JOB REQUIRED SKILLS ===
+${requiredSkills.map((s, i) => `${i + 1}. ${s}`).join('\n')}
+
+=== OUTPUT FORMAT (strict JSON) ===
+Return ONLY this JSON:
+{
+  "matching": ["skill1", "skill2"],
+  "missing": ["skill3", "skill4"],
+  "score": 35
+}
+
+Where:
+- "matching" = required skills the candidate HAS (exact name from the job requirements list)
+- "missing" = required skills the candidate LACKS
+- "score" = percentage (0-100) of required skills matched
+
+Return ONLY valid JSON, no explanation.`,
+        systemPrompt: 'You are a precise skill matching engine. Return only valid JSON. Be fair but honest — count semantic and cross-language matches, but never inflate.',
+        jsonMode: true,
+      });
+
+      let jsonContent = response.content.trim();
+      if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/^```json?\s*/, '').replace(/\s*```$/, '');
+      }
+      const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) jsonContent = jsonMatch[0];
+
+      const parsed = JSON.parse(jsonContent);
+      
+      const matchingSkills = Array.isArray(parsed.matching) ? parsed.matching.map(toStr).filter(Boolean) : [];
+      const missingSkills = Array.isArray(parsed.missing) ? parsed.missing.map(toStr).filter(Boolean) : [];
+      const score = typeof parsed.score === 'number' ? Math.max(0, Math.min(100, Math.round(parsed.score))) : 
+        (requiredSkills.length > 0 ? Math.round((matchingSkills.length / requiredSkills.length) * 100) : 0);
+
+      console.log(`[KarkoAI] LLM skill match: ${score}% (${matchingSkills.length} matching, ${missingSkills.length} missing)`);
+      return { score, matchingSkills, missingSkills };
+
+    } catch (error) {
+      console.error('[KarkoAI] LLM skill matching failed, falling back to string matching:', error);
+      return this.computeSkillMatchFallback(applicant, job);
+    }
+  },
+
+  /**
+   * Fallback string-based skill matching (used if LLM matching fails)
+   */
+  computeSkillMatchFallback(
     applicant: MasterContext['applicant'],
     job: MasterContext['job']
   ): MasterContext['match'] {
@@ -393,24 +501,22 @@ Extract ALL skills mentioned, including technical skills, soft skills, tools, an
       return { score: 0, matchingSkills: [], missingSkills: [] };
     }
 
-    // Include skills, tools, AND languages for matching
+    const toStr = (s: unknown): string => (typeof s === 'string' ? s : String(s ?? '')).toLowerCase().trim();
     const applicantSkills = new Set([
-      ...(applicant.skills || []).map(s => s.toLowerCase().trim()),
-      ...(applicant.tools || []).map(s => s.toLowerCase().trim()),
-      ...(applicant.languages || []).map(s => s.toLowerCase().trim()),
-    ]);
+      ...(applicant.skills || []).map(toStr),
+      ...(applicant.tools || []).map(toStr),
+      ...(applicant.languages || []).map(toStr),
+    ].filter(Boolean));
 
-    const requiredSkills = (job.requiredSkills || []).map(s => s.trim());
+    const requiredSkills = (job.requiredSkills || []).map(s => (typeof s === 'string' ? s : String(s ?? '')).trim()).filter(Boolean);
     const matchingSkills: string[] = [];
     const missingSkills: string[] = [];
 
     for (const skill of requiredSkills) {
       const skillLower = skill.toLowerCase();
-      // Check if any applicant skill contains or is contained by the required skill
       const hasSkill = [...applicantSkills].some(
         s => s.includes(skillLower) || skillLower.includes(s)
       );
-      
       if (hasSkill) {
         matchingSkills.push(skill);
       } else {
@@ -423,6 +529,274 @@ Extract ALL skills mentioned, including technical skills, soft skills, tools, an
       : 0;
 
     return { score, matchingSkills, missingSkills };
+  },
+
+  // =====================================================
+  // FIT ANALYSIS FUNCTIONS
+  // =====================================================
+
+  /**
+   * Run fit analysis only (Phase 1 + assessment)
+   * Returns the MasterContext with fit analysis populated (for context reuse)
+   */
+  async runFitAnalysis(
+    input: UnifiedAgentInput,
+    emit: AgentEventHandler
+  ): Promise<AgentResult<OrchestrationResult>> {
+    const startTime = Date.now();
+    
+    let context: MasterContext = {
+      sessionId: input.sessionId,
+      jobDescription: input.jobDescription,
+      rawCV: input.primaryCV,
+      masterCV: input.masterCV,
+    };
+
+    try {
+      // Step 1: Extract applicant profile
+      emit({ type: 'step_started', step: { id: 'analysis', description: 'Karko AI: Parsing CV and analyzing job requirements' } });
+      emit({ type: 'progress', percent: 10, message: 'Extracting applicant profile from CV...' });
+      
+      if (!context.rawCV) {
+        const docs = await loadApplicantDocuments(context.sessionId);
+        if (docs.primaryCV) context.rawCV = docs.primaryCV;
+        if (docs.masterCV) context.masterCV = docs.masterCV;
+        if (docs.certifications && docs.certifications.length > 0) {
+          const certText = '\n\nCERTIFICATIONS:\n' + docs.certifications.join('\n');
+          context.masterCV = (context.masterCV || '') + certText;
+        }
+      }
+
+      if (!context.rawCV) {
+        throw new Error('No CV content available. Please upload a CV first.');
+      }
+
+      const applicantResult = await this.extractApplicantProfile(context.rawCV, context.masterCV);
+      context.applicant = applicantResult.result;
+      emit({ type: 'step_completed', step: { id: 'analysis', description: 'CV parsed successfully' }, tokens: applicantResult.tokens });
+
+      // Step 2: Parse job description + skill match
+      emit({ type: 'step_started', step: { id: 'matching', description: 'Karko AI: Matching skills and identifying gaps' } });
+      emit({ type: 'progress', percent: 30, message: 'Parsing job description...' });
+      const jobResult = await this.parseJobDescription(context.jobDescription);
+      context.job = jobResult.result;
+
+      context.detectedLanguage = this.detectLanguage(context.jobDescription);
+      
+      emit({ type: 'progress', percent: 50, message: 'Analyzing skill match...' });
+      context.match = await this.computeSkillMatch(context.applicant, context.job);
+      emit({ type: 'step_completed', step: { id: 'matching', description: 'Skills matched' }, tokens: jobResult.tokens });
+
+      // Step 3: Generate fit assessment
+      emit({ type: 'step_started', step: { id: 'fit_assessment', description: 'Karko AI: Assessing job fit' } });
+      emit({ type: 'progress', percent: 70, message: 'Generating fit assessment...' });
+      const fitResult = await this.generateFitAssessment(context);
+      context.fitAnalysis = fitResult.result;
+      emit({ type: 'step_completed', step: { id: 'fit_assessment', description: 'Fit assessment complete' }, tokens: fitResult.tokens });
+
+      emit({ type: 'progress', percent: 100, message: 'Fit analysis complete!' });
+
+      return {
+        success: true,
+        data: {
+          context,
+          totalLatencyMs: Date.now() - startTime,
+        },
+        latencyMs: Date.now() - startTime,
+      };
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Fit analysis failed';
+      console.error('[KarkoAI] Fit analysis error:', errorMessage);
+      emit({ type: 'step_error', step: { id: 'karko_ai' }, error: errorMessage });
+      
+      return {
+        success: false,
+        error: errorMessage,
+        latencyMs: Date.now() - startTime,
+      };
+    }
+  },
+
+  /**
+   * Run full generation with pre-built context (Phase 2 only)
+   * Skips Phase 1 (CV parsing, JD parsing, skill matching) - reuses cached context
+   */
+  async runWithContext(
+    context: MasterContext,
+    emit: AgentEventHandler
+  ): Promise<AgentResult<OrchestrationResult>> {
+    const startTime = Date.now();
+
+    try {
+      // Phase 2 only: Document Generation (context already has applicant, job, match)
+      
+      // Step 1: Generate optimized CV
+      emit({ type: 'step_started', step: { id: 'cv_generation', description: 'Karko AI: Optimizing CV for the position' } });
+      emit({ type: 'progress', percent: 15, message: 'Generating optimized CV...' });
+      const { cvData, legacyCV, tokens: cvTokens } = await this.generateOptimizedCVData(context);
+      context.optimizedCVData = cvData;
+      context.optimizedCV = legacyCV;
+      emit({ type: 'step_completed', step: { id: 'cv_generation', description: 'CV optimized' }, tokens: cvTokens });
+
+      // Step 2: Generate cover letter
+      emit({ type: 'step_started', step: { id: 'cover_letter', description: 'Karko AI: Composing tailored cover letter' } });
+      emit({ type: 'progress', percent: 50, message: 'Writing cover letter...' });
+      const coverLetterResult = await this.generateCoverLetter(context);
+      context.coverLetter = coverLetterResult.result;
+      emit({ type: 'step_completed', step: { id: 'cover_letter', description: 'Cover letter ready' }, tokens: coverLetterResult.tokens });
+
+      // Step 3: Generate application email
+      emit({ type: 'step_started', step: { id: 'email', description: 'Karko AI: Generating application email' } });
+      emit({ type: 'progress', percent: 80, message: 'Composing application email...' });
+      const emailResult = await this.generateApplicationEmail(context);
+      context.applicationEmail = emailResult.result;
+      emit({ type: 'step_completed', step: { id: 'email', description: 'Email ready' }, tokens: emailResult.tokens });
+      
+      emit({ type: 'progress', percent: 100, message: 'Complete!' });
+
+      return {
+        success: true,
+        data: {
+          context,
+          totalLatencyMs: Date.now() - startTime,
+        },
+        latencyMs: Date.now() - startTime,
+      };
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Generation failed';
+      console.error('[KarkoAI] Generation with context error:', errorMessage);
+      emit({ type: 'step_error', step: { id: 'karko_ai' }, error: errorMessage });
+      
+      return {
+        success: false,
+        error: errorMessage,
+        latencyMs: Date.now() - startTime,
+      };
+    }
+  },
+
+  /**
+   * Generate a fit assessment paragraph using LLM
+   * Classifies the fit as strong/good/weak and writes a concise assessment
+   */
+  async generateFitAssessment(context: MasterContext): Promise<WithTokens<NonNullable<MasterContext['fitAnalysis']>>> {
+    const { applicant, job, match } = context;
+    
+    const fitLevel: 'strong' | 'good' | 'weak' = 
+      (match?.score ?? 0) >= 70 ? 'strong' :
+      (match?.score ?? 0) >= 45 ? 'good' : 'weak';
+
+    // Build experience summary with years and relevance
+    const experienceSummary = applicant?.experiences?.map(e => {
+      const duration = e.startDate && e.endDate ? `${e.startDate}–${e.endDate}` : '';
+      return `${e.title} at ${e.company}${duration ? ` (${duration})` : ''}`;
+    }).join('; ') || 'Not specified';
+
+    const response = await callModel({
+      task: 'fit_assessment',
+      prompt: `You are conducting a professional Job Fit Assessment for a candidate applying to a specific role. Evaluate the candidate using the industry-standard Job Fit Scoring framework across these 5 dimensions, then write a concise assessment.
+
+=== EVALUATION FRAMEWORK ===
+1. SKILLS & COMPETENCY MATCH (Weight: 40%)
+   - How many required technical/hard skills does the candidate possess?
+   - Are there critical must-have skills missing vs. nice-to-have gaps?
+   
+2. EXPERIENCE RELEVANCE (Weight: 25%)
+   - Does the candidate's work history demonstrate relevant domain experience?
+   - Are their past roles at a comparable seniority level?
+   - Do they have industry-specific experience?
+
+3. TRANSFERABLE VALUE (Weight: 15%)
+   - Can existing skills bridge any gaps? (e.g., similar frameworks, adjacent technologies)
+   - Does their career trajectory show ability to learn and adapt?
+
+4. ROLE READINESS (Weight: 10%)
+   - Could the candidate perform the core responsibilities on day one?
+   - How much ramp-up time would be needed?
+
+5. COMPETITIVE POSITIONING (Weight: 10%)
+   - How would this candidate likely compare to the typical applicant pool?
+   - Are there standout qualifications that differentiate them?
+
+=== CANDIDATE PROFILE ===
+Name: ${applicant?.name || 'Candidate'}
+Skills: ${applicant?.skills?.map(s => String(s)).join(', ') || 'Not specified'}
+Tools: ${applicant?.tools?.map(s => String(s)).join(', ') || 'Not specified'}
+Experience: ${experienceSummary}
+Certifications: ${applicant?.certifications?.map(s => String(s)).join(', ') || 'None listed'}
+
+=== JOB REQUIREMENTS ===
+Title: ${job?.title || 'Position'}
+Company: ${job?.companyName || 'Company'}
+Required Skills: ${job?.requiredSkills?.map(s => String(s)).join(', ') || 'Not specified'}
+Nice-to-Have Skills: ${job?.niceToHaveSkills?.map(s => String(s)).join(', ') || 'Not specified'}
+Responsibilities: ${job?.responsibilities?.slice(0, 5).map(s => String(s)).join('; ') || 'Not specified'}
+
+=== COMPUTED SKILL MATCH ===
+Match Score: ${match?.score ?? 0}%
+Matching Skills: ${match?.matchingSkills?.join(', ') || 'None identified'}
+Missing Skills: ${match?.missingSkills?.join(', ') || 'None identified'}
+Assessed Fit Level: ${fitLevel.toUpperCase()} FIT
+
+<output_format>
+You MUST output in this exact markdown structure. Do NOT deviate:
+
+[One short sentence: verdict with job title, company, and fit level]
+
+**Strengths:**
+- [10 words max per bullet]
+- [10 words max per bullet]
+
+**Gaps:**
+- [10 words max per bullet]
+- [10 words max per bullet]
+
+**Recommendation:** [One short sentence of strategic advice]
+</output_format>
+
+<strict_rules>
+- HARD LIMIT: 100 words total. Count your words. If over 100, cut immediately.
+- Address the candidate directly using "you" and "your"
+- Reference actual skill names from the match data
+- Each bullet: maximum 10 words. Cut ruthlessly.
+- Exactly 2 strength bullets. Exactly 2 gap bullets. Exactly 1 recommendation sentence.
+- Do NOT start with "Based on" or "Overall"
+- Do NOT add explanations or qualifiers to bullets — be direct
+</strict_rules>
+
+Return ONLY the structured assessment. Nothing else.`,
+      systemPrompt: `You are Karko AI, a senior talent acquisition specialist and career coach.
+
+<assessment_guidelines>
+You evaluate job fit using the industry-standard 5-dimension framework: Skills & Competency Match, Experience Relevance, Transferable Value, Role Readiness, and Competitive Positioning.
+
+Your assessments follow these principles:
+1. HONESTY: Never sugarcoat weak fits. If the candidate lacks critical skills, say so clearly. If the fit is weak, state it directly.
+2. CONSTRUCTIVENESS: Always identify genuine strengths and transferable value, even in weak fits. Every candidate has something to offer.
+3. SPECIFICITY: Reference actual skill names, tools, and experience from the provided data. Never use vague statements like "you have relevant experience."
+4. ACTIONABILITY: Your recommendation should give the candidate a concrete strategy for their application.
+5. BREVITY: This is critical. The total output MUST be under 100 words. Each bullet must be under 10 words. Cut ruthlessly — short and punchy beats thorough and long. Users scan this in 5 seconds.
+</assessment_guidelines>`,
+      maxTokens: 300,
+    });
+
+    const tokens: TokenUsage = {
+      input: response.usage.inputTokens,
+      output: response.usage.outputTokens,
+    };
+
+    return {
+      result: {
+        fitLevel,
+        score: match?.score ?? 0,
+        assessment: response.content.trim(),
+        matchingSkills: match?.matchingSkills || [],
+        missingSkills: match?.missingSkills || [],
+      },
+      tokens,
+    };
   },
 
   // =====================================================
@@ -464,7 +838,7 @@ Missing Skills (from JD): ${match.missingSkills.join(', ')}
     // ---- PROMPT CACHING: Static instructions go into cacheable system blocks ----
     // The CV optimization rules + JSON schema are ~3,000+ tokens of static content
     // that is identical across every call. By placing them in system blocks with
-    // cache_control, Haiku 4.5 can cache this prefix (min 4,096 tokens).
+    // cache_control, Haiku 4.5 can cache this prefix (min 2,048 tokens for Haiku).
     // Cache reads cost 10% of base input price = ~90% savings on these tokens.
     const cvOptimizationSystemBlocks = [
       {
@@ -478,11 +852,33 @@ Output ONLY valid JSON matching the CVData schema. No markdown, no explanation, 
 The frontend will render your JSON directly - if you mess up the structure, the app breaks.
 CRITICAL: Always include the "analysis" object with summary, key_changes, ats_compatibility, and missing_keywords_added fields.
 
-=== 🛡️ SANITIZATION & QUALITY CONTROL ===
-1. **OCR Artifact Removal:** The user's original data may contain OCR errors or broken characters (e.g., "요", "ន", broken pipes "|", random symbols). AGGRESSIVELY STRIP these out. If a certification name looks like "Amazon Ads 요", correct it to "Amazon Ads".
-2. **Language Consistency:** Write ALL content (Summary, Bullets) in the language specified in the user prompt.
-   - Exception: Do NOT translate proper nouns (e.g., "React.js", "Seller Central", company names).
-3. **No Hallucinations:** Do NOT invent experiences, skills, or metrics. If a date is missing, omit it rather than guessing.
+<anti_hallucination_rules>
+WHY THIS MATTERS: Recruiters and hiring managers verify CV claims in interviews. A single fabricated skill or inflated metric destroys the candidate's credibility and our product's reputation. These rules protect every user.
+
+RULE 1 — SOURCE VERIFICATION:
+Every skill, tool, platform, certification, metric, and experience you include MUST be traceable to a specific statement in EITHER the Primary CV or the Master CV. Before writing any claim, verify: "Does this exact fact appear in the provided source documents?" If you cannot find it, do not include it. When the job description requires a skill the candidate lacks, highlight genuinely related transferable skills from the source documents instead of adding the missing skill.
+
+RULE 2 — METRIC ACCURACY:
+Use only exact numbers, percentages, and counts that appear in the source CVs. If a CV states a duration like "2+ years of experience," preserve that exact phrasing. Do not extrapolate counts (e.g., number of clients, students, or projects) unless that specific number is stated in a source document.
+
+RULE 3 — LANGUAGE PROFICIENCY ACCURACY:
+Reproduce language levels exactly as stated in the source CVs. Do not upgrade or relabel proficiency levels to match job description requirements. This is critical for the German job market where HR professionals follow strict CEFR conventions:
+- Muttersprache = Native speaker
+- Verhandlungssicher = C1-C2 (business-fluent, able to negotiate contracts)
+- Fließend = B2-C1 (fluent conversational)
+- Gute Kenntnisse = B1-B2 (good working knowledge)
+- Grundkenntnisse = A1-A2 (basic)
+A B2 certificate must be presented as B2 — labeling it as "verhandlungssicher" is factually incorrect and will be caught by any German HR professional. Only label a language as "verhandlungssicher" if the source CV documents C1 level or higher.
+
+RULE 4 — SKILL CATEGORIZATION:
+Categorize each skill based on its actual technical function, not based on which job description category it would best fit into. A database tool belongs under "Database/Backend," a web framework belongs under "Web Development," an analytics platform belongs under "Analytics," etc.
+
+RULE 5 — OCR CLEANUP:
+Strip OCR artifacts, broken characters, or encoding errors from certification names and other text while preserving the correct content.
+
+RULE 6 — LANGUAGE CONSISTENCY:
+Write all content in the language specified in the user prompt. Exception: preserve proper nouns (tool names, company names, product names) in their original form.
+</anti_hallucination_rules>
 
 === 📏 LENGTH & FORMAT CONSTRAINTS ===
 To ensure the CV fits on 2 pages and remains readable:
@@ -959,23 +1355,29 @@ Generate the optimized CV JSON now.`,
         type: 'text' as const,
         text: `You are an expert cover letter writer specializing in the US and UK job markets.
 
-CRITICAL ANTI-HALLUCINATION RULES (READ FIRST - VIOLATION IS UNACCEPTABLE):
+<anti_hallucination_rules>
+WHY THIS MATTERS: Cover letters are read by hiring managers who will verify claims in interviews. A single fabricated skill or inflated qualification destroys the candidate's credibility. These rules protect every user regardless of their industry, language, or experience level.
 
-1. NEVER claim experience with tools, platforms, or technologies unless they are EXPLICITLY listed in the CANDIDATE BACKGROUND section. 
-   - Job wants "Shopify" but CV doesn't mention it? DO NOT claim Shopify experience.
-   - Job wants "Magento" but CV only has "Amazon Seller Central"? Say "e-commerce platform experience" NOT "Magento experience"
+RULE 1 — SOURCE VERIFICATION:
+Only reference tools, platforms, technologies, and experiences that are explicitly stated in EITHER the Primary CV or the Master CV. When the job description requires a skill the candidate lacks, describe genuinely related transferable experience from the source documents using broader terminology (e.g., "platform management experience" instead of claiming a specific platform not in the CV).
 
-2. NEVER invent metrics, percentages, or numbers.
-   - Only use EXACT numbers from the CV: "€150,000 revenue" ✓
-   - Never invent: "67% increase" ✗ (unless that exact number is in the CV)
+RULE 2 — METRIC ACCURACY:
+Use only exact numbers and metrics that appear in the source CVs. Do not invent percentages, counts, or growth figures. If a number is not in the source documents, do not include it.
 
-3. NEVER claim industry experience the candidate doesn't have.
-   - CV shows cosmetics/laundry products? DO NOT claim "agricultural sector experience"
-   - Instead: "e-commerce experience across multiple product categories"
+RULE 3 — INDUSTRY ACCURACY:
+Only claim experience in industries and product categories documented in the source CVs. Use broader accurate descriptions when the candidate's specific experience differs from the target industry.
 
-4. If unsure whether something is in the CV, DO NOT include it.
+RULE 4 — LANGUAGE PROFICIENCY:
+Reproduce language levels exactly as stated in the source CVs. Do not upgrade proficiency levels to match job requirements. For the German market, follow strict CEFR conventions:
+- Muttersprache = Native
+- Verhandlungssicher = C1-C2 only (business-fluent, able to negotiate)
+- Fließend = B2-C1
+- Gute Kenntnisse = B1-B2
+A B2 certificate is B2 — never label it as verhandlungssicher. Only use verhandlungssicher if the source CV documents C1 or higher.
 
-5. Before writing any claim, ask: "Is this EXACT fact in the CANDIDATE BACKGROUND section?" If no, don't write it.
+RULE 5 — VERIFICATION CHECK:
+Before writing any claim, verify: "Does this exact fact appear in the provided source documents?" If uncertain, omit it.
+</anti_hallucination_rules>
 
 WRITING STYLE:
 - Write like a confident professional, not a job applicant begging for consideration
@@ -1195,6 +1597,10 @@ NEVER send an email without a signature. The signature must be on separate lines
 Return ONLY valid JSON: {"subject": "...", "body": "..."}`,
       systemPrompt: `You are an expert at professional email communication for job applications.
 
+<anti_hallucination_rules>
+Only reference skills, tools, metrics, and experience that appear in the provided source CVs. Do not invent numbers or claims. Reproduce language proficiency levels exactly as stated — do not upgrade levels to match job requirements (e.g., B2 stays B2, only C1+ qualifies as verhandlungssicher in the German market). Every claim must be traceable to at least one source document.
+</anti_hallucination_rules>
+
 GREETING RULE:
 - Since we don't know the hiring manager's name, ALWAYS use: "Hello," or "Hi there,"
 - NEVER output "[Name]" or "Hi [Name]," as a literal placeholder in the final email
@@ -1221,6 +1627,7 @@ PROHIBITIONS:
 - "I look forward to hearing from you"
 - More than 3 sentences in the body (excluding greeting/signature)
 - "[Name]" or any bracketed placeholder in the output
+- Claiming skills not in either CV source
 
 STRUCTURE:
 Subject: [Job Title] Application - [Your Name] - [One Key Qualifier or JD Keyword]
@@ -1297,7 +1704,7 @@ Return ONLY valid JSON: {"subject": "...", "body": "..."}`,
 };
 
 // =====================================================
-// CONVENIENCE FUNCTION
+// CONVENIENCE FUNCTIONS
 // =====================================================
 
 /**
@@ -1308,4 +1715,24 @@ export async function runJobCopilot(
   emit: AgentEventHandler
 ): Promise<AgentResult<OrchestrationResult>> {
   return unifiedWriterAgent.run(input, emit);
+}
+
+/**
+ * Run fit analysis only (Phase 1 + assessment)
+ */
+export async function runFitAnalysis(
+  input: UnifiedAgentInput,
+  emit: AgentEventHandler
+): Promise<AgentResult<OrchestrationResult>> {
+  return unifiedWriterAgent.runFitAnalysis(input, emit);
+}
+
+/**
+ * Run full generation with pre-built context (Phase 2 only)
+ */
+export async function runWithContext(
+  context: MasterContext,
+  emit: AgentEventHandler
+): Promise<AgentResult<OrchestrationResult>> {
+  return unifiedWriterAgent.runWithContext(context, emit);
 }

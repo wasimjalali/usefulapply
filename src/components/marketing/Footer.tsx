@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import Image from 'next/image';
+import KarkoLogo from '@/components/KarkoLogo';
 
 export default function Footer() {
   return (
@@ -9,12 +9,11 @@ export default function Footer() {
         <div className="grid md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="md:col-span-1">
-            <Link href="/" className="flex items-center gap-1 mb-4">
-              <Image src="/karko-ai.png" alt="KarKo AI" width={80} height={80} className="h-20 w-auto" />
-              <span className="text-gold-400 font-bold text-2xl leading-none">AI</span>
+            <Link href="/" className="flex items-center mb-4">
+              <KarkoLogo variant="full" size="lg" theme="dark" />
             </Link>
-            <p className="text-navy-200 text-sm leading-relaxed">
-              AI-powered job applications that get you noticed. Save 45+ minutes per application and land more interviews.
+            <p className="text-lg font-semibold text-white/90 mb-2">
+              One Click. Complete Job Application. 45 Minutes Saved.
             </p>
           </div>
 
@@ -90,9 +89,9 @@ export default function Footer() {
           <p className="text-navy-300 text-sm">
             © {new Date().getFullYear()} KarKo AI. All rights reserved.
           </p>
-          <p className="text-navy-400 text-xs">
-            Built by a job seeker, for job seekers.
-          </p>
+          <a href="mailto:hello@karkoai.com" className="text-navy-300 text-sm hover:text-white transition-colors">
+            hello@karkoai.com
+          </a>
         </div>
       </div>
     </footer>
