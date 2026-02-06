@@ -79,6 +79,7 @@ export interface ApplicationSession {
       linkedIn?: string;
       website?: string;
       github?: string;
+      driverLicense?: string;
     };
     summary?: string;
     experience: Array<{
