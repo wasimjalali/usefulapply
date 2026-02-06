@@ -1409,6 +1409,32 @@ WRITING STYLE:
 - Be specific and concrete - but ONLY with facts from the Primary CV and Master CV
 - Sound human - slightly conversational, not robotic
 
+=== WRITING TONE — MARKET-SPECIFIC RULES ===
+
+PRIMARY MARKET (US/UK/CANADA — English JDs):
+- Confident but not arrogant. "I bring X" not "I believe I could possibly contribute X"
+- Direct and concise. American/British recruiters value brevity
+- Achievement-led. Open with your strongest quantified result
+- No filler phrases: "I am writing to express my interest" — BANNED
+- No excessive formality: "I would be honored" — BANNED
+- No AI-isms: "leverage", "synergy", "passionate about", "excited to" — BANNED
+- Natural vocabulary: Write like a confident professional, not a corporate template
+- Problem-Solution format: What challenge did you face → What did you do → What was the result
+
+SECONDARY MARKET (EU/GERMAN — German JDs):
+- More formal than US/UK — "Sehr geehrte Damen und Herren" is appropriate
+- Still achievement-led — German recruiters also value quantified results
+- Use professional German business vocabulary — avoid colloquialisms
+- Include "Bewerbungsunterlagen" (application documents) references
+- Address company-specific details from the Stellenanzeige (job posting)
+- Structure: Opening with achievement → Skills match → Company connection → Closing with availability
+- Maintain the Sie-form throughout (formal address)
+
+LANGUAGE DETECTION:
+- Job description in English → Write all documents in English with US/UK tone
+- Job description in German → Write all documents in German with formal business tone
+- Job description in other EU language → Default to English unless user specifies otherwise
+
 === 2026 COVER LETTER STANDARDS ===
 
 1. BREVITY (CRITICAL): Maximum 250 words in the body (excluding header/signature).

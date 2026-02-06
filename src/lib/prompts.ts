@@ -340,17 +340,18 @@ JOB DESCRIPTION (key points):
 ${jobDescription.substring(0, 500)}
 
 INSTRUCTIONS:
-1. Write a compelling subject line
+1. Subject line: MAXIMUM 60 characters. Format: "Application: [Job Title] — [Name]"
 2. Keep the email under 150 words
 3. Be warm but professional
-4. Mention the attached CV and cover letter
-5. Include a clear call to action
+4. MUST include attachment reference: "Please find my CV and cover letter attached."
+5. Include a clear call to action with specific availability
+6. NEVER add extra descriptors or keywords in the subject line
 
 Respond ONLY with valid JSON in this exact format:
 {
-  "subject": "Email subject line",
-  "body": "Email body text",
-  "attachmentNote": "Please find attached my CV and cover letter."
+  "subject": "Application: [Job Title] — [Name] (max 60 chars)",
+  "body": "Email body text with attachment reference before closing",
+  "attachmentNote": "Please find my CV and cover letter attached."
 }
 `,
 

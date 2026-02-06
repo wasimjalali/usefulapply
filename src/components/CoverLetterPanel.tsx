@@ -28,11 +28,11 @@ export function CoverLetterPanel() {
   const downloadMenuRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Check if cover letter still contains the address placeholder
+  // Check if cover letter still contains any address placeholder (old or new format)
   const hasAddressPlaceholder = () => {
     if (!coverLetter) return false;
     const fullText = formatCoverLetterAsText(coverLetter);
-    return fullText.includes('[Company Address');
+    return fullText.includes('[Company Address') || fullText.includes('[Insert Company Address');
   };
 
   // Initialize edited cover letter when cover letter changes
