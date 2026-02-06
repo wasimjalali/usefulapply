@@ -1270,6 +1270,7 @@ Generate the optimized CV JSON now.`,
       console.log('  - Personal:', parsed.personal?.fullName);
       console.log('  - Experience entries:', parsed.experience?.length || 0);
       console.log('  - Skill categories:', parsed.skills?.length || 0);
+      console.log('  - Driver License:', parsed.personal?.driverLicense ?? parsed.personal?.driver_license ?? 'not present');
       
       // Validate and provide defaults
       const cvData: NonNullable<MasterContext['optimizedCVData']> = {
@@ -1284,6 +1285,7 @@ Generate the optimized CV JSON now.`,
           linkedIn: parsed.personal?.linkedIn,
           website: parsed.personal?.website,
           github: parsed.personal?.github,
+          driverLicense: parsed.personal?.driverLicense ?? parsed.personal?.driver_license ?? undefined,
         },
         summary: parsed.summary || '',
         experience: (parsed.experience || []).map((exp: Record<string, unknown>, idx: number) => ({
@@ -1712,6 +1714,11 @@ EXAMPLE (for a role where Python is MISSING):
 WRONG: "I've built applications using Python and LangChain"
 RIGHT: "I've built two production AI applications using Node.js, Next.js, and LLM APIs — demonstrating the engineering fundamentals that transfer directly to Python-based AI development"
 ` : ''}
+=== RELOCATION CONSTRAINT (BINDING) ===
+Job location: ${job?.location || 'Not specified'}
+${masterCV && /relocat/i.test(masterCV) ? `Master CV relocation statement found. The applicant's relocation preferences are ONLY what is written in the Master CV above. If the job location (${job?.location || 'unknown'}) is NOT explicitly covered by the Master CV's relocation statement, do NOT mention relocation willingness at all.` : `No relocation statement found in Master CV. Do NOT mention relocation willingness in the cover letter.`}
+NEVER fabricate relocation willingness to any city or country not explicitly listed in the Master CV.
+
 === FULL JOB DESCRIPTION (use for keyword mirroring and challenge detection) ===
 ${context.jobDescription}
 
