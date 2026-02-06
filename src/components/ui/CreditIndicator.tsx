@@ -132,81 +132,168 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
       </button>
 
       {isExpanded && (
-        <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-cream-200 p-4 z-[100]">
-          <div className="space-y-3">
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-warm-gray">Credits Remaining</span>
-                <span className="font-semibold text-charcoal">{totalCredits}</span>
-              </div>
-              <div className="w-full bg-cream-200 rounded-full h-2">
-                <div 
-                  className={`h-2 rounded-full transition-all ${
-                    percentRemaining > 50 ? 'bg-sage-500' : percentRemaining > 20 ? 'bg-gold-400' : 'bg-red-500'
-                  }`}
-                  style={{ width: `${percentRemaining}%` }}
-                />
-              </div>
-            </div>
+        <>
+          {/* Mobile: Full-screen backdrop + centered modal */}
+          <div className="md:hidden fixed inset-0 z-[200]">
+            <div 
+              className="absolute inset-0 bg-black/30"
+              onClick={() => setIsExpanded(false)}
+              onTouchStart={() => setIsExpanded(false)}
+            />
+            <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl border border-cream-200 p-5 z-[201]">
+              <div className="space-y-3">
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-warm-gray">Credits Remaining</span>
+                    <span className="font-semibold text-charcoal">{totalCredits}</span>
+                  </div>
+                  <div className="w-full bg-cream-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full transition-all ${
+                        percentRemaining > 50 ? 'bg-sage-500' : percentRemaining > 20 ? 'bg-gold-400' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${percentRemaining}%` }}
+                    />
+                  </div>
+                </div>
 
-            <div className="text-xs space-y-1 text-warm-gray">
-              <div className="flex justify-between">
-                <span>Monthly</span>
-                <span>{credits?.monthly_credits || 0}</span>
-              </div>
-              {(credits?.rollover_credits || 0) > 0 && (
-                <div className="flex justify-between">
-                  <span>Rollover</span>
-                  <span>{credits?.rollover_credits}</span>
+                <div className="text-xs space-y-1 text-warm-gray">
+                  <div className="flex justify-between">
+                    <span>Monthly</span>
+                    <span>{credits?.monthly_credits || 0}</span>
+                  </div>
+                  {(credits?.rollover_credits || 0) > 0 && (
+                    <div className="flex justify-between">
+                      <span>Rollover</span>
+                      <span>{credits?.rollover_credits}</span>
+                    </div>
+                  )}
+                  {(credits?.addon_credits || 0) > 0 && (
+                    <div className="flex justify-between">
+                      <span>Add-on</span>
+                      <span>{credits?.addon_credits}</span>
+                    </div>
+                  )}
                 </div>
-              )}
-              {(credits?.addon_credits || 0) > 0 && (
-                <div className="flex justify-between">
-                  <span>Add-on</span>
-                  <span>{credits?.addon_credits}</span>
-                </div>
-              )}
-            </div>
 
-            {/* Credit Costs */}
-            <div className="pt-2 border-t border-cream-200">
-              <div className="text-xs font-semibold text-charcoal mb-2">Credit Usage</div>
-              <div className="space-y-1.5 text-xs text-warm-gray">
-                <div className="flex justify-between">
-                  <span>Fit Analysis</span>
-                  <span className="font-medium text-charcoal">0.5</span>
+                <div className="pt-2 border-t border-cream-200">
+                  <div className="text-xs font-semibold text-charcoal mb-2">Credit Usage</div>
+                  <div className="space-y-1.5 text-xs text-warm-gray">
+                    <div className="flex justify-between">
+                      <span>Fit Analysis</span>
+                      <span className="font-medium text-charcoal">0.5</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Full Application</span>
+                      <span className="font-medium text-charcoal">1.5</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Cover Letter Regen</span>
+                      <span className="font-medium text-charcoal">0.5</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Email Regen</span>
+                      <span className="font-medium text-charcoal">0.5</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span>Full Application</span>
-                  <span className="font-medium text-charcoal">1.5</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Cover Letter Regen</span>
-                  <span className="font-medium text-charcoal">0.5</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Email Regen</span>
-                  <span className="font-medium text-charcoal">0.5</span>
+
+                <div className="pt-2 border-t border-cream-200 space-y-2">
+                  <Link
+                    href="/pricing#addons"
+                    className="block w-full text-center text-sm font-medium px-3 py-2.5 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors"
+                    onClick={() => setIsExpanded(false)}
+                  >
+                    Buy More Credits
+                  </Link>
+                  <Link
+                    href="/settings?section=subscription"
+                    className="block w-full text-center text-sm font-medium text-navy-600 hover:text-navy-700 transition-colors py-1"
+                    onClick={() => setIsExpanded(false)}
+                  >
+                    Manage Subscription →
+                  </Link>
                 </div>
               </div>
-            </div>
-
-            <div className="pt-2 border-t border-cream-200 space-y-2">
-              <Link
-                href="/pricing#addons"
-                className="block w-full text-center text-sm font-medium px-3 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors"
-              >
-                Buy More Credits
-              </Link>
-              <Link
-                href="/settings?section=subscription"
-                className="block w-full text-center text-sm font-medium text-navy-600 hover:text-navy-700 transition-colors"
-              >
-                Manage Subscription →
-              </Link>
             </div>
           </div>
-        </div>
+
+          {/* Desktop: Absolute dropdown */}
+          <div className="hidden md:block absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-cream-200 p-4 z-[100]">
+            <div className="space-y-3">
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-warm-gray">Credits Remaining</span>
+                  <span className="font-semibold text-charcoal">{totalCredits}</span>
+                </div>
+                <div className="w-full bg-cream-200 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full transition-all ${
+                      percentRemaining > 50 ? 'bg-sage-500' : percentRemaining > 20 ? 'bg-gold-400' : 'bg-red-500'
+                    }`}
+                    style={{ width: `${percentRemaining}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="text-xs space-y-1 text-warm-gray">
+                <div className="flex justify-between">
+                  <span>Monthly</span>
+                  <span>{credits?.monthly_credits || 0}</span>
+                </div>
+                {(credits?.rollover_credits || 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span>Rollover</span>
+                    <span>{credits?.rollover_credits}</span>
+                  </div>
+                )}
+                {(credits?.addon_credits || 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span>Add-on</span>
+                    <span>{credits?.addon_credits}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-2 border-t border-cream-200">
+                <div className="text-xs font-semibold text-charcoal mb-2">Credit Usage</div>
+                <div className="space-y-1.5 text-xs text-warm-gray">
+                  <div className="flex justify-between">
+                    <span>Fit Analysis</span>
+                    <span className="font-medium text-charcoal">0.5</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Full Application</span>
+                    <span className="font-medium text-charcoal">1.5</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Cover Letter Regen</span>
+                    <span className="font-medium text-charcoal">0.5</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Email Regen</span>
+                    <span className="font-medium text-charcoal">0.5</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-cream-200 space-y-2">
+                <Link
+                  href="/pricing#addons"
+                  className="block w-full text-center text-sm font-medium px-3 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors"
+                >
+                  Buy More Credits
+                </Link>
+                <Link
+                  href="/settings?section=subscription"
+                  className="block w-full text-center text-sm font-medium text-navy-600 hover:text-navy-700 transition-colors"
+                >
+                  Manage Subscription →
+                </Link>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

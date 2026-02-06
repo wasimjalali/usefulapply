@@ -174,7 +174,65 @@ export function SubscriptionSection({
       {/* Plan Comparison */}
       <Card className="p-6 rounded-2xl border-cream-200 shadow-sm">
         <h3 className="text-sm font-semibold text-charcoal mb-4">Compare Plans</h3>
-        <div className="grid grid-cols-3 gap-4">
+        
+        {/* Mobile: Simple vertical list */}
+        <div className="md:hidden space-y-3">
+          {/* Starter */}
+          <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+            isFreeTier ? 'border-gold-400 bg-gold-50/30' : 'border-cream-200'
+          }`}>
+            <div>
+              <h4 className="font-semibold text-charcoal">Starter</h4>
+              <p className="text-lg font-bold text-charcoal">$0<span className="text-xs font-normal text-warm-gray">/mo</span></p>
+              <p className="text-xs text-warm-gray">3 apps/month · 6 credits</p>
+            </div>
+            {isFreeTier && (
+              <span className="px-2.5 py-1 text-xs font-semibold bg-navy-50 text-navy-600 rounded-full">Current</span>
+            )}
+          </div>
+
+          {/* Plus */}
+          <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+            subscriptionTier === 'plus' ? 'border-gold-400 bg-gold-50/30' : 'border-cream-200'
+          }`}>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-semibold text-charcoal">Plus</h4>
+                <span className="px-2 py-0.5 bg-gradient-to-r from-gold-400 to-gold-500 text-white text-[10px] font-semibold rounded-full">Popular</span>
+              </div>
+              <p className="text-lg font-bold text-charcoal">$29.99<span className="text-xs font-normal text-warm-gray">/mo</span></p>
+              <p className="text-xs text-warm-gray">60 apps/month · 120 credits</p>
+            </div>
+            {subscriptionTier === 'plus' ? (
+              <span className="px-2.5 py-1 text-xs font-semibold bg-navy-50 text-navy-600 rounded-full">Current</span>
+            ) : onUpgrade && (
+              <Button variant="gold" size="sm" onClick={() => onUpgrade('plus')}>
+                Upgrade
+              </Button>
+            )}
+          </div>
+
+          {/* Pro */}
+          <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+            subscriptionTier === 'pro' ? 'border-gold-400 bg-gold-50/30' : 'border-cream-200'
+          }`}>
+            <div>
+              <h4 className="font-semibold text-charcoal">Pro</h4>
+              <p className="text-lg font-bold text-charcoal">$49.99<span className="text-xs font-normal text-warm-gray">/mo</span></p>
+              <p className="text-xs text-warm-gray">120 apps/month · 240 credits</p>
+            </div>
+            {subscriptionTier === 'pro' ? (
+              <span className="px-2.5 py-1 text-xs font-semibold bg-navy-50 text-navy-600 rounded-full">Current</span>
+            ) : onUpgrade && (
+              <Button variant="gold" size="sm" onClick={() => onUpgrade('pro')}>
+                Upgrade
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Desktop: Full 3-column grid with details */}
+        <div className="hidden md:grid grid-cols-3 gap-4">
           {/* Starter */}
           <div className={`p-4 rounded-xl border-2 transition-all ${
             isFreeTier ? 'border-gold-400 bg-gold-50/30 shadow-sm' : 'border-cream-200 hover:border-cream-300'
