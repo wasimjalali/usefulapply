@@ -14,7 +14,7 @@ export default function ImprintPage() {
             <section>
               <h2 className="text-2xl font-semibold text-navy-600 mb-4">Company Information</h2>
               <div className="text-warm-gray">
-                <p className="font-semibold text-charcoal text-lg">ISRAR Group LLC</p>
+                <p className="font-semibold text-charcoal text-lg">Fresh Grocery LLC</p>
                 <p className="mt-4">
                   30 N Gould St Ste N<br />
                   Sheridan, WY 82801<br />
@@ -34,7 +34,7 @@ export default function ImprintPage() {
             <section>
               <h2 className="text-2xl font-semibold text-navy-600 mb-4">Responsible for Content</h2>
               <p className="text-warm-gray">
-                ISRAR Group LLC
+                Fresh Grocery LLC
               </p>
             </section>
 
@@ -49,7 +49,7 @@ export default function ImprintPage() {
             <section>
               <h2 className="text-2xl font-semibold text-navy-600 mb-4">Copyright</h2>
               <p className="text-warm-gray">
-                © 2026 ISRAR Group LLC. All rights reserved.
+                © 2026 Fresh Grocery LLC. All rights reserved.
               </p>
             </section>
           </div>

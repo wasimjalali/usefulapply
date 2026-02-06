@@ -52,7 +52,8 @@ interface SupabaseSessionRow {
  * Hook to sync application sessions with Supabase
  * This runs in the background and syncs data when changes occur
  * 
- * CRITICAL: This hook now PULLS data FROM Supabase on mount to enable cross-browser sync
+ * CRITICAL: This hook now PULLS data FROM Supabase on mount to enable cross-browser sync.
+ * Supabase is the source of truth — localStorage is only a cache for the current browser.
  */
 export function useSupabaseSync() {
   const { user } = useAuth();
@@ -72,6 +73,7 @@ export function useSupabaseSync() {
   const lastSyncedSessionRef = useRef<string | null>(null);
   const isInitialLoadRef = useRef(true);
   const docsLoadedRef = useRef(false);
+  const isCreatingSessionRef = useRef<Set<string>>(new Set());
   const supabase = createClient();
 
   // CRITICAL: Load documents (primary CV, master CV, profile photo) from Supabase on mount
@@ -146,6 +148,7 @@ export function useSupabaseSync() {
   }, [user, currentCV, masterCV, profilePhoto, setCurrentCV, setStructuredCV, setMasterCV, setProfilePhoto]);
 
   // CRITICAL: Load sessions from Supabase on mount and populate Zustand store
+  // Supabase is the source of truth. Each session gets its OWN chat messages.
   useEffect(() => {
     const loadSessionsFromSupabase = async () => {
       if (!user) return;
@@ -172,6 +175,7 @@ export function useSupabaseSync() {
           console.log('[SupabaseSync] Found', data.length, 'sessions in Supabase');
           
           // Convert Supabase format to Zustand store format
+          // Each session starts with empty chatMessages — they'll be loaded per-session
           const supabaseSessions: ApplicationSession[] = data.map((row) => ({
             id: row.id,
             jobTitle: row.job_title || '',
@@ -205,53 +209,58 @@ export function useSupabaseSync() {
             chatMessages: [],
           }));
           
-          // Get current localStorage sessions
+          // Get current localStorage sessions — only keep truly local ones not yet in Supabase
           const { sessions: localSessions } = useAppStore.getState();
-          
-          // MERGE STRATEGY: Supabase is source of truth
           const supabaseIds = new Set(supabaseSessions.map(s => s.id));
           const localOnlySessions = localSessions.filter(s => 
             s.id.startsWith('session-') && !supabaseIds.has(s.id)
           );
           
-          const mergedSessions = [...supabaseSessions, ...localOnlySessions];
+          // FIX: Build a map so we can update sessions by ID without replacing the whole array
+          const sessionMap = new Map<string, ApplicationSession>();
+          for (const s of supabaseSessions) sessionMap.set(s.id, s);
+          for (const s of localOnlySessions) sessionMap.set(s.id, s);
           
-          // CRITICAL FIX: Populate the store IMMEDIATELY so UI shows sessions right away
-          // Chat messages will be loaded in the background for recent sessions only
-          setSessions(mergedSessions);
+          // Populate the store immediately so UI shows session list right away
+          setSessions(Array.from(sessionMap.values()));
           
-          console.log('[SupabaseSync] Store populated with sessions (chat messages loading in background):', {
+          console.log('[SupabaseSync] Store populated with sessions:', {
             fromSupabase: supabaseSessions.length,
             localOnly: localOnlySessions.length,
-            total: mergedSessions.length,
+            total: sessionMap.size,
           });
           
-          // Load chat messages only for the 10 most recent sessions (not all)
-          // Other sessions will load messages on-demand when selected
+          // Load chat messages for the 10 most recent Supabase sessions
+          // CRITICAL FIX: Each session gets its OWN messages — never mix them
           const recentSessions = supabaseSessions.slice(0, 10);
           const messagePromises = recentSessions.map(async (session) => {
             try {
               const messages = await getChatMessages(session.id);
               if (messages && messages.length > 0) {
-                session.chatMessages = messages.map((msg: any) => ({
+                const mappedMessages = messages.map((msg: any) => ({
                   id: msg.id,
                   role: msg.role,
                   content: msg.content,
                   timestamp: msg.created_at,
                   actions: msg.actions || [],
                 }));
-                console.log(`[SupabaseSync] Loaded ${messages.length} chat messages for session ${session.id}`);
+                // Update this specific session in the map
+                const existing = sessionMap.get(session.id);
+                if (existing) {
+                  sessionMap.set(session.id, { ...existing, chatMessages: mappedMessages });
+                }
+                console.log(`[SupabaseSync] Loaded ${messages.length} messages for session ${session.id.substring(0, 8)}...`);
               }
             } catch (err) {
-              console.error(`[SupabaseSync] Error loading chat messages for session ${session.id}:`, err);
+              console.error(`[SupabaseSync] Error loading messages for session ${session.id}:`, err);
             }
           });
           
-          // Load messages in parallel for speed
           await Promise.all(messagePromises);
           
-          // Update store again with chat messages populated
-          setSessions([...supabaseSessions, ...localOnlySessions]);
+          // Update store with chat messages populated — each session has its own messages
+          setSessions(Array.from(sessionMap.values()));
+          console.log('[SupabaseSync] All chat messages loaded for recent sessions');
         } else {
           console.log('[SupabaseSync] No sessions found in Supabase for this user');
         }
@@ -268,8 +277,9 @@ export function useSupabaseSync() {
     const syncSession = async () => {
       if (!user || !currentSession) return;
       
-      // Skip if we just synced this session
-      if (lastSyncedSessionRef.current === currentSession.id + currentSession.updatedAt) {
+      // Skip if we just synced this session (dedup by id + updatedAt)
+      const syncKey = currentSession.id + currentSession.updatedAt;
+      if (lastSyncedSessionRef.current === syncKey) {
         return;
       }
       
@@ -278,69 +288,89 @@ export function useSupabaseSync() {
         const isLocalSession = currentSession.id.startsWith('session-');
         
         if (isLocalSession) {
-          // Create in Supabase
-          const { session: newSession, error } = await createSupabaseSession(
-            user.id,
-            currentSession.jobDescription
-          );
+          // Prevent duplicate creation — if we're already creating this session, skip
+          if (isCreatingSessionRef.current.has(currentSession.id)) {
+            return;
+          }
+          isCreatingSessionRef.current.add(currentSession.id);
           
-          if (error) {
-            console.error('[SupabaseSync] Error creating session:', error);
-          } else if (newSession) {
-            console.log('[SupabaseSync] Created session in Supabase:', newSession.id);
-            
-            // CRITICAL FIX: Update local session ID to match Supabase UUID
-            // This ensures chat messages get synced to the correct session
-            const oldSessionId = currentSession.id;
-            const updatedSession = {
-              ...currentSession,
-              id: newSession.id, // Replace local ID with Supabase UUID
-            };
-            
-            // Update the store with the new session ID
-            const sessionStore = useSessionStore.getState();
-            sessionStore.updateCurrentSession({ id: newSession.id });
-            sessionStore.setSessions(
-              sessionStore.sessions.map((s) => 
-                s.id === oldSessionId ? updatedSession : s
-              )
+          try {
+            // Create in Supabase
+            const { session: newSession, error } = await createSupabaseSession(
+              user.id,
+              currentSession.jobDescription
             );
             
-            console.log('[SupabaseSync] Updated local session ID:', oldSessionId, '->', newSession.id);
-            
-            // Immediately update the new session with full data (job_title, company, etc.)
-            if (currentSession.jobTitle || currentSession.company) {
-              await updateSupabaseSession(newSession.id, {
-                job_title: currentSession.jobTitle,
-                company: currentSession.company,
-                match_score: currentSession.matchScore,
-                matching_skills: currentSession.matchingSkills,
-                missing_skills: currentSession.missingSkills,
-                requirements: currentSession.requirements,
-                gaps: currentSession.gaps,
-                generated_cv: currentSession.generatedCV,
-                cover_letter: currentSession.coverLetter,
-                email: currentSession.email,
-                company_research: currentSession.companyResearch,
-              });
-              console.log('[SupabaseSync] Updated new session with full data');
+            if (error) {
+              console.error('[SupabaseSync] Error creating session:', error);
+              return;
             }
             
-            // Sync any existing chat messages to Supabase with the new session ID
-            if (currentSession.chatMessages && currentSession.chatMessages.length > 0) {
-              console.log('[SupabaseSync] Syncing', currentSession.chatMessages.length, 'chat messages to new session');
-              for (const msg of currentSession.chatMessages) {
-                try {
-                  await addSupabaseChatMessage(newSession.id, user.id, {
-                    role: msg.role,
-                    content: msg.content,
-                    actions: msg.actions,
-                  });
-                } catch (err) {
-                  console.error('[SupabaseSync] Error syncing chat message:', err);
+            if (newSession) {
+              console.log('[SupabaseSync] Created session in Supabase:', newSession.id);
+              
+              const oldSessionId = currentSession.id;
+              
+              // Build the updated session with the Supabase UUID
+              const updatedSession: ApplicationSession = {
+                ...currentSession,
+                id: newSession.id,
+              };
+              
+              // Replace the old local session with the new Supabase session in the store
+              const sessionStore = useSessionStore.getState();
+              const updatedSessions = sessionStore.sessions.map((s) => 
+                s.id === oldSessionId ? updatedSession : s
+              );
+              sessionStore.setSessions(updatedSessions);
+              
+              // Update current session ID
+              if (sessionStore.currentSession?.id === oldSessionId) {
+                sessionStore.updateCurrentSession({ id: newSession.id });
+              }
+              
+              console.log('[SupabaseSync] Replaced local ID:', oldSessionId, '->', newSession.id);
+              
+              // Update the new session with full data
+              if (currentSession.jobTitle || currentSession.company) {
+                await updateSupabaseSession(newSession.id, {
+                  job_title: currentSession.jobTitle,
+                  company: currentSession.company,
+                  match_score: currentSession.matchScore,
+                  matching_skills: currentSession.matchingSkills,
+                  missing_skills: currentSession.missingSkills,
+                  requirements: currentSession.requirements,
+                  gaps: currentSession.gaps,
+                  generated_cv: currentSession.generatedCV,
+                  cover_letter: currentSession.coverLetter,
+                  email: currentSession.email,
+                  company_research: currentSession.companyResearch,
+                });
+              }
+              
+              // Sync existing chat messages to Supabase
+              if (currentSession.chatMessages && currentSession.chatMessages.length > 0) {
+                console.log('[SupabaseSync] Syncing', currentSession.chatMessages.length, 'chat messages to new session');
+                for (const msg of currentSession.chatMessages) {
+                  try {
+                    await addSupabaseChatMessage(newSession.id, user.id, {
+                      role: msg.role,
+                      content: msg.content,
+                      actions: msg.actions,
+                    });
+                    // Mark as synced so the chat message sync effect doesn't duplicate them
+                    syncedMessageIdsRef.current.add(msg.id);
+                  } catch (err) {
+                    console.error('[SupabaseSync] Error syncing chat message:', err);
+                  }
                 }
               }
+              
+              // Update sync key with the new session ID
+              lastSyncedSessionRef.current = newSession.id + currentSession.updatedAt;
             }
+          } finally {
+            isCreatingSessionRef.current.delete(currentSession.id);
           }
         } else {
           // Update existing session in Supabase
@@ -373,9 +403,9 @@ export function useSupabaseSync() {
           if (error) {
             console.error('[SupabaseSync] Error updating session:', error);
           }
+          
+          lastSyncedSessionRef.current = syncKey;
         }
-        
-        lastSyncedSessionRef.current = currentSession.id + currentSession.updatedAt;
       } catch (error) {
         console.error('[SupabaseSync] Sync error:', error);
       }
@@ -389,6 +419,22 @@ export function useSupabaseSync() {
   // Track synced chat message IDs to avoid duplicates
   const syncedMessageIdsRef = useRef<Set<string>>(new Set());
 
+  // On mount, pre-populate synced message IDs from current sessions to avoid re-syncing
+  useEffect(() => {
+    if (!user) return;
+    const { sessions: currentSessions } = useAppStore.getState();
+    for (const session of currentSessions) {
+      if (!session.id.startsWith('session-')) {
+        // For Supabase sessions, mark all existing messages as already synced
+        for (const msg of session.chatMessages) {
+          if (!msg.id.startsWith('msg-')) {
+            syncedMessageIdsRef.current.add(msg.id);
+          }
+        }
+      }
+    }
+  }, [user]);
+
   // Sync chat messages to Supabase when new messages are added
   useEffect(() => {
     const syncChatMessages = async () => {
@@ -397,22 +443,19 @@ export function useSupabaseSync() {
       // Skip local sessions (they need to be synced to Supabase first)
       const isLocalSession = currentSession.id.startsWith('session-');
       if (isLocalSession) {
-        console.log('[SupabaseSync] Skipping chat sync for local session');
         return;
       }
       
-      // Get new messages that haven't been synced yet
-      const newMessages = currentSession.chatMessages.filter(
-        msg => !syncedMessageIdsRef.current.has(msg.id) && !msg.id.startsWith('msg-')
-      );
-      
-      // Also sync local messages (msg- prefix) that need to be saved to Supabase
-      const localMessages = currentSession.chatMessages.filter(
+      // Only sync local messages (msg- prefix) that haven't been synced yet
+      const unsynced = currentSession.chatMessages.filter(
         msg => msg.id.startsWith('msg-') && !syncedMessageIdsRef.current.has(msg.id)
       );
       
-      // Sync local messages to Supabase
-      for (const msg of localMessages) {
+      if (unsynced.length === 0) return;
+      
+      console.log('[SupabaseSync] Syncing', unsynced.length, 'new chat messages');
+      
+      for (const msg of unsynced) {
         try {
           const { message: savedMessage, error } = await addSupabaseChatMessage(
             currentSession.id,
@@ -427,9 +470,7 @@ export function useSupabaseSync() {
           if (error) {
             console.error('[SupabaseSync] Error saving chat message:', error);
           } else if (savedMessage) {
-            // Mark as synced
             syncedMessageIdsRef.current.add(msg.id);
-            console.log('[SupabaseSync] Saved chat message to Supabase:', savedMessage.id);
           }
         } catch (err) {
           console.error('[SupabaseSync] Chat message sync error:', err);

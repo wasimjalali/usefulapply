@@ -10,8 +10,9 @@ import { ChatHistory, type SessionSummary } from './chat/ChatHistory';
 import { FeedbackModal } from './chat/FeedbackModal';
 import { AgentProgressV2 } from './AgentProgressV2';
 import { useAppStore } from '@/store/useAppStore';
+import { useSessionStore } from '@/store/useSessionStore';
 import { useAuth } from '@/contexts/AuthContext';
-import { submitMessageFeedback } from '@/lib/supabase';
+import { submitMessageFeedback, getChatMessages } from '@/lib/supabase';
 import { 
   Loader2,
   ChevronRight,
@@ -774,9 +775,35 @@ export function ChatPanel({ onTabChange, onAnalyze }: ChatPanelProps) {
           <ChatHistory
             sessions={sessions as SessionSummary[]}
             currentSessionId={currentSession?.id}
-            onSelectSession={(sessionId) => {
+            onSelectSession={async (sessionId) => {
               loadSession(sessionId);
               setShowHistory(false);
+              
+              // On-demand: fetch chat messages from Supabase if session has none loaded
+              const sessionStore = useSessionStore.getState();
+              const loaded = sessionStore.sessions.find(s => s.id === sessionId);
+              if (loaded && loaded.chatMessages.length === 0 && !sessionId.startsWith('session-')) {
+                try {
+                  const messages = await getChatMessages(sessionId);
+                  if (messages && messages.length > 0) {
+                    const mapped = messages.map((msg: any) => ({
+                      id: msg.id,
+                      role: msg.role,
+                      content: msg.content,
+                      timestamp: msg.created_at,
+                      actions: msg.actions || [],
+                    }));
+                    sessionStore.updateCurrentSession({ chatMessages: mapped });
+                    // Also update in the sessions array
+                    sessionStore.setSessions(
+                      sessionStore.sessions.map(s => s.id === sessionId ? { ...s, chatMessages: mapped } : s)
+                    );
+                    console.log(`[ChatPanel] Loaded ${messages.length} messages on-demand for session ${sessionId.substring(0, 8)}...`);
+                  }
+                } catch (err) {
+                  console.error('[ChatPanel] Error loading messages on-demand:', err);
+                }
+              }
             }}
           />
         )}

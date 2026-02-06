@@ -106,7 +106,7 @@ export default function TermsPage() {
                 Email: <a href="mailto:hello@karkoai.com" className="text-navy-600 hover:underline">hello@karkoai.com</a>
               </p>
               <p className="text-warm-gray mt-2">
-                Address: ISRAR Group LLC, 30 N Gould St Ste N, Sheridan, WY 82801, USA
+                Address: Fresh Grocery LLC, 30 N Gould St Ste N, Sheridan, WY 82801, USA
               </p>
             </section>
           </div>
