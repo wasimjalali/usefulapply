@@ -870,13 +870,23 @@ Reproduce language levels exactly as stated in the source CVs. Do not upgrade or
 - Grundkenntnisse = A1-A2 (basic)
 A B2 certificate must be presented as B2 — labeling it as "verhandlungssicher" is factually incorrect and will be caught by any German HR professional. Only label a language as "verhandlungssicher" if the source CV documents C1 level or higher.
 
-RULE 4 — SKILL CATEGORIZATION:
+RULE 4 — SKILL INFERENCE (STRICT):
+You may ONLY add skills to the CV that are:
+1. Explicitly listed in the original CV or Master CV, OR
+2. Directly demonstrated by a project or achievement described in the CV/Master CV
+You may NOT add skills that are:
+- Inferred from adjacent or similar skills (e.g., do NOT add "Google Analytics" just because the CV lists "SEO" and "Keyword Research")
+- Common in the industry but not evidenced by the applicant
+- Required by the job description but not present in the applicant's background
+If a required skill is missing, flag it in the fit assessment as a GAP, not in the CV as a claimed skill.
+
+RULE 5 — SKILL CATEGORIZATION:
 Categorize each skill based on its actual technical function, not based on which job description category it would best fit into. A database tool belongs under "Database/Backend," a web framework belongs under "Web Development," an analytics platform belongs under "Analytics," etc.
 
-RULE 5 — OCR CLEANUP:
+RULE 6 — OCR CLEANUP:
 Strip OCR artifacts, broken characters, or encoding errors from certification names and other text while preserving the correct content.
 
-RULE 6 — LANGUAGE CONSISTENCY:
+RULE 7 — LANGUAGE CONSISTENCY:
 Write all content in the language specified in the user prompt. Exception: preserve proper nouns (tool names, company names, product names) in their original form.
 </anti_hallucination_rules>
 
@@ -925,6 +935,11 @@ To ensure the CV fits on 2 pages and remains readable:
    - Max 5 items per category (strictly enforced)
 
 6. EDUCATION: Copy from Primary CV exactly
+   - For non-German qualifications mapped to German equivalents: use the recognized equivalent name + grade, NO redundant descriptors
+   - CORRECT: "Allgemeine Hochschulreife (Abitur-Äquivalent) | Note: 92,43%"
+   - INCORRECT: "Allgemeine Hochschulreife (Abitur-Äquivalent) in Allgemeinbildung"
+   - For US/UK market: "High School Diploma GPA: 92.43%"
+   - Do NOT add "in [field]" if the degree name already implies the field (e.g., "Allgemeine Hochschulreife" already means general education)
 
 7. LANGUAGES: Copy from Primary CV exactly (with proficiency levels)
 
@@ -1055,6 +1070,14 @@ SOURCING PRIORITY:
 - Certifications: BOTH CVs - select most relevant to the JD
 - Education: PRIMARY CV first, supplement from Master CV if needed
 
+=== DATA PRESERVATION RULES ===
+The following fields from the original CV or Master CV must ALWAYS be preserved in the optimized CV, regardless of job description relevance:
+1. Driver's License — include in personal info section (e.g., in the address line or a footer note)
+2. Languages — always include ALL languages with their exact proficiency levels
+3. Work Authorization status — if mentioned in Master CV or Primary CV
+4. Location — always include current city
+These fields cost zero space in terms of relevance but can be disqualifying if missing.
+
 === CRITICAL RULES ===
 1. Output ONLY valid JSON - no markdown code blocks, no text before or after
 2. NEVER invent skills, experiences, or achievements not in EITHER the Primary CV or Master CV
@@ -1064,7 +1087,8 @@ SOURCING PRIORITY:
 6. Skills must include SPECIFIC TOOL NAMES, not generic categories
 7. ALWAYS include the "analysis" object - it powers the Changes tab
 8. CLEAN all OCR artifacts from certification names and other text
-9. Every skill, metric, and claim MUST be traceable to either the Primary CV or Master CV`,
+9. Every skill, metric, and claim MUST be traceable to either the Primary CV or Master CV
+10. PRESERVE driver's license, languages, work authorization, and location — never silently drop these`,
         cache_control: { type: 'ephemeral' as const },
       },
     ];
@@ -1420,6 +1444,41 @@ STRUCTURE (Problem-Solution Format):
 3. Confident close (1-2 sentences): Clear, specific call to action
 4. Signature: "Best regards," followed by applicant's full name
 
+=== LOCATION INTELLIGENCE ===
+Before generating the cover letter, check:
+1. Where is the applicant located? (from CV/Master CV)
+2. Where is the job located? (from job description)
+3. Is relocation or hybrid/remote mentioned? (from job description)
+4. Does the Master CV mention relocation readiness?
+
+IF the applicant and job are in different cities AND the job requires on-site presence:
+- Check if Master CV mentions relocation willingness
+- If YES: Add one sentence in the closing paragraph:
+  English: "I am open to relocating to [city] and available to discuss logistics."
+  German: "Ich bin bereit, nach [Stadt] umzuziehen und stehe für ein Gespräch zur Verfügung."
+- If NO: Do not fabricate relocation willingness. Instead, omit any location reference and let the user decide.
+
+IF the job is fully remote or doesn't mention location requirements:
+- Do not mention location or relocation
+
+NEVER ignore a location mismatch. Addressing it proactively shows professionalism. Ignoring it looks careless.
+
+=== COMPANY CONTEXT EXTRACTION ===
+Since web search is not available, extract ALL company context from the job description:
+- Company name
+- Industry/sector
+- Products or services mentioned
+- Company values or culture signals
+- Team size or structure hints
+- Any unique selling points mentioned
+
+USE this extracted context in the cover letter:
+- Reference at least ONE specific company detail in the opening or closing paragraph
+- Connect the applicant's experience to the company's specific industry/products
+- Do NOT use generic phrases like "your company" or "your team" without specifics
+
+The job description is the richest source of company information available. Use it fully.
+
 ABSOLUTE PROHIBITIONS:
 - "I am writing to apply for..." or "I am excited to apply for..."
 - "I believe I would be a great fit..."
@@ -1431,7 +1490,7 @@ ABSOLUTE PROHIBITIONS:
 - "I look forward to hearing from you"
 - Em-dashes (—) - use regular dashes (-) instead
 - ANY claim about tools, metrics, or experience not in EITHER the Primary CV or Master CV
-- NEVER invent a street address for the company - use "[Insert Company Address]" instead
+- NEVER invent a street address for the company - use "[Company Address — verify before sending]" instead
 - Paragraphs longer than 3 sentences
 - Generic filler phrases that add no value
 
@@ -1506,9 +1565,9 @@ ${today}
 
 Hiring Manager
 ${job?.companyName || 'Company'}
-[Insert Company Address]
+[Company Address — verify before sending]
 
-IMPORTANT: Under the company name, write exactly "[Insert Company Address]" - do NOT invent or guess a street address.
+IMPORTANT: Under the company name, write exactly "[Company Address — verify before sending]" - do NOT invent or guess a street address.
 
 === LANGUAGE INSTRUCTION ===
 ${isGerman ? `CRITICAL: Write the ENTIRE cover letter in GERMAN.
@@ -1572,12 +1631,24 @@ MASTER CV HIGHLIGHTS (comprehensive experience inventory):
 ${masterCV.slice(0, 500)}` : ''}
 
 INSTRUCTIONS:
-1. Subject line format: [Job Title] Application - [Name] - [One impressive metric or JD keyword]
-2. Body: Maximum 3 sentences (excluding greeting and signature)
+1. Subject line: MAXIMUM 60 characters total. Format below.
+2. Body: Maximum 4 sentences (excluding greeting and signature)
 3. Must include one specific number/achievement from EITHER the Primary CV or Master CV
-4. End with specific availability, not "I look forward to hearing from you"
-5. Start with "Hello," as the greeting (do NOT use placeholder like "[Name]")
-6. Include one exact keyword from the job description in the body
+4. MUST include an attachment reference sentence (see rules below)
+5. End with specific availability, not "I look forward to hearing from you"
+6. Start with "Hello," as the greeting (do NOT use placeholder like "[Name]")
+7. Include one exact keyword from the job description in the body
+
+EMAIL SUBJECT LINE RULES:
+- English: "Application: [Job Title] — [Your Name]" (max 60 chars)
+- German: "Bewerbung als [Job Title] — [Your Name]" (max 60 chars)
+- NEVER add extra descriptors, skill keywords, or metrics in the subject
+- The subject line is for identification, not selling
+
+ATTACHMENT REFERENCE (REQUIRED — never skip):
+- English: Include "Please find my CV and cover letter attached." or "I've attached my CV and cover letter for your review."
+- German: Include "Anbei finden Sie meinen Lebenslauf und mein Anschreiben." or "Meine vollständigen Bewerbungsunterlagen finden Sie im Anhang."
+- Place the attachment reference BEFORE the availability/closing sentence
 
 === LANGUAGE INSTRUCTION ===
 ${isGerman ? `CRITICAL: Write the ENTIRE email in GERMAN.
@@ -1610,8 +1681,7 @@ STYLE:
 - Brief and direct - hiring managers scan emails in seconds
 - Professional but warm - not robotic
 - One clear purpose per email
-- Subject line that stands out without being gimmicky
-- Include one JD keyword in the subject line for ATS email parsing
+- Subject line for identification only - no selling
 
 DUAL-CV SOURCING:
 - You have TWO sources: Primary CV and Master CV
@@ -1619,19 +1689,30 @@ DUAL-CV SOURCING:
 - The Master CV is a comprehensive inventory - mine it for the best achievement
 - Every claim must exist in at least one CV source
 
+EMAIL SUBJECT LINE FORMAT (STRICT):
+- English: "Application: [Job Title] — [Your Name]" (max 60 chars total)
+- German: "Bewerbung als [Job Title] — [Your Name]" (max 60 chars total)
+- NEVER add extra descriptors, skill keywords, or metrics in the subject
+
+ATTACHMENT REFERENCE (MANDATORY):
+- English: "Please find my CV and cover letter attached." or similar
+- German: "Anbei finden Sie meinen Lebenslauf und mein Anschreiben." or similar
+- Place BEFORE the closing/availability sentence
+- NEVER skip the attachment reference
+
 PROHIBITIONS:
 - "I am writing to express my interest..."
-- "Please find attached..."
 - "I hope this email finds you well"
 - "To Whom It May Concern"
 - "I look forward to hearing from you"
-- More than 3 sentences in the body (excluding greeting/signature)
+- More than 4 sentences in the body (excluding greeting/signature)
 - "[Name]" or any bracketed placeholder in the output
 - Claiming skills not in either CV source
+- Extra descriptors or keywords in subject line
 
 STRUCTURE:
-Subject: [Job Title] Application - [Your Name] - [One Key Qualifier or JD Keyword]
-Body: Greeting + One sentence hook with metric + one sentence value + one sentence call to action + Signature
+Subject: "Application: [Job Title] — [Your Name]" (max 60 chars)
+Body: Greeting + One sentence hook with metric + one sentence value + attachment reference + availability/call to action + Signature
 
 SIGNATURE REQUIREMENT:
 - EVERY email MUST end with a signature

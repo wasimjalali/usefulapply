@@ -9,6 +9,7 @@ import type { GeneratedCoverLetter } from '@/lib/types';
 import { jsPDF } from 'jspdf';
 import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
+import { useToast } from './ui/Toast';
 
 export function CoverLetterPanel() {
   const { currentSession, isGenerating, isAgentWorking, setCoverLetter, currentCV, structuredCV } = useAppStore();
@@ -25,6 +26,14 @@ export function CoverLetterPanel() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedCoverLetter, setEditedCoverLetter] = useState<GeneratedCoverLetter | null>(null);
   const downloadMenuRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  // Check if cover letter still contains the address placeholder
+  const hasAddressPlaceholder = () => {
+    if (!coverLetter) return false;
+    const fullText = formatCoverLetterAsText(coverLetter);
+    return fullText.includes('[Company Address');
+  };
 
   // Initialize edited cover letter when cover letter changes
   useEffect(() => {
@@ -79,11 +88,17 @@ ${letter.signatureName}`;
       await navigator.clipboard.writeText(fullText);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+      if (hasAddressPlaceholder()) {
+        toast.warning("Don't forget to add the company address before sending!", 6000);
+      }
     }
   };
 
   const handleDownloadPDF = async () => {
     if (!coverLetter) return;
+    if (hasAddressPlaceholder()) {
+      toast.warning("Don't forget to add the company address before sending!", 6000);
+    }
     
     setIsDownloading(true);
     setShowDownloadMenu(false);
@@ -210,6 +225,9 @@ ${letter.signatureName}`;
 
   const handleDownloadDOCX = async () => {
     if (!coverLetter) return;
+    if (hasAddressPlaceholder()) {
+      toast.warning("Don't forget to add the company address before sending!", 6000);
+    }
     
     setIsDownloading(true);
     setShowDownloadMenu(false);
