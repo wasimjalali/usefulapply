@@ -29,7 +29,7 @@ export default function Home() {
           <div className="text-center max-w-4xl mx-auto">
             {/* Trust badge */}
             <ScrollReveal delay={0} direction="down" distance={20}>
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-cream-300 rounded-full text-sm text-charcoal mb-8 shadow-sm">
+            <div className="inline-flex items-center gap-2 px-4 py-2 glass rounded-full text-sm text-charcoal mb-8 shadow-sm">
               <Sparkles className="w-4 h-4 text-gold-400" />
               <span className="font-medium">Agentic AI that does the work for you</span>
             </div>
@@ -57,7 +57,7 @@ export default function Home() {
               </Link>
               <Link
                 href="#how-it-works"
-                className="w-full sm:w-auto px-10 py-4 bg-white border-2 border-navy-200 text-navy-600 font-semibold rounded-xl hover:border-navy-400 hover:bg-navy-50 transition-all flex items-center justify-center gap-2 text-lg"
+                className="w-full sm:w-auto px-10 py-4 glass text-navy-600 font-semibold rounded-xl hover:bg-white/80 transition-all flex items-center justify-center gap-2 text-lg shadow-sm"
               >
                 See How It Works
               </Link>
@@ -599,7 +599,7 @@ export default function Home() {
             </Link>
             <Link
               href="/pricing"
-              className="w-full sm:w-auto px-10 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold rounded-xl hover:bg-white/20 transition-all flex items-center justify-center text-lg"
+              className="w-full sm:w-auto px-10 py-4 glass-dark text-white font-semibold rounded-xl hover:bg-white/20 transition-all flex items-center justify-center text-lg"
             >
               View Pricing
             </Link>

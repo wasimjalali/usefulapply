@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Copy, Check, FileText, Sparkles, Target, Clock, ArrowRight, CheckCircle } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
+import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 
 // The Master CV Prompt
 const MASTER_CV_PROMPT = `You are helping me create a Master CV — a complete inventory of my professional background. This is NOT a regular CV to send to employers. It's a detailed reference document (5-10 pages) that an AI job application tool will use to generate tailored applications for me.
@@ -261,23 +262,30 @@ export default function MasterCVPage() {
       {/* Hero Section */}
       <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-cream-300 rounded-full text-sm text-charcoal mb-8 shadow-sm">
+          <ScrollReveal delay={0} direction="down" distance={20}>
+          <div className="inline-flex items-center gap-2 px-4 py-2 glass rounded-full text-sm text-charcoal mb-8 shadow-sm">
             <Sparkles className="w-4 h-4 text-gold-400" />
             <span className="font-medium">The Foundation of Great Applications</span>
           </div>
+          </ScrollReveal>
+          <ScrollReveal delay={150}>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-navy-600 mb-6 leading-tight">
             Create Your{' '}
             <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">Master CV</span>
           </h1>
+          </ScrollReveal>
+          <ScrollReveal delay={300}>
           <p className="text-xl text-warm-gray max-w-2xl mx-auto leading-relaxed">
             A Master CV is a comprehensive skills inventory (5-10 pages) that powers hyper-personalized job applications. Build it once, use it for every application.
           </p>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* What is a Master CV */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
+          <ScrollReveal>
           <div className="text-center mb-14">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Understanding</p>
             <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
@@ -287,9 +295,11 @@ export default function MasterCVPage() {
               It is not something you send to employers. It is a detailed reference document containing your complete professional history — so KarKo AI can create perfectly tailored applications.
             </p>
           </div>
+          </ScrollReveal>
 
           {/* Comparison Table */}
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            <ScrollReveal direction="left">
             <div className="bg-white rounded-2xl p-8 border border-red-100 shadow-sm">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
@@ -313,7 +323,9 @@ export default function MasterCVPage() {
                 ))}
               </ul>
             </div>
+            </ScrollReveal>
 
+            <ScrollReveal direction="right" delay={200}>
             <div className="bg-white rounded-2xl p-8 border-2 border-sage-200 shadow-md relative">
               <div className="absolute -top-3 left-6 px-3 py-1 bg-sage-500 text-white text-xs font-bold rounded-full">RECOMMENDED</div>
               <div className="flex items-center gap-3 mb-6">
@@ -338,6 +350,7 @@ export default function MasterCVPage() {
                 ))}
               </ul>
             </div>
+            </ScrollReveal>
           </div>
         </div>
       </section>
@@ -345,12 +358,14 @@ export default function MasterCVPage() {
       {/* Why You Need One */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
         <div className="max-w-6xl mx-auto">
+          <ScrollReveal>
           <div className="text-center mb-14">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Benefits</p>
             <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
               Why You Need a Master CV
             </h2>
           </div>
+          </ScrollReveal>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
@@ -387,13 +402,15 @@ export default function MasterCVPage() {
             ].map((benefit, i) => {
               const Icon = benefit.icon;
               return (
-                <div key={i} className="bg-white rounded-2xl p-6 border border-cream-200 hover:shadow-md transition-shadow">
+                <ScrollReveal key={i} delay={i * 100}>
+                <div className="bg-white rounded-2xl p-6 border border-cream-200 card-hover-lift">
                   <div className="w-12 h-12 bg-navy-100 rounded-xl flex items-center justify-center mb-4">
                     <Icon className="w-6 h-6 text-navy-600" />
                   </div>
                   <h3 className="text-lg font-bold text-charcoal mb-2">{benefit.title}</h3>
                   <p className="text-warm-gray text-sm leading-relaxed">{benefit.description}</p>
                 </div>
+                </ScrollReveal>
               );
             })}
           </div>
@@ -403,6 +420,7 @@ export default function MasterCVPage() {
       {/* How to Create */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-4xl mx-auto">
+          <ScrollReveal>
           <div className="text-center mb-14">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Simple Process</p>
             <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
@@ -412,6 +430,7 @@ export default function MasterCVPage() {
               Use the prompt below with any AI chatbot (Claude, ChatGPT, Gemini) to create your Master CV through a guided interview. It takes about 30 minutes.
             </p>
           </div>
+          </ScrollReveal>
 
           <div className="grid sm:grid-cols-3 gap-8 mb-14 relative">
             <div className="hidden sm:block absolute top-8 left-[20%] right-[20%] h-0.5 bg-gradient-to-r from-gold-200 via-gold-400 to-gold-200" />
@@ -419,14 +438,16 @@ export default function MasterCVPage() {
               { step: '1', title: 'Copy the Prompt', description: 'Click the copy button below to get the Master CV creation prompt.' },
               { step: '2', title: 'Paste into AI Chat', description: 'Open Claude, ChatGPT, or Gemini and paste the prompt.' },
               { step: '3', title: 'Answer Questions', description: 'The AI will interview you systematically to capture everything.' },
-            ].map((item) => (
-              <div key={item.step} className="text-center relative">
+            ].map((item, i) => (
+              <ScrollReveal key={item.step} delay={i * 150}>
+              <div className="text-center relative">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-gold-100 rounded-2xl mb-4 shadow-sm relative z-10">
                   <span className="text-2xl font-bold text-gold-500">{item.step}</span>
                 </div>
                 <h3 className="text-lg font-bold text-charcoal mb-2">{item.title}</h3>
                 <p className="text-warm-gray text-sm leading-relaxed">{item.description}</p>
               </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -435,6 +456,7 @@ export default function MasterCVPage() {
       {/* The Prompt Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-navy-600">
         <div className="max-w-4xl mx-auto">
+          <ScrollReveal>
           <div className="text-center mb-10">
             <p className="text-sm font-semibold text-gold-400 uppercase tracking-widest mb-3">The Prompt</p>
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
@@ -444,7 +466,9 @@ export default function MasterCVPage() {
               Copy this prompt and paste it into your favorite AI chatbot to get started.
             </p>
           </div>
+          </ScrollReveal>
 
+          <ScrollReveal delay={200}>
           {/* Prompt Box */}
           <div className="bg-navy-700 rounded-2xl border border-navy-500 overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-navy-500">
@@ -476,18 +500,21 @@ export default function MasterCVPage() {
           <p className="text-center text-navy-200 text-sm mt-6">
             Supported chatbots: Claude, ChatGPT, Gemini, and others
           </p>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* What's Included */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
         <div className="max-w-4xl mx-auto">
+          <ScrollReveal>
           <div className="text-center mb-14">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Contents</p>
             <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
               What Your Master CV Will Include
             </h2>
           </div>
+          </ScrollReveal>
 
           <div className="grid sm:grid-cols-2 gap-4">
             {[
@@ -504,10 +531,12 @@ export default function MasterCVPage() {
               'Awards & Recognition',
               'Additional Career Information',
             ].map((item, i) => (
-              <div key={i} className="flex items-center gap-3 bg-white rounded-xl p-4 border border-cream-200 hover:shadow-sm transition-shadow">
+              <ScrollReveal key={i} delay={i * 60}>
+              <div className="flex items-center gap-3 bg-white rounded-xl p-4 border border-cream-200 card-hover-lift">
                 <CheckCircle className="w-5 h-5 text-sage-500 flex-shrink-0" />
                 <span className="text-charcoal font-medium">{item}</span>
               </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -515,7 +544,8 @@ export default function MasterCVPage() {
 
       {/* CTA Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow" />
+        <ScrollReveal>
         <div className="max-w-4xl mx-auto text-center relative">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             Ready to Create Your Master CV?
@@ -533,13 +563,14 @@ export default function MasterCVPage() {
             </button>
             <Link
               href="/auth/signup"
-              className="w-full sm:w-auto px-10 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold rounded-xl hover:bg-white/20 transition-all flex items-center justify-center gap-2 text-lg"
+              className="w-full sm:w-auto px-10 py-4 glass-dark text-white font-semibold rounded-xl hover:bg-white/20 transition-all flex items-center justify-center gap-2 text-lg"
             >
               Sign Up to Upload
               <ArrowRight className="w-5 h-5" />
             </Link>
           </div>
         </div>
+        </ScrollReveal>
       </section>
 
       <Footer />

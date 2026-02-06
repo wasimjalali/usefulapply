@@ -599,7 +599,7 @@ export default function PricingPage() {
             </Link>
             <Link
               href="/"
-              className="px-10 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold rounded-xl hover:bg-white/20 transition-all text-lg"
+              className="px-10 py-4 glass-dark text-white font-semibold rounded-xl hover:bg-white/20 transition-all text-lg"
             >
               Learn More
             </Link>
