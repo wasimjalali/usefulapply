@@ -546,8 +546,9 @@ export function CVPanel() {
         ) : activeTab === 'content' ? (
           <div className="h-full flex flex-col">
             {/* Toolbar */}
-            <div className="px-2.5 sm:px-4 py-2 sm:py-2.5 bg-white border-b border-cream-200 flex items-center justify-between flex-wrap gap-1.5 sm:gap-2">
-              <div className="flex items-center gap-2">
+            <div className="px-2.5 sm:px-4 py-2 sm:py-2.5 bg-white border-b border-cream-200 space-y-2">
+              {/* Row 1: Toggles and template selector */}
+              <div className="flex items-center gap-2 flex-wrap">
                 {/* Original/Optimized Toggle */}
                 {generatedCV && (
                   <div className="flex items-center bg-cream-100 rounded-lg p-0.5">
@@ -581,7 +582,8 @@ export function CVPanel() {
                 </button>
               </div>
               
-              <div className="flex items-center gap-1.5">
+              {/* Row 2: View/Edit, Copy, PDF */}
+              <div className="flex items-center gap-1.5 flex-wrap">
                 {/* View/Edit Mode Toggle */}
                 <div className="flex items-center bg-cream-100 rounded-lg p-0.5 mr-1">
                   <button
@@ -678,10 +680,9 @@ export function CVPanel() {
               ) : cvData ? (
                 /* View Mode - Template Preview */
                 <div className="flex flex-col items-center gap-4">
-                  {/* Page container - full width display */}
-                  <div className="cv-pages-container w-full max-w-[800px]">
-                    {/* The template will naturally flow and create pages */}
-                    <div className="cv-page-wrapper relative bg-white shadow-lg">
+                  {/* Page container - scales down on mobile to fit screen */}
+                  <div className="cv-pages-container w-full max-w-[800px] origin-top">
+                    <div className="cv-page-wrapper relative bg-white shadow-lg cv-mobile-scale">
                       <div ref={cvTemplateRef}>
                         <CVTemplateRenderer data={editedCVData || cvData} templateId={selectedTemplateId} />
                       </div>

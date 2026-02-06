@@ -236,60 +236,65 @@ export function EmailPanel() {
             </div>
             <h2 className="text-base font-semibold text-charcoal">Application Email</h2>
           </div>
-          <div className="flex items-center gap-1.5">
-            {/* View/Edit Mode Toggle */}
-            <div className="flex items-center bg-cream-100 rounded-lg p-0.5 mr-1">
-              <button
-                onClick={() => setIsEditMode(false)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                  !isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-                }`}
-                title="View mode"
-              >
-                <Eye className="w-3 h-3" />
-                View
-              </button>
-              <button
-                onClick={() => {
-                  setIsEditMode(true);
-                  if (email && !editedEmail) {
-                    setEditedEmail(email);
-                  }
-                }}
-                className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                  isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-                }`}
-                title="Edit mode - Make changes directly"
-              >
-                <Edit3 className="w-3 h-3" />
-                Edit
-              </button>
+          <div className="space-y-2">
+            {/* Row 1: View/Edit toggle + Save */}
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center bg-cream-100 rounded-lg p-0.5">
+                <button
+                  onClick={() => setIsEditMode(false)}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                    !isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
+                  }`}
+                  title="View mode"
+                >
+                  <Eye className="w-3 h-3" />
+                  View
+                </button>
+                <button
+                  onClick={() => {
+                    setIsEditMode(true);
+                    if (email && !editedEmail) {
+                      setEditedEmail(email);
+                    }
+                  }}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                    isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
+                  }`}
+                  title="Edit mode - Make changes directly"
+                >
+                  <Edit3 className="w-3 h-3" />
+                  Edit
+                </button>
+              </div>
+              
+              {isEditMode && (
+                <Button variant="primary" size="sm" onClick={handleSaveEdits}>
+                  <Check className="w-4 h-4 mr-1" />
+                  Save
+                </Button>
+              )}
             </div>
-            
-            {isEditMode && (
-              <Button variant="primary" size="sm" onClick={handleSaveEdits}>
-                <Check className="w-4 h-4 mr-1" />
-                Save
+
+            {/* Row 2: Action buttons */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleGenerateEmail}
+                isLoading={isLoadingEmail}
+              >
+                <RefreshCw className="w-4 h-4 mr-1" />
+                Regenerate
               </Button>
-            )}
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleGenerateEmail}
-              isLoading={isLoadingEmail}
-            >
-              <RefreshCw className="w-4 h-4 mr-1" />
-              Regenerate
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleCopyAll}>
-              {copied ? <Check className="w-4 h-4 mr-1 text-sage-600" /> : <Copy className="w-4 h-4 mr-1" />}
-              {copied ? 'Copied!' : 'Copy All'}
-            </Button>
-            <Button variant="primary" size="sm" onClick={handleOpenInEmail}>
-              <Mail className="w-4 h-4 mr-1" />
-              Open in Email
-            </Button>
+              <Button variant="outline" size="sm" onClick={handleCopyAll}>
+                {copied ? <Check className="w-4 h-4 mr-1 text-sage-600" /> : <Copy className="w-4 h-4 mr-1" />}
+                {copied ? 'Copied!' : 'Copy All'}
+              </Button>
+              <Button variant="primary" size="sm" onClick={handleOpenInEmail}>
+                <Mail className="w-4 h-4 mr-1" />
+                Open in Email
+              </Button>
+            </div>
           </div>
         </div>
       </div>

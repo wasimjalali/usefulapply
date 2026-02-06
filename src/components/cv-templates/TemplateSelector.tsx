@@ -61,7 +61,7 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
       </div>
 
       {/* Template Grid */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {CV_TEMPLATE_DEFINITIONS.map((template) => {
           const Icon = getTemplateIcon(template.id);
           const isSelected = selectedTemplateId === template.id;

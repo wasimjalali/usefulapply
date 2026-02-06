@@ -19,6 +19,24 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const isMountedRef = useRef(true);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsExpanded(false);
+      }
+    };
+    if (isExpanded) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isExpanded]);
 
   const fetchCredits = useCallback(async (silent = false) => {
     if (!user) return;
@@ -94,10 +112,11 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
   }
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-cream-50 hover:bg-cream-100 border border-cream-200 transition-colors"
+        onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
+        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-cream-50 hover:bg-cream-100 border border-cream-200 transition-colors cursor-pointer"
+        type="button"
       >
         <Coins className={`w-4 h-4 ${getColor()}`} />
         <div className="text-left">
@@ -113,7 +132,7 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
       </button>
 
       {isExpanded && (
-        <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-cream-200 p-4 z-50">
+        <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-cream-200 p-4 z-[100]">
           <div className="space-y-3">
             <div>
               <div className="flex justify-between text-sm mb-1">

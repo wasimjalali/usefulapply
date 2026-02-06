@@ -464,87 +464,92 @@ ${letter.signatureName}`;
             </div>
             <h2 className="text-base font-semibold text-charcoal">Cover Letter</h2>
           </div>
-          <div className="flex items-center gap-1.5">
-            {/* View/Edit Mode Toggle */}
-            <div className="flex items-center bg-cream-100 rounded-lg p-0.5 mr-1">
-              <button
-                onClick={() => setIsEditMode(false)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                  !isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-                }`}
-                title="View mode"
-              >
-                <Eye className="w-3 h-3" />
-                View
-              </button>
-              <button
-                onClick={() => setIsEditMode(true)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                  isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-                }`}
-                title="Edit mode - Make changes directly"
-              >
-                <Edit3 className="w-3 h-3" />
-                Edit
-              </button>
+          <div className="space-y-2">
+            {/* Row 1: View/Edit toggle + Save */}
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center bg-cream-100 rounded-lg p-0.5">
+                <button
+                  onClick={() => setIsEditMode(false)}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                    !isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
+                  }`}
+                  title="View mode"
+                >
+                  <Eye className="w-3 h-3" />
+                  View
+                </button>
+                <button
+                  onClick={() => setIsEditMode(true)}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                    isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
+                  }`}
+                  title="Edit mode - Make changes directly"
+                >
+                  <Edit3 className="w-3 h-3" />
+                  Edit
+                </button>
+              </div>
+              
+              {isEditMode && (
+                <Button variant="primary" size="sm" onClick={handleSaveEdits}>
+                  <Check className="w-4 h-4 mr-1" />
+                  Save
+                </Button>
+              )}
             </div>
-            
-            {isEditMode && (
-              <Button variant="primary" size="sm" onClick={handleSaveEdits}>
-                <Check className="w-4 h-4 mr-1" />
-                Save
-              </Button>
-            )}
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleGenerateCoverLetter}
-              isLoading={isLoadingCoverLetter}
-            >
-              <RefreshCw className="w-4 h-4 mr-1" />
-              Regenerate
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleCopy}>
-              {copied ? <Check className="w-4 h-4 mr-1 text-sage-600" /> : <Copy className="w-4 h-4 mr-1" />}
-              {copied ? 'Copied!' : 'Copy'}
-            </Button>
-            
-            {/* Download Dropdown */}
-            <div className="relative" ref={downloadMenuRef}>
+
+            {/* Row 2: Action buttons */}
+            <div className="flex items-center gap-1.5 flex-wrap">
               <Button 
-                variant="primary" 
+                variant="outline" 
                 size="sm" 
-                onClick={() => setShowDownloadMenu(!showDownloadMenu)}
-                disabled={isDownloading}
+                onClick={handleGenerateCoverLetter}
+                isLoading={isLoadingCoverLetter}
               >
-                {isDownloading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-1" />
-                ) : (
-                  <Download className="w-4 h-4 mr-1" />
-                )}
-                Download
-                <ChevronDown className="w-3 h-3 ml-1" />
+                <RefreshCw className="w-4 h-4 mr-1" />
+                Regenerate
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleCopy}>
+                {copied ? <Check className="w-4 h-4 mr-1 text-sage-600" /> : <Copy className="w-4 h-4 mr-1" />}
+                {copied ? 'Copied!' : 'Copy'}
               </Button>
               
-              {showDownloadMenu && (
-                <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-cream-200 py-1 z-50">
-                  <button
-                    onClick={handleDownloadPDF}
-                    className="w-full px-4 py-2 text-left text-sm text-charcoal hover:bg-cream-100 flex items-center gap-2 cursor-pointer"
-                  >
-                    <FileText className="w-4 h-4 text-red-500" />
-                    Download as PDF
-                  </button>
-                  <button
-                    onClick={handleDownloadDOCX}
-                    className="w-full px-4 py-2 text-left text-sm text-charcoal hover:bg-cream-100 flex items-center gap-2 cursor-pointer"
-                  >
-                    <File className="w-4 h-4 text-blue-500" />
-                    Download as DOCX
-                  </button>
-                </div>
-              )}
+              {/* Download Dropdown */}
+              <div className="relative" ref={downloadMenuRef}>
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+                  disabled={isDownloading}
+                >
+                  {isDownloading ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-1" />
+                  ) : (
+                    <Download className="w-4 h-4 mr-1" />
+                  )}
+                  Download
+                  <ChevronDown className="w-3 h-3 ml-1" />
+                </Button>
+                
+                {showDownloadMenu && (
+                  <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-cream-200 py-1 z-50">
+                    <button
+                      onClick={handleDownloadPDF}
+                      className="w-full px-4 py-2 text-left text-sm text-charcoal hover:bg-cream-100 flex items-center gap-2 cursor-pointer"
+                    >
+                      <FileText className="w-4 h-4 text-red-500" />
+                      Download as PDF
+                    </button>
+                    <button
+                      onClick={handleDownloadDOCX}
+                      className="w-full px-4 py-2 text-left text-sm text-charcoal hover:bg-cream-100 flex items-center gap-2 cursor-pointer"
+                    >
+                      <File className="w-4 h-4 text-blue-500" />
+                      Download as DOCX
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

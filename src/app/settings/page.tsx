@@ -350,10 +350,37 @@ function SettingsContent() {
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+        {/* Mobile: Horizontal scrollable tabs */}
+        <div className="md:hidden mb-4">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
+            {menuItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveSection(item.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all cursor-pointer ${
+                  activeSection === item.id
+                    ? 'bg-gradient-to-r from-navy-600 to-navy-700 text-white shadow-md'
+                    : 'bg-white text-charcoal border border-cream-200 hover:shadow-sm'
+                }`}
+              >
+                <item.icon className={`w-4 h-4 ${activeSection === item.id ? 'text-gold-300' : ''}`} />
+                {item.label}
+              </button>
+            ))}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap text-red-500 bg-white border border-cream-200 hover:bg-red-50 transition-all cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              Log Out
+            </button>
+          </div>
+        </div>
+
         <div className="flex gap-8">
-          {/* Sidebar Navigation */}
-          <div className="w-64 flex-shrink-0">
+          {/* Desktop Sidebar Navigation */}
+          <div className="hidden md:block w-64 flex-shrink-0">
             <nav className="space-y-1.5">
               {menuItems.map((item) => (
                 <button
@@ -388,7 +415,7 @@ function SettingsContent() {
           </div>
 
           {/* Main Content */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             {activeSection === 'profile' && (
               <ProfileSection
                 formData={formData}
