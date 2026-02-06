@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, User, Shield, CreditCard, Bell, LogOut, Loader2 } from 'lucide-react';
@@ -21,6 +21,18 @@ import { getUserCredits, type UserCredits } from '@/lib/supabase/credits';
 type SectionType = 'profile' | 'account' | 'subscription' | 'notifications';
 
 export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-cream-100 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-navy-600" />
+      </div>
+    }>
+      <SettingsContent />
+    </Suspense>
+  );
+}
+
+function SettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user: authUser, profile, isLoading: authLoading, signOut, updateProfile } = useAuth();
