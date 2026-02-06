@@ -4,6 +4,8 @@ import Image from 'next/image';
 import { ArrowRight, Users, Target, Heart, Zap, Sparkles, Clock, Shield, Globe } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
+import { ScrollReveal } from '@/components/marketing/ScrollReveal';
+import { CountUp } from '@/components/marketing/CountUp';
 
 export const metadata: Metadata = {
   title: 'About KarKo AI',
@@ -20,14 +22,20 @@ export default function AboutPage() {
       {/* Hero Section */}
       <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
+          <ScrollReveal delay={0} direction="down" distance={20}>
           <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-4">About KarKo AI</p>
+          </ScrollReveal>
+          <ScrollReveal delay={150}>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-navy-600 mb-6 leading-tight">
             We Built the Job Application Tool{' '}
             <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">We Wished We Had</span>
           </h1>
+          </ScrollReveal>
+          <ScrollReveal delay={300}>
           <p className="text-xl text-warm-gray max-w-2xl mx-auto leading-relaxed">
             KarKo AI was born from a simple frustration: talented people spending hours on applications that go nowhere. We built an agentic AI system that does the work for you — so you can focus on what matters.
           </p>
+          </ScrollReveal>
         </div>
       </section>
 
@@ -35,6 +43,7 @@ export default function AboutPage() {
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-4xl mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
+            <ScrollReveal direction="left">
             <div>
               <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Our Story</p>
               <h2 className="text-3xl font-bold text-navy-600 mb-6">From Job Seeker to Founder</h2>
@@ -53,6 +62,8 @@ export default function AboutPage() {
                 </p>
               </div>
             </div>
+            </ScrollReveal>
+            <ScrollReveal direction="right" delay={200}>
             <div className="bg-cream-50 rounded-2xl p-8 border border-cream-200">
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
@@ -86,6 +97,7 @@ export default function AboutPage() {
                 </div>
               </div>
             </div>
+            </ScrollReveal>
           </div>
         </div>
       </section>
@@ -93,6 +105,7 @@ export default function AboutPage() {
       {/* What Makes Us Different */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
         <div className="max-w-6xl mx-auto">
+          <ScrollReveal>
           <div className="text-center mb-14">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Our Difference</p>
             <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">Why KarKo AI Exists</h2>
@@ -100,6 +113,7 @@ export default function AboutPage() {
               Most job tools solve one piece of the puzzle. We built an end-to-end system that handles the entire application process.
             </p>
           </div>
+          </ScrollReveal>
           <div className="grid md:grid-cols-2 gap-8">
             {[
               {
@@ -125,13 +139,15 @@ export default function AboutPage() {
             ].map((value, i) => {
               const Icon = value.icon;
               return (
-                <div key={i} className="bg-white rounded-2xl p-8 border border-cream-200 shadow-sm hover:shadow-md transition-shadow">
+                <ScrollReveal key={i} delay={i * 150}>
+                <div className="bg-white rounded-2xl p-8 border border-cream-200 shadow-sm card-hover-lift">
                   <div className="w-14 h-14 bg-gold-100 rounded-xl flex items-center justify-center mb-5">
                     <Icon className="w-7 h-7 text-gold-500" />
                   </div>
                   <h3 className="text-xl font-bold text-charcoal mb-3">{value.title}</h3>
                   <p className="text-warm-gray leading-relaxed">{value.description}</p>
                 </div>
+                </ScrollReveal>
               );
             })}
           </div>
@@ -141,10 +157,12 @@ export default function AboutPage() {
       {/* Our Values */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
+          <ScrollReveal>
           <div className="text-center mb-14">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Our Values</p>
             <h2 className="text-3xl md:text-4xl font-bold text-navy-600">What We Stand For</h2>
           </div>
+          </ScrollReveal>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               {
@@ -170,13 +188,15 @@ export default function AboutPage() {
             ].map((value, i) => {
               const Icon = value.icon;
               return (
-                <div key={i} className="text-center p-6">
+                <ScrollReveal key={i} delay={i * 120}>
+                <div className="text-center p-6">
                   <div className="w-14 h-14 bg-navy-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                     <Icon className="w-7 h-7 text-navy-600" />
                   </div>
                   <h3 className="text-lg font-bold text-charcoal mb-2">{value.title}</h3>
                   <p className="text-warm-gray text-sm leading-relaxed">{value.description}</p>
                 </div>
+                </ScrollReveal>
               );
             })}
           </div>
@@ -193,10 +213,12 @@ export default function AboutPage() {
               { value: '3-in-1', label: 'CV + Cover Letter + Email' },
               { value: '100%', label: 'ATS-Optimized Output' },
             ].map((stat, i) => (
-              <div key={i}>
-                <div className="text-3xl md:text-4xl font-bold text-gold-400 mb-2">{stat.value}</div>
+              <ScrollReveal key={i} delay={i * 150}>
+              <div>
+                <CountUp value={stat.value} className="text-3xl md:text-4xl font-bold text-gold-400 mb-2 block" />
                 <div className="text-navy-200 text-sm font-medium">{stat.label}</div>
               </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -205,10 +227,13 @@ export default function AboutPage() {
       {/* Founder Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-4xl mx-auto">
+          <ScrollReveal>
           <div className="text-center mb-10">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Meet the Founder</p>
             <h2 className="text-3xl md:text-4xl font-bold text-navy-600">Built by a Job Seeker, for Job Seekers</h2>
           </div>
+          </ScrollReveal>
+          <ScrollReveal delay={200}>
           <div className="bg-cream-50 rounded-2xl p-8 md:p-10 border border-cream-200">
             <div className="flex flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
@@ -236,12 +261,14 @@ export default function AboutPage() {
               </div>
             </div>
           </div>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* CTA */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow" />
+        <ScrollReveal>
         <div className="max-w-4xl mx-auto text-center relative">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             Ready to Experience the Difference?
@@ -265,6 +292,7 @@ export default function AboutPage() {
             </Link>
           </div>
         </div>
+        </ScrollReveal>
       </section>
 
       <Footer />

@@ -2,7 +2,12 @@
 
 **Location:** `/src/components/`  
 **Purpose:** Reusable React components for the application  
-**Last Updated:** February 5, 2026 (Post-Refactoring + Marketing Redesign)
+**Last Updated:** February 6, 2026 (Marketing Animation Components)
+
+## Marketing Animation Components (Feb 6, 2026)
+- **marketing/ScrollReveal.tsx** (NEW): Scroll-triggered fade/slide animation wrapper using IntersectionObserver. Props: `delay`, `direction` (up/down/left/right/none), `duration`, `distance`. Uses CSS transitions, zero JS animation overhead.
+- **marketing/StaggerChildren.tsx** (exported from ScrollReveal): Wrapper that staggers reveal of direct children with increasing delays. Props: `staggerDelay`, `direction`, `duration`.
+- **marketing/CountUp.tsx** (NEW): Animated counter that counts up when scrolled into view. Handles numeric values with prefixes/suffixes (e.g., "45+", "<3", "100%", "3-in-1"). Ease-out curve, 1.5s duration.
 
 ## Recent Refactoring 
 - **ChatPanel split** into 4 modular components (ChatMessage, ChatInput, ChatHistory, FeedbackModal)

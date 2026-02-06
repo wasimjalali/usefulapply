@@ -2,7 +2,10 @@
 
 **Location:** `/src/lib/`, `/src/hooks/`  
 **Purpose:** Documents agents, hooks, utilities, credit system, and core logic  
-**Last Updated:** February 5, 2026
+**Last Updated:** February 6, 2026 (useInView hook)
+
+## New Hook: useInView (Feb 6, 2026)
+- **`/src/hooks/useInView.ts`** (NEW): IntersectionObserver-based hook for detecting when elements enter the viewport. Returns `[ref, isInView]`. Options: `threshold` (0.1), `rootMargin` ('-60px'), `triggerOnce` (true). Used by `ScrollReveal` and `CountUp` marketing components for scroll-triggered animations.
 
 ---
 

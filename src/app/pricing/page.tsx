@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Check, X, Sparkles, Zap, Crown, ArrowRight, ChevronDown, FileText, Search, Shield, MessageSquare, Globe, BarChart3, TrendingUp, Clock, Calculator, Loader2 } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
+import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Pricing tiers data — Updated pricing model
@@ -196,20 +197,27 @@ export default function PricingPage() {
       {/* Hero Section */}
       <section className="pt-16 pb-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
+          <ScrollReveal delay={0} direction="down" distance={20}>
           <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Pricing</p>
+          </ScrollReveal>
+          <ScrollReveal delay={150}>
           <h1 className="text-4xl sm:text-5xl font-bold text-navy-600 mb-4 leading-tight">
             All Features. Every Plan.{' '}
             <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">Just Pick Your Volume.</span>
           </h1>
+          </ScrollReveal>
+          <ScrollReveal delay={300}>
           <p className="text-xl text-warm-gray max-w-2xl mx-auto">
             The full agentic AI workflow is included in every plan — company research, ATS optimization, personalized documents, and more. You only choose how many applications you need.
           </p>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* All Features Included Banner */}
       <section className="pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
+          <ScrollReveal>
           <div className="bg-navy-600 rounded-2xl p-6 md:p-8">
             <p className="text-center text-sm font-semibold text-gold-400 uppercase tracking-widest mb-5">Included in every plan</p>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -233,6 +241,7 @@ export default function PricingPage() {
               })}
             </div>
           </div>
+          </ScrollReveal>
         </div>
       </section>
 
@@ -240,18 +249,18 @@ export default function PricingPage() {
       <section className="pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-3 gap-8">
-            {tiers.map((tier) => {
+            {tiers.map((tier, tierIdx) => {
               const Icon = tier.icon;
               return (
+                <ScrollReveal key={tier.tier} delay={tierIdx * 150}>
                 <div
-                  key={tier.tier}
                   className={`relative bg-white rounded-2xl border-2 ${
                     tier.popular
                       ? 'border-gold-400 shadow-xl scale-[1.02]'
                       : tier.bestValue
                         ? 'border-sage-400 shadow-lg'
                         : 'border-cream-200 shadow-md'
-                  } overflow-hidden transition-all`}
+                  } overflow-hidden transition-all card-hover-lift`}
                 >
                   {/* Badge */}
                   {tier.popular && (
@@ -373,6 +382,7 @@ export default function PricingPage() {
                     </ul>
                   </div>
                 </div>
+                </ScrollReveal>
               );
             })}
           </div>
@@ -382,6 +392,7 @@ export default function PricingPage() {
       {/* How Credits Work */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-4xl mx-auto">
+          <ScrollReveal>
           <div className="text-center mb-10">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Credit System</p>
             <h2 className="text-3xl font-bold text-navy-600 mb-3">
@@ -391,8 +402,10 @@ export default function PricingPage() {
               Credits are simple. Each action costs a fixed number of credits. No surprises.
             </p>
           </div>
+          </ScrollReveal>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="text-center p-8 bg-cream-50 rounded-2xl border border-cream-200">
+            <ScrollReveal delay={0}>
+            <div className="text-center p-8 bg-cream-50 rounded-2xl border border-cream-200 card-hover-lift">
               <div className="w-14 h-14 bg-navy-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <BarChart3 className="w-7 h-7 text-navy-600" />
               </div>
@@ -401,7 +414,9 @@ export default function PricingPage() {
               <div className="text-sm font-medium text-charcoal">Fit Analysis</div>
               <div className="text-xs text-warm-gray mt-2">Job fit score + skill gaps</div>
             </div>
-            <div className="text-center p-8 bg-cream-50 rounded-2xl border border-cream-200">
+            </ScrollReveal>
+            <ScrollReveal delay={100}>
+            <div className="text-center p-8 bg-cream-50 rounded-2xl border border-cream-200 card-hover-lift">
               <div className="w-14 h-14 bg-gold-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <FileText className="w-7 h-7 text-gold-500" />
               </div>
@@ -410,7 +425,9 @@ export default function PricingPage() {
               <div className="text-sm font-medium text-charcoal">Full Application</div>
               <div className="text-xs text-warm-gray mt-2">CV + Cover Letter + Email</div>
             </div>
-            <div className="text-center p-8 bg-cream-50 rounded-2xl border border-cream-200">
+            </ScrollReveal>
+            <ScrollReveal delay={200}>
+            <div className="text-center p-8 bg-cream-50 rounded-2xl border border-cream-200 card-hover-lift">
               <div className="w-14 h-14 bg-sage-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <MessageSquare className="w-7 h-7 text-sage-600" />
               </div>
@@ -419,7 +436,9 @@ export default function PricingPage() {
               <div className="text-sm font-medium text-charcoal">Cover Letter Regen</div>
               <div className="text-xs text-warm-gray mt-2">Regenerate with new tone</div>
             </div>
-            <div className="text-center p-8 bg-cream-50 rounded-2xl border border-cream-200">
+            </ScrollReveal>
+            <ScrollReveal delay={300}>
+            <div className="text-center p-8 bg-cream-50 rounded-2xl border border-cream-200 card-hover-lift">
               <div className="w-14 h-14 bg-sage-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <Zap className="w-7 h-7 text-sage-600" />
               </div>
@@ -428,6 +447,7 @@ export default function PricingPage() {
               <div className="text-sm font-medium text-charcoal">Email Regen</div>
               <div className="text-xs text-warm-gray mt-2">Regenerate application email</div>
             </div>
+            </ScrollReveal>
           </div>
         </div>
       </section>
@@ -435,6 +455,7 @@ export default function PricingPage() {
       {/* Add-on Credits Section */}
       <section id="addons" className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50 scroll-mt-20">
         <div className="max-w-4xl mx-auto">
+          <ScrollReveal>
           <div className="text-center mb-10">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Add-ons</p>
             <h2 className="text-3xl font-bold text-navy-600 mb-3">Need More Credits?</h2>
@@ -442,11 +463,12 @@ export default function PricingPage() {
               Plus and Pro subscribers can purchase add-on credit packs anytime. Credits never expire.
             </p>
           </div>
+          </ScrollReveal>
           <div className="grid sm:grid-cols-3 gap-6">
-            {addonPacks.map((pack) => (
+            {addonPacks.map((pack, packIdx) => (
+              <ScrollReveal key={pack.name} delay={packIdx * 150}>
               <div
-                key={pack.name}
-                className="bg-white rounded-2xl border border-cream-200 p-8 text-center hover:border-gold-300 hover:shadow-lg transition-all"
+                className="bg-white rounded-2xl border border-cream-200 p-8 text-center hover:border-gold-300 hover:shadow-lg transition-all card-hover-lift"
               >
                 {pack.discount && (
                   <div className="inline-block bg-sage-100 text-sage-700 text-xs font-semibold px-3 py-1 rounded-full mb-4">
@@ -470,6 +492,7 @@ export default function PricingPage() {
                   )}
                 </button>
               </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -478,12 +501,14 @@ export default function PricingPage() {
       {/* FAQ Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-3xl mx-auto">
+          <ScrollReveal>
           <div className="text-center mb-10">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">FAQ</p>
             <h2 className="text-3xl font-bold text-navy-600">
               Frequently Asked Questions
             </h2>
           </div>
+          </ScrollReveal>
           <div className="space-y-3">
             {faqs.map((faq, idx) => (
               <div
@@ -515,6 +540,7 @@ export default function PricingPage() {
       {/* ROI Time Savings Calculator */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
         <div className="max-w-4xl mx-auto">
+          <ScrollReveal>
           <div className="text-center mb-10">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Time Savings</p>
             <h2 className="text-3xl font-bold text-navy-600 mb-3">
@@ -524,13 +550,15 @@ export default function PricingPage() {
               Each application saves you approximately 45 minutes of manual work. Here is what that looks like per plan.
             </p>
           </div>
+          </ScrollReveal>
           <div className="grid sm:grid-cols-3 gap-6">
             {[
               { plan: 'Starter', apps: 3, hours: '2.25', price: 'Free', color: 'cream' },
               { plan: 'Plus', apps: 60, hours: '45', price: '$29.99/mo', color: 'gold' },
               { plan: 'Pro', apps: 120, hours: '90', price: '$49.99/mo', color: 'navy' },
             ].map((tier, i) => (
-              <div key={i} className={`rounded-2xl p-8 text-center border ${
+              <ScrollReveal key={i} delay={i * 150}>
+              <div className={`rounded-2xl p-8 text-center border card-hover-lift ${
                 tier.color === 'gold' ? 'bg-white border-gold-300 shadow-lg' : 'bg-white border-cream-200'
               }`}>
                 <h3 className="font-bold text-charcoal text-lg mb-1">{tier.plan}</h3>
@@ -542,6 +570,7 @@ export default function PricingPage() {
                 <div className="text-sm font-medium text-charcoal mb-1">hours saved</div>
                 <div className="text-xs text-warm-gray">per month ({tier.apps} apps × 45 min)</div>
               </div>
+              </ScrollReveal>
             ))}
           </div>
           <p className="text-center text-sm text-warm-gray mt-8">
@@ -552,7 +581,8 @@ export default function PricingPage() {
 
       {/* CTA Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow" />
+        <ScrollReveal>
         <div className="max-w-4xl mx-auto text-center relative">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             Ready to Transform Your Job Search?
@@ -575,6 +605,7 @@ export default function PricingPage() {
             </Link>
           </div>
         </div>
+        </ScrollReveal>
       </section>
 
       <Footer />

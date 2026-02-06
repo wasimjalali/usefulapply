@@ -2,7 +2,14 @@
 
 **Location:** `/src/app/`  
 **Purpose:** Next.js pages for marketing, dashboard, and user-facing features  
-**Last Updated:** February 6, 2026 (SEO, Logo, Brand Update)
+**Last Updated:** February 6, 2026 (Scroll Animations & Micro-interactions)
+
+## Scroll Animations & UX Improvements (Feb 6, 2026)
+- **page.tsx** (homepage): Added ScrollReveal animations to all sections (hero staggered entrance, floating background blobs, staggered card reveals, card-hover-lift effects). Imports `ScrollReveal`, `StaggerChildren`, `CountUp`.
+- **about/page.tsx**: Added ScrollReveal to all sections (hero, story, values, stats with CountUp, founder, CTA). Floating CTA decorative blob.
+- **pricing/page.tsx**: Added ScrollReveal to all sections (hero, features banner, pricing cards, credits grid, addons, FAQ, time savings, CTA). Card hover lift effects.
+- **contact/page.tsx**: Added ScrollReveal to all sections (hero, contact options slide in from left/right, form, CTA). Floating CTA blob.
+- **globals.css**: Added marketing animation keyframes (float, floatSlow, pulse-soft, shimmer, scrollLogos) and utility classes (animate-float, animate-float-slow, animate-float-delayed, animate-pulse-soft, card-hover-lift, faq-answer).
 
 ## SEO & Brand Update (Feb 6, 2026)
 - **layout.tsx**: Full SEO metadata (metadataBase, OpenGraph, Twitter cards, 10 keywords, canonical URLs, robots directives, googleBot config). JSON-LD `SoftwareApplication` schema. Plus Jakarta Sans font added (`--font-plus-jakarta`). KarkoLogo brand favicon (`icon.svg`).

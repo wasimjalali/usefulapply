@@ -4,6 +4,8 @@ import Image from 'next/image';
 import { ArrowRight, FileText, Search, Zap, Clock, Target, CheckCircle, Star, Shield, Globe, MessageSquare, Sparkles, BarChart3, Users, TrendingUp, HelpCircle } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
+import { ScrollReveal, StaggerChildren } from '@/components/marketing/ScrollReveal';
+import { CountUp } from '@/components/marketing/CountUp';
 
 export const metadata: Metadata = {
   title: 'KarKo AI — AI-Powered Job Application Assistant',
@@ -19,25 +21,32 @@ export default function Home() {
 
       {/* Hero Section — Bold, confident, benefit-driven */}
       <section className="pt-20 pb-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        {/* Subtle background gradient accent */}
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-gold-100/60 via-transparent to-transparent rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-navy-100/30 via-transparent to-transparent rounded-full translate-y-1/2 -translate-x-1/4 pointer-events-none" />
+        {/* Subtle background gradient accent — floating */}
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-gold-100/60 via-transparent to-transparent rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none animate-float-slow" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-navy-100/30 via-transparent to-transparent rounded-full translate-y-1/2 -translate-x-1/4 pointer-events-none animate-float-delayed" />
 
         <div className="max-w-6xl mx-auto relative">
           <div className="text-center max-w-4xl mx-auto">
             {/* Trust badge */}
+            <ScrollReveal delay={0} direction="down" distance={20}>
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-cream-300 rounded-full text-sm text-charcoal mb-8 shadow-sm">
               <Sparkles className="w-4 h-4 text-gold-400" />
               <span className="font-medium">Agentic AI that does the work for you</span>
             </div>
+            </ScrollReveal>
 
+            <ScrollReveal delay={150}>
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-navy-600 mb-6 leading-[1.1] tracking-tight">
               One Click. Complete Job Application.{' '}
               <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">45 Minutes Saved.</span>
             </h1>
+            </ScrollReveal>
+            <ScrollReveal delay={300}>
             <p className="text-xl md:text-2xl text-warm-gray mb-10 max-w-2xl mx-auto leading-relaxed">
               Paste a job description. Get a tailored CV, cover letter, and email — all personalized to the job and company — in under 3 minutes.
             </p>
+            </ScrollReveal>
+            <ScrollReveal delay={450}>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/auth/signup"
@@ -53,8 +62,10 @@ export default function Home() {
                 See How It Works
               </Link>
             </div>
+            </ScrollReveal>
 
             {/* Social proof strip */}
+            <ScrollReveal delay={600}>
             <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-warm-gray">
               <div className="flex items-center gap-1.5">
                 <div className="flex -space-x-2">
@@ -72,21 +83,26 @@ export default function Home() {
                 <span className="font-medium">Save 45+ minutes per application</span>
               </div>
             </div>
+            </ScrollReveal>
           </div>
         </div>
       </section>
 
       {/* Logos / Trust Bar */}
-      <section className="py-8 px-4 sm:px-6 lg:px-8 bg-white border-y border-cream-200">
+      <section className="py-8 px-4 sm:px-6 lg:px-8 bg-white border-y border-cream-200 overflow-hidden">
         <div className="max-w-5xl mx-auto">
+          <ScrollReveal direction="none">
           <p className="text-center text-xs font-medium text-warm-gray uppercase tracking-widest mb-6">Optimized for the tools recruiters use</p>
-          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-14 text-warm-gray opacity-60">
-            <span className="text-lg font-bold tracking-tight">Workday</span>
-            <span className="text-lg font-bold tracking-tight">Greenhouse</span>
-            <span className="text-lg font-bold tracking-tight">Lever</span>
-            <span className="text-lg font-bold tracking-tight">SAP SuccessFactors</span>
-            <span className="text-lg font-bold tracking-tight">iCIMS</span>
-            <span className="text-lg font-bold tracking-tight">Taleo</span>
+          </ScrollReveal>
+          <div className="relative">
+            <div className="flex items-center justify-center gap-8 md:gap-14 text-warm-gray opacity-60 animate-pulse-soft">
+              <span className="text-lg font-bold tracking-tight">Workday</span>
+              <span className="text-lg font-bold tracking-tight">Greenhouse</span>
+              <span className="text-lg font-bold tracking-tight">Lever</span>
+              <span className="text-lg font-bold tracking-tight">SAP SuccessFactors</span>
+              <span className="text-lg font-bold tracking-tight">iCIMS</span>
+              <span className="text-lg font-bold tracking-tight">Taleo</span>
+            </div>
           </div>
         </div>
       </section>
@@ -94,6 +110,7 @@ export default function Home() {
       {/* Problem/Solution — Side by side comparison */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
         <div className="max-w-6xl mx-auto">
+          <ScrollReveal>
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
               Stop Wasting Hours on Every Application
@@ -102,9 +119,11 @@ export default function Home() {
               The average job seeker spends 45+ minutes per application. KarKo AI compresses that into under 3 minutes — with better results.
             </p>
           </div>
+          </ScrollReveal>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {/* Before */}
+            <ScrollReveal delay={100} direction="left">
             <div className="bg-white rounded-2xl p-8 border border-red-100 shadow-sm">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
@@ -130,8 +149,10 @@ export default function Home() {
                 ))}
               </ul>
             </div>
+            </ScrollReveal>
 
             {/* After */}
+            <ScrollReveal delay={300} direction="right">
             <div className="bg-white rounded-2xl p-8 border-2 border-sage-200 shadow-md relative">
               <div className="absolute -top-3 left-6 px-3 py-1 bg-sage-500 text-white text-xs font-bold rounded-full">KARKO AI</div>
               <div className="flex items-center gap-3 mb-6">
@@ -158,6 +179,7 @@ export default function Home() {
                 ))}
               </ul>
             </div>
+            </ScrollReveal>
           </div>
         </div>
       </section>
@@ -165,6 +187,7 @@ export default function Home() {
       {/* How It Works — Clean 3-step process */}
       <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
+          <ScrollReveal>
           <div className="text-center mb-14">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Simple Process</p>
             <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
@@ -174,6 +197,7 @@ export default function Home() {
               Upload once, apply everywhere. Our agentic AI handles the heavy lifting.
             </p>
           </div>
+          </ScrollReveal>
 
           <div className="grid md:grid-cols-3 gap-8 relative">
             {/* Connecting line (desktop only) */}
@@ -201,12 +225,13 @@ export default function Home() {
                 icon: Zap,
                 color: 'sage',
               },
-            ].map((item) => {
+            ].map((item, idx) => {
               const Icon = item.icon;
               const bgColor = item.color === 'navy' ? 'bg-navy-100' : item.color === 'gold' ? 'bg-gold-100' : 'bg-sage-100';
               const iconColor = item.color === 'navy' ? 'text-navy-600' : item.color === 'gold' ? 'text-gold-500' : 'text-sage-600';
               return (
-                <div key={item.step} className="text-center relative">
+                <ScrollReveal key={item.step} delay={idx * 200}>
+                <div className="text-center relative">
                   <div className={`w-20 h-20 ${bgColor} rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-sm relative z-10`}>
                     <Icon className={`w-9 h-9 ${iconColor}`} />
                   </div>
@@ -216,6 +241,7 @@ export default function Home() {
                   <h3 className="text-xl font-bold text-charcoal mb-3">{item.title}</h3>
                   <p className="text-warm-gray leading-relaxed">{item.description}</p>
                 </div>
+                </ScrollReveal>
               );
             })}
           </div>
@@ -225,6 +251,7 @@ export default function Home() {
       {/* What Makes KarKo Different — Competitive advantages */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-navy-600">
         <div className="max-w-6xl mx-auto">
+          <ScrollReveal>
           <div className="text-center mb-14">
             <p className="text-sm font-semibold text-gold-400 uppercase tracking-widest mb-3">Why KarKo AI</p>
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
@@ -234,6 +261,7 @@ export default function Home() {
               Most tools help you format a resume. KarKo AI is an agentic system that creates your entire application package — researched, personalized, and ATS-ready.
             </p>
           </div>
+          </ScrollReveal>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
@@ -275,13 +303,15 @@ export default function Home() {
             ].map((feature, i) => {
               const Icon = feature.icon;
               return (
-                <div key={i} className="bg-navy-700/50 backdrop-blur-sm rounded-xl p-6 border border-navy-500/50 hover:border-gold-400/30 transition-all group">
+                <ScrollReveal key={i} delay={i * 100}>
+                <div className="bg-navy-700/50 backdrop-blur-sm rounded-xl p-6 border border-navy-500/50 hover:border-gold-400/30 transition-all group card-hover-lift">
                   <div className="w-12 h-12 bg-navy-500/50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-gold-400/20 transition-colors">
                     <Icon className="w-6 h-6 text-gold-400" />
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
                   <p className="text-navy-200 text-sm leading-relaxed">{feature.description}</p>
                 </div>
+                </ScrollReveal>
               );
             })}
           </div>
@@ -291,6 +321,7 @@ export default function Home() {
       {/* Complete Package Breakdown */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
+          <ScrollReveal>
           <div className="text-center mb-14">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">What You Get</p>
             <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
@@ -300,6 +331,7 @@ export default function Home() {
               Each application generates three professionally crafted documents — all personalized to the specific job and company.
             </p>
           </div>
+          </ScrollReveal>
 
           <div className="grid md:grid-cols-3 gap-8">
             {[
@@ -327,7 +359,8 @@ export default function Home() {
               const iconBg = pkg.accent === 'navy' ? 'bg-navy-100' : pkg.accent === 'gold' ? 'bg-gold-100' : 'bg-sage-100';
               const iconColor = pkg.accent === 'navy' ? 'text-navy-600' : pkg.accent === 'gold' ? 'text-gold-500' : 'text-sage-600';
               return (
-                <div key={i} className={`bg-cream-50 rounded-2xl p-8 border ${borderColor}`}>
+                <ScrollReveal key={i} delay={i * 150}>
+                <div className={`bg-cream-50 rounded-2xl p-8 border ${borderColor} card-hover-lift`}>
                   <div className={`w-14 h-14 ${iconBg} rounded-xl flex items-center justify-center mb-5`}>
                     <Icon className={`w-7 h-7 ${iconColor}`} />
                   </div>
@@ -341,6 +374,7 @@ export default function Home() {
                     ))}
                   </ul>
                 </div>
+                </ScrollReveal>
               );
             })}
           </div>
@@ -350,12 +384,14 @@ export default function Home() {
       {/* Testimonials — Social proof */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
         <div className="max-w-6xl mx-auto">
+          <ScrollReveal>
           <div className="text-center mb-14">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Success Stories</p>
             <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
               Real Results from Real Job Seekers
             </h2>
           </div>
+          </ScrollReveal>
 
           <div className="grid md:grid-cols-3 gap-8">
             {[
@@ -381,7 +417,8 @@ export default function Home() {
                 rating: 5,
               },
             ].map((testimonial, i) => (
-              <div key={i} className="bg-white rounded-2xl p-8 border border-cream-200 shadow-sm flex flex-col">
+              <ScrollReveal key={i} delay={i * 150}>
+              <div className="bg-white rounded-2xl p-8 border border-cream-200 shadow-sm flex flex-col card-hover-lift">
                 <div className="flex gap-1 mb-4">
                   {[...Array(testimonial.rating)].map((_, j) => (
                     <Star key={j} className="w-4 h-4 fill-gold-400 text-gold-400" />
@@ -400,6 +437,7 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -408,6 +446,7 @@ export default function Home() {
       {/* Pricing Preview — Updated to new prices */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-5xl mx-auto">
+          <ScrollReveal>
           <div className="text-center mb-12">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Pricing</p>
             <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
@@ -417,9 +456,11 @@ export default function Home() {
               All features included in every plan. The only difference is how many applications you need.
             </p>
           </div>
+          </ScrollReveal>
 
           <div className="grid sm:grid-cols-3 gap-6 mb-10">
-            <div className="bg-cream-50 rounded-2xl p-8 border border-cream-200">
+            <ScrollReveal delay={0}>
+            <div className="bg-cream-50 rounded-2xl p-8 border border-cream-200 card-hover-lift">
               <h3 className="font-bold text-charcoal text-lg mb-1">Starter</h3>
               <p className="text-sm text-warm-gray mb-4">Try it risk-free</p>
               <div className="text-4xl font-bold text-navy-600 mb-1">Free</div>
@@ -431,6 +472,8 @@ export default function Home() {
                 Start Free
               </Link>
             </div>
+            </ScrollReveal>
+            <ScrollReveal delay={150}>
             <div className="bg-white rounded-2xl p-8 border-2 border-gold-400 shadow-xl relative">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gold-400 text-white text-xs font-bold rounded-full">MOST POPULAR</div>
               <h3 className="font-bold text-charcoal text-lg mb-1">Plus</h3>
@@ -445,7 +488,9 @@ export default function Home() {
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
-            <div className="bg-cream-50 rounded-2xl p-8 border border-cream-200">
+            </ScrollReveal>
+            <ScrollReveal delay={300}>
+            <div className="bg-cream-50 rounded-2xl p-8 border border-cream-200 card-hover-lift">
               <h3 className="font-bold text-charcoal text-lg mb-1">Pro</h3>
               <p className="text-sm text-warm-gray mb-4">For power users</p>
               <div className="text-4xl font-bold text-navy-600 mb-1">$49.99<span className="text-lg font-normal text-warm-gray">/mo</span></div>
@@ -458,8 +503,10 @@ export default function Home() {
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
+            </ScrollReveal>
           </div>
 
+          <ScrollReveal>
           <div className="text-center">
             <Link
               href="/pricing"
@@ -469,6 +516,7 @@ export default function Home() {
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
+          </ScrollReveal>
         </div>
       </section>
 
@@ -476,6 +524,7 @@ export default function Home() {
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
         <div className="max-w-5xl mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
+            <ScrollReveal direction="left">
             <div>
               <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Master CV</p>
               <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
@@ -495,7 +544,9 @@ export default function Home() {
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
-            <div className="bg-white rounded-2xl p-8 border border-cream-200 shadow-sm">
+            </ScrollReveal>
+            <ScrollReveal direction="right" delay={200}>
+            <div className="bg-white rounded-2xl p-8 border border-cream-200 shadow-sm card-hover-lift">
               <h3 className="text-lg font-bold text-charcoal mb-4">What a Master CV Includes</h3>
               <ul className="space-y-3">
                 {[
@@ -518,6 +569,7 @@ export default function Home() {
                 </p>
               </div>
             </div>
+            </ScrollReveal>
           </div>
         </div>
       </section>
@@ -525,9 +577,10 @@ export default function Home() {
       {/* Final CTA — High-impact conversion section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
         {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gold-400/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gold-400/5 rounded-full translate-y-1/2 -translate-x-1/2 animate-float-delayed" />
 
+        <ScrollReveal>
         <div className="max-w-4xl mx-auto text-center relative">
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 leading-tight">
             Your Next Interview Is{' '}
@@ -555,6 +608,7 @@ export default function Home() {
             No credit card required. 3 free applications to start.
           </p>
         </div>
+        </ScrollReveal>
       </section>
 
       <Footer />

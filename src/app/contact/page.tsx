@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Mail, MessageSquare, Send, CheckCircle, ArrowRight } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
+import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 
 export default function ContactPage() {
   const [formState, setFormState] = useState({
@@ -49,14 +50,20 @@ export default function ContactPage() {
       {/* Hero Section */}
       <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
+          <ScrollReveal delay={0} direction="down" distance={20}>
           <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-4">Contact</p>
+          </ScrollReveal>
+          <ScrollReveal delay={150}>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-navy-600 mb-6 leading-tight">
             Get in{' '}
             <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">Touch</span>
           </h1>
+          </ScrollReveal>
+          <ScrollReveal delay={300}>
           <p className="text-xl text-warm-gray max-w-2xl mx-auto leading-relaxed">
             Have a question, feedback, or just want to say hi? We would love to hear from you.
           </p>
+          </ScrollReveal>
         </div>
       </section>
 
@@ -64,7 +71,8 @@ export default function ContactPage() {
       <section className="py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <div className="grid sm:grid-cols-2 gap-6 mb-12">
-            <div className="bg-white rounded-2xl p-8 border border-cream-200 text-center shadow-sm hover:shadow-md transition-shadow">
+            <ScrollReveal delay={0} direction="left">
+            <div className="bg-white rounded-2xl p-8 border border-cream-200 text-center shadow-sm card-hover-lift">
               <div className="w-14 h-14 bg-gold-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <Mail className="w-7 h-7 text-gold-500" />
               </div>
@@ -77,7 +85,9 @@ export default function ContactPage() {
                 hello@karkoai.com
               </a>
             </div>
-            <div className="bg-white rounded-2xl p-8 border border-cream-200 text-center shadow-sm hover:shadow-md transition-shadow">
+            </ScrollReveal>
+            <ScrollReveal delay={200} direction="right">
+            <div className="bg-white rounded-2xl p-8 border border-cream-200 text-center shadow-sm card-hover-lift">
               <div className="w-14 h-14 bg-sage-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <MessageSquare className="w-7 h-7 text-sage-500" />
               </div>
@@ -85,6 +95,7 @@ export default function ContactPage() {
               <p className="text-warm-gray text-sm mb-3">Available Mon-Fri, 9am-5pm EST</p>
               <span className="text-warm-gray text-sm italic">Coming soon</span>
             </div>
+            </ScrollReveal>
           </div>
         </div>
       </section>
@@ -92,6 +103,7 @@ export default function ContactPage() {
       {/* Contact Form */}
       <section className="py-8 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
+          <ScrollReveal>
           <div className="bg-white rounded-2xl p-8 md:p-10 border border-cream-200 shadow-md">
             <h2 className="text-2xl font-bold text-navy-600 mb-6 text-center">
               Send Us a Message
@@ -202,12 +214,14 @@ export default function ContactPage() {
               </form>
             )}
           </div>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* FAQ Link */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow" />
+        <ScrollReveal>
         <div className="max-w-4xl mx-auto text-center relative">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             Looking for Quick Answers?
@@ -223,6 +237,7 @@ export default function ContactPage() {
             <ArrowRight className="w-5 h-5" />
           </Link>
         </div>
+        </ScrollReveal>
       </section>
 
       <Footer />
