@@ -746,7 +746,7 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
       <div className={`h-full flex flex-col bg-cream-50 ${isMobileDrawer ? '' : 'border-l border-cream-200'}`}>
         {/* Header — hidden in mobile drawer mode (drawer provides its own) */}
         {!isMobileDrawer && (
-        <div className="px-4 py-3 border-b border-white/40 bg-white/60 backdrop-blur-2xl shadow-[0_1px_2px_0_rgba(30,58,95,0.06),0_4px_24px_-4px_rgba(30,58,95,0.08),inset_0_1px_0_0_rgba(255,255,255,0.6)]">
+        <div className="relative px-4 py-3 glass-header">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <KarkoLogo variant="full" size="xs" theme="light" />
@@ -775,7 +775,7 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
 
         {/* Mobile drawer mini toolbar */}
         {isMobileDrawer && (
-        <div className="flex items-center justify-end gap-1 px-3 py-1.5 border-b border-white/40 bg-white/50 backdrop-blur-2xl">
+        <div className="flex items-center justify-end gap-1 px-3 py-1.5 glass-toolbar">
           <button
             onClick={() => setShowHistory(!showHistory)}
             className={`p-2 rounded-lg transition-all cursor-pointer ${

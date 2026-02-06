@@ -498,9 +498,31 @@ export function CVPanel() {
     <div className="h-full flex flex-col bg-cream-50">
       {/* Compact Single-Row Toolbar — always visible when not loading */}
       {!isLoading && (
-        <div className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-white/50 backdrop-blur-2xl border-b border-white/40 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5)] flex-shrink-0">
+        <div className="px-2.5 sm:px-4 py-1.5 sm:py-2 glass-toolbar flex-shrink-0">
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-            {/* Content/Changes Toggle */}
+            {/* Original/Optimized Toggle — first position */}
+            {generatedCV && (
+              <div className="flex items-center bg-cream-100/80 rounded-lg p-0.5 flex-shrink-0">
+                <button
+                  onClick={() => setShowOptimized(false)}
+                  className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                    !showOptimized ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
+                  }`}
+                >
+                  Original
+                </button>
+                <button
+                  onClick={() => setShowOptimized(true)}
+                  className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                    showOptimized ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
+                  }`}
+                >
+                  Optimized
+                </button>
+              </div>
+            )}
+
+            {/* Content/Changes Toggle — second position */}
             <div className="flex items-center bg-cream-100/80 rounded-lg p-0.5 flex-shrink-0">
               <button
                 onClick={() => setActiveTab('content')}
@@ -524,30 +546,6 @@ export function CVPanel() {
 
             {activeTab === 'content' && (
               <>
-                {/* Divider */}
-                <div className="w-px h-5 bg-cream-200 flex-shrink-0" />
-
-                {/* Original/Optimized Toggle */}
-                {generatedCV && (
-                  <div className="flex items-center bg-cream-100/80 rounded-lg p-0.5 flex-shrink-0">
-                    <button
-                      onClick={() => setShowOptimized(false)}
-                      className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                        !showOptimized ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-                      }`}
-                    >
-                      Original
-                    </button>
-                    <button
-                      onClick={() => setShowOptimized(true)}
-                      className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                        showOptimized ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-                      }`}
-                    >
-                      Optimized
-                    </button>
-                  </div>
-                )}
                 
                 {/* Template Selector Toggle */}
                 <button

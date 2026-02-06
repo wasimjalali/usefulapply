@@ -229,7 +229,7 @@ export function EmailPanel() {
   return (
     <div className="h-full flex flex-col bg-cream-50">
       {/* Compact Single-Row Toolbar */}
-      <div className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-white/50 backdrop-blur-2xl border-b border-white/40 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5)] flex-shrink-0">
+      <div className="px-2.5 sm:px-4 py-1.5 sm:py-2 glass-toolbar flex-shrink-0">
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
           {/* View/Edit Toggle */}
           <div className="flex items-center bg-cream-100/80 rounded-lg p-0.5 flex-shrink-0">
