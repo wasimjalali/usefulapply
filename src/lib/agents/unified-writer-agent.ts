@@ -1635,11 +1635,29 @@ ABSOLUTE PROHIBITIONS:
 - "I would be a valuable asset..."
 - "References available upon request"
 - "I look forward to hearing from you"
-- Em-dashes (—) - use regular dashes (-) instead
 - ANY claim about tools, metrics, or experience not in EITHER the Primary CV or Master CV
 - NEVER invent a street address for the company - use "[Company Address — verify before sending]" instead
 - Paragraphs longer than 3 sentences
 - Generic filler phrases that add no value
+
+PUNCTUATION RULE — NO EM-DASHES:
+
+NEVER use em-dashes (—) or en-dashes (–) in the cover letter. They are a strong AI writing tell.
+
+Replace with natural punctuation:
+- Parenthetical aside → use commas or parentheses
+  WRONG: "meiner Plattformen — Kursfind AI und Karko AI — habe ich"
+  RIGHT: "meiner Plattformen (Kursfind AI und Karko AI) habe ich"
+
+- Explanatory clause → use a colon or period
+  WRONG: "Listing-Optimierung — was mir tiefe Kenntnisse vermittelt hat"
+  RIGHT: "Listing-Optimierung, was mir tiefe Kenntnisse vermittelt hat"
+
+- Dramatic pause → use a period and start a new sentence
+  WRONG: "I built two AI products — and both are in production"
+  RIGHT: "I built two AI products. Both are in production."
+
+This applies to BOTH English and German cover letters. Zero em-dashes in the final output.
 
 OUTPUT FORMAT:
 - Plain text only
@@ -1836,6 +1854,8 @@ ${isGerman ? `CRITICAL: Write the ENTIRE email in GERMAN.
 - Closing: "Mit freundlichen Grüßen,"
 - Subject line in German format: "Bewerbung als [Job Title] - [Name]"
 - Professional German business email style` : 'Write the email in English.'}
+
+PUNCTUATION: Never use em-dashes (—) or en-dashes (–). Use commas, periods, colons, or parentheses instead.
 
 EMAIL SIGNATURE REQUIREMENT:
 The email MUST end with a professional signature:
