@@ -47,7 +47,7 @@ export function ChatInput({
   };
 
   return (
-    <div className="p-4 bg-gradient-to-t from-cream-100 to-cream-50">
+    <div className="p-4 bg-gradient-to-t from-cream-100/80 to-transparent backdrop-blur-sm">
       <div className="relative">
         {/* Hover tooltips - rendered OUTSIDE the overflow-hidden container */}
         {hoveredMode === 'analyze_first' && showModeSelector && !value.trim() && !isWorking && (
@@ -70,7 +70,7 @@ export function ChatInput({
         )}
 
         {/* Main input container with gold border */}
-        <div className={`relative bg-white rounded-2xl border-2 shadow-lg overflow-hidden transition-all duration-200 ${
+        <div className={`relative bg-white/70 backdrop-blur-xl rounded-3xl border-2 shadow-lg overflow-hidden transition-all duration-200 ${
           isWorking 
             ? 'border-gold-400 shadow-gold-200/50' 
             : 'border-gold-300/60 shadow-gold-100/40 focus-within:border-gold-400 focus-within:shadow-gold-200/50'

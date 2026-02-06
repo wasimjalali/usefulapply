@@ -122,7 +122,7 @@ export default function Dashboard() {
         {/* Left Panel - Results (full width on mobile) */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Tabs - Premium Frosted Glass Header */}
-          <div className="bg-gradient-to-r from-white/95 via-white/90 to-white/95 backdrop-blur-xl border-b border-cream-200/60 px-3 sm:px-5 shadow-[0_1px_3px_0_rgba(30,58,95,0.04),0_4px_16px_-2px_rgba(30,58,95,0.03)]">
+          <div className="relative z-50 bg-white/60 backdrop-blur-2xl border-b border-white/40 px-3 sm:px-5 shadow-[0_1px_2px_0_rgba(30,58,95,0.06),0_4px_24px_-4px_rgba(30,58,95,0.08),inset_0_1px_0_0_rgba(255,255,255,0.6)]">
             <div className="flex items-center gap-1 sm:gap-1.5">
               {/* Main Tabs - Pill segment style */}
               <div className="flex items-center bg-cream-100/80 rounded-xl p-0.5 my-2">

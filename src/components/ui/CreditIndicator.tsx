@@ -112,7 +112,7 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
   }
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative z-[100]" ref={dropdownRef}>
       <button
         onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
         className="flex items-center gap-2 px-3 py-2 rounded-xl bg-cream-50 hover:bg-cream-100 border border-cream-200 transition-colors cursor-pointer"
@@ -218,8 +218,9 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
             </div>
           </div>
 
-          {/* Desktop: Absolute dropdown */}
-          <div className="hidden md:block absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-cream-200 p-4 z-[100]">
+          {/* Desktop: Fixed positioned popup with backdrop */}
+          <div className="hidden md:block fixed inset-0 z-[199]" onClick={() => setIsExpanded(false)} />
+          <div className="hidden md:block absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-cream-200 p-4 z-[200]">
             <div className="space-y-3">
               <div>
                 <div className="flex justify-between text-sm mb-1">
