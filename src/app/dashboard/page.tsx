@@ -121,57 +121,59 @@ export default function Dashboard() {
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - Results (full width on mobile) */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Tabs - Premium Header */}
-          <div className="bg-white border-b border-cream-200 px-2 sm:px-4 shadow-sm">
-            <div className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto scrollbar-hide">
-              {/* Main Tabs */}
-              <button
-                onClick={() => setActiveTab('cv')}
-                className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-3 sm:py-3.5 text-xs sm:text-sm font-medium border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-                  activeTab === 'cv'
-                    ? 'border-gold-400 text-navy-700 font-semibold'
-                    : 'border-transparent text-warm-gray hover:text-navy-600 hover:border-cream-300'
-                }`}
-              >
-                <FileText className={`w-4 h-4 ${activeTab === 'cv' ? 'text-gold-500' : ''}`} />
-                CV
-              </button>
-              <button
-                onClick={() => setActiveTab('cover-letter')}
-                className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-3 sm:py-3.5 text-xs sm:text-sm font-medium border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-                  activeTab === 'cover-letter'
-                    ? 'border-gold-400 text-navy-700 font-semibold'
-                    : 'border-transparent text-warm-gray hover:text-navy-600 hover:border-cream-300'
-                }`}
-              >
-                <Mail className={`w-4 h-4 ${activeTab === 'cover-letter' ? 'text-gold-500' : ''}`} />
-                <span className="hidden sm:inline">Cover Letter</span>
-                <span className="sm:hidden">Letter</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('email')}
-                className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-3 sm:py-3.5 text-xs sm:text-sm font-medium border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-                  activeTab === 'email'
-                    ? 'border-gold-400 text-navy-700 font-semibold'
-                    : 'border-transparent text-warm-gray hover:text-navy-600 hover:border-cream-300'
-                }`}
-              >
-                <Send className={`w-4 h-4 ${activeTab === 'email' ? 'text-gold-500' : ''}`} />
-                Email
-              </button>
+          {/* Tabs - Premium Frosted Glass Header */}
+          <div className="bg-gradient-to-r from-white/95 via-white/90 to-white/95 backdrop-blur-xl border-b border-cream-200/60 px-3 sm:px-5 shadow-[0_1px_3px_0_rgba(30,58,95,0.04),0_4px_16px_-2px_rgba(30,58,95,0.03)]">
+            <div className="flex items-center gap-1 sm:gap-1.5">
+              {/* Main Tabs - Pill segment style */}
+              <div className="flex items-center bg-cream-100/80 rounded-xl p-0.5 my-2">
+                <button
+                  onClick={() => setActiveTab('cv')}
+                  className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                    activeTab === 'cv'
+                      ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
+                      : 'text-warm-gray hover:text-navy-600'
+                  }`}
+                >
+                  <FileText className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeTab === 'cv' ? 'text-gold-500' : ''}`} />
+                  CV
+                </button>
+                <button
+                  onClick={() => setActiveTab('cover-letter')}
+                  className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                    activeTab === 'cover-letter'
+                      ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
+                      : 'text-warm-gray hover:text-navy-600'
+                  }`}
+                >
+                  <Mail className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeTab === 'cover-letter' ? 'text-gold-500' : ''}`} />
+                  <span className="hidden sm:inline">Cover Letter</span>
+                  <span className="sm:hidden">Letter</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('email')}
+                  className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                    activeTab === 'email'
+                      ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
+                      : 'text-warm-gray hover:text-navy-600'
+                  }`}
+                >
+                  <Send className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeTab === 'email' ? 'text-gold-500' : ''}`} />
+                  Email
+                </button>
+              </div>
               
               {/* Spacer */}
               <div className="flex-1" />
               
               {/* Credit Indicator */}
-              <div className="flex items-center py-2">
+              <div className="flex items-center">
                 <CreditIndicator />
               </div>
 
               {/* Documents Link */}
               <Link
                 href="/documents"
-                className="flex items-center gap-2 px-2 sm:px-3 py-3.5 text-sm font-medium text-warm-gray hover:text-navy-600 transition-colors cursor-pointer"
+                className="flex items-center gap-2 px-2 sm:px-3 py-2 text-sm font-medium text-warm-gray hover:text-navy-600 transition-colors cursor-pointer rounded-lg hover:bg-cream-100/60"
               >
                 <FolderOpen className="w-4 h-4" />
                 <span className="hidden lg:inline">Documents</span>
@@ -180,10 +182,10 @@ export default function Dashboard() {
               {/* Settings/Profile Link */}
               <Link
                 href="/settings"
-                className="flex items-center gap-2 px-1 sm:px-2 py-2 ml-0.5 sm:ml-1 cursor-pointer"
+                className="flex items-center gap-2 px-1 sm:px-2 py-1.5 cursor-pointer"
                 title="Settings & Profile"
               >
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-navy-500 to-navy-700 flex items-center justify-center overflow-hidden ring-2 ring-gold-300/50 ring-offset-1">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-navy-500 to-navy-700 flex items-center justify-center overflow-hidden ring-2 ring-gold-300/40 ring-offset-1 ring-offset-white/80">
                   {profile?.avatar_url ? (
                     <img 
                       src={profile.avatar_url} 

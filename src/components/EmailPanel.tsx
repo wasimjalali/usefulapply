@@ -228,74 +228,72 @@ export function EmailPanel() {
 
   return (
     <div className="h-full flex flex-col bg-cream-50">
-      <div className="px-3 sm:px-6 py-2.5 sm:py-3 border-b border-cream-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-navy-50 flex items-center justify-center">
-              <Send className="w-4 h-4 text-navy-600" />
-            </div>
-            <h2 className="text-base font-semibold text-charcoal">Application Email</h2>
+      {/* Compact Single-Row Toolbar */}
+      <div className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-white/90 backdrop-blur-sm border-b border-cream-200/60 flex-shrink-0">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+          {/* View/Edit Toggle */}
+          <div className="flex items-center bg-cream-100/80 rounded-lg p-0.5 flex-shrink-0">
+            <button
+              onClick={() => setIsEditMode(false)}
+              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                !isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
+              }`}
+              title="View mode"
+            >
+              <Eye className="w-3 h-3" />
+              View
+            </button>
+            <button
+              onClick={() => {
+                setIsEditMode(true);
+                if (email && !editedEmail) {
+                  setEditedEmail(email);
+                }
+              }}
+              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
+              }`}
+              title="Edit mode"
+            >
+              <Edit3 className="w-3 h-3" />
+              Edit
+            </button>
           </div>
-          <div className="space-y-2">
-            {/* Row 1: View/Edit toggle + Save */}
-            <div className="flex items-center gap-1.5">
-              <div className="flex items-center bg-cream-100 rounded-lg p-0.5">
-                <button
-                  onClick={() => setIsEditMode(false)}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                    !isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-                  }`}
-                  title="View mode"
-                >
-                  <Eye className="w-3 h-3" />
-                  View
-                </button>
-                <button
-                  onClick={() => {
-                    setIsEditMode(true);
-                    if (email && !editedEmail) {
-                      setEditedEmail(email);
-                    }
-                  }}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                    isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-                  }`}
-                  title="Edit mode - Make changes directly"
-                >
-                  <Edit3 className="w-3 h-3" />
-                  Edit
-                </button>
-              </div>
-              
-              {isEditMode && (
-                <Button variant="primary" size="sm" onClick={handleSaveEdits}>
-                  <Check className="w-4 h-4 mr-1" />
-                  Save
-                </Button>
-              )}
-            </div>
+          
+          {isEditMode && (
+            <Button variant="primary" size="sm" onClick={handleSaveEdits} className="flex-shrink-0">
+              <Check className="w-4 h-4 mr-1" />
+              Save
+            </Button>
+          )}
 
-            {/* Row 2: Action buttons */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleGenerateEmail}
-                isLoading={isLoadingEmail}
-              >
-                <RefreshCw className="w-4 h-4 mr-1" />
-                Regenerate
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleCopyAll}>
-                {copied ? <Check className="w-4 h-4 mr-1 text-sage-600" /> : <Copy className="w-4 h-4 mr-1" />}
-                {copied ? 'Copied!' : 'Copy All'}
-              </Button>
-              <Button variant="primary" size="sm" onClick={handleOpenInEmail}>
-                <Mail className="w-4 h-4 mr-1" />
-                Open in Email
-              </Button>
-            </div>
-          </div>
+          {/* Divider */}
+          <div className="w-px h-5 bg-cream-200 flex-shrink-0" />
+
+          {/* Spacer */}
+          <div className="flex-1 min-w-2" />
+
+          {/* Action Buttons */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleGenerateEmail}
+            isLoading={isLoadingEmail}
+            className="flex-shrink-0"
+          >
+            <RefreshCw className="w-4 h-4 mr-1" />
+            <span className="hidden sm:inline">Regenerate</span>
+            <span className="sm:hidden">Regen</span>
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleCopyAll} className="flex-shrink-0">
+            {copied ? <Check className="w-4 h-4 text-sage-600" /> : <Copy className="w-4 h-4" />}
+            <span className="ml-1 hidden sm:inline">{copied ? 'Copied!' : 'Copy All'}</span>
+          </Button>
+          <Button variant="primary" size="sm" onClick={handleOpenInEmail} className="flex-shrink-0">
+            <Mail className="w-4 h-4 mr-1" />
+            <span className="hidden sm:inline">Open in Email</span>
+            <span className="sm:hidden">Email</span>
+          </Button>
         </div>
       </div>
 
