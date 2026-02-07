@@ -157,6 +157,24 @@ export interface MasterContext {
     }>;
     // NEW: Optimization analysis for "Changes" tab
     analysis?: OptimizationAnalysis;
+    // i18n: AI-generated section headers and localized strings
+    sectionHeaders?: {
+      summary?: string;
+      skills?: string;
+      experience?: string;
+      education?: string;
+      certifications?: string;
+      languages?: string;
+      contact?: string;
+      additionalInfo?: string;
+    };
+    localizedStrings?: {
+      present?: string;
+      gradePrefix?: string;
+      degreeConnector?: string;
+      photoPlaceholder?: string;
+    };
+    additionalInfo?: string[];
   };
   coverLetter?: string;
   applicationEmail?: { subject: string; body: string };

@@ -1403,6 +1403,8 @@ Generate the optimized CV JSON now.`,
       console.log('  - Experience entries:', parsed.experience?.length || 0);
       console.log('  - Skill categories:', parsed.skills?.length || 0);
       console.log('  - Driver License:', parsed.personal?.driverLicense ?? parsed.personal?.driver_license ?? 'not present');
+      console.log('  - sectionHeaders:', parsed.sectionHeaders ? JSON.stringify(parsed.sectionHeaders) : 'NOT PRESENT');
+      console.log('  - localizedStrings:', parsed.localizedStrings ? JSON.stringify(parsed.localizedStrings) : 'NOT PRESENT');
       
       // Validate and provide defaults
       const cvData: NonNullable<MasterContext['optimizedCVData']> = {
@@ -1462,6 +1464,8 @@ Generate the optimized CV JSON now.`,
           ats_compatibility: (parsed.analysis.ats_compatibility as number) || 0,
           missing_keywords_added: (parsed.analysis.missing_keywords_added as string[]) || [],
         } : undefined,
+        sectionHeaders: parsed.sectionHeaders || undefined,
+        localizedStrings: parsed.localizedStrings || undefined,
       };
       
       // Generate legacy text format for backward compatibility

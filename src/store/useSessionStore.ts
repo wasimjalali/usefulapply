@@ -123,6 +123,23 @@ export interface ApplicationSession {
       ats_compatibility: number;
       missing_keywords_added: string[];
     };
+    sectionHeaders?: {
+      summary?: string;
+      skills?: string;
+      experience?: string;
+      education?: string;
+      certifications?: string;
+      languages?: string;
+      contact?: string;
+      additionalInfo?: string;
+    };
+    localizedStrings?: {
+      present?: string;
+      gradePrefix?: string;
+      degreeConnector?: string;
+      photoPlaceholder?: string;
+    };
+    additionalInfo?: string[];
   };
   
   coverLetter: GeneratedCoverLetter | null;

@@ -124,9 +124,11 @@ export function CVPanel() {
         skills: optimizedCVData.skills,
         languages: optimizedCVData.languages,
         certifications: optimizedCVData.certifications,
-        additionalInfo: optimizedCVData.personal.driverLicense
+        additionalInfo: optimizedCVData.additionalInfo || (optimizedCVData.personal.driverLicense
           ? [`Driver's License: ${optimizedCVData.personal.driverLicense}`]
-          : undefined,
+          : undefined),
+        sectionHeaders: optimizedCVData.sectionHeaders,
+        localizedStrings: optimizedCVData.localizedStrings,
       };
       
       console.log('=== CV RENDER DEBUG (Solution B) ===');
