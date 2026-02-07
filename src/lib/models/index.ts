@@ -1,6 +1,6 @@
 /**
  * Model Abstraction Layer
- * All tasks use Claude Haiku 4.5 via Anthropic API (no fallbacks)
+ * Primary: Claude Sonnet 4.5 | Fallback: Claude Haiku 4.5 (toggle via USE_FALLBACK_MODEL env var)
  */
 
 import { callAnthropic, callAnthropicStream, parseAnthropicJSON } from './anthropic';
@@ -16,7 +16,7 @@ export * from './types';
 export { parseAnthropicJSON };
 
 /**
- * Main function to call Claude Haiku 4.5
+ * Main function to call Claude Sonnet 4.5 (or Haiku 4.5 fallback)
  */
 export async function callModel(options: ModelCallOptions): Promise<ModelResponse> {
   const { task, prompt, systemPrompt, systemBlocks, temperature, maxTokens, jsonMode, conversationHistory } = options;
@@ -38,7 +38,7 @@ export async function callModel(options: ModelCallOptions): Promise<ModelRespons
 }
 
 /**
- * Call Claude Haiku 4.5 with streaming response
+ * Call Claude Sonnet 4.5 (or Haiku 4.5 fallback) with streaming response
  */
 export async function callModelStream(
   options: ModelCallOptions,
@@ -71,11 +71,13 @@ export function parseModelJSON<T>(content: string): T {
 
 /**
  * Get estimated cost for a model call (in USD)
- * Claude Haiku 4.5 pricing: $1/$5 per million tokens
+ * Sonnet 4.5 pricing: $3/M input, $15/M output
+ * Haiku 4.5 pricing: $1/M input, $5/M output
  */
 export function estimateCost(task: TaskType, inputTokens: number, outputTokens: number): number {
-  const inputCost = (inputTokens / 1_000_000) * 1.00;
-  const outputCost = (outputTokens / 1_000_000) * 5.00;
+  const isFallback = process.env.USE_FALLBACK_MODEL === 'true';
+  const inputCost = (inputTokens / 1_000_000) * (isFallback ? 1.00 : 3.00);
+  const outputCost = (outputTokens / 1_000_000) * (isFallback ? 5.00 : 15.00);
   return inputCost + outputCost;
 }
 

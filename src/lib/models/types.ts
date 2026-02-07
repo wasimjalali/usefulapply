@@ -1,13 +1,13 @@
 /**
  * Model Types and Interfaces
  * Defines the types for multi-model AI system
- * All tasks now use Claude Haiku 4.5 for fast, cost-effective AI
+ * Primary: Claude Sonnet 4.5 | Fallback: Claude Haiku 4.5 (toggle via USE_FALLBACK_MODEL env var)
  */
 
 export type ModelProvider = 'anthropic' | 'bedrock';
 
 export type TaskType =
-  // Analysis tasks (Claude Haiku 4.5 - fast & cost-effective)
+  // Analysis tasks
   | 'parse_job_description'
   | 'parse_cv'
   | 'extract_skills'
@@ -23,7 +23,7 @@ export type TaskType =
   | 'optimize_cv'        // Generate optimized CV
   | 'fit_assessment'     // Pre-generation fit analysis
   | 'skill_matching'     // LLM-based semantic skill matching (cross-language)
-  // Writing tasks (Claude Haiku 4.5 - fast & cost-effective)
+  // Writing tasks
   | 'write_summary'
   | 'write_bullets'
   | 'write_cover_letter'
@@ -75,134 +75,134 @@ export interface ModelCallOptions {
   conversationHistory?: ConversationMessage[];
 }
 
-// Model configurations - All tasks use Claude Haiku 4.5
+// Model configurations - All tasks use Claude Sonnet 4.5 (model ID resolved at runtime in anthropic.ts)
 export const MODEL_CONFIGS: Record<TaskType, ModelConfig> = {
-  // Analysis tasks - Claude Haiku 4.5
+  // Analysis tasks
   parse_job_description: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
     temperature: 0.3,
     maxTokens: 4096,
   },
   parse_cv: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
     temperature: 0.3,
     maxTokens: 4096,
   },
   extract_skills: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
     temperature: 0.2,
     maxTokens: 2048,
   },
   gap_analysis: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
     temperature: 0.3,
     maxTokens: 4096,
   },
   evaluate_content: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
     temperature: 0.2,
     maxTokens: 2048,
   },
   validate_ats: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
     temperature: 0.1,
     maxTokens: 2048,
   },
   check_limits: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
     temperature: 0.1,
     maxTokens: 1024,
   },
   orchestrate: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
     temperature: 0.3,
     maxTokens: 2048,
   },
   extract_company_info: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
     temperature: 0.2,
     maxTokens: 2048,
   },
 
-  // Writing tasks - Claude Haiku 4.5
+  // Writing tasks
   write_summary: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
-    temperature: 0.7,
+    temperature: 0.65,  // Sonnet: slight decrease from 0.7 — variety without randomness
     maxTokens: 1024,
   },
   write_bullets: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
-    temperature: 0.7,
+    temperature: 0.65,  // Sonnet: slight decrease from 0.7 — variety without randomness
     maxTokens: 2048,
   },
   write_cover_letter: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
-    temperature: 0.5,  // Lower for more consistent professional tone
+    temperature: 0.6,  // Sonnet: bumped from 0.5 — needs warmth and personality
     maxTokens: 2048,
   },
   refine_cover_letter: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
     temperature: 0.4,  // Even lower for editing - we want consistency
     maxTokens: 2048,
   },
   write_email: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
-    temperature: 0.5,  // Lower for consistency
+    temperature: 0.55,  // Sonnet: slight bump from 0.5 — emails need warmth
     maxTokens: 1024,
   },
   optimize_content: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
     temperature: 0.6,
     maxTokens: 4096,
   },
   general_chat: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
     temperature: 0.7,
-    maxTokens: 2048,
+    maxTokens: 150,  // Reconciled: was 2048 in config but overridden to 100 in chat route. 150 gives Sonnet headroom for helpful responses.
   },
   // Karko AI tasks
   extract_applicant: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
     temperature: 0.3,
     maxTokens: 4096,
   },
   parse_job: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
     temperature: 0.3,
     maxTokens: 4096,
   },
   optimize_cv: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
-    temperature: 0.4,  // Lower for JSON structure consistency while allowing creative writing
+    temperature: 0.5,  // Sonnet: bumped from 0.4 — better variety for natural-sounding bullet points
     maxTokens: 8192,
   },
   fit_assessment: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
-    temperature: 0.5,
-    maxTokens: 512,
+    temperature: 0.4,  // Sonnet: lowered from 0.5 — more precise analytical evaluations
+    maxTokens: 400,  // Reconciled: was 512 in config but overridden to 300. Sonnet follows "100 words" precisely, 400 is plenty.
   },
   skill_matching: {
-    model: 'claude-haiku-4-5',
+    model: 'claude-sonnet-4-5',
     provider: 'anthropic',
     temperature: 0.1,  // Low temp for consistent, deterministic matching
     maxTokens: 2048,

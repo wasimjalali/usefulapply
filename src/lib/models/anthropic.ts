@@ -1,6 +1,7 @@
 /**
  * Anthropic Claude Client
- * Handles all calls to Claude Haiku 4.5 for fast, cost-effective AI tasks
+ * Primary: Claude Sonnet 4.5 — better writing quality, stronger instruction following
+ * Fallback: Claude Haiku 4.5 — faster, cheaper, toggle via USE_FALLBACK_MODEL env var
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -13,9 +14,16 @@ const HAS_TRADITIONAL_KEYS = !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS
 const USE_BEDROCK = HAS_BEARER_TOKEN || HAS_TRADITIONAL_KEYS;
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 
-// Bedrock model ID for Claude Haiku 4.5
-const BEDROCK_MODEL_ID = `${AWS_REGION === 'us-east-1' ? 'us' : AWS_REGION.startsWith('eu') ? 'eu' : 'us'}.anthropic.claude-haiku-4-5-20251001-v1:0`;
-const DIRECT_MODEL_ID = 'claude-haiku-4-5';
+// Primary model: Claude Sonnet 4.5 — better writing quality, stronger instruction following
+const BEDROCK_MODEL_ID = `${AWS_REGION === 'us-east-1' ? 'us' : AWS_REGION.startsWith('eu') ? 'eu' : 'us'}.anthropic.claude-sonnet-4-5-20250929-v1:0`;
+const DIRECT_MODEL_ID = 'claude-sonnet-4-5-20250929';
+
+// Fallback model: Claude Haiku 4.5 — faster, cheaper, toggle via env var
+const BEDROCK_FALLBACK_MODEL_ID = `${AWS_REGION === 'us-east-1' ? 'us' : AWS_REGION.startsWith('eu') ? 'eu' : 'us'}.anthropic.claude-haiku-4-5-20251001-v1:0`;
+const DIRECT_FALLBACK_MODEL_ID = 'claude-haiku-4-5';
+
+// Toggle: Set USE_FALLBACK_MODEL=true in Vercel env vars to switch to Haiku
+const USE_FALLBACK = process.env.USE_FALLBACK_MODEL === 'true';
 
 // Initialize the appropriate client
 const anthropic = USE_BEDROCK
@@ -104,7 +112,11 @@ class BedrockBearerTokenClient {
   }
 }
 
-const MODEL_ID = USE_BEDROCK ? BEDROCK_MODEL_ID : DIRECT_MODEL_ID;
+// Export the active model IDs (used by the rest of the codebase)
+const ACTIVE_BEDROCK_MODEL_ID = USE_FALLBACK ? BEDROCK_FALLBACK_MODEL_ID : BEDROCK_MODEL_ID;
+const ACTIVE_DIRECT_MODEL_ID = USE_FALLBACK ? DIRECT_FALLBACK_MODEL_ID : DIRECT_MODEL_ID;
+
+const MODEL_ID = USE_BEDROCK ? ACTIVE_BEDROCK_MODEL_ID : ACTIVE_DIRECT_MODEL_ID;
 
 if (USE_BEDROCK) {
   if (HAS_BEARER_TOKEN) {
@@ -128,7 +140,7 @@ export interface AnthropicCallOptions {
 }
 
 /**
- * Call Claude Haiku 4.5 for all AI tasks
+ * Call Claude Sonnet 4.5 (or Haiku 4.5 fallback) for all AI tasks
  */
 export async function callAnthropic(options: AnthropicCallOptions): Promise<ModelResponse> {
   const { prompt, systemPrompt, systemBlocks, temperature = 0.7, maxTokens = 4096, jsonMode = false, conversationHistory } = options;

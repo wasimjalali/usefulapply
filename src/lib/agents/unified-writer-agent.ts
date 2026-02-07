@@ -106,10 +106,16 @@ export const unifiedWriterAgent = {
         throw new Error('No CV content available. Please upload a CV first.');
       }
 
-      // Step 1: Extract applicant profile from CV
-      emit({ type: 'progress', percent: 10, message: 'Extracting applicant profile from CV...' });
-      const applicantResult = await this.extractApplicantProfile(context.rawCV, context.masterCV);
+      // Step 1+2: Extract applicant profile and parse JD in parallel — they're independent
+      emit({ type: 'progress', percent: 10, message: 'Analyzing CV and job description...' });
+      const [applicantResult, jobResult] = await Promise.all([
+        this.extractApplicantProfile(context.rawCV, context.masterCV),
+        this.parseJobDescription(context.jobDescription),
+      ]);
       context.applicant = applicantResult.result;
+      context.job = jobResult.result;
+      context.detectedLanguage = this.detectLanguage(context.jobDescription);
+      console.log('[KarkoAI] Detected language:', context.detectedLanguage);
       
       // Log warnings for missing critical fields
       if (!context.applicant?.name || context.applicant.name === 'Unknown') {
@@ -119,19 +125,10 @@ export const unifiedWriterAgent = {
         console.warn('[KarkoAI] WARNING: Could not extract applicant email from CV');
       }
 
-      emit({ type: 'step_completed', step: { id: 'analysis', description: 'CV parsed successfully' }, tokens: applicantResult.tokens });
+      emit({ type: 'step_completed', step: { id: 'analysis', description: 'CV parsed and job analyzed' }, tokens: applicantResult.tokens });
 
-      // Step 2: Parse job description
+      // Step 3: Compute skill match (depends on both applicant + job from above)
       emit({ type: 'step_started', step: { id: 'matching', description: 'Karko AI: Matching skills and identifying gaps' } });
-      emit({ type: 'progress', percent: 25, message: 'Parsing job description...' });
-      const jobResult = await this.parseJobDescription(context.jobDescription);
-      context.job = jobResult.result;
-
-      // Step 3: Detect language
-      context.detectedLanguage = this.detectLanguage(context.jobDescription);
-      console.log('[KarkoAI] Detected language:', context.detectedLanguage);
-
-      // Step 4: Compute skill match (AI-based, no RAG)
       emit({ type: 'progress', percent: 35, message: 'Analyzing skill match...' });
       context.match = await this.computeSkillMatch(context.applicant, context.job, context.masterCV);
 
@@ -587,17 +584,18 @@ Return ONLY valid JSON, no explanation.`,
         throw new Error('No CV content available. Please upload a CV first.');
       }
 
-      const applicantResult = await this.extractApplicantProfile(context.rawCV, context.masterCV);
+      // Run applicant extraction and JD parsing in parallel — they're independent
+      const [applicantResult, jobResult] = await Promise.all([
+        this.extractApplicantProfile(context.rawCV, context.masterCV),
+        this.parseJobDescription(context.jobDescription),
+      ]);
       context.applicant = applicantResult.result;
-      emit({ type: 'step_completed', step: { id: 'analysis', description: 'CV parsed successfully' }, tokens: applicantResult.tokens });
-
-      // Step 2: Parse job description + skill match
-      emit({ type: 'step_started', step: { id: 'matching', description: 'Karko AI: Matching skills and identifying gaps' } });
-      emit({ type: 'progress', percent: 30, message: 'Parsing job description...' });
-      const jobResult = await this.parseJobDescription(context.jobDescription);
       context.job = jobResult.result;
-
       context.detectedLanguage = this.detectLanguage(context.jobDescription);
+      emit({ type: 'step_completed', step: { id: 'analysis', description: 'CV parsed and job analyzed' }, tokens: applicantResult.tokens });
+
+      // Step 2: Skill matching (depends on both applicant + job from above)
+      emit({ type: 'step_started', step: { id: 'matching', description: 'Karko AI: Matching skills and identifying gaps' } });
       
       emit({ type: 'progress', percent: 50, message: 'Analyzing skill match...' });
       context.match = await this.computeSkillMatch(context.applicant, context.job, context.masterCV);
@@ -804,8 +802,9 @@ Your assessments follow these principles:
 3. SPECIFICITY: Reference actual skill names, tools, and experience from the provided data. Never use vague statements like "you have relevant experience."
 4. ACTIONABILITY: Your recommendation should give the candidate a concrete strategy for their application.
 5. BREVITY: This is critical. The total output MUST be under 100 words. Each bullet must be under 10 words. Cut ruthlessly — short and punchy beats thorough and long. Users scan this in 5 seconds.
+6. PRECISION: Use exactly the numbers and percentages from the computed skill match data. Do not round or approximate.
+7. LANGUAGE: Write in a direct, coaching tone. Address the candidate as "you". Be honest but encouraging — like a mentor who respects the candidate enough to tell the truth.
 </assessment_guidelines>`,
-      maxTokens: 300,
     });
 
     const tokens: TokenUsage = {
@@ -878,7 +877,7 @@ The conservative approach (leaving it out) is always correct.
     // ---- PROMPT CACHING: Static instructions go into cacheable system blocks ----
     // The CV optimization rules + JSON schema are ~3,000+ tokens of static content
     // that is identical across every call. By placing them in system blocks with
-    // cache_control, Haiku 4.5 can cache this prefix (min 2,048 tokens for Haiku).
+    // cache_control, Sonnet 4.5 can cache this prefix (min 1,024 tokens for Sonnet).
     // Cache reads cost 10% of base input price = ~90% savings on these tokens.
     const cvOptimizationSystemBlocks = [
       {
@@ -891,6 +890,12 @@ Your job is to FORMAT, ARTICULATE, and OPTIMIZE the content based on the CV and 
 Output ONLY valid JSON matching the CVData schema. No markdown, no explanation, no preamble.
 The frontend will render your JSON directly - if you mess up the structure, the app breaks.
 CRITICAL: Always include the "analysis" object with summary, key_changes, ats_compatibility, and missing_keywords_added fields.
+
+<quality_standard>
+Generate a CV that reads naturally and professionally — as if written by a skilled human career coach, not an AI tool. Every bullet point should demonstrate impact with specific, quantified achievements where possible. Use strong action verbs and varied sentence structures. The CV should tell a coherent professional story that connects the candidate's experience to the target role. Go beyond basic keyword insertion — craft language that would impress a hiring manager reading their 50th application of the day.
+
+This quality standard is critical because our users' careers depend on the output. A mediocre CV wastes the user's time and damages our product reputation.
+</quality_standard>
 
 <anti_hallucination_rules>
 WHY THIS MATTERS: Recruiters and hiring managers verify CV claims in interviews. A single fabricated skill or inflated metric destroys the candidate's credibility and our product's reputation. These rules protect every user.
@@ -1491,6 +1496,14 @@ Generate the optimized CV JSON now.`,
         type: 'text' as const,
         text: `You are an expert cover letter writer specializing in the US and UK job markets.
 
+<writing_quality>
+Write with exceptional quality. The cover letter must sound authentically human — warm, confident, and specific. Use natural sentence flow with varied rhythm. Avoid formulaic structures that signal AI generation. Every sentence should earn its place by either demonstrating value or building genuine connection with the reader.
+
+The opening line must immediately hook the reader with a specific, impressive achievement or insight — never a generic statement. The voice should feel like a real person who is genuinely excited about this specific opportunity, not a template applied to any job.
+
+Write as if this is the ONE application the candidate is sending today and they've spent 30 minutes crafting it by hand.
+</writing_quality>
+
 <anti_hallucination_rules>
 WHY THIS MATTERS: Cover letters are read by hiring managers who will verify claims in interviews. A single fabricated skill or inflated qualification destroys the candidate's credibility. These rules protect every user regardless of their industry, language, or experience level.
 
@@ -1639,6 +1652,13 @@ ABSOLUTE PROHIBITIONS:
 - NEVER invent a street address for the company - use "[Company Address — verify before sending]" instead
 - Paragraphs longer than 3 sentences
 - Generic filler phrases that add no value
+
+<tone_calibration>
+WARMTH: Write with genuine warmth and personality. Be human, not robotic.
+CONFIDENCE: Project quiet confidence — state achievements factually without begging or over-selling.
+SPECIFICITY: Every claim must reference a specific achievement, number, or experience from the CV data.
+NATURAL FLOW: Vary sentence length. Mix short punchy sentences with longer descriptive ones. Read it aloud in your head — if it sounds mechanical, rewrite it.
+</tone_calibration>
 
 PUNCTUATION RULE — NO EM-DASHES:
 
@@ -1879,11 +1899,7 @@ GREETING RULE:
 - NEVER output "[Name]" or "Hi [Name]," as a literal placeholder in the final email
 - NEVER use "Dear Sir/Madam" or "To Whom It May Concern"
 
-STYLE:
-- Brief and direct - hiring managers scan emails in seconds
-- Professional but warm - not robotic
-- One clear purpose per email
-- Subject line for identification only - no selling
+STYLE: Brief, direct, and genuinely warm. The email should feel like it was written by a real person in 2 minutes — not generated by AI. Use natural phrasing. One strong opening hook, one clear value statement, one professional close. The tone should make the recipient want to open the attached CV immediately.
 
 DUAL-CV SOURCING:
 - You have TWO sources: Primary CV and Master CV

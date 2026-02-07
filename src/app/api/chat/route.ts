@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       prompt: message,
       systemPrompt,
       conversationHistory,
-      maxTokens: 100, // Limit to ~150 characters (approx 100 tokens)
+      // maxTokens now controlled by MODEL_CONFIGS (150 tokens for Sonnet)
     });
     const reply = response.content;
 
@@ -119,7 +119,7 @@ ${context.certificationsList}
   prompt += `
 
 <response_rules>
-1. BREVITY: Keep every response under 2 sentences. Users are in the middle of applying for jobs — respect their time. Short, direct answers only.
+1. BREVITY: Under 2-3 sentences. Short, direct, and helpful. If a question requires slightly more detail to be genuinely useful, use up to 3 sentences. Never sacrifice helpfulness for arbitrary brevity.
 2. CONTEXT AWARENESS: Use the current_user_state to give relevant answers. If documents have been generated, tell the user where to find them (e.g., "Your CV is ready in the CV Panel"). If no CV is uploaded, guide them to upload one first.
 3. SCOPE: Only discuss job applications, CVs, cover letters, emails, career advice, and the application process. If asked about unrelated topics, politely redirect: "I specialize in job applications — how can I help with yours?"
 4. TONE: Warm, professional, and encouraging. Sound like a helpful career coach, not a robot. Use the user's name if available.

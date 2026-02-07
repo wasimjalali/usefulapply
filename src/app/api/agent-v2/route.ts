@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
             type: 'workflow_start', 
             steps: steps.map((s, i) => ({ function: s.id, description: s.description, index: i })),
-            models: { analysis: 'claude-haiku-4.5', writing: 'claude-haiku-4.5' },
+            models: { analysis: 'claude-sonnet-4.5', writing: 'claude-sonnet-4.5' },
           })}\n\n`));
 
           const eventHandler = createEventHandler((id) => getFitAnalysisStepIndex(id));
@@ -291,7 +291,7 @@ export async function POST(request: NextRequest) {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
               type: 'workflow_start', 
               steps: steps.map((s, i) => ({ function: s.id, description: s.description, index: i })),
-              models: { analysis: 'claude-haiku-4.5', writing: 'claude-haiku-4.5' },
+              models: { analysis: 'claude-sonnet-4.5', writing: 'claude-sonnet-4.5' },
             })}\n\n`));
 
             const eventHandler = createEventHandler((id) => getStepIndex(id));
@@ -349,7 +349,7 @@ export async function POST(request: NextRequest) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
             type: 'workflow_start', 
             steps: steps.map((s, i) => ({ function: s.id, description: s.description, index: i })),
-            models: { analysis: 'claude-haiku-4.5', writing: 'claude-haiku-4.5' },
+            models: { analysis: 'claude-sonnet-4.5', writing: 'claude-sonnet-4.5' },
           })}\n\n`));
 
           const eventHandler = createEventHandler((id) => getGenerateWithContextStepIndex(id));
@@ -418,7 +418,7 @@ export async function POST(request: NextRequest) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
           type: 'workflow_start', 
           steps: steps.map((s, i) => ({ function: s.id, description: s.description, index: i })),
-          models: { analysis: 'claude-haiku-4.5', writing: 'claude-haiku-4.5' },
+          models: { analysis: 'claude-sonnet-4.5', writing: 'claude-sonnet-4.5' },
         })}\n\n`));
 
         const eventHandler = createEventHandler((id) => getStepIndex(id));
