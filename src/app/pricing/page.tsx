@@ -410,40 +410,9 @@ export default function PricingPage() {
                       </div>
                     </div>
 
-                    {/* Grouped Features */}
-                    <div className="space-y-4">
-                      {tier.featureGroups.map((group, groupIdx) => (
-                        <div key={groupIdx}>
-                          {groupIdx > 0 && (
-                            <div className="border-t border-cream-200 mb-4" />
-                          )}
-                          <ul className="space-y-3">
-                            {group.features.map((feature, idx) => (
-                              <li key={idx} className="flex items-start gap-2.5">
-                                {feature.included ? (
-                                  <Check className={`w-5 h-5 flex-shrink-0 mt-0.5 ${feature.highlight ? 'text-gold-500' : 'text-sage-500'}`} />
-                                ) : (
-                                  <X className="w-5 h-5 text-cream-400 flex-shrink-0 mt-0.5" />
-                                )}
-                                <span
-                                  className={`text-sm ${
-                                    feature.included
-                                      ? feature.highlight ? 'text-charcoal font-medium' : 'text-charcoal'
-                                      : 'text-warm-gray'
-                                  }`}
-                                >
-                                  {feature.name}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Collapsible Add-on Section (Plus & Pro only) */}
+                    {/* Collapsible Add-on Section (Plus & Pro only) — above features */}
                     {tier.hasAddons && (
-                      <div className="mt-6">
+                      <div className="mb-6">
                         <button
                           onClick={() => setExpandedAddon(expandedAddon === tier.tier ? null : tier.tier)}
                           className="w-full flex items-center justify-between p-3 rounded-xl border border-cream-200 hover:border-gold-300 hover:bg-cream-50 transition-all cursor-pointer"
@@ -485,6 +454,37 @@ export default function PricingPage() {
                         )}
                       </div>
                     )}
+
+                    {/* Grouped Features */}
+                    <div className="space-y-4">
+                      {tier.featureGroups.map((group, groupIdx) => (
+                        <div key={groupIdx}>
+                          {groupIdx > 0 && (
+                            <div className="border-t border-cream-200 mb-4" />
+                          )}
+                          <ul className="space-y-3">
+                            {group.features.map((feature, idx) => (
+                              <li key={idx} className="flex items-start gap-2.5">
+                                {feature.included ? (
+                                  <Check className={`w-5 h-5 flex-shrink-0 mt-0.5 ${feature.highlight ? 'text-gold-500' : 'text-sage-500'}`} />
+                                ) : (
+                                  <X className="w-5 h-5 text-cream-400 flex-shrink-0 mt-0.5" />
+                                )}
+                                <span
+                                  className={`text-sm ${
+                                    feature.included
+                                      ? feature.highlight ? 'text-charcoal font-medium' : 'text-charcoal'
+                                      : 'text-warm-gray'
+                                  }`}
+                                >
+                                  {feature.name}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
 
                     {/* CTA Button — at bottom after features for natural conversion flow */}
                     <div className="mt-auto pt-6">

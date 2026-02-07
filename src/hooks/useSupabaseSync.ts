@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAppStore, ApplicationSession, ChatMessage } from '@/store/useAppStore';
-import { useSessionStore } from '@/store/useSessionStore';
+import { useCVStore } from '@/store/useCVStore';
+import { useSessionStore, type ApplicationSession } from '@/store/useSessionStore';
 import { createClient } from '@/lib/supabase/client';
 import {
   getSessions,
@@ -57,18 +57,20 @@ interface SupabaseSessionRow {
  */
 export function useSupabaseSync() {
   const { user } = useAuth();
-  const { 
-    sessions, 
-    currentSession,
-    setSessions,
+  const {
+    currentCV,
+    masterCV,
+    profilePhoto,
     setCurrentCV,
     setStructuredCV,
     setMasterCV,
     setProfilePhoto,
-    currentCV,
-    masterCV,
-    profilePhoto,
-  } = useAppStore();
+  } = useCVStore();
+  const {
+    sessions,
+    currentSession,
+    setSessions,
+  } = useSessionStore();
   
   const lastSyncedSessionRef = useRef<string | null>(null);
   const isInitialLoadRef = useRef(true);
@@ -123,12 +125,16 @@ export function useSupabaseSync() {
           });
         }
         
-        // Load profile photo if exists in Supabase but not in local store
-        if (photoResult.url && !profilePhoto) {
-          console.log('[SupabaseSync] Loading profile photo from Supabase');
+        // Load or refresh profile photo signed URL from Supabase
+        // Always refresh if current URL is a signed URL (expires after 24h)
+        // Skip only if photo is a fresh base64 data URL (just uploaded in this session)
+        const currentPhoto = useCVStore.getState().profilePhoto;
+        const isBase64 = currentPhoto?.dataUrl?.startsWith('data:');
+        if (photoResult.url && !isBase64) {
+          console.log('[SupabaseSync] Loading/refreshing profile photo from Supabase');
           setProfilePhoto({
             id: `photo-supabase-${Date.now()}`,
-            fileName: 'profile.jpg',
+            fileName: currentPhoto?.fileName || 'profile.jpg',
             dataUrl: photoResult.url,
             uploadedAt: new Date().toISOString(),
           });
@@ -145,7 +151,7 @@ export function useSupabaseSync() {
     };
     
     loadDocumentsFromSupabase();
-  }, [user, currentCV, masterCV, profilePhoto, setCurrentCV, setStructuredCV, setMasterCV, setProfilePhoto]);
+  }, [user, setCurrentCV, setStructuredCV, setMasterCV, setProfilePhoto]);
 
   // CRITICAL: Load sessions from Supabase on mount and populate Zustand store
   // Supabase is the source of truth. Each session gets its OWN chat messages.
@@ -210,7 +216,7 @@ export function useSupabaseSync() {
           }));
           
           // Get current localStorage sessions — only keep truly local ones not yet in Supabase
-          const { sessions: localSessions } = useAppStore.getState();
+          const { sessions: localSessions } = useSessionStore.getState();
           const supabaseIds = new Set(supabaseSessions.map(s => s.id));
           const localOnlySessions = localSessions.filter(s => 
             s.id.startsWith('session-') && !supabaseIds.has(s.id)
@@ -422,7 +428,7 @@ export function useSupabaseSync() {
   // On mount, pre-populate synced message IDs from current sessions to avoid re-syncing
   useEffect(() => {
     if (!user) return;
-    const { sessions: currentSessions } = useAppStore.getState();
+    const { sessions: currentSessions } = useSessionStore.getState();
     for (const session of currentSessions) {
       if (!session.id.startsWith('session-')) {
         // For Supabase sessions, mark all existing messages as already synced

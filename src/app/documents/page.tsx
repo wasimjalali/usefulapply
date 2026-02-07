@@ -353,9 +353,12 @@ export default function DocumentsPage() {
   };
   
   // Load profile photo from Supabase on mount
+  // Always refresh signed URL unless photo is a fresh base64 (just uploaded)
   useEffect(() => {
     const loadProfilePhoto = async () => {
-      if (!user || profilePhoto) return; // Skip if already have photo locally
+      if (!user) return;
+      const isBase64 = profilePhoto?.dataUrl?.startsWith('data:');
+      if (isBase64) return; // Fresh upload, no need to refresh
       
       try {
         const { url, error } = await getProfilePhotoUrl(user.id);
@@ -365,10 +368,10 @@ export default function DocumentsPage() {
         }
         
         if (url) {
-          console.log('[Documents] Loaded profile photo from Supabase');
+          console.log('[Documents] Loaded/refreshed profile photo from Supabase');
           setProfilePhoto({
-            id: `photo-supabase`,
-            fileName: 'profile.jpg',
+            id: `photo-supabase-${Date.now()}`,
+            fileName: profilePhoto?.fileName || 'profile.jpg',
             dataUrl: url,
             uploadedAt: new Date().toISOString(),
           });
