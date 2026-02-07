@@ -5,7 +5,7 @@
  * Used for determining output language for CV, cover letter, and email generation
  */
 
-export type SupportedLanguage = 'en' | 'de';
+export type SupportedLanguage = string; // ISO 639-1 codes
 
 /**
  * Detect language from text content

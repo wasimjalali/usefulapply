@@ -99,7 +99,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
           ) : (
             <div style={{ textAlign: 'center', padding: '8px' }}>
               <User style={{ width: '32px', height: '32px', color: germanColors.textLight, margin: '0 auto 8px' }} />
-              <span style={{ fontSize: '10px', color: germanColors.textLight }}>Foto</span>
+              <span style={{ fontSize: '10px', color: germanColors.textLight }}>{data.localizedStrings?.photoPlaceholder || 'Foto'}</span>
             </div>
           )}
         </div>
@@ -118,7 +118,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
               borderBottom: `2px solid ${germanColors.primary}`,
             }}
           >
-            PERSÖNLICHE DATEN
+            {data.sectionHeaders?.contact || 'PERSÖNLICHE DATEN'}
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {data.personal.email && (
@@ -192,7 +192,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                 borderBottom: `2px solid ${germanColors.primary}`,
               }}
             >
-              {GERMAN_HEADERS.skills}
+              {data.sectionHeaders?.skills || GERMAN_HEADERS.skills}
             </h2>
             {/* Grouped skills by category - max 5 per category */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -248,7 +248,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                 borderBottom: `2px solid ${germanColors.primary}`,
               }}
             >
-              {GERMAN_HEADERS.languages}
+              {data.sectionHeaders?.languages || GERMAN_HEADERS.languages}
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {data.languages.map((lang, idx) => (
@@ -276,7 +276,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                 borderBottom: `2px solid ${germanColors.primary}`,
               }}
             >
-              {GERMAN_HEADERS.certifications}
+              {data.sectionHeaders?.certifications || GERMAN_HEADERS.certifications}
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {data.certifications.map((cert) => (
@@ -335,7 +335,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                 borderBottom: `2px solid ${germanColors.primary}`,
               }}
             >
-              {GERMAN_HEADERS.summary}
+              {data.sectionHeaders?.summary || GERMAN_HEADERS.summary}
             </h2>
             <p style={{ fontSize: '12px', lineHeight: 1.5, color: germanColors.text }}>
               {data.summary}
@@ -358,7 +358,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                 borderBottom: `2px solid ${germanColors.primary}`,
               }}
             >
-              {GERMAN_HEADERS.experience}
+              {data.sectionHeaders?.experience || GERMAN_HEADERS.experience}
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {data.experience.map((exp) => (
@@ -368,7 +368,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                       {exp.position}
                     </h3>
                     <span style={{ fontSize: '12px', whiteSpace: 'nowrap', color: germanColors.textLight }}>
-                      {exp.startDate} – {exp.current ? 'Heute' : exp.endDate}
+                      {exp.startDate} – {exp.current ? (data.localizedStrings?.present || 'Heute') : exp.endDate}
                     </span>
                   </div>
                   <p style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: germanColors.primary }}>
@@ -418,7 +418,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                 borderBottom: `2px solid ${germanColors.primary}`,
               }}
             >
-              {GERMAN_HEADERS.education}
+              {data.sectionHeaders?.education || GERMAN_HEADERS.education}
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {data.education.map((edu) => (
@@ -429,7 +429,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                     </h3>
                     <p style={{ fontSize: '12px', color: germanColors.textLight }}>
                       {edu.institution}
-                      {edu.grade && <span> | Note: {edu.grade}</span>}
+                      {edu.grade && <span> | {data.localizedStrings?.gradePrefix || 'Note:'} {edu.grade}</span>}
                     </p>
                   </div>
                   {edu.endDate && (
@@ -458,7 +458,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                 borderBottom: `2px solid ${germanColors.primary}`,
               }}
             >
-              {GERMAN_HEADERS.additionalInfo}
+              {data.sectionHeaders?.additionalInfo || GERMAN_HEADERS.additionalInfo}
             </h2>
             <p style={{ fontSize: '12px', color: germanColors.text }}>
               {data.additionalInfo.join(' • ')}

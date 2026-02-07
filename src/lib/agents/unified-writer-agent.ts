@@ -368,7 +368,7 @@ Return valid JSON only. No explanation or preamble.`,
    * Detect the language of the job description
    * Returns 'de' for German, 'en' for English (default)
    */
-  detectLanguage(text: string): 'en' | 'de' {
+  detectLanguage(text: string): string {
     const germanIndicators = [
       /\b(und|oder|für|mit|bei|auf|aus|nach|zur|zum|von|dem|den|des|der|die|das|ein|eine|einer|eines|wir|Sie|Ihre|Ihr|uns|werden|haben|sein|kann|können|sind|wird|wurde|werden|müssen|sollen|dürfen|möchten|Anforderungen|Aufgaben|Verantwortung|Erfahrung|Kenntnisse|Qualifikationen|Bewerbung|Stellenanzeige|Arbeitgeber|Mitarbeiter|Unternehmen|GmbH|AG)\b/gi,
       /\b(Berufserfahrung|Ausbildung|Studium|Abschluss|Vollzeit|Teilzeit|unbefristet|befristet|Gehalt|Vergütung|Arbeitszeit|Homeoffice|flexibel)\b/gi,
@@ -902,7 +902,7 @@ Your assessments follow these principles:
   /**
    * Determine the output language based on detection and user override
    */
-  getOutputLanguage(context: MasterContext): 'en' | 'de' {
+  getOutputLanguage(context: MasterContext): string {
     if (context.userLanguageOverride) {
       return context.userLanguageOverride;
     }
@@ -1191,6 +1191,21 @@ Return ONLY this JSON structure - no markdown, no preamble, no explanation:
       "date": "string (optional)"
     }
   ],
+  "sectionHeaders": {
+    "summary": "ATS-compliant section header for Summary in the output language",
+    "skills": "ATS-compliant section header for Skills in the output language",
+    "experience": "ATS-compliant section header for Experience in the output language",
+    "education": "ATS-compliant section header for Education in the output language",
+    "certifications": "ATS-compliant section header for Certifications in the output language",
+    "languages": "ATS-compliant section header for Languages in the output language",
+    "contact": "ATS-compliant section header for Contact in the output language",
+    "additionalInfo": "ATS-compliant section header for Additional Info in the output language"
+  },
+  "localizedStrings": {
+    "present": "'Present' in the output language (e.g., 'Heute', 'Présent')",
+    "gradePrefix": "Grade label in the output language (e.g., 'GPA:', 'Note:')",
+    "degreeConnector": "Connector word between degree and field (e.g., 'in', 'en')"
+  },
   "analysis": {
     "summary": "2-sentence strategy summary",
     "key_changes": ["Change 1", "Change 2", "Change 3", "Change 4"],
@@ -1215,6 +1230,11 @@ a CV with 95% ATS compatibility that includes skills the applicant will fail to 
    - "Certifications" or "Zertifikate"
    - "Languages" or "Sprachen"
    NEVER use creative headers like "What I Bring", "My Journey"
+
+SECTION HEADERS RULE:
+Generate ATS-compliant section headers in the output language. Use the STANDARD,
+CONVENTIONAL section names that ATS systems in the target market recognize.
+Do NOT use creative or unconventional headers.
 
 2. KEYWORD REPOSITIONING (NOT INJECTION):
    - Scan the JD for required skills and keywords
@@ -1317,7 +1337,14 @@ ${masterCV ? `=== MASTER CV (additional experiences/skills to draw from) ===
 ${masterCV}` : ''}
 
 === LANGUAGE ===
-${isGerman ? `Generate ALL content in GERMAN. Use German date format (Januar 2025 – Gegenwart).` : 'Generate content in English.'}
+LANGUAGE RULE:
+- Detect the language of the job description
+- Generate ALL content (summary, bullets, skills, section headers, localized strings) in that SAME language
+- Section headers MUST use standard ATS-recognized names in the output language (not creative alternatives)
+- If language is unclear or mixed, default to English
+- For German: use formal conventions (dates as MM/YYYY, "Heute" for present)
+- For English: use market-appropriate conventions based on location (US Letter vs A4 implied by market)
+- Include sectionHeaders and localizedStrings objects in your JSON output
 
 Generate the optimized CV JSON now.`,
       systemBlocks: cvOptimizationSystemBlocks,

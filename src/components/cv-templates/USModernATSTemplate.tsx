@@ -109,7 +109,7 @@ export function USModernATSTemplate({ data, template }: Props) {
               borderBottom: `2px solid ${modernColors.primary}`,
             }}
           >
-            CONTACT
+            {data.sectionHeaders?.contact || 'CONTACT'}
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px' }}>
             {data.personal.email && (
@@ -183,7 +183,7 @@ export function USModernATSTemplate({ data, template }: Props) {
                 borderBottom: `2px solid ${modernColors.primary}`,
               }}
             >
-              KEY SKILLS
+              {data.sectionHeaders?.skills || 'KEY SKILLS'}
             </h2>
             {/* Grouped skills by category - max 5 per category */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -239,7 +239,7 @@ export function USModernATSTemplate({ data, template }: Props) {
                 borderBottom: `2px solid ${modernColors.primary}`,
               }}
             >
-              LANGUAGES
+              {data.sectionHeaders?.languages || 'LANGUAGES'}
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {data.languages.map((lang, idx) => (
@@ -267,7 +267,7 @@ export function USModernATSTemplate({ data, template }: Props) {
                 borderBottom: `2px solid ${modernColors.primary}`,
               }}
             >
-              CERTIFICATIONS
+              {data.sectionHeaders?.certifications || 'CERTIFICATIONS'}
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {data.certifications.map((cert) => (
@@ -300,7 +300,7 @@ export function USModernATSTemplate({ data, template }: Props) {
                 borderBottom: `2px solid ${modernColors.primary}`,
               }}
             >
-              PROFESSIONAL SUMMARY
+              {data.sectionHeaders?.summary || 'PROFESSIONAL SUMMARY'}
             </h2>
             <p style={{ fontSize: '12px', lineHeight: 1.5, color: modernColors.text }}>
               {data.summary}
@@ -323,7 +323,7 @@ export function USModernATSTemplate({ data, template }: Props) {
                 borderBottom: `2px solid ${modernColors.primary}`,
               }}
             >
-              PROFESSIONAL EXPERIENCE
+              {data.sectionHeaders?.experience || 'PROFESSIONAL EXPERIENCE'}
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {data.experience.map((exp) => (
@@ -333,7 +333,7 @@ export function USModernATSTemplate({ data, template }: Props) {
                       {exp.position}
                     </h3>
                     <span style={{ fontSize: '12px', whiteSpace: 'nowrap', color: modernColors.textLight }}>
-                      {exp.startDate} – {exp.current ? 'Present' : exp.endDate}
+                      {exp.startDate} – {exp.current ? (data.localizedStrings?.present || 'Present') : exp.endDate}
                     </span>
                   </div>
                   <p style={{ fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: modernColors.primary }}>
@@ -383,7 +383,7 @@ export function USModernATSTemplate({ data, template }: Props) {
                 borderBottom: `2px solid ${modernColors.primary}`,
               }}
             >
-              EDUCATION
+              {data.sectionHeaders?.education || 'EDUCATION'}
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {data.education.map((edu) => (
@@ -394,7 +394,7 @@ export function USModernATSTemplate({ data, template }: Props) {
                     </h3>
                     <p style={{ fontSize: '12px', color: modernColors.textLight }}>
                       {edu.institution}
-                      {edu.grade && <span> | GPA: {edu.grade}</span>}
+                      {edu.grade && <span> | {data.localizedStrings?.gradePrefix || 'GPA:'} {edu.grade}</span>}
                     </p>
                   </div>
                   {edu.endDate && (
@@ -423,7 +423,7 @@ export function USModernATSTemplate({ data, template }: Props) {
                 borderBottom: `2px solid ${modernColors.primary}`,
               }}
             >
-              ADDITIONAL INFORMATION
+              {data.sectionHeaders?.additionalInfo || 'ADDITIONAL INFORMATION'}
             </h2>
             <p style={{ fontSize: '12px', color: modernColors.text }}>
               {data.additionalInfo.join(' • ')}

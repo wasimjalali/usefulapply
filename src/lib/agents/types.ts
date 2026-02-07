@@ -37,8 +37,8 @@ export interface MasterContext {
   masterCV?: string;
   
   // Language detection (auto-detected or user override)
-  detectedLanguage?: 'en' | 'de';
-  userLanguageOverride?: 'en' | 'de';
+  detectedLanguage?: string; // ISO 639-1 codes (e.g., 'en', 'de', 'fr', 'es')
+  userLanguageOverride?: string; // ISO 639-1 codes
 
   // Applicant profile (extracted from CV by Context Agent)
   applicant?: {

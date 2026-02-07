@@ -885,6 +885,26 @@ export interface CVData {
     url?: string;
   }>;
   
+  // AI-generated section headers in the detected language (i18n support)
+  sectionHeaders?: {
+    summary?: string;        // e.g., "Profil Professionnel"
+    skills?: string;         // e.g., "Compétences Clés"
+    experience?: string;     // e.g., "Expérience Professionnelle"
+    education?: string;      // e.g., "Formation"
+    certifications?: string; // e.g., "Certifications"
+    languages?: string;      // e.g., "Langues"
+    contact?: string;        // e.g., "Contact"
+    additionalInfo?: string; // e.g., "Informations Complémentaires"
+  };
+
+  // Localized UI strings for template rendering
+  localizedStrings?: {
+    present?: string;        // "Present" / "Heute" / "Présent"
+    gradePrefix?: string;    // "GPA:" / "Note:" / "Mention:"
+    degreeConnector?: string; // "in" / "en" / "in"
+    photoPlaceholder?: string; // "Photo" / "Foto"
+  };
+
   // Additional information (work authorization, driver's license, etc.)
   additionalInfo?: string[];
 }

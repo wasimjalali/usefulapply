@@ -580,6 +580,10 @@ Dashboard
 | Date | Change | Files Modified | Reason |
 |------|--------|----------------|--------|
 | Feb 7, 2026 | SubscriptionSection: free tier credit update | SubscriptionSection.tsx | Starter plan 6→40 credits, 3→20 apps across mobile/desktop plan comparison and default credit display |
+| Feb 7, 2026 | i18n: USPremiumATSTemplate — dynamic section headers | USPremiumATSTemplate.tsx | Replaced 7 hardcoded English headers + 4 hardcoded strings (Present, GPA:, in, LANGUAGES) with `data.sectionHeaders?.X \|\| 'ENGLISH_FALLBACK'` and `data.localizedStrings?.X \|\| 'fallback'` |
+| Feb 7, 2026 | i18n: USModernATSTemplate — dynamic section headers | USModernATSTemplate.tsx | Replaced 8 hardcoded English headers + 2 hardcoded strings (Present, GPA:) with `data.sectionHeaders` and `data.localizedStrings` fallback pattern |
+| Feb 7, 2026 | i18n: USProfessionalTemplate — dynamic section headers | USProfessionalTemplate.tsx | Replaced 7 hardcoded English headers + 4 hardcoded strings (Present, GPA:, in, LANGUAGES) with `data.sectionHeaders` and `data.localizedStrings` fallback pattern |
+| Feb 7, 2026 | i18n: GermanATSTemplate — dynamic section headers | GermanATSTemplate.tsx | Replaced `GERMAN_HEADERS.X` with `data.sectionHeaders?.X \|\| GERMAN_HEADERS.X` (keeps German fallback chain). Replaced hardcoded 'Heute', 'Note:', 'Foto' with `data.localizedStrings` equivalents. |
 
 ---
 

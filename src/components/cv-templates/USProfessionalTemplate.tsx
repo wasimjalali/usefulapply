@@ -170,7 +170,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
               marginBottom: '8px',
             }}
           >
-            EXECUTIVE SUMMARY
+            {data.sectionHeaders?.summary || 'EXECUTIVE SUMMARY'}
           </h2>
           <p style={{ fontSize: '12px', lineHeight: 1.5, color: executiveColors.text }}>
             {data.summary}
@@ -194,7 +194,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
               borderBottom: `2px solid ${executiveColors.primary}`,
             }}
           >
-            CORE COMPETENCIES
+            {data.sectionHeaders?.skills || 'CORE COMPETENCIES'}
           </h2>
           {/* 2026 Premium: 3-Column Grid Layout - Max 5 categories + Languages */}
           <div 
@@ -255,7 +255,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
                     letterSpacing: '1px',
                   }}
                 >
-                  LANGUAGES
+                  {data.sectionHeaders?.languages || 'LANGUAGES'}
                 </h4>
                 <div style={{ margin: 0 }}>
                   {data.languages.map((lang, idx) => (
@@ -349,7 +349,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
               borderBottom: `2px solid ${executiveColors.primary}`,
             }}
           >
-            PROFESSIONAL EXPERIENCE
+            {data.sectionHeaders?.experience || 'PROFESSIONAL EXPERIENCE'}
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
             {data.experience.map((exp) => (
@@ -366,7 +366,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
                     {exp.position}
                   </h3>
                   <span style={{ fontSize: '12px', whiteSpace: 'nowrap', color: executiveColors.textLight }}>
-                    {exp.startDate} – {exp.current ? 'Present' : exp.endDate}
+                    {exp.startDate} – {exp.current ? (data.localizedStrings?.present || 'Present') : exp.endDate}
                   </span>
                 </div>
                 <p 
@@ -424,7 +424,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
               borderBottom: `2px solid ${executiveColors.primary}`,
             }}
           >
-            EDUCATION
+            {data.sectionHeaders?.education || 'EDUCATION'}
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {data.education.map((edu) => (
@@ -438,11 +438,11 @@ export function USProfessionalTemplate({ data, template }: Props) {
                       color: executiveColors.text,
                     }}
                   >
-                    {edu.degree}{edu.field && ` in ${edu.field}`}
+                    {edu.degree}{edu.field && ` ${data.localizedStrings?.degreeConnector || 'in'} ${edu.field}`}
                   </h3>
                   <p style={{ fontSize: '12px', color: executiveColors.textLight }}>
                     {edu.institution}
-                    {edu.grade && <span> | GPA: {edu.grade}</span>}
+                    {edu.grade && <span> | {data.localizedStrings?.gradePrefix || 'GPA:'} {edu.grade}</span>}
                   </p>
                 </div>
                 {edu.endDate && (
@@ -472,7 +472,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
               borderBottom: `2px solid ${executiveColors.primary}`,
             }}
           >
-            CERTIFICATIONS
+            {data.sectionHeaders?.certifications || 'CERTIFICATIONS'}
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '24px', rowGap: '4px' }}>
             {data.certifications.map((cert) => (
@@ -501,7 +501,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
               borderBottom: `2px solid ${executiveColors.primary}`,
             }}
           >
-            ADDITIONAL INFORMATION
+            {data.sectionHeaders?.additionalInfo || 'ADDITIONAL INFORMATION'}
           </h2>
           <p style={{ fontSize: '12px', color: executiveColors.text }}>
             {data.additionalInfo.join(' • ')}

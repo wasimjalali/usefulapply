@@ -218,7 +218,7 @@ export function USPremiumATSTemplate({
                 color: premiumColors.primary,
               }}
             >
-              PROFESSIONAL SUMMARY
+              {data.sectionHeaders?.summary || 'PROFESSIONAL SUMMARY'}
             </h2>
             <p 
               style={{ 
@@ -248,7 +248,7 @@ export function USPremiumATSTemplate({
                 color: premiumColors.primary,
               }}
             >
-              CORE COMPETENCIES
+              {data.sectionHeaders?.skills || 'CORE COMPETENCIES'}
             </h2>
             {/* 2026 Premium: 3-Column Grid Layout - Max 5 categories + Languages */}
             <div 
@@ -309,7 +309,7 @@ export function USPremiumATSTemplate({
                       letterSpacing: '1px',
                     }}
                   >
-                    LANGUAGES
+                    {data.sectionHeaders?.languages || 'LANGUAGES'}
                   </h4>
                   <div style={{ margin: 0 }}>
                     {data.languages.map((lang, idx) => (
@@ -403,7 +403,7 @@ export function USPremiumATSTemplate({
                 color: premiumColors.primary,
               }}
             >
-              PROFESSIONAL EXPERIENCE
+              {data.sectionHeaders?.experience || 'PROFESSIONAL EXPERIENCE'}
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {data.experience.map((exp, idx) => (
@@ -429,7 +429,7 @@ export function USPremiumATSTemplate({
                         color: premiumColors.textLight,
                       }}
                     >
-                      {exp.startDate} – {exp.current ? 'Present' : exp.endDate}
+                      {exp.startDate} – {exp.current ? (data.localizedStrings?.present || 'Present') : exp.endDate}
                     </span>
                   </div>
                   
@@ -492,7 +492,7 @@ export function USPremiumATSTemplate({
                 color: premiumColors.primary,
               }}
             >
-              EDUCATION
+              {data.sectionHeaders?.education || 'EDUCATION'}
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {data.education.map((edu, idx) => (
@@ -507,7 +507,7 @@ export function USPremiumATSTemplate({
                       }}
                     >
                       {edu.degree}
-                      {edu.field && <span style={{ fontWeight: 'normal' }}> in {edu.field}</span>}
+                      {edu.field && <span style={{ fontWeight: 'normal' }}> {data.localizedStrings?.degreeConnector || 'in'} {edu.field}</span>}
                     </h3>
                     <p 
                       style={{ 
@@ -516,7 +516,7 @@ export function USPremiumATSTemplate({
                       }}
                     >
                       {edu.institution}
-                      {edu.grade && <span> • GPA: {edu.grade}</span>}
+                      {edu.grade && <span> • {data.localizedStrings?.gradePrefix || 'GPA:'} {edu.grade}</span>}
                     </p>
                   </div>
                   {edu.endDate && (
@@ -553,7 +553,7 @@ export function USPremiumATSTemplate({
                 color: premiumColors.primary,
               }}
             >
-              CERTIFICATIONS
+              {data.sectionHeaders?.certifications || 'CERTIFICATIONS'}
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '24px', rowGap: '6px' }}>
               {data.certifications.map((cert, idx) => (
@@ -604,7 +604,7 @@ export function USPremiumATSTemplate({
                 color: premiumColors.primary,
               }}
             >
-              ADDITIONAL INFORMATION
+              {data.sectionHeaders?.additionalInfo || 'ADDITIONAL INFORMATION'}
             </h2>
             <div style={{ fontSize: '12px', color: premiumColors.text }}>
               {data.additionalInfo.map((item, idx) => (
