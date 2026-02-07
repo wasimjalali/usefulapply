@@ -429,6 +429,22 @@ Return valid JSON only. No explanation or preamble.`,
         prompt: `You are an expert recruiter performing a skill match analysis. Compare the candidate's skills and experience against the job requirements. Use SEMANTIC matching — skills don't need to be exact string matches.
 
 <matching_rules>
+STRICT SKILL MATCHING RULE (HIGHEST PRIORITY — OVERRIDES ALL OTHER MATCHING LOGIC):
+
+A skill can ONLY be classified as "matching" if it appears EXPLICITLY and BY NAME in the applicant's Primary CV or Master CV. 
+
+Do NOT infer skills from adjacent or related experience. Specific examples:
+- "Amazon PPC Campaign Management" in CV does NOT mean "Sponsored Products", "Sponsored Brands", or "Sponsored Display" are matching. These are specific ad product names. Unless the CV literally says "Sponsored Products," list each as MISSING.
+- "Amazon Seller Central management" does NOT mean "Amazon Advertising Console" is matching. These are different platforms.
+- "Google SEO fundamentals" does NOT mean "SEO best practices" or "technical SEO" is matching. The specific level matters.
+- "Social media marketing" does NOT mean specific platform expertise (e.g., "TikTok Shop management") is matching.
+- "Supply chain from China sourcing" does NOT mean "inventory management systems" is matching.
+- General experience in a domain does NOT mean specific tools, methodologies, or sub-specializations within that domain are matching.
+
+The test: Can you point to the EXACT words in the Primary CV or Master CV that name this skill? If yes → MATCHING. If you have to INFER, ASSUME, or DERIVE it → MISSING.
+
+When uncertain, ALWAYS classify as MISSING. It is better to understate matches than to fabricate them. The applicant can address gaps in their cover letter — but a fabricated skill match that appears in their CV will destroy credibility in an interview.
+
 1. CROSS-LANGUAGE MATCHING: Skills expressed in different languages that refer to the same concept or domain are matches. A skill in English and its equivalent in German (or any other language) should be matched if they describe the same competency area.
 2. CONCEPTUAL MATCHING: Skills that are closely related within the same professional domain count as matches. A specific tool matches a broader category it belongs to, and vice versa.
 3. EXPERIENCE-BASED MATCHING: If the candidate's work experience clearly demonstrates a competency even though it is not explicitly listed as a skill, count it as a match. Years of self-employment demonstrate independence; teaching experience demonstrates communication skills; managing suppliers demonstrates coordination skills.
@@ -462,6 +478,53 @@ The Master CV is the complete skills inventory. If a skill appears in the Master
 === JOB REQUIRED SKILLS ===
 ${requiredSkills.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
+=== FIT SCORE CALCULATION METHOD (FOLLOW THIS EXACTLY) ===
+
+Step 1: List all MUST-HAVE requirements from the job description (typically marked as "Required", "Must Have", or stated without "nice to have"/"plus" qualifiers).
+
+Step 2: For each must-have, mark as MET only if the applicant has the skill classified as MATCHING per the Strict Skill Matching Rule above. Do not count inferred skills.
+
+Step 3: Calculate base score:
+  base_score = (number of MET must-haves / total must-haves) x 100
+
+Step 4: Apply adjustments (max +/-10 points total):
+  +5 if applicant has 2+ relevant nice-to-haves
+  +5 if applicant has directly related industry experience
+  -5 if applicant is missing a PRIMARY requirement (e.g., the main programming language, the core platform, a required degree)
+  -5 if the role requires experience the applicant has zero exposure to
+
+Step 5: Apply hard caps:
+  - If applicant is missing the PRIMARY programming language or technical stack → cap at 55%
+  - If applicant is missing 50%+ of must-have requirements → cap at 50%
+  - If applicant matches nearly all must-haves with only 1-2 tool gaps → floor at 65%
+  - Never score above 85% unless applicant meets ALL must-haves
+
+Step 6: Apply labels:
+  - 80-100%: STRONG FIT (green) — matches nearly all requirements
+  - 60-79%: GOOD FIT (yellow) — solid match with some gaps
+  - 40-59%: FAIR FIT (yellow) — notable gaps but transferable strengths
+  - Below 40%: WEAK FIT (red) — significant gaps, consider upskilling first
+
+IMPORTANT: An honest 50% score with clear gap flagging is MORE VALUABLE to the user than an inflated 78% that leads to interview embarrassment. Our product's credibility depends on honest assessment.
+
+=== GAP DETECTION RULES ===
+
+1. List EVERY specific tool, technology, framework, methodology, or qualification from the JD that is NOT explicitly documented in the applicant's source CVs.
+
+2. Do NOT collapse multiple items into categories. Each tool is its own gap:
+   WRONG: "CMS-Systeme (WordPress, Shopify oder ähnliche)" — this is ONE entry hiding THREE gaps
+   RIGHT: "WordPress", "Shopify", "WooCommerce" — three separate entries
+
+3. Do NOT collapse ad types, frameworks, or tools under umbrella terms:
+   WRONG: "ML/AI frameworks" — this hides multiple gaps
+   RIGHT: "PyTorch", "TensorFlow", "LangChain", "LlamaIndex" — four separate entries
+
+4. Include gaps from BOTH required AND nice-to-have sections. The user needs to see the complete picture.
+
+5. For German JDs, list gaps in the language they appear in the JD (e.g., "Technische SEO-Optimierung" not "Technical SEO").
+
+6. Aim for completeness over brevity. A thorough gap list helps the user prepare for interviews and decide whether to upskill before applying.
+
 === OUTPUT FORMAT (strict JSON) ===
 Return ONLY this JSON:
 {
@@ -471,9 +534,9 @@ Return ONLY this JSON:
 }
 
 Where:
-- "matching" = required skills the candidate HAS (exact name from the job requirements list)
-- "missing" = required skills the candidate LACKS
-- "score" = percentage (0-100) of required skills matched
+- "matching" = required skills the candidate HAS (exact name from the job requirements list). Only include skills that pass the Strict Skill Matching Rule.
+- "missing" = ALL required AND nice-to-have skills the candidate LACKS. List EVERY individual tool/technology separately — never collapse into categories.
+- "score" = fit percentage calculated using the FIT SCORE CALCULATION METHOD above (not a simple ratio)
 
 Return ONLY valid JSON, no explanation.`,
         systemPrompt: 'You are a precise skill matching engine. Return only valid JSON. Be fair but honest — count semantic and cross-language matches, but never inflate.',
@@ -699,8 +762,8 @@ Return ONLY valid JSON, no explanation.`,
     const { applicant, job, match } = context;
     
     const fitLevel: 'strong' | 'good' | 'weak' = 
-      (match?.score ?? 0) >= 70 ? 'strong' :
-      (match?.score ?? 0) >= 45 ? 'good' : 'weak';
+      (match?.score ?? 0) >= 80 ? 'strong' :
+      (match?.score ?? 0) >= 40 ? 'good' : 'weak';
 
     // Build experience summary with years and relevance
     const experienceSummary = applicant?.experiences?.map(e => {
@@ -942,6 +1005,29 @@ IF A JD KEYWORD HAS NO MATCH IN THE APPLICANT'S DOCUMENTS:
 → Do NOT add it to missing_keywords_added
 → The fit assessment already flagged it as a gap
 → Accept a lower ATS compatibility score — honesty is the product's value proposition
+
+RULE 4b — QUANTIFIED CLAIMS RULE:
+
+Every number, percentage, metric, or quantity in the CV output MUST be directly traceable to the applicant's Primary CV or Master CV. Examples:
+
+ALLOWED (in source documents):
+- "€150,000 revenue" (Master CV: "€150,000 total revenue")
+- "30,000+ followers" (Master CV: "30,000+ followers")
+- "92% reduction" (Master CV: "92% reduction")
+- "2+ years of training" (Master CV: "2+ years of training")
+- "4 markets" (Master CV: "Germany, Austria, Belgium/Switzerland, USA")
+- "350+ SKUs" (this is from the JD, used to reference the employer — allowed)
+
+NOT ALLOWED (fabricated/inferred):
+- "100+ trainees" (source says "2+ years of training" — do NOT convert time to headcount)
+- "50+ clients" (no client count in source documents)
+- "15% conversion rate improvement" (no conversion metrics in source)
+- "$200K pipeline" (no pipeline metrics in source)
+
+If the source says a duration (e.g., "2+ years"), use the duration. Do NOT estimate, round, or convert to a different unit. The applicant will be asked to verify every number in an interview.
+
+RULE 4c — EXPERIENCE BULLET ACCURACY:
+Each bullet in the experience section must describe something the applicant ACTUALLY DID, as documented in their source CVs. Do not create hypothetical capabilities or inferred activities. If the source says "managed advertising budgets," write about managing advertising budgets — do not upgrade this to "developed reporting frameworks" or "built analytical dashboards."
 
 RULE 5 — SKILL CATEGORIZATION:
 Categorize each skill based on its actual technical function, not based on which job description category it would best fit into. A database tool belongs under "Database/Backend," a web framework belongs under "Web Development," an analytics platform belongs under "Analytics," etc.
