@@ -2,7 +2,7 @@
 
 **Location:** `/src/app/`  
 **Purpose:** Next.js pages for marketing, dashboard, and user-facing features  
-**Last Updated:** February 6, 2026 (Scroll Animations & Micro-interactions)
+**Last Updated:** February 7, 2026 (Pricing Page Redesign v5.2)
 
 ## Scroll Animations & UX Improvements (Feb 6, 2026)
 - **page.tsx** (homepage): Added ScrollReveal animations to all sections (hero staggered entrance, floating background blobs, staggered card reveals, card-hover-lift effects). Imports `ScrollReveal`, `StaggerChildren`, `CountUp`.
@@ -276,42 +276,49 @@ File Upload → Parse API → Store Locally → Upload to Supabase → Save Meta
 
 ---
 
-### 7. Pricing Page (`/pricing/page.tsx`) - ~470 lines ✅ REDESIGNED
+### 7. Pricing Page (`/pricing/page.tsx`) - ~750 lines ✅ REDESIGNED v5.2
 
-**Purpose:** Display pricing tiers, features, ROI calculator, and FAQ
+**Purpose:** Display pricing tiers, features, interactive time savings calculator, and FAQ
 
-**Current State (Post-Redesign):**
-- ✅ 3 pricing tiers (Starter, Plus, Pro) with updated prices
-- ✅ Credit-based pricing model
-- ✅ Updated add-on credit packs
-- ✅ Feature comparison with Fit Analysis, AI Company Analysis, AI Self-Refinement
-- ✅ **NEW: ROI Time Savings Calculator** section
+**Current State (Post-Redesign v5.2 — Feb 7, 2026):**
+- ✅ 3 pricing tiers (Starter, Plus, Pro) with updated free tier (40 credits / 20 apps)
+- ✅ Shortened hero subtitle: "Every plan includes the full AI workflow. You just choose your volume."
+- ✅ Reordered "Included in Every Plan" bar: ATS Optimized → Fit Analysis → Company Analysis → US & EU Templates → AI Refinement → Agentic AI
+- ✅ Restructured feature lists with 3 visual groups (core, differentiators, infrastructure) separated by dividers
+- ✅ Outcome-focused feature copy ("Complete application in under 90 seconds", "Skill gap analysis", etc.)
+- ✅ "No watermark on any document" added to all tiers
+- ✅ Collapsible add-on section inside Plus/Pro cards (removed standalone add-on section)
+- ✅ Add-on volume discounts: 30/$7.49, 60/$12.99, 120/$24.99
+- ✅ Interactive Time Savings slider (moved up, directly below pricing cards)
+- ✅ Animated counters for apps/hours saved with tier selector
 - ✅ FAQ section (6 questions)
-- ✅ Expandable FAQ items
+- ✅ Bottom CTA: "Start with 20 free applications"
+- ✅ Stripe checkout integration for Plus/Pro
 
-**Pricing Tiers (Updated Feb 5, 2026):**
+**Pricing Tiers (Updated Feb 7, 2026):**
 
 | Tier | Price | Credits | Applications | Rollover | Time Saved |
 |------|-------|---------|--------------|----------|------------|
-| Starter | Free | 6 | 3 | None | 2.25 hrs |
-| Plus | $29.99/mo | 120 | 60 | 1 month | 45 hrs |
-| Pro | $49.99/mo | 240 | 120 | 2 months | 90 hrs |
+| Starter | Free | 40 | 20 | None | ~15 hrs |
+| Plus | $29.99/mo | 120 | 60 | 1 month | ~45 hrs |
+| Pro | $49.99/mo | 240 | 120 | 2 months | ~90 hrs |
 
-**Add-on Packs (Updated Feb 5, 2026):**
-- Small: 30 credits / 15 apps - $7.49
-- Medium: 60 credits / 30 apps - $14.99 (Best Value)
-- Large: 120 credits / 60 apps - $29.99 (Most Popular)
+**Add-on Packs (Updated Feb 7, 2026 — volume discounts):**
+- Small: 30 credits / 15 apps - $7.49 ($0.25/credit)
+- Medium: 60 credits / 30 apps - $12.99 ($0.22/credit)
+- Large: 120 credits / 60 apps - $24.99 ($0.21/credit)
 
-**Key Changes:**
-1. Prices updated: Plus $29.99, Pro $49.99 (was $19.99/$39.99)
-2. Add-on prices updated: $7.49/$14.99/$29.99 (was $4.99/$9.99/$19.99)
-3. Added Fit Analysis, AI Company Analysis, AI Self-Refinement to features
-4. Added ROI Time Savings Calculator section
-5. Removed 'Priority support' from free tier
+**Page Structure (New Order):**
+1. Hero (shortened subtitle)
+2. "Included in Every Plan" bar (reordered)
+3. Pricing cards (grouped features, collapsible add-ons in Plus/Pro)
+4. Interactive Time Savings calculator (moved up)
+5. How Credits Work
+6. FAQ
+7. Bottom CTA
+8. Footer
 
-**Leftover Code Issues:**
-- ⚠️ CTA buttons link to `/auth/signup` but don't specify tier
-- ⚠️ No Stripe integration for paid plans
+**Removed:** Standalone "Need More Credits?" add-on section
 
 ---
 
@@ -486,7 +493,10 @@ if (isLoading) {
 | Feb 6, 2026 | LLM-based semantic skill matching | unified-writer-agent.ts, models/types.ts | Fixes 0% score on cross-language JDs (German skills vs English CV). New skill_matching task type. |
 | Feb 6, 2026 | Anti-hallucination guardrails + language level rules | unified-writer-agent.ts | Zero fabrication policy across CV/CL/email prompts. B2≠verhandlungssicher rule. |
 | Feb 6, 2026 | Structured fit assessment format | unified-writer-agent.ts | Markdown with bold headers + bullets, 120 word limit, maxTokens 500 |
-| Feb 6, 2026 | Complete chat system prompt rewrite | api/chat/route.ts | XML tags (identity, current_user_state, response_rules), multi-language support, scope boundaries, brevity enforcement |
+| Feb 6, 2026 | Complete chat system prompt rewrite | api/chat/route.ts | XML tags for all sections (identity, current_user_state, response_rules), multi-language support, scope boundaries, brevity enforcement |
+| Feb 7, 2026 | Pricing page redesign v5.2 | pricing/page.tsx | Free tier 40 credits/20 apps, shortened subtitle, reordered feature bar, grouped outcome-focused features, interactive time savings slider, collapsible add-ons in cards, removed standalone add-on section, "No watermark" feature added |
+| Feb 7, 2026 | Homepage CTA & pricing preview update | page.tsx | "3 applications included" → "20 applications included", "3 free applications to start" → "20 free applications to start" |
+| Feb 7, 2026 | About page CTA update | about/page.tsx | "3 free applications" → "20 free applications" |
 
 ---
 

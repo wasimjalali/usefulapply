@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import Image from 'next/image';
-import { ArrowRight, Users, Target, Heart, Zap, Sparkles, Clock, Shield, Globe } from 'lucide-react';
+import { ArrowRight, Users, Target, Heart, Zap, Sparkles, Shield, Globe } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
@@ -36,69 +35,6 @@ export default function AboutPage() {
             KarKo AI was born from a simple frustration: talented people spending hours on applications that go nowhere. We built an agentic AI system that does the work for you, so you can focus on what matters.
           </p>
           </ScrollReveal>
-        </div>
-      </section>
-
-      {/* Our Story */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-4xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <ScrollReveal direction="left">
-            <div>
-              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Our Story</p>
-              <h2 className="text-3xl font-bold text-navy-600 mb-6">From Job Seeker to Founder</h2>
-              <div className="space-y-4 text-warm-gray leading-relaxed">
-                <p>
-                  KarKo AI was born from personal experience. As a job seeker, I was applying to <strong className="text-charcoal">50-60 jobs</strong> at a time, rewriting my CV, researching companies, crafting cover letters, and drafting emails. It was exhausting and incredibly time-consuming.
-                </p>
-                <p>
-                  I first tried building a solution inside a chatbot, a custom project that would help generate my application materials. But even with that setup, each application still took <strong className="text-charcoal">45 minutes or more</strong>. The manual back-and-forth was the bottleneck.
-                </p>
-                <p>
-                  That is when I decided to build KarKo AI: a fully agentic system that does everything in <strong className="text-charcoal">one automated workflow</strong>: analyze the job, extract company insights, run a fit analysis, and generate a complete application package in under 3 minutes.
-                </p>
-                <p>
-                  I built it for myself first. When I saw the results (more interviews, less time wasted), I knew this had to be shared with other job seekers facing the same struggle.
-                </p>
-              </div>
-            </div>
-            </ScrollReveal>
-            <ScrollReveal direction="right" delay={200}>
-            <div className="bg-cream-50 rounded-2xl p-8 border border-cream-200">
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-5 h-5 text-red-500" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-charcoal">The Problem</p>
-                    <p className="text-sm text-warm-gray">Applying to 50+ jobs, 45 minutes each. Job searching became a full-time job</p>
-                  </div>
-                </div>
-                <div className="w-px h-6 bg-cream-300 ml-5" />
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 bg-gold-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="w-5 h-5 text-gold-500" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-charcoal">The First Attempt</p>
-                    <p className="text-sm text-warm-gray">Built a chatbot project, still took 45 min per application</p>
-                  </div>
-                </div>
-                <div className="w-px h-6 bg-cream-300 ml-5" />
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 bg-sage-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Zap className="w-5 h-5 text-sage-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-charcoal">KarKo AI</p>
-                    <p className="text-sm text-warm-gray">Fully agentic workflow: complete applications in under 3 minutes</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            </ScrollReveal>
-          </div>
         </div>
       </section>
 
@@ -208,8 +144,8 @@ export default function AboutPage() {
         <div className="max-w-6xl mx-auto">
           <div className="grid sm:grid-cols-4 gap-8 text-center">
             {[
-              { value: '45+ min', label: 'Saved Per Application' },
-              { value: '<3 min', label: 'To Generate Full Package' },
+              { value: '45-60 min', label: 'Saved Per Application' },
+              { value: '<90 sec', label: 'To Generate Full Package' },
               { value: '3-in-1', label: 'CV + Cover Letter + Email' },
               { value: '100%', label: 'ATS-Optimized Output' },
             ].map((stat, i) => (
@@ -224,47 +160,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Founder Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-4xl mx-auto">
-          <ScrollReveal>
-          <div className="text-center mb-10">
-            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Meet the Founder</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-navy-600">Built by a Job Seeker, for Job Seekers</h2>
-          </div>
-          </ScrollReveal>
-          <ScrollReveal delay={200}>
-          <div className="bg-cream-50 rounded-2xl p-8 md:p-10 border border-cream-200">
-            <div className="flex flex-col md:flex-row items-center gap-8">
-              <div className="flex-shrink-0">
-                <div className="w-64 h-64 md:w-80 md:h-80 rounded-2xl overflow-hidden border-4 border-white shadow-lg">
-                  <Image
-                    src="/wasim-founder.jpg"
-                    alt="Wasim Jalali, Founder & CEO of KarKo AI"
-                    width={320}
-                    height={427}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-charcoal mb-1">Wasim Jalali</h3>
-                <p className="text-sm font-medium text-gold-500 mb-4">Founder & CEO</p>
-                <div className="space-y-3 text-warm-gray leading-relaxed">
-                  <p>
-                    &ldquo;I was applying to 50-60 jobs at a time and spending hours on each application. I first tried building a solution inside a chatbot, but it still took 45 minutes per application. That frustration led me to build KarKo AI, a tool that does in 3 minutes what used to take me an hour.
-                  </p>
-                  <p>
-                    I built it for myself first, saw real results, and knew I had to share it with every job seeker going through the same struggle. From a job seeker, to job seekers. That is what KarKo AI is all about.&rdquo;
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-          </ScrollReveal>
-        </div>
-      </section>
-
       {/* CTA */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow" />
@@ -274,7 +169,7 @@ export default function AboutPage() {
             Ready to Experience the Difference?
           </h2>
           <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
-            Start with 3 free applications. No credit card required. See why job seekers are switching to KarKo AI.
+            Start with 20 free applications. No credit card required.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link

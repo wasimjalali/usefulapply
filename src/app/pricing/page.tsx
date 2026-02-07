@@ -1,13 +1,70 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Check, X, Sparkles, Zap, Crown, ArrowRight, ChevronDown, FileText, Search, Shield, MessageSquare, Globe, BarChart3, TrendingUp, Clock, Calculator, Loader2 } from 'lucide-react';
+import { Check, X, Sparkles, Zap, Crown, ArrowRight, ChevronDown, FileText, Search, Shield, MessageSquare, Globe, BarChart3, TrendingUp, Clock, Plus as PlusIcon, Loader2 } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { useAuth } from '@/contexts/AuthContext';
+
+// Feature groups for pricing cards
+interface FeatureGroup {
+  label?: string;
+  features: { name: string; included: boolean; highlight: boolean }[];
+}
+
+const coreFeatures: FeatureGroup = {
+  features: [
+    { name: 'Complete application in under 90 seconds', included: true, highlight: true },
+    { name: 'Tailored CV, cover letter, and email per job', included: true, highlight: true },
+    { name: 'ATS-optimized formatting and keywords', included: true, highlight: false },
+    { name: 'Fit score before you apply (strong/good/weak)', included: true, highlight: false },
+  ],
+};
+
+const differentiators: FeatureGroup = {
+  features: [
+    { name: 'AI company research from job posting', included: true, highlight: false },
+    { name: 'Skill gap analysis (every gap listed)', included: true, highlight: false },
+    { name: 'Achievement-based cover letter opening', included: true, highlight: false },
+    { name: 'AI quality refinement pass on every document', included: true, highlight: false },
+  ],
+};
+
+const starterInfra: FeatureGroup = {
+  features: [
+    { name: 'US and EU templates (English and German)', included: true, highlight: false },
+    { name: 'No watermark on any document', included: true, highlight: false },
+    { name: 'PDF export', included: true, highlight: false },
+    { name: 'Application history (30 days)', included: true, highlight: false },
+    { name: 'Add-on credit packs', included: false, highlight: false },
+    { name: 'Credit rollover', included: false, highlight: false },
+  ],
+};
+
+const plusInfra: FeatureGroup = {
+  features: [
+    { name: 'US and EU templates (English and German)', included: true, highlight: false },
+    { name: 'No watermark on any document', included: true, highlight: false },
+    { name: 'PDF export', included: true, highlight: false },
+    { name: 'Application history (unlimited)', included: true, highlight: false },
+    { name: 'Add-on credit packs', included: true, highlight: false },
+    { name: 'Credit rollover (1 month)', included: true, highlight: false },
+  ],
+};
+
+const proInfra: FeatureGroup = {
+  features: [
+    { name: 'US and EU templates (English and German)', included: true, highlight: false },
+    { name: 'No watermark on any document', included: true, highlight: false },
+    { name: 'PDF export', included: true, highlight: false },
+    { name: 'Application history (unlimited)', included: true, highlight: false },
+    { name: 'Add-on credit packs', included: true, highlight: false },
+    { name: 'Credit rollover (2 months)', included: true, highlight: false },
+  ],
+};
 
 // Pricing tiers data - Updated pricing model
 const tiers = [
@@ -17,27 +74,16 @@ const tiers = [
     price: 0,
     priceLabel: 'Free',
     priceSubtext: 'forever',
-    credits: 6,
-    applications: '3',
-    description: 'Try KarKo AI risk-free',
+    credits: 40,
+    applications: '20',
+    description: 'See your first AI application',
     icon: Sparkles,
     popular: false,
     bestValue: false,
-    features: [
-      { name: 'Agentic AI application generation', included: true, highlight: true },
-      { name: 'Personalized CV, cover letter & email', included: true, highlight: true },
-      { name: 'Fit analysis (strong/good/weak)', included: true, highlight: false },
-      { name: 'AI company analysis from job description', included: true, highlight: false },
-      { name: 'All CV templates (US & EU)', included: true, highlight: false },
-      { name: 'ATS-optimized formatting', included: true, highlight: false },
-      { name: 'AI self-refinement iterations', included: true, highlight: false },
-      { name: 'PDF export', included: true, highlight: false },
-      { name: 'Application history (30 days)', included: true, highlight: false },
-      { name: 'Add-on credit packs', included: false, highlight: false },
-      { name: 'Credit rollover', included: false, highlight: false },
-    ],
+    featureGroups: [coreFeatures, differentiators, starterInfra],
     cta: 'Start Free',
     ctaVariant: 'outline' as const,
+    hasAddons: false,
   },
   {
     name: 'Plus',
@@ -47,25 +93,14 @@ const tiers = [
     priceSubtext: '/month',
     credits: 120,
     applications: '60',
-    description: 'For active job seekers',
+    description: 'For serious job seekers',
     icon: Zap,
     popular: true,
     bestValue: false,
-    features: [
-      { name: 'Agentic AI application generation', included: true, highlight: true },
-      { name: 'Personalized CV, cover letter & email', included: true, highlight: true },
-      { name: 'Fit analysis (strong/good/weak)', included: true, highlight: false },
-      { name: 'AI company analysis from job description', included: true, highlight: false },
-      { name: 'All CV templates (US & EU)', included: true, highlight: false },
-      { name: 'ATS-optimized formatting', included: true, highlight: false },
-      { name: 'AI self-refinement iterations', included: true, highlight: false },
-      { name: 'PDF export', included: true, highlight: false },
-      { name: 'Application history (unlimited)', included: true, highlight: false },
-      { name: 'Add-on credit packs', included: true, highlight: false },
-      { name: 'Credit rollover (1 month)', included: true, highlight: false },
-    ],
+    featureGroups: [coreFeatures, differentiators, plusInfra],
     cta: 'Get Plus',
     ctaVariant: 'primary' as const,
+    hasAddons: true,
   },
   {
     name: 'Pro',
@@ -75,41 +110,55 @@ const tiers = [
     priceSubtext: '/month',
     credits: 240,
     applications: '120',
-    description: 'For power users & professionals',
+    description: 'For high-volume applicants',
     icon: Crown,
     popular: false,
     bestValue: true,
-    features: [
-      { name: 'Agentic AI application generation', included: true, highlight: true },
-      { name: 'Personalized CV, cover letter & email', included: true, highlight: true },
-      { name: 'Fit analysis (strong/good/weak)', included: true, highlight: false },
-      { name: 'AI company analysis from job description', included: true, highlight: false },
-      { name: 'All CV templates (US & EU)', included: true, highlight: false },
-      { name: 'ATS-optimized formatting', included: true, highlight: false },
-      { name: 'AI self-refinement iterations', included: true, highlight: false },
-      { name: 'PDF export', included: true, highlight: false },
-      { name: 'Application history (unlimited)', included: true, highlight: false },
-      { name: 'Add-on credit packs', included: true, highlight: false },
-      { name: 'Credit rollover (2 months)', included: true, highlight: false },
-    ],
+    featureGroups: [coreFeatures, differentiators, proInfra],
     cta: 'Get Pro',
     ctaVariant: 'secondary' as const,
+    hasAddons: true,
   },
 ];
 
-// Add-on credit packs
+// Add-on credit packs with volume discounts
 // TODO: Replace priceId values with actual Stripe Price IDs
 const addonPacks = [
-  { name: 'Small Pack', credits: 30, applications: 15, price: 7.49, discount: null, priceId: 'price_addon_small' },
-  { name: 'Medium Pack', credits: 60, applications: 30, price: 14.99, discount: 'Best Value', priceId: 'price_addon_medium' },
-  { name: 'Large Pack', credits: 120, applications: 60, price: 29.99, discount: 'Most Popular', priceId: 'price_addon_large' },
+  { name: 'Small Pack', credits: 30, applications: 15, price: 7.49, perCredit: '$0.25', priceId: 'price_addon_small' },
+  { name: 'Medium Pack', credits: 60, applications: 30, price: 12.99, perCredit: '$0.22', priceId: 'price_addon_medium' },
+  { name: 'Large Pack', credits: 120, applications: 60, price: 24.99, perCredit: '$0.21', priceId: 'price_addon_large' },
+];
+
+// Time savings data for interactive calculator
+const savingsTiers = [
+  {
+    plan: 'Starter',
+    apps: 20,
+    hoursSaved: 15,
+    price: 'Free',
+    tagline: 'That is 15 hours you get back for free. No credit card required.',
+  },
+  {
+    plan: 'Plus',
+    apps: 60,
+    hoursSaved: 45,
+    price: '$29.99/mo',
+    tagline: 'That is over a full work week saved every month. At just $0.50 per application.',
+  },
+  {
+    plan: 'Pro',
+    apps: 120,
+    hoursSaved: 90,
+    price: '$49.99/mo',
+    tagline: 'That is over two full work weeks saved. At just $0.42 per application.',
+  },
 ];
 
 // FAQ items
 const faqs = [
   {
     question: 'What exactly do I get with each application?',
-    answer: 'Each application generates a complete package: an AI-optimized CV tailored to the job description, a personalized cover letter with company research, and a professional application email, all in under 3 minutes.',
+    answer: 'Each application generates a complete package: an AI-optimized CV tailored to the job description, a personalized cover letter with company research, and a professional application email, all in under 90 seconds.',
   },
   {
     question: 'Are all features the same across plans?',
@@ -129,16 +178,48 @@ const faqs = [
   },
   {
     question: 'How is KarKo different from other resume builders?',
-    answer: 'Most tools just help you format a resume. KarKo AI is an agentic system that analyzes the job description, extracts company insights, runs a fit analysis, generates a tailored CV, writes a personalized cover letter, and drafts a professional email, all automatically in one workflow.',
+    answer: 'Most tools just help you format a resume. KarKo AI is an agentic system that analyzes the job description, extracts company insights, runs a fit analysis, generates a tailored CV, writes a personalized cover letter, and drafts a professional email, all automatically in one workflow. The entire process takes under 90 seconds.',
   },
 ];
+
+// Animated counter hook
+function useAnimatedCount(target: number, duration: number = 800, active: boolean = true) {
+  const [count, setCount] = useState(0);
+  const prevTarget = useRef(target);
+
+  useEffect(() => {
+    if (!active) { setCount(0); return; }
+    const start = prevTarget.current !== target ? 0 : count;
+    prevTarget.current = target;
+    const startTime = performance.now();
+
+    function animate(now: number) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.round(start + (target - start) * eased));
+      if (progress < 1) requestAnimationFrame(animate);
+    }
+
+    requestAnimationFrame(animate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target, active, duration]);
+
+  return count;
+}
 
 export default function PricingPage() {
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [loadingAddon, setLoadingAddon] = useState<string | null>(null);
+  const [selectedSavingsTier, setSelectedSavingsTier] = useState(1); // default Plus
+  const [expandedAddon, setExpandedAddon] = useState<string | null>(null);
   const { user } = useAuth();
   const router = useRouter();
+
+  const currentSavings = savingsTiers[selectedSavingsTier];
+  const animatedApps = useAnimatedCount(currentSavings.apps);
+  const animatedHours = useAnimatedCount(currentSavings.hoursSaved);
 
   const handleSubscribe = async (planTier: string) => {
     if (!user) {
@@ -208,26 +289,26 @@ export default function PricingPage() {
           </ScrollReveal>
           <ScrollReveal delay={300}>
           <p className="text-xl text-warm-gray max-w-2xl mx-auto">
-            The full agentic AI workflow is included in every plan: company research, ATS optimization, personalized documents, and more. You only choose how many applications you need.
+            Every plan includes the full AI workflow. You just choose your volume.
           </p>
           </ScrollReveal>
         </div>
       </section>
 
-      {/* All Features Included Banner */}
+      {/* Value Strip — High-level trust signals (complements card details, no overlap) */}
       <section className="pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           <ScrollReveal>
           <div className="bg-navy-600 rounded-2xl p-6 md:p-8">
-            <p className="text-center text-sm font-semibold text-gold-400 uppercase tracking-widest mb-5">Included in every plan</p>
+            <p className="text-center text-sm font-semibold text-gold-400 uppercase tracking-widest mb-5">Every plan, same power</p>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {[
-                { icon: Sparkles, label: 'Agentic AI' },
-                { icon: Search, label: 'Company Analysis' },
-                { icon: Shield, label: 'ATS Optimized' },
-                { icon: Globe, label: 'US & EU Templates' },
-                { icon: TrendingUp, label: 'Fit Analysis' },
-                { icon: MessageSquare, label: 'AI Refinement' },
+                { icon: Clock, label: 'Under 90 Seconds' },
+                { icon: Shield, label: 'No Fabrication' },
+                { icon: FileText, label: 'No Watermark' },
+                { icon: Globe, label: 'US & EU Ready' },
+                { icon: TrendingUp, label: 'Honest Fit Score' },
+                { icon: Sparkles, label: 'All-in-One Workflow' },
               ].map((item, i) => {
                 const Icon = item.icon;
                 return (
@@ -274,7 +355,7 @@ export default function PricingPage() {
                     </div>
                   )}
 
-                  <div className="p-8">
+                  <div className="p-8 flex flex-col h-full">
                     {/* Header */}
                     <div className="flex items-center gap-3 mb-5">
                       <div
@@ -329,63 +410,213 @@ export default function PricingPage() {
                       </div>
                     </div>
 
-                    {/* CTA Button */}
-                    {tier.price === 0 ? (
-                      <Link
-                        href="/auth/signup"
-                        className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold transition-all mb-6 border-2 border-navy-200 text-navy-600 hover:bg-navy-50 hover:border-navy-400"
-                      >
-                        {tier.cta}
-                        <ArrowRight className="w-4 h-4" />
-                      </Link>
-                    ) : (
-                      <button
-                        onClick={() => handleSubscribe(tier.tier)}
-                        disabled={loadingPlan === tier.tier}
-                        className={`w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold transition-all mb-6 cursor-pointer disabled:opacity-60 ${
-                          tier.ctaVariant === 'primary'
-                            ? 'bg-gradient-to-r from-gold-400 to-gold-500 text-white hover:from-gold-500 hover:to-gold-600 shadow-md hover:shadow-lg'
-                            : 'bg-navy-600 text-white hover:bg-navy-700 shadow-md'
-                        }`}
-                      >
-                        {loadingPlan === tier.tier ? (
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                          <>
-                            {tier.cta}
-                            <ArrowRight className="w-4 h-4" />
-                          </>
+                    {/* Grouped Features */}
+                    <div className="space-y-4">
+                      {tier.featureGroups.map((group, groupIdx) => (
+                        <div key={groupIdx}>
+                          {groupIdx > 0 && (
+                            <div className="border-t border-cream-200 mb-4" />
+                          )}
+                          <ul className="space-y-3">
+                            {group.features.map((feature, idx) => (
+                              <li key={idx} className="flex items-start gap-2.5">
+                                {feature.included ? (
+                                  <Check className={`w-5 h-5 flex-shrink-0 mt-0.5 ${feature.highlight ? 'text-gold-500' : 'text-sage-500'}`} />
+                                ) : (
+                                  <X className="w-5 h-5 text-cream-400 flex-shrink-0 mt-0.5" />
+                                )}
+                                <span
+                                  className={`text-sm ${
+                                    feature.included
+                                      ? feature.highlight ? 'text-charcoal font-medium' : 'text-charcoal'
+                                      : 'text-warm-gray'
+                                  }`}
+                                >
+                                  {feature.name}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Collapsible Add-on Section (Plus & Pro only) */}
+                    {tier.hasAddons && (
+                      <div className="mt-6">
+                        <button
+                          onClick={() => setExpandedAddon(expandedAddon === tier.tier ? null : tier.tier)}
+                          className="w-full flex items-center justify-between p-3 rounded-xl border border-cream-200 hover:border-gold-300 hover:bg-cream-50 transition-all cursor-pointer"
+                        >
+                          <span className="text-sm font-medium text-charcoal flex items-center gap-2">
+                            <PlusIcon className="w-4 h-4 text-gold-500" />
+                            Need more credits?
+                          </span>
+                          <ChevronDown
+                            className={`w-4 h-4 text-warm-gray transition-transform duration-200 ${
+                              expandedAddon === tier.tier ? 'rotate-180' : ''
+                            }`}
+                          />
+                        </button>
+                        {expandedAddon === tier.tier && (
+                          <div className="mt-3 p-4 bg-cream-50 rounded-xl border border-cream-200 space-y-3">
+                            <p className="text-xs font-medium text-charcoal mb-2">Buy add-on credit packs:</p>
+                            {addonPacks.map((pack) => (
+                              <div key={pack.name} className="flex items-center justify-between">
+                                <div>
+                                  <span className="text-sm text-charcoal">{pack.credits} credits ({pack.applications} apps)</span>
+                                  <span className="text-xs text-warm-gray ml-2">{pack.perCredit}/credit</span>
+                                </div>
+                                <button
+                                  onClick={() => handleBuyAddon(pack.name.split(' ')[0].toLowerCase())}
+                                  disabled={loadingAddon === pack.name.split(' ')[0].toLowerCase()}
+                                  className="px-3 py-1.5 bg-navy-600 text-white text-xs font-semibold rounded-lg hover:bg-navy-700 transition-colors cursor-pointer disabled:opacity-60"
+                                >
+                                  {loadingAddon === pack.name.split(' ')[0].toLowerCase() ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    `$${pack.price}`
+                                  )}
+                                </button>
+                              </div>
+                            ))}
+                            <p className="text-xs text-warm-gray pt-1">Credits never expire.</p>
+                          </div>
                         )}
-                      </button>
+                      </div>
                     )}
 
-                    {/* Features */}
-                    <ul className="space-y-3">
-                      {tier.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-start gap-2.5">
-                          {feature.included ? (
-                            <Check className={`w-5 h-5 flex-shrink-0 mt-0.5 ${feature.highlight ? 'text-gold-500' : 'text-sage-500'}`} />
+                    {/* CTA Button — at bottom after features for natural conversion flow */}
+                    <div className="mt-auto pt-6">
+                      {tier.price === 0 ? (
+                        <Link
+                          href="/auth/signup"
+                          className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold transition-all border-2 border-navy-200 text-navy-600 hover:bg-navy-50 hover:border-navy-400"
+                        >
+                          {tier.cta}
+                          <ArrowRight className="w-4 h-4" />
+                        </Link>
+                      ) : (
+                        <button
+                          onClick={() => handleSubscribe(tier.tier)}
+                          disabled={loadingPlan === tier.tier}
+                          className={`w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold transition-all cursor-pointer disabled:opacity-60 ${
+                            tier.ctaVariant === 'primary'
+                              ? 'bg-gradient-to-r from-gold-400 to-gold-500 text-white hover:from-gold-500 hover:to-gold-600 shadow-md hover:shadow-lg'
+                              : 'bg-navy-600 text-white hover:bg-navy-700 shadow-md'
+                          }`}
+                        >
+                          {loadingPlan === tier.tier ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
                           ) : (
-                            <X className="w-5 h-5 text-cream-400 flex-shrink-0 mt-0.5" />
+                            <>
+                              {tier.cta}
+                              <ArrowRight className="w-4 h-4" />
+                            </>
                           )}
-                          <span
-                            className={`text-sm ${
-                              feature.included
-                                ? feature.highlight ? 'text-charcoal font-medium' : 'text-charcoal'
-                                : 'text-warm-gray'
-                            }`}
-                          >
-                            {feature.name}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
                 </ScrollReveal>
               );
             })}
           </div>
+        </div>
+      </section>
+
+      {/* Interactive Time Savings Calculator — Moved up, directly below pricing cards */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
+        <div className="max-w-4xl mx-auto">
+          <ScrollReveal>
+          <div className="text-center mb-10">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Time Savings</p>
+            <h2 className="text-3xl font-bold text-navy-600 mb-3">
+              How Much Time Will You Save?
+            </h2>
+          </div>
+          </ScrollReveal>
+
+          <ScrollReveal delay={150}>
+          <div className="bg-white rounded-2xl border border-cream-200 shadow-lg p-8 md:p-10">
+            {/* Tier Selector / Slider */}
+            <div className="flex items-center justify-center mb-10">
+              <div className="relative flex items-center w-full max-w-md">
+                {/* Track */}
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full h-1.5 bg-cream-200 rounded-full">
+                    <div
+                      className="h-1.5 bg-gradient-to-r from-gold-400 to-gold-500 rounded-full transition-all duration-300"
+                      style={{ width: `${selectedSavingsTier * 50}%` }}
+                    />
+                  </div>
+                </div>
+                {/* Stops */}
+                <div className="relative flex justify-between w-full">
+                  {savingsTiers.map((tier, i) => (
+                    <button
+                      key={tier.plan}
+                      onClick={() => setSelectedSavingsTier(i)}
+                      className="flex flex-col items-center cursor-pointer group"
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-full border-4 transition-all duration-300 flex items-center justify-center ${
+                          i <= selectedSavingsTier
+                            ? 'bg-gold-400 border-gold-500 shadow-md'
+                            : 'bg-white border-cream-300 group-hover:border-gold-300'
+                        }`}
+                      >
+                        {i === selectedSavingsTier && (
+                          <div className="w-2 h-2 bg-white rounded-full" />
+                        )}
+                      </div>
+                      <span
+                        className={`mt-2 text-sm font-semibold transition-colors ${
+                          i === selectedSavingsTier ? 'text-navy-600' : 'text-warm-gray'
+                        }`}
+                      >
+                        {tier.plan}
+                      </span>
+                      <span className="text-xs text-warm-gray">{tier.price}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Stats Row */}
+            <div className="grid grid-cols-3 gap-4 md:gap-8 mb-8">
+              <div className="text-center p-4 md:p-6 bg-cream-50 rounded-xl border border-cream-200">
+                <div className="text-3xl md:text-4xl font-bold text-navy-600 mb-1">{animatedApps}</div>
+                <div className="text-sm text-warm-gray">applications per month</div>
+              </div>
+              <div className="text-center p-4 md:p-6 bg-cream-50 rounded-xl border border-cream-200">
+                <div className="text-3xl md:text-4xl font-bold text-gold-500 mb-1">&lt;90</div>
+                <div className="text-sm text-warm-gray">seconds each</div>
+              </div>
+              <div className="text-center p-4 md:p-6 bg-navy-600 rounded-xl">
+                <div className="text-3xl md:text-4xl font-bold text-white mb-1">~{animatedHours}</div>
+                <div className="text-sm text-navy-200">hours saved/month</div>
+              </div>
+            </div>
+
+            {/* Tagline */}
+            <p className="text-center text-lg font-medium text-charcoal mb-4">
+              {currentSavings.tagline}
+            </p>
+
+            {/* Disclaimer */}
+            <div className="text-center space-y-1">
+              <p className="text-sm text-warm-gray">
+                Based on 45-60 minutes of manual work per tailored application.
+              </p>
+              <p className="text-sm text-warm-gray">
+                KarKo AI generates the complete package in under 90 seconds.
+              </p>
+            </div>
+          </div>
+          </ScrollReveal>
         </div>
       </section>
 
@@ -452,54 +683,8 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Add-on Credits Section */}
-      <section id="addons" className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50 scroll-mt-20">
-        <div className="max-w-4xl mx-auto">
-          <ScrollReveal>
-          <div className="text-center mb-10">
-            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Add-ons</p>
-            <h2 className="text-3xl font-bold text-navy-600 mb-3">Need More Credits?</h2>
-            <p className="text-warm-gray">
-              Plus and Pro subscribers can purchase add-on credit packs anytime. Credits never expire.
-            </p>
-          </div>
-          </ScrollReveal>
-          <div className="grid sm:grid-cols-3 gap-6">
-            {addonPacks.map((pack, packIdx) => (
-              <ScrollReveal key={pack.name} delay={packIdx * 150}>
-              <div
-                className="bg-white rounded-2xl border border-cream-200 p-8 text-center hover:border-gold-300 hover:shadow-lg transition-all card-hover-lift"
-              >
-                {pack.discount && (
-                  <div className="inline-block bg-sage-100 text-sage-700 text-xs font-semibold px-3 py-1 rounded-full mb-4">
-                    {pack.discount}
-                  </div>
-                )}
-                <div className="text-3xl font-bold text-charcoal mb-1">{pack.credits}</div>
-                <div className="text-sm text-warm-gray mb-1">credits</div>
-                <div className="text-sm font-semibold text-sage-600 mb-4">{pack.applications} applications</div>
-                <div className="text-2xl font-bold text-navy-600">${pack.price}</div>
-                <div className="text-xs text-warm-gray mt-1">one-time purchase</div>
-                <button
-                  onClick={() => handleBuyAddon(pack.name.split(' ')[0].toLowerCase())}
-                  disabled={loadingAddon === pack.name.split(' ')[0].toLowerCase()}
-                  className="mt-4 w-full px-4 py-2.5 bg-navy-600 text-white text-sm font-semibold rounded-xl hover:bg-navy-700 transition-colors cursor-pointer disabled:opacity-60"
-                >
-                  {loadingAddon === pack.name.split(' ')[0].toLowerCase() ? (
-                    <Loader2 className="w-4 h-4 animate-spin mx-auto" />
-                  ) : (
-                    `Buy ${pack.credits} Credits`
-                  )}
-                </button>
-              </div>
-              </ScrollReveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* FAQ Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
         <div className="max-w-3xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-10">
@@ -513,11 +698,11 @@ export default function PricingPage() {
             {faqs.map((faq, idx) => (
               <div
                 key={idx}
-                className="bg-cream-50 border border-cream-200 rounded-xl overflow-hidden"
+                className="bg-white border border-cream-200 rounded-xl overflow-hidden"
               >
                 <button
                   onClick={() => setExpandedFaq(expandedFaq === idx ? null : idx)}
-                  className="w-full flex items-center justify-between p-5 text-left hover:bg-cream-100 transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-between p-5 text-left hover:bg-cream-50 transition-colors cursor-pointer"
                 >
                   <span className="font-semibold text-charcoal pr-4">{faq.question}</span>
                   <ChevronDown
@@ -537,48 +722,6 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* ROI Time Savings Calculator */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
-        <div className="max-w-4xl mx-auto">
-          <ScrollReveal>
-          <div className="text-center mb-10">
-            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Time Savings</p>
-            <h2 className="text-3xl font-bold text-navy-600 mb-3">
-              How Much Time Will You Save?
-            </h2>
-            <p className="text-warm-gray max-w-xl mx-auto">
-              Each application saves you approximately 45 minutes of manual work. Here is what that looks like per plan.
-            </p>
-          </div>
-          </ScrollReveal>
-          <div className="grid sm:grid-cols-3 gap-6">
-            {[
-              { plan: 'Starter', apps: 3, hours: '2.25', price: 'Free', color: 'cream' },
-              { plan: 'Plus', apps: 60, hours: '45', price: '$29.99/mo', color: 'gold' },
-              { plan: 'Pro', apps: 120, hours: '90', price: '$49.99/mo', color: 'navy' },
-            ].map((tier, i) => (
-              <ScrollReveal key={i} delay={i * 150}>
-              <div className={`rounded-2xl p-8 text-center border card-hover-lift ${
-                tier.color === 'gold' ? 'bg-white border-gold-300 shadow-lg' : 'bg-white border-cream-200'
-              }`}>
-                <h3 className="font-bold text-charcoal text-lg mb-1">{tier.plan}</h3>
-                <p className="text-sm text-warm-gray mb-4">{tier.price}</p>
-                <div className="w-16 h-16 bg-navy-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <Clock className="w-8 h-8 text-navy-600" />
-                </div>
-                <div className="text-4xl font-bold text-navy-600 mb-1">{tier.hours}</div>
-                <div className="text-sm font-medium text-charcoal mb-1">hours saved</div>
-                <div className="text-xs text-warm-gray">per month ({tier.apps} apps × 45 min)</div>
-              </div>
-              </ScrollReveal>
-            ))}
-          </div>
-          <p className="text-center text-sm text-warm-gray mt-8">
-            Based on the average time of 45 minutes to manually research a company, tailor a CV, write a cover letter, and draft an application email.
-          </p>
-        </div>
-      </section>
-
       {/* CTA Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow" />
@@ -588,7 +731,7 @@ export default function PricingPage() {
             Ready to Transform Your Job Search?
           </h2>
           <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
-            Start with 3 free applications. No credit card required. See why job seekers save 45+ minutes per application with KarKo AI.
+            Start with 20 free applications. No credit card required. See why job seekers are switching to KarKo AI.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link

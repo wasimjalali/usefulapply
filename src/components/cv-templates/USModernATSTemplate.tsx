@@ -124,12 +124,23 @@ export function USModernATSTemplate({ data, template }: Props) {
                 <span>{data.personal.phone}</span>
               </div>
             )}
-            {(data.personal.city || data.personal.country) && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: modernColors.text }}>
-                <MapPin style={{ width: '12px', height: '12px', color: modernColors.primary }} />
-                <span>{[data.personal.city, data.personal.country].filter(Boolean).join(', ')}</span>
-              </div>
-            )}
+            {(data.personal.address || data.personal.city || data.personal.country) && (() => {
+              const parts: string[] = [];
+              if (data.personal.address) {
+                parts.push(data.personal.address);
+                if (data.personal.city && !data.personal.address.toLowerCase().includes(data.personal.city.toLowerCase())) parts.push(data.personal.city);
+                if (data.personal.country && !data.personal.address.toLowerCase().includes(data.personal.country.toLowerCase())) parts.push(data.personal.country);
+              } else {
+                if (data.personal.city) parts.push(data.personal.city);
+                if (data.personal.country) parts.push(data.personal.country);
+              }
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: modernColors.text }}>
+                  <MapPin style={{ width: '12px', height: '12px', color: modernColors.primary }} />
+                  <span>{parts.join(', ')}</span>
+                </div>
+              );
+            })()}
             {data.personal.linkedIn && (
               <a href={data.personal.linkedIn} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: modernColors.text, textDecoration: 'none' }}>
                 <Linkedin style={{ width: '12px', height: '12px', color: modernColors.primary }} />
@@ -234,7 +245,7 @@ export function USModernATSTemplate({ data, template }: Props) {
               {data.languages.map((lang, idx) => (
                 <div key={idx} style={{ fontSize: '12px' }}>
                   <span style={{ fontWeight: '500', color: modernColors.text }}>{lang.language}</span>
-                  <span style={{ color: modernColors.textLight }}> — {lang.proficiency}</span>
+                  <span style={{ color: modernColors.textLight }}> : {lang.proficiency}</span>
                 </div>
               ))}
             </div>

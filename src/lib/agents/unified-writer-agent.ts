@@ -507,6 +507,10 @@ Step 6: Apply labels:
 
 IMPORTANT: An honest 50% score with clear gap flagging is MORE VALUABLE to the user than an inflated 78% that leads to interview embarrassment. Our product's credibility depends on honest assessment.
 
+=== COMPETITIVE ADVANTAGE DETECTION ===
+
+If the job description mentions a language as "advantage", "preferred", "plus", "beneficial", or "significant advantage", AND the applicant has that language at B2 level or higher, classify it as a MATCHING skill and flag it prominently in the matching list. This is a competitive differentiator that many candidates will lack. Similarly, if a nice-to-have skill is something the applicant demonstrably has, include it in matching to reflect the competitive edge.
+
 === GAP DETECTION RULES ===
 
 1. List EVERY specific tool, technology, framework, methodology, or qualification from the JD that is NOT explicitly documented in the applicant's source CVs.
@@ -843,6 +847,10 @@ You MUST output in this exact markdown structure. Do NOT deviate:
 **Recommendation:** [One short sentence of strategic advice]
 </output_format>
 
+<competitive_advantage_rule>
+If the job description mentions a language as "advantage", "preferred", "plus", or "beneficial", AND the applicant has that language at B2 level or higher, highlight it as a KEY STRENGTH in the Strengths section (not just in matching skills). This is a competitive differentiator that should be called out explicitly, e.g., "German B2 is a competitive edge for this role."
+</competitive_advantage_rule>
+
 <strict_rules>
 - HARD LIMIT: 100 words total. Count your words. If over 100, cut immediately.
 - Address the candidate directly using "you" and "your"
@@ -935,6 +943,9 @@ If a skill appears in VERIFIED MISSING, it MUST NOT appear anywhere in the CV ou
 If you believe a skill should be matching but it's listed as missing, that's acceptable —
 the separate system may have missed a semantic match, but you still cannot add it to the CV.
 The conservative approach (leaving it out) is always correct.
+
+CV-FIT ASSESSMENT BINDING (REINFORCEMENT):
+Cross-check EVERY skill, tool, and platform name in your generated CV against the VERIFIED MISSING list above. If a term appears in the MISSING list, it MUST NOT appear in the CV — not in experience bullets, not in skills sections, not in the professional summary. This includes specific variations and sub-types (e.g., if "Sponsored Products" is MISSING, do not write "Sponsored Products strategies", "Sponsored Products campaigns", or any phrase containing "Sponsored Products" in any bullet). Perform this check as a final validation step before outputting.
 ` : '';
 
     // ---- PROMPT CACHING: Static instructions go into cacheable system blocks ----
@@ -1269,6 +1280,9 @@ If the Primary CV or Master CV mentions a driver's license, you MUST populate th
 - German CV: "Klasse B"
 If no driver's license is mentioned in any source document, omit the field entirely.
 Do NOT put the driver's license only in the analysis/changes section — it MUST be in personal.driverLicense.
+
+=== PUNCTUATION IN CV CONTENT ===
+Do NOT use em-dashes (—) or en-dashes (–) in any CV content: not in experience bullets, not in the professional summary, not in skill categories, not anywhere. Use commas, semicolons, colons, or periods instead. Hyphens (-) are allowed only in compound words, job titles, and date ranges. Dashes are a telltale sign of AI-generated content.
 
 === OUTPUT COMPLETENESS ===
 Your CV output must be a COMPLETE, standalone document ending after the last section (Certifications, Languages, or similar). Do NOT append any raw text from the original CV. Nothing follows the last section.
@@ -1614,6 +1628,9 @@ RULE 5 — VERIFICATION CHECK:
 Before writing any claim, verify: "Does this exact fact appear in the provided source documents?" If uncertain, omit it.
 </anti_hallucination_rules>
 
+COMPETITIVE ADVANTAGE — LANGUAGE SKILLS:
+If the job description mentions a language as "advantage", "preferred", "plus", or "beneficial", AND the applicant has that language at B2 level or higher (documented in their CV), the cover letter SHOULD mention this language advantage explicitly. This is a competitive differentiator worth highlighting, e.g., "My German language skills (B2) align well with your preference for candidates with German proficiency."
+
 COVER LETTER SKILL ACCURACY (HIGHEST PRIORITY):
 
 The cover letter must NEVER claim experience with skills, tools, or technologies not documented in the Primary CV or Master CV. This overrides all other instructions.
@@ -1702,12 +1719,22 @@ Before generating the cover letter, check:
 RELOCATION RULES:
 - If Master CV specifies relocation to specific cities/regions → ONLY mention relocation to those places
 - Example: "Ready to relocate to major German cities" → can mention Munich, Berlin, Hamburg - CANNOT mention New York, Toronto, London
-- If job is in a city/country NOT covered by the Master CV relocation statement → Do NOT mention relocation at all
 - If job is fully remote → Do NOT mention relocation
 - If Master CV has no relocation statement → Do NOT mention relocation
 
+INTERNATIONAL RELOCATION RULE:
+If the job is on-site or hybrid AND in a different country from the applicant's current location, AND the Master CV contains a relocation statement that covers the job's country or region, the cover letter MUST include a brief, confident statement about relocation readiness. Do not ignore the geographic gap — address it proactively.
+
+Examples:
+- US role, applicant in Germany, Master CV says "open to international relocation": "I'm currently based in Germany and ready to relocate to [city] to join your team."
+- UK role, applicant in Germany, Master CV covers UK: "I'm prepared to relocate to the UK and can start within [timeframe]."
+
+Do NOT mention relocation for:
+- Fully remote roles
+- Roles in the same country as the applicant
+- Roles in countries NOT covered by the Master CV relocation statement
+
 NEVER fabricate relocation willingness beyond what the Master CV explicitly states.
-International relocation requires the user to update their Master CV - the AI cannot assume it.
 
 === COMPANY CONTEXT EXTRACTION ===
 Since web search is not available, extract ALL company context from the job description:

@@ -137,3 +137,5 @@ EMAIL_REGEN: 0.5         // Email regeneration
 | Feb 7, 2026 | Sonnet 4.5 Fix #3: Complete gap detection | unified-writer-agent.ts | Added GAP DETECTION RULES to computeSkillMatch — list every tool individually, no category collapsing (fixes JD#4 showing 4 gaps when 12-15 exist) |
 | Feb 7, 2026 | Sonnet 4.5 Fix #4: Quantified claims constraint | unified-writer-agent.ts | Added RULE 4b (QUANTIFIED CLAIMS RULE) to CV generation anti-hallucination rules — all numbers must be traceable to source documents (fixes "100+ founders" fabrication) |
 | Feb 7, 2026 | Sonnet 4.5 Fix #5: Experience bullet accuracy | unified-writer-agent.ts | Added RULE 4c (EXPERIENCE BULLET ACCURACY) to CV generation — bullets must describe documented activities, no hypothetical capabilities (fixes "performance reporting frameworks" fabrication) |
+| Feb 7, 2026 | Free tier credit increase: 10→40 | supabase/credits.ts | initializeUserCredits now grants 40 monthly credits (20 apps), fixed log transaction amount from 50→40 |
+| Feb 7, 2026 | Stripe PLANS config update | lib/stripe.ts | Starter credits 10→40, features "3 applications/month" → "20 applications/month" |

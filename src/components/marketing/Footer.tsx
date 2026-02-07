@@ -13,7 +13,7 @@ export default function Footer() {
               <KarkoLogo variant="full" size="lg" theme="dark" />
             </Link>
             <p className="text-lg font-semibold text-white/90 mb-2">
-              One Click. Complete Job Application. 45 Minutes Saved.
+              One Click. Complete Job Application. Under 90 Seconds.
             </p>
           </div>
 

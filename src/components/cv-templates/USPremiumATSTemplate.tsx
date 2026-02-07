@@ -141,12 +141,23 @@ export function USPremiumATSTemplate({
               <span>{data.personal.phone}</span>
             </span>
           )}
-          {(data.personal.address || data.personal.city || data.personal.country) && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <MapPin style={{ width: '14px', height: '14px' }} />
-              <span>{[data.personal.address, data.personal.city, data.personal.country].filter(Boolean).join(', ')}</span>
-            </span>
-          )}
+          {(data.personal.address || data.personal.city || data.personal.country) && (() => {
+            const parts: string[] = [];
+            if (data.personal.address) {
+              parts.push(data.personal.address);
+              if (data.personal.city && !data.personal.address.toLowerCase().includes(data.personal.city.toLowerCase())) parts.push(data.personal.city);
+              if (data.personal.country && !data.personal.address.toLowerCase().includes(data.personal.country.toLowerCase())) parts.push(data.personal.country);
+            } else {
+              if (data.personal.city) parts.push(data.personal.city);
+              if (data.personal.country) parts.push(data.personal.country);
+            }
+            return (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MapPin style={{ width: '14px', height: '14px' }} />
+                <span>{parts.join(', ')}</span>
+              </span>
+            );
+          })()}
           {data.personal.linkedIn && (
             <a 
               href={data.personal.linkedIn} 

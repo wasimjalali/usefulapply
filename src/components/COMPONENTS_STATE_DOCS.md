@@ -575,6 +575,14 @@ Dashboard
 
 ---
 
+## Change Log
+
+| Date | Change | Files Modified | Reason |
+|------|--------|----------------|--------|
+| Feb 7, 2026 | SubscriptionSection: free tier credit update | SubscriptionSection.tsx | Starter plan 6→40 credits, 3→20 apps across mobile/desktop plan comparison and default credit display |
+
+---
+
 ## Notes for AI Agents
 
 When working with components:

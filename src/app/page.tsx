@@ -10,7 +10,7 @@ import { CountUp } from '@/components/marketing/CountUp';
 export const metadata: Metadata = {
   title: 'KarKo AI | AI-Powered Job Application Assistant',
   description:
-    'Apply to jobs 10x faster with AI. KarKo AI optimizes your CV for each role, generates tailored cover letters, and creates professional application emails, all in under 3 minutes.',
+    'Apply to jobs 10x faster with AI. KarKo AI optimizes your CV for each role, generates tailored cover letters, and creates professional application emails, all in under 90 seconds.',
   alternates: { canonical: '/' },
 };
 
@@ -38,12 +38,12 @@ export default function Home() {
             <ScrollReveal delay={150}>
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-navy-600 mb-6 leading-[1.1] tracking-tight">
               One Click. Complete Job Application.{' '}
-              <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">45 Minutes Saved.</span>
+              <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">Under 90 Seconds.</span>
             </h1>
             </ScrollReveal>
             <ScrollReveal delay={300}>
             <p className="text-xl md:text-2xl text-warm-gray mb-10 max-w-2xl mx-auto leading-relaxed">
-              Paste a job description. Get a tailored CV, cover letter, and email, all personalized to the job and company, in under 3 minutes.
+              What takes job seekers 45-60 minutes manually (tailoring a CV, writing a cover letter, drafting a professional email), KarKo AI delivers in under 90 seconds.
             </p>
             </ScrollReveal>
             <ScrollReveal delay={450}>
@@ -67,20 +67,14 @@ export default function Home() {
             {/* Social proof strip */}
             <ScrollReveal delay={600}>
             <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-warm-gray">
-              <div className="flex items-center gap-1.5">
-                <div className="flex -space-x-2">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-navy-200 to-navy-400 border-2 border-white flex items-center justify-center text-white text-xs font-bold">
-                      {['S', 'J', 'E', 'M'][i]}
-                    </div>
-                  ))}
-                </div>
-                <span className="ml-2 font-medium">Trusted by job seekers worldwide</span>
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-gold-400" />
+                <span className="font-medium">Built for job seekers worldwide</span>
               </div>
               <div className="hidden sm:block w-px h-4 bg-cream-300" />
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-gold-400" />
-                <span className="font-medium">Save 45+ minutes per application</span>
+                <span className="font-medium">From 45 minutes to 90 seconds per application</span>
               </div>
             </div>
             </ScrollReveal>
@@ -116,7 +110,7 @@ export default function Home() {
               Stop Wasting Hours on Every Application
             </h2>
             <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-              The average job seeker spends 45+ minutes per application. KarKo AI compresses that into under 3 minutes, with better results.
+              The average job seeker spends 45-60 minutes per tailored application. KarKo AI compresses that into under 90 seconds, with better results.
             </p>
           </div>
           </ScrollReveal>
@@ -133,7 +127,7 @@ export default function Home() {
               </div>
               <ul className="space-y-4">
                 {[
-                  { text: '45+ minutes per application', detail: 'Rewriting your CV for every job' },
+                  { text: '45-60 minutes per application', detail: 'Rewriting your CV, cover letter, and email for every job' },
                   { text: 'Generic cover letters', detail: 'Copy-paste with minor tweaks' },
                   { text: 'Manual company research', detail: 'Googling the company before writing' },
                   { text: 'Filtered out by ATS', detail: 'Wrong format, missing keywords' },
@@ -163,7 +157,7 @@ export default function Home() {
               </div>
               <ul className="space-y-4">
                 {[
-                  { text: 'Under 3 minutes per application', detail: 'AI generates everything in one click' },
+                  { text: 'Under 90 seconds per application', detail: 'Fit analysis + CV + cover letter + email in one click' },
                   { text: 'Hyper-personalized documents', detail: 'Every word tailored to the specific job' },
                   { text: 'AI company analysis', detail: 'AI extracts culture, values, and requirements from the job posting' },
                   { text: 'ATS-optimized formatting', detail: 'Passes every applicant tracking system' },
@@ -221,7 +215,7 @@ export default function Home() {
               {
                 step: '3',
                 title: 'Get Your Complete Package',
-                description: 'Receive a tailored CV, personalized cover letter, and professional email. Ready to send in under 3 minutes.',
+                description: 'Receive a tailored CV, personalized cover letter, and professional email. Ready to send in under 90 seconds.',
                 icon: Zap,
                 color: 'sage',
               },
@@ -288,7 +282,7 @@ export default function Home() {
               {
                 icon: TrendingUp,
                 title: 'Fit Analysis',
-                description: 'Before generating your application, AI compares your profile to the job and tells you if it is a strong, good, or weak fit.',
+                description: 'Before generating your application, AI compares your profile to the job \u2014 showing you matching skills, gaps to address, and an honest fit score.',
               },
               {
                 icon: MessageSquare,
@@ -298,7 +292,7 @@ export default function Home() {
               {
                 icon: BarChart3,
                 title: 'Skill Gap Analysis',
-                description: 'See exactly how your profile matches the job requirements. Know your strengths and what to emphasize.',
+                description: 'See every matching skill and every gap \u2014 listed individually, not hidden. Know exactly where you stand before you apply.',
               },
             ].map((feature, i) => {
               const Icon = feature.icon;
@@ -338,13 +332,13 @@ export default function Home() {
               {
                 icon: FileText,
                 title: 'Tailored CV',
-                items: ['Skills reordered to match job requirements', 'Keywords optimized for ATS screening', 'Achievements highlighted for relevance', 'Professional formatting (US & EU)'],
+                items: ['Skills reordered to match job requirements', 'Keywords optimized for ATS screening', 'No fabricated skills \u2014 only what\u2019s in your profile', 'Professional formatting (US & EU)'],
                 accent: 'navy',
               },
               {
                 icon: Target,
                 title: 'Personalized Cover Letter',
-                items: ['Company-specific opening paragraph', 'Skill-to-requirement matching', 'Tone adapted to company culture', 'Compelling call to action'],
+                items: ['Company-specific opening paragraph', 'Skill-to-requirement matching', 'Tone adapted to company culture', 'Achievement-based opening (not \u201cI am writing to express my interest\u201d)'],
                 accent: 'gold',
               },
               {
@@ -381,65 +375,51 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonials — Social proof */}
+      {/* Founder Story — Authentic social proof */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-14">
-            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Success Stories</p>
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Built by a Job Seeker</p>
             <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
-              Real Results from Real Job Seekers
+              The Tool I Wished I Had
             </h2>
           </div>
           </ScrollReveal>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                quote: "Applied to 50 jobs in one weekend. Got 8 interviews the following week. The personalization is what makes the difference. Recruiters actually respond.",
-                name: 'Sarah M.',
-                role: 'Product Manager',
-                result: '8 interviews in 1 week',
-                rating: 5,
-              },
-              {
-                quote: "I was spending an hour per application and getting nowhere. With KarKo, I applied to 3x more jobs and landed my dream role in 3 weeks.",
-                name: 'James L.',
-                role: 'Software Engineer',
-                result: 'Hired in 3 weeks',
-                rating: 5,
-              },
-              {
-                quote: "The company research feature is incredible. My cover letters reference specific company initiatives. Hiring managers notice that immediately.",
-                name: 'Emily R.',
-                role: 'Marketing Director',
-                result: '5x more callbacks',
-                rating: 5,
-              },
-            ].map((testimonial, i) => (
-              <ScrollReveal key={i} delay={i * 150}>
-              <div className="bg-white rounded-2xl p-8 border border-cream-200 shadow-sm flex flex-col card-hover-lift">
-                <div className="flex gap-1 mb-4">
-                  {[...Array(testimonial.rating)].map((_, j) => (
-                    <Star key={j} className="w-4 h-4 fill-gold-400 text-gold-400" />
-                  ))}
+          <ScrollReveal delay={200}>
+          <div className="bg-white rounded-2xl p-8 md:p-12 border border-cream-200 shadow-sm">
+            <div className="flex flex-col md:flex-row items-center gap-10">
+              <div className="flex-shrink-0">
+                <div className="w-48 h-48 md:w-56 md:h-56 rounded-2xl overflow-hidden border-4 border-cream-100 shadow-lg">
+                  <Image
+                    src="/wasim-founder.jpg"
+                    alt="Wasim Jalali, Founder of KarKo AI"
+                    width={224}
+                    height={224}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-                <p className="text-charcoal mb-6 flex-1 leading-relaxed">&ldquo;{testimonial.quote}&rdquo;</p>
-                <div className="border-t border-cream-200 pt-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-charcoal">{testimonial.name}</p>
-                      <p className="text-warm-gray text-sm">{testimonial.role}</p>
-                    </div>
-                    <div className="px-3 py-1 bg-sage-100 rounded-full">
-                      <span className="text-xs font-semibold text-sage-700">{testimonial.result}</span>
-                    </div>
+              </div>
+              <div>
+                <div className="space-y-4 text-warm-gray leading-relaxed">
+                  <p className="text-lg">
+                    &ldquo;I was applying to 50-60 jobs at a time, spending 45 minutes or more on every single application: rewriting my CV, researching the company, crafting a cover letter, drafting the email. It was exhausting. I first tried building a solution inside a chatbot, but the manual back-and-forth was still the bottleneck. Each application still took nearly an hour.
+                  </p>
+                  <p className="text-lg">
+                    That frustration is exactly why I built KarKo AI, a fully agentic system that does the entire job in one automated workflow. Analyze the posting, extract company insights, run a fit analysis, and generate a complete application package, all in under 90 seconds. I built it for myself first. When I saw the quality of the output, I knew every job seeker deserved access to the same tool.&rdquo;
+                  </p>
+                </div>
+                <div className="mt-6 flex items-center gap-3">
+                  <div>
+                    <p className="font-bold text-charcoal text-lg">Wasim J.</p>
+                    <p className="text-sm font-medium text-gold-500">Founder of KarKo AI</p>
                   </div>
                 </div>
               </div>
-              </ScrollReveal>
-            ))}
+            </div>
           </div>
+          </ScrollReveal>
         </div>
       </section>
 
@@ -462,9 +442,9 @@ export default function Home() {
             <ScrollReveal delay={0}>
             <div className="bg-cream-50 rounded-2xl p-8 border border-cream-200 card-hover-lift">
               <h3 className="font-bold text-charcoal text-lg mb-1">Starter</h3>
-              <p className="text-sm text-warm-gray mb-4">Try it risk-free</p>
+              <p className="text-sm text-warm-gray mb-4">See your first AI application</p>
               <div className="text-4xl font-bold text-navy-600 mb-1">Free</div>
-              <p className="text-sm text-warm-gray mb-6">3 applications included</p>
+              <p className="text-sm text-warm-gray mb-6">20 applications included</p>
               <Link
                 href="/auth/signup"
                 className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium border-2 border-navy-200 text-navy-600 hover:bg-navy-50 transition-colors"
@@ -477,9 +457,10 @@ export default function Home() {
             <div className="bg-white rounded-2xl p-8 border-2 border-gold-400 shadow-xl relative">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gold-400 text-white text-xs font-bold rounded-full">MOST POPULAR</div>
               <h3 className="font-bold text-charcoal text-lg mb-1">Plus</h3>
-              <p className="text-sm text-warm-gray mb-4">For active job seekers</p>
+              <p className="text-sm text-warm-gray mb-4">For serious job seekers</p>
               <div className="text-4xl font-bold text-navy-600 mb-1">$29.99<span className="text-lg font-normal text-warm-gray">/mo</span></div>
-              <p className="text-sm text-warm-gray mb-6">60 applications per month</p>
+              <p className="text-sm text-warm-gray mb-4">60 applications per month</p>
+              <p className="text-xs font-medium text-gold-500 mb-6">That&apos;s just $0.50 per complete application</p>
               <Link
                 href="/auth/signup?plan=plus"
                 className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium bg-gradient-to-r from-gold-400 to-gold-500 text-white hover:from-gold-500 hover:to-gold-600 transition-all shadow-md"
@@ -492,9 +473,10 @@ export default function Home() {
             <ScrollReveal delay={300}>
             <div className="bg-cream-50 rounded-2xl p-8 border border-cream-200 card-hover-lift">
               <h3 className="font-bold text-charcoal text-lg mb-1">Pro</h3>
-              <p className="text-sm text-warm-gray mb-4">For power users</p>
+              <p className="text-sm text-warm-gray mb-4">For high-volume applicants</p>
               <div className="text-4xl font-bold text-navy-600 mb-1">$49.99<span className="text-lg font-normal text-warm-gray">/mo</span></div>
-              <p className="text-sm text-warm-gray mb-6">120 applications per month</p>
+              <p className="text-sm text-warm-gray mb-4">120 applications per month</p>
+              <p className="text-xs font-medium text-sage-600 mb-6">That&apos;s just ~$0.42 per complete application</p>
               <Link
                 href="/auth/signup?plan=pro"
                 className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium bg-navy-600 text-white hover:bg-navy-700 transition-colors shadow-md"
@@ -584,10 +566,10 @@ export default function Home() {
         <div className="max-w-4xl mx-auto text-center relative">
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 leading-tight">
             Your Next Interview Is{' '}
-            <span className="text-gold-400">3 Minutes Away</span>
+            <span className="text-gold-400">90 Seconds Away</span>
           </h2>
           <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Join thousands of professionals who stopped wasting hours on applications and started landing interviews faster with KarKo AI.
+            Stop wasting hours on applications and start landing interviews faster with KarKo AI.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
@@ -605,7 +587,7 @@ export default function Home() {
             </Link>
           </div>
           <p className="mt-6 text-sm text-navy-300">
-            No credit card required. 3 free applications to start.
+            No credit card required. 20 free applications to start.
           </p>
         </div>
         </ScrollReveal>

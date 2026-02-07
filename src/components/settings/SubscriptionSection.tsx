@@ -50,9 +50,9 @@ export function SubscriptionSection({
   };
   const totalCredits = userCredits 
     ? userCredits.monthly_credits + userCredits.rollover_credits + userCredits.addon_credits 
-    : 10;
+    : 40;
   
-  const maxCredits = userCredits?.plan_tier === 'starter' ? 10 : userCredits?.plan_tier === 'plus' ? 160 : 300;
+  const maxCredits = userCredits?.plan_tier === 'starter' ? 40 : userCredits?.plan_tier === 'plus' ? 160 : 300;
   const isFreeTier = subscriptionTier === 'starter' || subscriptionTier === 'free';
 
   return (
@@ -184,7 +184,7 @@ export function SubscriptionSection({
             <div>
               <h4 className="font-semibold text-charcoal">Starter</h4>
               <p className="text-lg font-bold text-charcoal">$0<span className="text-xs font-normal text-warm-gray">/mo</span></p>
-              <p className="text-xs text-warm-gray">3 apps/month · 6 credits</p>
+              <p className="text-xs text-warm-gray">20 apps/month · 40 credits</p>
             </div>
             {isFreeTier && (
               <span className="px-2.5 py-1 text-xs font-semibold bg-navy-50 text-navy-600 rounded-full">Current</span>
@@ -242,7 +242,7 @@ export function SubscriptionSection({
             <ul className="mt-4 space-y-2.5 text-sm text-warm-gray">
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-sage-500 flex-shrink-0" />
-                3 applications/month (6 credits)
+                20 applications/month (40 credits)
               </li>
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-sage-500 flex-shrink-0" />

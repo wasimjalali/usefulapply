@@ -60,8 +60,8 @@ export const PLANS = {
   starter: {
     name: 'Starter',
     price: 0,
-    credits: 10,
-    features: ['3 applications/month', 'All CV templates', 'CV + Cover Letter + Email'],
+    credits: 40,
+    features: ['20 applications/month', 'All CV templates', 'CV + Cover Letter + Email'],
   },
   plus: {
     name: 'Plus',
