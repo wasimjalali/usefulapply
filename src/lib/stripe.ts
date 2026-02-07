@@ -39,7 +39,6 @@ export const STRIPE_PRICES = {
  * Set these in your .env.local file
  */
 export const STRIPE_ADDON_PRICES = {
-  SMALL: process.env.STRIPE_PRICE_ID_ADDON_SMALL || '',
   MEDIUM: process.env.STRIPE_PRICE_ID_ADDON_MEDIUM || '',
   LARGE: process.env.STRIPE_PRICE_ID_ADDON_LARGE || '',
 } as const;
@@ -48,7 +47,6 @@ export const STRIPE_ADDON_PRICES = {
  * Map addon price IDs to credit amounts
  */
 export const ADDON_CREDIT_MAP: Record<string, number> = {
-  [STRIPE_ADDON_PRICES.SMALL]: 30,
   [STRIPE_ADDON_PRICES.MEDIUM]: 60,
   [STRIPE_ADDON_PRICES.LARGE]: 120,
 };

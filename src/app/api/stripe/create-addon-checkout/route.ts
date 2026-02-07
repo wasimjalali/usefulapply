@@ -28,7 +28,6 @@ export async function POST(req: NextRequest) {
 
     // Map pack size to price ID
     const priceMap: Record<string, string> = {
-      small: STRIPE_ADDON_PRICES.SMALL,
       medium: STRIPE_ADDON_PRICES.MEDIUM,
       large: STRIPE_ADDON_PRICES.LARGE,
     };

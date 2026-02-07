@@ -121,12 +121,11 @@ const tiers = [
   },
 ];
 
-// Add-on credit packs with volume discounts
+// Add-on credit packs (2 options — both above free tier's 40 credits)
 // TODO: Replace priceId values with actual Stripe Price IDs
 const addonPacks = [
-  { name: 'Small Pack', credits: 30, applications: 15, price: 7.49, perCredit: '$0.25', priceId: 'price_addon_small' },
-  { name: 'Medium Pack', credits: 60, applications: 30, price: 12.99, perCredit: '$0.22', priceId: 'price_addon_medium' },
-  { name: 'Large Pack', credits: 120, applications: 60, price: 24.99, perCredit: '$0.21', priceId: 'price_addon_large' },
+  { name: 'Medium Pack', credits: 60, applications: 40, price: 14.99, perCredit: '$0.25', priceId: 'price_addon_medium' },
+  { name: 'Large Pack', credits: 120, applications: 80, price: 29.99, perCredit: '$0.25', priceId: 'price_addon_large' },
 ];
 
 // Time savings data for interactive calculator

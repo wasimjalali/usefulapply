@@ -9,9 +9,8 @@ import { Card } from '@/components/ui/Card';
 // Add-on credit packs (must match pricing page)
 // TODO: Replace priceId values with actual Stripe Price IDs
 const addonPacks = [
-  { name: 'Small', credits: 30, price: 7.49, priceId: 'price_addon_small' },
-  { name: 'Medium', credits: 60, price: 14.99, priceId: 'price_addon_medium' },
-  { name: 'Large', credits: 120, price: 29.99, priceId: 'price_addon_large' },
+  { name: 'Medium', credits: 60, applications: 40, price: 14.99, priceId: 'price_addon_medium' },
+  { name: 'Large', credits: 120, applications: 80, price: 29.99, priceId: 'price_addon_large' },
 ];
 
 export interface UserCredits {
@@ -134,11 +133,11 @@ export function SubscriptionSection({
               View all packs →
             </Link>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {addonPacks.map((pack) => (
               <div key={pack.name} className="border border-cream-200 rounded-xl p-4 text-center hover:border-gold-300 hover:shadow-sm transition-all">
                 <div className="text-xl font-bold text-charcoal">{pack.credits}</div>
-                <div className="text-xs text-warm-gray mb-2">credits</div>
+                <div className="text-xs text-warm-gray mb-1">credits ({pack.applications} apps)</div>
                 <div className="text-sm font-bold text-navy-600 mb-3">${pack.price}</div>
                 <button
                   onClick={() => handleBuyAddon(pack.name.toLowerCase())}

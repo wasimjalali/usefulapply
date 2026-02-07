@@ -90,12 +90,12 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- =====================================================
 
 -- Clear old packs and insert new ones
+-- Only 2 packs: both above free tier's 40 credits
 DELETE FROM addon_credit_packs;
 
 INSERT INTO addon_credit_packs (name, credits, price, discount_percent, display_order) VALUES
-  ('Small Pack', 30, 7.49, 0, 1),
-  ('Medium Pack', 60, 12.99, 13, 2),
-  ('Large Pack', 120, 24.99, 17, 3);
+  ('Medium Pack', 60, 14.99, 0, 1),
+  ('Large Pack', 120, 29.99, 0, 2);
 
 -- =====================================================
 -- VERIFICATION QUERIES (run these to confirm)
