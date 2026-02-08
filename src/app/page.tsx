@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, FileText, Search, Zap, Clock, Target, CheckCircle, Star, Shield, Globe, MessageSquare, Sparkles, BarChart3, Users, TrendingUp, HelpCircle } from 'lucide-react';
+import { ArrowRight, FileText, Search, Zap, Clock, Target, CheckCircle, Shield, Globe, MessageSquare, Sparkles, BarChart3, TrendingUp } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
-import { ScrollReveal, StaggerChildren } from '@/components/marketing/ScrollReveal';
+import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { CountUp } from '@/components/marketing/CountUp';
 
 export const metadata: Metadata = {
@@ -101,77 +101,55 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Problem/Solution — Side by side comparison */}
+      {/* What You Won't Find Anywhere Else — Trust & differentiation */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <ScrollReveal>
-          <div className="text-center mb-14">
+          <div className="text-center mb-16">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Built Different</p>
             <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
-              Stop Wasting Hours on Every Application
+              What You Won&apos;t Find Anywhere Else
             </h2>
             <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-              The average job seeker spends 45-60 minutes per tailored application. KarKo AI compresses that into under 90 seconds, with better results.
+              Most AI tools generate text. Karko AI generates applications you can actually trust.
             </p>
           </div>
           </ScrollReveal>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {/* Before */}
-            <ScrollReveal delay={100} direction="left">
-            <div className="bg-white rounded-2xl p-8 border border-red-100 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-red-500" />
-                </div>
-                <h3 className="text-lg font-bold text-red-700">The Old Way</h3>
+          <div className="grid md:grid-cols-3 gap-8">
+            <ScrollReveal delay={0}>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-sm border border-cream-200">
+                <TrendingUp className="w-8 h-8 text-navy-600" />
               </div>
-              <ul className="space-y-4">
-                {[
-                  { text: '45-60 minutes per application', detail: 'Rewriting your CV, cover letter, and email for every job' },
-                  { text: 'Generic cover letters', detail: 'Copy-paste with minor tweaks' },
-                  { text: 'Manual company research', detail: 'Googling the company before writing' },
-                  { text: 'Filtered out by ATS', detail: 'Wrong format, missing keywords' },
-                  { text: 'Fewer applications sent', detail: 'Burnout from repetitive work' },
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <span className="text-red-400 font-bold mt-0.5 text-lg leading-none">&#x2715;</span>
-                    <div>
-                      <span className="font-medium text-charcoal">{item.text}</span>
-                      <p className="text-sm text-warm-gray mt-0.5">{item.detail}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <h3 className="text-xl font-bold text-charcoal mb-3">Honest Fit Analysis</h3>
+              <p className="text-warm-gray leading-relaxed">
+                Before generating anything, Karko compares your profile to the job. You see your matching skills, your gaps, and a real fit score. No false hope, just clarity.
+              </p>
             </div>
             </ScrollReveal>
 
-            {/* After */}
-            <ScrollReveal delay={300} direction="right">
-            <div className="bg-white rounded-2xl p-8 border-2 border-sage-200 shadow-md relative">
-              <div className="absolute -top-3 left-6 px-3 py-1 bg-sage-500 text-white text-xs font-bold rounded-full">KARKO AI</div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-sage-100 rounded-xl flex items-center justify-center">
-                  <Zap className="w-5 h-5 text-sage-600" />
-                </div>
-                <h3 className="text-lg font-bold text-sage-700">The KarKo Way</h3>
+            <ScrollReveal delay={200}>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-sm border border-cream-200">
+                <Shield className="w-8 h-8 text-navy-600" />
               </div>
-              <ul className="space-y-4">
-                {[
-                  { text: 'Under 90 seconds per application', detail: 'Fit analysis + CV + cover letter + email in one click' },
-                  { text: 'Hyper-personalized documents', detail: 'Every word tailored to the specific job' },
-                  { text: 'AI company analysis', detail: 'AI extracts culture, values, and requirements from the job posting' },
-                  { text: 'ATS-optimized formatting', detail: 'Passes every applicant tracking system' },
-                  { text: 'Apply to 10x more jobs', detail: 'More applications, more interviews' },
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-sage-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-medium text-charcoal">{item.text}</span>
-                      <p className="text-sm text-warm-gray mt-0.5">{item.detail}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <h3 className="text-xl font-bold text-charcoal mb-3">Zero Skill Fabrication</h3>
+              <p className="text-warm-gray leading-relaxed">
+                Other AI tools invent skills to boost keyword scores. Karko never does. Every skill on your generated CV is verified from your actual profile. Your reputation stays intact.
+              </p>
+            </div>
+            </ScrollReveal>
+
+            <ScrollReveal delay={400}>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-sm border border-cream-200">
+                <Sparkles className="w-8 h-8 text-navy-600" />
+              </div>
+              <h3 className="text-xl font-bold text-charcoal mb-3">Fully Agentic Workflow</h3>
+              <p className="text-warm-gray leading-relaxed">
+                Not a chatbot. Not a template filler. Karko AI runs a multi-step research and writing workflow autonomously, then self-refines the output before delivering it to you.
+              </p>
             </div>
             </ScrollReveal>
           </div>
