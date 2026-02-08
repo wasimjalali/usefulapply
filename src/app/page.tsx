@@ -404,16 +404,22 @@ export default function Home() {
               <div>
                 <div className="space-y-4 text-warm-gray leading-relaxed">
                   <p className="text-lg">
-                    &ldquo;I was applying to 50-60 jobs at a time, spending 45 minutes or more on every single application: rewriting my CV, researching the company, crafting a cover letter, drafting the email. It was exhausting. I first tried building a solution inside a chatbot, but the manual back-and-forth was still the bottleneck. Each application still took nearly an hour.
+                    &ldquo;I was building an AI startup in Germany when I ran out of money. No savings, no investors, no degree to fall back on. I started applying for jobs.
                   </p>
                   <p className="text-lg">
-                    That frustration is exactly why I built KarKo AI, a fully agentic system that does the entire job in one automated workflow. Analyze the posting, extract company insights, run a fit analysis, and generate a complete application package, all in under 90 seconds. I built it for myself first. When I saw the quality of the output, I knew every job seeker deserved access to the same tool.&rdquo;
+                    Generic applications got me nothing. Zero interviews. So I started tailoring every application by hand, researching the company, rewriting my CV, crafting a cover letter, drafting the email. Each one took 45 to 60 minutes. I built a manual solution inside Claude using my CV as context. The quality was better, but the process was still painfully slow.
+                  </p>
+                  <p className="text-lg">
+                    So I built Karko AI to automate the entire workflow. Paste a job description, get a complete tailored application in under 90 seconds: ATS-optimized CV, personalized cover letter, professional email, and an honest fit assessment. I used it on my own job search. Within about 20 applications, I got my first interview.
+                  </p>
+                  <p className="text-lg">
+                    That&apos;s when I knew every job seeker needed this tool.&rdquo;
                   </p>
                 </div>
                 <div className="mt-6 flex items-center gap-3">
                   <div>
-                    <p className="font-bold text-charcoal text-lg">Wasim J.</p>
-                    <p className="text-sm font-medium text-gold-500">Founder of KarKo AI</p>
+                    <p className="font-bold text-charcoal text-lg">Wasim Jalali</p>
+                    <p className="text-sm font-medium text-gold-500">Founder of Karko AI</p>
                   </div>
                 </div>
               </div>

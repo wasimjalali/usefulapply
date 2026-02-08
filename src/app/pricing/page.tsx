@@ -432,7 +432,7 @@ export default function PricingPage() {
                             {addonPacks.map((pack) => (
                               <div key={pack.name} className="flex items-center justify-between">
                                 <div>
-                                  <span className="text-sm text-charcoal">{pack.credits} credits ({pack.applications} apps)</span>
+                                  <span className="text-sm text-charcoal">{pack.credits} credits</span>
                                   <span className="text-xs text-warm-gray ml-2">{pack.perCredit}/credit</span>
                                 </div>
                                 <button
