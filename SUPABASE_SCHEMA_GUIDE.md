@@ -1152,6 +1152,10 @@ CREATE TABLE application_sessions (
   -- CV edits tracking
   cv_edits JSONB DEFAULT '[]',
   
+  -- Fit assessment (from fit analysis step)
+  fit_assessment JSONB,                      -- LIVE: { fitLevel, score, assessment, recommendation, ... }
+  generation_completed BOOLEAN DEFAULT false, -- LIVE: Tracks if full generation finished
+  
   -- Timestamps
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -1201,16 +1205,23 @@ application_sessions: {
 - [x] `credit_transactions` - Credit audit trail
 - [x] `addon_credit_packs` - Purchasable credit packs
 
-### New Columns to Add (Run Part 6.1 SQL) ⚠️
-- [ ] `application_sessions.job_url` - Job posting URL
-- [ ] `application_sessions.company_address` - Company address from research
-- [ ] `application_sessions.company_contact_person` - Contact person name
-- [ ] `application_sessions.optimized_cv_text` - Raw optimized CV text
-- [ ] `application_sessions.email_subject` - Email subject line
-- [ ] `application_sessions.email_body` - Email body text
-- [ ] `application_sessions.selected_template` - Selected CV template
-- [ ] `application_sessions.status` - Application status tracking
-- [ ] `application_sessions.cover_letter_language` - Cover letter language
+### New Columns Added (Verified in Live DB ✅ — Feb 8, 2026)
+- [x] `application_sessions.job_url` - Job posting URL
+- [x] `application_sessions.company_address` - Company address from research
+- [x] `application_sessions.company_contact_person` - Contact person name
+- [x] `application_sessions.optimized_cv_text` - Raw optimized CV text
+- [x] `application_sessions.email_subject` - Email subject line
+- [x] `application_sessions.email_body` - Email body text
+- [x] `application_sessions.selected_template` - Selected CV template (default: 'premium-ats')
+- [x] `application_sessions.status` - Application status tracking (default: 'draft')
+- [x] `application_sessions.cover_letter_language` - Cover letter language (default: 'de')
+- [x] `application_sessions.fit_assessment` - Fit analysis result (jsonb)
+- [x] `application_sessions.generation_completed` - Full generation finished flag (default: false)
+
+### Type Mismatches vs Guide (Live DB uses `numeric`, guide says `integer`)
+- `credit_transactions.amount` — live: `numeric`, guide: `integer`
+- `credit_transactions.balance_before` — live: `numeric`, guide: `integer`
+- `credit_transactions.balance_after` — live: `numeric`, guide: `integer`
 
 ### Storage Buckets (Already Created) ✅
 - [x] `cv-files` - Original CV/Master CV files

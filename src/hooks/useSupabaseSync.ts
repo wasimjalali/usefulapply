@@ -44,6 +44,8 @@ interface SupabaseSessionRow {
   selected_template: string | null;
   status: string | null;
   cover_letter_language: string | null;
+  fit_assessment: any | null;
+  generation_completed: boolean | null;
   created_at: string;
   updated_at: string;
 }
