@@ -44,7 +44,13 @@ CREATE TABLE profiles (
   notify_marketing BOOLEAN DEFAULT false,
   
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  -- Social / portfolio links
+  linkedin_url TEXT,
+  github_url TEXT,
+  portfolio_url TEXT,
+  website_url TEXT
 );
 
 -- Enable RLS
@@ -525,9 +531,9 @@ CREATE TABLE user_credits (
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   
   -- Credit balances
-  monthly_credits INTEGER DEFAULT 0,
-  rollover_credits INTEGER DEFAULT 0,
-  addon_credits INTEGER DEFAULT 0,
+  monthly_credits NUMERIC(10,2) DEFAULT 0,
+  rollover_credits NUMERIC(10,2) DEFAULT 0,
+  addon_credits NUMERIC(10,2) DEFAULT 0,
   
   -- Plan reference
   plan_tier TEXT NOT NULL DEFAULT 'starter' REFERENCES subscription_plans(tier),
@@ -576,7 +582,7 @@ CREATE TABLE credit_transactions (
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   
   -- Transaction details
-  amount INTEGER NOT NULL, -- Negative for deductions, positive for additions
+  amount NUMERIC(10,2) NOT NULL, -- Negative for deductions, positive for additions
   transaction_type TEXT NOT NULL CHECK (transaction_type IN (
     'application_generation',
     'cover_letter_regen',
@@ -597,8 +603,8 @@ CREATE TABLE credit_transactions (
   metadata JSONB DEFAULT '{}',
   
   -- Balance snapshot (for audit)
-  balance_before INTEGER NOT NULL,
-  balance_after INTEGER NOT NULL,
+  balance_before NUMERIC(10,2) NOT NULL,
+  balance_after NUMERIC(10,2) NOT NULL,
   
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -952,17 +958,22 @@ CREATE TRIGGER update_sessions_updated_at
 
 ## Part 4: Summary
 
-### Tables (7 total)
+### Tables (12 total)
 
-| Table | Purpose | Key Fields |
-|-------|---------|------------|
-| `profiles` | User profiles | id, email, full_name, phone, location, subscription_tier |
-| `documents` | CVs and Master CVs | user_id, type, raw_text, structured_data |
-| `profile_photos` | Profile photos for EU CVs | user_id, storage_path |
-| `application_sessions` | Job applications | user_id, job_description, generated_cv, cover_letter |
-| `chat_messages` | Chat history | session_id, role, content |
-| `subscriptions` | Subscription & billing | user_id, tier, status, stripe_customer_id |
-| `connected_accounts` | OAuth connections | user_id, provider, provider_user_id |
+| # | Table | Cols | Purpose |
+|---|-------|------|---------|
+| 1 | `profiles` | 18 | User profiles, subscription info, social links |
+| 2 | `documents` | 15 | CVs and Master CVs storage |
+| 3 | `profile_photos` | 5 | Profile photos for EU CVs |
+| 4 | `application_sessions` | 30 | Job applications with all generated content |
+| 5 | `chat_messages` | 7 | Chat history per session |
+| 6 | `subscriptions` | 17 | Subscription & Stripe billing |
+| 7 | `connected_accounts` | 10 | OAuth connections (Google, LinkedIn, GitHub) |
+| 8 | `message_feedback` | 8 | AI response feedback (thumbs up/down) |
+| 9 | `subscription_plans` | 17 | Pricing tier definitions |
+| 10 | `user_credits` | 10 | User credit balances & reset tracking |
+| 11 | `credit_transactions` | 10 | Credit audit trail |
+| 12 | `addon_credit_packs` | 10 | Purchasable credit packs |
 
 ### Storage Buckets (3 total)
 
@@ -1185,45 +1196,81 @@ application_sessions: {
   }
   // Update Insert and Update types similarly
 }
-```
 
 ---
 
-## Checklist: Tables & Columns Status
+## Part 8: Live Schema Verification (Feb 8, 2026)
 
-### Existing Tables (Already Created) ✅
-- [x] `profiles` - User profiles with subscription info
-- [x] `documents` - CVs and Master CVs storage
-- [x] `profile_photos` - Profile photos for EU CVs
-- [x] `application_sessions` - Job applications (base table)
-- [x] `chat_messages` - Chat history per session
-- [x] `subscriptions` - Subscription & billing
-- [x] `connected_accounts` - OAuth connections
-- [x] `message_feedback` - AI response feedback
-- [x] `subscription_plans` - Pricing tiers
-- [x] `user_credits` - User credit balances
-- [x] `credit_transactions` - Credit audit trail
-- [x] `addon_credit_packs` - Purchasable credit packs
+> Complete schema exported from live Supabase (`information_schema.columns` across
+> all schemas: `auth`, `public`, `storage`, `realtime`, `vault`). ~4500 lines verified.
 
-### New Columns Added (Verified in Live DB ✅ — Feb 8, 2026)
-- [x] `application_sessions.job_url` - Job posting URL
-- [x] `application_sessions.company_address` - Company address from research
-- [x] `application_sessions.company_contact_person` - Contact person name
-- [x] `application_sessions.optimized_cv_text` - Raw optimized CV text
-- [x] `application_sessions.email_subject` - Email subject line
-- [x] `application_sessions.email_body` - Email body text
-- [x] `application_sessions.selected_template` - Selected CV template (default: 'premium-ats')
-- [x] `application_sessions.status` - Application status tracking (default: 'draft')
-- [x] `application_sessions.cover_letter_language` - Cover letter language (default: 'de')
-- [x] `application_sessions.fit_assessment` - Fit analysis result (jsonb)
-- [x] `application_sessions.generation_completed` - Full generation finished flag (default: false)
+### All 12 Public Tables — Verified 
 
-### Type Mismatches vs Guide (Live DB uses `numeric`, guide says `integer`)
-- `credit_transactions.amount` — live: `numeric`, guide: `integer`
-- `credit_transactions.balance_before` — live: `numeric`, guide: `integer`
-- `credit_transactions.balance_after` — live: `numeric`, guide: `integer`
+| # | Table | Cols | Status |
+|---|-------|------|--------|
+| 1 | `addon_credit_packs` | 10 |  Matches guide |
+| 2 | `application_sessions` | 30 |  Matches guide (includes `fit_assessment`, `generation_completed`) |
+| 3 | `chat_messages` | 7 |  Matches guide |
+| 4 | `connected_accounts` | 10 |  Matches guide |
+| 5 | `credit_transactions` | 10 |  Guide updated: `amount`/`balance_*` → `NUMERIC(10,2)` |
+| 6 | `documents` | 15 |  Matches guide |
+| 7 | `message_feedback` | 8 |  Matches guide |
+| 8 | `profile_photos` | 5 |  Matches guide |
+| 9 | `profiles` | 18 |  Guide updated: added 4 URL columns |
+| 10 | `subscription_plans` | 17 |  Matches guide (`price_*` are `NUMERIC(10,2)`) |
+| 11 | `subscriptions` | 17 |  Matches guide |
+| 12 | `user_credits` | 10 |  Guide updated: credit cols → `NUMERIC(10,2)` |
 
-### Storage Buckets (Already Created) ✅
+### `profiles` — 18 Columns (4 new URL columns added to guide)
+
+```
+id, email, full_name, phone, location, avatar_url,
+subscription_tier (default 'free'), subscription_status (default 'active'),
+notify_tips, notify_updates, notify_weekly, notify_marketing,
+created_at, updated_at,
+linkedin_url, github_url, portfolio_url, website_url  ← NEW in guide
+```
+
+### `application_sessions` — 30 Columns Verified 
+
+```
+id, user_id, job_title, company, job_description, match_score,
+matching_skills, missing_skills, suggestions, requirements, gaps,
+generated_cv, cover_letter, email, company_research, cv_edits,
+optimized_pdf_path, created_at, updated_at, job_url, company_address,
+company_contact_person, optimized_cv_text, email_subject, email_body,
+selected_template, status, cover_letter_language, fit_assessment,
+generation_completed
+```
+
+### `chat_messages` — 7 Columns Verified 
+
+```
+id (uuid PK), session_id (uuid NOT NULL → FK to application_sessions),
+user_id (uuid NOT NULL), role (text NOT NULL), content (text NOT NULL),
+actions (jsonb DEFAULT '[]'), created_at (timestamptz)
+```
+
+> **Session isolation is correct at the DB level.** Each chat message has a
+> `session_id` NOT NULL foreign key. The session mixing bug was purely
+> client-side (localStorage corruption), not a database issue.
+
+### Type Corrections Applied to Guide
+
+| Table | Column(s) | Old (guide) | New (live DB) |
+|-------|-----------|-------------|---------------|
+| `credit_transactions` | `amount`, `balance_before`, `balance_after` | INTEGER | NUMERIC(10,2) |
+| `user_credits` | `monthly_credits`, `rollover_credits`, `addon_credits` | INTEGER | NUMERIC(10,2) |
+| `subscription_plans` | `price_monthly`, `price_yearly` | DECIMAL(10,2) | NUMERIC(10,2) |
+
+### Other Schemas Present (Supabase-managed, no action needed)
+
+- **`auth`** — 18 tables (users, sessions, identities, mfa_*, oauth_*, etc.)
+- **`storage`** — 8 tables (buckets, objects, prefixes, migrations, s3_*, vector_indexes)
+- **`realtime`** — 3 tables (messages, schema_migrations, subscription)
+- **`vault`** — 1 table (secrets)
+
+### Storage Buckets (Already Created) 
 - [x] `cv-files` - Original CV/Master CV files
 - [x] `profile-photos` - User profile photos
 - [x] `generated-pdfs` - Generated optimized PDFs
