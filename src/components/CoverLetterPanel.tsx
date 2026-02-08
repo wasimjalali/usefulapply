@@ -493,62 +493,64 @@ ${letter.signatureName}`;
     <div className="h-full flex flex-col bg-cream-50">
       {/* Compact Single-Row Toolbar */}
       <div className="px-2.5 sm:px-4 py-1.5 sm:py-2 glass-toolbar flex-shrink-0">
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-          {/* View/Edit Toggle */}
-          <div className="flex items-center bg-cream-100/80 rounded-lg p-0.5 flex-shrink-0">
-            <button
-              onClick={() => setIsEditMode(false)}
-              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                !isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-              }`}
-              title="View mode"
+        <div className="flex items-center gap-1.5">
+          <div className="flex-1 flex items-center gap-1.5 overflow-x-auto scrollbar-hide min-w-0">
+            {/* View/Edit Toggle */}
+            <div className="flex items-center bg-cream-100/80 rounded-lg p-0.5 flex-shrink-0">
+              <button
+                onClick={() => setIsEditMode(false)}
+                className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                  !isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
+                }`}
+                title="View mode"
+              >
+                <Eye className="w-3 h-3" />
+                View
+              </button>
+              <button
+                onClick={() => setIsEditMode(true)}
+                className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                  isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
+                }`}
+                title="Edit mode"
+              >
+                <Edit3 className="w-3 h-3" />
+                Edit
+              </button>
+            </div>
+            
+            {isEditMode && (
+              <Button variant="primary" size="sm" onClick={handleSaveEdits} className="flex-shrink-0">
+                <Check className="w-4 h-4 mr-1" />
+                Save
+              </Button>
+            )}
+
+            {/* Divider */}
+            <div className="w-px h-5 bg-cream-200 flex-shrink-0" />
+
+            {/* Spacer */}
+            <div className="flex-1 min-w-2" />
+
+            {/* Action Buttons */}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleGenerateCoverLetter}
+              isLoading={isLoadingCoverLetter}
+              className="flex-shrink-0"
             >
-              <Eye className="w-3 h-3" />
-              View
-            </button>
-            <button
-              onClick={() => setIsEditMode(true)}
-              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-              }`}
-              title="Edit mode"
-            >
-              <Edit3 className="w-3 h-3" />
-              Edit
-            </button>
+              <RefreshCw className="w-4 h-4 mr-1" />
+              <span className="hidden sm:inline">Regenerate</span>
+              <span className="sm:hidden">Regen</span>
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleCopy} className="flex-shrink-0">
+              {copied ? <Check className="w-4 h-4 text-sage-600" /> : <Copy className="w-4 h-4" />}
+              <span className="ml-1 hidden sm:inline">{copied ? 'Copied!' : 'Copy'}</span>
+            </Button>
           </div>
           
-          {isEditMode && (
-            <Button variant="primary" size="sm" onClick={handleSaveEdits} className="flex-shrink-0">
-              <Check className="w-4 h-4 mr-1" />
-              Save
-            </Button>
-          )}
-
-          {/* Divider */}
-          <div className="w-px h-5 bg-cream-200 flex-shrink-0" />
-
-          {/* Spacer */}
-          <div className="flex-1 min-w-2" />
-
-          {/* Action Buttons */}
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleGenerateCoverLetter}
-            isLoading={isLoadingCoverLetter}
-            className="flex-shrink-0"
-          >
-            <RefreshCw className="w-4 h-4 mr-1" />
-            <span className="hidden sm:inline">Regenerate</span>
-            <span className="sm:hidden">Regen</span>
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleCopy} className="flex-shrink-0">
-            {copied ? <Check className="w-4 h-4 text-sage-600" /> : <Copy className="w-4 h-4" />}
-            <span className="ml-1 hidden sm:inline">{copied ? 'Copied!' : 'Copy'}</span>
-          </Button>
-          
-          {/* Download Dropdown */}
+          {/* Download Dropdown — OUTSIDE overflow container so it's never clipped */}
           <div className="relative flex-shrink-0" ref={downloadMenuRef}>
             <Button 
               variant="primary" 

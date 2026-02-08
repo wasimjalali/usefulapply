@@ -7,6 +7,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { Send, Copy, Check, Mail, RefreshCw, Edit3, Eye } from 'lucide-react';
 import type { GeneratedEmail } from '@/lib/types';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
+import { useToast } from './ui/Toast';
 
 export function EmailPanel() {
   const { 
@@ -32,6 +33,7 @@ export function EmailPanel() {
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedEmail, setEditedEmail] = useState<GeneratedEmail | null>(null);
+  const { toast } = useToast();
 
   // Get active email (edited or original)
   const activeEmail = editedEmail || email;
@@ -144,35 +146,49 @@ export function EmailPanel() {
     const emailToUse = activeEmail || email;
     
     if (!emailToUse?.subject || !emailToUse?.body) {
-      alert('Email content is not ready yet. Please wait for the email to be generated.');
+      toast.error('Email content is not ready yet. Please wait for the email to be generated.');
       return;
     }
+    
+    // Always copy full email to clipboard as backup (mailto: truncates long bodies)
+    const fullEmailText = `Subject: ${emailToUse.subject}\n\n${emailToUse.body}`;
+    navigator.clipboard.writeText(fullEmailText).catch(() => {});
     
     // Properly encode subject and body for mailto link
     const encodedSubject = encodeURIComponent(emailToUse.subject);
     
     // Truncate body if too long (mailto has ~2000 char limit in some browsers)
     let bodyToEncode = emailToUse.body;
-    const maxBodyLength = 1500; // Leave room for subject and mailto: prefix
+    const maxBodyLength = 1500;
     if (bodyToEncode.length > maxBodyLength) {
-      bodyToEncode = bodyToEncode.substring(0, maxBodyLength) + '\n\n[Email truncated - please paste the full content from the app]';
+      bodyToEncode = bodyToEncode.substring(0, maxBodyLength) + '\n\n[Full email copied to clipboard — paste here]';
     }
     
     const encodedBody = encodeURIComponent(bodyToEncode);
     const mailtoLink = `mailto:?subject=${encodedSubject}&body=${encodedBody}`;
     
-    // window.location.href is the most reliable cross-browser method for mailto:
-    // It works with all email clients, isn't blocked by ad blockers,
-    // and the browser won't actually navigate away (mailto: is handled by the OS)
+    // Use a hidden iframe to trigger mailto: without opening a blank tab.
+    // This is the most reliable cross-browser method that avoids:
+    // - Blank tabs (from window.open or link.click with target=_blank)
+    // - Page navigation issues (from window.location.href on some browsers)
+    // - Ad blocker interference (from programmatic anchor clicks)
     try {
-      window.location.href = mailtoLink;
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+      iframe.contentWindow?.location.replace(mailtoLink);
+      // Clean up iframe after a short delay
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
+      toast.success('Opening email client... Full email also copied to clipboard as backup.');
     } catch {
-      // Fallback: try window.open (less reliable but covers edge cases)
-      const newWindow = window.open(mailtoLink, '_self');
-      if (!newWindow) {
-        // Last resort: copy to clipboard and notify user
-        navigator.clipboard.writeText(`Subject: ${emailToUse.subject}\n\n${emailToUse.body}`);
-        alert('Could not open email client. The email has been copied to your clipboard — paste it into your email app.');
+      // Fallback: direct location change
+      try {
+        window.location.href = mailtoLink;
+        toast.success('Opening email client... Full email also copied to clipboard as backup.');
+      } catch {
+        toast.warning('Email copied to clipboard. Paste it into your email app (Gmail, Outlook, etc.).');
       }
     }
   };
