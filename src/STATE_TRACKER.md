@@ -2,7 +2,7 @@
 
 **Location:** `/src/lib/`, `/src/hooks/`  
 **Purpose:** Documents agents, hooks, utilities, credit system, and core logic  
-**Last Updated:** February 6, 2026 (useInView hook)
+**Last Updated:** February 8, 2026 (session mixing fixes, useSupabaseSync docs)
 
 ## New Hook: useInView (Feb 6, 2026)
 - **`/src/hooks/useInView.ts`** (NEW): IntersectionObserver-based hook for detecting when elements enter the viewport. Returns `[ref, isInView]`. Options: `threshold` (0.1), `rootMargin` ('-60px'), `triggerOnce` (true). Used by `ScrollReveal` and `CountUp` marketing components for scroll-triggered animations.
@@ -103,6 +103,31 @@ EMAIL_REGEN: 0.5         // Email regeneration
 
 ## Hooks
 
+### useSupabaseSync (`/src/hooks/useSupabaseSync.ts`)
+Critical hook that syncs all application data between Supabase (source of truth) and the Zustand stores.
+
+**On Mount (initial load):**
+1. Loads documents (primary CV, master CV, profile photo) from Supabase → `useCVStore`
+2. Loads all `application_sessions` for the user from Supabase
+3. **Stale session clearing:** If `currentSession` from localStorage doesn't exist in Supabase, clears it
+4. **Fresh data replacement:** Replaces stale `currentSession` from localStorage with fresh Supabase version
+5. Loads chat messages for the 10 most recent sessions (each session gets its OWN messages)
+6. Updates `currentSession` again after chat messages are populated
+
+**On `currentSession` change:**
+- Local sessions (`session-*` prefix) → creates in Supabase, replaces local ID with UUID
+- Supabase sessions → updates via `updateSession()` (debounced 2s)
+
+**On `chatMessages` change:**
+- Syncs unsynced messages (`msg-*` prefix) to Supabase (debounced 1s)
+- Tracks synced message IDs to prevent duplicates
+
+**Session Isolation Architecture (Feb 8, 2026):**
+- DB: `chat_messages.session_id` NOT NULL FK ensures isolation at schema level
+- Client: `partialize` excludes `sessions[]` array from localStorage (only `currentSession` persisted)
+- Sync: Supabase always wins — localStorage `currentSession` is replaced with fresh data on mount
+- SignOut: `localStorage.removeItem('session-store')` prevents cross-user data leakage
+
 ### useAgentV2 (`/src/hooks/useAgentV2.ts`)
 - Handles SSE streaming for agent workflow
 - Manages steps, progress, reflection, result state
@@ -143,3 +168,7 @@ EMAIL_REGEN: 0.5         // Email regeneration
 | Feb 7, 2026 | i18n: AI prompt — LANGUAGE RULE + sectionHeaders schema | lib/agents/unified-writer-agent.ts | Replaced binary isGerman language instruction with Correction 3 LANGUAGE RULE. Added sectionHeaders + localizedStrings to JSON output schema. Added SECTION HEADERS RULE for ATS compliance. |
 | Feb 7, 2026 | i18n: Agent types — detectedLanguage to string | lib/agents/types.ts | Changed `detectedLanguage` and `userLanguageOverride` from `'en' \| 'de'` to `string` (ISO 639-1). Updated `getOutputLanguage()` and `detectLanguage()` return types. |
 | Feb 7, 2026 | i18n: Language detector type change | lib/utils/language-detector.ts | Changed `SupportedLanguage` from `'en' \| 'de'` to `string`. Kept existing EN/DE regex detection — AI handles other languages. |
+| Feb 8, 2026 | Session mixing FIX 1: Replace stale currentSession | hooks/useSupabaseSync.ts | After loading sessions from Supabase, replace localStorage currentSession with fresh Supabase version. Prevents stale data from overwriting Supabase on next sync. |
+| Feb 8, 2026 | Session mixing FIX 2: Clear storage on signOut | contexts/AuthContext.tsx | On signOut, remove `session-store` and `cv-store` from localStorage. Prevents cross-user data leakage on same browser. |
+| Feb 8, 2026 | Session mixing FIX 3: Remove legacy fields from partialize | store/useSessionStore.ts | Only persist `currentSession` — removed jobDescription, requirements, gaps, generatedCV, coverLetter, email from partialize. Prevents stale legacy fields from leaking across sessions. |
+| Feb 8, 2026 | Supabase schema guide: full verification | SUPABASE_SCHEMA_GUIDE.md | All 12 public tables verified against 4500-line live export. Added 4 URL columns to profiles, fixed NUMERIC types for credits/transactions. |
