@@ -161,15 +161,20 @@ export function EmailPanel() {
     const encodedBody = encodeURIComponent(bodyToEncode);
     const mailtoLink = `mailto:?subject=${encodedSubject}&body=${encodedBody}`;
     
-    // Create a hidden anchor element and click it
-    // This is the most reliable way to trigger mailto links across browsers
-    const link = document.createElement('a');
-    link.href = mailtoLink;
-    link.target = '_blank'; // Opens in new tab/window if mailto fails
-    link.rel = 'noopener noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // window.location.href is the most reliable cross-browser method for mailto:
+    // It works with all email clients, isn't blocked by ad blockers,
+    // and the browser won't actually navigate away (mailto: is handled by the OS)
+    try {
+      window.location.href = mailtoLink;
+    } catch {
+      // Fallback: try window.open (less reliable but covers edge cases)
+      const newWindow = window.open(mailtoLink, '_self');
+      if (!newWindow) {
+        // Last resort: copy to clipboard and notify user
+        navigator.clipboard.writeText(`Subject: ${emailToUse.subject}\n\n${emailToUse.body}`);
+        alert('Could not open email client. The email has been copied to your clipboard — paste it into your email app.');
+      }
+    }
   };
 
   // Show loading indicator during full generation workflow

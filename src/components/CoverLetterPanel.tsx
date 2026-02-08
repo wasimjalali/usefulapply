@@ -95,7 +95,8 @@ ${letter.signatureName}`;
   };
 
   const handleDownloadPDF = async () => {
-    if (!coverLetter) return;
+    const letterToDownload = editedCoverLetter || coverLetter;
+    if (!letterToDownload) return;
     if (hasAddressPlaceholder()) {
       toast.warning("Don't forget to add the company address before sending!", 6000);
     }
@@ -104,7 +105,7 @@ ${letter.signatureName}`;
     setShowDownloadMenu(false);
     
     try {
-      const companyName = (coverLetter.companyAddress.companyName || 'Company').replace(/[^a-zA-Z0-9]/g, '-');
+      const companyName = (letterToDownload.companyAddress.companyName || 'Company').replace(/[^a-zA-Z0-9]/g, '-');
       const doc = new jsPDF();
       
       const margin = 20;
@@ -117,9 +118,9 @@ ${letter.signatureName}`;
       doc.setFont('helvetica', 'normal');
       
       // Check if this is body-only format (3-agent architecture)
-      if (!coverLetter.applicantAddress.name && coverLetter.body) {
+      if (!letterToDownload.applicantAddress.name && letterToDownload.body) {
         // Body contains the full letter - just render it
-        const bodyLines = doc.splitTextToSize(coverLetter.body, maxWidth);
+        const bodyLines = doc.splitTextToSize(letterToDownload.body, maxWidth);
         for (const line of bodyLines) {
           if (yPos > 270) {
             doc.addPage();
@@ -132,66 +133,66 @@ ${letter.signatureName}`;
         // Structured format - render each section
         // Applicant Address
         doc.setFont('helvetica', 'bold');
-        doc.text(coverLetter.applicantAddress.name, margin, yPos);
+        doc.text(letterToDownload.applicantAddress.name, margin, yPos);
         doc.setFont('helvetica', 'normal');
         yPos += lineHeight;
-        if (coverLetter.applicantAddress.street) {
-          doc.text(coverLetter.applicantAddress.street, margin, yPos);
+        if (letterToDownload.applicantAddress.street) {
+          doc.text(letterToDownload.applicantAddress.street, margin, yPos);
           yPos += lineHeight;
         }
-        if (coverLetter.applicantAddress.city) {
-          doc.text(coverLetter.applicantAddress.city, margin, yPos);
+        if (letterToDownload.applicantAddress.city) {
+          doc.text(letterToDownload.applicantAddress.city, margin, yPos);
           yPos += lineHeight;
         }
-        if (coverLetter.applicantAddress.country) {
-          doc.text(coverLetter.applicantAddress.country, margin, yPos);
+        if (letterToDownload.applicantAddress.country) {
+          doc.text(letterToDownload.applicantAddress.country, margin, yPos);
           yPos += lineHeight;
         }
-        if (coverLetter.applicantAddress.phone) {
-          doc.text(coverLetter.applicantAddress.phone, margin, yPos);
+        if (letterToDownload.applicantAddress.phone) {
+          doc.text(letterToDownload.applicantAddress.phone, margin, yPos);
           yPos += lineHeight;
         }
-        if (coverLetter.applicantAddress.email) {
-          doc.text(coverLetter.applicantAddress.email, margin, yPos);
+        if (letterToDownload.applicantAddress.email) {
+          doc.text(letterToDownload.applicantAddress.email, margin, yPos);
           yPos += lineHeight;
         }
         yPos += lineHeight;
         
         // Date
-        if (coverLetter.date) {
-          doc.text(coverLetter.date, margin, yPos);
+        if (letterToDownload.date) {
+          doc.text(letterToDownload.date, margin, yPos);
           yPos += lineHeight * 2;
         }
         
         // Company Address
-        if (coverLetter.companyAddress.companyName) {
+        if (letterToDownload.companyAddress.companyName) {
           doc.setFont('helvetica', 'bold');
-          doc.text(coverLetter.companyAddress.companyName, margin, yPos);
+          doc.text(letterToDownload.companyAddress.companyName, margin, yPos);
           doc.setFont('helvetica', 'normal');
           yPos += lineHeight;
         }
-        if (coverLetter.companyAddress.department) {
-          doc.text(coverLetter.companyAddress.department, margin, yPos);
+        if (letterToDownload.companyAddress.department) {
+          doc.text(letterToDownload.companyAddress.department, margin, yPos);
           yPos += lineHeight;
         }
-        if (coverLetter.companyAddress.street) {
-          doc.text(coverLetter.companyAddress.street, margin, yPos);
+        if (letterToDownload.companyAddress.street) {
+          doc.text(letterToDownload.companyAddress.street, margin, yPos);
           yPos += lineHeight;
         }
-        if (coverLetter.companyAddress.city) {
-          doc.text(coverLetter.companyAddress.city, margin, yPos);
+        if (letterToDownload.companyAddress.city) {
+          doc.text(letterToDownload.companyAddress.city, margin, yPos);
           yPos += lineHeight;
         }
         yPos += lineHeight;
         
         // Salutation
-        if (coverLetter.salutation) {
-          doc.text(coverLetter.salutation, margin, yPos);
+        if (letterToDownload.salutation) {
+          doc.text(letterToDownload.salutation, margin, yPos);
           yPos += lineHeight * 2;
         }
         
         // Body - split into lines
-        const bodyLines = doc.splitTextToSize(coverLetter.body, maxWidth);
+        const bodyLines = doc.splitTextToSize(letterToDownload.body, maxWidth);
         for (const line of bodyLines) {
           if (yPos > 270) {
             doc.addPage();
@@ -203,28 +204,40 @@ ${letter.signatureName}`;
         yPos += lineHeight;
         
         // Closing
-        if (coverLetter.closing) {
-          doc.text(coverLetter.closing, margin, yPos);
+        if (letterToDownload.closing) {
+          doc.text(letterToDownload.closing, margin, yPos);
           yPos += lineHeight * 3;
         }
         
         // Signature
-        if (coverLetter.signatureName) {
+        if (letterToDownload.signatureName) {
           doc.setFont('helvetica', 'bold');
-          doc.text(coverLetter.signatureName, margin, yPos);
+          doc.text(letterToDownload.signatureName, margin, yPos);
         }
       }
       
-      doc.save(`Cover-Letter-${companyName}.pdf`);
+      // Use blob download for maximum browser compatibility
+      const pdfBlob = doc.output('blob');
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Cover-Letter-${companyName}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success('PDF downloaded successfully!');
     } catch (error) {
       console.error('PDF generation error:', error);
+      toast.error('Failed to download PDF. Try copying the text instead.');
     } finally {
       setIsDownloading(false);
     }
   };
 
   const handleDownloadDOCX = async () => {
-    if (!coverLetter) return;
+    const letterToDownload = editedCoverLetter || coverLetter;
+    if (!letterToDownload) return;
     if (hasAddressPlaceholder()) {
       toast.warning("Don't forget to add the company address before sending!", 6000);
     }
@@ -233,16 +246,16 @@ ${letter.signatureName}`;
     setShowDownloadMenu(false);
     
     try {
-      const companyName = (coverLetter.companyAddress.companyName || 'Company').replace(/[^a-zA-Z0-9]/g, '-');
+      const companyName = (letterToDownload.companyAddress.companyName || 'Company').replace(/[^a-zA-Z0-9]/g, '-');
       
       // Check if this is body-only format (3-agent architecture)
-      const isBodyOnly = !coverLetter.applicantAddress.name && coverLetter.body;
+      const isBodyOnly = !letterToDownload.applicantAddress.name && letterToDownload.body;
       
       let children: Paragraph[];
       
       if (isBodyOnly) {
         // Body contains the full letter - split by paragraphs
-        children = coverLetter.body.split('\n\n').map(para => 
+        children = letterToDownload.body.split('\n\n').map(para => 
           new Paragraph({ 
             children: [new TextRun(para.trim())],
             spacing: { after: 200 },
@@ -253,34 +266,34 @@ ${letter.signatureName}`;
         children = [
           // Applicant Address
           new Paragraph({
-            children: [new TextRun({ text: coverLetter.applicantAddress.name, bold: true })],
+            children: [new TextRun({ text: letterToDownload.applicantAddress.name, bold: true })],
           }),
-          ...(coverLetter.applicantAddress.street ? [new Paragraph({ children: [new TextRun(coverLetter.applicantAddress.street)] })] : []),
-          ...(coverLetter.applicantAddress.city ? [new Paragraph({ children: [new TextRun(coverLetter.applicantAddress.city)] })] : []),
-          ...(coverLetter.applicantAddress.country ? [new Paragraph({ children: [new TextRun(coverLetter.applicantAddress.country)] })] : []),
-          ...(coverLetter.applicantAddress.phone ? [new Paragraph({ children: [new TextRun(coverLetter.applicantAddress.phone)] })] : []),
-          ...(coverLetter.applicantAddress.email ? [new Paragraph({ children: [new TextRun(coverLetter.applicantAddress.email)] })] : []),
+          ...(letterToDownload.applicantAddress.street ? [new Paragraph({ children: [new TextRun(letterToDownload.applicantAddress.street)] })] : []),
+          ...(letterToDownload.applicantAddress.city ? [new Paragraph({ children: [new TextRun(letterToDownload.applicantAddress.city)] })] : []),
+          ...(letterToDownload.applicantAddress.country ? [new Paragraph({ children: [new TextRun(letterToDownload.applicantAddress.country)] })] : []),
+          ...(letterToDownload.applicantAddress.phone ? [new Paragraph({ children: [new TextRun(letterToDownload.applicantAddress.phone)] })] : []),
+          ...(letterToDownload.applicantAddress.email ? [new Paragraph({ children: [new TextRun(letterToDownload.applicantAddress.email)] })] : []),
           new Paragraph({ children: [] }), // Empty line
           
           // Date
-          ...(coverLetter.date ? [new Paragraph({ children: [new TextRun(coverLetter.date)] })] : []),
+          ...(letterToDownload.date ? [new Paragraph({ children: [new TextRun(letterToDownload.date)] })] : []),
           new Paragraph({ children: [] }), // Empty line
           
           // Company Address
-          ...(coverLetter.companyAddress.companyName ? [new Paragraph({
-            children: [new TextRun({ text: coverLetter.companyAddress.companyName, bold: true })],
+          ...(letterToDownload.companyAddress.companyName ? [new Paragraph({
+            children: [new TextRun({ text: letterToDownload.companyAddress.companyName, bold: true })],
           })] : []),
-          ...(coverLetter.companyAddress.department ? [new Paragraph({ children: [new TextRun(coverLetter.companyAddress.department)] })] : []),
-          ...(coverLetter.companyAddress.street ? [new Paragraph({ children: [new TextRun(coverLetter.companyAddress.street)] })] : []),
-          ...(coverLetter.companyAddress.city ? [new Paragraph({ children: [new TextRun(coverLetter.companyAddress.city)] })] : []),
+          ...(letterToDownload.companyAddress.department ? [new Paragraph({ children: [new TextRun(letterToDownload.companyAddress.department)] })] : []),
+          ...(letterToDownload.companyAddress.street ? [new Paragraph({ children: [new TextRun(letterToDownload.companyAddress.street)] })] : []),
+          ...(letterToDownload.companyAddress.city ? [new Paragraph({ children: [new TextRun(letterToDownload.companyAddress.city)] })] : []),
           new Paragraph({ children: [] }), // Empty line
           
           // Salutation
-          ...(coverLetter.salutation ? [new Paragraph({ children: [new TextRun(coverLetter.salutation)] })] : []),
+          ...(letterToDownload.salutation ? [new Paragraph({ children: [new TextRun(letterToDownload.salutation)] })] : []),
           new Paragraph({ children: [] }), // Empty line
           
           // Body - split by paragraphs
-          ...coverLetter.body.split('\n\n').map(para => 
+          ...letterToDownload.body.split('\n\n').map(para => 
             new Paragraph({ 
               children: [new TextRun(para.trim())],
               spacing: { after: 200 },
@@ -288,13 +301,13 @@ ${letter.signatureName}`;
           ),
           
           // Closing
-          ...(coverLetter.closing ? [new Paragraph({ children: [new TextRun(coverLetter.closing)] })] : []),
+          ...(letterToDownload.closing ? [new Paragraph({ children: [new TextRun(letterToDownload.closing)] })] : []),
           new Paragraph({ children: [] }), // Empty line
           new Paragraph({ children: [] }), // Empty line
           
           // Signature
-          ...(coverLetter.signatureName ? [new Paragraph({
-            children: [new TextRun({ text: coverLetter.signatureName, bold: true })],
+          ...(letterToDownload.signatureName ? [new Paragraph({
+            children: [new TextRun({ text: letterToDownload.signatureName, bold: true })],
           })] : []),
         ];
       }
@@ -311,10 +324,14 @@ ${letter.signatureName}`;
       const link = document.createElement('a');
       link.href = url;
       link.download = `Cover-Letter-${companyName}.docx`;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
       URL.revokeObjectURL(url);
+      toast.success('DOCX downloaded successfully!');
     } catch (error) {
       console.error('DOCX generation error:', error);
+      toast.error('Failed to download DOCX. Try copying the text instead.');
     } finally {
       setIsDownloading(false);
     }

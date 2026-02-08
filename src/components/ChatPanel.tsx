@@ -22,12 +22,14 @@ import {
   Sparkles,
 } from 'lucide-react';
 import KarkoLogo from '@/components/KarkoLogo';
+import { useRouter } from 'next/navigation';
 
 interface ChatPanelProps {
   onTabChange?: (tab: 'cv' | 'cover-letter' | 'email') => void;
   onAnalyze?: () => void;
   isMobileDrawer?: boolean;
 }
+
 
 // AgentStepData type for V2 progress tracking
 interface AgentStepData {
@@ -44,6 +46,7 @@ interface AgentStepData {
 }
 
 export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: ChatPanelProps) {
+  const router = useRouter();
   const { user } = useAuth();
   const {
     currentCV,
@@ -683,7 +686,7 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
   const handleAction = async (action: string) => {
     switch (action) {
       case 'navigate-documents':
-        window.location.href = '/documents';
+        router.push('/documents');
         break;
       case 'view-cv':
         onTabChange?.('cv');
