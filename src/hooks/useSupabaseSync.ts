@@ -180,6 +180,23 @@ export function useSupabaseSync() {
         if (data && data.length > 0) {
           console.log('[SupabaseSync] Found', data.length, 'sessions in Supabase');
           
+          // CROSS-BROWSER FIX: Clear stale currentSession from localStorage
+          // On a fresh browser, localStorage may have a currentSession from another
+          // browser that doesn't match Supabase data. Clear it so Supabase wins.
+          const storeState = useSessionStore.getState();
+          const cachedCurrentSession = storeState.currentSession;
+          if (cachedCurrentSession) {
+            const supabaseIds = new Set(data.map((r: SupabaseSessionRow) => r.id));
+            const isLocalOnly = cachedCurrentSession.id.startsWith('session-');
+            const existsInSupabase = supabaseIds.has(cachedCurrentSession.id);
+            
+            if (!isLocalOnly && !existsInSupabase) {
+              // Stale session from another browser — clear it
+              console.log('[SupabaseSync] Clearing stale currentSession from localStorage:', cachedCurrentSession.id.substring(0, 8));
+              useSessionStore.setState({ currentSession: null });
+            }
+          }
+          
           // Convert Supabase format to Zustand store format
           // Each session starts with empty chatMessages — they'll be loaded per-session
           const supabaseSessions: ApplicationSession[] = data.map((row) => ({

@@ -56,16 +56,15 @@ export async function getDocumentByType(
     .eq('user_id', userId)
     .eq('type', type)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
+    .limit(1);
 
   if (error) {
-    if (error.code === 'PGRST116') return null; // No rows
     console.error('Error fetching document:', error);
     return null;
   }
 
-  return data as Document;
+  // Return first result or null (avoids 406 error from .single() when no rows)
+  return (data && data.length > 0) ? data[0] as Document : null;
 }
 
 /**
