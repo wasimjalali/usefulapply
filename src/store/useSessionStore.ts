@@ -401,18 +401,16 @@ export const useSessionStore = create<SessionState & SessionActions>()(
     {
       name: 'session-store',
       storage: createJSONStorage(() => localStorage),
-      // CRITICAL: Only persist currentSession + legacy fields — NOT the full sessions array.
+      // CRITICAL: Only persist currentSession — NOT the full sessions array or legacy fields.
       // The sessions array (238+ sessions with full CV/CL/email data) would exceed
       // localStorage's ~5-10MB limit, causing silent corruption and session mixing
       // on cross-browser login. Sessions are loaded from Supabase via useSupabaseSync.
+      //
+      // Legacy fields (jobDescription, requirements, gaps, etc.) are NOT persisted
+      // because they can become stale and leak data from one session into another
+      // after a browser restart. They are repopulated from currentSession on load.
       partialize: (state) => ({
         currentSession: state.currentSession,
-        jobDescription: state.jobDescription,
-        requirements: state.requirements,
-        gaps: state.gaps,
-        generatedCV: state.generatedCV,
-        coverLetter: state.coverLetter,
-        email: state.email,
       }),
     }
   )

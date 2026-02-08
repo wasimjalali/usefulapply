@@ -166,12 +166,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   };
 
-  // Sign out
+  // Sign out — clear all persisted state to prevent cross-user data leakage
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
     setSession(null);
+    
+    // Clear Zustand persist storage to prevent stale session data
+    // from leaking to the next user on the same browser
+    try {
+      localStorage.removeItem('session-store');
+      localStorage.removeItem('cv-store');
+    } catch (e) {
+      console.error('[Auth] Failed to clear persist storage on signOut:', e);
+    }
   };
 
   // Update user profile - optimistic update for better UX

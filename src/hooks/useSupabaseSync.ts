@@ -182,9 +182,9 @@ export function useSupabaseSync() {
         if (data && data.length > 0) {
           console.log('[SupabaseSync] Found', data.length, 'sessions in Supabase');
           
-          // CROSS-BROWSER FIX: Clear stale currentSession from localStorage
-          // On a fresh browser, localStorage may have a currentSession from another
-          // browser that doesn't match Supabase data. Clear it so Supabase wins.
+          // CROSS-BROWSER FIX: Replace stale currentSession from localStorage with fresh Supabase data.
+          // On a fresh browser, localStorage may have a currentSession from another browser
+          // that is outdated or doesn't exist in Supabase. Supabase always wins.
           const storeState = useSessionStore.getState();
           const cachedCurrentSession = storeState.currentSession;
           if (cachedCurrentSession) {
@@ -193,10 +193,12 @@ export function useSupabaseSync() {
             const existsInSupabase = supabaseIds.has(cachedCurrentSession.id);
             
             if (!isLocalOnly && !existsInSupabase) {
-              // Stale session from another browser — clear it
-              console.log('[SupabaseSync] Clearing stale currentSession from localStorage:', cachedCurrentSession.id.substring(0, 8));
+              // Session ID doesn't exist in Supabase — clear it entirely
+              console.log('[SupabaseSync] Clearing stale currentSession (not in Supabase):', cachedCurrentSession.id.substring(0, 8));
               useSessionStore.setState({ currentSession: null });
             }
+            // NOTE: If the session ID exists in Supabase, we'll replace currentSession
+            // with the fresh Supabase version below (after building supabaseSessions).
           }
           
           // Convert Supabase format to Zustand store format
@@ -249,6 +251,27 @@ export function useSupabaseSync() {
           // Populate the store immediately so UI shows session list right away
           setSessions(Array.from(sessionMap.values()));
           
+          // CRITICAL FIX: Replace stale currentSession with fresh Supabase data.
+          // Without this, localStorage currentSession (from another browser) keeps stale
+          // data that can overwrite the fresh Supabase data when the user makes any edit.
+          const freshCurrentSession = useSessionStore.getState().currentSession;
+          if (freshCurrentSession && !freshCurrentSession.id.startsWith('session-')) {
+            const freshFromSupabase = sessionMap.get(freshCurrentSession.id);
+            if (freshFromSupabase) {
+              console.log('[SupabaseSync] Replacing stale currentSession with fresh Supabase data:', freshCurrentSession.id.substring(0, 8));
+              useSessionStore.setState({ 
+                currentSession: freshFromSupabase,
+                // Also update legacy fields to match
+                jobDescription: freshFromSupabase.jobDescription,
+                requirements: freshFromSupabase.requirements,
+                gaps: freshFromSupabase.gaps,
+                generatedCV: freshFromSupabase.generatedCV,
+                coverLetter: freshFromSupabase.coverLetter,
+                email: freshFromSupabase.email,
+              });
+            }
+          }
+          
           console.log('[SupabaseSync] Store populated with sessions:', {
             fromSupabase: supabaseSessions.length,
             localOnly: localOnlySessions.length,
@@ -285,6 +308,16 @@ export function useSupabaseSync() {
           
           // Update store with chat messages populated — each session has its own messages
           setSessions(Array.from(sessionMap.values()));
+          
+          // Also refresh currentSession with chat messages if it's in the map
+          const currentAfterMessages = useSessionStore.getState().currentSession;
+          if (currentAfterMessages && sessionMap.has(currentAfterMessages.id)) {
+            const withMessages = sessionMap.get(currentAfterMessages.id)!;
+            if (withMessages.chatMessages.length > 0) {
+              useSessionStore.setState({ currentSession: withMessages });
+            }
+          }
+          
           console.log('[SupabaseSync] All chat messages loaded for recent sessions');
         } else {
           console.log('[SupabaseSync] No sessions found in Supabase for this user');
