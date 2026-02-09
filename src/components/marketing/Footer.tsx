@@ -32,8 +32,8 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/auth/signup" className="text-navy-200 hover:text-white text-sm transition-colors">
-                  Get Started Free
+                <Link href="/dashboard" className="text-navy-200 hover:text-white text-sm transition-colors">
+                  Try It Free
                 </Link>
               </li>
               <li>

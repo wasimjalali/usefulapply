@@ -562,10 +562,10 @@ export default function MasterCVPage() {
               {copied ? 'Prompt Copied!' : 'Copy the Prompt'}
             </button>
             <Link
-              href="/auth/signup"
+              href="/documents"
               className="w-full sm:w-auto px-10 py-4 glass-dark text-white font-semibold rounded-xl hover:bg-white/20 transition-all flex items-center justify-center gap-2 text-lg"
             >
-              Sign Up to Upload
+              Upload Your CV
               <ArrowRight className="w-5 h-5" />
             </Link>
           </div>
