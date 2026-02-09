@@ -1,5 +1,13 @@
+import type { Metadata } from 'next';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
+
+export const metadata: Metadata = {
+  title: 'Imprint (Impressum)',
+  description:
+    'Legal information and company details for KarKo AI. Impressum as required by German law.',
+  alternates: { canonical: '/imprint' },
+};
 
 export default function ImprintPage() {
   return (

@@ -1,5 +1,13 @@
+import type { Metadata } from 'next';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy',
+  description:
+    'KarKo AI Privacy Policy. Learn how we handle your data, protect your CV information, and ensure GDPR compliance.',
+  alternates: { canonical: '/privacy' },
+};
 
 export default function PrivacyPage() {
   return (

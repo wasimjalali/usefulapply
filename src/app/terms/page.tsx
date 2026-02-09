@@ -1,5 +1,13 @@
+import type { Metadata } from 'next';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
+
+export const metadata: Metadata = {
+  title: 'Terms of Service',
+  description:
+    'Read the KarKo AI Terms of Service. Understand the rules, responsibilities, and conditions for using our AI-powered job application assistant.',
+  alternates: { canonical: '/terms' },
+};
 
 export default function TermsPage() {
   return (

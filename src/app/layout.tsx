@@ -41,6 +41,16 @@ export const metadata: Metadata = {
     'KarKo AI',
     'career tools',
     'job search AI',
+    'AI CV writer',
+    'tailored resume',
+    'automated job application',
+    'CV for ATS',
+    'AI cover letter writer',
+    'job application email generator',
+    'resume optimization tool',
+    'AI career assistant',
+    'apply to jobs faster',
+    'one click job application',
   ],
   authors: [{ name: 'KarKo AI', url: SITE_URL }],
   creator: 'KarKo AI',
@@ -94,6 +104,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="author" href={`${SITE_URL}/about`} />
+        {/* SoftwareApplication Schema */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -102,16 +114,29 @@ export default function RootLayout({
               '@type': 'SoftwareApplication',
               name: 'KarKo AI',
               applicationCategory: 'BusinessApplication',
+              applicationSubCategory: 'Job Application Tool',
               operatingSystem: 'Web',
               description:
-                'AI-powered job application assistant that optimizes your CV, generates tailored cover letters, and creates professional application emails in minutes.',
-              url: 'https://www.karkoai.com',
+                'AI-powered job application assistant that optimizes your CV, generates tailored cover letters, and creates professional application emails in under 90 seconds.',
+              url: SITE_URL,
+              image: `${SITE_URL}/karko-ai.png`,
+              screenshot: `${SITE_URL}/karko-ai.png`,
+              featureList: [
+                'AI CV Optimization',
+                'Tailored Cover Letter Generation',
+                'Professional Application Email Drafting',
+                'Smart Fit Analysis',
+                'ATS-Friendly Output',
+                'Multi-Language Support',
+                'Master CV Support',
+              ],
               offers: [
                 {
                   '@type': 'Offer',
                   name: 'Free',
                   price: '0',
                   priceCurrency: 'USD',
+                  description: '40 credits (~20 applications/month)',
                 },
                 {
                   '@type': 'Offer',
@@ -119,6 +144,7 @@ export default function RootLayout({
                   price: '29.99',
                   priceCurrency: 'USD',
                   billingIncrement: 'P1M',
+                  description: '200 credits, priority processing',
                 },
                 {
                   '@type': 'Offer',
@@ -126,13 +152,97 @@ export default function RootLayout({
                   price: '49.99',
                   priceCurrency: 'USD',
                   billingIncrement: 'P1M',
+                  description: '500 credits, advanced AI models, premium support',
                 },
               ],
               creator: {
+                '@type': 'Organization',
+                name: 'KarKo AI',
+                url: SITE_URL,
+                founder: {
+                  '@type': 'Person',
+                  name: 'Wasim Jalali',
+                  jobTitle: 'Founder & CEO',
+                },
+              },
+              aggregateRating: undefined,
+            }),
+          }}
+        />
+        {/* Organization Schema */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Organization',
+              name: 'KarKo AI',
+              url: SITE_URL,
+              logo: `${SITE_URL}/karko-ai.png`,
+              description:
+                'KarKo AI helps job seekers apply smarter with AI-powered CV optimization, cover letter generation, and application email drafting.',
+              founder: {
                 '@type': 'Person',
                 name: 'Wasim Jalali',
-                jobTitle: 'Founder & CEO',
               },
+              contactPoint: {
+                '@type': 'ContactPoint',
+                url: `${SITE_URL}/contact`,
+                contactType: 'customer support',
+              },
+              sameAs: [],
+            }),
+          }}
+        />
+        {/* FAQ Schema for rich snippets */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: [
+                {
+                  '@type': 'Question',
+                  name: 'How does KarKo AI optimize my CV?',
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: 'KarKo AI analyzes the job description to identify key requirements, then tailors your CV to highlight matching skills and experience. It ensures ATS compatibility while preserving your authentic professional history — no fabricated skills or hallucinated content.',
+                  },
+                },
+                {
+                  '@type': 'Question',
+                  name: 'How long does it take to generate an application?',
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: 'KarKo AI generates a complete application package (optimized CV, tailored cover letter, and professional email) in under 90 seconds. What typically takes 45-60 minutes manually is done almost instantly.',
+                  },
+                },
+                {
+                  '@type': 'Question',
+                  name: 'Is KarKo AI free to use?',
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: 'Yes! KarKo AI offers a free plan with 40 credits (~20 applications per month). No credit card required. Paid plans (Plus at $29.99/mo and Pro at $49.99/mo) offer more credits and advanced features.',
+                  },
+                },
+                {
+                  '@type': 'Question',
+                  name: 'What is a Master CV?',
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: 'A Master CV is a comprehensive 5-10 page document that captures your entire professional history — every skill, project, certification, and achievement. KarKo AI uses it as a rich source to generate perfectly tailored applications for any job.',
+                  },
+                },
+                {
+                  '@type': 'Question',
+                  name: 'Does KarKo AI make up skills or experience?',
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: 'No. KarKo AI has strict anti-hallucination rules. Every skill, metric, and claim in your optimized CV must be traceable to your original CV or Master CV. If a required skill is missing, it highlights transferable skills instead of fabricating content.',
+                  },
+                },
+              ],
             }),
           }}
         />
