@@ -30,9 +30,14 @@ KarKo AI is a web-based tool that helps job seekers apply to jobs faster and sma
 - **Plus Plan**: $29.99/month — 200 credits, priority processing
 - **Pro Plan**: $49.99/month — 500 credits, advanced AI models, premium support
 
+## Blog
+
+KarKo AI publishes expert articles on CV optimization, cover letter writing, job search strategies, and how AI is transforming the hiring process. Visit https://www.karkoai.com/blog for the latest articles.
+
 ## Links
 
 - Homepage: https://www.karkoai.com
+- Blog: https://www.karkoai.com/blog
 - Pricing: https://www.karkoai.com/pricing
 - About: https://www.karkoai.com/about
 - Master CV Guide: https://www.karkoai.com/master-cv
