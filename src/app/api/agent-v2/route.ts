@@ -80,21 +80,15 @@ export async function POST(request: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        // Get authenticated user
+        // Get authenticated user (optional — anonymous users get one free generation)
         const supabase = await createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
-        if (authError || !user) {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-            type: 'error', 
-            message: 'Authentication required' 
-          })}\n\n`));
-          controller.close();
-          return;
-        }
+        const { data: { user } } = await supabase.auth.getUser();
+        const isAnonymous = !user;
 
-        // Set server supabase client for credit operations
-        setServerSupabaseClient(supabase);
+        // Set server supabase client for credit operations (only if authenticated)
+        if (user) {
+          setServerSupabaseClient(supabase);
+        }
 
         const body: AgentRequest = await request.json();
         const { 
@@ -178,24 +172,26 @@ export async function POST(request: NextRequest) {
             return;
           }
 
-          // Deduct 0.5 credits for fit analysis
-          const creditResult = await checkAndDeductCredits(user.id, 'FIT_ANALYSIS');
-          if (!creditResult.success) {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-              type: 'error', 
-              code: 'INSUFFICIENT_CREDITS',
-              message: creditResult.error || 'Insufficient credits',
-              details: formatCreditErrorResponse(creditResult),
-            })}\n\n`));
-            controller.close();
-            return;
-          }
+          // Deduct 0.5 credits for fit analysis (skip for anonymous users — free generation)
+          if (!isAnonymous) {
+            const creditResult = await checkAndDeductCredits(user!.id, 'FIT_ANALYSIS');
+            if (!creditResult.success) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+                type: 'error', 
+                code: 'INSUFFICIENT_CREDITS',
+                message: creditResult.error || 'Insufficient credits',
+                details: formatCreditErrorResponse(creditResult),
+              })}\n\n`));
+              controller.close();
+              return;
+            }
 
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-            type: 'credits_deducted', 
-            creditsUsed: CREDIT_COSTS.FIT_ANALYSIS,
-            remainingCredits: creditResult.remainingCredits,
-          })}\n\n`));
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+              type: 'credits_deducted', 
+              creditsUsed: CREDIT_COSTS.FIT_ANALYSIS,
+              remainingCredits: creditResult.remainingCredits,
+            })}\n\n`));
+          }
 
           const steps = getWorkflowSteps('fit_analysis');
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
@@ -267,24 +263,26 @@ export async function POST(request: NextRequest) {
               return;
             }
 
-            // Deduct full application credits (1.5) since we need to redo Phase 1
-            const creditResult = await checkAndDeductCredits(user.id, 'FULL_APPLICATION');
-            if (!creditResult.success) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-                type: 'error', 
-                code: 'INSUFFICIENT_CREDITS',
-                message: creditResult.error || 'Insufficient credits',
-                details: formatCreditErrorResponse(creditResult),
-              })}\n\n`));
-              controller.close();
-              return;
-            }
+            // Deduct full application credits (1.5) since we need to redo Phase 1 (skip for anonymous)
+            if (!isAnonymous) {
+              const creditResult = await checkAndDeductCredits(user!.id, 'FULL_APPLICATION');
+              if (!creditResult.success) {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+                  type: 'error', 
+                  code: 'INSUFFICIENT_CREDITS',
+                  message: creditResult.error || 'Insufficient credits',
+                  details: formatCreditErrorResponse(creditResult),
+                })}\n\n`));
+                controller.close();
+                return;
+              }
 
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-              type: 'credits_deducted', 
-              creditsUsed: CREDIT_COSTS.FULL_APPLICATION,
-              remainingCredits: creditResult.remainingCredits,
-            })}\n\n`));
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+                type: 'credits_deducted', 
+                creditsUsed: CREDIT_COSTS.FULL_APPLICATION,
+                remainingCredits: creditResult.remainingCredits,
+              })}\n\n`));
+            }
 
             // Run full optimization as fallback
             const steps = getWorkflowSteps('full_optimization');
@@ -326,24 +324,26 @@ export async function POST(request: NextRequest) {
             return;
           }
 
-          // Context found - deduct 1.5 credits for generation only
-          const creditResult = await checkAndDeductCredits(user.id, 'FULL_APPLICATION');
-          if (!creditResult.success) {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-              type: 'error', 
-              code: 'INSUFFICIENT_CREDITS',
-              message: creditResult.error || 'Insufficient credits',
-              details: formatCreditErrorResponse(creditResult),
-            })}\n\n`));
-            controller.close();
-            return;
-          }
+          // Context found - deduct 1.5 credits for generation only (skip for anonymous)
+          if (!isAnonymous) {
+            const creditResult = await checkAndDeductCredits(user!.id, 'FULL_APPLICATION');
+            if (!creditResult.success) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+                type: 'error', 
+                code: 'INSUFFICIENT_CREDITS',
+                message: creditResult.error || 'Insufficient credits',
+                details: formatCreditErrorResponse(creditResult),
+              })}\n\n`));
+              controller.close();
+              return;
+            }
 
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-            type: 'credits_deducted', 
-            creditsUsed: CREDIT_COSTS.FULL_APPLICATION,
-            remainingCredits: creditResult.remainingCredits,
-          })}\n\n`));
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+              type: 'credits_deducted', 
+              creditsUsed: CREDIT_COSTS.FULL_APPLICATION,
+              remainingCredits: creditResult.remainingCredits,
+            })}\n\n`));
+          }
 
           const steps = getWorkflowSteps('generate_with_context');
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
@@ -394,25 +394,27 @@ export async function POST(request: NextRequest) {
           return;
         }
 
-        // Check and deduct credits for full application
-        const creditResult = await checkAndDeductCredits(user.id, 'FULL_APPLICATION');
-        
-        if (!creditResult.success) {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-            type: 'error', 
-            code: 'INSUFFICIENT_CREDITS',
-            message: creditResult.error || 'Insufficient credits',
-            details: formatCreditErrorResponse(creditResult),
-          })}\n\n`));
-          controller.close();
-          return;
-        }
+        // Check and deduct credits for full application (skip for anonymous)
+        if (!isAnonymous) {
+          const creditResult = await checkAndDeductCredits(user!.id, 'FULL_APPLICATION');
+          
+          if (!creditResult.success) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+              type: 'error', 
+              code: 'INSUFFICIENT_CREDITS',
+              message: creditResult.error || 'Insufficient credits',
+              details: formatCreditErrorResponse(creditResult),
+            })}\n\n`));
+            controller.close();
+            return;
+          }
 
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-          type: 'credits_deducted', 
-          creditsUsed: CREDIT_COSTS.FULL_APPLICATION,
-          remainingCredits: creditResult.remainingCredits,
-        })}\n\n`));
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+            type: 'credits_deducted', 
+            creditsUsed: CREDIT_COSTS.FULL_APPLICATION,
+            remainingCredits: creditResult.remainingCredits,
+          })}\n\n`));
+        }
 
         const steps = getWorkflowSteps(action);
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 

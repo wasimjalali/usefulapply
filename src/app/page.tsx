@@ -49,10 +49,10 @@ export default function Home() {
             <ScrollReveal delay={450}>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                href="/auth/signup"
+                href="/dashboard"
                 className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-lg"
               >
-                Start Free, No Credit Card
+                Try It Free, No Sign Up
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <Link
@@ -360,10 +360,10 @@ export default function Home() {
               <div className="text-4xl font-bold text-navy-600 mb-1">Free</div>
               <p className="text-sm text-warm-gray mb-6">20 applications included</p>
               <Link
-                href="/auth/signup"
+                href="/dashboard"
                 className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium border-2 border-navy-200 text-navy-600 hover:bg-navy-50 transition-colors"
               >
-                Start Free
+                Try Free
               </Link>
             </div>
             </ScrollReveal>
@@ -487,10 +487,10 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href="/auth/signup"
+              href="/dashboard"
               className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-lg"
             >
-              Get Started Free
+              Try It Free
               <ArrowRight className="w-5 h-5" />
             </Link>
             <Link

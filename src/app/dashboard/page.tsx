@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { CVPanel } from '@/components/CVPanel';
 import { CoverLetterPanel } from '@/components/CoverLetterPanel';
 import { EmailPanel } from '@/components/EmailPanel';
@@ -14,7 +13,6 @@ import Link from 'next/link';
 import { CreditIndicator } from '@/components/ui/CreditIndicator';
 
 export default function Dashboard() {
-  const router = useRouter();
   const {
     activeTab,
     setActiveTab,
@@ -44,12 +42,7 @@ export default function Dashboard() {
     setIsMobileChatOpen(false);
   }, [setActiveTab]);
 
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.push('/auth/login');
-    }
-  }, [isLoading, user, router]);
+  // No longer redirecting - anonymous users can access the dashboard for one free generation
 
   // Auto-close mobile chat drawer when agent finishes working
   const [wasAgentWorking, setWasAgentWorking] = useState(false);
@@ -98,17 +91,8 @@ export default function Dashboard() {
     return () => { document.body.style.overflow = ''; };
   }, [isMobileChatOpen]);
 
-  // Show loading state while checking auth
+  // Show loading state while checking auth (brief — just to resolve user state)
   if (isLoading) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-cream-100">
-        <Loader2 className="w-8 h-8 animate-spin text-navy-600" />
-      </div>
-    );
-  }
-
-  // Don't render if not authenticated (will redirect)
-  if (!user) {
     return (
       <div className="h-screen flex items-center justify-center bg-cream-100">
         <Loader2 className="w-8 h-8 animate-spin text-navy-600" />
@@ -165,38 +149,52 @@ export default function Dashboard() {
               {/* Spacer */}
               <div className="flex-1" />
               
-              {/* Credit Indicator */}
-              <div className="flex items-center">
-                <CreditIndicator />
-              </div>
-
-              {/* Documents Link */}
-              <Link
-                href="/documents"
-                className="flex items-center gap-2 px-2 sm:px-3 py-2 text-sm font-medium text-warm-gray hover:text-navy-600 transition-colors cursor-pointer rounded-lg hover:bg-cream-100/60"
-              >
-                <FolderOpen className="w-4 h-4" />
-                <span className="hidden lg:inline">Documents</span>
-              </Link>
-
-              {/* Settings/Profile Link */}
-              <Link
-                href="/settings"
-                className="flex items-center gap-2 px-1 sm:px-2 py-1.5 cursor-pointer"
-                title="Settings & Profile"
-              >
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-navy-500 to-navy-700 flex items-center justify-center overflow-hidden ring-2 ring-gold-300/40 ring-offset-1 ring-offset-white/80">
-                  {profile?.avatar_url ? (
-                    <img 
-                      src={profile.avatar_url} 
-                      alt="Profile" 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-                  )}
+              {/* Credit Indicator — only for authenticated users */}
+              {user && (
+                <div className="flex items-center">
+                  <CreditIndicator />
                 </div>
-              </Link>
+              )}
+
+              {/* Documents Link — only for authenticated users */}
+              {user && (
+                <Link
+                  href="/documents"
+                  className="flex items-center gap-2 px-2 sm:px-3 py-2 text-sm font-medium text-warm-gray hover:text-navy-600 transition-colors cursor-pointer rounded-lg hover:bg-cream-100/60"
+                >
+                  <FolderOpen className="w-4 h-4" />
+                  <span className="hidden lg:inline">Documents</span>
+                </Link>
+              )}
+
+              {/* Settings/Profile Link (authenticated) OR Sign In button (anonymous) */}
+              {user ? (
+                <Link
+                  href="/settings"
+                  className="flex items-center gap-2 px-1 sm:px-2 py-1.5 cursor-pointer"
+                  title="Settings & Profile"
+                >
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-navy-500 to-navy-700 flex items-center justify-center overflow-hidden ring-2 ring-gold-300/40 ring-offset-1 ring-offset-white/80">
+                    {profile?.avatar_url ? (
+                      <img 
+                        src={profile.avatar_url} 
+                        alt="Profile" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                    )}
+                  </div>
+                </Link>
+              ) : (
+                <Link
+                  href="/auth/login"
+                  className="flex items-center gap-1.5 px-3 sm:px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-gold-400 to-gold-500 rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm cursor-pointer"
+                >
+                  <User className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Sign In</span>
+                </Link>
+              )}
             </div>
           </div>
 

@@ -8,14 +8,18 @@ import { Send, Copy, Check, Mail, RefreshCw, Edit3, Eye } from 'lucide-react';
 import type { GeneratedEmail } from '@/lib/types';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import { useToast } from './ui/Toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { SignUpWallModal } from '@/components/SignUpWallModal';
 
 export function EmailPanel() {
+  const { user } = useAuth();
   const { 
     currentSession,
     updateCurrentSession,
     isGenerating,
     isAgentWorking,
   } = useAppStore();
+  const [showSignUpWall, setShowSignUpWall] = useState(false);
   
   const email = currentSession?.email;
   const generatedCV = currentSession?.generatedCV;
@@ -132,6 +136,11 @@ export function EmailPanel() {
   };
 
   const handleCopyAll = async () => {
+    // Gate: Anonymous users must sign up to copy email
+    if (!user) {
+      setShowSignUpWall(true);
+      return;
+    }
     if (email) {
       // Format: Subject line followed by blank line and body
       const fullEmail = `Subject: ${email.subject}\n\n${email.body}`;
@@ -142,6 +151,11 @@ export function EmailPanel() {
   };
 
   const handleOpenInEmail = () => {
+    // Gate: Anonymous users must sign up to open in email
+    if (!user) {
+      setShowSignUpWall(true);
+      return;
+    }
     // Use activeEmail which respects edited content
     const emailToUse = activeEmail || email;
     
@@ -404,6 +418,12 @@ export function EmailPanel() {
           </Card>
         )}
       </div>
+      {/* Sign Up Wall Modal */}
+      <SignUpWallModal
+        isOpen={showSignUpWall}
+        onClose={() => setShowSignUpWall(false)}
+        trigger="download"
+      />
     </div>
   );
 }
