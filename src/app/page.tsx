@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, FileText, Search, Zap, Clock, Target, CheckCircle, Shield, Globe, MessageSquare, Sparkles, BarChart3, TrendingUp } from 'lucide-react';
+import { ArrowRight, FileText, Search, Zap, Clock, Target, CheckCircle, Shield, Globe, Sparkles, TrendingUp } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
@@ -101,63 +101,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* What You Won't Find Anywhere Else — Trust & differentiation */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
-        <div className="max-w-5xl mx-auto">
-          <ScrollReveal>
-          <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Built Different</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
-              What You Won&apos;t Find Anywhere Else
-            </h2>
-            <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-              Most AI tools generate text. Karko AI generates applications you can actually trust.
-            </p>
-          </div>
-          </ScrollReveal>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <ScrollReveal delay={0}>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-sm border border-cream-200">
-                <TrendingUp className="w-8 h-8 text-navy-600" />
-              </div>
-              <h3 className="text-xl font-bold text-charcoal mb-3">Honest Fit Analysis</h3>
-              <p className="text-warm-gray leading-relaxed">
-                Before generating anything, Karko compares your profile to the job. You see your matching skills, your gaps, and a real fit score. No false hope, just clarity.
-              </p>
-            </div>
-            </ScrollReveal>
-
-            <ScrollReveal delay={200}>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-sm border border-cream-200">
-                <Shield className="w-8 h-8 text-navy-600" />
-              </div>
-              <h3 className="text-xl font-bold text-charcoal mb-3">Zero Skill Fabrication</h3>
-              <p className="text-warm-gray leading-relaxed">
-                Other AI tools invent skills to boost keyword scores. Karko never does. Every skill on your generated CV is verified from your actual profile. Your reputation stays intact.
-              </p>
-            </div>
-            </ScrollReveal>
-
-            <ScrollReveal delay={400}>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-sm border border-cream-200">
-                <Sparkles className="w-8 h-8 text-navy-600" />
-              </div>
-              <h3 className="text-xl font-bold text-charcoal mb-3">Fully Agentic Workflow</h3>
-              <p className="text-warm-gray leading-relaxed">
-                Not a chatbot. Not a template filler. Karko AI runs a multi-step research and writing workflow autonomously, then self-refines the output before delivering it to you.
-              </p>
-            </div>
-            </ScrollReveal>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works — Clean 3-step process */}
-      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+      {/* How It Works — Clean 3-step process (moved UP for AIDA flow: Interest phase) */}
+      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
         <div className="max-w-6xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-14">
@@ -166,7 +111,7 @@ export default function Home() {
               Three Steps to Your Next Interview
             </h2>
             <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-              Upload once, apply everywhere. Our agentic AI handles the heavy lifting.
+              Upload once, apply everywhere. Our AI handles the heavy lifting.
             </p>
           </div>
           </ScrollReveal>
@@ -179,21 +124,21 @@ export default function Home() {
               {
                 step: '1',
                 title: 'Upload Your Master CV',
-                description: 'Upload your master CV or primary CV once. KarKo AI parses your skills, experience, and achievements to build your professional profile.',
+                description: 'Upload your master CV or primary CV once. Karko AI parses your skills, experience, and achievements to build your professional profile.',
                 icon: FileText,
                 color: 'navy',
               },
               {
                 step: '2',
                 title: 'Paste the Job Description',
-                description: 'Drop in any job posting. Our AI analyzes requirements, runs a fit analysis, and identifies skill matches automatically.',
+                description: 'Drop in any job posting. The AI analyzes requirements, runs a fit analysis, and identifies skill matches automatically.',
                 icon: Search,
                 color: 'gold',
               },
               {
                 step: '3',
                 title: 'Get Your Complete Package',
-                description: 'Receive a tailored CV, personalized cover letter, and professional email. Ready to send in under 90 seconds.',
+                description: 'Receive a tailored CV, personalized cover letter, and professional email, ready to send.',
                 icon: Zap,
                 color: 'sage',
               },
@@ -220,68 +165,53 @@ export default function Home() {
         </div>
       </section>
 
-      {/* What Makes KarKo Different — Competitive advantages */}
+      {/* Built Different — Merged trust + differentiation section (navy for authority) */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-navy-600">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-14">
-            <p className="text-sm font-semibold text-gold-400 uppercase tracking-widest mb-3">Why KarKo AI</p>
+            <p className="text-sm font-semibold text-gold-400 uppercase tracking-widest mb-3">Built Different</p>
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Not Just Another Resume Builder
+              What You Won&apos;t Find Anywhere Else
             </h2>
             <p className="text-lg text-navy-200 max-w-2xl mx-auto">
-              Most tools help you format a resume. KarKo AI is an agentic system that creates your entire application package: researched, personalized, and ATS-ready.
+              Most AI tools generate text. Karko AI generates applications you can actually trust.
             </p>
           </div>
           </ScrollReveal>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 gap-6">
             {[
               {
-                icon: Sparkles,
-                title: 'Agentic AI Workflow',
-                description: 'Not a template filler. Our AI agent researches, analyzes, writes, and refines, like having a career coach on demand.',
-              },
-              {
-                icon: Globe,
-                title: 'US & EU Templates',
-                description: 'Professional templates for both markets. German Lebenslauf, US ATS-optimized, and more, all region-appropriate.',
-              },
-              {
-                icon: Search,
-                title: 'AI Company Analysis',
-                description: 'AI extracts company culture, values, and key requirements directly from the job description to personalize your application.',
+                icon: TrendingUp,
+                title: 'Honest Fit Score',
+                description: 'Before generating anything, Karko compares your profile to the job. You see matching skills, gaps, and a real fit score. No false hope.',
               },
               {
                 icon: Shield,
-                title: 'ATS-Optimized Output',
-                description: 'Every document is formatted to pass Applicant Tracking Systems. Your application actually gets seen by humans.',
+                title: 'Zero Skill Fabrication',
+                description: 'Other AI tools invent skills to boost keyword scores. Karko never does. Every skill on your CV is verified from your actual profile.',
               },
               {
-                icon: TrendingUp,
-                title: 'Fit Analysis',
-                description: 'Before generating your application, AI compares your profile to the job \u2014 showing you matching skills, gaps to address, and an honest fit score.',
+                icon: Globe,
+                title: 'US & EU Ready',
+                description: 'Professional templates for both markets. German Lebenslauf, US ATS-optimized formats, and region-appropriate cover letters, all built in.',
               },
               {
-                icon: MessageSquare,
-                title: 'AI Self-Refinement',
-                description: 'Our AI automatically iterates and refines your documents before delivering them, ensuring the highest quality output.',
-              },
-              {
-                icon: BarChart3,
-                title: 'Skill Gap Analysis',
-                description: 'See every matching skill and every gap \u2014 listed individually, not hidden. Know exactly where you stand before you apply.',
+                icon: Sparkles,
+                title: 'Self-Refining AI Agent',
+                description: 'Not a chatbot. Karko runs a multi-step workflow autonomously, then reviews and refines its own output before delivering it to you.',
               },
             ].map((feature, i) => {
               const Icon = feature.icon;
               return (
-                <ScrollReveal key={i} delay={i * 100}>
-                <div className="bg-navy-700/50 backdrop-blur-sm rounded-xl p-6 border border-navy-500/50 hover:border-gold-400/30 transition-all group card-hover-lift">
-                  <div className="w-12 h-12 bg-navy-500/50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-gold-400/20 transition-colors">
-                    <Icon className="w-6 h-6 text-gold-400" />
+                <ScrollReveal key={i} delay={i * 120}>
+                <div className="bg-navy-700/50 backdrop-blur-sm rounded-2xl p-8 border border-navy-500/30 hover:border-gold-400/30 transition-all group">
+                  <div className="w-14 h-14 bg-navy-500/40 rounded-xl flex items-center justify-center mb-5 group-hover:bg-gold-400/20 transition-colors">
+                    <Icon className="w-7 h-7 text-gold-400" />
                   </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
-                  <p className="text-navy-200 text-sm leading-relaxed">{feature.description}</p>
+                  <h3 className="text-xl font-semibold text-white mb-3">{feature.title}</h3>
+                  <p className="text-navy-200 leading-relaxed">{feature.description}</p>
                 </div>
                 </ScrollReveal>
               );
