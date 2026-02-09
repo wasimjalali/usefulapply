@@ -483,7 +483,7 @@ export default function Home() {
             <span className="text-gold-400">90 Seconds Away</span>
           </h2>
           <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Stop wasting hours on applications and start landing interviews faster with KarKo AI.
+            Start with 20 free applications. No credit card required.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
@@ -500,9 +500,6 @@ export default function Home() {
               View Pricing
             </Link>
           </div>
-          <p className="mt-6 text-sm text-navy-300">
-            No credit card required. 20 free applications to start.
-          </p>
         </div>
         </ScrollReveal>
       </section>
