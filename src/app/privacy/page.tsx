@@ -136,7 +136,7 @@ export default function PrivacyPage() {
                 Email: <a href="mailto:hello@karkoai.com" className="text-navy-600 hover:underline">hello@karkoai.com</a>
               </p>
               <p className="text-warm-gray mt-2">
-                Address: Fresh Grocery LLC, 30 N Gould St Ste N, Sheridan, WY 82801, USA
+                Address: Karko AI Inc, 1207 Delaware Ave #412, Wilmington, DE 19806, USA
               </p>
             </section>
           </div>
