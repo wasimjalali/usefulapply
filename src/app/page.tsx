@@ -37,13 +37,14 @@ export default function Home() {
 
             <ScrollReveal delay={150}>
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-navy-600 mb-6 leading-[1.1] tracking-tight">
-              One Click. Complete Job Application.{' '}
-              <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">Under 90 Seconds.</span>
+              Get A Complete Job Application: CV, Cover Letter, and Email{' '}
+              <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">in 90 Seconds.</span>{' '}
+              Just Paste the Job Description.
             </h1>
             </ScrollReveal>
             <ScrollReveal delay={300}>
             <p className="text-xl md:text-2xl text-warm-gray mb-10 max-w-2xl mx-auto leading-relaxed">
-              What takes job seekers 45-60 minutes manually (tailoring a CV, writing a cover letter, drafting a professional email), KarKo AI delivers in under 90 seconds.
+              Karko AI reads the job description, analyzes your fit, and generates a tailored, ATS-optimized application package ready to send.
             </p>
             </ScrollReveal>
             <ScrollReveal delay={450}>
