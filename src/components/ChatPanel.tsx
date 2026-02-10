@@ -379,11 +379,20 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
                 const fitEmoji = fitAnalysis.fitLevel === 'strong' ? '🟢' : fitAnalysis.fitLevel === 'good' ? '🟡' : '🔴';
                 const fitLabel = fitAnalysis.fitLevel === 'strong' ? 'Strong Fit' : fitAnalysis.fitLevel === 'good' ? 'Good Fit' : 'Weak Fit';
                 
-                const matchInfo = fitAnalysis.matchingSkills?.length > 0 
-                  ? `\n\n**Matching Skills:** ${fitAnalysis.matchingSkills.join(', ')}`
+                // Limit skills display: max 10 per section, ~300 chars each
+                const MAX_SKILLS_SHOWN = 10;
+                const matchingAll = fitAnalysis.matchingSkills || [];
+                const missingAll = fitAnalysis.missingSkills || [];
+                const matchingShown = matchingAll.slice(0, MAX_SKILLS_SHOWN);
+                const missingShown = missingAll.slice(0, MAX_SKILLS_SHOWN);
+                const matchingExtra = matchingAll.length - matchingShown.length;
+                const missingExtra = missingAll.length - missingShown.length;
+                
+                const matchInfo = matchingShown.length > 0 
+                  ? `\n\n**Matching Skills (${matchingAll.length}):**\n${matchingShown.join(', ')}${matchingExtra > 0 ? ` *(+${matchingExtra} more)*` : ''}`
                   : '';
-                const missingInfo = fitAnalysis.missingSkills?.length > 0
-                  ? `\n**Missing Skills:** ${fitAnalysis.missingSkills.join(', ')}`
+                const missingInfo = missingShown.length > 0
+                  ? `\n\n**Missing Skills (${missingAll.length}):**\n${missingShown.join(', ')}${missingExtra > 0 ? ` *(+${missingExtra} more)*` : ''}`
                   : '';
                 
                 addChatMessage({

@@ -846,33 +846,45 @@ Missing Skills: ${match?.missingSkills?.join(', ') || 'None identified'}
 Assessed Fit Level: ${fitLevel.toUpperCase()} FIT
 
 <output_format>
-You MUST output in this exact markdown structure. Do NOT deviate:
+You MUST output in this exact markdown structure with BLANK LINES between each section. Do NOT deviate:
 
-[One short sentence: verdict with job title, company, and fit level]
+[One sentence: verdict with fit level — max 150 characters]
 
 **Strengths:**
-- [10 words max per bullet]
-- [10 words max per bullet]
+- [12 words max per bullet — reference specific skills/achievements]
+- [12 words max per bullet]
+- [12 words max per bullet if strong fit; 2 bullets if weak/good fit]
 
 **Gaps:**
-- [10 words max per bullet]
-- [10 words max per bullet]
+- [12 words max per bullet — name specific missing skills/qualifications]
+- [12 words max per bullet]
+- [12 words max per bullet if many gaps; 2 bullets if few gaps]
 
-**Recommendation:** [One short sentence of strategic advice]
+**Recommendation:** [One actionable sentence of strategic career advice — max 200 characters]
 </output_format>
+
+<section_limits>
+HARD CHARACTER LIMITS PER SECTION:
+- Verdict line: max 150 characters
+- Strengths section: max 250 characters total (including header)
+- Gaps section: max 250 characters total (including header)
+- Recommendation: max 200 characters
+- TOTAL: max 150 words. Count your words. If over 150, cut immediately.
+Each section MUST be separated by a blank line for clear visual readability.
+</section_limits>
 
 <competitive_advantage_rule>
 If the job description mentions a language as "advantage", "preferred", "plus", or "beneficial", AND the applicant has that language at B2 level or higher, highlight it as a KEY STRENGTH in the Strengths section (not just in matching skills). This is a competitive differentiator that should be called out explicitly, e.g., "German B2 is a competitive edge for this role."
 </competitive_advantage_rule>
 
 <strict_rules>
-- HARD LIMIT: 100 words total. Count your words. If over 100, cut immediately.
 - Address the candidate directly using "you" and "your"
 - Reference actual skill names from the match data
-- Each bullet: maximum 10 words. Cut ruthlessly.
-- Exactly 2 strength bullets. Exactly 2 gap bullets. Exactly 1 recommendation sentence.
+- Each bullet: maximum 12 words. Cut ruthlessly.
+- 2-3 strength bullets. 2-3 gap bullets. Exactly 1 recommendation sentence.
 - Do NOT start with "Based on" or "Overall"
 - Do NOT add explanations or qualifiers to bullets — be direct
+- BLANK LINE between every section — this is critical for readability
 </strict_rules>
 
 Return ONLY the structured assessment. Nothing else.`,
@@ -886,7 +898,7 @@ Your assessments follow these principles:
 2. CONSTRUCTIVENESS: Always identify genuine strengths and transferable value, even in weak fits. Every candidate has something to offer.
 3. SPECIFICITY: Reference actual skill names, tools, and experience from the provided data. Never use vague statements like "you have relevant experience."
 4. ACTIONABILITY: Your recommendation should give the candidate a concrete strategy for their application.
-5. BREVITY: This is critical. The total output MUST be under 100 words. Each bullet must be under 10 words. Cut ruthlessly — short and punchy beats thorough and long. Users scan this in 5 seconds.
+5. BREVITY: This is critical. The total output MUST be under 150 words. Each bullet must be under 12 words. Cut ruthlessly — short and punchy beats thorough and long. Users scan this in 5 seconds.
 6. PRECISION: Use exactly the numbers and percentages from the computed skill match data. Do not round or approximate.
 7. LANGUAGE: Write in a direct, coaching tone. Address the candidate as "you". Be honest but encouraging — like a mentor who respects the candidate enough to tell the truth.
 </assessment_guidelines>`,
@@ -1979,24 +1991,33 @@ Write the complete cover letter now (including signature):`,
     
     console.log('[UnifiedAgent] Generating email in language:', outputLang);
 
+    // Build JD-relevant context for the email
+    const matchingSkillsList = match?.matchingSkills?.slice(0, 8).join(', ') || 'Not specified';
+    const topResponsibilities = job?.responsibilities?.slice(0, 3).join('; ') || 'Not specified';
+    const topRequirements = job?.requiredSkills?.slice(0, 5).join(', ') || 'Not specified';
+
     const response = await callModel({
       task: 'write_email',
-      prompt: `Write a brief application email.
+      prompt: `Write a brief application email that highlights the candidate's RELEVANT qualifications for this specific role.
 
 APPLICANT: ${applicant?.name || 'Applicant'}
 JOB TITLE: ${job?.title || 'Position'}
 COMPANY: ${job?.companyName || 'Company'}
-KEY JD REQUIREMENT: ${job?.requiredSkills?.[0] || 'Not specified'}
 
-TOP ACHIEVEMENTS FROM CVs (use the most impressive metric from EITHER source):
+=== JOB-RELEVANT CONTEXT (use this to tailor the email) ===
+TOP JD REQUIREMENTS: ${topRequirements}
+KEY RESPONSIBILITIES: ${topResponsibilities}
+CANDIDATE'S MATCHING SKILLS FOR THIS ROLE: ${matchingSkillsList}
+FIT SCORE: ${match?.score ?? 0}%
 
-PRIMARY CV HIGHLIGHTS:
+=== CANDIDATE ACHIEVEMENTS (mine for the best JD-relevant metric) ===
+PRIMARY CV:
 ${rawCV?.slice(0, 500) || 'No CV provided'}
 ${masterCV ? `
-MASTER CV HIGHLIGHTS (comprehensive experience inventory):
+MASTER CV (comprehensive experience):
 ${masterCV.slice(0, 500)}` : ''}
 ${match && match.missingSkills.length > 0 ? `
-SKILL CONSTRAINT: The following skills are NOT in the applicant's background. Do not claim them in the email: ${match.missingSkills.join(', ')}` : ''}
+SKILL CONSTRAINT: The following skills are NOT in the applicant's background. Do NOT claim them: ${match.missingSkills.join(', ')}` : ''}
 
 INSTRUCTIONS:
 1. Subject line: MAXIMUM 60 characters total. Format below.
@@ -2059,10 +2080,17 @@ GREETING RULE:
 
 STYLE: Brief, direct, and genuinely warm. The email should feel like it was written by a real person in 2 minutes — not generated by AI. Use natural phrasing. One strong opening hook, one clear value statement, one professional close. The tone should make the recipient want to open the attached CV immediately.
 
+JOB-RELEVANCE PRIORITY (CRITICAL):
+- The email MUST connect the candidate's experience to THIS SPECIFIC JOB's requirements
+- Lead with a metric/achievement that relates to the JD's top requirements or responsibilities
+- Reference at least one MATCHING SKILL from the provided list in the body
+- Do NOT write a generic "I have X years of experience" email — tie every claim to a JD requirement
+- The reader should immediately see WHY this candidate fits THIS role
+
 DUAL-CV SOURCING:
 - You have TWO sources: Primary CV and Master CV
-- Use the MOST impressive metric from EITHER source
-- The Master CV is a comprehensive inventory - mine it for the best achievement
+- Use the MOST impressive metric from EITHER source that is RELEVANT to the JD
+- The Master CV is a comprehensive inventory - mine it for the best JD-relevant achievement
 - Every claim must exist in at least one CV source
 
 EMAIL SUBJECT LINE FORMAT (STRICT):
