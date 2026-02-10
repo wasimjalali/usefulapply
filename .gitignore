@@ -33,6 +33,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# blog source files (originals before processing)
+Blog-*/
+
 # vercel
 .vercel
 

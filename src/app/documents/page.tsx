@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { FileUpload } from '@/components/FileUpload';
@@ -35,7 +34,6 @@ import Link from 'next/link';
 import type { ParsedCV } from '@/lib/types';
 
 export default function DocumentsPage() {
-  const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
   
   const {
@@ -107,24 +105,15 @@ export default function DocumentsPage() {
     loadDocuments();
   }, [user]);
 
-  // Redirect to login if not authenticated
+  // Set loading to false immediately for anonymous users (no Supabase docs to load)
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push('/auth/login');
+      setIsLoadingDocs(false);
     }
-  }, [authLoading, user, router]);
+  }, [authLoading, user]);
 
   // Show loading state while checking auth
   if (authLoading) {
-    return (
-      <div className="min-h-screen bg-cream-100 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-navy-600" />
-      </div>
-    );
-  }
-
-  // Don't render if not authenticated
-  if (!user) {
     return (
       <div className="min-h-screen bg-cream-100 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-navy-600" />

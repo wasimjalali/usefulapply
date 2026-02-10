@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import KarkoLogo from '@/components/KarkoLogo';
 import { useRouter } from 'next/navigation';
+import { SignUpWallModal, hasUsedFreeGeneration, markFreeGenerationUsed } from '@/components/SignUpWallModal';
 
 interface ChatPanelProps {
   onTabChange?: (tab: 'cv' | 'cover-letter' | 'email') => void;
@@ -76,6 +77,8 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
   const [fitAnalysisJD, setFitAnalysisJD] = useState<string>('');
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
   const [applicationMode, setApplicationMode] = useState<'analyze_first' | 'apply_directly'>('analyze_first');
+  const [showSignUpWall, setShowSignUpWall] = useState(false);
+  const [signUpWallTrigger, setSignUpWallTrigger] = useState<'download' | 'new-application' | 'general'>('new-application');
   
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -153,6 +156,18 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
     if (!inputValue.trim()) return;
 
     const messageContent = inputValue.trim();
+
+    // Gate: If anonymous user has already used their free generation and this is a new JD, show signup wall
+    if (!user && hasUsedFreeGeneration()) {
+      const jobKeywords = /\b(responsibilities|requirements|qualifications|experience required|skills required|about the role|job description|we are looking for|you will|must have|nice to have|salary|benefits|apply|candidate|position|vacancy)\b/i;
+      const isLikelyJD = messageContent.length > 100 || jobKeywords.test(messageContent);
+      if (isLikelyJD) {
+        setSignUpWallTrigger('new-application');
+        setShowSignUpWall(true);
+        return;
+      }
+    }
+
     setInputValue('');
 
     if (!currentSession) {
@@ -626,6 +641,11 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
                   });
                 }
                 
+                // Mark free generation as used for anonymous users
+                if (!user) {
+                  markFreeGenerationUsed();
+                }
+
                 addChatMessage({
                   role: 'assistant',
                   content: `✅ **Analysis Complete!**\n\nYour CV has been optimized for this role.\n\nCheck the **CV tab** to review the changes.`,
@@ -729,6 +749,12 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
         });
         break;
       case 'start-new-application':
+        // Gate: If anonymous user has already used their free generation, show signup wall
+        if (!user && hasUsedFreeGeneration()) {
+          setSignUpWallTrigger('new-application');
+          setShowSignUpWall(true);
+          return;
+        }
         setFitAnalysisContextId(null);
         setFitAnalysisJD('');
         useAppStore.getState().clearCurrentSession();
@@ -740,6 +766,12 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
   };
 
   const handleNewApplication = () => {
+    // Gate: If anonymous user has already used their free generation, show signup wall
+    if (!user && hasUsedFreeGeneration()) {
+      setSignUpWallTrigger('new-application');
+      setShowSignUpWall(true);
+      return;
+    }
     useAppStore.getState().clearCurrentSession();
     useAppStore.getState().resetGenerated();
     setShowHistory(false);
@@ -985,6 +1017,13 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
           showModeSelector={!!currentCV}
         />
       </div>
+
+      {/* Sign Up Wall Modal */}
+      <SignUpWallModal
+        isOpen={showSignUpWall}
+        onClose={() => setShowSignUpWall(false)}
+        trigger={signUpWallTrigger}
+      />
     </>
   );
 }

@@ -11,12 +11,14 @@ import { useToast } from './ui/Toast';
 import { PortalTooltip } from './ui/PortalTooltip';
 
 export function EmailPanel() {
+  const { user } = useAuth();
   const { 
     currentSession,
     updateCurrentSession,
     isGenerating,
     isAgentWorking,
   } = useAppStore();
+  const [showSignUpWall, setShowSignUpWall] = useState(false);
   
   const email = currentSession?.email;
   const followUpEmail = currentSession?.followUpEmail;
@@ -609,6 +611,12 @@ export function EmailPanel() {
           </Card>
         )}
       </div>
+      {/* Sign Up Wall Modal */}
+      <SignUpWallModal
+        isOpen={showSignUpWall}
+        onClose={() => setShowSignUpWall(false)}
+        trigger="download"
+      />
     </div>
   );
 }

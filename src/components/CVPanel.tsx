@@ -30,6 +30,7 @@ import {
 import { EditableCVCanvas } from './EditableCVCanvas';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import { useAuth } from '@/contexts/AuthContext';
+import { SignUpWallModal } from '@/components/SignUpWallModal';
 import Link from 'next/link';
 
 export function CVPanel() {
@@ -42,7 +43,8 @@ export function CVPanel() {
     isAgentWorking,
     profilePhoto,
   } = useAppStore();
-  const { profile, updateProfile } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
+  const [showSignUpWall, setShowSignUpWall] = useState(false);
   
   const generatedCV = currentSession?.generatedCV;
   const optimizedCVData = currentSession?.optimizedCVData;  // Solution B: Structured JSON from AI
@@ -175,6 +177,11 @@ export function CVPanel() {
   };
 
   const handleDownloadPDF = async () => {
+    // Gate: Anonymous users must sign up to download
+    if (!user) {
+      setShowSignUpWall(true);
+      return;
+    }
     if (!cvTemplateRef.current || !cvData) return;
     
     setIsDownloading(true);
@@ -808,6 +815,13 @@ export function CVPanel() {
           </div>
         )}
       </div>
+
+      {/* Sign Up Wall Modal */}
+      <SignUpWallModal
+        isOpen={showSignUpWall}
+        onClose={() => setShowSignUpWall(false)}
+        trigger="download"
+      />
     </div>
   );
 }

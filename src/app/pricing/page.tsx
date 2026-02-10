@@ -223,6 +223,7 @@ export default function PricingPage() {
   const handleSubscribe = async (planTier: string) => {
     if (!user) {
       router.push(`/auth/signup?plan=${planTier}`);
+      // Note: paid plans need signup. Free tier uses /dashboard directly.
       return;
     }
     setLoadingPlan(planTier);
@@ -489,7 +490,7 @@ export default function PricingPage() {
                     <div className="mt-auto pt-6">
                       {tier.price === 0 ? (
                         <Link
-                          href="/auth/signup"
+                          href="/dashboard"
                           className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold transition-all border-2 border-navy-200 text-navy-600 hover:bg-navy-50 hover:border-navy-400"
                         >
                           {tier.cta}
@@ -734,10 +735,10 @@ export default function PricingPage() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href="/auth/signup"
+              href="/dashboard"
               className="px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg"
             >
-              Get Started Free
+              Try It Free
             </Link>
             <Link
               href="/"

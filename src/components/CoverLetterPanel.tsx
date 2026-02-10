@@ -10,9 +10,13 @@ import { jsPDF } from 'jspdf';
 import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import { useToast } from './ui/Toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { SignUpWallModal } from '@/components/SignUpWallModal';
 
 export function CoverLetterPanel() {
+  const { user } = useAuth();
   const { currentSession, isGenerating, isAgentWorking, setCoverLetter, currentCV, structuredCV } = useAppStore();
+  const [showSignUpWall, setShowSignUpWall] = useState(false);
   const coverLetter = currentSession?.coverLetter;
   const generatedCV = currentSession?.generatedCV;
   const requirements = currentSession?.requirements;
@@ -92,6 +96,12 @@ ${letter.signatureName}`;
   };
 
   const handleDownloadPDF = async () => {
+    // Gate: Anonymous users must sign up to download
+    if (!user) {
+      setShowSignUpWall(true);
+      setShowDownloadMenu(false);
+      return;
+    }
     const letterToDownload = editedCoverLetter || coverLetter;
     if (!letterToDownload) return;
     const showAddressReminder = hasAddressPlaceholder();
@@ -234,6 +244,12 @@ ${letter.signatureName}`;
   };
 
   const handleDownloadDOCX = async () => {
+    // Gate: Anonymous users must sign up to download
+    if (!user) {
+      setShowSignUpWall(true);
+      setShowDownloadMenu(false);
+      return;
+    }
     const letterToDownload = editedCoverLetter || coverLetter;
     if (!letterToDownload) return;
     const showAddressReminder = hasAddressPlaceholder();
@@ -665,6 +681,13 @@ ${letter.signatureName}`;
           </Card>
         )}
       </div>
+
+      {/* Sign Up Wall Modal */}
+      <SignUpWallModal
+        isOpen={showSignUpWall}
+        onClose={() => setShowSignUpWall(false)}
+        trigger="download"
+      />
     </div>
   );
 }

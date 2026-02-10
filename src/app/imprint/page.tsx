@@ -1,5 +1,13 @@
+import type { Metadata } from 'next';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
+
+export const metadata: Metadata = {
+  title: 'Imprint (Impressum)',
+  description:
+    'Legal information and company details for KarKo AI. Impressum as required by German law.',
+  alternates: { canonical: '/imprint' },
+};
 
 export default function ImprintPage() {
   return (
@@ -14,10 +22,10 @@ export default function ImprintPage() {
             <section>
               <h2 className="text-2xl font-semibold text-navy-600 mb-4">Company Information</h2>
               <div className="text-warm-gray">
-                <p className="font-semibold text-charcoal text-lg">Fresh Grocery LLC</p>
+                <p className="font-semibold text-charcoal text-lg">Karko AI Inc</p>
                 <p className="mt-4">
-                  30 N Gould St Ste N<br />
-                  Sheridan, WY 82801<br />
+                  1207 Delaware Ave #412<br />
+                  Wilmington, DE 19806<br />
                   USA
                 </p>
               </div>
@@ -34,7 +42,7 @@ export default function ImprintPage() {
             <section>
               <h2 className="text-2xl font-semibold text-navy-600 mb-4">Responsible for Content</h2>
               <p className="text-warm-gray">
-                Fresh Grocery LLC
+                Karko AI Inc
               </p>
             </section>
 
@@ -49,7 +57,7 @@ export default function ImprintPage() {
             <section>
               <h2 className="text-2xl font-semibold text-navy-600 mb-4">Copyright</h2>
               <p className="text-warm-gray">
-                © 2026 Fresh Grocery LLC. All rights reserved.
+                © 2026 Karko AI Inc. All rights reserved.
               </p>
             </section>
           </div>

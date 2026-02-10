@@ -27,32 +27,26 @@ export default function Home() {
 
         <div className="max-w-6xl mx-auto relative">
           <div className="text-center max-w-4xl mx-auto">
-            {/* Trust badge */}
-            <ScrollReveal delay={0} direction="down" distance={20}>
-            <div className="inline-flex items-center gap-2 px-4 py-2 glass rounded-full text-sm text-charcoal mb-8 shadow-sm">
-              <Sparkles className="w-4 h-4 text-gold-400" />
-              <span className="font-medium">Agentic AI that does the work for you</span>
-            </div>
-            </ScrollReveal>
-
+            
             <ScrollReveal delay={150}>
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-navy-600 mb-6 leading-[1.1] tracking-tight">
-              One Click. Complete Job Application.{' '}
-              <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">Under 90 Seconds.</span>
+              Get Your Tailored CV, Cover Letter, and Email{' '}
+              <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">in 90 Seconds.</span>{' '}
+              Just Paste the Job Description.
             </h1>
             </ScrollReveal>
             <ScrollReveal delay={300}>
             <p className="text-xl md:text-2xl text-warm-gray mb-10 max-w-2xl mx-auto leading-relaxed">
-              What takes job seekers 45-60 minutes manually (tailoring a CV, writing a cover letter, drafting a professional email), KarKo AI delivers in under 90 seconds.
+              Karko AI reads the job description, analyzes your fit, and generates an ATS-optimized application package ready to send.
             </p>
             </ScrollReveal>
             <ScrollReveal delay={450}>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                href="/auth/signup"
+                href="/dashboard"
                 className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-lg"
               >
-                Start Free, No Credit Card
+                Try It Free, No Sign Up
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <Link
@@ -360,10 +354,10 @@ export default function Home() {
               <div className="text-4xl font-bold text-navy-600 mb-1">Free</div>
               <p className="text-sm text-warm-gray mb-6">20 applications included</p>
               <Link
-                href="/auth/signup"
+                href="/dashboard"
                 className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium border-2 border-navy-200 text-navy-600 hover:bg-navy-50 transition-colors"
               >
-                Start Free
+                Try Free
               </Link>
             </div>
             </ScrollReveal>
@@ -487,10 +481,10 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href="/auth/signup"
+              href="/dashboard"
               className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-lg"
             >
-              Get Started Free
+              Try It Free
               <ArrowRight className="w-5 h-5" />
             </Link>
             <Link

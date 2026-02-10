@@ -32,8 +32,8 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/auth/signup" className="text-navy-200 hover:text-white text-sm transition-colors">
-                  Get Started Free
+                <Link href="/dashboard" className="text-navy-200 hover:text-white text-sm transition-colors">
+                  Try It Free
                 </Link>
               </li>
               <li>
@@ -51,6 +51,11 @@ export default function Footer() {
               <li>
                 <Link href="/about" className="text-navy-200 hover:text-white text-sm transition-colors">
                   About Us
+                </Link>
+              </li>
+              <li>
+                <Link href="/blog" className="text-navy-200 hover:text-white text-sm transition-colors">
+                  Blog
                 </Link>
               </li>
               <li>

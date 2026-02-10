@@ -3,11 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, User } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, User, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { checkPasswordStrength } from '@/lib/utils/password-strength';
 import KarkoLogo from '@/components/KarkoLogo';
 
 export default function SignUpPage() {
@@ -17,22 +16,14 @@ export default function SignUpPage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  
-  const passwordStrength = checkPasswordStrength(password);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
 
     if (password.length < 6) {
       setError('Password must be at least 6 characters');
@@ -82,10 +73,18 @@ export default function SignUpPage() {
           <div className="flex justify-center mb-3">
             <KarkoLogo variant="full" size="lg" theme="light" />
           </div>
-          <p className="text-warm-gray mt-2">Create your account to get started.</p>
+          <p className="text-warm-gray mt-2">Create your free account to get started.</p>
         </div>
 
         <Card className="p-8">
+          {/* Free tier highlight */}
+          <div className="mb-5 p-3 bg-cream-50 rounded-xl border border-cream-200">
+            <div className="flex items-center gap-2 text-sm">
+              <Sparkles className="w-4 h-4 text-gold-500 flex-shrink-0" />
+              <span className="text-charcoal font-medium">Free plan includes 40 credits (~20 applications/month)</span>
+            </div>
+          </div>
+
           {/* Email Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
@@ -153,56 +152,14 @@ export default function SignUpPage() {
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              {password && (
-                <div className="mt-2">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-warm-gray">Password strength:</span>
-                    <span className={`text-xs font-medium text-${passwordStrength.color}-600`}>
-                      {passwordStrength.feedback}
-                    </span>
-                  </div>
-                  <div className="h-1.5 bg-cream-200 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full bg-${passwordStrength.color}-500 transition-all duration-300`}
-                      style={{ width: `${passwordStrength.percentage}%` }}
-                    />
-                  </div>
-                </div>
-              )}
             </div>
 
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-charcoal mb-1.5">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-warm-gray" />
-                <input
-                  id="confirmPassword"
-                  type={showPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  className="w-full pl-10 pr-4 py-2.5 border border-cream-300 rounded-lg focus:border-navy-500 focus:ring-1 focus:ring-navy-500 focus:outline-none transition-colors"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-start gap-2">
-              <input 
-                type="checkbox" 
-                id="terms"
-                required
-                className="w-4 h-4 mt-0.5 rounded border-cream-300 text-navy-600 focus:ring-navy-500" 
-              />
-              <label htmlFor="terms" className="text-sm text-warm-gray cursor-pointer">
-                I agree to the{' '}
-                <Link href="/terms" className="text-navy-600 hover:text-navy-700">Terms of Service</Link>
-                {' '}and{' '}
-                <Link href="/privacy" className="text-navy-600 hover:text-navy-700">Privacy Policy</Link>
-              </label>
-            </div>
+            <p className="text-xs text-warm-gray">
+              By signing up, you agree to our{' '}
+              <Link href="/terms" className="text-navy-600 hover:underline">Terms</Link>
+              {' '}and{' '}
+              <Link href="/privacy" className="text-navy-600 hover:underline">Privacy Policy</Link>
+            </p>
 
             <Button
               type="submit"

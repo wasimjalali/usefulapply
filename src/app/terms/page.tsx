@@ -1,5 +1,13 @@
+import type { Metadata } from 'next';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
+
+export const metadata: Metadata = {
+  title: 'Terms of Service',
+  description:
+    'Read the KarKo AI Terms of Service. Understand the rules, responsibilities, and conditions for using our AI-powered job application assistant.',
+  alternates: { canonical: '/terms' },
+};
 
 export default function TermsPage() {
   return (
@@ -89,7 +97,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-2xl font-semibold text-navy-600 mb-4">9. Dispute Resolution</h2>
               <p className="text-warm-gray">
-                These terms are governed by the laws of Wyoming, USA. Any disputes shall be resolved in the courts of Wyoming.
+                These terms are governed by the laws of Delaware, USA. Any disputes shall be resolved in the courts of Delaware.
               </p>
             </section>
 
@@ -106,7 +114,7 @@ export default function TermsPage() {
                 Email: <a href="mailto:hello@karkoai.com" className="text-navy-600 hover:underline">hello@karkoai.com</a>
               </p>
               <p className="text-warm-gray mt-2">
-                Address: Fresh Grocery LLC, 30 N Gould St Ste N, Sheridan, WY 82801, USA
+                Address: Karko AI Inc, 1207 Delaware Ave #412, Wilmington, DE 19806, USA
               </p>
             </section>
           </div>

@@ -21,6 +21,7 @@ export default function Navbar() {
     { href: '/', label: 'Home' },
     { href: '/master-cv', label: 'Master CV' },
     { href: '/pricing', label: 'Pricing' },
+    { href: '/blog', label: 'Blog' },
     { href: '/about', label: 'About' },
     { href: '/contact', label: 'Contact' },
   ];
@@ -56,10 +57,10 @@ export default function Navbar() {
               Log in
             </Link>
             <Link
-              href="/auth/signup"
+              href="/dashboard"
               className="px-5 py-2.5 text-sm font-semibold bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm hover:shadow-md"
             >
-              Get Started Free
+              Try It Free
             </Link>
           </div>
 
@@ -96,11 +97,11 @@ export default function Navbar() {
                   Log in
                 </Link>
                 <Link
-                  href="/auth/signup"
+                  href="/dashboard"
                   className="px-4 py-3 text-sm font-semibold bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all text-center shadow-sm"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Get Started Free
+                  Try It Free
                 </Link>
               </div>
             </nav>
