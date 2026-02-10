@@ -97,6 +97,11 @@ job-copilot/
 ├── .env.local                         # Environment variables (gitignored)
 ├── public/                            # Static assets
 │   ├── karko-ai.png                   # OG image
+│   ├── blog/                          # Blog post images
+│   │   ├── job-application-time-clock.png
+│   │   ├── 100-applications-75-hours.png
+│   │   ├── manual-vs-karko-ai.png
+│   │   └── time-comparison-chart.png
 │   └── ...
 ├── supabase/                          # Supabase config
 │
@@ -509,11 +514,16 @@ npm run lint     # Run ESLint
 - **Auto-indexed** — Sitemap, listing page, and SEO metadata are generated automatically
 - **Markdown content** — Blog post content uses Markdown, rendered by `BlogContent.tsx`
 
+### Published Blog Posts
+1. **"How Long Does It Really Take to Apply for a Job in 2026?"** — `/blog/how-long-to-apply-for-job-2026` (Feb 10, 2026, featured, category: Job Search)
+   - 4 custom images in `public/blog/`: `job-application-time-clock.png`, `100-applications-75-hours.png`, `manual-vs-karko-ai.png`, `time-comparison-chart.png`
+
 ### Adding a New Blog Post
 1. Open `src/lib/blog/posts.ts`
 2. Add a new `BlogPost` object to the `blogPosts` array with: slug, title, description, content (markdown), author, publishedAt, readingTime, category, tags
-3. Set `featured: true` to pin it at the top of the listing page
-4. That's it — the sitemap, listing page, individual page, and JSON-LD are all automatic
+3. Place any blog images in `public/blog/` and reference them as `/blog/image-name.png` in the markdown content
+4. Set `featured: true` to pin it at the top of the listing page
+5. That's it — the sitemap, listing page, individual page, and JSON-LD are all automatic
 
 ### SEO Features (per blog post)
 - Dynamic `<title>` and `<meta description>` via `generateMetadata()`
@@ -559,4 +569,4 @@ Explicitly allowed in robots.ts: GPTBot, ChatGPT-User, Google-Extended, anthropi
 
 ---
 
-*Last Updated: February 9, 2026*
+*Last Updated: February 10, 2026*
