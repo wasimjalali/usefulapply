@@ -218,9 +218,11 @@ export function EmailPanel() {
         });
       } else {
         console.error('Follow-up email regeneration failed:', await response.text());
+        toast.error('Failed to regenerate follow-up email. Please try again.');
       }
     } catch (error) {
       console.error('Follow-up email regeneration error:', error);
+      toast.error('An error occurred while regenerating the follow-up email.');
     } finally {
       setIsLoadingFollowUp(false);
     }

@@ -84,7 +84,7 @@ function ToastContainer({ toasts, removeToast }: ToastContainerProps) {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed top-28 left-4 z-[9999] flex flex-col gap-2 max-w-sm md:max-w-md" style={{ maxWidth: 'calc(100vw - 500px)' }}>
+    <div className="fixed top-28 left-4 z-[9999] flex flex-col gap-2 max-w-sm md:max-w-md" style={{ maxWidth: 'calc(max(200px, 100vw - 500px))' }}>
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
       ))}
