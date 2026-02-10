@@ -8,14 +8,14 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className = '', variant = 'primary', size = 'md', isLoading, children, disabled, ...props }, ref) => {
-    const baseStyles = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+    const baseStyles = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-navy-400/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
     
     const variants = {
-      primary: 'bg-navy-600 text-white hover:bg-navy-700 focus:ring-navy-500',
-      secondary: 'bg-warm-gray text-white hover:bg-gray-600 focus:ring-gray-500',
-      outline: 'border-2 border-navy-200 text-navy-600 hover:bg-cream-100 focus:ring-navy-500',
-      ghost: 'text-navy-600 hover:bg-cream-200 focus:ring-navy-500',
-      gold: 'bg-gold-400 text-navy-900 hover:bg-gold-500 focus:ring-gold-400',
+      primary: 'bg-navy-600 text-white hover:bg-navy-700',
+      secondary: 'bg-warm-gray text-white hover:bg-gray-600',
+      outline: 'border border-navy-200 text-navy-600 hover:bg-cream-100',
+      ghost: 'text-navy-600 hover:bg-cream-200',
+      gold: 'bg-gold-400 text-navy-900 hover:bg-gold-500',
     };
     
     const sizes = {

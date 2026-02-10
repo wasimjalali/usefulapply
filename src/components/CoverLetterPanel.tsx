@@ -92,9 +92,6 @@ ${letter.signatureName}`;
       await navigator.clipboard.writeText(fullText);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-      if (hasAddressPlaceholder()) {
-        toast.warning("Don't forget to add the company address before sending!", 6000);
-      }
     }
   };
 
@@ -107,9 +104,7 @@ ${letter.signatureName}`;
     }
     const letterToDownload = editedCoverLetter || coverLetter;
     if (!letterToDownload) return;
-    if (hasAddressPlaceholder()) {
-      toast.warning("Don't forget to add the company address before sending!", 6000);
-    }
+    const showAddressReminder = hasAddressPlaceholder();
     
     setIsDownloading(true);
     setShowDownloadMenu(false);
@@ -237,6 +232,9 @@ ${letter.signatureName}`;
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       toast.success('PDF downloaded successfully!');
+      if (showAddressReminder) {
+        setTimeout(() => toast.warning("Don't forget to add the company address before sending!", 6000), 500);
+      }
     } catch (error) {
       console.error('PDF generation error:', error);
       toast.error('Failed to download PDF. Try copying the text instead.');
@@ -254,9 +252,7 @@ ${letter.signatureName}`;
     }
     const letterToDownload = editedCoverLetter || coverLetter;
     if (!letterToDownload) return;
-    if (hasAddressPlaceholder()) {
-      toast.warning("Don't forget to add the company address before sending!", 6000);
-    }
+    const showAddressReminder = hasAddressPlaceholder();
     
     setIsDownloading(true);
     setShowDownloadMenu(false);
@@ -345,6 +341,9 @@ ${letter.signatureName}`;
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       toast.success('DOCX downloaded successfully!');
+      if (showAddressReminder) {
+        setTimeout(() => toast.warning("Don't forget to add the company address before sending!", 6000), 500);
+      }
     } catch (error) {
       console.error('DOCX generation error:', error);
       toast.error('Failed to download DOCX. Try copying the text instead.');

@@ -144,6 +144,11 @@ export interface ApplicationSession {
   
   coverLetter: GeneratedCoverLetter | null;
   email: GeneratedEmail | null;
+  followUpEmail: {
+    subject: string;
+    body: string;
+    recommendedDelay: number;
+  } | null;
   companyResearch: CompanyResearch | null;
   
   cvEdits: CVEdit[];
@@ -238,6 +243,7 @@ export const useSessionStore = create<SessionState & SessionActions>()(
           generatedCV: null,
           coverLetter: null,
           email: null,
+          followUpEmail: null,
           companyResearch: null,
           cvEdits: [],
           chatMessages: [],

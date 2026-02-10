@@ -84,7 +84,7 @@ function ToastContainer({ toasts, removeToast }: ToastContainerProps) {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 max-w-sm">
+    <div className="fixed top-28 left-4 z-[9999] flex flex-col gap-2 max-w-sm md:max-w-md" style={{ maxWidth: 'calc(max(200px, 100vw - 500px))' }}>
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
       ))}
@@ -98,10 +98,10 @@ interface ToastItemProps {
 }
 
 const toastStyles: Record<ToastType, { bg: string; icon: typeof CheckCircle; iconColor: string }> = {
-  success: { bg: 'bg-green-50 border-green-200', icon: CheckCircle, iconColor: 'text-green-500' },
+  success: { bg: 'bg-navy-700 border-navy-600 text-cream-50', icon: CheckCircle, iconColor: 'text-gold-400' },
   error: { bg: 'bg-red-50 border-red-200', icon: XCircle, iconColor: 'text-red-500' },
-  warning: { bg: 'bg-amber-50 border-amber-200', icon: AlertTriangle, iconColor: 'text-amber-500' },
-  info: { bg: 'bg-blue-50 border-blue-200', icon: Info, iconColor: 'text-blue-500' },
+  warning: { bg: 'bg-cream-100 border-gold-300', icon: AlertTriangle, iconColor: 'text-gold-500' },
+  info: { bg: 'bg-navy-700 border-navy-600 text-cream-50', icon: Info, iconColor: 'text-cream-200' },
 };
 
 function ToastItem({ toast, onClose }: ToastItemProps) {
@@ -114,10 +114,10 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
       role="alert"
     >
       <Icon className={`h-5 w-5 flex-shrink-0 ${style.iconColor}`} />
-      <p className="text-sm text-charcoal flex-1">{toast.message}</p>
+      <p className={`text-sm flex-1 ${toast.type === 'success' || toast.type === 'info' ? 'text-cream-50' : 'text-charcoal'}`}>{toast.message}</p>
       <button
         onClick={onClose}
-        className="p-0.5 rounded text-warm-gray hover:text-charcoal transition-colors"
+        className={`p-0.5 rounded transition-colors ${toast.type === 'success' || toast.type === 'info' ? 'text-cream-200 hover:text-white' : 'text-warm-gray hover:text-charcoal'}`}
         aria-label="Dismiss"
       >
         <X className="h-4 w-4" />

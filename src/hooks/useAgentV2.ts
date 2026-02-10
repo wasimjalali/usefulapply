@@ -155,6 +155,11 @@ export interface AgentV2Result {
   optimizedCVData?: OptimizedCVData;  // Solution B: Structured JSON from AI
   coverLetter?: string;  // Now directly a string
   email?: string;        // Now directly a string
+  followUpEmail?: {
+    subject: string;
+    body: string;
+    recommendedDelay: number;
+  } | null;
   globalContext?: unknown;
 }
 

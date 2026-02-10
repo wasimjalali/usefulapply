@@ -37,9 +37,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine credit action based on type
-    const creditAction = type === 'cover-letter' ? 'COVER_LETTER_REGEN' : 'EMAIL_REGEN';
+    const creditAction = type === 'cover-letter' ? 'COVER_LETTER_REGEN' 
+      : type === 'follow_up_email' ? 'FOLLOW_UP_REGEN' 
+      : 'EMAIL_REGEN';
     
-    // Check and deduct credits (1 credit for regeneration)
+    // Check and deduct credits (follow-up regen is free, others cost credits)
     const creditResult = await checkAndDeductCredits(user.id, creditAction);
     
     if (!creditResult.success) {
@@ -89,10 +91,23 @@ export async function POST(request: NextRequest) {
         remainingCredits: creditResult.remainingCredits,
         tokens,
       });
+    } else if (type === 'follow_up_email') {
+      // Set applicationEmail on masterContext from the request context so follow-up can reference it
+      if (context.applicationEmail) {
+        masterContext.applicationEmail = context.applicationEmail;
+      }
+      const { result: followUpEmail, tokens } = await unifiedWriterAgent.generateFollowUpEmail(masterContext);
+      clearServerSupabaseClient();
+      return NextResponse.json({ 
+        followUpEmail,
+        creditsDeducted: CREDIT_COSTS.FOLLOW_UP_REGEN,
+        remainingCredits: creditResult.remainingCredits,
+        tokens,
+      });
     } else {
       clearServerSupabaseClient();
       return NextResponse.json(
-        { error: 'Invalid type. Must be "cover-letter" or "email"' },
+        { error: 'Invalid type. Must be "cover-letter", "email", or "follow_up_email"' },
         { status: 400 }
       );
     }

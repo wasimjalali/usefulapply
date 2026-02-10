@@ -4,12 +4,11 @@ import { useState } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useAppStore } from '@/store/useAppStore';
-import { Send, Copy, Check, Mail, RefreshCw, Edit3, Eye } from 'lucide-react';
+import { Send, Copy, Check, Mail, RefreshCw, Edit3, Eye, Clock } from 'lucide-react';
 import type { GeneratedEmail } from '@/lib/types';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import { useToast } from './ui/Toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { SignUpWallModal } from '@/components/SignUpWallModal';
+import { PortalTooltip } from './ui/PortalTooltip';
 
 export function EmailPanel() {
   const { user } = useAuth();
@@ -22,6 +21,7 @@ export function EmailPanel() {
   const [showSignUpWall, setShowSignUpWall] = useState(false);
   
   const email = currentSession?.email;
+  const followUpEmail = currentSession?.followUpEmail;
   const generatedCV = currentSession?.generatedCV;
   const requirements = currentSession?.requirements;
   const jobDescription = currentSession?.jobDescription;
@@ -34,13 +34,18 @@ export function EmailPanel() {
 
   const [copied, setCopied] = useState(false);
   const [copiedSubject, setCopiedSubject] = useState(false);
+  const [copiedFollowUpSubject, setCopiedFollowUpSubject] = useState(false);
+  const [copiedFollowUpBody, setCopiedFollowUpBody] = useState(false);
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
+  const [isLoadingFollowUp, setIsLoadingFollowUp] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedEmail, setEditedEmail] = useState<GeneratedEmail | null>(null);
+  const [editedFollowUp, setEditedFollowUp] = useState<{ subject: string; body: string; recommendedDelay: number } | null>(null);
   const { toast } = useToast();
 
   // Get active email (edited or original)
   const activeEmail = editedEmail || email;
+  const activeFollowUp = editedFollowUp || followUpEmail;
 
   // Update edited email field
   const updateEmailField = (field: 'subject' | 'body', value: string) => {
@@ -48,12 +53,21 @@ export function EmailPanel() {
     setEditedEmail({ ...activeEmail, [field]: value });
   };
 
-  // Save edited email
+  // Update edited follow-up email field
+  const updateFollowUpField = (field: 'subject' | 'body', value: string) => {
+    if (!activeFollowUp) return;
+    setEditedFollowUp({ ...activeFollowUp, [field]: value });
+  };
+
+  // Save all edits (primary + follow-up)
   const handleSaveEdits = () => {
     if (editedEmail) {
       setEmail(editedEmail);
-      setIsEditMode(false);
     }
+    if (editedFollowUp) {
+      updateCurrentSession({ followUpEmail: editedFollowUp });
+    }
+    setIsEditMode(false);
   };
 
   const handleGenerateEmail = async () => {
@@ -135,76 +149,133 @@ export function EmailPanel() {
     }
   };
 
-  const handleCopyAll = async () => {
-    // Gate: Anonymous users must sign up to copy email
-    if (!user) {
-      setShowSignUpWall(true);
-      return;
-    }
-    if (email) {
-      // Format: Subject line followed by blank line and body
-      const fullEmail = `Subject: ${email.subject}\n\n${email.body}`;
-      await navigator.clipboard.writeText(fullEmail);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+  const handleCopyFollowUpSubject = async () => {
+    if (followUpEmail) {
+      await navigator.clipboard.writeText(followUpEmail.subject);
+      setCopiedFollowUpSubject(true);
+      setTimeout(() => setCopiedFollowUpSubject(false), 2000);
     }
   };
 
-  const handleOpenInEmail = () => {
-    // Gate: Anonymous users must sign up to open in email
-    if (!user) {
-      setShowSignUpWall(true);
-      return;
+  const handleCopyFollowUpBody = async () => {
+    if (followUpEmail) {
+      await navigator.clipboard.writeText(followUpEmail.body);
+      setCopiedFollowUpBody(true);
+      setTimeout(() => setCopiedFollowUpBody(false), 2000);
     }
-    // Use activeEmail which respects edited content
-    const emailToUse = activeEmail || email;
+  };
+
+  const handleRegenerateFollowUp = async () => {
+    if (!jobDescription) return;
     
+    const { currentCV, structuredCV } = useAppStore.getState();
+    if (!currentCV) return;
+
+    setIsLoadingFollowUp(true);
+    try {
+      const context = {
+        sessionId: currentSession?.id || 'regenerate',
+        jobDescription,
+        rawCV: currentCV.rawText,
+        applicant: structuredCV?.personal ? {
+          name: structuredCV.personal.fullName || '',
+          email: structuredCV.personal.email || '',
+          phone: structuredCV.personal.phone || '',
+          skills: [],
+          tools: [],
+          languages: [],
+          experiences: [],
+          certifications: [],
+        } : undefined,
+        job: requirements ? {
+          title: requirements.title || '',
+          companyName: requirements.company || '',
+          requiredSkills: requirements.hardSkills || [],
+          niceToHaveSkills: requirements.niceToHave || [],
+          responsibilities: requirements.responsibilities || [],
+        } : undefined,
+        companyResearch: companyResearch || undefined,
+        applicationEmail: email ? { subject: email.subject, body: email.body } : undefined,
+      };
+
+      const response = await fetch('/api/regenerate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'follow_up_email',
+          context,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        updateCurrentSession({
+          followUpEmail: {
+            subject: data.followUpEmail.subject,
+            body: data.followUpEmail.body,
+            recommendedDelay: data.followUpEmail.recommendedDelay || 5,
+          },
+        });
+      } else {
+        console.error('Follow-up email regeneration failed:', await response.text());
+        toast.error('Failed to regenerate follow-up email. Please try again.');
+      }
+    } catch (error) {
+      console.error('Follow-up email regeneration error:', error);
+      toast.error('An error occurred while regenerating the follow-up email.');
+    } finally {
+      setIsLoadingFollowUp(false);
+    }
+  };
+
+  // Open mailto: using window.location.href — the standard, reliable approach.
+  const openMailto = (subject: string, body: string, label: string) => {
+    console.log('[mailto] Starting openMailto for:', label);
+    console.log('[mailto] Subject:', subject?.substring(0, 50));
+    console.log('[mailto] Body length:', body?.length);
+
+    // Always copy to clipboard as backup
+    const fullText = `Subject: ${subject}\n\n${body}`;
+    navigator.clipboard.writeText(fullText).then(() => {
+      console.log('[mailto] Copied to clipboard successfully');
+    }).catch((err) => {
+      console.warn('[mailto] Clipboard copy failed:', err);
+    });
+
+    const encodedSubject = encodeURIComponent(subject);
+    const encodedBody = encodeURIComponent(body);
+    const mailtoUrl = `mailto:?subject=${encodedSubject}&body=${encodedBody}`;
+
+    console.log('[mailto] URL length:', mailtoUrl.length);
+    console.log('[mailto] URL preview:', mailtoUrl.substring(0, 200) + '...');
+    console.log('[mailto] Setting window.location.href now...');
+
+    try {
+      window.location.href = mailtoUrl;
+      console.log('[mailto] window.location.href set successfully');
+    } catch (err) {
+      console.error('[mailto] Error setting window.location.href:', err);
+    }
+
+    toast.success(`Opening ${label} in your email client... Also copied to clipboard as backup.`);
+  };
+
+  const handleOpenPrimaryInEmail = () => {
+    const emailToUse = activeEmail || email;
     if (!emailToUse?.subject || !emailToUse?.body) {
       toast.error('Email content is not ready yet. Please wait for the email to be generated.');
       return;
     }
-    
-    // Always copy full email to clipboard as backup (mailto: truncates long bodies)
-    const fullEmailText = `Subject: ${emailToUse.subject}\n\n${emailToUse.body}`;
-    navigator.clipboard.writeText(fullEmailText).catch(() => {});
-    
-    // Properly encode subject and body for mailto link
-    const encodedSubject = encodeURIComponent(emailToUse.subject);
-    
-    // Truncate body if too long (mailto has ~2000 char limit in some browsers)
-    let bodyToEncode = emailToUse.body;
-    const maxBodyLength = 1500;
-    if (bodyToEncode.length > maxBodyLength) {
-      bodyToEncode = bodyToEncode.substring(0, maxBodyLength) + '\n\n[Full email copied to clipboard — paste here]';
+    openMailto(emailToUse.subject, emailToUse.body, 'primary email');
+  };
+
+  const handleOpenFollowUpInEmail = () => {
+    const followUp = activeFollowUp || followUpEmail;
+    if (!followUp?.subject || !followUp?.body) {
+      toast.error('Follow-up email content is not ready yet.');
+      return;
     }
-    
-    const encodedBody = encodeURIComponent(bodyToEncode);
-    const mailtoLink = `mailto:?subject=${encodedSubject}&body=${encodedBody}`;
-    
-    // Use a hidden iframe to trigger mailto: without opening a blank tab.
-    // This is the most reliable cross-browser method that avoids:
-    // - Blank tabs (from window.open or link.click with target=_blank)
-    // - Page navigation issues (from window.location.href on some browsers)
-    // - Ad blocker interference (from programmatic anchor clicks)
-    try {
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      document.body.appendChild(iframe);
-      iframe.contentWindow?.location.replace(mailtoLink);
-      // Clean up iframe after a short delay
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 1000);
-      toast.success('Opening email client... Full email also copied to clipboard as backup.');
-    } catch {
-      // Fallback: direct location change
-      try {
-        window.location.href = mailtoLink;
-        toast.success('Opening email client... Full email also copied to clipboard as backup.');
-      } catch {
-        toast.warning('Email copied to clipboard. Paste it into your email app (Gmail, Outlook, etc.).');
-      }
-    }
+    openMailto(followUp.subject, followUp.body, 'follow-up email');
   };
 
   // Show loading indicator during full generation workflow
@@ -265,7 +336,7 @@ export function EmailPanel() {
     <div className="h-full flex flex-col bg-cream-50">
       {/* Compact Single-Row Toolbar */}
       <div className="px-2.5 sm:px-4 py-1.5 sm:py-2 glass-toolbar flex-shrink-0">
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-1.5">
           {/* View/Edit Toggle */}
           <div className="flex items-center bg-cream-100/80 rounded-lg p-0.5 flex-shrink-0">
             <button
@@ -281,9 +352,8 @@ export function EmailPanel() {
             <button
               onClick={() => {
                 setIsEditMode(true);
-                if (email && !editedEmail) {
-                  setEditedEmail(email);
-                }
+                if (email && !editedEmail) setEditedEmail(email);
+                if (followUpEmail && !editedFollowUp) setEditedFollowUp(followUpEmail);
               }}
               className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
                 isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
@@ -302,33 +372,24 @@ export function EmailPanel() {
             </Button>
           )}
 
-          {/* Divider */}
-          <div className="w-px h-5 bg-cream-200 flex-shrink-0" />
-
           {/* Spacer */}
-          <div className="flex-1 min-w-2" />
+          <div className="flex-1" />
 
-          {/* Action Buttons */}
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleGenerateEmail}
-            isLoading={isLoadingEmail}
-            className="flex-shrink-0"
-          >
-            <RefreshCw className="w-4 h-4 mr-1" />
-            <span className="hidden sm:inline">Regenerate</span>
-            <span className="sm:hidden">Regen</span>
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleCopyAll} className="flex-shrink-0">
-            {copied ? <Check className="w-4 h-4 text-sage-600" /> : <Copy className="w-4 h-4" />}
-            <span className="ml-1 hidden sm:inline">{copied ? 'Copied!' : 'Copy All'}</span>
-          </Button>
-          <Button variant="primary" size="sm" onClick={handleOpenInEmail} className="flex-shrink-0">
-            <Mail className="w-4 h-4 mr-1" />
-            <span className="hidden sm:inline">Open in Email</span>
-            <span className="sm:hidden">Email</span>
-          </Button>
+          {/* Open in Email — split into Primary + Follow-Up */}
+          <PortalTooltip text="Open primary email in your mail app">
+            <Button variant="primary" size="sm" onClick={handleOpenPrimaryInEmail}>
+              <Mail className="w-4 h-4 mr-1" />
+              Primary
+            </Button>
+          </PortalTooltip>
+          {followUpEmail && (
+            <PortalTooltip text="Open follow-up email to schedule in your mail app">
+              <Button variant="outline" size="sm" onClick={handleOpenFollowUpInEmail}>
+                <Clock className="w-4 h-4 mr-1" />
+                Follow-Up
+              </Button>
+            </PortalTooltip>
+          )}
         </div>
       </div>
 
@@ -341,6 +402,12 @@ export function EmailPanel() {
           />
         ) : (
           <Card className="max-w-2xl mx-auto">
+            {/* Primary Application Email Badge */}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold mb-4" style={{ backgroundColor: 'rgba(201, 168, 76, 0.12)', color: '#b8952f' }}>
+              <Send className="w-3 h-3" />
+              Primary Application Email
+            </div>
+
             {/* Subject Line */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
@@ -391,9 +458,10 @@ export function EmailPanel() {
                   className="w-full bg-cream-50 rounded-lg p-4 border border-cream-300 text-charcoal text-sm leading-relaxed focus:border-navy-400 focus:outline-none resize-none"
                   rows={10}
                   placeholder="Email body..."
+                  style={{ borderLeft: '3px solid #c9a84c' }}
                 />
               ) : (
-                <div className="bg-cream-100 rounded-lg p-4 border border-cream-300">
+                <div className="bg-cream-100 rounded-lg p-4 border border-cream-300" style={{ borderLeft: '3px solid #c9a84c' }}>
                   <div className="whitespace-pre-wrap text-charcoal text-sm leading-relaxed">
                     {activeEmail?.body}
                   </div>
@@ -401,19 +469,146 @@ export function EmailPanel() {
               )}
             </div>
 
-            {/* Tips */}
+            {/* Regenerate Primary Email */}
+            <div className="flex justify-end mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateEmail}
+                isLoading={isLoadingEmail}
+              >
+                <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                Regenerate Email
+              </Button>
+            </div>
+
+            {/* Follow-Up Email Section */}
+            {followUpEmail && (
+              <>
+                {/* Gold Dashed Divider */}
+                <div className="relative mt-8 mb-6" style={{ borderTop: '2px dashed #c9a84c' }}>
+                  <span className="absolute -top-2.5 left-4 bg-white px-3 text-xs font-bold uppercase tracking-wider" style={{ color: '#c9a84c' }}>
+                    Follow-Up Email — Send after {followUpEmail.recommendedDelay} days
+                  </span>
+                </div>
+
+                {/* Schedule Badge */}
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold mb-4" style={{ backgroundColor: 'rgba(201, 168, 76, 0.12)', color: '#b8952f' }}>
+                  <Clock className="w-3 h-3" />
+                  Schedule for: {followUpEmail.recommendedDelay}–{followUpEmail.recommendedDelay + 2} business days after sending primary email
+                </div>
+
+                {/* Follow-up Subject */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-medium text-warm-gray uppercase tracking-wide">
+                      Subject Line
+                    </label>
+                    <button
+                      onClick={handleCopyFollowUpSubject}
+                      className="text-xs text-navy-600 hover:text-navy-700 flex items-center gap-1"
+                    >
+                      {copiedFollowUpSubject ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      {copiedFollowUpSubject ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                  {isEditMode ? (
+                    <input
+                      type="text"
+                      value={activeFollowUp?.subject || ''}
+                      onChange={(e) => updateFollowUpField('subject', e.target.value)}
+                      className="w-full bg-cream-50 rounded-lg p-3 border border-cream-300 text-charcoal font-medium focus:border-navy-400 focus:outline-none"
+                      placeholder="Follow-up subject..."
+                    />
+                  ) : (
+                    <div className="bg-cream-100 rounded-lg p-3 border border-cream-300">
+                      <p className="text-charcoal font-medium">{activeFollowUp?.subject}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Follow-up Body with gold left border */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-medium text-warm-gray uppercase tracking-wide">
+                      Follow-Up Body
+                    </label>
+                    <button
+                      onClick={handleCopyFollowUpBody}
+                      className="text-xs text-navy-600 hover:text-navy-700 flex items-center gap-1"
+                    >
+                      {copiedFollowUpBody ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      {copiedFollowUpBody ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                  {isEditMode ? (
+                    <textarea
+                      value={activeFollowUp?.body || ''}
+                      onChange={(e) => updateFollowUpField('body', e.target.value)}
+                      className="w-full bg-cream-50 rounded-lg p-4 border border-cream-300 text-charcoal text-sm leading-relaxed focus:border-navy-400 focus:outline-none resize-none"
+                      rows={8}
+                      placeholder="Follow-up body..."
+                      style={{ borderLeft: '3px solid #c9a84c' }}
+                    />
+                  ) : (
+                    <div className="bg-cream-100 rounded-lg p-4 border border-cream-300" style={{ borderLeft: '3px solid #c9a84c' }}>
+                      <div className="whitespace-pre-wrap text-charcoal text-sm leading-relaxed">
+                        {activeFollowUp?.body}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Regenerate Follow-Up Button */}
+                <div className="flex justify-end mb-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRegenerateFollowUp}
+                    isLoading={isLoadingFollowUp}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                    Regenerate Follow-Up
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* Combined Tips */}
             <div className="mt-6 p-4 bg-gradient-to-br from-navy-50 to-cream-50 rounded-xl border border-navy-100">
               <h4 className="text-sm font-semibold text-navy-700 mb-3 flex items-center gap-2">
                 <span className="w-5 h-5 rounded-full bg-gold-100 flex items-center justify-center text-xs">💡</span>
-                Tips for sending
+                {followUpEmail ? 'Tips for both emails' : 'Tips for sending'}
               </h4>
-              <ul className="text-xs text-navy-600 space-y-2">
-                <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Attach your optimized CV and cover letter as PDFs</li>
-                <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Double-check the recipient&apos;s email address</li>
-                <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Send during business hours for best visibility</li>
-                <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Attach relevant certifications mentioned in your CV</li>
-                <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Follow up after 5-7 business days if no response</li>
-              </ul>
+              {followUpEmail ? (
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs font-semibold text-navy-700 mb-1.5">PRIMARY EMAIL:</p>
+                    <ul className="text-xs text-navy-600 space-y-1.5">
+                      <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Attach your optimized CV and cover letter as PDFs</li>
+                      <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Double-check the recipient&apos;s email address</li>
+                      <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Send Tue-Thu, 8-10 AM recipient&apos;s time zone</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-navy-700 mb-1.5">FOLLOW-UP EMAIL:</p>
+                    <ul className="text-xs text-navy-600 space-y-1.5">
+                      <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Schedule for {followUpEmail.recommendedDelay}-{followUpEmail.recommendedDelay + 2} business days after primary</li>
+                      <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Use Gmail &quot;Schedule Send&quot; or Outlook &quot;Delay Delivery&quot; to set it in advance</li>
+                      <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Do NOT re-attach your CV — they have it</li>
+                      <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> If no response after follow-up, move on — do not send a third email</li>
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <ul className="text-xs text-navy-600 space-y-2">
+                  <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Attach your optimized CV and cover letter as PDFs</li>
+                  <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Double-check the recipient&apos;s email address</li>
+                  <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Send during business hours for best visibility</li>
+                  <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Attach relevant certifications mentioned in your CV</li>
+                  <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Follow up after 5-7 business days if no response</li>
+                </ul>
+              )}
             </div>
           </Card>
         )}

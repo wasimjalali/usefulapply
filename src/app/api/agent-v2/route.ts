@@ -312,6 +312,7 @@ export async function POST(request: NextRequest) {
                   optimizedCVData: ctx.optimizedCVData,
                   coverLetter: ctx.coverLetter,
                   applicationEmail: ctx.applicationEmail,
+                  followUpEmail: ctx.followUpEmail || null,
                   context: ctx,
                 },
               })}\n\n`));
@@ -370,6 +371,7 @@ export async function POST(request: NextRequest) {
                 optimizedCVData: ctx.optimizedCVData,
                 coverLetter: ctx.coverLetter,
                 applicationEmail: ctx.applicationEmail,
+                followUpEmail: ctx.followUpEmail || null,
                 context: ctx,
               },
             })}\n\n`));
@@ -444,6 +446,7 @@ export async function POST(request: NextRequest) {
               optimizedCVData: ctx.optimizedCVData,
               coverLetter: ctx.coverLetter,
               applicationEmail: ctx.applicationEmail,
+              followUpEmail: ctx.followUpEmail || null,
               context: ctx,
             };
           } else {
@@ -508,6 +511,7 @@ function getWorkflowSteps(action: string): Array<{ id: string; description: stri
         { id: 'cv_generation', description: 'Karko AI: Optimizing CV for the position' },
         { id: 'cover_letter', description: 'Karko AI: Composing tailored cover letter' },
         { id: 'email', description: 'Karko AI: Generating application email' },
+        { id: 'follow_up_email', description: 'Karko AI: Generating follow-up email' },
       ];
     case 'full_optimization':
       return [
@@ -516,6 +520,7 @@ function getWorkflowSteps(action: string): Array<{ id: string; description: stri
         { id: 'cv_generation', description: 'Karko AI: Optimizing CV for the position' },
         { id: 'cover_letter', description: 'Karko AI: Composing tailored cover letter' },
         { id: 'email', description: 'Karko AI: Generating application email' },
+        { id: 'follow_up_email', description: 'Karko AI: Generating follow-up email' },
       ];
     default:
       return [
@@ -527,7 +532,7 @@ function getWorkflowSteps(action: string): Array<{ id: string; description: stri
 
 // Helper to get step index for progress tracking
 function getStepIndex(stepId: string): number {
-  const stepOrder = ['analysis', 'matching', 'cv_generation', 'cover_letter', 'email'];
+  const stepOrder = ['analysis', 'matching', 'cv_generation', 'cover_letter', 'email', 'follow_up_email'];
   return stepOrder.indexOf(stepId);
 }
 
@@ -537,6 +542,6 @@ function getFitAnalysisStepIndex(stepId: string): number {
 }
 
 function getGenerateWithContextStepIndex(stepId: string): number {
-  const stepOrder = ['cv_generation', 'cover_letter', 'email'];
+  const stepOrder = ['cv_generation', 'cover_letter', 'email', 'follow_up_email'];
   return stepOrder.indexOf(stepId);
 }
