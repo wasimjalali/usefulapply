@@ -97,11 +97,11 @@ job-copilot/
 ├── .env.local                         # Environment variables (gitignored)
 ├── public/                            # Static assets
 │   ├── karko-ai.png                   # OG image
-│   ├── blog/                          # Blog post images
-│   │   ├── job-application-time-clock.png
-│   │   ├── 100-applications-75-hours.png
-│   │   ├── manual-vs-karko-ai.png
-│   │   └── time-comparison-chart.png
+│   ├── blog/                          # Blog post images (compressed JPG, ~80-115KB each)
+│   │   ├── job-application-time-clock.jpg
+│   │   ├── 100-applications-75-hours.jpg
+│   │   ├── manual-vs-karko-ai.jpg
+│   │   └── time-comparison-chart.jpg
 │   └── ...
 ├── supabase/                          # Supabase config
 │

@@ -6,16 +6,76 @@ interface BlogContentProps {
   content: string;
 }
 
+interface TocItem {
+  id: string;
+  text: string;
+  level: number;
+}
+
 /**
  * Renders markdown-like blog content as HTML.
  * Supports: headings (##, ###), bold (**), italic (*), links [text](url),
  * unordered lists (- item), ordered lists (1. item), blockquotes (>),
- * inline code (`code`), code blocks (```), images (![alt](src)), and paragraphs.
+ * inline code (`code`), code blocks (```), images (![alt](src)), paragraphs,
+ * and auto-generated Table of Contents.
  */
 export function BlogContent({ content }: BlogContentProps) {
-  const html = useMemo(() => renderMarkdown(content), [content]);
+  const { toc, html } = useMemo(() => {
+    const tocItems = extractToc(content);
+    const rendered = renderMarkdown(content);
+    return { toc: tocItems, html: rendered };
+  }, [content]);
 
-  return <div dangerouslySetInnerHTML={{ __html: html }} />;
+  return (
+    <div>
+      {/* Table of Contents */}
+      {toc.length > 2 && (
+        <nav className="mb-10 p-6 bg-cream-50 border border-cream-200 rounded-2xl" aria-label="Table of contents">
+          <h2 className="text-lg font-bold text-navy-700 mb-4">Table of Contents</h2>
+          <ol className="space-y-2">
+            {toc.map((item, i) => (
+              <li key={item.id}>
+                <a
+                  href={`#${item.id}`}
+                  className={`text-warm-gray hover:text-navy-600 transition-colors text-sm leading-relaxed ${
+                    item.level === 3 ? 'ml-5' : ''
+                  }`}
+                >
+                  <span className="text-gold-500 font-medium mr-2">{i + 1}.</span>
+                  {item.text}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      )}
+
+      {/* Article content */}
+      <div dangerouslySetInnerHTML={{ __html: html }} />
+    </div>
+  );
+}
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function extractToc(md: string): TocItem[] {
+  const items: TocItem[] = [];
+  const lines = md.split('\n');
+  for (const line of lines) {
+    if (line.startsWith('## ')) {
+      const text = line.slice(3).replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1');
+      items.push({ id: slugify(text), text, level: 2 });
+    } else if (line.startsWith('### ')) {
+      const text = line.slice(4).replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1');
+      items.push({ id: slugify(text), text, level: 3 });
+    }
+  }
+  return items;
 }
 
 function renderMarkdown(md: string): string {
@@ -59,20 +119,26 @@ function renderMarkdown(md: string): string {
       continue;
     }
 
-    // Headings
+    // Headings (with anchor IDs for TOC linking)
     if (line.startsWith('#### ')) {
       if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
-      result.push(`<h4>${inlineFormat(line.slice(5))}</h4>`);
+      const text = line.slice(5);
+      const id = slugify(text.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1'));
+      result.push(`<h4 id="${id}">${inlineFormat(text)}</h4>`);
       continue;
     }
     if (line.startsWith('### ')) {
       if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
-      result.push(`<h3>${inlineFormat(line.slice(4))}</h3>`);
+      const text = line.slice(4);
+      const id = slugify(text.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1'));
+      result.push(`<h3 id="${id}">${inlineFormat(text)}</h3>`);
       continue;
     }
     if (line.startsWith('## ')) {
       if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
-      result.push(`<h2>${inlineFormat(line.slice(3))}</h2>`);
+      const text = line.slice(3);
+      const id = slugify(text.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1'));
+      result.push(`<h2 id="${id}">${inlineFormat(text)}</h2>`);
       continue;
     }
 

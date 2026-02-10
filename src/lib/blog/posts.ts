@@ -38,7 +38,7 @@ Total: **45 to 60 minutes per application.** On the conservative side.
 
 That lines up with what career experts recommend. Most sources suggest spending 30 to 60 minutes per tailored application, and some say up to 90 minutes for roles you really want.
 
-![A clock surrounded by floating CV, cover letter, and email documents — illustrating the time pressure of job applications](/blog/job-application-time-clock.png)
+![A clock surrounded by floating CV, cover letter, and email documents — illustrating the time pressure of job applications](/blog/job-application-time-clock.jpg)
 
 ## Now Multiply That by 100
 
@@ -58,7 +58,7 @@ But here's the part that actually matters: **tailored applications work.** Resea
 
 The data is clear. Tailoring works. The problem isn't the strategy. The problem is the time it takes to execute it.
 
-![Infographic showing 100 applications times 45 minutes equals 75 hours of work](/blog/100-applications-75-hours.png)
+![Infographic showing 100 applications times 45 minutes equals 75 hours of work](/blog/100-applications-75-hours.jpg)
 
 ## The Two Bad Options Most Job Seekers Choose
 
@@ -84,7 +84,7 @@ But even that manual process took 45 to 60 minutes per application. It wasn't sc
 
 So I built Karko AI. An AI agent that takes your CV and a job description, analyzes the fit, and generates a complete tailored application package, optimized CV, personalized cover letter, and professional email, in under 90 seconds.
 
-![Split-screen comparison: a person overwhelmed with stacks of papers versus the same person smiling with a clean document generated in 90 seconds](/blog/manual-vs-karko-ai.png)
+![Split-screen comparison: a person overwhelmed with stacks of papers versus the same person smiling with a clean document generated in 90 seconds](/blog/manual-vs-karko-ai.jpg)
 
 ## The Math, Completely Rewritten
 
@@ -110,7 +110,7 @@ When tailoring takes 90 seconds, you can apply to every relevant role. The stret
 
 The job seekers who find work fastest aren't necessarily the most qualified. They're the ones who get their tailored application in front of more hiring managers, faster.
 
-![Bar chart comparing Manual Application at 75 hours for 100 jobs versus Karko AI at 2.5 hours for 100 jobs](/blog/time-comparison-chart.png)
+![Bar chart comparing Manual Application at 75 hours for 100 jobs versus Karko AI at 2.5 hours for 100 jobs](/blog/time-comparison-chart.jpg)
 
 ## Try It Yourself
 
@@ -140,7 +140,7 @@ If you're currently in a job search, you already know how much time you're spend
       'career advice',
     ],
     featured: true,
-    ogImage: '/blog/time-comparison-chart.png',
+    ogImage: '/blog/time-comparison-chart.jpg',
   },
 ];
 
