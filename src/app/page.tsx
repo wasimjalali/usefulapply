@@ -36,7 +36,7 @@ export default function Home() {
             </ScrollReveal>
             <ScrollReveal delay={300}>
             <p className="text-xl md:text-2xl text-warm-gray mb-10 max-w-2xl mx-auto leading-relaxed">
-              Paste the job description. Karko AI analyzes your fit and generates a tailored CV, cover letter, application email, and follow-up email — ready to send.
+              Paste the job description. Karko AI analyzes your fit and generates a tailored CV, cover letter, application email, and follow-up email, ready to send.
             </p>
             </ScrollReveal>
             <ScrollReveal delay={450}>
