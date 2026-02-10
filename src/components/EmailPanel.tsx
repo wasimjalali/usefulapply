@@ -9,14 +9,18 @@ import type { GeneratedEmail } from '@/lib/types';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import { useToast } from './ui/Toast';
 import { PortalTooltip } from './ui/PortalTooltip';
+import { useAuth } from '@/contexts/AuthContext';
+import { SignUpWallModal } from '@/components/SignUpWallModal';
 
 export function EmailPanel() {
+  const { user } = useAuth();
   const { 
     currentSession,
     updateCurrentSession,
     isGenerating,
     isAgentWorking,
   } = useAppStore();
+  const [showSignUpWall, setShowSignUpWall] = useState(false);
   
   const email = currentSession?.email;
   const followUpEmail = currentSession?.followUpEmail;
@@ -132,6 +136,7 @@ export function EmailPanel() {
   };
 
   const handleCopyBody = async () => {
+    if (!user) { setShowSignUpWall(true); return; }
     if (email) {
       await navigator.clipboard.writeText(email.body);
       setCopied(true);
@@ -259,6 +264,7 @@ export function EmailPanel() {
   };
 
   const handleOpenPrimaryInEmail = () => {
+    if (!user) { setShowSignUpWall(true); return; }
     const emailToUse = activeEmail || email;
     if (!emailToUse?.subject || !emailToUse?.body) {
       toast.error('Email content is not ready yet. Please wait for the email to be generated.');
@@ -268,6 +274,7 @@ export function EmailPanel() {
   };
 
   const handleOpenFollowUpInEmail = () => {
+    if (!user) { setShowSignUpWall(true); return; }
     const followUp = activeFollowUp || followUpEmail;
     if (!followUp?.subject || !followUp?.body) {
       toast.error('Follow-up email content is not ready yet.');
@@ -611,6 +618,12 @@ export function EmailPanel() {
           </Card>
         )}
       </div>
+      {/* Sign Up Wall Modal */}
+      <SignUpWallModal
+        isOpen={showSignUpWall}
+        onClose={() => setShowSignUpWall(false)}
+        trigger="download"
+      />
     </div>
   );
 }
