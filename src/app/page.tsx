@@ -44,7 +44,7 @@ export default function Home() {
             </ScrollReveal>
             <ScrollReveal delay={300}>
             <p className="text-xl md:text-2xl text-warm-gray mb-10 max-w-2xl mx-auto leading-relaxed">
-              Karko AI reads the job description, analyzes your fit, and generates a tailored, ATS-optimized application package ready to send.
+              Karko AI reads the job description, analyzes your fit, and generates an ATS-optimized application package ready to send.
             </p>
             </ScrollReveal>
             <ScrollReveal delay={450}>
