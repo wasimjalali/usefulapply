@@ -37,7 +37,7 @@ export default function Home() {
 
             <ScrollReveal delay={150}>
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-navy-600 mb-6 leading-[1.1] tracking-tight">
-              Get A Complete Job Application: CV, Cover Letter, and Email{' '}
+              Get Your Tailored CV, Cover Letter, and Email{' '}
               <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">in 90 Seconds.</span>{' '}
               Just Paste the Job Description.
             </h1>
