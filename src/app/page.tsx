@@ -30,14 +30,13 @@ export default function Home() {
             
             <ScrollReveal delay={150}>
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-navy-600 mb-6 leading-[1.1] tracking-tight">
-              Get Your Tailored CV, Cover Letter, and Email{' '}
-              <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">in 90 Seconds.</span>{' '}
-              Just Paste the Job Description.
+              Get Your Complete Job Application Package{' '}
+              <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">in 90 Seconds</span>
             </h1>
             </ScrollReveal>
             <ScrollReveal delay={300}>
             <p className="text-xl md:text-2xl text-warm-gray mb-10 max-w-2xl mx-auto leading-relaxed">
-              Karko AI reads the job description, analyzes your fit, and generates an ATS-optimized application package ready to send.
+              Paste the job description. Karko AI analyzes your fit and generates a tailored CV, cover letter, application email, and follow-up email — ready to send.
             </p>
             </ScrollReveal>
             <ScrollReveal delay={450}>
@@ -64,6 +63,11 @@ export default function Home() {
               <div className="flex items-center gap-2">
                 <Globe className="w-4 h-4 text-gold-400" />
                 <span className="font-medium">Built for job seekers worldwide</span>
+              </div>
+              <div className="hidden sm:block w-px h-4 bg-cream-300" />
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-gold-400" />
+                <span className="font-medium">No sign-up required</span>
               </div>
               <div className="hidden sm:block w-px h-4 bg-cream-300" />
               <div className="flex items-center gap-2">
