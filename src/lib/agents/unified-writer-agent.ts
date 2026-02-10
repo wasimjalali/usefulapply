@@ -2008,7 +2008,7 @@ COMPANY: ${job?.companyName || 'Company'}
 TOP JD REQUIREMENTS: ${topRequirements}
 KEY RESPONSIBILITIES: ${topResponsibilities}
 CANDIDATE'S MATCHING SKILLS FOR THIS ROLE: ${matchingSkillsList}
-FIT SCORE: ${match?.score ?? 0}%
+FIT SCORE (INTERNAL CONTEXT ONLY — do NOT include this in the email): ${match?.score ?? 0}%
 
 === CANDIDATE ACHIEVEMENTS (mine for the best JD-relevant metric) ===
 PRIMARY CV:
@@ -2027,6 +2027,7 @@ INSTRUCTIONS:
 5. End with specific availability, not "I look forward to hearing from you"
 6. Start with "Hello," as the greeting (do NOT use placeholder like "[Name]")
 7. Include one exact keyword from the job description in the body
+8. NEVER mention the fit score, match percentage, or any numeric score in the email — this is internal data for context only
 
 EMAIL SUBJECT LINE RULES:
 - English: "Application: [Job Title] — [Your Name]" (max 60 chars)
@@ -2113,6 +2114,7 @@ PROHIBITIONS:
 - "[Name]" or any bracketed placeholder in the output
 - Claiming skills not in either CV source
 - Extra descriptors or keywords in subject line
+- Mentioning fit score, match percentage, or any internal assessment score in the email
 
 STRUCTURE:
 Subject: "Application: [Job Title] — [Your Name]" (max 60 chars)
