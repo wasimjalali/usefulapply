@@ -27,14 +27,7 @@ export default function Home() {
 
         <div className="max-w-6xl mx-auto relative">
           <div className="text-center max-w-4xl mx-auto">
-            {/* Trust badge */}
-            <ScrollReveal delay={0} direction="down" distance={20}>
-            <div className="inline-flex items-center gap-2 px-4 py-2 glass rounded-full text-sm text-charcoal mb-8 shadow-sm">
-              <Sparkles className="w-4 h-4 text-gold-400" />
-              <span className="font-medium">Agentic AI that does the work for you</span>
-            </div>
-            </ScrollReveal>
-
+            
             <ScrollReveal delay={150}>
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-navy-600 mb-6 leading-[1.1] tracking-tight">
               Get Your Tailored CV, Cover Letter, and Email{' '}
