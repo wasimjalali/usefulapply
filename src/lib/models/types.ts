@@ -29,6 +29,7 @@ export type TaskType =
   | 'write_cover_letter'
   | 'refine_cover_letter' // Refinement pass for cover letter quality
   | 'write_email'
+  | 'write_follow_up_email'
   | 'optimize_content'
   | 'general_chat';
 
@@ -163,6 +164,12 @@ export const MODEL_CONFIGS: Record<TaskType, ModelConfig> = {
     provider: 'anthropic',
     temperature: 0.55,  // Sonnet: slight bump from 0.5 — emails need warmth
     maxTokens: 1024,
+  },
+  write_follow_up_email: {
+    model: 'claude-sonnet-4-5',
+    provider: 'anthropic',
+    temperature: 0.5,  // Slightly lower than primary email — follow-up needs precision
+    maxTokens: 512,
   },
   optimize_content: {
     model: 'claude-sonnet-4-5',

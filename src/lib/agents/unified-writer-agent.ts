@@ -155,10 +155,17 @@ export const unifiedWriterAgent = {
 
       // Step 7: Generate application email
       emit({ type: 'step_started', step: { id: 'email', description: 'Karko AI: Generating application email' } });
-      emit({ type: 'progress', percent: 90, message: 'Composing application email...' });
+      emit({ type: 'progress', percent: 85, message: 'Composing application email...' });
       const emailResult = await this.generateApplicationEmail(context);
       context.applicationEmail = emailResult.result;
       emit({ type: 'step_completed', step: { id: 'email', description: 'Email ready' }, tokens: emailResult.tokens });
+
+      // Step 8: Generate follow-up email (runs AFTER primary email — needs it as input)
+      emit({ type: 'step_started', step: { id: 'follow_up_email', description: 'Karko AI: Generating follow-up email' } });
+      emit({ type: 'progress', percent: 93, message: 'Composing follow-up email...' });
+      const followUpResult = await this.generateFollowUpEmail(context);
+      context.followUpEmail = followUpResult.result;
+      emit({ type: 'step_completed', step: { id: 'follow_up_email', description: 'Follow-up email ready' }, tokens: followUpResult.tokens });
       
       emit({ type: 'progress', percent: 100, message: 'Complete!' });
 
@@ -729,10 +736,17 @@ Return ONLY valid JSON, no explanation.`,
 
       // Step 3: Generate application email
       emit({ type: 'step_started', step: { id: 'email', description: 'Karko AI: Generating application email' } });
-      emit({ type: 'progress', percent: 80, message: 'Composing application email...' });
+      emit({ type: 'progress', percent: 75, message: 'Composing application email...' });
       const emailResult = await this.generateApplicationEmail(context);
       context.applicationEmail = emailResult.result;
       emit({ type: 'step_completed', step: { id: 'email', description: 'Email ready' }, tokens: emailResult.tokens });
+
+      // Step 4: Generate follow-up email (runs AFTER primary email — needs it as input)
+      emit({ type: 'step_started', step: { id: 'follow_up_email', description: 'Karko AI: Generating follow-up email' } });
+      emit({ type: 'progress', percent: 90, message: 'Composing follow-up email...' });
+      const followUpResult = await this.generateFollowUpEmail(context);
+      context.followUpEmail = followUpResult.result;
+      emit({ type: 'step_completed', step: { id: 'follow_up_email', description: 'Follow-up email ready' }, tokens: followUpResult.tokens });
       
       emit({ type: 'progress', percent: 100, message: 'Complete!' });
 
@@ -2139,6 +2153,165 @@ Return ONLY valid JSON: {"subject": "...", "body": "..."}`,
         result: {
           subject: fixTypos(subject), 
           body: fixTypos(body),
+        },
+        tokens,
+      };
+    }
+  },
+
+  /**
+   * Generate follow-up email to send 5-7 days after the primary application email
+   * Uses a DIFFERENT achievement than the primary email for the value hook
+   */
+  async generateFollowUpEmail(context: MasterContext): Promise<WithTokens<{ subject: string; body: string; recommendedDelay: number }>> {
+    const { applicant, job, match, applicationEmail } = context;
+    
+    const outputLang = this.getOutputLanguage(context);
+    const isGerman = outputLang === 'de';
+    const market = isGerman ? 'German' : 'US/UK';
+    const recommendedDelay = isGerman ? 7 : 5;
+    
+    console.log('[UnifiedAgent] Generating follow-up email in language:', outputLang);
+
+    // Get a DIFFERENT achievement than what the primary email used
+    // Primary email uses matchingSkills[0], so we use [1] or [2]
+    const matchingSkills = match?.matchingSkills || [];
+    const topAchievement = matchingSkills.length > 1 
+      ? matchingSkills[1] 
+      : matchingSkills.length > 0 
+        ? matchingSkills[0] 
+        : 'relevant professional experience';
+
+    // Build company context from JD
+    const companyContext = [
+      job?.companyName ? `Company: ${job.companyName}` : '',
+      job?.responsibilities?.slice(0, 3).join('; ') || '',
+      job?.requiredSkills?.slice(0, 5).join(', ') || '',
+    ].filter(Boolean).join('\n');
+
+    const response = await callModel({
+      task: 'write_follow_up_email',
+      prompt: `Generate a follow-up email for a job application.
+
+<context>
+<primary_email_subject>${applicationEmail?.subject || ''}</primary_email_subject>
+<primary_email_body>${applicationEmail?.body || ''}</primary_email_body>
+<job_title>${job?.title || 'Position'}</job_title>
+<company_name>${job?.companyName || 'Company'}</company_name>
+<company_context>${companyContext}</company_context>
+<applicant_name>${applicant?.name || 'Applicant'}</applicant_name>
+<key_achievement>${topAchievement}</key_achievement>
+<detected_language>${outputLang}</detected_language>
+<market>${market}</market>
+</context>
+
+<instructions>
+Generate a follow-up email with subject line and body.
+
+SUBJECT LINE RULES:
+- English format: "Following Up: [Role Title] Application — [Full Name]"
+- German format: "Nachfrage: [Stellentitel] Bewerbung — [Full Name]"
+- Must be 60 characters or fewer
+- Must include the role title and applicant name
+
+BODY RULES (4 elements, 60-80 words max):
+1. Opening: Brief reference to original application with approximate timeframe ("last week")
+2. Reaffirm interest: One sentence referencing something SPECIFIC about the company from the JD, a product, mission, growth metric, or team detail. NOT generic praise.
+3. New value hook: Connect ONE specific achievement or skill from the applicant's profile to a SPECIFIC company need from the JD. This must be DIFFERENT from what was highlighted in the primary email.
+4. Soft CTA: "I would welcome the chance to discuss..." or equivalent. One sentence only.
+
+TONE RULES:
+- Match the detected language (English or German)
+- US market: Direct, confident
+- UK market: Polite, measured
+- German market: Formal Sie-form throughout, "Sehr geehrte Damen und Herren" or addressed to specific person if known
+- Professional but warm, not stiff, not casual
+- Confident, not desperate
+- NO em-dashes anywhere in the text
+- NO "just checking in", "I know you're busy", "I haven't heard back"
+- NO re-attachment references, they already have the documents
+
+ANTI-HALLUCINATION:
+- The key_achievement and company_context are your ONLY sources
+- Do NOT invent achievements, skills, or company details
+- If company_context is sparse, keep the company reference general but accurate to the JD
+
+OUTPUT FORMAT:
+Respond with ONLY valid JSON:
+{
+  "subject": "...",
+  "body": "...",
+  "recommendedDelay": ${recommendedDelay}
+}
+
+The body should include greeting, paragraphs, and sign-off.
+Set recommendedDelay to ${recommendedDelay}.
+</instructions>`,
+      systemPrompt: `You are the follow-up email writer for Karko AI. You generate a brief, professional follow-up email that the applicant will send ${recommendedDelay} business days after their initial application.
+
+CRITICAL RULES:
+- The follow-up must highlight a DIFFERENT strength than the primary email
+- Keep the body under 80 words (excluding greeting and sign-off)
+- Be specific about the company (reference something from the JD)
+- Sound human and confident, not desperate or generic
+- NO em-dashes
+- ${isGerman ? 'Write entirely in German with formal Sie-form. Closing: "Mit freundlichen Grüßen,"' : 'Write in English.'}
+
+Return ONLY valid JSON. No explanation or preamble.`,
+      jsonMode: true,
+    });
+
+    const tokens: TokenUsage = {
+      input: response.usage.inputTokens,
+      output: response.usage.outputTokens,
+    };
+
+    try {
+      let jsonContent = response.content.trim();
+      
+      if (jsonContent.startsWith('```json')) {
+        jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonContent = jsonMatch[0];
+      }
+      
+      const parsed = JSON.parse(jsonContent);
+      
+      let cleanBody = fixTypos(parsed.body || '');
+      const cleanSubject = fixTypos(parsed.subject || `Following Up: ${job?.title || 'Position'} — ${applicant?.name || 'Applicant'}`);
+      
+      // Clean up any placeholder names
+      cleanBody = cleanBody
+        .replace(/Hi \[Name\],?/gi, 'Hello,')
+        .replace(/Dear \[Name\],?/gi, 'Dear Hiring Team,')
+        .replace(/\[Name\]/g, 'Hiring Manager');
+      
+      return {
+        result: {
+          subject: cleanSubject,
+          body: cleanBody,
+          recommendedDelay: parsed.recommendedDelay || recommendedDelay,
+        },
+        tokens,
+      };
+    } catch (error) {
+      console.error('[UnifiedAgent] Failed to parse follow-up email JSON:', error);
+      
+      // Fallback: construct a basic follow-up
+      const fallbackSubject = isGerman 
+        ? `Nachfrage: ${job?.title || 'Position'} Bewerbung — ${applicant?.name || 'Bewerber'}`
+        : `Following Up: ${job?.title || 'Position'} Application — ${applicant?.name || 'Applicant'}`;
+      
+      return {
+        result: {
+          subject: fixTypos(fallbackSubject),
+          body: fixTypos(response.content),
+          recommendedDelay,
         },
         tokens,
       };

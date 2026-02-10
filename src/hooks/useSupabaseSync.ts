@@ -33,6 +33,7 @@ interface SupabaseSessionRow {
   generated_cv: any | null;
   cover_letter: any | null;
   email: any | null;
+  follow_up_email: any | null;
   company_research: any | null;
   company_address: string | null;
   company_contact_person: string | null;
@@ -219,6 +220,7 @@ export function useSupabaseSync() {
             generatedCV: row.generated_cv ?? null,
             coverLetter: row.cover_letter ?? null,
             email: row.email ?? null,
+            followUpEmail: row.follow_up_email ?? null,
             companyResearch: row.company_research ? {
               ...row.company_research,
               address: row.company_address || row.company_research?.address,
@@ -402,6 +404,7 @@ export function useSupabaseSync() {
                   generated_cv: currentSession.generatedCV,
                   cover_letter: currentSession.coverLetter,
                   email: currentSession.email,
+                  follow_up_email: currentSession.followUpEmail,
                   company_research: currentSession.companyResearch,
                 });
               }
@@ -445,6 +448,7 @@ export function useSupabaseSync() {
             generated_cv: currentSession.generatedCV,
             cover_letter: currentSession.coverLetter,
             email: currentSession.email,
+            follow_up_email: currentSession.followUpEmail,
             company_research: currentSession.companyResearch,
             cv_edits: currentSession.cvEdits,
             // New fields for enhanced data persistence

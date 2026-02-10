@@ -609,6 +609,16 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
                     },
                   });
                 }
+
+                if (ctx?.followUpEmail) {
+                  useAppStore.getState().updateCurrentSession({
+                    followUpEmail: {
+                      subject: ctx.followUpEmail.subject,
+                      body: ctx.followUpEmail.body,
+                      recommendedDelay: ctx.followUpEmail.recommendedDelay || 5,
+                    },
+                  });
+                }
                 
                 if (ctx?.companyResearch) {
                   useAppStore.getState().updateCurrentSession({

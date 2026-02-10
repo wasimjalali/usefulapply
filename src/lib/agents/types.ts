@@ -178,6 +178,11 @@ export interface MasterContext {
   };
   coverLetter?: string;
   applicationEmail?: { subject: string; body: string };
+  followUpEmail?: {
+    subject: string;
+    body: string;
+    recommendedDelay: number; // days (default: 5 for EN, 7 for DE)
+  } | null;
 
   // Fit analysis result (pre-generation assessment)
   fitAnalysis?: {

@@ -19,6 +19,7 @@ export interface ApplicationSession {
   generated_cv?: any;
   cover_letter?: any;
   email?: any;
+  follow_up_email?: any;
   company_research?: any;
   company_address?: string;
   company_contact_person?: string;
