@@ -124,28 +124,28 @@ function renderMarkdown(md: string): string {
       if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
       const text = line.slice(5);
       const id = slugify(text.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1'));
-      result.push(`<h4 id="${id}">${inlineFormat(text)}</h4>`);
+      result.push(`<h4 id="${id}" class="text-lg font-bold text-navy-700 mt-8 mb-3">${inlineFormat(text)}</h4>`);
       continue;
     }
     if (line.startsWith('### ')) {
       if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
       const text = line.slice(4);
       const id = slugify(text.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1'));
-      result.push(`<h3 id="${id}">${inlineFormat(text)}</h3>`);
+      result.push(`<h3 id="${id}" class="text-xl sm:text-2xl font-bold text-navy-700 mt-10 mb-4">${inlineFormat(text)}</h3>`);
       continue;
     }
     if (line.startsWith('## ')) {
       if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
       const text = line.slice(3);
       const id = slugify(text.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1'));
-      result.push(`<h2 id="${id}">${inlineFormat(text)}</h2>`);
+      result.push(`<h2 id="${id}" class="text-2xl sm:text-3xl font-bold text-navy-700 mt-12 mb-4 leading-tight">${inlineFormat(text)}</h2>`);
       continue;
     }
 
     // Blockquote
     if (line.startsWith('> ')) {
       if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
-      result.push(`<blockquote><p>${inlineFormat(line.slice(2))}</p></blockquote>`);
+      result.push(`<blockquote class="border-l-4 border-gold-400 pl-5 my-6 italic text-warm-gray"><p>${inlineFormat(line.slice(2))}</p></blockquote>`);
       continue;
     }
 
@@ -153,7 +153,7 @@ function renderMarkdown(md: string): string {
     const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
     if (imgMatch) {
       if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
-      result.push(`<figure class="my-8"><img src="${escapeHtml(imgMatch[2])}" alt="${escapeHtml(imgMatch[1])}" class="rounded-xl w-full" />${imgMatch[1] ? `<figcaption class="text-center text-sm text-warm-gray mt-2">${escapeHtml(imgMatch[1])}</figcaption>` : ''}</figure>`);
+      result.push(`<figure class="my-10"><img src="${escapeHtml(imgMatch[2])}" alt="${escapeHtml(imgMatch[1])}" class="rounded-xl w-full shadow-sm" loading="lazy" />${imgMatch[1] ? `<figcaption class="text-center text-sm text-warm-gray mt-3">${escapeHtml(imgMatch[1])}</figcaption>` : ''}</figure>`);
       continue;
     }
 
@@ -161,7 +161,7 @@ function renderMarkdown(md: string): string {
     if (line.match(/^[-*] /)) {
       if (!inList || listType !== 'ul') {
         if (inList) result.push(listType === 'ul' ? '</ul>' : '</ol>');
-        result.push('<ul>');
+        result.push('<ul class="list-disc list-inside space-y-2 my-4 text-charcoal leading-relaxed">');
         inList = true;
         listType = 'ul';
       }
@@ -173,7 +173,7 @@ function renderMarkdown(md: string): string {
     if (line.match(/^\d+\. /)) {
       if (!inList || listType !== 'ol') {
         if (inList) result.push(listType === 'ul' ? '</ul>' : '</ol>');
-        result.push('<ol>');
+        result.push('<ol class="list-decimal list-inside space-y-2 my-4 text-charcoal leading-relaxed">');
         inList = true;
         listType = 'ol';
       }
@@ -190,7 +190,7 @@ function renderMarkdown(md: string): string {
 
     // Regular paragraph
     if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
-    result.push(`<p>${inlineFormat(line)}</p>`);
+    result.push(`<p class="text-charcoal leading-relaxed mb-4">${inlineFormat(line)}</p>`);
   }
 
   if (inList) {
@@ -213,7 +213,7 @@ function inlineFormat(text: string): string {
   result = result.replace(/`([^`]+)`/g, '<code>$1</code>');
 
   // Links
-  result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-navy-600 underline hover:text-navy-800 transition-colors">$1</a>');
 
   return result;
 }
