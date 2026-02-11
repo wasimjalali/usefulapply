@@ -1047,24 +1047,38 @@ RULE 4b — QUANTIFIED CLAIMS RULE:
 
 Every number, percentage, metric, or quantity in the CV output MUST be directly traceable to the applicant's Primary CV or Master CV. Examples:
 
-ALLOWED (in source documents):
+ALLOWED (number exists in Primary CV or Master CV):
 - "€150,000 revenue" (Master CV: "€150,000 total revenue")
 - "30,000+ followers" (Master CV: "30,000+ followers")
 - "92% reduction" (Master CV: "92% reduction")
 - "2+ years of training" (Master CV: "2+ years of training")
 - "4 markets" (Master CV: "Germany, Austria, Belgium/Switzerland, USA")
-- "350+ SKUs" (this is from the JD, used to reference the employer — allowed)
 
-NOT ALLOWED (fabricated/inferred):
+NOT ALLOWED (fabricated, inferred, or sourced from the JD):
 - "100+ trainees" (source says "2+ years of training" — do NOT convert time to headcount)
 - "50+ clients" (no client count in source documents)
 - "15% conversion rate improvement" (no conversion metrics in source)
 - "$200K pipeline" (no pipeline metrics in source)
+- "350+ product listings" (number from JD, NOT from applicant's CV — FORBIDDEN)
+- "500+ SKUs managed" (number from JD context — FORBIDDEN even if activity is real)
 
 If the source says a duration (e.g., "2+ years"), use the duration. Do NOT estimate, round, or convert to a different unit. The applicant will be asked to verify every number in an interview.
 
+RULE 4d — JOB DESCRIPTION NUMBERS ARE FORBIDDEN IN CV CONTENT:
+Numbers, quantities, and metrics that appear in the job description but NOT in the applicant's source CVs must NEVER be used in the CV output. The JD describes the EMPLOYER's context, not the APPLICANT's achievements. Even if the applicant performed a similar activity, you cannot attach the employer's scale to it.
+- JD says "manage 350+ SKUs" → you CANNOT write "managed 350+ product listings" unless "350" appears in the applicant's CV
+- JD says "$5M budget" → you CANNOT write "managed $5M budgets" unless that number is in the CV
+- JD says "team of 20" → you CANNOT write "led team of 20" unless the CV states it
+The ONLY source for numbers in CV bullets is the Primary CV and Master CV. No exceptions.
+
 RULE 4c — EXPERIENCE BULLET ACCURACY:
 Each bullet in the experience section must describe something the applicant ACTUALLY DID, as documented in their source CVs. Do not create hypothetical capabilities or inferred activities. If the source says "managed advertising budgets," write about managing advertising budgets — do not upgrade this to "developed reporting frameworks" or "built analytical dashboards."
+
+Before writing ANY bullet with a number or metric, perform this check:
+1. Find the exact number in the Primary CV or Master CV
+2. If the number only appears in the Job Description — DO NOT USE IT
+3. If no number exists for an activity, describe the activity WITHOUT a number
+Describing real work without a fabricated metric is ALWAYS better than attaching an impressive but fake number.
 
 RULE 5 — SKILL CATEGORIZATION:
 Categorize each skill based on its actual technical function, not based on which job description category it would best fit into. A database tool belongs under "Database/Backend," a web framework belongs under "Web Development," an analytics platform belongs under "Analytics," etc.

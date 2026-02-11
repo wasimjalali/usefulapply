@@ -138,6 +138,34 @@ The email prompt receives:
 
 ---
 
+## Anti-Hallucination Rules (CV & Cover Letter)
+
+**Updated:** February 11, 2026
+
+### Core Principle
+Every skill, metric, number, and claim in generated CV/cover letter output must be traceable to the Primary CV or Master CV. The JD is used for keyword matching and relevance targeting only — never as a source of facts about the applicant.
+
+### CV Optimization (`generateOptimizedCVData`)
+Located in `unified-writer-agent.ts`, the `<anti_hallucination_rules>` block contains 7 rules:
+
+| Rule | Purpose |
+|------|---------|
+| **Rule 1** — Source Verification | Every skill/tool/platform must exist in Primary CV or Master CV |
+| **Rule 2** — Metric Accuracy | Only exact numbers from source CVs. No extrapolation. |
+| **Rule 3** — Language Proficiency | CEFR levels reproduced exactly. B2 stays B2, never "verhandlungssicher" |
+| **Rule 4** — Skill Accuracy (highest priority) | Overrides ATS optimization. Only explicitly listed skills allowed. |
+| **Rule 4b** — Quantified Claims | All numbers must trace to source CVs. JD numbers are NOT allowed. |
+| **Rule 4c** — Experience Bullet Accuracy | Bullets must describe actual work. Pre-bullet metric verification checklist. |
+| **Rule 4d** — JD Numbers Forbidden | Numbers from JD describe the EMPLOYER, not the applicant. Never use them. |
+
+### Cover Letter (`generateCoverLetter`)
+5 rules in its own `<anti_hallucination_rules>` block. Rule 2 (Metric Accuracy) is cleanly stated: "If a number is not in the source documents, do not include it."
+
+### Known Hallucination Patterns (fixed)
+- **JD-sourced numbers**: LLM used "350+" from a JD to fabricate "350+ product listings" in CV bullet. **Fixed** by removing the ALLOWED example that permitted JD numbers and adding explicit RULE 4d.
+
+---
+
 ## Changelog
 
 | Date | Change | Files | Details |
@@ -149,3 +177,4 @@ The email prompt receives:
 | Feb 10, 2026 | Agent flow audit | AGENT_FLOW_AUDIT.md | Confirmed context IS preserved between fit analysis and generation. No duplicate API calls. In-memory cache with 30-min TTL. |
 | Feb 10, 2026 | State docs cleanup | Removed STATE_TRACKER.md, COMPONENTS_STATE_DOCS.md | CLAUDE.md is the ONLY state documentation file |
 | Feb 11, 2026 | Hero copy rewrite | page.tsx | Title shortened to 9 words ("Get Your Complete Job Application Package in 90 Seconds"). Subtitle starts with user action, names all 4 deliverables. Trust badges expanded from 2 to 3 (added "No sign-up required" middle badge with Shield icon). |
+| Feb 11, 2026 | CV anti-hallucination fix: JD numbers | unified-writer-agent.ts | Root cause: RULE 4b had an ALLOWED example ("350+ SKUs from JD — allowed") that gave the LLM permission to use JD numbers in CV bullets. Removed that example. Added RULE 4d: JD numbers are FORBIDDEN in CV content. Added explicit NOT ALLOWED examples for JD-sourced numbers. Added pre-bullet metric verification checklist. |
