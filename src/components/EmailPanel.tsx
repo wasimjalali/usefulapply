@@ -272,11 +272,16 @@ export function EmailPanel() {
     console.log('[mailto] Opening via anchor click...');
 
     try {
-      // Use a programmatic <a> click instead of window.location.href
-      // This bypasses Next.js router interception that causes blank pages
+      // Create an anchor, append to DOM, click, then remove.
+      // The element MUST be in the DOM for desktop browsers to handle mailto: clicks.
+      // A detached element's click won't trigger protocol navigation in Chrome/Firefox/Edge.
       const link = document.createElement('a');
       link.href = mailtoUrl;
+      link.style.display = 'none';
+      document.body.appendChild(link);
       link.click();
+      // Remove after a tick so the browser has time to process the navigation
+      setTimeout(() => document.body.removeChild(link), 100);
       console.log('[mailto] Anchor click triggered successfully');
     } catch (err) {
       console.error('[mailto] Error opening mailto link:', err);
