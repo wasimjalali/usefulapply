@@ -231,11 +231,17 @@ export function EmailPanel() {
     }
   };
 
-  // Open mailto: using window.location.href — the standard, reliable approach.
+  // Open mailto: using a programmatic <a> click to bypass Next.js router interception.
+  // window.location.href with mailto: can trigger client-side routing, causing blank pages.
   const openMailto = (subject: string, body: string, label: string) => {
     console.log('[mailto] Starting openMailto for:', label);
     console.log('[mailto] Subject:', subject?.substring(0, 50));
     console.log('[mailto] Body length:', body?.length);
+
+    if (!subject || !body) {
+      console.error('[mailto] No content to open');
+      return;
+    }
 
     // Always copy to clipboard as backup
     const fullText = `Subject: ${subject}\n\n${body}`;
@@ -247,17 +253,33 @@ export function EmailPanel() {
 
     const encodedSubject = encodeURIComponent(subject);
     const encodedBody = encodeURIComponent(body);
-    const mailtoUrl = `mailto:?subject=${encodedSubject}&body=${encodedBody}`;
+    let mailtoUrl = `mailto:?subject=${encodedSubject}&body=${encodedBody}`;
 
     console.log('[mailto] URL length:', mailtoUrl.length);
+
+    // mailto: URLs over ~2000 chars fail silently in some browsers
+    if (mailtoUrl.length > 2000) {
+      console.log('[mailto] URL too long, truncating body');
+      const maxBodyLength = 1500 - encodedSubject.length;
+      const truncatedBody = encodeURIComponent(
+        body.substring(0, Math.max(maxBodyLength, 200)) +
+        '\n\n[Email truncated - please paste full content from the app]'
+      );
+      mailtoUrl = `mailto:?subject=${encodedSubject}&body=${truncatedBody}`;
+    }
+
     console.log('[mailto] URL preview:', mailtoUrl.substring(0, 200) + '...');
-    console.log('[mailto] Setting window.location.href now...');
+    console.log('[mailto] Opening via anchor click...');
 
     try {
-      window.location.href = mailtoUrl;
-      console.log('[mailto] window.location.href set successfully');
+      // Use a programmatic <a> click instead of window.location.href
+      // This bypasses Next.js router interception that causes blank pages
+      const link = document.createElement('a');
+      link.href = mailtoUrl;
+      link.click();
+      console.log('[mailto] Anchor click triggered successfully');
     } catch (err) {
-      console.error('[mailto] Error setting window.location.href:', err);
+      console.error('[mailto] Error opening mailto link:', err);
     }
 
     toast.success(`Opening ${label} in your email client... Also copied to clipboard as backup.`);
