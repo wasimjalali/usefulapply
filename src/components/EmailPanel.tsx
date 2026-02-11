@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useAppStore } from '@/store/useAppStore';
-import { Send, Copy, Check, Mail, RefreshCw, Edit3, Eye, Clock } from 'lucide-react';
+import { Send, Copy, Check, RefreshCw, Edit3, Eye, Clock } from 'lucide-react';
 import type { GeneratedEmail } from '@/lib/types';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import { useToast } from './ui/Toast';
@@ -38,6 +38,8 @@ export function EmailPanel() {
   const [copiedSubject, setCopiedSubject] = useState(false);
   const [copiedFollowUpSubject, setCopiedFollowUpSubject] = useState(false);
   const [copiedFollowUpBody, setCopiedFollowUpBody] = useState(false);
+  const [copiedFullPrimary, setCopiedFullPrimary] = useState(false);
+  const [copiedFullFollowUp, setCopiedFullFollowUp] = useState(false);
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [isLoadingFollowUp, setIsLoadingFollowUp] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -231,56 +233,32 @@ export function EmailPanel() {
     }
   };
 
-  // Open mailto: using window.location.href — the standard, reliable approach.
-  const openMailto = (subject: string, body: string, label: string) => {
-    console.log('[mailto] Starting openMailto for:', label);
-    console.log('[mailto] Subject:', subject?.substring(0, 50));
-    console.log('[mailto] Body length:', body?.length);
-
-    // Always copy to clipboard as backup
-    const fullText = `Subject: ${subject}\n\n${body}`;
-    navigator.clipboard.writeText(fullText).then(() => {
-      console.log('[mailto] Copied to clipboard successfully');
-    }).catch((err) => {
-      console.warn('[mailto] Clipboard copy failed:', err);
-    });
-
-    const encodedSubject = encodeURIComponent(subject);
-    const encodedBody = encodeURIComponent(body);
-    const mailtoUrl = `mailto:?subject=${encodedSubject}&body=${encodedBody}`;
-
-    console.log('[mailto] URL length:', mailtoUrl.length);
-    console.log('[mailto] URL preview:', mailtoUrl.substring(0, 200) + '...');
-    console.log('[mailto] Setting window.location.href now...');
-
-    try {
-      window.location.href = mailtoUrl;
-      console.log('[mailto] window.location.href set successfully');
-    } catch (err) {
-      console.error('[mailto] Error setting window.location.href:', err);
-    }
-
-    toast.success(`Opening ${label} in your email client... Also copied to clipboard as backup.`);
-  };
-
-  const handleOpenPrimaryInEmail = () => {
+  const handleCopyFullPrimary = async () => {
     if (!user) { setShowSignUpWall(true); return; }
     const emailToUse = activeEmail || email;
     if (!emailToUse?.subject || !emailToUse?.body) {
       toast.error('Email content is not ready yet. Please wait for the email to be generated.');
       return;
     }
-    openMailto(emailToUse.subject, emailToUse.body, 'primary email');
+    const fullText = `Subject: ${emailToUse.subject}\n\n${emailToUse.body}`;
+    await navigator.clipboard.writeText(fullText);
+    setCopiedFullPrimary(true);
+    toast.success('Primary email copied to clipboard.');
+    setTimeout(() => setCopiedFullPrimary(false), 2000);
   };
 
-  const handleOpenFollowUpInEmail = () => {
+  const handleCopyFullFollowUp = async () => {
     if (!user) { setShowSignUpWall(true); return; }
     const followUp = activeFollowUp || followUpEmail;
     if (!followUp?.subject || !followUp?.body) {
       toast.error('Follow-up email content is not ready yet.');
       return;
     }
-    openMailto(followUp.subject, followUp.body, 'follow-up email');
+    const fullText = `Subject: ${followUp.subject}\n\n${followUp.body}`;
+    await navigator.clipboard.writeText(fullText);
+    setCopiedFullFollowUp(true);
+    toast.success('Follow-up email copied to clipboard.');
+    setTimeout(() => setCopiedFullFollowUp(false), 2000);
   };
 
   // Show loading indicator during full generation workflow
@@ -380,18 +358,18 @@ export function EmailPanel() {
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Open in Email — split into Primary + Follow-Up */}
-          <PortalTooltip text="Open primary email in your mail app">
-            <Button variant="primary" size="sm" onClick={handleOpenPrimaryInEmail}>
-              <Mail className="w-4 h-4 mr-1" />
-              Primary
+          {/* Copy Full Email Buttons */}
+          <PortalTooltip text="Copy full primary email">
+            <Button variant="primary" size="sm" onClick={handleCopyFullPrimary}>
+              {copiedFullPrimary ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
+              {copiedFullPrimary ? 'Copied' : 'Copy Email'}
             </Button>
           </PortalTooltip>
           {followUpEmail && (
-            <PortalTooltip text="Open follow-up email to schedule in your mail app">
-              <Button variant="outline" size="sm" onClick={handleOpenFollowUpInEmail}>
-                <Clock className="w-4 h-4 mr-1" />
-                Follow-Up
+            <PortalTooltip text="Copy full follow-up email">
+              <Button variant="outline" size="sm" onClick={handleCopyFullFollowUp}>
+                {copiedFullFollowUp ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
+                {copiedFullFollowUp ? 'Copied' : 'Copy Follow-Up'}
               </Button>
             </PortalTooltip>
           )}
