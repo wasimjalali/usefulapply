@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useAppStore } from '@/store/useAppStore';
-import { Send, Copy, Check, RefreshCw, Edit3, Eye, Clock } from 'lucide-react';
+import { Send, Copy, Check, Mail, RefreshCw, Edit3, Eye, Clock } from 'lucide-react';
 import type { GeneratedEmail } from '@/lib/types';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import { useToast } from './ui/Toast';
@@ -38,8 +38,6 @@ export function EmailPanel() {
   const [copiedSubject, setCopiedSubject] = useState(false);
   const [copiedFollowUpSubject, setCopiedFollowUpSubject] = useState(false);
   const [copiedFollowUpBody, setCopiedFollowUpBody] = useState(false);
-  const [copiedPrimaryAll, setCopiedPrimaryAll] = useState(false);
-  const [copiedFollowUpAll, setCopiedFollowUpAll] = useState(false);
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [isLoadingFollowUp, setIsLoadingFollowUp] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -233,30 +231,83 @@ export function EmailPanel() {
     }
   };
 
-  const handleCopyPrimaryAll = async () => {
+  // Open mailto: using a programmatic <a> click to bypass Next.js router interception.
+  // window.location.href with mailto: can trigger client-side routing, causing blank pages.
+  const openMailto = (subject: string, body: string, label: string) => {
+    console.log('[mailto] Starting openMailto for:', label);
+    console.log('[mailto] Subject:', subject?.substring(0, 50));
+    console.log('[mailto] Body length:', body?.length);
+
+    if (!subject || !body) {
+      console.error('[mailto] No content to open');
+      return;
+    }
+
+    // Always copy to clipboard as backup
+    const fullText = `Subject: ${subject}\n\n${body}`;
+    navigator.clipboard.writeText(fullText).then(() => {
+      console.log('[mailto] Copied to clipboard successfully');
+    }).catch((err) => {
+      console.warn('[mailto] Clipboard copy failed:', err);
+    });
+
+    const encodedSubject = encodeURIComponent(subject);
+    const encodedBody = encodeURIComponent(body);
+    let mailtoUrl = `mailto:?subject=${encodedSubject}&body=${encodedBody}`;
+
+    console.log('[mailto] URL length:', mailtoUrl.length);
+
+    // mailto: URLs over ~2000 chars fail silently in some browsers
+    if (mailtoUrl.length > 2000) {
+      console.log('[mailto] URL too long, truncating body');
+      const maxBodyLength = 1500 - encodedSubject.length;
+      const truncatedBody = encodeURIComponent(
+        body.substring(0, Math.max(maxBodyLength, 200)) +
+        '\n\n[Email truncated - please paste full content from the app]'
+      );
+      mailtoUrl = `mailto:?subject=${encodedSubject}&body=${truncatedBody}`;
+    }
+
+    console.log('[mailto] URL preview:', mailtoUrl.substring(0, 200) + '...');
+    console.log('[mailto] Opening via anchor click...');
+
+    try {
+      // Create an anchor, append to DOM, click, then remove.
+      // The element MUST be in the DOM for desktop browsers to handle mailto: clicks.
+      // A detached element's click won't trigger protocol navigation in Chrome/Firefox/Edge.
+      const link = document.createElement('a');
+      link.href = mailtoUrl;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      // Remove after a tick so the browser has time to process the navigation
+      setTimeout(() => document.body.removeChild(link), 100);
+      console.log('[mailto] Anchor click triggered successfully');
+    } catch (err) {
+      console.error('[mailto] Error opening mailto link:', err);
+    }
+
+    toast.success(`Opening ${label} in your email client... Also copied to clipboard as backup.`);
+  };
+
+  const handleOpenPrimaryInEmail = () => {
     if (!user) { setShowSignUpWall(true); return; }
     const emailToUse = activeEmail || email;
     if (!emailToUse?.subject || !emailToUse?.body) {
       toast.error('Email content is not ready yet. Please wait for the email to be generated.');
       return;
     }
-    await navigator.clipboard.writeText(`Subject: ${emailToUse.subject}\n\n${emailToUse.body}`);
-    setCopiedPrimaryAll(true);
-    setTimeout(() => setCopiedPrimaryAll(false), 2000);
-    toast.success('Primary email copied to clipboard');
+    openMailto(emailToUse.subject, emailToUse.body, 'primary email');
   };
 
-  const handleCopyFollowUpAll = async () => {
+  const handleOpenFollowUpInEmail = () => {
     if (!user) { setShowSignUpWall(true); return; }
     const followUp = activeFollowUp || followUpEmail;
     if (!followUp?.subject || !followUp?.body) {
       toast.error('Follow-up email content is not ready yet.');
       return;
     }
-    await navigator.clipboard.writeText(`Subject: ${followUp.subject}\n\n${followUp.body}`);
-    setCopiedFollowUpAll(true);
-    setTimeout(() => setCopiedFollowUpAll(false), 2000);
-    toast.success('Follow-up email copied to clipboard');
+    openMailto(followUp.subject, followUp.body, 'follow-up email');
   };
 
   // Show loading indicator during full generation workflow
@@ -356,18 +407,18 @@ export function EmailPanel() {
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Copy full email buttons */}
-          <PortalTooltip text="Copy full primary email to clipboard">
-            <Button variant="primary" size="sm" onClick={handleCopyPrimaryAll}>
-              {copiedPrimaryAll ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
-              {copiedPrimaryAll ? 'Copied!' : 'Copy Primary'}
+          {/* Open in Email — split into Primary + Follow-Up */}
+          <PortalTooltip text="Open primary email in your mail app">
+            <Button variant="primary" size="sm" onClick={handleOpenPrimaryInEmail}>
+              <Mail className="w-4 h-4 mr-1" />
+              Primary
             </Button>
           </PortalTooltip>
           {followUpEmail && (
-            <PortalTooltip text="Copy full follow-up email to clipboard">
-              <Button variant="outline" size="sm" onClick={handleCopyFollowUpAll}>
-                {copiedFollowUpAll ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
-                {copiedFollowUpAll ? 'Copied!' : 'Copy Follow-Up'}
+            <PortalTooltip text="Open follow-up email to schedule in your mail app">
+              <Button variant="outline" size="sm" onClick={handleOpenFollowUpInEmail}>
+                <Clock className="w-4 h-4 mr-1" />
+                Follow-Up
               </Button>
             </PortalTooltip>
           )}
