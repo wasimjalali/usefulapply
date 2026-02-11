@@ -163,6 +163,27 @@ Located in `unified-writer-agent.ts`, the `<anti_hallucination_rules>` block con
 
 ### Known Hallucination Patterns (fixed)
 - **Fabricated metrics ("350+ product listings")**: The number "350" did not exist in the JD or in the user's CV — the LLM invented it entirely. **Root causes**: (1) `<quality_standard>` said "quantified achievements where possible" — the "where possible" pressured the LLM to invent numbers. (2) Bullet format rule said "include at least one metric/number when available" — same pressure. (3) An ALLOWED example ("350+ SKUs from JD — allowed") gave permission to use JD numbers in CVs (that rule was intended for cover letters only). **Fixed** by: qualifying "where possible" → "ONLY when those exact numbers exist in source CVs"; changing bullet rule to "ONLY if that exact number exists"; adding "a bullet without metrics is ALWAYS better than a bullet with a fabricated metric"; removing the JD-numbers ALLOWED example; adding Rule 4d (JD numbers forbidden in CVs).
+- **Metric hallucination from competing pressures ("100+ product listings")**: Numbers fabricated because (1) "high-impact" bullet requirement created metric pressure, (2) CAR Method format demanded quantified Results, (3) no structural binding for metrics. **Fixed** with two layers: Layer 1 (prompt) removed metric-pressure language, added numberless bullet examples; Layer 2 (structural) added `extractVerifiedMetrics()` as a binding constraint mirroring the verified skills architecture.
+
+### Verified Metrics System
+
+**Added:** February 11, 2026
+
+**Problem:** The CV generation agent fabricated quantified metrics (e.g., "100+ product listings") that did not exist in the user's source CVs. Prompt-level rules alone were insufficient because competing pressures (CAR Method format, "high-impact" bullet requirement) overrode them.
+
+**Solution:** Two-layer fix:
+1. **Prompt layer:** Removed metric-pressure language ("high-impact" → "strong, accurate"), replaced CAR Method with "Action → Impact", added explicit numberless bullet examples.
+2. **Structural layer:** Added `extractVerifiedMetrics()` that extracts all numbers from the user's CVs during Phase 1, then injects them as a binding constraint in Phase 2 — identical architecture to the verified skills list.
+
+**Files Modified:**
+- `src/lib/agents/types.ts` — Added `verifiedMetrics?: string[]` to `MasterContext`
+- `src/lib/models/types.ts` — Added `extract_metrics` task type
+- `src/lib/agents/unified-writer-agent.ts` — Added `extractVerifiedMetrics()` method, called in parallel during both `run()` and `runFitAnalysis()`, injected as `verifiedMetricsList` in `generateOptimizedCVData()`
+
+**LLM Call Impact:**
+- +1 LLM call per workflow, BUT runs in parallel with existing calls (zero additional latency)
+- "Analyze First" flow: 4 → 5 Phase 1 calls (parallel, so same wall-clock time)
+- "Apply Directly" flow: 7 → 8 total calls (parallel extraction, so same wall-clock time)
 
 ---
 
@@ -179,3 +200,5 @@ Located in `unified-writer-agent.ts`, the `<anti_hallucination_rules>` block con
 | Feb 11, 2026 | Hero copy rewrite | page.tsx | Title shortened to 9 words ("Get Your Complete Job Application Package in 90 Seconds"). Subtitle starts with user action, names all 4 deliverables. Trust badges expanded from 2 to 3 (added "No sign-up required" middle badge with Shield icon). |
 | Feb 11, 2026 | CV anti-hallucination fix: JD numbers | unified-writer-agent.ts | Removed ALLOWED example that permitted JD numbers in CVs. Added RULE 4d: JD numbers forbidden. Added NOT ALLOWED examples for JD-sourced numbers. Added pre-bullet metric verification checklist. |
 | Feb 11, 2026 | CV anti-hallucination fix: fabricated metrics | unified-writer-agent.ts | Root cause: quality_standard ("where possible") and bullet format ("when available") pressured LLM to invent numbers. Fixed: "ONLY when exact numbers exist in source CVs". Added: "a bullet without metrics is ALWAYS better than a bullet with a fabricated metric". |
+| Feb 11, 2026 | Metric hallucination fix: Layer 1 prompt | unified-writer-agent.ts | Replaced "high-impact" with "strong, accurate" in bullet requirements. Added numberless bullet examples to Rule 4b. Replaced CAR Method with "Action → Impact" format. Added normalizing statement that most bullets won't have numbers. |
+| Feb 11, 2026 | Metric hallucination fix: Layer 2 structural | unified-writer-agent.ts, types.ts, models/types.ts | Added verifiedMetrics extraction during Phase 1 (parallel with applicant/JD extraction). Injected as binding constraint in CV generation prompt. Mirrors verified skills architecture. |

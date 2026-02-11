@@ -108,14 +108,17 @@ export const unifiedWriterAgent = {
 
       // Step 1+2: Extract applicant profile and parse JD in parallel — they're independent
       emit({ type: 'progress', percent: 10, message: 'Analyzing CV and job description...' });
-      const [applicantResult, jobResult] = await Promise.all([
+      const [applicantResult, jobResult, metricsResult] = await Promise.all([
         this.extractApplicantProfile(context.rawCV, context.masterCV),
         this.parseJobDescription(context.jobDescription),
+        this.extractVerifiedMetrics(context.rawCV, context.masterCV),
       ]);
       context.applicant = applicantResult.result;
       context.job = jobResult.result;
+      context.verifiedMetrics = metricsResult.result;
       context.detectedLanguage = this.detectLanguage(context.jobDescription);
       console.log('[KarkoAI] Detected language:', context.detectedLanguage);
+      console.log('[KarkoAI] Verified metrics count:', context.verifiedMetrics?.length || 0);
       
       // Log warnings for missing critical fields
       if (!context.applicant?.name || context.applicant.name === 'Unknown') {
@@ -618,6 +621,74 @@ Return ONLY valid JSON, no explanation.`,
     return { score, matchingSkills, missingSkills };
   },
 
+  /**
+   * Extract all quantified metrics from the applicant's source CVs.
+   * Returns a list of verified metrics that can be used in generated documents.
+   * Any number NOT in this list is considered fabricated.
+   */
+  async extractVerifiedMetrics(
+    primaryCV: string,
+    masterCV?: string
+  ): Promise<WithTokens<string[]>> {
+    const combinedCV = masterCV
+      ? `PRIMARY CV:\n${primaryCV}\n\nMASTER CV:\n${masterCV}`
+      : primaryCV;
+
+    const response = await callModel({
+      task: 'extract_metrics',
+      prompt: `Extract EVERY quantified metric, number, percentage, count, and duration from the provided CV documents. Include the number AND its context so it can be verified later.
+
+${combinedCV}
+
+EXTRACTION RULES:
+- Extract the EXACT number as it appears in the source (e.g., "$50,000", "25%", "3 years", "12 clients")
+- Include the context phrase (e.g., "$50,000 revenue", "25% growth", "3 years experience")
+- Extract from BOTH Primary CV and Master CV
+- Include durations (e.g., "3 years", "6 months")
+- Include counts (e.g., "5 markets", "2 products", "10 team members")
+- Include scores (e.g., "95%", "3.8 GPA", "85/100")
+- Include monetary amounts (e.g., "$120,000", "€50,000+", "£30,000")
+- Do NOT infer, calculate, or derive any numbers. Only extract what is explicitly written.
+- If a number appears in both CVs, include it only once.
+
+Return a JSON array of strings. Each string is one metric with its context.
+Example: ["$120,000 annual revenue", "5 international markets", "25% year-over-year growth", "3.8 GPA"]
+
+Return ONLY the JSON array. No explanation.`,
+      systemPrompt: 'You are a precise data extraction tool. Extract only explicitly stated numbers and metrics from the provided documents. Never infer, calculate, or fabricate. Return a JSON array of strings.',
+      jsonMode: true,
+    });
+
+    const tokens: TokenUsage = {
+      input: response.usage.inputTokens,
+      output: response.usage.outputTokens,
+    };
+
+    try {
+      let jsonContent = response.content.trim();
+
+      if (jsonContent.startsWith('```json')) {
+        jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+
+      const parsed = JSON.parse(jsonContent);
+
+      if (Array.isArray(parsed)) {
+        const metrics = parsed.map((m: unknown) => String(m).trim()).filter(Boolean);
+        console.log(`[KarkoAI] Extracted ${metrics.length} verified metrics from source CVs`);
+        return { result: metrics, tokens };
+      }
+
+      console.warn('[KarkoAI] Metric extraction returned non-array, defaulting to empty');
+      return { result: [], tokens };
+    } catch (error) {
+      console.error('[KarkoAI] Failed to parse verified metrics:', error);
+      return { result: [], tokens };
+    }
+  },
+
   // =====================================================
   // FIT ANALYSIS FUNCTIONS
   // =====================================================
@@ -658,13 +729,15 @@ Return ONLY valid JSON, no explanation.`,
         throw new Error('No CV content available. Please upload a CV first.');
       }
 
-      // Run applicant extraction and JD parsing in parallel — they're independent
-      const [applicantResult, jobResult] = await Promise.all([
+      // Run applicant extraction, JD parsing, and metrics extraction in parallel — they're independent
+      const [applicantResult, jobResult, metricsResult] = await Promise.all([
         this.extractApplicantProfile(context.rawCV, context.masterCV),
         this.parseJobDescription(context.jobDescription),
+        this.extractVerifiedMetrics(context.rawCV, context.masterCV),
       ]);
       context.applicant = applicantResult.result;
       context.job = jobResult.result;
+      context.verifiedMetrics = metricsResult.result;
       context.detectedLanguage = this.detectLanguage(context.jobDescription);
       emit({ type: 'step_completed', step: { id: 'analysis', description: 'CV parsed and job analyzed' }, tokens: applicantResult.tokens });
 
@@ -974,6 +1047,22 @@ CV-FIT ASSESSMENT BINDING (REINFORCEMENT):
 Cross-check EVERY skill, tool, and platform name in your generated CV against the VERIFIED MISSING list above. If a term appears in the MISSING list, it MUST NOT appear in the CV — not in experience bullets, not in skills sections, not in the professional summary. This includes specific variations and sub-types (e.g., if "Sponsored Products" is MISSING, do not write "Sponsored Products strategies", "Sponsored Products campaigns", or any phrase containing "Sponsored Products" in any bullet). Perform this check as a final validation step before outputting.
 ` : '';
 
+    const verifiedMetricsList = context.verifiedMetrics && context.verifiedMetrics.length > 0 ? `
+=== VERIFIED METRICS LIST (BINDING — DO NOT OVERRIDE) ===
+
+The following metrics have been extracted from the applicant's Primary CV and Master CV by a separate verification system. These are the ONLY numbers, percentages, counts, and durations you may use in the CV output.
+
+VERIFIED METRICS (you may use these):
+${context.verifiedMetrics.map((m, i) => `${i + 1}. ${m}`).join('\n')}
+
+BINDING CONSTRAINT:
+- Any number that does NOT appear in the list above is FABRICATED and must NOT be used.
+- If you want to describe an activity that has no verified metric, describe it WITHOUT a number.
+- This list was generated by a separate extraction system. You cannot override it.
+- Before writing ANY bullet containing a number, check it against this list. If the number is not here, remove it.
+- A strong bullet without a metric is ALWAYS better than a bullet with an unverified number.
+` : '';
+
     // ---- PROMPT CACHING: Static instructions go into cacheable system blocks ----
     // The CV optimization rules + JSON schema are ~3,000+ tokens of static content
     // that is identical across every call. By placing them in system blocks with
@@ -1055,12 +1144,28 @@ ALLOWED (number exists in Primary CV or Master CV):
 - "4 markets" (Master CV: "Germany, Austria, Belgium/Switzerland, USA")
 
 NOT ALLOWED (fabricated, inferred, or sourced from the JD):
+- Any number that does not appear in the Primary CV or Master CV (e.g., invented listing counts, client counts, or percentage improvements)
 - "100+ trainees" (source says "2+ years of training" — do NOT convert time to headcount)
 - "50+ clients" (no client count in source documents)
 - "15% conversion rate improvement" (no conversion metrics in source)
 - "$200K pipeline" (no pipeline metrics in source)
 - "350+ product listings" (number from JD, NOT from applicant's CV — FORBIDDEN)
 - "500+ SKUs managed" (number from JD context — FORBIDDEN even if activity is real)
+
+THE FABRICATION TEST: Before writing ANY number in a bullet, search the Primary CV and Master CV for that exact number. If you cannot find it, DELETE the number and describe the activity without it.
+
+WHEN NO NUMBER EXISTS — WRITE A STRONG BULLET WITHOUT ONE:
+If the applicant performed a real activity but no metric exists for it, describe the activity with a strong action verb and specific context. A bullet without a metric is ALWAYS better than a bullet with a fabricated one.
+
+PATTERN — how to convert a numbered bullet to a numberless one:
+- WITH fabricated number: "Managed [X]+ client accounts across multiple regions"
+- WITHOUT number (CORRECT): "Managed client accounts across multiple regions, coordinating delivery and support"
+- WITH fabricated number: "Optimized [X]+ product listings using keyword research"
+- WITHOUT number (CORRECT): "Optimized product listings using data-driven keyword research and competitive analysis"
+- WITH fabricated number: "Increased conversion rates by [X]%"
+- WITHOUT number (CORRECT): "Improved conversion rates through systematic A/B testing and listing optimization"
+
+The pattern: remove the fake number, add specific context about HOW or WHERE instead.
 
 If the source says a duration (e.g., "2+ years"), use the duration. Do NOT estimate, round, or convert to a different unit. The applicant will be asked to verify every number in an interview.
 
@@ -1100,7 +1205,7 @@ To ensure the CV fits on 2 pages and remains readable:
    - Have the most recent dates (2020-Present preferred).
    - Demonstrate skills explicitly listed in the Job Description.
 3. **Bullet Point Limit (Strict):**
-   - **Most Recent/Relevant Role:** Exactly 4 high-impact bullets.
+   - **Most Recent/Relevant Role:** Exactly 4 strong, accurate bullets.
    - **Second Role:** Exactly 3-4 bullets.
    - **Older Roles (3rd/4th):** Exactly 3 bullets each.
    - **Total Bullets:** NEVER exceed 15 total bullets across the entire CV.
@@ -1283,10 +1388,11 @@ Do NOT use creative or unconventional headers.
    - If NO: Do NOT add the skill. Leave it out. The fit assessment already flagged it as a gap.
    - Include both acronyms AND full forms for skills the applicant HAS: "SEO (Search Engine Optimization)"
 
-3. BULLET FORMAT (CAR Method - Challenge → Action → Result):
+3. BULLET FORMAT (Action → Impact):
    - Every bullet MUST start with a strong action verb
    - Include metrics/numbers ONLY if that exact number exists in the Primary CV or Master CV
-   - If no metric exists for an activity, write a compelling bullet WITHOUT a number — do NOT invent one
+   - If no metric exists for an activity, write a compelling bullet WITHOUT a number — do NOT invent one. Describe the scope, tools used, or business context instead.
+   - Most bullets will NOT have numbers — that is normal and expected. Only a few key achievements will have verified metrics.
    - No action verb used more than twice across ALL bullets
    - Bullets must describe things the applicant ACTUALLY DID (from Primary CV or Master CV)
 
@@ -1371,6 +1477,7 @@ Company: ${job?.companyName || 'Unknown'}
 Required Skills: ${job?.requiredSkills?.join(', ') || 'N/A'}
 Nice-to-Have: ${job?.niceToHaveSkills?.join(', ') || 'N/A'}
 ${verifiedSkillList}
+${verifiedMetricsList}
 === PRIMARY CV (source of truth for personal info) ===
 ${rawCV}
 

@@ -23,6 +23,7 @@ export type TaskType =
   | 'optimize_cv'        // Generate optimized CV
   | 'fit_assessment'     // Pre-generation fit analysis
   | 'skill_matching'     // LLM-based semantic skill matching (cross-language)
+  | 'extract_metrics'    // Extract verified metrics from source CVs
   // Writing tasks
   | 'write_summary'
   | 'write_bullets'
@@ -213,6 +214,12 @@ export const MODEL_CONFIGS: Record<TaskType, ModelConfig> = {
     provider: 'anthropic',
     temperature: 0.1,  // Low temp for consistent, deterministic matching
     maxTokens: 2048,
+  },
+  extract_metrics: {
+    model: 'claude-sonnet-4-5',
+    provider: 'anthropic',
+    temperature: 0,  // Deterministic extraction — no creativity needed
+    maxTokens: 1024,
   },
 };
 
