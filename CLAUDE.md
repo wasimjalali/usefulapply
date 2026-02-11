@@ -77,7 +77,8 @@ After generating the primary application email, Karko AI automatically generates
 - Separated by a gold (#c9a84c) dashed divider
 - Schedule badge shows recommended delay (5 days EN, 7 days DE)
 - Separate copy and regenerate buttons for the follow-up
-- "Copy All" includes both emails with a separator
+- Toolbar has "Copy Primary" and "Copy Follow-Up" buttons (copy full subject + body to clipboard)
+- Each email section also has individual "Copy Subject" and "Copy Body" inline buttons
 - Tips section splits into PRIMARY EMAIL / FOLLOW-UP EMAIL sections when follow-up exists
 
 ### Follow-Up Email Rules
@@ -149,3 +150,4 @@ The email prompt receives:
 | Feb 10, 2026 | Agent flow audit | AGENT_FLOW_AUDIT.md | Confirmed context IS preserved between fit analysis and generation. No duplicate API calls. In-memory cache with 30-min TTL. |
 | Feb 10, 2026 | State docs cleanup | Removed STATE_TRACKER.md, COMPONENTS_STATE_DOCS.md | CLAUDE.md is the ONLY state documentation file |
 | Feb 11, 2026 | Hero copy rewrite | page.tsx | Title shortened to 9 words ("Get Your Complete Job Application Package in 90 Seconds"). Subtitle starts with user action, names all 4 deliverables. Trust badges expanded from 2 to 3 (added "No sign-up required" middle badge with Shield icon). |
+| Feb 11, 2026 | Email toolbar: replace mailto with copy buttons | EmailPanel.tsx | Removed broken mailto "Open in Email" buttons. Replaced with "Copy Primary" and "Copy Follow-Up" toolbar buttons that copy full email (subject + body) to clipboard with 2s "Copied!" feedback. Removed `openMailto` helper and `Mail` icon import. |
