@@ -162,7 +162,7 @@ Located in `unified-writer-agent.ts`, the `<anti_hallucination_rules>` block con
 5 rules in its own `<anti_hallucination_rules>` block. Rule 2 (Metric Accuracy) is cleanly stated: "If a number is not in the source documents, do not include it."
 
 ### Known Hallucination Patterns (fixed)
-- **JD-sourced numbers**: LLM used "350+" from a JD to fabricate "350+ product listings" in CV bullet. **Fixed** by removing the ALLOWED example that permitted JD numbers and adding explicit RULE 4d.
+- **Fabricated metrics ("350+ product listings")**: The number "350" did not exist in the JD or in the user's CV — the LLM invented it entirely. **Root causes**: (1) `<quality_standard>` said "quantified achievements where possible" — the "where possible" pressured the LLM to invent numbers. (2) Bullet format rule said "include at least one metric/number when available" — same pressure. (3) An ALLOWED example ("350+ SKUs from JD — allowed") gave permission to use JD numbers in CVs (that rule was intended for cover letters only). **Fixed** by: qualifying "where possible" → "ONLY when those exact numbers exist in source CVs"; changing bullet rule to "ONLY if that exact number exists"; adding "a bullet without metrics is ALWAYS better than a bullet with a fabricated metric"; removing the JD-numbers ALLOWED example; adding Rule 4d (JD numbers forbidden in CVs).
 
 ---
 
@@ -177,4 +177,5 @@ Located in `unified-writer-agent.ts`, the `<anti_hallucination_rules>` block con
 | Feb 10, 2026 | Agent flow audit | AGENT_FLOW_AUDIT.md | Confirmed context IS preserved between fit analysis and generation. No duplicate API calls. In-memory cache with 30-min TTL. |
 | Feb 10, 2026 | State docs cleanup | Removed STATE_TRACKER.md, COMPONENTS_STATE_DOCS.md | CLAUDE.md is the ONLY state documentation file |
 | Feb 11, 2026 | Hero copy rewrite | page.tsx | Title shortened to 9 words ("Get Your Complete Job Application Package in 90 Seconds"). Subtitle starts with user action, names all 4 deliverables. Trust badges expanded from 2 to 3 (added "No sign-up required" middle badge with Shield icon). |
-| Feb 11, 2026 | CV anti-hallucination fix: JD numbers | unified-writer-agent.ts | Root cause: RULE 4b had an ALLOWED example ("350+ SKUs from JD — allowed") that gave the LLM permission to use JD numbers in CV bullets. Removed that example. Added RULE 4d: JD numbers are FORBIDDEN in CV content. Added explicit NOT ALLOWED examples for JD-sourced numbers. Added pre-bullet metric verification checklist. |
+| Feb 11, 2026 | CV anti-hallucination fix: JD numbers | unified-writer-agent.ts | Removed ALLOWED example that permitted JD numbers in CVs. Added RULE 4d: JD numbers forbidden. Added NOT ALLOWED examples for JD-sourced numbers. Added pre-bullet metric verification checklist. |
+| Feb 11, 2026 | CV anti-hallucination fix: fabricated metrics | unified-writer-agent.ts | Root cause: quality_standard ("where possible") and bullet format ("when available") pressured LLM to invent numbers. Fixed: "ONLY when exact numbers exist in source CVs". Added: "a bullet without metrics is ALWAYS better than a bullet with a fabricated metric". |

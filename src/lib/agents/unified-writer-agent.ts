@@ -992,7 +992,7 @@ The frontend will render your JSON directly - if you mess up the structure, the 
 CRITICAL: Always include the "analysis" object with summary, key_changes, ats_compatibility, and missing_keywords_added fields.
 
 <quality_standard>
-Generate a CV that reads naturally and professionally — as if written by a skilled human career coach, not an AI tool. Every bullet point should demonstrate impact with specific, quantified achievements where possible. Use strong action verbs and varied sentence structures. The CV should tell a coherent professional story that connects the candidate's experience to the target role. Go beyond basic keyword insertion — craft language that would impress a hiring manager reading their 50th application of the day.
+Generate a CV that reads naturally and professionally — as if written by a skilled human career coach, not an AI tool. Every bullet point should demonstrate impact with specific, quantified achievements ONLY when those exact numbers exist in the Primary CV or Master CV. If no number exists for an activity, write a strong action-oriented bullet WITHOUT a number. A bullet without metrics is ALWAYS better than a bullet with a fabricated metric. Use strong action verbs and varied sentence structures. The CV should tell a coherent professional story that connects the candidate's experience to the target role. Go beyond basic keyword insertion — craft language that would impress a hiring manager reading their 50th application of the day.
 
 This quality standard is critical because our users' careers depend on the output. A mediocre CV wastes the user's time and damages our product reputation.
 </quality_standard>
@@ -1285,7 +1285,8 @@ Do NOT use creative or unconventional headers.
 
 3. BULLET FORMAT (CAR Method - Challenge → Action → Result):
    - Every bullet MUST start with a strong action verb
-   - Every bullet SHOULD include at least one metric/number when available
+   - Include metrics/numbers ONLY if that exact number exists in the Primary CV or Master CV
+   - If no metric exists for an activity, write a compelling bullet WITHOUT a number — do NOT invent one
    - No action verb used more than twice across ALL bullets
    - Bullets must describe things the applicant ACTUALLY DID (from Primary CV or Master CV)
 
