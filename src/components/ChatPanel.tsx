@@ -24,6 +24,7 @@ import {
 import KarkoLogo from '@/components/KarkoLogo';
 import { useRouter } from 'next/navigation';
 import { SignUpWallModal, hasUsedFreeGeneration, markFreeGenerationUsed } from '@/components/SignUpWallModal';
+import { usePostHog } from 'posthog-js/react';
 
 interface ChatPanelProps {
   onTabChange?: (tab: 'cv' | 'cover-letter' | 'email') => void;
@@ -49,6 +50,7 @@ interface AgentStepData {
 export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: ChatPanelProps) {
   const router = useRouter();
   const { user } = useAuth();
+  const posthog = usePostHog();
   const {
     currentCV,
     currentSession,
@@ -191,6 +193,7 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
       if (isJobDescription) {
         setJobDescription(messageContent);
         setIsAgentWorking(true);
+        posthog?.capture('jd_pasted', { jd_length: messageContent.length, mode: applicationMode });
         if (applicationMode === 'apply_directly') {
           setV2Progress({ percent: 0, message: 'Generating full application...' });
           runAgentWorkflow(messageContent);
@@ -225,6 +228,7 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
         
         setJobDescription(messageContent);
         setIsAgentWorking(true);
+        posthog?.capture('jd_pasted', { jd_length: messageContent.length, mode: applicationMode });
         if (applicationMode === 'apply_directly') {
           setV2Progress({ percent: 0, message: 'Generating full application...' });
           runAgentWorkflow(messageContent);
@@ -391,6 +395,14 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
                   verifiedMetrics,
                   detectedLanguage,
                   fitAnalysis,
+                });
+                posthog?.capture('fit_analysis_viewed', {
+                  fit_score: fitAnalysis?.score,
+                  fit_level: fitAnalysis?.fitLevel,
+                  matching_skills_count: fitAnalysis?.matchingSkills?.length || 0,
+                  missing_skills_count: fitAnalysis?.missingSkills?.length || 0,
+                  job_title: job?.title,
+                  company: job?.companyName,
                 });
                 
                 const fitEmoji = fitAnalysis.fitLevel === 'strong' ? '🟢' : fitAnalysis.fitLevel === 'good' ? '🟡' : '🔴';
@@ -559,6 +571,12 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
               case 'workflow_complete':
                 const { results } = data;
                 const ctx = results.context;
+                posthog?.capture('application_generated', {
+                  mode: contextId ? 'analyze_first' : 'apply_directly',
+                  job_title: ctx?.job?.title,
+                  company: ctx?.job?.companyName,
+                  match_score: ctx?.match?.score,
+                });
                 
                 if (ctx?.job) {
                   useAppStore.getState().updateCurrentSession({
@@ -755,6 +773,7 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
         onTabChange?.('email');
         break;
       case 'generate-full-application':
+        posthog?.capture('apply_clicked', { mode: 'analyze_first' });
         addChatMessage({
           role: 'assistant',
           content: '🚀 Generating your full application package...',
@@ -782,6 +801,7 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
           setShowSignUpWall(true);
           return;
         }
+        posthog?.capture('new_application_started');
         setFitAnalysisContextId(null);
         setFitAnalysisJD('');
         useAppStore.getState().clearCurrentSession();

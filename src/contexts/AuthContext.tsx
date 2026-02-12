@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import { User, Session, AuthError, SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase } from '@/lib/supabase/client';
 import type { Profile } from '@/lib/supabase/types';
+import posthog from 'posthog-js';
 
 type SupabaseClientType = SupabaseClient<any, 'public', any>;
 
@@ -114,11 +115,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
 
         if (newSession?.user) {
+          // Identify user in PostHog
+          posthog.identify(newSession.user.id, {
+            email: newSession.user.email,
+            created_at: newSession.user.created_at,
+          });
           // Fetch profile in background, don't block
           fetchProfile(newSession.user.id, newSession.user.email)
-            .then(profileData => setProfile(profileData))
+            .then(profileData => {
+              setProfile(profileData);
+              if (profileData?.subscription_tier) {
+                posthog.people.set({ plan: profileData.subscription_tier });
+              }
+            })
             .catch(err => console.error('Profile fetch error:', err));
         } else {
+          posthog.reset();
           setProfile(null);
         }
       }

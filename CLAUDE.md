@@ -190,6 +190,58 @@ Located in `unified-writer-agent.ts`, the `<anti_hallucination_rules>` block con
 
 ---
 
+## PostHog Analytics Integration
+
+**Added:** February 13, 2026
+
+### Overview
+PostHog is integrated for product analytics, session replay, and LLM cost tracking. Uses reverse proxy (`/ingest`) to bypass ad blockers.
+
+### Architecture
+- **Client-side:** `posthog-js` via `PostHogProvider` (outermost wrapper in layout) + `PostHogPageView` for SPA pageview tracking
+- **Server-side:** `posthog-node` singleton via `getPostHogServer()` for LLM analytics in API routes
+- **User identification:** `posthog.identify()` on Supabase auth state change, `posthog.reset()` on sign out
+
+### Environment Variables
+- `NEXT_PUBLIC_POSTHOG_KEY` — PostHog project API key
+- `NEXT_PUBLIC_POSTHOG_HOST` — `https://us.i.posthog.com`
+
+### Files
+| File | Purpose |
+|------|---------|
+| `src/providers/PostHogProvider.tsx` | Client-side PostHog init with reverse proxy, session replay, manual pageview |
+| `src/providers/PostHogPageView.tsx` | SPA pageview tracking via `usePathname`/`useSearchParams` |
+| `src/lib/posthog-server.ts` | Server-side singleton (`flushAt: 1`, `flushInterval: 0` for Vercel serverless) |
+| `next.config.ts` | Reverse proxy rewrites (`/ingest/*` → PostHog) |
+| `src/app/layout.tsx` | PostHogProvider wraps all other providers |
+| `src/contexts/AuthContext.tsx` | `posthog.identify()` on login, `posthog.reset()` on logout |
+| `src/components/ChatPanel.tsx` | Frontend events: `jd_pasted`, `fit_analysis_viewed`, `apply_clicked`, `application_generated`, `new_application_started` |
+| `src/components/EmailPanel.tsx` | Frontend events: `document_copied`, `regeneration_requested` |
+| `src/app/api/agent-v2/route.ts` | LLM analytics: `$ai_generation` events with token counts, cost estimates per step |
+| `src/app/api/regenerate/route.ts` | LLM analytics for regeneration: `regen_cover_letter`, `regen_email`, `regen_follow_up_email` |
+
+### Frontend Events Tracked
+| Event | Location | Properties |
+|-------|----------|------------|
+| `jd_pasted` | ChatPanel | `jd_length`, `mode` |
+| `fit_analysis_viewed` | ChatPanel | `fit_score`, `fit_level`, `matching_skills_count`, `missing_skills_count`, `job_title`, `company` |
+| `apply_clicked` | ChatPanel | `mode` |
+| `application_generated` | ChatPanel | `mode`, `job_title`, `company`, `match_score` |
+| `new_application_started` | ChatPanel | — |
+| `document_copied` | EmailPanel | `document_type` (`email`, `email_body`, `follow_up_email`) |
+| `regeneration_requested` | EmailPanel | `section` (`email`, `follow_up_email`) |
+
+### LLM Analytics (Server-Side)
+Every agent step emits `$ai_generation` with: `$ai_provider`, `$ai_model`, `$ai_input_tokens`, `$ai_output_tokens`, `step`, `total_tokens`, `estimated_cost_usd`. Tracked at the route level via `trackLLMStep` helper (not inside the agent itself).
+
+### Not Implemented (by design)
+- **`@posthog/ai`** — skipped due to known Anthropic streaming bugs
+- **Feature flags / A/B testing / surveys** — not needed yet
+- **`cv_uploaded` event** — requires adding tracking to the document upload component (future)
+- **`plan_selected` / `payment_completed`** — requires adding tracking to pricing/Stripe components (future)
+
+---
+
 ## Changelog
 
 | Date | Change | Files | Details |
@@ -220,3 +272,4 @@ Located in `unified-writer-agent.ts`, the `<anti_hallucination_rules>` block con
 | Feb 12, 2026 | Bug fix: context cache miss in Analyze First flow | route.ts, ChatPanel.tsx | Root cause: in-memory Map cache doesn't survive dev hot-reloads or serverless cold starts. Fix: Client stores full parsed context from fit_analysis_complete, sends it back with generate_with_context request. Server reconstructs MasterContext from client data on cache miss. |
 | Feb 12, 2026 | Bug fix: email hallucination (fabricated skills/companies) | unified-writer-agent.ts | Root cause: Email prompt only received 500 chars of CV (vs full CV for cover letter) + had 2-sentence anti-hallucination rules (vs cover letter's 5-rule system). Fix: Removed 500-char truncation, added full VERIFIED SKILL CONSTRAINT section, added VERIFIED METRICS constraint, strengthened system prompt with 5 matching rules including INDUSTRY & COMPANY ACCURACY. |
 | Feb 12, 2026 | Follow-up email: anti-hallucination parity | unified-writer-agent.ts | Strengthened follow-up email from 3-line anti-hallucination section to full 5-rule system (SOURCE VERIFICATION, METRIC ACCURACY, COMPANY ACCURACY, SKILL CONSTRAINT, VERIFICATION CHECK). Rules scoped to follow-up's specific sources (key_achievement, company_context, primary_email). |
+| Feb 13, 2026 | PostHog analytics integration | PostHogProvider.tsx, PostHogPageView.tsx, posthog-server.ts, layout.tsx, next.config.ts, AuthContext.tsx, ChatPanel.tsx, EmailPanel.tsx, agent-v2/route.ts, regenerate/route.ts | Full PostHog integration: client-side provider with reverse proxy (/ingest), SPA pageview tracking, session replay, user identification via Supabase auth, frontend event tracking (jd_pasted, fit_analysis_viewed, apply_clicked, application_generated, new_application_started, document_copied, regeneration_requested), server-side LLM analytics ($ai_generation events with token counts and cost estimates per agent step), regeneration tracking. |

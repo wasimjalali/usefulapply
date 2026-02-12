@@ -28,6 +28,7 @@ import {
   extractSectionByHeader,
   transformToGeneratedCV,
 } from '@/lib/utils/cv-transformers';
+import { getPostHogServer } from '@/lib/posthog-server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -118,6 +119,32 @@ export async function POST(request: NextRequest) {
           hasMasterCV: !!masterCV,
         });
 
+        // PostHog LLM analytics helper
+        const trackLLMStep = (stepId: string, tokens?: { input: number; output: number }) => {
+          if (!tokens) return;
+          try {
+            const posthog = getPostHogServer();
+            posthog.capture({
+              distinctId: user?.id || 'anonymous',
+              event: '$ai_generation',
+              properties: {
+                $ai_provider: 'anthropic',
+                $ai_model: 'claude-sonnet-4-5',
+                $ai_input_tokens: tokens.input,
+                $ai_output_tokens: tokens.output,
+                $ai_is_error: false,
+                step: stepId,
+                total_tokens: tokens.input + tokens.output,
+                estimated_cost_usd:
+                  (tokens.input / 1_000_000) * 3 +
+                  (tokens.output / 1_000_000) * 15,
+              },
+            });
+          } catch (e) {
+            console.error('[PostHog] LLM tracking error:', e);
+          }
+        };
+
         // Set up event handler to stream progress
         const createEventHandler = (stepIndexFn: (id: string) => number) => (event: AgentEvent) => {
           switch (event.type) {
@@ -130,6 +157,7 @@ export async function POST(request: NextRequest) {
               })}\n\n`));
               break;
             case 'step_completed':
+              trackLLMStep(event.step.id, event.tokens);
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                 type: 'step_complete',
                 step: event.step.id,

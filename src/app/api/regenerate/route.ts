@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { checkAndDeductCredits, formatCreditErrorResponse, CREDIT_COSTS } from '@/lib/middleware/creditCheck';
 import { setServerSupabaseClient, clearServerSupabaseClient } from '@/lib/supabase/credits';
 import { detectLanguage } from '@/lib/utils/language-detector';
+import { getPostHogServer } from '@/lib/posthog-server';
 
 /**
  * API endpoint for regenerating cover letter or email
@@ -73,8 +74,34 @@ export async function POST(request: NextRequest) {
       match: context.match,
     };
 
+    // PostHog LLM tracking helper for regeneration
+    const trackRegenLLM = (step: string, tokens: { input: number; output: number }) => {
+      try {
+        const posthog = getPostHogServer();
+        posthog.capture({
+          distinctId: user.id,
+          event: '$ai_generation',
+          properties: {
+            $ai_provider: 'anthropic',
+            $ai_model: 'claude-sonnet-4-5',
+            $ai_input_tokens: tokens.input,
+            $ai_output_tokens: tokens.output,
+            $ai_is_error: false,
+            step,
+            total_tokens: tokens.input + tokens.output,
+            estimated_cost_usd:
+              (tokens.input / 1_000_000) * 3 +
+              (tokens.output / 1_000_000) * 15,
+          },
+        });
+      } catch (e) {
+        console.error('[PostHog] Regen LLM tracking error:', e);
+      }
+    };
+
     if (type === 'cover-letter') {
       const { result: coverLetter, tokens } = await unifiedWriterAgent.generateCoverLetter(masterContext);
+      trackRegenLLM('regen_cover_letter', tokens);
       clearServerSupabaseClient();
       return NextResponse.json({ 
         coverLetter,
@@ -84,6 +111,7 @@ export async function POST(request: NextRequest) {
       });
     } else if (type === 'email') {
       const { result: email, tokens } = await unifiedWriterAgent.generateApplicationEmail(masterContext);
+      trackRegenLLM('regen_email', tokens);
       clearServerSupabaseClient();
       return NextResponse.json({ 
         email,
@@ -97,6 +125,7 @@ export async function POST(request: NextRequest) {
         masterContext.applicationEmail = context.applicationEmail;
       }
       const { result: followUpEmail, tokens } = await unifiedWriterAgent.generateFollowUpEmail(masterContext);
+      trackRegenLLM('regen_follow_up_email', tokens);
       clearServerSupabaseClient();
       return NextResponse.json({ 
         followUpEmail,

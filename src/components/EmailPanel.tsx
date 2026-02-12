@@ -11,9 +11,11 @@ import { useToast } from './ui/Toast';
 import { PortalTooltip } from './ui/PortalTooltip';
 import { useAuth } from '@/contexts/AuthContext';
 import { SignUpWallModal } from '@/components/SignUpWallModal';
+import { usePostHog } from 'posthog-js/react';
 
 export function EmailPanel() {
   const { user } = useAuth();
+  const posthog = usePostHog();
   const { 
     currentSession,
     updateCurrentSession,
@@ -81,6 +83,7 @@ export function EmailPanel() {
     const { currentCV, structuredCV } = useAppStore.getState();
     if (!currentCV) return;
 
+    posthog?.capture('regeneration_requested', { section: 'email' });
     setIsLoadingEmail(true);
     try {
       // Build context for Writer Agent
@@ -141,6 +144,7 @@ export function EmailPanel() {
     if (!user) { setShowSignUpWall(true); return; }
     if (email) {
       await navigator.clipboard.writeText(email.body);
+      posthog?.capture('document_copied', { document_type: 'email_body' });
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -176,6 +180,7 @@ export function EmailPanel() {
     const { currentCV, structuredCV } = useAppStore.getState();
     if (!currentCV) return;
 
+    posthog?.capture('regeneration_requested', { section: 'follow_up_email' });
     setIsLoadingFollowUp(true);
     try {
       const context = {
@@ -242,6 +247,7 @@ export function EmailPanel() {
     }
     const fullText = `Subject: ${emailToUse.subject}\n\n${emailToUse.body}`;
     await navigator.clipboard.writeText(fullText);
+    posthog?.capture('document_copied', { document_type: 'email' });
     setCopiedFullPrimary(true);
     toast.success('Primary email copied to clipboard.');
     setTimeout(() => setCopiedFullPrimary(false), 2000);
@@ -256,6 +262,7 @@ export function EmailPanel() {
     }
     const fullText = `Subject: ${followUp.subject}\n\n${followUp.body}`;
     await navigator.clipboard.writeText(fullText);
+    posthog?.capture('document_copied', { document_type: 'follow_up_email' });
     setCopiedFullFollowUp(true);
     toast.success('Follow-up email copied to clipboard.');
     setTimeout(() => setCopiedFullFollowUp(false), 2000);
