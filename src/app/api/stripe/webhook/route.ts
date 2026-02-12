@@ -174,7 +174,7 @@ async function handleSubscriptionUpdate(subscription: any) {
   // Get user by customer ID
   const { data: userCredits } = await supabase
     .from('user_credits')
-    .select('user_id, plan_tier')
+    .select('user_id, plan_tier, monthly_credits')
     .eq('stripe_customer_id', customerId)
     .single();
 
@@ -186,15 +186,26 @@ async function handleSubscriptionUpdate(subscription: any) {
   // Determine plan tier from price ID
   const priceId = subscription.items.data[0]?.price.id;
   let planTier = 'starter';
-  let monthlyCredits = 40;
+  let newPlanCredits = 40;
 
   if (priceId === process.env.STRIPE_PRICE_ID_PLUS) {
     planTier = 'plus';
-    monthlyCredits = 120;
+    newPlanCredits = 120;
   } else if (priceId === process.env.STRIPE_PRICE_ID_PRO) {
     planTier = 'pro';
-    monthlyCredits = 240;
+    newPlanCredits = 240;
   }
+
+  // Handle mid-cycle plan changes:
+  // - Upgrade (e.g. Plus→Pro): give full new plan credits (rewards upgrading)
+  // - Downgrade (e.g. Pro→Plus): cap at new plan limit so users can't gain credits
+  const oldPlanCredits = userCredits.plan_tier === 'pro' ? 240 : userCredits.plan_tier === 'plus' ? 120 : 40;
+  const isDowngrade = newPlanCredits < oldPlanCredits;
+  const monthlyCredits = isDowngrade
+    ? Math.min(userCredits.monthly_credits, newPlanCredits)
+    : newPlanCredits;
+
+  console.log(`[Stripe Webhook] Plan change: ${userCredits.plan_tier}→${planTier}, credits: ${userCredits.monthly_credits}→${monthlyCredits}${isDowngrade ? ' (downgrade, capped)' : ' (upgrade, full)'}`);
 
   // Update subscription
   const { error } = await supabase
