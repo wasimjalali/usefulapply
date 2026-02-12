@@ -51,7 +51,7 @@ export function SubscriptionSection({
     ? userCredits.monthly_credits + userCredits.rollover_credits + userCredits.addon_credits 
     : 40;
   
-  const maxCredits = userCredits?.plan_tier === 'starter' ? 40 : userCredits?.plan_tier === 'plus' ? 160 : 300;
+  const maxCredits = userCredits?.plan_tier === 'starter' ? 40 : userCredits?.plan_tier === 'plus' ? 120 : 240;
   const isFreeTier = subscriptionTier === 'starter' || subscriptionTier === 'free';
 
   return (
@@ -204,6 +204,10 @@ export function SubscriptionSection({
             </div>
             {subscriptionTier === 'plus' ? (
               <span className="px-2.5 py-1 text-xs font-semibold bg-navy-50 text-navy-600 rounded-full">Current</span>
+            ) : subscriptionTier === 'pro' && onManageBilling ? (
+              <Button variant="outline" size="sm" onClick={onManageBilling}>
+                Downgrade
+              </Button>
             ) : onUpgrade && (
               <Button variant="gold" size="sm" onClick={() => onUpgrade('plus')}>
                 Upgrade
@@ -281,6 +285,20 @@ export function SubscriptionSection({
                 Priority support
               </li>
             </ul>
+            {subscriptionTier === 'plus' ? (
+              <div className="mt-4 text-center">
+                <span className="px-3 py-1.5 text-xs font-semibold bg-navy-50 text-navy-600 rounded-full">Current Plan</span>
+              </div>
+            ) : subscriptionTier === 'pro' && onManageBilling ? (
+              <Button variant="outline" size="sm" className="w-full mt-4" onClick={onManageBilling}>
+                Downgrade
+              </Button>
+            ) : onUpgrade && (
+              <Button variant="gold" size="sm" className="w-full mt-4" onClick={() => onUpgrade('plus')}>
+                <Sparkles className="w-4 h-4 mr-1" />
+                Upgrade
+              </Button>
+            )}
           </div>
 
           {/* Pro */}
@@ -307,6 +325,16 @@ export function SubscriptionSection({
                 Premium support
               </li>
             </ul>
+            {subscriptionTier === 'pro' ? (
+              <div className="mt-4 text-center">
+                <span className="px-3 py-1.5 text-xs font-semibold bg-navy-50 text-navy-600 rounded-full">Current Plan</span>
+              </div>
+            ) : onUpgrade && (
+              <Button variant="gold" size="sm" className="w-full mt-4" onClick={() => onUpgrade('pro')}>
+                <Sparkles className="w-4 h-4 mr-1" />
+                Upgrade
+              </Button>
+            )}
           </div>
         </div>
       </Card>
