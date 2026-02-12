@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, FileText, Search, Zap, Clock, Target, CheckCircle, Shield, Globe, Sparkles, TrendingUp } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
+import { PlusPlanButton, ProPlanButton } from '@/components/marketing/HomePricingButtons';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { CountUp } from '@/components/marketing/CountUp';
@@ -373,13 +374,7 @@ export default function Home() {
               <div className="text-4xl font-bold text-navy-600 mb-1">$29.99<span className="text-lg font-normal text-warm-gray">/mo</span></div>
               <p className="text-sm text-warm-gray mb-4">60 applications per month</p>
               <p className="text-xs font-medium text-gold-500 mb-6">That&apos;s just $0.50 per complete application</p>
-              <Link
-                href="/auth/signup?plan=plus"
-                className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium bg-gradient-to-r from-gold-400 to-gold-500 text-white hover:from-gold-500 hover:to-gold-600 transition-all shadow-md"
-              >
-                Get Plus
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+              <PlusPlanButton />
             </div>
             </ScrollReveal>
             <ScrollReveal delay={300}>
@@ -389,13 +384,7 @@ export default function Home() {
               <div className="text-4xl font-bold text-navy-600 mb-1">$49.99<span className="text-lg font-normal text-warm-gray">/mo</span></div>
               <p className="text-sm text-warm-gray mb-4">120 applications per month</p>
               <p className="text-xs font-medium text-sage-600 mb-6">That&apos;s just ~$0.42 per complete application</p>
-              <Link
-                href="/auth/signup?plan=pro"
-                className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium bg-navy-600 text-white hover:bg-navy-700 transition-colors shadow-md"
-              >
-                Get Pro
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+              <ProPlanButton />
             </div>
             </ScrollReveal>
           </div>
