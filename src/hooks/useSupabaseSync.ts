@@ -77,6 +77,7 @@ export function useSupabaseSync() {
   
   const lastSyncedSessionRef = useRef<string | null>(null);
   const isInitialLoadRef = useRef(true);
+  const initialLoadCompleteRef = useRef(false);
   const docsLoadedRef = useRef(false);
   const isCreatingSessionRef = useRef<Set<string>>(new Set());
   const supabase = createClient();
@@ -322,8 +323,18 @@ export function useSupabaseSync() {
             }
           }
           
+          // Mark initial load as complete — sync effect can now fire safely
+          initialLoadCompleteRef.current = true;
+          
+          // Set lastSyncedSessionRef so the sync effect doesn't re-trigger for the current session
+          const finalCurrentSession = useSessionStore.getState().currentSession;
+          if (finalCurrentSession) {
+            lastSyncedSessionRef.current = finalCurrentSession.id + finalCurrentSession.updatedAt;
+          }
+          
           console.log('[SupabaseSync] All chat messages loaded for recent sessions');
         } else {
+          initialLoadCompleteRef.current = true;
           console.log('[SupabaseSync] No sessions found in Supabase for this user');
         }
       } catch (err) {
@@ -338,6 +349,11 @@ export function useSupabaseSync() {
   useEffect(() => {
     const syncSession = async () => {
       if (!user || !currentSession) return;
+      
+      // CRITICAL: Don't sync during initial Supabase load to prevent duplicates
+      if (!initialLoadCompleteRef.current) {
+        return;
+      }
       
       // Skip if we just synced this session (dedup by id + updatedAt)
       const syncKey = currentSession.id + currentSession.updatedAt;
@@ -494,13 +510,26 @@ export function useSupabaseSync() {
   // Track synced chat message IDs to avoid duplicates
   const syncedMessageIdsRef = useRef<Set<string>>(new Set());
 
-  // On mount, pre-populate synced message IDs from current sessions to avoid re-syncing
+  // On mount, pre-populate synced message IDs from current sessions AND currentSession
+  // to avoid re-syncing messages that were already saved to Supabase.
+  // CRITICAL: currentSession is persisted in localStorage but sessions array is NOT.
+  // So on refresh, sessions=[] but currentSession has msg- prefixed messages that were
+  // already synced in a previous page load. Without marking them, the sync effect
+  // would re-sync them, creating DUPLICATE messages in Supabase.
   useEffect(() => {
     if (!user) return;
-    const { sessions: currentSessions } = useSessionStore.getState();
+    const { sessions: currentSessions, currentSession: cachedSession } = useSessionStore.getState();
+    
+    // Mark messages from currentSession (localStorage) as already synced
+    if (cachedSession && !cachedSession.id.startsWith('session-')) {
+      for (const msg of cachedSession.chatMessages) {
+        syncedMessageIdsRef.current.add(msg.id);
+      }
+    }
+    
+    // Also mark messages from any sessions already in the store
     for (const session of currentSessions) {
       if (!session.id.startsWith('session-')) {
-        // For Supabase sessions, mark all existing messages as already synced
         for (const msg of session.chatMessages) {
           if (!msg.id.startsWith('msg-')) {
             syncedMessageIdsRef.current.add(msg.id);

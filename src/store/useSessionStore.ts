@@ -297,8 +297,17 @@ export const useSessionStore = create<SessionState & SessionActions>()(
       clearCurrentSession: () => set({ currentSession: null }),
 
       setSessions: (sessions: ApplicationSession[]) => {
-        console.log('[SessionStore] setSessions called with', sessions.length, 'sessions');
-        set({ sessions });
+        // Deduplicate by session ID — keep the latest version (last occurrence wins)
+        const seen = new Map<string, ApplicationSession>();
+        for (const s of sessions) {
+          seen.set(s.id, s);
+        }
+        const deduped = Array.from(seen.values());
+        if (deduped.length !== sessions.length) {
+          console.warn('[SessionStore] setSessions deduped:', sessions.length, '->', deduped.length);
+        }
+        console.log('[SessionStore] setSessions called with', deduped.length, 'sessions');
+        set({ sessions: deduped });
       },
 
       // Chat actions
