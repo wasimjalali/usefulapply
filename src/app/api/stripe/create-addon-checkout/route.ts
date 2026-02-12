@@ -89,7 +89,6 @@ export async function POST(req: NextRequest) {
     const session = await getStripe().checkout.sessions.create({
       customer: customerId,
       mode: 'payment',
-      payment_method_types: ['card'],
       line_items: [
         {
           price: priceId,
@@ -107,10 +106,10 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ sessionId: session.id, url: session.url });
-  } catch (error) {
-    console.error('Addon checkout session creation error:', error);
+  } catch (error: any) {
+    console.error('[Addon Checkout] Session creation error:', error?.message || error, error?.type, error?.raw?.message);
     return NextResponse.json(
-      { error: 'Failed to create checkout session' },
+      { error: error?.message || 'Failed to create checkout session' },
       { status: 500 }
     );
   }

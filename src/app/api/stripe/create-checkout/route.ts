@@ -16,6 +16,16 @@ function getSupabaseAdmin() {
 
 export async function POST(req: NextRequest) {
   try {
+    // Validate env vars early
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error('[Checkout] STRIPE_SECRET_KEY is not set');
+      return NextResponse.json({ error: 'Stripe not configured (missing secret key)' }, { status: 500 });
+    }
+    if (!process.env.NEXT_PUBLIC_APP_URL) {
+      console.error('[Checkout] NEXT_PUBLIC_APP_URL is not set');
+      return NextResponse.json({ error: 'App URL not configured' }, { status: 500 });
+    }
+
     const supabase = getSupabaseAdmin();
     const { userId, planTier } = await req.json();
 
@@ -27,22 +37,25 @@ export async function POST(req: NextRequest) {
     }
 
     // Get user's email
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('email')
       .eq('id', userId)
       .single();
 
     if (!profile) {
+      console.error('[Checkout] User not found:', userId, profileError);
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Get price ID for plan
     const priceId = planTier === 'plus' ? STRIPE_PRICES.PLUS : STRIPE_PRICES.PRO;
+    console.log('[Checkout] Plan:', planTier, 'Price ID:', priceId);
 
     if (!priceId) {
+      console.error('[Checkout] Price ID is empty for plan:', planTier, 'PLUS:', STRIPE_PRICES.PLUS, 'PRO:', STRIPE_PRICES.PRO);
       return NextResponse.json(
-        { error: 'Invalid plan tier or price not configured' },
+        { error: `Price not configured for ${planTier} plan. Check STRIPE_PRICE_ID_${planTier.toUpperCase()} env var.` },
         { status: 400 }
       );
     }
@@ -71,7 +84,6 @@ export async function POST(req: NextRequest) {
     const session = await getStripe().checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
-      payment_method_types: ['card'],
       line_items: [
         {
           price: priceId,
@@ -93,10 +105,10 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ sessionId: session.id, url: session.url });
-  } catch (error) {
-    console.error('Checkout session creation error:', error);
+  } catch (error: any) {
+    console.error('[Checkout] Session creation error:', error?.message || error, error?.type, error?.raw?.message);
     return NextResponse.json(
-      { error: 'Failed to create checkout session' },
+      { error: error?.message || 'Failed to create checkout session' },
       { status: 500 }
     );
   }
