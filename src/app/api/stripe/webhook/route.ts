@@ -70,6 +70,12 @@ export async function POST(req: NextRequest) {
         break;
       }
 
+      case 'charge.refunded': {
+        const charge = event.data.object;
+        await handleChargeRefunded(charge);
+        break;
+      }
+
       default:
         console.log(`Unhandled event type: ${event.type}`);
     }
@@ -271,6 +277,140 @@ async function handlePaymentSucceeded(invoice: any) {
 
   if (error) {
     console.error('Failed to reset credits:', error);
+  }
+}
+
+async function handleChargeRefunded(charge: any) {
+  const supabase = getSupabaseAdmin();
+  const customerId = charge.customer;
+
+  if (!customerId) {
+    console.error('[Stripe Webhook] No customer ID on refunded charge');
+    return;
+  }
+
+  // Get user by customer ID
+  const { data: userCredits } = await supabase
+    .from('user_credits')
+    .select('user_id, monthly_credits, rollover_credits, addon_credits, plan_tier')
+    .eq('stripe_customer_id', customerId)
+    .single();
+
+  if (!userCredits) {
+    console.error('[Stripe Webhook] User not found for refunded charge, customer:', customerId);
+    return;
+  }
+
+  // Determine how many credits to remove based on the refund amount
+  // charge.amount_refunded is in cents
+  const refundedAmountCents = charge.amount_refunded;
+  const totalAmountCents = charge.amount;
+
+  // Check if this was a subscription payment or add-on purchase
+  // by looking at the charge metadata or invoice
+  const isSubscription = !!charge.invoice;
+
+  let creditsToRemove = 0;
+
+  if (isSubscription) {
+    // Subscription refund: remove the plan's monthly credits
+    const planCredits = userCredits.plan_tier === 'pro' ? 240 : userCredits.plan_tier === 'plus' ? 120 : 40;
+
+    if (refundedAmountCents >= totalAmountCents) {
+      // Full refund — remove all plan credits
+      creditsToRemove = planCredits;
+    } else {
+      // Partial refund — remove proportional credits
+      creditsToRemove = Math.round(planCredits * (refundedAmountCents / totalAmountCents));
+    }
+
+    // Deduct from monthly credits first, then rollover
+    let remaining = creditsToRemove;
+    let newMonthly = userCredits.monthly_credits;
+    let newRollover = userCredits.rollover_credits;
+
+    const monthlyDeduct = Math.min(remaining, newMonthly);
+    newMonthly -= monthlyDeduct;
+    remaining -= monthlyDeduct;
+
+    if (remaining > 0) {
+      const rolloverDeduct = Math.min(remaining, newRollover);
+      newRollover -= rolloverDeduct;
+      remaining -= rolloverDeduct;
+    }
+
+    const totalBefore = userCredits.monthly_credits + userCredits.rollover_credits + userCredits.addon_credits;
+    const totalAfter = newMonthly + newRollover + userCredits.addon_credits;
+
+    const { error } = await supabase
+      .from('user_credits')
+      .update({
+        monthly_credits: newMonthly,
+        rollover_credits: newRollover,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userCredits.user_id);
+
+    if (error) {
+      console.error('[Stripe Webhook] Failed to remove credits on refund:', error);
+    } else {
+      await supabase.from('credit_transactions').insert({
+        user_id: userCredits.user_id,
+        amount: -creditsToRemove,
+        transaction_type: 'refund',
+        description: `Refund: removed ${creditsToRemove} subscription credits`,
+        metadata: { chargeId: charge.id, refundedAmountCents, isFullRefund: refundedAmountCents >= totalAmountCents },
+        balance_before: totalBefore,
+        balance_after: totalAfter,
+      });
+      console.log(`[Stripe Webhook] Refund: removed ${creditsToRemove} credits for user ${userCredits.user_id}`);
+    }
+  } else {
+    // Add-on refund: remove from addon_credits
+    // Map refund amount to credit count (both packs are $0.25/credit)
+    // 60 credits = $14.99, 120 credits = $29.99
+    // Use the charge amount to determine which pack was purchased
+    if (totalAmountCents === 1499) {
+      creditsToRemove = 60;
+    } else if (totalAmountCents === 2999) {
+      creditsToRemove = 120;
+    } else {
+      // Fallback: proportional based on $0.25/credit
+      creditsToRemove = Math.round(refundedAmountCents / 25);
+    }
+
+    // For partial refunds, scale proportionally
+    if (refundedAmountCents < totalAmountCents) {
+      const fullPackCredits = creditsToRemove;
+      creditsToRemove = Math.round(fullPackCredits * (refundedAmountCents / totalAmountCents));
+    }
+
+    const newAddon = Math.max(0, userCredits.addon_credits - creditsToRemove);
+    const totalBefore = userCredits.monthly_credits + userCredits.rollover_credits + userCredits.addon_credits;
+    const totalAfter = userCredits.monthly_credits + userCredits.rollover_credits + newAddon;
+
+    const { error } = await supabase
+      .from('user_credits')
+      .update({
+        addon_credits: newAddon,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userCredits.user_id);
+
+    if (error) {
+      console.error('[Stripe Webhook] Failed to remove addon credits on refund:', error);
+    } else {
+      await supabase.from('credit_transactions').insert({
+        user_id: userCredits.user_id,
+        amount: -creditsToRemove,
+        transaction_type: 'refund',
+        description: `Refund: removed ${creditsToRemove} add-on credits`,
+        metadata: { chargeId: charge.id, refundedAmountCents, totalAmountCents },
+        balance_before: totalBefore,
+        balance_after: totalAfter,
+      });
+      console.log(`[Stripe Webhook] Refund: removed ${creditsToRemove} addon credits for user ${userCredits.user_id}`);
+    }
   }
 }
 
