@@ -1239,25 +1239,70 @@ To ensure the CV fits on 2 pages and remains readable:
    - Preserve AI/automation skills even if not in job description
    - Max 5 items per category (strictly enforced)
 
-6. EDUCATION: Copy from Primary CV exactly
+6. EDUCATION: Copy from Primary CV exactly. Use the standard CV education format.
+
+   EDUCATION FIELD MAPPING (MANDATORY — follow this for EVERY education entry):
+
+   Each education entry has these fields. Map them CORRECTLY:
+   - "institution": The NAME of the school, university, academy, or bootcamp. This is WHERE the person studied.
+   - "degree": The QUALIFICATION or credential earned. This is WHAT they earned.
+   - "field": The subject area or major (optional). Only include if explicitly stated and not already implied by the degree name.
+   - "startDate": When they started (optional). Format: "YYYY" or "Month YYYY".
+   - "endDate": When they finished or expect to finish. Format: "YYYY" or "Month YYYY" or "Present"/"ongoing" if currently enrolled.
+   - "location": City/country of the institution (optional).
+   - "grade": GPA or grade if notable (optional).
+
+   EXAMPLES OF CORRECT FIELD MAPPING:
+
+   University degree:
+   - institution: "Technical University of Munich"
+   - degree: "Bachelor of Science"
+   - field: "Computer Science"
+   - endDate: "2023"
+
+   Bootcamp / Academy (6-12 month programs):
+   - institution: "Masterschool"
+   - degree: "Full-Stack Web Development Certificate"
+   - field: (omit — the degree name already describes the field)
+   - endDate: "ongoing" or "Present" or "2025"
+
+   High School / Abitur:
+   - institution: "Nazoo Ana High School"
+   - degree: "General University Entrance Qualification (Abitur Equivalent)"
+   - field: (omit — redundant with degree name)
+   - location: "Kabul"
+   - endDate: "2020"
+   - grade: "92.43%"
+
+   Online Certificate / Course:
+   - institution: "Google (via Coursera)"
+   - degree: "Google Data Analytics Professional Certificate"
+   - field: (omit)
+   - endDate: "2024"
+
+   COMMON MISTAKES TO AVOID:
+   - Do NOT put the institution name in the "degree" field
+   - Do NOT put the degree/qualification in the "institution" field
+   - Do NOT combine date, location, or status into the institution or degree strings (e.g., "Nazoo Ana High School, Kabul | 2020" is WRONG — separate into institution, location, and endDate fields)
+   - Do NOT combine "ongoing" or "Present" into the degree string (e.g., "Masterschool | ongoing" is WRONG — put "Masterschool" in institution and "ongoing" in endDate)
+   - Do NOT leave degree empty or use placeholder text — always identify the qualification
 
    EDUCATION FORMATTING (MANDATORY — NO EXCEPTIONS):
 
-   REMOVE these phrases from ALL education lines:
+   REMOVE these phrases from ALL education entries:
    - "in Allgemeinbildung" — ALWAYS DELETE THIS
    - "in General Education" — ALWAYS DELETE THIS
    These are redundant with "Allgemeine Hochschulreife" / "General University Entrance Qualification"
 
    CORRECT:
-   - German: "Allgemeine Hochschulreife (Abitur-Äquivalent) | Note: 92,43%"
-   - English: "General University Entrance Qualification (Abitur Equivalent) | Grade: 92.43%"
+   - German: degree: "Allgemeine Hochschulreife (Abitur-Äquivalent)", grade: "92,43%"
+   - English: degree: "General University Entrance Qualification (Abitur Equivalent)", grade: "92.43%"
 
    WRONG (never output these):
    - "...in Allgemeinbildung" ← DELETE "in Allgemeinbildung"
    - "...in General Education" ← DELETE "in General Education"
 
    If the source CV contains these phrases, REMOVE them during optimization.
-   - For US/UK market: "High School Diploma GPA: 92.43%"
    - Do NOT add "in [field]" if the degree name already implies the field (e.g., "Allgemeine Hochschulreife" already means general education)
 
 7. LANGUAGES: Copy from Primary CV exactly (with proficiency levels)
@@ -1306,13 +1351,13 @@ Return ONLY this JSON structure - no markdown, no preamble, no explanation:
   "education": [
     {
       "id": "edu-1",
-      "institution": "string",
-      "degree": "string",
-      "field": "string (optional)",
-      "location": "string (optional)",
-      "startDate": "string (optional)",
-      "endDate": "string (optional)",
-      "grade": "string (optional)",
+      "institution": "string — WHERE they studied (school/university/academy name ONLY, no dates or status)",
+      "degree": "string — WHAT they earned (qualification/credential name, never the institution name)",
+      "field": "string (optional) — major/subject, omit if degree name already implies it",
+      "location": "string (optional) — city/country of institution",
+      "startDate": "string (optional) — e.g., '2018' or 'September 2018'",
+      "endDate": "string (optional) — e.g., '2020' or 'Present' or 'ongoing'",
+      "grade": "string (optional) — GPA or grade percentage",
       "highlights": ["string"] (optional)
     }
   ],
