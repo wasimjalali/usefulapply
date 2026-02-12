@@ -180,14 +180,14 @@ async function handleSubscriptionUpdate(subscription: any) {
   // Determine plan tier from price ID
   const priceId = subscription.items.data[0]?.price.id;
   let planTier = 'starter';
-  let monthlyCredits = 10;
+  let monthlyCredits = 40;
 
   if (priceId === process.env.STRIPE_PRICE_ID_PLUS) {
     planTier = 'plus';
-    monthlyCredits = 160;
+    monthlyCredits = 120;
   } else if (priceId === process.env.STRIPE_PRICE_ID_PRO) {
     planTier = 'pro';
-    monthlyCredits = 300;
+    monthlyCredits = 240;
   }
 
   // Update subscription
@@ -228,7 +228,7 @@ async function handleSubscriptionDeleted(subscription: any) {
     .from('user_credits')
     .update({
       plan_tier: 'starter',
-      monthly_credits: 10,
+      monthly_credits: 40,
       subscription_status: 'canceled',
       stripe_subscription_id: null,
       updated_at: new Date().toISOString(),
@@ -258,7 +258,7 @@ async function handlePaymentSucceeded(invoice: any) {
   }
 
   // Reset monthly credits on successful payment
-  const baseCredits = userCredits.plan_tier === 'plus' ? 160 : userCredits.plan_tier === 'pro' ? 300 : 10;
+  const baseCredits = userCredits.plan_tier === 'plus' ? 120 : userCredits.plan_tier === 'pro' ? 240 : 40;
 
   const { error } = await supabase
     .from('user_credits')

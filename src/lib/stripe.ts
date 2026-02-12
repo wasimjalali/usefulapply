@@ -72,7 +72,7 @@ export const PLANS = {
     name: 'Pro',
     price: 49.99,
     priceId: STRIPE_PRICES.PRO,
-    credits: 300,
+    credits: 240,
     features: ['120 applications/month', 'Add-on credits', '2 months rollover', 'Premium support'],
   },
 } as const;
