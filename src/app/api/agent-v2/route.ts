@@ -70,6 +70,14 @@ interface AgentRequest {
   certifications?: string;
   action: 'full_optimization' | 'fit_analysis' | 'generate_with_context' | 'analyze_only' | 'generate_cv' | 'generate_cover_letter' | 'generate_email';
   contextId?: string; // For generate_with_context: references cached fit analysis context
+  cachedContextData?: { // Client-side fallback when server cache misses (e.g. dev hot-reload, serverless cold start)
+    applicant: MasterContext['applicant'];
+    job: MasterContext['job'];
+    match: MasterContext['match'];
+    verifiedMetrics?: string[];
+    detectedLanguage?: string;
+    fitAnalysis?: MasterContext['fitAnalysis'];
+  };
   emailType?: 'application' | 'followup' | 'thankyou';
   enableWebSearch?: boolean;
 }
@@ -97,12 +105,14 @@ export async function POST(request: NextRequest) {
           masterCV, 
           action,
           contextId,
+          cachedContextData,
           enableWebSearch,
         } = body;
         
         console.log('[API_AGENT_V2] Request received:', {
           action,
           contextId,
+          hasCachedContextData: !!cachedContextData,
           enableWebSearch,
           hasJobDescription: !!jobDescription,
           hasMasterCV: !!masterCV,
@@ -223,6 +233,10 @@ export async function POST(request: NextRequest) {
               fitAnalysis: ctx.fitAnalysis,
               job: ctx.job,
               match: ctx.match,
+              // Client-side context backup for cache-miss recovery
+              applicant: ctx.applicant,
+              verifiedMetrics: ctx.verifiedMetrics,
+              detectedLanguage: ctx.detectedLanguage,
             })}\n\n`));
           } else {
             throw new Error(result.error || 'Fit analysis failed');
@@ -251,78 +265,92 @@ export async function POST(request: NextRequest) {
           let cachedContext = getCachedContext(contextId);
           
           if (!cachedContext) {
-            // Context expired or not found - fall back to full optimization
-            console.warn('[API_AGENT_V2] Context cache miss, falling back to full optimization');
-            
-            if (!jobDescription || !currentCV) {
+            // Server cache miss — try reconstructing from client-sent context data
+            if (cachedContextData && cachedContextData.applicant && cachedContextData.job && cachedContextData.match && jobDescription && currentCV) {
+              console.log('[API_AGENT_V2] Server cache miss, reconstructing from client-sent context data');
+              cachedContext = {
+                sessionId: `ctx-reconstructed-${Date.now()}`,
+                jobDescription,
+                rawCV: currentCV,
+                masterCV,
+                applicant: cachedContextData.applicant,
+                job: cachedContextData.job,
+                match: cachedContextData.match,
+                verifiedMetrics: cachedContextData.verifiedMetrics,
+                detectedLanguage: cachedContextData.detectedLanguage,
+                fitAnalysis: cachedContextData.fitAnalysis,
+              };
+            } else if (!jobDescription || !currentCV) {
+              // No fallback possible
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
                 type: 'error', 
                 message: 'Context expired. Please run fit analysis again.' 
               })}\n\n`));
               controller.close();
               return;
-            }
+            } else {
+              // Last resort: neither server cache nor client data — fall back to full optimization
+              console.warn('[API_AGENT_V2] Context cache miss AND no client context data, falling back to full optimization');
 
-            // Deduct full application credits (1.5) since we need to redo Phase 1 (skip for anonymous)
-            if (!isAnonymous) {
-              const creditResult = await checkAndDeductCredits(user!.id, 'FULL_APPLICATION');
-              if (!creditResult.success) {
+              if (!isAnonymous) {
+                const creditResult = await checkAndDeductCredits(user!.id, 'FULL_APPLICATION');
+                if (!creditResult.success) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+                    type: 'error', 
+                    code: 'INSUFFICIENT_CREDITS',
+                    message: creditResult.error || 'Insufficient credits',
+                    details: formatCreditErrorResponse(creditResult),
+                  })}\n\n`));
+                  controller.close();
+                  return;
+                }
+
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-                  type: 'error', 
-                  code: 'INSUFFICIENT_CREDITS',
-                  message: creditResult.error || 'Insufficient credits',
-                  details: formatCreditErrorResponse(creditResult),
+                  type: 'credits_deducted', 
+                  creditsUsed: CREDIT_COSTS.FULL_APPLICATION,
+                  remainingCredits: creditResult.remainingCredits,
                 })}\n\n`));
-                controller.close();
-                return;
               }
 
+              const steps = getWorkflowSteps('full_optimization');
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-                type: 'credits_deducted', 
-                creditsUsed: CREDIT_COSTS.FULL_APPLICATION,
-                remainingCredits: creditResult.remainingCredits,
+                type: 'workflow_start', 
+                steps: steps.map((s, i) => ({ function: s.id, description: s.description, index: i })),
+                models: { analysis: 'claude-sonnet-4.5', writing: 'claude-sonnet-4.5' },
               })}\n\n`));
+
+              const eventHandler = createEventHandler((id) => getStepIndex(id));
+              const result = await runJobCopilot({
+                sessionId: `session-${Date.now()}`,
+                jobDescription,
+                primaryCV: currentCV,
+                masterCV,
+              }, eventHandler);
+
+              if (result.success && result.data) {
+                const ctx = result.data.context;
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+                  type: 'workflow_complete',
+                  results: {
+                    job: ctx.job,
+                    companyResearch: ctx.companyResearch,
+                    match: ctx.match,
+                    optimizedCV: ctx.optimizedCV,
+                    optimizedCVData: ctx.optimizedCVData,
+                    coverLetter: ctx.coverLetter,
+                    applicationEmail: ctx.applicationEmail,
+                    followUpEmail: ctx.followUpEmail || null,
+                    context: ctx,
+                  },
+                })}\n\n`));
+              } else {
+                throw new Error(result.error || 'Optimization failed');
+              }
+
+              clearServerSupabaseClient();
+              controller.close();
+              return;
             }
-
-            // Run full optimization as fallback
-            const steps = getWorkflowSteps('full_optimization');
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-              type: 'workflow_start', 
-              steps: steps.map((s, i) => ({ function: s.id, description: s.description, index: i })),
-              models: { analysis: 'claude-sonnet-4.5', writing: 'claude-sonnet-4.5' },
-            })}\n\n`));
-
-            const eventHandler = createEventHandler((id) => getStepIndex(id));
-            const result = await runJobCopilot({
-              sessionId: `session-${Date.now()}`,
-              jobDescription,
-              primaryCV: currentCV,
-              masterCV,
-            }, eventHandler);
-
-            if (result.success && result.data) {
-              const ctx = result.data.context;
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-                type: 'workflow_complete',
-                results: {
-                  job: ctx.job,
-                  companyResearch: ctx.companyResearch,
-                  match: ctx.match,
-                  optimizedCV: ctx.optimizedCV,
-                  optimizedCVData: ctx.optimizedCVData,
-                  coverLetter: ctx.coverLetter,
-                  applicationEmail: ctx.applicationEmail,
-                  followUpEmail: ctx.followUpEmail || null,
-                  context: ctx,
-                },
-              })}\n\n`));
-            } else {
-              throw new Error(result.error || 'Optimization failed');
-            }
-
-            clearServerSupabaseClient();
-            controller.close();
-            return;
           }
 
           // Context found - deduct 1.5 credits for generation only (skip for anonymous)

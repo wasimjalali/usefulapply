@@ -20,10 +20,13 @@ Karko AI is a Next.js 14+ application that generates optimized job application m
 
 ### Agent Flow (Analyze First Mode)
 - Phase 1 runs `runFitAnalysis()` → context is cached server-side (`contextCache` Map, 30-min TTL)
+- `fit_analysis_complete` SSE event sends full parsed context (applicant, job, match, verifiedMetrics, detectedLanguage) to client
+- Client stores context in `fitAnalysisContextData` state (ChatPanel) as fallback
 - User sees fit assessment → clicks "Apply for This Job" or "Start New Application"
-- "Apply" triggers `generate_with_context` action → reuses cached Phase 1 context (no duplicate API calls)
+- "Apply" triggers `generate_with_context` action with `cachedContextData` in request body
+- Server tries in-memory cache first; if miss (dev hot-reload, serverless cold start), reconstructs MasterContext from client-sent data
+- Only falls back to `full_optimization` if NEITHER server cache NOR client data is available
 - "Skip" clears client state; server cache expires naturally
-- If cache expires before user decides, fallback to `full_optimization` (re-runs everything)
 
 ### Agent Flow (Apply Directly Mode)
 - Runs `runJobCopilot()` → full Phase 1 + Phase 2 in one pass (no fit assessment generated)
@@ -214,3 +217,6 @@ Located in `unified-writer-agent.ts`, the `<anti_hallucination_rules>` block con
 | Feb 12, 2026 | Homepage pricing → Stripe checkout | page.tsx, HomePricingButtons.tsx | Created client component for Get Plus/Get Pro buttons on homepage. Logged-in users go directly to Stripe checkout; anonymous users go to signup with plan param. |
 | Feb 12, 2026 | Stripe promo codes enabled | create-checkout/route.ts, create-addon-checkout/route.ts | Added allow_promotion_codes: true to both subscription and addon checkout sessions. Users can now enter promo codes (e.g., KARKOLAUNCH) during Stripe checkout. |
 | Feb 12, 2026 | Subscription upgrade/downgrade UI | SubscriptionSection.tsx | Fixed maxCredits (160/300→120/240). Added upgrade/downgrade buttons in Compare Plans: Starter→Upgrade, Plus→Upgrade to Pro, Pro→Downgrade to Plus (via Stripe portal). Desktop cards now show Current Plan badge + action buttons. |
+| Feb 12, 2026 | Bug fix: context cache miss in Analyze First flow | route.ts, ChatPanel.tsx | Root cause: in-memory Map cache doesn't survive dev hot-reloads or serverless cold starts. Fix: Client stores full parsed context from fit_analysis_complete, sends it back with generate_with_context request. Server reconstructs MasterContext from client data on cache miss. |
+| Feb 12, 2026 | Bug fix: email hallucination (fabricated skills/companies) | unified-writer-agent.ts | Root cause: Email prompt only received 500 chars of CV (vs full CV for cover letter) + had 2-sentence anti-hallucination rules (vs cover letter's 5-rule system). Fix: Removed 500-char truncation, added full VERIFIED SKILL CONSTRAINT section, added VERIFIED METRICS constraint, strengthened system prompt with 5 matching rules including INDUSTRY & COMPANY ACCURACY. |
+| Feb 12, 2026 | Follow-up email: anti-hallucination parity | unified-writer-agent.ts | Strengthened follow-up email from 3-line anti-hallucination section to full 5-rule system (SOURCE VERIFICATION, METRIC ACCURACY, COMPANY ACCURACY, SKILL CONSTRAINT, VERIFICATION CHECK). Rules scoped to follow-up's specific sources (key_achievement, company_context, primary_email). |

@@ -75,6 +75,14 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
   const [feedbackModal, setFeedbackModal] = useState<{ messageId: string; content: string; type: 'positive' | 'negative' } | null>(null);
   const [fitAnalysisContextId, setFitAnalysisContextId] = useState<string | null>(null);
   const [fitAnalysisJD, setFitAnalysisJD] = useState<string>('');
+  const [fitAnalysisContextData, setFitAnalysisContextData] = useState<{
+    applicant: any;
+    job: any;
+    match: any;
+    verifiedMetrics?: string[];
+    detectedLanguage?: string;
+    fitAnalysis?: any;
+  } | null>(null);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
   const [applicationMode, setApplicationMode] = useState<'analyze_first' | 'apply_directly'>('analyze_first');
   const [showSignUpWall, setShowSignUpWall] = useState(false);
@@ -373,8 +381,17 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
                 setV2Progress({ percent: data.percent, message: data.message });
                 break;
               case 'fit_analysis_complete': {
-                const { contextId, fitAnalysis, job } = data;
+                const { contextId, fitAnalysis, job, match, applicant, verifiedMetrics, detectedLanguage } = data;
                 setFitAnalysisContextId(contextId);
+                // Store full parsed context for cache-miss recovery
+                setFitAnalysisContextData({
+                  applicant,
+                  job,
+                  match,
+                  verifiedMetrics,
+                  detectedLanguage,
+                  fitAnalysis,
+                });
                 
                 const fitEmoji = fitAnalysis.fitLevel === 'strong' ? '🟢' : fitAnalysis.fitLevel === 'good' ? '🟡' : '🔴';
                 const fitLabel = fitAnalysis.fitLevel === 'strong' ? 'Strong Fit' : fitAnalysis.fitLevel === 'good' ? 'Good Fit' : 'Weak Fit';
@@ -460,6 +477,7 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
           certifications: certificationsText,
           action: contextId ? 'generate_with_context' : 'full_optimization',
           contextId,
+          cachedContextData: contextId ? fitAnalysisContextData : undefined,
         }),
         signal: abortControllerRef.current.signal,
       });

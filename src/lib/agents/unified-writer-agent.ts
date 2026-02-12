@@ -2171,14 +2171,27 @@ KEY RESPONSIBILITIES: ${topResponsibilities}
 CANDIDATE'S MATCHING SKILLS FOR THIS ROLE: ${matchingSkillsList}
 FIT SCORE (INTERNAL CONTEXT ONLY — do NOT include this in the email): ${match?.score ?? 0}%
 
-=== CANDIDATE ACHIEVEMENTS (mine for the best JD-relevant metric) ===
-PRIMARY CV:
-${rawCV?.slice(0, 500) || 'No CV provided'}
+=== PRIMARY CV (main resume — ONLY source for claims) ===
+${rawCV || 'No CV provided'}
 ${masterCV ? `
-MASTER CV (comprehensive experience):
-${masterCV.slice(0, 500)}` : ''}
+=== MASTER CV (comprehensive experience inventory — ONLY other source for claims) ===
+${masterCV}` : ''}
+${context.verifiedMetrics && context.verifiedMetrics.length > 0 ? `
+=== VERIFIED METRICS (use ONLY these numbers — do not invent any others) ===
+${context.verifiedMetrics.join('\n')}` : ''}
 ${match && match.missingSkills.length > 0 ? `
-SKILL CONSTRAINT: The following skills are NOT in the applicant's background. Do NOT claim them: ${match.missingSkills.join(', ')}` : ''}
+=== VERIFIED SKILL CONSTRAINT (BINDING — highest priority) ===
+
+The following skills are verified as MISSING from the applicant's background.
+Do NOT claim experience with any of these in the email:
+
+SKILLS YOU MUST NOT CLAIM:
+${match.missingSkills.join(', ')}
+
+Instead of claiming missing skills, emphasize:
+- Transferable skills from the applicant's actual background
+- Relevant achievements with real metrics from either CV
+- Adjacent competencies that demonstrate capability` : ''}
 
 INSTRUCTIONS:
 1. Subject line: MAXIMUM 60 characters total. Format below.
@@ -2230,10 +2243,26 @@ Return ONLY valid JSON: {"subject": "...", "body": "..."}`,
       systemPrompt: `You are an expert at professional email communication for job applications.
 
 <anti_hallucination_rules>
-Only reference skills, tools, metrics, and experience that appear in the provided source CVs. Do not invent numbers or claims. Reproduce language proficiency levels exactly as stated — do not upgrade levels to match job requirements (e.g., B2 stays B2, only C1+ qualifies as verhandlungssicher in the German market). Every claim must be traceable to at least one source document.
+WHY THIS MATTERS: Application emails are often the first impression. A single fabricated skill or inflated claim destroys credibility when verified in interviews. These rules protect the candidate.
+
+RULE 1 — SOURCE VERIFICATION:
+Only reference tools, platforms, technologies, and experiences that are explicitly stated in EITHER the Primary CV or the Master CV. When the job description requires a skill the candidate lacks, describe genuinely related transferable experience from the source documents using broader terminology (e.g., "marketplace operations experience" instead of claiming a specific platform not in the CV).
+
+RULE 2 — METRIC ACCURACY:
+Use only exact numbers and metrics that appear in the source CVs. Do not invent percentages, revenue figures, counts, or growth numbers. If a number is not in the source documents, do not include it.
+
+RULE 3 — INDUSTRY & COMPANY ACCURACY:
+Only claim experience at companies and in industries documented in the source CVs. Do NOT attribute experience at one company to a different company. Do NOT claim the candidate worked at or managed operations for a company unless that exact company name appears in their CV experience section.
+
+RULE 4 — LANGUAGE PROFICIENCY:
+Reproduce language levels exactly as stated in the source CVs. Do not upgrade proficiency levels to match job requirements. B2 stays B2 — never label it as verhandlungssicher.
+
+RULE 5 — VERIFICATION CHECK:
+Before writing any claim, verify: "Does this exact fact appear in the provided source documents?" If uncertain, omit it.
 </anti_hallucination_rules>
 
-EMAIL SKILL ACCURACY: Only reference skills and achievements verified in Primary CV or Master CV. Never claim undocumented skills.
+EMAIL SKILL ACCURACY (HIGHEST PRIORITY):
+The email must NEVER claim experience with skills, tools, or technologies not documented in the Primary CV or Master CV. This overrides all other instructions. Sell what the applicant HAS. Never fabricate what they DON'T have.
 
 GREETING RULE:
 - Since we don't know the hiring manager's name, ALWAYS use: "Hello," or "Hi there,"
@@ -2422,10 +2451,22 @@ TONE RULES:
 - NO "just checking in", "I know you're busy", "I haven't heard back"
 - NO re-attachment references, they already have the documents
 
-ANTI-HALLUCINATION:
-- The key_achievement and company_context are your ONLY sources
-- Do NOT invent achievements, skills, or company details
-- If company_context is sparse, keep the company reference general but accurate to the JD
+ANTI-HALLUCINATION RULES (BINDING):
+
+RULE 1 — SOURCE VERIFICATION:
+The key_achievement, company_context, and primary_email are your ONLY sources of factual claims. Do NOT reference tools, platforms, technologies, or experiences not present in these sources.
+
+RULE 2 — METRIC ACCURACY:
+Do NOT invent percentages, revenue figures, counts, or growth numbers. If a specific number is not in the provided sources, do not include one.
+
+RULE 3 — COMPANY ACCURACY:
+Only reference company details (products, services, mission, culture) that appear in the company_context. Do NOT fabricate company facts or attribute the candidate's experience at one company to a different company.
+
+RULE 4 — SKILL CONSTRAINT:
+Do NOT claim the candidate has skills or experience not mentioned in the key_achievement or primary_email. The follow-up must highlight a DIFFERENT strength but it must still be a REAL one from the sources.
+
+RULE 5 — VERIFICATION CHECK:
+Before writing any claim, verify: "Does this exact fact appear in the provided sources?" If uncertain, omit it. If company_context is sparse, keep the company reference general but accurate to the JD.
 
 OUTPUT FORMAT:
 Respond with ONLY valid JSON:
