@@ -510,8 +510,7 @@ function getWorkflowSteps(action: string): Array<{ id: string; description: stri
       return [
         { id: 'cv_generation', description: 'Karko AI: Optimizing CV for the position' },
         { id: 'cover_letter', description: 'Karko AI: Composing tailored cover letter' },
-        { id: 'email', description: 'Karko AI: Generating application email' },
-        { id: 'follow_up_email', description: 'Karko AI: Generating follow-up email' },
+        { id: 'email', description: 'Karko AI: Generating email + follow-up' },
       ];
     case 'full_optimization':
       return [
@@ -519,8 +518,7 @@ function getWorkflowSteps(action: string): Array<{ id: string; description: stri
         { id: 'matching', description: 'Karko AI: Matching skills and identifying gaps' },
         { id: 'cv_generation', description: 'Karko AI: Optimizing CV for the position' },
         { id: 'cover_letter', description: 'Karko AI: Composing tailored cover letter' },
-        { id: 'email', description: 'Karko AI: Generating application email' },
-        { id: 'follow_up_email', description: 'Karko AI: Generating follow-up email' },
+        { id: 'email', description: 'Karko AI: Generating email + follow-up' },
       ];
     default:
       return [
@@ -532,7 +530,7 @@ function getWorkflowSteps(action: string): Array<{ id: string; description: stri
 
 // Helper to get step index for progress tracking
 function getStepIndex(stepId: string): number {
-  const stepOrder = ['analysis', 'matching', 'cv_generation', 'cover_letter', 'email', 'follow_up_email'];
+  const stepOrder = ['analysis', 'matching', 'cv_generation', 'cover_letter', 'email'];
   return stepOrder.indexOf(stepId);
 }
 
@@ -542,6 +540,6 @@ function getFitAnalysisStepIndex(stepId: string): number {
 }
 
 function getGenerateWithContextStepIndex(stepId: string): number {
-  const stepOrder = ['cv_generation', 'cover_letter', 'email', 'follow_up_email'];
+  const stepOrder = ['cv_generation', 'cover_letter', 'email'];
   return stepOrder.indexOf(stepId);
 }

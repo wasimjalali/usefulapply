@@ -109,15 +109,15 @@ const STEP_CONFIG: Record<string, {
       'Writing fit assessment',
     ]
   },
-  // EMAIL - Generate application email
+  // EMAIL - Generate application email + follow-up
   email: { 
     icon: Award, 
-    label: 'Generating Email',
+    label: 'Generating Email + Follow-Up',
     agent: 'Karko AI',
     actions: [
       'Writing professional subject line',
       'Composing concise body',
-      'Adding call to action',
+      'Generating follow-up email',
     ]
   },
   // Legacy step IDs for backward compatibility

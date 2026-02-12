@@ -218,6 +218,8 @@ export function useSupabaseSync() {
             requirements: row.requirements ?? null,
             gaps: row.gaps ?? null,
             generatedCV: row.generated_cv ?? null,
+            // Restore optimizedCVData from generated_cv JSONB (embedded during save)
+            optimizedCVData: row.generated_cv?._optimizedCVData ?? undefined,
             coverLetter: row.cover_letter ?? null,
             email: row.email ?? null,
             followUpEmail: row.follow_up_email ?? null,
@@ -393,6 +395,11 @@ export function useSupabaseSync() {
               
               // Update the new session with full data
               if (currentSession.jobTitle || currentSession.company) {
+                const newGenCV = currentSession.generatedCV
+                  ? { ...currentSession.generatedCV, _optimizedCVData: currentSession.optimizedCVData || undefined }
+                  : currentSession.optimizedCVData
+                    ? { _optimizedCVData: currentSession.optimizedCVData }
+                    : null;
                 await updateSupabaseSession(newSession.id, {
                   job_title: currentSession.jobTitle,
                   company: currentSession.company,
@@ -401,7 +408,7 @@ export function useSupabaseSync() {
                   missing_skills: currentSession.missingSkills,
                   requirements: currentSession.requirements,
                   gaps: currentSession.gaps,
-                  generated_cv: currentSession.generatedCV,
+                  generated_cv: newGenCV,
                   cover_letter: currentSession.coverLetter,
                   email: currentSession.email,
                   follow_up_email: currentSession.followUpEmail,
@@ -435,6 +442,12 @@ export function useSupabaseSync() {
           }
         } else {
           // Update existing session in Supabase
+          // Embed optimizedCVData inside generated_cv JSONB to persist Changes tab + structured CV data
+          const generatedCVWithData = currentSession.generatedCV
+            ? { ...currentSession.generatedCV, _optimizedCVData: currentSession.optimizedCVData || undefined }
+            : currentSession.optimizedCVData
+              ? { _optimizedCVData: currentSession.optimizedCVData }
+              : null;
           const { error } = await updateSupabaseSession(currentSession.id, {
             job_title: currentSession.jobTitle,
             company: currentSession.company,
@@ -445,7 +458,7 @@ export function useSupabaseSync() {
             suggestions: currentSession.suggestions,
             requirements: currentSession.requirements,
             gaps: currentSession.gaps,
-            generated_cv: currentSession.generatedCV,
+            generated_cv: generatedCVWithData,
             cover_letter: currentSession.coverLetter,
             email: currentSession.email,
             follow_up_email: currentSession.followUpEmail,

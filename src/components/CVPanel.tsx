@@ -516,7 +516,7 @@ export function CVPanel() {
             {generatedCV && (
               <div className="flex items-center bg-cream-100/80 rounded-lg p-0.5 flex-shrink-0">
                 <button
-                  onClick={() => setShowOptimized(false)}
+                  onClick={() => { setShowOptimized(false); setEditedCVData(null); }}
                   className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
                     !showOptimized ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
                   }`}
@@ -524,7 +524,7 @@ export function CVPanel() {
                   Original
                 </button>
                 <button
-                  onClick={() => setShowOptimized(true)}
+                  onClick={() => { setShowOptimized(true); setEditedCVData(null); }}
                   className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
                     showOptimized ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
                   }`}

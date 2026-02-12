@@ -380,7 +380,7 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
                 const fitLabel = fitAnalysis.fitLevel === 'strong' ? 'Strong Fit' : fitAnalysis.fitLevel === 'good' ? 'Good Fit' : 'Weak Fit';
                 
                 // Limit skills display: max 10 per section, ~300 chars each
-                const MAX_SKILLS_SHOWN = 10;
+                const MAX_SKILLS_SHOWN = 6;
                 const matchingAll = fitAnalysis.matchingSkills || [];
                 const missingAll = fitAnalysis.missingSkills || [];
                 const matchingShown = matchingAll.slice(0, MAX_SKILLS_SHOWN);

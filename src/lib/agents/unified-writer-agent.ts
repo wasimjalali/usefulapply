@@ -156,19 +156,16 @@ export const unifiedWriterAgent = {
       context.coverLetter = coverLetterResult.result;
       emit({ type: 'step_completed', step: { id: 'cover_letter', description: 'Cover letter ready' }, tokens: coverLetterResult.tokens });
 
-      // Step 7: Generate application email
-      emit({ type: 'step_started', step: { id: 'email', description: 'Karko AI: Generating application email' } });
+      // Step 7: Generate application email + follow-up (combined as one visible step)
+      emit({ type: 'step_started', step: { id: 'email', description: 'Karko AI: Generating email + follow-up' } });
       emit({ type: 'progress', percent: 85, message: 'Composing application email...' });
       const emailResult = await this.generateApplicationEmail(context);
       context.applicationEmail = emailResult.result;
-      emit({ type: 'step_completed', step: { id: 'email', description: 'Email ready' }, tokens: emailResult.tokens });
 
-      // Step 8: Generate follow-up email (runs AFTER primary email — needs it as input)
-      emit({ type: 'step_started', step: { id: 'follow_up_email', description: 'Karko AI: Generating follow-up email' } });
       emit({ type: 'progress', percent: 93, message: 'Composing follow-up email...' });
       const followUpResult = await this.generateFollowUpEmail(context);
       context.followUpEmail = followUpResult.result;
-      emit({ type: 'step_completed', step: { id: 'follow_up_email', description: 'Follow-up email ready' }, tokens: followUpResult.tokens });
+      emit({ type: 'step_completed', step: { id: 'email', description: 'Email + follow-up ready' }, tokens: emailResult.tokens });
       
       emit({ type: 'progress', percent: 100, message: 'Complete!' });
 
@@ -807,19 +804,16 @@ Return ONLY the JSON array. No explanation.`,
       context.coverLetter = coverLetterResult.result;
       emit({ type: 'step_completed', step: { id: 'cover_letter', description: 'Cover letter ready' }, tokens: coverLetterResult.tokens });
 
-      // Step 3: Generate application email
-      emit({ type: 'step_started', step: { id: 'email', description: 'Karko AI: Generating application email' } });
+      // Step 3: Generate application email + follow-up (combined as one visible step)
+      emit({ type: 'step_started', step: { id: 'email', description: 'Karko AI: Generating email + follow-up' } });
       emit({ type: 'progress', percent: 75, message: 'Composing application email...' });
       const emailResult = await this.generateApplicationEmail(context);
       context.applicationEmail = emailResult.result;
-      emit({ type: 'step_completed', step: { id: 'email', description: 'Email ready' }, tokens: emailResult.tokens });
 
-      // Step 4: Generate follow-up email (runs AFTER primary email — needs it as input)
-      emit({ type: 'step_started', step: { id: 'follow_up_email', description: 'Karko AI: Generating follow-up email' } });
       emit({ type: 'progress', percent: 90, message: 'Composing follow-up email...' });
       const followUpResult = await this.generateFollowUpEmail(context);
       context.followUpEmail = followUpResult.result;
-      emit({ type: 'step_completed', step: { id: 'follow_up_email', description: 'Follow-up email ready' }, tokens: followUpResult.tokens });
+      emit({ type: 'step_completed', step: { id: 'email', description: 'Email + follow-up ready' }, tokens: emailResult.tokens });
       
       emit({ type: 'progress', percent: 100, message: 'Complete!' });
 
