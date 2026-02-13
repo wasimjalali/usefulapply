@@ -100,6 +100,36 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Product Demo — Interactive walkthrough */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-100">
+        <div className="max-w-5xl mx-auto">
+          <ScrollReveal>
+          <div className="text-center mb-10">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">See It In Action</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
+              Watch How Karko AI Works
+            </h2>
+            <p className="text-lg text-warm-gray max-w-2xl mx-auto">
+              From job description to complete application package in under 90 seconds. Click through the interactive demo below.
+            </p>
+          </div>
+          </ScrollReveal>
+          <ScrollReveal delay={200}>
+          <div className="relative rounded-2xl overflow-hidden shadow-xl border border-cream-200" style={{ position: 'relative', boxSizing: 'content-box', maxHeight: '80vh', width: '100%', aspectRatio: '2.09', padding: '0' }}>
+            <iframe
+              src="https://app.supademo.com/embed/cmllcaojt249p5yi3ra4lbip5?embed_v=2&utm_source=embed"
+              loading="lazy"
+              title="Optimize Your CV and Land Job Applications with Karko AI"
+              allow="clipboard-write"
+              frameBorder="0"
+              allowFullScreen
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+            />
+          </div>
+          </ScrollReveal>
+        </div>
+      </section>
+
       {/* How It Works — Clean 3-step process (moved UP for AIDA flow: Interest phase) */}
       <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
         <div className="max-w-6xl mx-auto">
