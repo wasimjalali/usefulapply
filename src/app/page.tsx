@@ -50,7 +50,7 @@ export default function Home() {
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <Link
-                href="#how-it-works"
+                href="#product-demo"
                 className="w-full sm:w-auto px-10 py-4 glass text-navy-600 font-semibold rounded-xl hover:bg-white/80 transition-all flex items-center justify-center gap-2 text-lg shadow-sm"
               >
                 See How It Works
@@ -101,8 +101,8 @@ export default function Home() {
       </section>
 
       {/* Product Demo — Interactive walkthrough */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-100">
-        <div className="max-w-5xl mx-auto">
+      <section id="product-demo" className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-10">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">See It In Action</p>
@@ -115,7 +115,7 @@ export default function Home() {
           </div>
           </ScrollReveal>
           <ScrollReveal delay={200}>
-          <div className="relative rounded-2xl overflow-hidden shadow-xl border border-cream-200" style={{ position: 'relative', boxSizing: 'content-box', maxHeight: '80vh', width: '100%', aspectRatio: '2.09', padding: '0' }}>
+          <div className="relative overflow-hidden" style={{ position: 'relative', width: '100%', aspectRatio: '2.09' }}>
             <iframe
               src="https://app.supademo.com/embed/cmllcaojt249p5yi3ra4lbip5?embed_v=2&utm_source=embed"
               loading="lazy"
