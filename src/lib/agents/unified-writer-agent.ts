@@ -1980,7 +1980,8 @@ ABSOLUTE PROHIBITIONS:
 - "References available upon request"
 - "I look forward to hearing from you"
 - ANY claim about tools, metrics, or experience not in EITHER the Primary CV or Master CV
-- NEVER invent a street address for the company - use "[Company Address — verify before sending]" instead
+- For ENGLISH cover letters: NEVER include a company address line. No bracketed placeholders.
+- For GERMAN cover letters: NEVER invent a street address for the company - use "[Firmenadresse]" as placeholder if not available from the JD
 - Paragraphs longer than 3 sentences
 - Generic filler phrases that add no value
 
@@ -2093,10 +2094,24 @@ ${context.jobDescription}
 
 === REQUIRED HEADER FORMAT ===
 
-The cover letter MUST start with this exact header structure:
+${isGerman ? `The cover letter MUST start with this exact header structure (German Anschreiben format):
 
 ${applicant?.name || 'Applicant Name'}
-${applicant?.address || 'Address'}
+${applicant?.address || 'Adresse'}
+${applicant?.email || 'Email'}
+${applicant?.phone || 'Telefon'}
+
+${today}
+
+${job?.companyName || 'Unternehmen'}
+[Abteilung / z.Hd. Hiring Manager]
+[Firmenadresse]
+[PLZ Stadt]
+
+IMPORTANT: Include the full company address block. If the exact company address is not in the JD, use bracketed placeholders like "[Firmenadresse]" and "[PLZ Stadt]". This is standard for German formal letters (Anschreiben).` : `The cover letter MUST start with this exact header structure (EN market format):
+
+${applicant?.name || 'Applicant Name'}
+${applicant?.address || 'City, Country'}
 ${applicant?.email || 'Email'}
 ${applicant?.phone || 'Phone'}
 
@@ -2104,9 +2119,8 @@ ${today}
 
 Hiring Manager
 ${job?.companyName || 'Company'}
-[Company Address — verify before sending]
 
-IMPORTANT: Under the company name, write exactly "[Company Address — verify before sending]" - do NOT invent or guess a street address.
+IMPORTANT: Do NOT include a company address line. Do NOT include any bracketed placeholders that require the user to fill in or verify information manually. The header goes directly from company name to the greeting. This is standard for US/UK/Canada applications where cover letters are submitted digitally.`}
 
 === LANGUAGE INSTRUCTION ===
 ${isGerman ? `CRITICAL: Write the ENTIRE cover letter in GERMAN.
