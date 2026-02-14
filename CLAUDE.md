@@ -7,8 +7,11 @@
 Karko AI is a Next.js 14+ application that generates optimized job application materials (CV, Cover Letter, Application Email, Follow-Up Email) using a unified AI agent architecture powered by Claude Sonnet 4.5.
 
 ### Key Directories
-- `src/lib/agents/` — Unified Writer Agent (single agent handles all generation)
+- `src/lib/agents/` — Unified Writer Agent + context-builder + prompts/ (modular agent architecture)
+- `src/lib/agents/prompts/` — Extracted prompt builders (cv-prompt, cover-letter-prompt, email-prompts, fit-assessment-prompt)
 - `src/lib/models/` — Model configurations and task types
+- `src/lib/cv-parser/` — Modular CV parsers (section-splitter, parse-experience, parse-education, parse-skills, parse-other)
+- `src/lib/cv-templates/` — CV types + constants, validation.ts, text-analysis.ts
 - `src/app/api/` — API routes (agent-v2, regenerate)
 - `src/hooks/` — React hooks (useAgentV2 for SSE streaming)
 - `src/store/` — Zustand stores (useSessionStore, useCVStore, useUIStore)
@@ -111,8 +114,9 @@ The fit assessment prompt produces structured markdown with these sections, each
 - Each section has a count header: `Matching Skills (13):`
 
 ### Files
-- `src/lib/agents/unified-writer-agent.ts` — `generateFitAssessment()` prompt (lines ~848-905)
-- `src/components/ChatPanel.tsx` — `fit_analysis_complete` handler (lines ~375-406)
+- `src/lib/agents/prompts/fit-assessment-prompt.ts` — `buildFitAssessmentPrompt()` and `buildFitAssessmentSystemPrompt()`
+- `src/lib/agents/unified-writer-agent.ts` — `generateFitAssessment()` orchestrator (calls prompt builders)
+- `src/components/ChatPanel.tsx` — `fit_analysis_complete` handler
 
 ---
 
@@ -137,7 +141,8 @@ The email prompt receives:
 - The `JOB-RELEVANCE PRIORITY` rule in the system prompt enforces this
 
 ### Files
-- `src/lib/agents/unified-writer-agent.ts` — `generateApplicationEmail()` (lines ~1986-2130)
+- `src/lib/agents/prompts/email-prompts.ts` — `buildApplicationEmailUserPrompt()` and `buildApplicationEmailSystemPrompt()`
+- `src/lib/agents/unified-writer-agent.ts` — `generateApplicationEmail()` orchestrator
 
 ---
 
@@ -154,7 +159,8 @@ The email prompt receives:
 - Company address included per German Anschreiben convention.
 
 ### Files
-- `src/lib/agents/unified-writer-agent.ts` — `generateCoverLetter()` prompt
+- `src/lib/agents/prompts/cover-letter-prompt.ts` — `buildCoverLetterSystemBlocks()` and `buildCoverLetterUserPrompt()`
+- `src/lib/agents/unified-writer-agent.ts` — `generateCoverLetter()` orchestrator
 
 ---
 
@@ -316,11 +322,19 @@ A comprehensive codebase audit was performed to eliminate technical debt. The fo
 - `SUPABASE_SETUP_GUIDE.md` — OAuth/MFA setup
 - `STRIPE_SETUP_GUIDE.md` — Stripe integration
 
-### Identified Refactoring Opportunities (future)
-- `src/lib/agents/unified-writer-agent.ts` (126KB) — Split into prompts/, generators/, parsers/ modules
-- `src/components/ChatPanel.tsx` (43KB) — Extract JD input, fit analysis, agent progress sub-components
-- `src/lib/cv-templates/types.ts` (38KB) — Separate types from utility functions
-- `src/lib/cv-parser/parse-optimized-cv.ts` (34KB) — Split into per-section parsers
+### Large File Refactoring (Completed Feb 14, 2026)
+
+All 4 large files split into focused modules. Zero regressions (`npx tsc --noEmit` = 0 errors).
+
+| File | Before | After | Reduction | New Modules |
+|------|--------|-------|-----------|-------------|
+| `unified-writer-agent.ts` | 2,600 | 908 | 65% | context-builder.ts, prompts/cv-prompt.ts, prompts/cover-letter-prompt.ts, prompts/email-prompts.ts, prompts/fit-assessment-prompt.ts |
+| `parse-optimized-cv.ts` | 963 | 125 | 87% | section-splitter.ts, parse-experience.ts, parse-education.ts, parse-skills.ts, parse-other.ts |
+| `cv-templates/types.ts` | 1,026 | 570 | 44% | validation.ts, text-analysis.ts |
+| `ChatPanel.tsx` | 1,076 | 453 | 58% | chat/useAgentWorkflow.ts |
+| **Total** | **5,665** | **2,056** | **64%** | **13 new modules** |
+
+Full details in `REFACTORING_PROGRESS.md`.
 
 ---
 
@@ -356,4 +370,5 @@ A comprehensive codebase audit was performed to eliminate technical debt. The fo
 | Feb 12, 2026 | Follow-up email: anti-hallucination parity | unified-writer-agent.ts | Strengthened follow-up email from 3-line anti-hallucination section to full 5-rule system (SOURCE VERIFICATION, METRIC ACCURACY, COMPANY ACCURACY, SKILL CONSTRAINT, VERIFICATION CHECK). Rules scoped to follow-up's specific sources (key_achievement, company_context, primary_email). |
 | Feb 13, 2026 | Cover letter: language-conditional header | unified-writer-agent.ts | EN market: removed company address and bracketed placeholders. DE market: kept full formal Anschreiben format with company address. |
 | Feb 13, 2026 | PostHog analytics integration | PostHogProvider.tsx, PostHogPageView.tsx, posthog-server.ts, layout.tsx, next.config.ts, AuthContext.tsx, ChatPanel.tsx, EmailPanel.tsx, agent-v2/route.ts, regenerate/route.ts | Full PostHog integration: client-side provider with reverse proxy (/ingest), SPA pageview tracking, session replay, user identification via Supabase auth, frontend event tracking (jd_pasted, fit_analysis_viewed, apply_clicked, application_generated, new_application_started, document_copied, regeneration_requested), server-side LLM analytics ($ai_generation events with token counts and cost estimates per agent step), regeneration tracking. |
+| Feb 14, 2026 | Large file refactoring (all 4) | 13 new modules created, 4 files refactored | Split unified-writer-agent.ts (2,600→908), parse-optimized-cv.ts (963→125), cv-templates/types.ts (1,026→570), ChatPanel.tsx (1,076→453). Total: 5,665→2,056 lines (64% reduction). Zero regressions. Pure code movement, no logic changes. |
 | Jun 2025 | Deep Clean & Audit | 35 files deleted, CLAUDE.md updated | Removed 14 orphaned source files (2,364 lines), 6 orphaned public assets, 2 empty directories, 13 obsolete .md docs (4,633 lines). Total: ~7,000 lines of dead code/docs removed. Zero regressions. |
