@@ -94,8 +94,8 @@ export default function Footer() {
           <p className="text-navy-300 text-sm">
             © {new Date().getFullYear()} KarKo AI. All rights reserved.
           </p>
-          <a href="mailto:hello@karkoai.com" className="text-navy-300 text-sm hover:text-white transition-colors">
-            hello@karkoai.com
+          <a href="mailto:wasim@karkoai.com" className="text-navy-300 text-sm hover:text-white transition-colors">
+            wasim@karkoai.com
           </a>
         </div>
       </div>
