@@ -45,37 +45,21 @@ export function USModernATSTemplate({ data, template }: Props) {
         padding: '0.5in 0.75in',  // Professional standard: 0.5in top/bottom, 0.75in left/right
         pageBreakAfter: 'auto',
         pageBreakInside: 'auto',
+        fontFamily: "'Roboto', 'Helvetica Neue', Arial, sans-serif",
+        fontSize: '13px',
+        lineHeight: 1.15,
+        color: modernColors.text,
       }}
     >
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          fontFamily: "'Roboto', 'Helvetica Neue', Arial, sans-serif",
-          fontSize: '13px',
-          lineHeight: 1.15,
-          color: modernColors.text,
-          backgroundColor: 'white',
-          display: 'flex',
-        }}
-      >
-      {/* Left Sidebar - 30% */}
-      <aside 
-        style={{ 
-          width: '30%',
-          padding: '0 12px 0 0',  // Zero left padding (outer handles it), small right padding for gap
-          backgroundColor: modernColors.sidebar,
-          overflow: 'hidden', // Prevent text overflow to main column
-        }}
-      >
-        {/* Name in sidebar */}
+      {/* FULL-WIDTH HEADER SECTION - ATS Optimized */}
+      <header style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: `2px solid ${modernColors.primary}` }}>
         <h1 
           style={{ 
             fontFamily: "'Roboto', 'Helvetica Neue', Arial, sans-serif",
             fontSize: '22px',
             fontWeight: 'bold',
             color: modernColors.primary,
-            marginBottom: '8px',
+            marginBottom: '4px',
           }}
         >
           {data.personal.fullName || 'Your Name'}
@@ -88,18 +72,86 @@ export function USModernATSTemplate({ data, template }: Props) {
               fontSize: '12px',
               fontWeight: '500',
               color: modernColors.textLight,
-              marginBottom: '20px',
+              marginBottom: '12px',
             }}
           >
             {data.personal.currentTitle}
           </p>
         )}
         
-        {/* Contact Info */}
-        <div style={{ marginBottom: '24px' }}>
+        {/* Contact Info - Inline for ATS */}
+        <div 
+          style={{ 
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: '16px',
+            fontSize: '12px',
+            color: modernColors.textLight,
+          }}
+        >
+          {data.personal.email && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Mail style={{ width: '12px', height: '12px', color: modernColors.primary }} />
+              <span>{data.personal.email}</span>
+            </div>
+          )}
+          {data.personal.phone && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Phone style={{ width: '12px', height: '12px', color: modernColors.primary }} />
+              <span>{data.personal.phone}</span>
+            </div>
+          )}
+          {(data.personal.address || data.personal.city || data.personal.country) && (() => {
+            const parts: string[] = [];
+            if (data.personal.address) {
+              parts.push(data.personal.address);
+              if (data.personal.city && !data.personal.address.toLowerCase().includes(data.personal.city.toLowerCase())) parts.push(data.personal.city);
+              if (data.personal.country && !data.personal.address.toLowerCase().includes(data.personal.country.toLowerCase())) parts.push(data.personal.country);
+            } else {
+              if (data.personal.city) parts.push(data.personal.city);
+              if (data.personal.country) parts.push(data.personal.country);
+            }
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MapPin style={{ width: '12px', height: '12px', color: modernColors.primary }} />
+                <span>{parts.join(', ')}</span>
+              </div>
+            );
+          })()}
+          {data.personal.linkedIn && (
+            <a href={data.personal.linkedIn} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
+              <Linkedin style={{ width: '12px', height: '12px', color: modernColors.primary }} />
+              <span>LinkedIn</span>
+            </a>
+          )}
+          {data.personal.github && (
+            <a href={data.personal.github} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
+              <Github style={{ width: '12px', height: '12px', color: modernColors.primary }} />
+              <span>GitHub</span>
+            </a>
+          )}
+          {data.personal.portfolio && (
+            <a href={data.personal.portfolio} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
+              <Globe style={{ width: '12px', height: '12px', color: modernColors.primary }} />
+              <span>Portfolio</span>
+            </a>
+          )}
+          {data.personal.website && (
+            <a href={data.personal.website} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
+              <Globe style={{ width: '12px', height: '12px', color: modernColors.primary }} />
+              <span>Website</span>
+            </a>
+          )}
+        </div>
+      </header>
+
+      {/* FULL-WIDTH PROFESSIONAL SUMMARY - Critical for ATS */}
+      {data.summary && (
+        <section style={{ marginBottom: '20px' }}>
           <h2 
             style={{ 
-              fontSize: '11px',
+              fontSize: '14px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
               letterSpacing: '1px',
@@ -109,67 +161,32 @@ export function USModernATSTemplate({ data, template }: Props) {
               borderBottom: `2px solid ${modernColors.primary}`,
             }}
           >
-            {data.sectionHeaders?.contact || 'CONTACT'}
+            {data.sectionHeaders?.summary || 'PROFESSIONAL SUMMARY'}
           </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px' }}>
-            {data.personal.email && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: modernColors.text }}>
-                <Mail style={{ width: '12px', height: '12px', color: modernColors.primary }} />
-                <span>{data.personal.email}</span>
-              </div>
-            )}
-            {data.personal.phone && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: modernColors.text }}>
-                <Phone style={{ width: '12px', height: '12px', color: modernColors.primary }} />
-                <span>{data.personal.phone}</span>
-              </div>
-            )}
-            {(data.personal.address || data.personal.city || data.personal.country) && (() => {
-              const parts: string[] = [];
-              if (data.personal.address) {
-                parts.push(data.personal.address);
-                if (data.personal.city && !data.personal.address.toLowerCase().includes(data.personal.city.toLowerCase())) parts.push(data.personal.city);
-                if (data.personal.country && !data.personal.address.toLowerCase().includes(data.personal.country.toLowerCase())) parts.push(data.personal.country);
-              } else {
-                if (data.personal.city) parts.push(data.personal.city);
-                if (data.personal.country) parts.push(data.personal.country);
-              }
-              return (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: modernColors.text }}>
-                  <MapPin style={{ width: '12px', height: '12px', color: modernColors.primary }} />
-                  <span>{parts.join(', ')}</span>
-                </div>
-              );
-            })()}
-            {data.personal.linkedIn && (
-              <a href={data.personal.linkedIn} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: modernColors.text, textDecoration: 'none' }}>
-                <Linkedin style={{ width: '12px', height: '12px', color: modernColors.primary }} />
-                <span>LinkedIn</span>
-              </a>
-            )}
-            {data.personal.github && (
-              <a href={data.personal.github} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: modernColors.text, textDecoration: 'none' }}>
-                <Github style={{ width: '12px', height: '12px', color: modernColors.primary }} />
-                <span>GitHub</span>
-              </a>
-            )}
-            {data.personal.portfolio && (
-              <a href={data.personal.portfolio} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: modernColors.text, textDecoration: 'none' }}>
-                <Globe style={{ width: '12px', height: '12px', color: modernColors.primary }} />
-                <span>Portfolio</span>
-              </a>
-            )}
-            {data.personal.website && (
-              <a href={data.personal.website} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: modernColors.text, textDecoration: 'none' }}>
-                <Globe style={{ width: '12px', height: '12px', color: modernColors.primary }} />
-                <span>Website</span>
-              </a>
-            )}
-          </div>
-        </div>
+          <p style={{ fontSize: '12px', lineHeight: 1.5, color: modernColors.text }}>
+            {data.summary}
+          </p>
+        </section>
+      )}
 
-        {/* Skills in Sidebar - Grouped by category */}
-        {data.skills.length > 0 && (
+      {/* TWO-COLUMN LAYOUT STARTS HERE */}
+      <div
+        style={{
+          width: '100%',
+          display: 'flex',
+        }}
+      >
+      {/* Left Sidebar - 30% */}
+      <aside 
+        style={{ 
+          width: '30%',
+          padding: '0 12px 0 0',  // Zero left padding (outer handles it), small right padding for gap
+          backgroundColor: modernColors.sidebar,
+          overflow: 'hidden', // Prevent text overflow to main column
+        }}
+      >
+        {/* Core Competencies with Languages integrated - 2026 ATS Best Practice */}
+        {(data.skills.length > 0 || data.languages.length > 0) && (
           <div style={{ marginBottom: '24px' }}>
             <h2 
               style={{ 
@@ -183,7 +200,7 @@ export function USModernATSTemplate({ data, template }: Props) {
                 borderBottom: `2px solid ${modernColors.primary}`,
               }}
             >
-              {data.sectionHeaders?.skills || 'KEY SKILLS'}
+              {data.sectionHeaders?.skills || 'CORE COMPETENCIES'}
             </h2>
             {/* Grouped skills by category - max 5 per category */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -220,34 +237,43 @@ export function USModernATSTemplate({ data, template }: Props) {
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* Languages in Sidebar */}
-        {data.languages.length > 0 && (
-          <div style={{ marginBottom: '24px' }}>
-            <h2 
-              style={{ 
-                fontSize: '11px',
-                fontWeight: 'bold',
-                textTransform: 'uppercase',
-                letterSpacing: '1px',
-                color: modernColors.primary,
-                marginBottom: '8px',
-                paddingBottom: '4px',
-                borderBottom: `2px solid ${modernColors.primary}`,
-              }}
-            >
-              {data.sectionHeaders?.languages || 'LANGUAGES'}
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {data.languages.map((lang, idx) => (
-                <div key={idx} style={{ fontSize: '12px' }}>
-                  <span style={{ fontWeight: '500', color: modernColors.text }}>{lang.language}</span>
-                  <span style={{ color: modernColors.textLight }}> : {lang.proficiency}</span>
+              
+              {/* Languages as final category within Core Competencies */}
+              {data.languages.length > 0 && (
+                <div style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                  <div 
+                    style={{ 
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      color: modernColors.text,
+                      marginBottom: '4px',
+                    }}
+                  >
+                    {data.sectionHeaders?.languages || 'Languages'}:
+                  </div>
+                  <div style={{ marginLeft: '8px' }}>
+                    {data.languages.map((lang, idx) => (
+                      <div 
+                        key={idx} 
+                        style={{ 
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '6px',
+                          fontSize: '12px',
+                          lineHeight: 1.3,
+                          marginBottom: '2px',
+                          color: modernColors.text,
+                        }}
+                      >
+                        <span style={{ flexShrink: 0 }}>•</span>
+                        <span style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                          <strong>{lang.language}:</strong> {lang.proficiency}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         )}
@@ -285,29 +311,6 @@ export function USModernATSTemplate({ data, template }: Props) {
 
       {/* Main Content - 70% */}
       <main style={{ width: '70%', padding: '0 0 0 12px' }}>  {/* Zero right padding (outer handles it), small left padding for gap */}
-        {/* Professional Summary */}
-        {data.summary && (
-          <section style={{ marginBottom: '20px' }}>
-            <h2 
-              style={{ 
-                fontSize: '14px',
-                fontWeight: 'bold',
-                textTransform: 'uppercase',
-                letterSpacing: '1px',
-                color: modernColors.primary,
-                marginBottom: '8px',
-                paddingBottom: '4px',
-                borderBottom: `2px solid ${modernColors.primary}`,
-              }}
-            >
-              {data.sectionHeaders?.summary || 'PROFESSIONAL SUMMARY'}
-            </h2>
-            <p style={{ fontSize: '12px', lineHeight: 1.5, color: modernColors.text }}>
-              {data.summary}
-            </p>
-          </section>
-        )}
-
         {/* Professional Experience */}
         {data.experience.length > 0 && (
           <section style={{ marginBottom: '20px' }}>

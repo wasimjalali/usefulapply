@@ -51,21 +51,136 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
         padding: '0.5in 0.75in',  // Professional standard: 0.5in top/bottom, 0.75in left/right
         pageBreakAfter: 'auto',
         pageBreakInside: 'auto',
+        fontFamily: "'Arial', 'Helvetica Neue', 'Helvetica', sans-serif",
+        fontSize: '11px',
+        lineHeight: 1.2,
+        color: germanColors.text,
       }}
     >
+      {/* FULL-WIDTH HEADER SECTION - ATS Optimized */}
+      <header style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: `2px solid ${germanColors.primary}` }}>
+        <h1 
+          style={{ 
+            fontFamily: "'Arial', 'Helvetica Neue', 'Helvetica', sans-serif",
+            fontSize: '24px',
+            fontWeight: 'bold',
+            color: germanColors.primary,
+            marginBottom: '4px',
+          }}
+        >
+          {data.personal.fullName || 'Ihr Name'}
+        </h1>
+        {data.personal.currentTitle && (
+          <p 
+            style={{ 
+              fontSize: '13px',
+              fontWeight: '600',
+              color: germanColors.textLight,
+              marginBottom: '12px',
+            }}
+          >
+            {data.personal.currentTitle}
+          </p>
+        )}
+        
+        {/* Contact Info - Inline for ATS */}
+        <div 
+          style={{ 
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: '16px',
+            fontSize: '11px',
+            color: germanColors.textLight,
+          }}
+        >
+          {data.personal.email && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Mail style={{ width: '12px', height: '12px', color: germanColors.primary }} />
+              <span>{data.personal.email}</span>
+            </div>
+          )}
+          {data.personal.phone && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Phone style={{ width: '12px', height: '12px', color: germanColors.primary }} />
+              <span>{data.personal.phone}</span>
+            </div>
+          )}
+          {(data.personal.address || data.personal.city || data.personal.country) && (() => {
+            const parts: string[] = [];
+            if (data.personal.address) {
+              parts.push(data.personal.address);
+              if (data.personal.city && !data.personal.address.toLowerCase().includes(data.personal.city.toLowerCase())) parts.push(data.personal.city);
+              if (data.personal.country && !data.personal.address.toLowerCase().includes(data.personal.country.toLowerCase())) parts.push(data.personal.country);
+            } else {
+              if (data.personal.city) parts.push(data.personal.city);
+              if (data.personal.country) parts.push(data.personal.country);
+            }
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MapPin style={{ width: '12px', height: '12px', color: germanColors.primary }} />
+                <span>{parts.join(', ')}</span>
+              </div>
+            );
+          })()}
+          {data.personal.linkedIn && (
+            <a href={data.personal.linkedIn} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
+              <Linkedin style={{ width: '12px', height: '12px', color: germanColors.primary }} />
+              <span>LinkedIn</span>
+            </a>
+          )}
+          {data.personal.github && (
+            <a href={data.personal.github} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
+              <Github style={{ width: '12px', height: '12px', color: germanColors.primary }} />
+              <span>GitHub</span>
+            </a>
+          )}
+          {data.personal.portfolio && (
+            <a href={data.personal.portfolio} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
+              <Globe style={{ width: '12px', height: '12px', color: germanColors.primary }} />
+              <span>Portfolio</span>
+            </a>
+          )}
+          {data.personal.website && (
+            <a href={data.personal.website} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
+              <Globe style={{ width: '12px', height: '12px', color: germanColors.primary }} />
+              <span>Webseite</span>
+            </a>
+          )}
+        </div>
+      </header>
+
+      {/* FULL-WIDTH PROFESSIONAL SUMMARY - Critical for ATS */}
+      {data.summary && (
+        <section style={{ marginBottom: '20px' }}>
+          <h2 
+            style={{ 
+              fontSize: '13px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+              color: germanColors.primary,
+              marginBottom: '6px',
+              paddingBottom: '4px',
+              borderBottom: `2px solid ${germanColors.primary}`,
+            }}
+          >
+            {data.sectionHeaders?.summary || GERMAN_HEADERS.summary}
+          </h2>
+          <p style={{ fontSize: '12px', lineHeight: 1.5, color: germanColors.text }}>
+            {data.summary}
+          </p>
+        </section>
+      )}
+
+      {/* TWO-COLUMN LAYOUT STARTS HERE */}
       <div
         style={{
           width: '100%',
-          height: '100%',
-          fontFamily: "'Arial', 'Helvetica Neue', 'Helvetica', sans-serif",
-          fontSize: '11px',
-          lineHeight: 1.2,
-          color: germanColors.text,
-          backgroundColor: 'white',
           display: 'flex',
         }}
       >
-      {/* Left Sidebar with Photo and Contact */}
+      {/* Left Sidebar with Photo (Decorative) */}
       <aside 
         style={{ 
           width: '70mm',
@@ -75,14 +190,14 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
           overflow: 'hidden', // Prevent text overflow to main column
         }}
       >
-        {/* Photo - German CV standard: 35mm x 45mm */}
+        {/* Photo - German CV standard: 4.5cm x 6cm (Decorative - ATS ignores images) */}
         <div 
           style={{ 
-            width: '50mm', 
-            height: '65mm',
-            marginBottom: '20px',
-            border: photoUrl ? 'none' : `2px dashed ${germanColors.textLight}`,
-            borderRadius: '4px',
+            width: '45mm',  // German standard: 4.5cm
+            height: '60mm', // German standard: 6cm (3:4 portrait ratio)
+            marginBottom: '15px', // Reduced spacing to move content up
+            border: photoUrl ? '0.5px solid #d0d0d0' : `2px dashed ${germanColors.textLight}`, // Subtle professional border
+            borderRadius: '2px', // Minimal rounding for professional look
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -98,88 +213,15 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
             />
           ) : (
             <div style={{ textAlign: 'center', padding: '8px' }}>
-              <User style={{ width: '32px', height: '32px', color: germanColors.textLight, margin: '0 auto 8px' }} />
-              <span style={{ fontSize: '10px', color: germanColors.textLight }}>{data.localizedStrings?.photoPlaceholder || 'Foto'}</span>
+              <User style={{ width: '28px', height: '28px', color: germanColors.textLight, margin: '0 auto 6px' }} />
+              <span style={{ fontSize: '9px', color: germanColors.textLight }}>{data.localizedStrings?.photoPlaceholder || 'Foto'}</span>
             </div>
           )}
         </div>
 
-        {/* Personal Info */}
-        <div style={{ marginBottom: '20px' }}>
-          <h2 
-            style={{ 
-              fontSize: '10px',
-              fontWeight: 'bold',
-              textTransform: 'uppercase',
-              letterSpacing: '1px',
-              color: germanColors.primary,
-              marginBottom: '8px',
-              paddingBottom: '4px',
-              borderBottom: `2px solid ${germanColors.primary}`,
-            }}
-          >
-            {data.sectionHeaders?.contact || 'PERSÖNLICHE DATEN'}
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {data.personal.email && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '10px' }}>
-                <Mail style={{ width: '12px', height: '12px', color: germanColors.primary, flexShrink: 0, marginTop: '2px' }} />
-                <span style={{ color: germanColors.text }}>{data.personal.email}</span>
-              </div>
-            )}
-            {data.personal.phone && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '10px' }}>
-                <Phone style={{ width: '12px', height: '12px', color: germanColors.primary, flexShrink: 0, marginTop: '2px' }} />
-                <span style={{ color: germanColors.text }}>{data.personal.phone}</span>
-              </div>
-            )}
-            {(data.personal.address || data.personal.city || data.personal.country) && (() => {
-              const parts: string[] = [];
-              if (data.personal.address) {
-                parts.push(data.personal.address);
-                if (data.personal.city && !data.personal.address.toLowerCase().includes(data.personal.city.toLowerCase())) parts.push(data.personal.city);
-                if (data.personal.country && !data.personal.address.toLowerCase().includes(data.personal.country.toLowerCase())) parts.push(data.personal.country);
-              } else {
-                if (data.personal.city) parts.push(data.personal.city);
-                if (data.personal.country) parts.push(data.personal.country);
-              }
-              return (
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '10px' }}>
-                  <MapPin style={{ width: '12px', height: '12px', color: germanColors.primary, flexShrink: 0, marginTop: '2px' }} />
-                  <span style={{ color: germanColors.text }}>{parts.join(', ')}</span>
-                </div>
-              );
-            })()}
-            {data.personal.linkedIn && (
-              <a href={data.personal.linkedIn} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '10px', color: germanColors.text, textDecoration: 'none' }}>
-                <Linkedin style={{ width: '12px', height: '12px', color: germanColors.primary, flexShrink: 0, marginTop: '2px' }} />
-                <span>LinkedIn</span>
-              </a>
-            )}
-            {data.personal.github && (
-              <a href={data.personal.github} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '10px', color: germanColors.text, textDecoration: 'none' }}>
-                <Github style={{ width: '12px', height: '12px', color: germanColors.primary, flexShrink: 0, marginTop: '2px' }} />
-                <span>GitHub</span>
-              </a>
-            )}
-            {data.personal.portfolio && (
-              <a href={data.personal.portfolio} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '10px', color: germanColors.text, textDecoration: 'none' }}>
-                <Globe style={{ width: '12px', height: '12px', color: germanColors.primary, flexShrink: 0, marginTop: '2px' }} />
-                <span>Portfolio</span>
-              </a>
-            )}
-            {data.personal.website && (
-              <a href={data.personal.website} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '10px', color: germanColors.text, textDecoration: 'none' }}>
-                <Globe style={{ width: '12px', height: '12px', color: germanColors.primary, flexShrink: 0, marginTop: '2px' }} />
-                <span>Webseite</span>
-              </a>
-            )}
-          </div>
-        </div>
-
-        {/* Skills in Sidebar - Grouped by category */}
-        {data.skills.length > 0 && (
-          <div style={{ marginBottom: '20px' }}>
+        {/* Core Competencies with Languages integrated - 2026 ATS Best Practice */}
+        {(data.skills.length > 0 || data.languages.length > 0) && (
+          <div style={{ marginBottom: '16px' }}>
             <h2 
               style={{ 
                 fontSize: '12px',
@@ -187,15 +229,15 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                 textTransform: 'uppercase',
                 letterSpacing: '1px',
                 color: germanColors.primary,
-                marginBottom: '8px',
-                paddingBottom: '4px',
+                marginBottom: '6px',
+                paddingBottom: '3px',
                 borderBottom: `2px solid ${germanColors.primary}`,
               }}
             >
               {data.sectionHeaders?.skills || GERMAN_HEADERS.skills}
             </h2>
-            {/* Grouped skills by category - max 5 per category */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* Grouped skills by category with Languages integrated - max 5 per category */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {data.skills.map((group, groupIdx) => (
                 <div key={groupIdx} style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
                   <div 
@@ -229,34 +271,43 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* Languages in Sidebar */}
-        {data.languages.length > 0 && (
-          <div style={{ marginBottom: '20px' }}>
-            <h2 
-              style={{ 
-                fontSize: '12px',
-                fontWeight: 'bold',
-                textTransform: 'uppercase',
-                letterSpacing: '1px',
-                color: germanColors.primary,
-                marginBottom: '8px',
-                paddingBottom: '4px',
-                borderBottom: `2px solid ${germanColors.primary}`,
-              }}
-            >
-              {data.sectionHeaders?.languages || GERMAN_HEADERS.languages}
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {data.languages.map((lang, idx) => (
-                <div key={idx} style={{ fontSize: '12px' }}>
-                  <span style={{ fontWeight: 'bold', color: germanColors.text }}>{lang.language}</span>
-                  <span style={{ color: germanColors.textLight }}> : {lang.proficiency}</span>
+              
+              {/* Languages as final category within Core Competencies */}
+              {data.languages.length > 0 && (
+                <div style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                  <div 
+                    style={{ 
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      color: germanColors.text,
+                      marginBottom: '4px',
+                    }}
+                  >
+                    {data.sectionHeaders?.languages || GERMAN_HEADERS.languages}:
+                  </div>
+                  <div style={{ marginLeft: '8px' }}>
+                    {data.languages.map((lang, idx) => (
+                      <div 
+                        key={idx} 
+                        style={{ 
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '6px',
+                          fontSize: '12px',
+                          lineHeight: 1.3,
+                          marginBottom: '2px',
+                          color: germanColors.text,
+                        }}
+                      >
+                        <span style={{ flexShrink: 0 }}>•</span>
+                        <span style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                          <strong>{lang.language}:</strong> {lang.proficiency}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         )}
@@ -271,14 +322,14 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                 textTransform: 'uppercase',
                 letterSpacing: '1px',
                 color: germanColors.primary,
-                marginBottom: '8px',
-                paddingBottom: '4px',
+                marginBottom: '6px',
+                paddingBottom: '3px',
                 borderBottom: `2px solid ${germanColors.primary}`,
               }}
             >
               {data.sectionHeaders?.certifications || GERMAN_HEADERS.certifications}
             </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               {data.certifications.map((cert) => (
                 <div key={cert.id} style={{ fontSize: '12px' }}>
                   <div style={{ fontWeight: 'bold', color: germanColors.text }}>{cert.name}</div>
@@ -294,55 +345,6 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
 
       {/* Main Content */}
       <main style={{ flex: 1, padding: '0 0 0 12px' }}>  {/* Zero right padding (outer handles it), small left padding for gap */}
-        {/* Name and Title */}
-        <header style={{ marginBottom: '20px', paddingBottom: '12px', borderBottom: `2px solid ${germanColors.primary}` }}>
-          <h1 
-            style={{ 
-              fontFamily: "'Arial', 'Helvetica Neue', 'Helvetica', sans-serif",
-              fontSize: '24px',
-              fontWeight: 'bold',
-              color: germanColors.primary,
-              marginBottom: '4px',
-            }}
-          >
-            {data.personal.fullName || 'Ihr Name'}
-          </h1>
-          {data.personal.currentTitle && (
-            <p 
-              style={{ 
-                fontSize: '13px',
-                fontWeight: '600',
-                color: germanColors.textLight,
-              }}
-            >
-              {data.personal.currentTitle}
-            </p>
-          )}
-        </header>
-
-        {/* Berufliches Profil */}
-        {data.summary && (
-          <section style={{ marginBottom: '18px' }}>
-            <h2 
-              style={{ 
-                fontSize: '13px',
-                fontWeight: 'bold',
-                textTransform: 'uppercase',
-                letterSpacing: '1px',
-                color: germanColors.primary,
-                marginBottom: '6px',
-                paddingBottom: '4px',
-                borderBottom: `2px solid ${germanColors.primary}`,
-              }}
-            >
-              {data.sectionHeaders?.summary || GERMAN_HEADERS.summary}
-            </h2>
-            <p style={{ fontSize: '12px', lineHeight: 1.5, color: germanColors.text }}>
-              {data.summary}
-            </p>
-          </section>
-        )}
-
         {/* Berufserfahrung */}
         {data.experience.length > 0 && (
           <section style={{ marginBottom: '18px' }}>
