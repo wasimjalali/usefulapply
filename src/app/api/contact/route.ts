@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { Resend } from 'resend';
 
 export const runtime = 'edge';
 
@@ -57,9 +58,43 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // TODO: Integrate with email service (Resend, SendGrid, etc.)
-    // For now, we just save to database and return success
-    // The team can check submissions in Supabase dashboard
+    // Send email notification via Resend
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    
+    try {
+      const emailContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1e3a8a; margin-bottom: 20px;">New Contact Form Submission</h2>
+          
+          <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <p style="margin: 0 0 10px 0;"><strong>Name:</strong> ${name}</p>
+            <p style="margin: 0 0 10px 0;"><strong>Email:</strong> ${email}</p>
+            <p style="margin: 0 0 10px 0;"><strong>Subject:</strong> ${subject}</p>
+          </div>
+          
+          <div style="background: #f1f5f9; padding: 20px; border-radius: 8px;">
+            <h3 style="margin: 0 0 10px 0; color: #334155;">Message:</h3>
+            <p style="margin: 0; white-space: pre-wrap;">${message}</p>
+          </div>
+          
+          <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+            <p style="margin: 0; color: #64748b; font-size: 14px;">
+              This message was sent from the KarKo AI contact form.
+            </p>
+          </div>
+        </div>
+      `;
+
+      await resend.emails.send({
+        from: 'onboarding@resend.dev',
+        to: 'wasim@karkoai.com',
+        subject: `KarKo AI Contact: ${subject}`,
+        html: emailContent,
+      });
+    } catch (emailError) {
+      console.error('Failed to send email:', emailError);
+      // Don't fail the request if email sending fails
+    }
 
     return NextResponse.json({
       success: true,

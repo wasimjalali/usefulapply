@@ -1204,7 +1204,7 @@ application_sessions: {
 > Complete schema exported from live Supabase (`information_schema.columns` across
 > all schemas: `auth`, `public`, `storage`, `realtime`, `vault`). ~4500 lines verified.
 
-### All 12 Public Tables — Verified 
+### All 13 Public Tables — Verified 
 
 | # | Table | Cols | Status |
 |---|-------|------|--------|
@@ -1212,14 +1212,15 @@ application_sessions: {
 | 2 | `application_sessions` | 30 |  Matches guide (includes `fit_assessment`, `generation_completed`) |
 | 3 | `chat_messages` | 7 |  Matches guide |
 | 4 | `connected_accounts` | 10 |  Matches guide |
-| 5 | `credit_transactions` | 10 |  Guide updated: `amount`/`balance_*` → `NUMERIC(10,2)` |
-| 6 | `documents` | 15 |  Matches guide |
-| 7 | `message_feedback` | 8 |  Matches guide |
-| 8 | `profile_photos` | 5 |  Matches guide |
-| 9 | `profiles` | 18 |  Guide updated: added 4 URL columns |
-| 10 | `subscription_plans` | 17 |  Matches guide (`price_*` are `NUMERIC(10,2)`) |
-| 11 | `subscriptions` | 17 |  Matches guide |
-| 12 | `user_credits` | 10 |  Guide updated: credit cols → `NUMERIC(10,2)` |
+| 5 | `contact_submissions` | 7 |  **NEW** (Feb 14, 2026) |
+| 6 | `credit_transactions` | 10 |  Guide updated: `amount`/`balance_*` → `NUMERIC(10,2)` |
+| 7 | `documents` | 15 |  Matches guide |
+| 8 | `message_feedback` | 8 |  Matches guide |
+| 9 | `profile_photos` | 5 |  Matches guide |
+| 10 | `profiles` | 18 |  Guide updated: added 4 URL columns |
+| 11 | `subscription_plans` | 17 |  Matches guide (`price_*` are `NUMERIC(10,2)`) |
+| 12 | `subscriptions` | 17 |  Matches guide |
+| 13 | `user_credits` | 10 |  Guide updated: credit cols → `NUMERIC(10,2)` |
 
 ### `profiles` — 18 Columns (4 new URL columns added to guide)
 
@@ -1254,6 +1255,26 @@ actions (jsonb DEFAULT '[]'), created_at (timestamptz)
 > **Session isolation is correct at the DB level.** Each chat message has a
 > `session_id` NOT NULL foreign key. The session mixing bug was purely
 > client-side (localStorage corruption), not a database issue.
+
+### `contact_submissions` — 7 Columns (NEW Feb 14, 2026)
+
+```
+id (uuid PK), name (text NOT NULL), email (text NOT NULL),
+subject (text NOT NULL), message (text NOT NULL),
+submitted_at (timestamptz NOT NULL), created_at (timestamptz)
+```
+
+**Purpose:** Stores contact form submissions from the website `/contact` page.
+
+**RLS Policies:**
+- Anyone (anon/authenticated) can INSERT (public form)
+- Only authenticated users can SELECT (admin view only)
+
+**Indexes:**
+- `idx_contact_submissions_submitted_at` on `submitted_at DESC`
+- `idx_contact_submissions_email` on `email`
+
+**Migration:** `supabase/migrations/create_contact_submissions.sql`
 
 ### Type Corrections Applied to Guide
 

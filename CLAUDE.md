@@ -338,6 +338,53 @@ Full details in `REFACTORING_PROGRESS.md`.
 
 ---
 
+## Contact Form & Resend Integration
+
+**Added:** February 14, 2026
+
+### Overview
+Contact form on `/contact` page saves submissions to Supabase and sends email notifications via Resend API.
+
+### Architecture
+- **Frontend:** `src/app/contact/page.tsx` — Contact form with validation
+- **Backend:** `src/app/api/contact/route.ts` — Handles form submission, saves to DB, sends email
+- **Database:** `contact_submissions` table in Supabase
+- **Email Service:** Resend API for email notifications
+
+### Environment Variables
+- `RESEND_API_KEY` — Resend API key for sending emails
+- `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
+- `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key for DB writes
+
+### Database Table
+Table: `contact_submissions`
+- Stores: name, email, subject, message, submitted_at
+- RLS enabled: Anyone can insert (public form), only authenticated users can view
+- Indexes on `submitted_at` and `email` for performance
+
+### Email Notifications
+- **From:** `onboarding@resend.dev` (Resend default sender)
+- **To:** `wasim@karkoai.com`
+- **Subject:** `KarKo AI Contact: [subject]`
+- **Content:** Professional HTML template with contact details
+- **Error handling:** Form succeeds even if email fails (non-blocking)
+
+### Files
+| File | Purpose |
+|------|---------|
+| `src/app/contact/page.tsx` | Contact form UI with email display (wasim@karkoai.com) |
+| `src/app/api/contact/route.ts` | API route with Supabase save + Resend email |
+| `supabase/migrations/create_contact_submissions.sql` | SQL migration for table creation |
+| `src/components/marketing/Footer.tsx` | Email link (wasim@karkoai.com) |
+
+### Migration
+Run the SQL migration in Supabase SQL Editor:
+```bash
+supabase/migrations/create_contact_submissions.sql
+```
+
+---
+
 ## Changelog
 
 | Date | Change | Files | Details |
@@ -371,4 +418,5 @@ Full details in `REFACTORING_PROGRESS.md`.
 | Feb 13, 2026 | Cover letter: language-conditional header | unified-writer-agent.ts | EN market: removed company address and bracketed placeholders. DE market: kept full formal Anschreiben format with company address. |
 | Feb 13, 2026 | PostHog analytics integration | PostHogProvider.tsx, PostHogPageView.tsx, posthog-server.ts, layout.tsx, next.config.ts, AuthContext.tsx, ChatPanel.tsx, EmailPanel.tsx, agent-v2/route.ts, regenerate/route.ts | Full PostHog integration: client-side provider with reverse proxy (/ingest), SPA pageview tracking, session replay, user identification via Supabase auth, frontend event tracking (jd_pasted, fit_analysis_viewed, apply_clicked, application_generated, new_application_started, document_copied, regeneration_requested), server-side LLM analytics ($ai_generation events with token counts and cost estimates per agent step), regeneration tracking. |
 | Feb 14, 2026 | Large file refactoring (all 4) | 13 new modules created, 4 files refactored | Split unified-writer-agent.ts (2,600→908), parse-optimized-cv.ts (963→125), cv-templates/types.ts (1,026→570), ChatPanel.tsx (1,076→453). Total: 5,665→2,056 lines (64% reduction). Zero regressions. Pure code movement, no logic changes. |
+| Feb 14, 2026 | Contact form + Resend integration | contact/page.tsx, api/contact/route.ts, create_contact_submissions.sql | Added contact form with Supabase storage and Resend email notifications. Updated email from hello@karkoai.com to wasim@karkoai.com across all pages (Footer, Contact, Imprint, Terms, Privacy). Created contact_submissions table with RLS policies. |
 | Jun 2025 | Deep Clean & Audit | 35 files deleted, CLAUDE.md updated | Removed 14 orphaned source files (2,364 lines), 6 orphaned public assets, 2 empty directories, 13 obsolete .md docs (4,633 lines). Total: ~7,000 lines of dead code/docs removed. Zero regressions. |
