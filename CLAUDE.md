@@ -259,6 +259,71 @@ Every agent step emits `$ai_generation` with: `$ai_provider`, `$ai_model`, `$ai_
 
 ---
 
+## Deep Clean & Audit (Completed)
+
+**Date:** June 2025
+
+A comprehensive codebase audit was performed to eliminate technical debt. The following categories of dead code were identified and removed:
+
+### Deleted Orphaned Source Files (14 files, 2,364 lines)
+| File | Lines | Reason |
+|------|-------|--------|
+| `src/lib/types.examples.ts` | 153 | Demo/example file, never imported |
+| `src/lib/cv-extractor.ts` | 102 | Legacy extractor, superseded by unified agent |
+| `src/lib/utils/password-strength.ts` | 66 | Never imported, Supabase handles auth |
+| `src/lib/utils/session-cleanup.ts` | 149 | Never imported anywhere |
+| `src/lib/cv-templates/font-standards.ts` | 174 | Never imported, templates use Tailwind |
+| `src/lib/config/design-tokens.ts` | 170 | Never imported, app uses Tailwind config |
+| `src/lib/utils/file-validation.ts` | 112 | Never imported, inline validation used |
+| `src/lib/utils/document-parser.ts` | 171 | Never imported, API called directly |
+| `src/lib/utils/pdf-generator.ts` | 222 | Never imported, pdf-lib used directly |
+| `src/utils/helpers.ts` | 136 | Never imported, generic utils |
+| `src/components/PDFViewer.tsx` | 54 | Never imported |
+| `src/lib/prompts.ts` | 643 | Legacy prompts from old multi-agent architecture |
+| `src/types/agent.ts` | 174 | Duplicate of `src/lib/agents/types.ts`, zero imports |
+| `src/lib/supabase/middleware.ts` | 38 | Never imported, no root middleware |
+
+### Deleted Orphaned Public Assets (6 files)
+- `public/file.svg`, `public/globe.svg`, `public/next.svg`, `public/vercel.svg`, `public/window.svg` — Next.js boilerplate, never referenced
+- `public/Wasim.png` — Unused duplicate; `wasim-founder.jpg` is the one actually used
+
+### Deleted Empty Directories (2)
+- `Assets/`, `Blog-1/`
+
+### Deleted Obsolete Documentation (13 files, 4,633 lines)
+| File | Lines | Reason |
+|------|-------|--------|
+| `OBSOLETE_FILES_REPORT.md` | 222 | Meta-report, itself obsolete |
+| `AGENT_FLOW_AUDIT.md` | 201 | One-time audit, findings in CLAUDE.md |
+| `ALL_TASKS_TRACKER.md` | 425 | All tasks 101% complete |
+| `ANALYZE_FIRST_FLOW_BUGS.md` | 80 | All bugs fixed |
+| `ATS_COMPATIBILITY_AUDIT.md` | 675 | One-time audit, findings implemented |
+| `CHANGELOG-follow-up-email.md` | 110 | Documented in CLAUDE.md |
+| `FIT_ANALYSIS_IMPLEMENTATION_PLAN.md` | 227 | Feature fully shipped |
+| `FIT_ASSESSMENT_AUDIT.md` | 231 | Findings implemented as anti-hallucination rules |
+| `KARKO_AI_BUGFIX_GUIDE_v3.1.md` | 504 | All bugs resolved |
+| `Karko_ai-implementation-guide-v2.md` | 380 | All fixes implemented, model migrated |
+| `karko_ai_prompts_export.md` | 552 | Haiku→Sonnet migration complete |
+| `karko_sonnet_migration_implementation.md` | 505 | Migration complete |
+| `docs/cv-template-i18n-findings.md` | 521 | i18n findings implemented |
+
+### Remaining Documentation (kept)
+- `CLAUDE.md` — Canonical state doc (this file)
+- `README.md` — Project overview
+- `SETUP.md` — Setup instructions
+- `INSTALLATION_STEPS.md` — Install checklist
+- `SUPABASE_SCHEMA_GUIDE.md` — DB schema reference
+- `SUPABASE_SETUP_GUIDE.md` — OAuth/MFA setup
+- `STRIPE_SETUP_GUIDE.md` — Stripe integration
+
+### Identified Refactoring Opportunities (future)
+- `src/lib/agents/unified-writer-agent.ts` (126KB) — Split into prompts/, generators/, parsers/ modules
+- `src/components/ChatPanel.tsx` (43KB) — Extract JD input, fit analysis, agent progress sub-components
+- `src/lib/cv-templates/types.ts` (38KB) — Separate types from utility functions
+- `src/lib/cv-parser/parse-optimized-cv.ts` (34KB) — Split into per-section parsers
+
+---
+
 ## Changelog
 
 | Date | Change | Files | Details |
@@ -291,3 +356,4 @@ Every agent step emits `$ai_generation` with: `$ai_provider`, `$ai_model`, `$ai_
 | Feb 12, 2026 | Follow-up email: anti-hallucination parity | unified-writer-agent.ts | Strengthened follow-up email from 3-line anti-hallucination section to full 5-rule system (SOURCE VERIFICATION, METRIC ACCURACY, COMPANY ACCURACY, SKILL CONSTRAINT, VERIFICATION CHECK). Rules scoped to follow-up's specific sources (key_achievement, company_context, primary_email). |
 | Feb 13, 2026 | Cover letter: language-conditional header | unified-writer-agent.ts | EN market: removed company address and bracketed placeholders. DE market: kept full formal Anschreiben format with company address. |
 | Feb 13, 2026 | PostHog analytics integration | PostHogProvider.tsx, PostHogPageView.tsx, posthog-server.ts, layout.tsx, next.config.ts, AuthContext.tsx, ChatPanel.tsx, EmailPanel.tsx, agent-v2/route.ts, regenerate/route.ts | Full PostHog integration: client-side provider with reverse proxy (/ingest), SPA pageview tracking, session replay, user identification via Supabase auth, frontend event tracking (jd_pasted, fit_analysis_viewed, apply_clicked, application_generated, new_application_started, document_copied, regeneration_requested), server-side LLM analytics ($ai_generation events with token counts and cost estimates per agent step), regeneration tracking. |
+| Jun 2025 | Deep Clean & Audit | 35 files deleted, CLAUDE.md updated | Removed 14 orphaned source files (2,364 lines), 6 orphaned public assets, 2 empty directories, 13 obsolete .md docs (4,633 lines). Total: ~7,000 lines of dead code/docs removed. Zero regressions. |
