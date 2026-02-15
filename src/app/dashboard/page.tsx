@@ -167,7 +167,7 @@ export default function Dashboard() {
                 </Link>
               )}
 
-              {/* Settings/Profile Link (authenticated) OR Sign In button (anonymous) */}
+              {/* Settings/Profile Link (authenticated) OR Sign In/Sign Up buttons (anonymous) */}
               {user ? (
                 <Link
                   href="/settings"
@@ -187,13 +187,22 @@ export default function Dashboard() {
                   </div>
                 </Link>
               ) : (
-                <Link
-                  href="/auth/login"
-                  className="flex items-center gap-1.5 px-3 sm:px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-gold-400 to-gold-500 rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm cursor-pointer"
-                >
-                  <User className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Sign In</span>
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/auth/signup"
+                    className="flex items-center gap-1.5 px-3 sm:px-4 py-2 text-sm font-semibold text-navy-700 bg-white rounded-xl hover:bg-cream-50 transition-all shadow-sm cursor-pointer border border-navy-200"
+                  >
+                    <User className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Sign Up</span>
+                  </Link>
+                  <Link
+                    href="/auth/login"
+                    className="flex items-center gap-1.5 px-3 sm:px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-gold-400 to-gold-500 rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm cursor-pointer"
+                  >
+                    <User className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Sign In</span>
+                  </Link>
+                </div>
               )}
             </div>
           </div>
