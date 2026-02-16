@@ -7,6 +7,7 @@ import { PlusPlanButton, ProPlanButton } from '@/components/marketing/HomePricin
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { CountUp } from '@/components/marketing/CountUp';
+import { TrustpilotReviews } from '@/components/marketing/TrustpilotReviews';
 
 export const metadata: Metadata = {
   title: 'KarKo AI | AI-Powered Job Application Assistant',
@@ -248,6 +249,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Trustpilot Reviews Section */}
+      <TrustpilotReviews />
 
       {/* Complete Package Breakdown */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
