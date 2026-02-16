@@ -6,7 +6,7 @@ export default function Footer() {
   return (
     <footer className="bg-gradient-to-b from-navy-600 to-navy-800 text-white relative">
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-gold-400 via-gold-500 to-gold-400" />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="md:col-span-1">
@@ -91,7 +91,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom */}
-        <div className="border-t border-navy-500/50 mt-12 pt-8">
+        <div className="border-t border-navy-500/50 mt-6 pt-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <p className="text-navy-300 text-sm">
               © {new Date().getFullYear()} KarKo AI. All rights reserved.
