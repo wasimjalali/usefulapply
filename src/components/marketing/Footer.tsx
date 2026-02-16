@@ -5,7 +5,7 @@ import TrustpilotLogo from '@/components/marketing/TrustpilotLogo';
 export default function Footer() {
   return (
     <footer className="bg-gradient-to-b from-navy-600 to-navy-800 text-white relative">
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-gold-400 via-gold-500 to-gold-400" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-gold-400/40 via-gold-500/60 to-gold-400/40" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid md:grid-cols-4 gap-8">
           {/* Brand */}
@@ -91,8 +91,8 @@ export default function Footer() {
         </div>
 
         {/* Bottom */}
-        <div className="border-t border-navy-500/50 mt-3 pt-2">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="border-t border-navy-500/30 mt-8 pt-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-navy-300 text-sm">
               © {new Date().getFullYear()} KarKo AI. All rights reserved.
             </p>
