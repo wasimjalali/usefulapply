@@ -101,6 +101,7 @@ export default function Footer() {
               href="https://www.trustpilot.com/review/karkoai.com" 
               target="_blank" 
               rel="noopener noreferrer"
+              title="Read and leave reviews on Trustpilot"
               className="group transition-all"
             >
               <svg 
