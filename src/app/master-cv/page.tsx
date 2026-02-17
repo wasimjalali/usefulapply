@@ -563,7 +563,7 @@ export default function MasterCVPage() {
             </button>
             <Link
               href="/documents"
-              className="w-full sm:w-auto px-10 py-4 glass-dark text-white font-semibold rounded-xl hover:bg-white/20 transition-all flex items-center justify-center gap-2 text-lg"
+              className="w-full sm:w-auto px-10 py-4 glass-dark text-white font-semibold rounded-xl hover:bg-white/30 hover:shadow-xl hover:scale-[1.02] hover:border-gold-400/50 transition-all duration-300 flex items-center justify-center gap-2 text-lg"
             >
               Upload Your CV
               <ArrowRight className="w-5 h-5" />

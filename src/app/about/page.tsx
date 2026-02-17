@@ -181,7 +181,7 @@ export default function AboutPage() {
             </Link>
             <Link
               href="/pricing"
-              className="px-10 py-4 glass-dark text-white font-semibold rounded-xl hover:bg-white/20 transition-all text-lg"
+              className="px-10 py-4 glass-dark text-white font-semibold rounded-xl hover:bg-white/30 hover:shadow-xl hover:scale-[1.02] hover:border-gold-400/50 transition-all duration-300 text-lg"
             >
               View Pricing
             </Link>

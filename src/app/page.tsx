@@ -51,7 +51,7 @@ export default function Home() {
               </Link>
               <Link
                 href="#product-demo"
-                className="w-full sm:w-auto px-10 py-4 glass text-navy-600 font-semibold rounded-xl hover:bg-white/80 transition-all flex items-center justify-center gap-2 text-lg shadow-sm"
+                className="w-full sm:w-auto px-10 py-4 glass text-navy-600 font-semibold rounded-xl hover:bg-white/80 hover:shadow-lg hover:scale-[1.02] hover:border-gold-200 transition-all duration-300 flex items-center justify-center gap-2 text-lg shadow-sm border border-cream-200/50"
               >
                 See How It Works
               </Link>
@@ -617,7 +617,7 @@ export default function Home() {
             </Link>
             <Link
               href="/pricing"
-              className="w-full sm:w-auto px-10 py-4 glass-dark text-white font-semibold rounded-xl hover:bg-white/20 transition-all flex items-center justify-center text-lg"
+              className="w-full sm:w-auto px-10 py-4 glass-dark text-white font-semibold rounded-xl hover:bg-white/30 hover:shadow-xl hover:scale-[1.02] hover:border-gold-400/50 transition-all duration-300 flex items-center justify-center text-lg"
             >
               View Pricing
             </Link>
