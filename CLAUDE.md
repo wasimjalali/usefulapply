@@ -385,6 +385,39 @@ supabase/migrations/create_contact_submissions.sql
 
 ---
 
+## CV Template Font Standardization
+
+**Date:** February 17, 2026
+
+### Problem
+CV templates used inconsistent fonts with misleading Google Fonts references that weren't loaded, causing visual inconsistency and potential ATS parsing issues. The user preferred the clean, premium look of the default (Premium ATS) and executive templates but wanted all templates to match.
+
+### Solution Implemented
+Standardized all CV templates to use system fonts only:
+- **Body text:** `Arial, Helvetica Neue, Helvetica, sans-serif`
+- **Headers (name, job title, section headers):** `Georgia, Times New Roman, serif`
+
+### Templates Updated
+| Template | Body (before → after) | Headers (before → after) | Notes |
+|----------|----------------------|--------------------------|-------|
+| **USPremiumATSTemplate** | Arial → Arial (no change) | Georgia → Georgia (no change) | Reference standard — already perfect |
+| **USProfessionalTemplate** | Source Sans Pro → Arial | Merriweather+Georgia → Georgia | Cleaned up misleading Google Fonts stack |
+| **USModernATSTemplate** | Roboto → Arial | Roboto → Georgia | Added Georgia to all headers (H1, currentTitle, all H2s) |
+| **GermanATSTemplate** | Arial → Arial (no change) | Arial → Georgia | Added Georgia to all headers (H1, currentTitle, all H2s) |
+
+### Why This Is ATS-Optimized
+- **Arial and Georgia are system fonts** — available on every Windows/Mac without CDN dependencies
+- **Maximum ATS compatibility** — both fonts are top-tier recommended in 2026 ATS guides
+- **Clean visual hierarchy** — sans-serif body for scannability, serif headers for emphasis
+- **Zero embedding issues** — no external font loading failures
+
+### Files Modified
+- `src/components/cv-templates/USModernATSTemplate.tsx`
+- `src/components/cv-templates/GermanATSTemplate.tsx`
+- `src/components/cv-templates/USProfessionalTemplate.tsx`
+
+---
+
 ## Changelog
 
 | Date | Change | Files | Details |
@@ -422,6 +455,7 @@ supabase/migrations/create_contact_submissions.sql
 | Feb 17, 2026 | Cover letter: JD contextual detail rule | cover-letter-prompt.ts | Added `<jd_contextual_detail_rule>` to system prompt: instructs model to reference 2-3 specific operational details from the JD (budgets, team sizes, reporting lines, company metrics) to demonstrate the applicant read the posting. Includes anti-hallucination boundary (employer context ≠ applicant achievement). |
 | Feb 17, 2026 | Regeneration: anti-hallucination parity fix | regenerate/route.ts, CoverLetterPanel.tsx | Root cause: regeneration route omitted masterCV, verifiedMetrics, match, and userLanguageOverride when building MasterContext, so cover letter regen had no Master CV to verify skills against and no missing-skills constraint list. Fix: Pass all four fields through in route.ts. Frontend now sends masterCV.rawText and match data (score, matchingSkills, missingSkills) from stores. |
 | Feb 17, 2026 | Pricing cards redesign: value-focused 6-line cards | pricing/page.tsx, page.tsx, HomePricingButtons.tsx, TimeSavingsCalculator.tsx | Replaced 13-15 feature list pricing cards with 6-line value-focused cards (5 checkmark features + 1 hours-saved line with clock icon). Removed "EVERY PLAN, SAME POWER" badge bar. Added credit count pill badges below price (40/120/240 credits/month) with tier-colored styling. Added hours-saved emotional anchor line with tier-specific styling (cream/gold/navy). Redesigned Time Savings Calculator with warm cream/gold palette (cream-50 bg, white card, gold accents, navy highlight on hours-saved stat). Created shared TimeSavingsCalculator client component. Added Time Savings Calculator to homepage below pricing cards. Updated homepage pricing from simplified cards to full value-focused cards matching pricing page. Fixed cursor-pointer on HomePricingButtons (Plus/Pro). Kept add-on credit dropdown on Plus/Pro (pricing page only). |
+| Feb 17, 2026 | CV Template Font Standardization | USModernATSTemplate.tsx, GermanATSTemplate.tsx, USProfessionalTemplate.tsx | Standardized all templates to system fonts: Arial body + Georgia headers. Removed misleading Google Fonts references. ATS-optimized font stack for maximum compatibility. |
 | Feb 17, 2026 | Homepage sections redesign: merge + reorder | page.tsx | Merged "Built Different" (cold navy) + "Complete Package" (repetitive) into single "What You Get" section with warm cream/gold palette. Swapped CTA above Master CV for conversion momentum. Removed unused CountUp import. |
 | Feb 17, 2026 | Homepage: expand 3 steps into full sections | page.tsx | Replaced compact 3-column step cards + separate "What You Get" section (repetitive) with 3 expanded step sections. Step 1: Upload Your CV (2-col with extraction details). Step 2: Paste Any Job Description (2-col reversed with AI analysis details). Step 3: Get Four Ready-to-Send Documents (4 deliverable cards + trust signals). Removed all em dashes from user-facing text. Simplified titles to plain language. |
 | Jun 2025 | Deep Clean & Audit | 35 files deleted, CLAUDE.md updated | Removed 14 orphaned source files (2,364 lines), 6 orphaned public assets, 2 empty directories, 13 obsolete .md docs (4,633 lines). Total: ~7,000 lines of dead code/docs removed. Zero regressions. |
