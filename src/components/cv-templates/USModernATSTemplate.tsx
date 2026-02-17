@@ -45,7 +45,7 @@ export function USModernATSTemplate({ data, template }: Props) {
         padding: '0.5in 0.75in',  // Professional standard: 0.5in top/bottom, 0.75in left/right
         pageBreakAfter: 'auto',
         pageBreakInside: 'auto',
-        fontFamily: "'Roboto', 'Helvetica Neue', Arial, sans-serif",
+        fontFamily: "'Arial', 'Helvetica Neue', 'Helvetica', sans-serif",
         fontSize: '13px',
         lineHeight: 1.15,
         color: modernColors.text,
@@ -55,7 +55,7 @@ export function USModernATSTemplate({ data, template }: Props) {
       <header style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: `2px solid ${modernColors.primary}` }}>
         <h1 
           style={{ 
-            fontFamily: "'Roboto', 'Helvetica Neue', Arial, sans-serif",
+            fontFamily: "'Georgia', 'Times New Roman', serif",
             fontSize: '22px',
             fontWeight: 'bold',
             color: modernColors.primary,
@@ -69,6 +69,7 @@ export function USModernATSTemplate({ data, template }: Props) {
         {data.personal.currentTitle && (
           <p 
             style={{ 
+              fontFamily: "'Georgia', 'Times New Roman', serif",
               fontSize: '12px',
               fontWeight: '500',
               color: modernColors.textLight,
@@ -151,6 +152,7 @@ export function USModernATSTemplate({ data, template }: Props) {
         <section style={{ marginBottom: '20px' }}>
           <h2 
             style={{ 
+              fontFamily: "'Georgia', 'Times New Roman', serif",
               fontSize: '14px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
@@ -190,6 +192,7 @@ export function USModernATSTemplate({ data, template }: Props) {
           <div style={{ marginBottom: '24px' }}>
             <h2 
               style={{ 
+                fontFamily: "'Georgia', 'Times New Roman', serif",
                 fontSize: '13px',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
@@ -283,6 +286,7 @@ export function USModernATSTemplate({ data, template }: Props) {
           <div>
             <h2 
               style={{ 
+                fontFamily: "'Georgia', 'Times New Roman', serif",
                 fontSize: '11px',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
@@ -316,6 +320,7 @@ export function USModernATSTemplate({ data, template }: Props) {
           <section style={{ marginBottom: '20px' }}>
             <h2 
               style={{ 
+                fontFamily: "'Georgia', 'Times New Roman', serif",
                 fontSize: '14px',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
@@ -376,6 +381,7 @@ export function USModernATSTemplate({ data, template }: Props) {
           <section style={{ marginBottom: '20px' }}>
             <h2 
               style={{ 
+                fontFamily: "'Georgia', 'Times New Roman', serif",
                 fontSize: '14px',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
@@ -416,6 +422,7 @@ export function USModernATSTemplate({ data, template }: Props) {
           <section>
             <h2 
               style={{ 
+                fontFamily: "'Georgia', 'Times New Roman', serif",
                 fontSize: '14px',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',

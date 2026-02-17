@@ -42,7 +42,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
       style={{ 
         width: '8.5in',
         minHeight: '11in',
-        fontFamily: "'Source Sans Pro', 'Helvetica Neue', Arial, sans-serif",
+        fontFamily: "'Arial', 'Helvetica Neue', 'Helvetica', sans-serif",
         fontSize: '12px',
         lineHeight: 1.15,
         color: executiveColors.text,
@@ -56,7 +56,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
       <header style={{ marginBottom: '24px', paddingBottom: '16px', borderBottom: `2px solid ${executiveColors.primary}` }}>
         <h1 
           style={{ 
-            fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif",
+            fontFamily: "'Georgia', 'Times New Roman', serif",
             fontSize: '28px',
             fontWeight: 'bold',
             color: executiveColors.primary,
@@ -71,7 +71,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
         {data.personal.currentTitle && (
           <p 
             style={{ 
-              fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif",
+              fontFamily: "'Georgia', 'Times New Roman', serif",
               fontSize: '14px',
               fontWeight: '600',
               color: executiveColors.textLight,
@@ -161,7 +161,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
         >
           <h2 
             style={{ 
-              fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif",
+              fontFamily: "'Georgia', 'Times New Roman', serif",
               fontSize: '14px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
@@ -183,7 +183,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
         <section style={{ marginBottom: '24px' }}>
           <h2 
             style={{ 
-              fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif",
+              fontFamily: "'Georgia', 'Times New Roman', serif",
               fontSize: '14px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
@@ -338,7 +338,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
         <section style={{ marginBottom: '24px' }}>
           <h2 
             style={{ 
-              fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif",
+              fontFamily: "'Georgia', 'Times New Roman', serif",
               fontSize: '14px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
@@ -357,7 +357,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
                   <h3 
                     style={{ 
-                      fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif",
+                      fontFamily: "'Georgia', 'Times New Roman', serif",
                       fontSize: '13px',
                       fontWeight: 'bold',
                       color: executiveColors.text,
@@ -413,7 +413,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
         <section style={{ marginBottom: '24px' }}>
           <h2 
             style={{ 
-              fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif",
+              fontFamily: "'Georgia', 'Times New Roman', serif",
               fontSize: '14px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
@@ -432,7 +432,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
                 <div>
                   <h3 
                     style={{ 
-                      fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif",
+                      fontFamily: "'Georgia', 'Times New Roman', serif",
                       fontSize: '13px',
                       fontWeight: '600',
                       color: executiveColors.text,
@@ -461,7 +461,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
         <section style={{ marginBottom: '24px' }}>
           <h2 
             style={{ 
-              fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif",
+              fontFamily: "'Georgia', 'Times New Roman', serif",
               fontSize: '13px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
@@ -490,7 +490,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
         <section style={{ marginTop: '24px' }}>
           <h2 
             style={{ 
-              fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif",
+              fontFamily: "'Georgia', 'Times New Roman', serif",
               fontSize: '13px',
               fontWeight: 'bold',
               textTransform: 'uppercase',

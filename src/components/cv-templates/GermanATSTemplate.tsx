@@ -61,7 +61,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
       <header style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: `2px solid ${germanColors.primary}` }}>
         <h1 
           style={{ 
-            fontFamily: "'Arial', 'Helvetica Neue', 'Helvetica', sans-serif",
+            fontFamily: "'Georgia', 'Times New Roman', serif",
             fontSize: '24px',
             fontWeight: 'bold',
             color: germanColors.primary,
@@ -73,6 +73,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
         {data.personal.currentTitle && (
           <p 
             style={{ 
+              fontFamily: "'Georgia', 'Times New Roman', serif",
               fontSize: '13px',
               fontWeight: '600',
               color: germanColors.textLight,
@@ -155,6 +156,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
         <section style={{ marginBottom: '20px' }}>
           <h2 
             style={{ 
+              fontFamily: "'Georgia', 'Times New Roman', serif",
               fontSize: '13px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
@@ -224,6 +226,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
           <div style={{ marginBottom: '16px' }}>
             <h2 
               style={{ 
+                fontFamily: "'Georgia', 'Times New Roman', serif",
                 fontSize: '12px',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
@@ -317,6 +320,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
           <div>
             <h2 
               style={{ 
+                fontFamily: "'Georgia', 'Times New Roman', serif",
                 fontSize: '12px',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
@@ -350,6 +354,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
           <section style={{ marginBottom: '18px' }}>
             <h2 
               style={{ 
+                fontFamily: "'Georgia', 'Times New Roman', serif",
                 fontSize: '13px',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
@@ -410,6 +415,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
           <section style={{ marginBottom: '18px' }}>
             <h2 
               style={{ 
+                fontFamily: "'Georgia', 'Times New Roman', serif",
                 fontSize: '13px',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
@@ -450,6 +456,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
           <section style={{ marginBottom: '18px' }}>
             <h2 
               style={{ 
+                fontFamily: "'Georgia', 'Times New Roman', serif",
                 fontSize: '13px',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
