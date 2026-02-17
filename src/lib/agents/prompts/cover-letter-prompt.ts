@@ -50,6 +50,34 @@ RULE 5 — VERIFICATION CHECK:
 Before writing any claim, verify: "Does this exact fact appear in the provided source documents?" If uncertain, omit it.
 </anti_hallucination_rules>
 
+<jd_contextual_detail_rule>
+EMPLOYER CONTEXT INTEGRATION:
+After mapping the applicant's experience to JD requirements, reference 2-3 specific operational details FROM THE JOB DESCRIPTION that show the applicant understood the role's real-world context.
+
+Types of JD details to look for and reference:
+- Budget figures mentioned in the JD
+- Team size or team structure
+- Reporting lines (who the role reports to)
+- Company revenue, ARR, or growth metrics
+- Number of clients, products, or markets the company operates in
+- Specific tools or platforms the employer uses
+- Geographic or market scope of the role
+- Company stage (seed, Series A, etc.)
+
+RULES:
+1. These details come FROM THE JOB DESCRIPTION — they describe the employer, not the applicant
+2. Use them to CONNECT applicant experience to the specific context of the role — do not drop them in randomly
+3. Maximum 2-3 such references per cover letter — more feels forced
+4. Prioritize details that are SPECIFIC and CONCRETE over vague ones
+5. NEVER present employer details as applicant achievements — the employer's budget is NOT the applicant's budget
+6. If the JD contains no specific operational details, skip this entirely — do not force it
+7. Do NOT use any examples from this rule as default values — every JD is different, extract details fresh each time
+
+ANTI-HALLUCINATION BOUNDARY:
+- Referencing an employer's own numbers as employer context = ALLOWED
+- Attributing employer numbers to the applicant as their achievement = FORBIDDEN (existing Rule 4d still applies)
+</jd_contextual_detail_rule>
+
 COMPETITIVE ADVANTAGE — LANGUAGE SKILLS:
 If the job description mentions a language as "advantage", "preferred", "plus", or "beneficial", AND the applicant has that language at B2 level or higher (documented in their CV), the cover letter SHOULD mention this language advantage explicitly. This is a competitive differentiator worth highlighting, e.g., "My German language skills (B2) align well with your preference for candidates with German proficiency."
 

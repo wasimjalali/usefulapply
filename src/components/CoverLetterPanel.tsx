@@ -15,7 +15,7 @@ import { SignUpWallModal } from '@/components/SignUpWallModal';
 
 export function CoverLetterPanel() {
   const { user } = useAuth();
-  const { currentSession, isGenerating, isAgentWorking, setCoverLetter, currentCV, structuredCV } = useAppStore();
+  const { currentSession, isGenerating, isAgentWorking, setCoverLetter, currentCV, structuredCV, masterCV } = useAppStore();
   const [showSignUpWall, setShowSignUpWall] = useState(false);
   const coverLetter = currentSession?.coverLetter;
   const generatedCV = currentSession?.generatedCV;
@@ -358,10 +358,13 @@ ${letter.signatureName}`;
     setIsLoadingCoverLetter(true);
     try {
       // Build context for Writer Agent
+      // CRITICAL: Include masterCV and match data so anti-hallucination rules
+      // have the same source documents and verified skill constraints as first generation
       const context = {
         sessionId: currentSession?.id || 'regenerate',
         jobDescription,
         rawCV: currentCV.rawText,
+        masterCV: masterCV?.rawText,
         applicant: structuredCV?.personal ? {
           name: structuredCV.personal.fullName || '',
           email: structuredCV.personal.email || '',
@@ -387,6 +390,11 @@ ${letter.signatureName}`;
           responsibilities: requirements.responsibilities || [],
           startDate: requirements.startDate,
           expectedSalary: requirements.expectedSalary,
+        } : undefined,
+        match: (currentSession?.matchingSkills || currentSession?.missingSkills) ? {
+          score: currentSession?.matchScore ?? 0,
+          matchingSkills: currentSession?.matchingSkills || [],
+          missingSkills: currentSession?.missingSkills || [],
         } : undefined,
         companyResearch: companyResearch || undefined,
       };

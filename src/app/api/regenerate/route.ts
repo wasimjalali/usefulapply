@@ -63,15 +63,20 @@ export async function POST(request: NextRequest) {
     console.log('[Regenerate API] Using language:', detectedLanguage);
 
     // Build MasterContext from the provided data
+    // CRITICAL: masterCV, verifiedMetrics, and match must be passed through
+    // so that anti-hallucination rules have the same source data as first generation
     const masterContext: MasterContext = {
       sessionId: context.sessionId || 'regenerate-session',
       jobDescription: context.jobDescription || '',
       rawCV: context.rawCV || '',
+      masterCV: context.masterCV,
       detectedLanguage: detectedLanguage,
+      userLanguageOverride: context.userLanguageOverride,
       applicant: context.applicant,
       job: context.job,
       companyResearch: context.companyResearch,
       match: context.match,
+      verifiedMetrics: context.verifiedMetrics,
     };
 
     // PostHog LLM tracking helper for regeneration
