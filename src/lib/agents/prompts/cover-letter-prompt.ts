@@ -249,6 +249,7 @@ OUTPUT FORMAT:
 - No bullet points
 - Professional letter format
 - MUST include signature block at the end
+- Begin DIRECTLY with the cover letter — no preamble, no "Here is your cover letter", no commentary before or after the letter
 
 === COVER LETTER STRUCTURE (Problem-Solution Format) ===
 

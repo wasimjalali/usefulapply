@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
           event: '$ai_generation',
           properties: {
             $ai_provider: 'anthropic',
-            $ai_model: 'claude-sonnet-4-5',
+            $ai_model: 'claude-sonnet-4-6',
             $ai_input_tokens: tokens.input,
             $ai_output_tokens: tokens.output,
             $ai_is_error: false,

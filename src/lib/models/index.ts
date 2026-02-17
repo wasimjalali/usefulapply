@@ -1,6 +1,6 @@
 /**
  * Model Abstraction Layer
- * Primary: Claude Sonnet 4.5 | Fallback: Claude Haiku 4.5 (toggle via USE_FALLBACK_MODEL env var)
+ * Primary: Claude Sonnet 4.6 | Previous: Claude Sonnet 4.5 (USE_PREVIOUS_MODEL=true) | Fallback: Claude Haiku 4.5 (USE_FALLBACK_MODEL=true)
  */
 
 import { callAnthropic, callAnthropicStream, parseAnthropicJSON } from './anthropic';
@@ -16,7 +16,7 @@ export * from './types';
 export { parseAnthropicJSON };
 
 /**
- * Main function to call Claude Sonnet 4.5 (or Haiku 4.5 fallback)
+ * Main function to call Claude Sonnet 4.6 (or Sonnet 4.5 / Haiku 4.5 fallback)
  */
 export async function callModel(options: ModelCallOptions): Promise<ModelResponse> {
   const { task, prompt, systemPrompt, systemBlocks, temperature, maxTokens, jsonMode, conversationHistory } = options;
@@ -38,7 +38,7 @@ export async function callModel(options: ModelCallOptions): Promise<ModelRespons
 }
 
 /**
- * Call Claude Sonnet 4.5 (or Haiku 4.5 fallback) with streaming response
+ * Call Claude Sonnet 4.6 (or Sonnet 4.5 / Haiku 4.5 fallback) with streaming response
  */
 export async function callModelStream(
   options: ModelCallOptions,
@@ -71,7 +71,7 @@ export function parseModelJSON<T>(content: string): T {
 
 /**
  * Get estimated cost for a model call (in USD)
- * Sonnet 4.5 pricing: $3/M input, $15/M output
+ * Sonnet 4.6 pricing: $3/M input, $15/M output (same as Sonnet 4.5)
  * Haiku 4.5 pricing: $1/M input, $5/M output
  */
 export function estimateCost(task: TaskType, inputTokens: number, outputTokens: number): number {

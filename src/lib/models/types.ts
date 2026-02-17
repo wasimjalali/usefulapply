@@ -77,59 +77,59 @@ export interface ModelCallOptions {
   conversationHistory?: ConversationMessage[];
 }
 
-// Model configurations - All tasks use Claude Sonnet 4.5 (model ID resolved at runtime in anthropic.ts)
+// Model configurations - All tasks use Claude Sonnet 4.6 (model ID resolved at runtime in anthropic.ts)
 export const MODEL_CONFIGS: Record<TaskType, ModelConfig> = {
   // Analysis tasks
   parse_job_description: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
     temperature: 0.3,
     maxTokens: 4096,
   },
   parse_cv: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
     temperature: 0.3,
     maxTokens: 4096,
   },
   extract_skills: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
     temperature: 0.2,
     maxTokens: 2048,
   },
   gap_analysis: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
     temperature: 0.3,
     maxTokens: 4096,
   },
   evaluate_content: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
     temperature: 0.2,
     maxTokens: 2048,
   },
   validate_ats: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
     temperature: 0.1,
     maxTokens: 2048,
   },
   check_limits: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
     temperature: 0.1,
     maxTokens: 1024,
   },
   orchestrate: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
     temperature: 0.3,
     maxTokens: 2048,
   },
   extract_company_info: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
     temperature: 0.2,
     maxTokens: 2048,
@@ -137,86 +137,86 @@ export const MODEL_CONFIGS: Record<TaskType, ModelConfig> = {
 
   // Writing tasks
   write_summary: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
-    temperature: 0.65,  // Sonnet: slight decrease from 0.7 — variety without randomness
+    temperature: 0.65,  // Sonnet 4.6: maintained — variety without randomness
     maxTokens: 1024,
   },
   write_bullets: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
-    temperature: 0.65,  // Sonnet: slight decrease from 0.7 — variety without randomness
+    temperature: 0.65,  // Sonnet 4.6: maintained — variety without randomness
     maxTokens: 2048,
   },
   write_cover_letter: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
-    temperature: 0.6,  // Sonnet: bumped from 0.5 — needs warmth and personality
+    temperature: 0.6,  // Sonnet 4.6: maintained — needs warmth and personality
     maxTokens: 2048,
   },
   refine_cover_letter: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
     temperature: 0.4,  // Even lower for editing - we want consistency
     maxTokens: 2048,
   },
   write_email: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
-    temperature: 0.55,  // Sonnet: slight bump from 0.5 — emails need warmth
+    temperature: 0.55,  // Sonnet 4.6: maintained — emails need warmth
     maxTokens: 1024,
   },
   write_follow_up_email: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
     temperature: 0.5,  // Slightly lower than primary email — follow-up needs precision
     maxTokens: 512,
   },
   optimize_content: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
     temperature: 0.6,
     maxTokens: 4096,
   },
   general_chat: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
     temperature: 0.7,
-    maxTokens: 150,  // Reconciled: was 2048 in config but overridden to 100 in chat route. 150 gives Sonnet headroom for helpful responses.
+    maxTokens: 150,  // Reconciled: was 2048 in config but overridden to 100 in chat route. 150 gives Sonnet 4.6 headroom for helpful responses.
   },
   // Karko AI tasks
   extract_applicant: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
     temperature: 0.3,
     maxTokens: 4096,
   },
   parse_job: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
     temperature: 0.3,
     maxTokens: 4096,
   },
   optimize_cv: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
-    temperature: 0.5,  // Sonnet: bumped from 0.4 — better variety for natural-sounding bullet points
+    temperature: 0.5,  // Sonnet 4.6: maintained — better variety for natural-sounding bullet points
     maxTokens: 8192,
   },
   fit_assessment: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
-    temperature: 0.4,  // Sonnet: lowered from 0.5 — more precise analytical evaluations
+    temperature: 0.4,  // Sonnet 4.6: maintained — more precise analytical evaluations
     maxTokens: 400,  // Reconciled: was 512 in config but overridden to 300. Sonnet follows "100 words" precisely, 400 is plenty.
   },
   skill_matching: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
     temperature: 0.1,  // Low temp for consistent, deterministic matching
     maxTokens: 2048,
   },
   extract_metrics: {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     provider: 'anthropic',
     temperature: 0,  // Deterministic extraction — no creativity needed
     maxTokens: 1024,

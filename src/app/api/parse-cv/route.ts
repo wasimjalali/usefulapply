@@ -365,7 +365,7 @@ async function parseWithAnthropic(rawText: string, region: 'US' | 'EU'): Promise
   const prompt = getParsingPrompt(rawText);
 
   const response = await anthropic.messages.create({
-    model: process.env.USE_FALLBACK_MODEL === 'true' ? 'claude-haiku-4-5' : 'claude-sonnet-4-5-20250929',
+    model: process.env.USE_FALLBACK_MODEL === 'true' ? 'claude-haiku-4-5' : (process.env.USE_PREVIOUS_MODEL === 'true' ? 'claude-sonnet-4-5-20250929' : 'claude-sonnet-4-6'),
     max_tokens: 4096,
     temperature: 0.3,
     system: 'You are a precise CV parser. Extract factual information only. Return valid JSON. Do not infer or fabricate any information not explicitly present in the source document.',

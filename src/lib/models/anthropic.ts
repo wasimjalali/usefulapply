@@ -1,6 +1,7 @@
 /**
  * Anthropic Claude Client
- * Primary: Claude Sonnet 4.5 — better writing quality, stronger instruction following
+ * Primary: Claude Sonnet 4.6 — frontier performance, improved coding, instruction following, agents
+ * Previous: Claude Sonnet 4.5 — toggle via USE_PREVIOUS_MODEL=true env var
  * Fallback: Claude Haiku 4.5 — faster, cheaper, toggle via USE_FALLBACK_MODEL env var
  */
 
@@ -14,15 +15,21 @@ const HAS_TRADITIONAL_KEYS = !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS
 const USE_BEDROCK = HAS_BEARER_TOKEN || HAS_TRADITIONAL_KEYS;
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 
-// Primary model: Claude Sonnet 4.5 — better writing quality, stronger instruction following
-const BEDROCK_MODEL_ID = `${AWS_REGION === 'us-east-1' ? 'us' : AWS_REGION.startsWith('eu') ? 'eu' : 'us'}.anthropic.claude-sonnet-4-5-20250929-v1:0`;
-const DIRECT_MODEL_ID = 'claude-sonnet-4-5-20250929';
+// Primary model: Claude Sonnet 4.6 — frontier performance, improved coding, agents, instruction following
+const BEDROCK_MODEL_ID = `${AWS_REGION === 'us-east-1' ? 'us' : AWS_REGION.startsWith('eu') ? 'eu' : 'us'}.anthropic.claude-sonnet-4-6`;
+const DIRECT_MODEL_ID = 'claude-sonnet-4-6';
 
-// Fallback model: Claude Haiku 4.5 — faster, cheaper, toggle via env var
+// Previous model: Claude Sonnet 4.5 — kept as fallback, toggle via USE_PREVIOUS_MODEL=true
+const BEDROCK_PREVIOUS_MODEL_ID = `${AWS_REGION === 'us-east-1' ? 'us' : AWS_REGION.startsWith('eu') ? 'eu' : 'us'}.anthropic.claude-sonnet-4-5-20250929-v1:0`;
+const DIRECT_PREVIOUS_MODEL_ID = 'claude-sonnet-4-5-20250929';
+
+// Cost fallback: Claude Haiku 4.5 — faster, cheaper, toggle via USE_FALLBACK_MODEL=true
 const BEDROCK_FALLBACK_MODEL_ID = `${AWS_REGION === 'us-east-1' ? 'us' : AWS_REGION.startsWith('eu') ? 'eu' : 'us'}.anthropic.claude-haiku-4-5-20251001-v1:0`;
 const DIRECT_FALLBACK_MODEL_ID = 'claude-haiku-4-5';
 
-// Toggle: Set USE_FALLBACK_MODEL=true in Vercel env vars to switch to Haiku
+// Toggle: Set USE_PREVIOUS_MODEL=true to roll back to Sonnet 4.5
+const USE_PREVIOUS = process.env.USE_PREVIOUS_MODEL === 'true';
+// Toggle: Set USE_FALLBACK_MODEL=true to switch to Haiku 4.5 (cheapest)
 const USE_FALLBACK = process.env.USE_FALLBACK_MODEL === 'true';
 
 // Initialize the appropriate client
@@ -113,8 +120,9 @@ class BedrockBearerTokenClient {
 }
 
 // Export the active model IDs (used by the rest of the codebase)
-const ACTIVE_BEDROCK_MODEL_ID = USE_FALLBACK ? BEDROCK_FALLBACK_MODEL_ID : BEDROCK_MODEL_ID;
-const ACTIVE_DIRECT_MODEL_ID = USE_FALLBACK ? DIRECT_FALLBACK_MODEL_ID : DIRECT_MODEL_ID;
+// Priority: USE_FALLBACK_MODEL (Haiku) > USE_PREVIOUS_MODEL (Sonnet 4.5) > default (Sonnet 4.6)
+const ACTIVE_BEDROCK_MODEL_ID = USE_FALLBACK ? BEDROCK_FALLBACK_MODEL_ID : USE_PREVIOUS ? BEDROCK_PREVIOUS_MODEL_ID : BEDROCK_MODEL_ID;
+const ACTIVE_DIRECT_MODEL_ID = USE_FALLBACK ? DIRECT_FALLBACK_MODEL_ID : USE_PREVIOUS ? DIRECT_PREVIOUS_MODEL_ID : DIRECT_MODEL_ID;
 
 const MODEL_ID = USE_BEDROCK ? ACTIVE_BEDROCK_MODEL_ID : ACTIVE_DIRECT_MODEL_ID;
 
@@ -140,7 +148,7 @@ export interface AnthropicCallOptions {
 }
 
 /**
- * Call Claude Sonnet 4.5 (or Haiku 4.5 fallback) for all AI tasks
+ * Call Claude Sonnet 4.6 (or Sonnet 4.5 / Haiku 4.5 fallback) for all AI tasks
  */
 export async function callAnthropic(options: AnthropicCallOptions): Promise<ModelResponse> {
   const { prompt, systemPrompt, systemBlocks, temperature = 0.7, maxTokens = 4096, jsonMode = false, conversationHistory } = options;
@@ -238,7 +246,7 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
 }
 
 /**
- * Call Claude with streaming response
+ * Call Claude Sonnet 4.6 with streaming response
  */
 export async function callAnthropicStream(
   options: AnthropicCallOptions,

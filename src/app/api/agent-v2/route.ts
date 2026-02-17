@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
               event: '$ai_generation',
               properties: {
                 $ai_provider: 'anthropic',
-                $ai_model: 'claude-sonnet-4-5',
+                $ai_model: 'claude-sonnet-4-6',
                 $ai_input_tokens: tokens.input,
                 $ai_output_tokens: tokens.output,
                 $ai_is_error: false,
@@ -235,7 +235,7 @@ export async function POST(request: NextRequest) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
             type: 'workflow_start', 
             steps: steps.map((s, i) => ({ function: s.id, description: s.description, index: i })),
-            models: { analysis: 'claude-sonnet-4.5', writing: 'claude-sonnet-4.5' },
+            models: { analysis: 'claude-sonnet-4.6', writing: 'claude-sonnet-4.6' },
           })}\n\n`));
 
           const eventHandler = createEventHandler((id) => getFitAnalysisStepIndex(id));
@@ -344,7 +344,7 @@ export async function POST(request: NextRequest) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
                 type: 'workflow_start', 
                 steps: steps.map((s, i) => ({ function: s.id, description: s.description, index: i })),
-                models: { analysis: 'claude-sonnet-4.5', writing: 'claude-sonnet-4.5' },
+                models: { analysis: 'claude-sonnet-4.6', writing: 'claude-sonnet-4.6' },
               })}\n\n`));
 
               const eventHandler = createEventHandler((id) => getStepIndex(id));
@@ -406,7 +406,7 @@ export async function POST(request: NextRequest) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
             type: 'workflow_start', 
             steps: steps.map((s, i) => ({ function: s.id, description: s.description, index: i })),
-            models: { analysis: 'claude-sonnet-4.5', writing: 'claude-sonnet-4.5' },
+            models: { analysis: 'claude-sonnet-4.6', writing: 'claude-sonnet-4.6' },
           })}\n\n`));
 
           const eventHandler = createEventHandler((id) => getGenerateWithContextStepIndex(id));
@@ -478,7 +478,7 @@ export async function POST(request: NextRequest) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
           type: 'workflow_start', 
           steps: steps.map((s, i) => ({ function: s.id, description: s.description, index: i })),
-          models: { analysis: 'claude-sonnet-4.5', writing: 'claude-sonnet-4.5' },
+          models: { analysis: 'claude-sonnet-4.6', writing: 'claude-sonnet-4.6' },
         })}\n\n`));
 
         const eventHandler = createEventHandler((id) => getStepIndex(id));

@@ -4,7 +4,7 @@
 
 ## Architecture Overview
 
-Karko AI is a Next.js 14+ application that generates optimized job application materials (CV, Cover Letter, Application Email, Follow-Up Email) using a unified AI agent architecture powered by Claude Sonnet 4.5.
+Karko AI is a Next.js 14+ application that generates optimized job application materials (CV, Cover Letter, Application Email, Follow-Up Email) using a unified AI agent architecture powered by Claude Sonnet 4.6 (via Amazon Bedrock).
 
 ### Key Directories
 - `src/lib/agents/` — Unified Writer Agent + context-builder + prompts/ (modular agent architecture)
@@ -70,7 +70,7 @@ After generating the primary application email, Karko AI automatically generates
 
 ### Model Configuration
 - **Task:** `write_follow_up_email`
-- **Model:** `claude-sonnet-4-5`
+- **Model:** `claude-sonnet-4-6`
 - **Temperature:** 0.5
 - **Max Tokens:** 512
 
