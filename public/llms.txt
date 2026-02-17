@@ -26,7 +26,7 @@ KarKo AI is a web-based tool that helps job seekers apply to jobs faster and sma
 
 ## Pricing
 
-- **Free Plan**: 40 credits (~20 applications/month), no credit card required
+- **Free Plan**: 10 credits (~5 applications/month), no credit card required
 - **Plus Plan**: $29.99/month — 200 credits, priority processing
 - **Pro Plan**: $49.99/month — 500 credits, advanced AI models, premium support
 

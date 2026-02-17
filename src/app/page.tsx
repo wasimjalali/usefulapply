@@ -414,13 +414,13 @@ export default function Home() {
                   </div>
                   <div className="mt-2">
                     <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-cream-100 text-navy-500 border border-cream-300">
-                      40 credits/month
+                      10 credits/month
                     </span>
                   </div>
                 </div>
                 <ul className="space-y-3 mb-5">
                   {[
-                    { text: '20 complete applications/month', bold: true },
+                    { text: '5 complete applications/month', bold: true },
                     { text: 'Tailored CV, cover letter, email & follow-up' },
                     { text: 'Fit score before you apply' },
                     { text: 'US & EU professional templates' },
@@ -434,7 +434,7 @@ export default function Home() {
                 </ul>
                 <div className="flex items-center gap-2.5 rounded-xl px-4 py-3 bg-cream-50 border border-cream-200">
                   <Clock className="w-5 h-5 flex-shrink-0 text-navy-400" />
-                  <span className="text-sm font-semibold text-navy-600">~15 hours saved/month</span>
+                  <span className="text-sm font-semibold text-navy-600">~4 hours saved/month</span>
                 </div>
                 <div className="mt-auto pt-6">
                   <Link
@@ -605,7 +605,7 @@ export default function Home() {
             <span className="text-gold-400">90 Seconds Away</span>
           </h2>
           <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Start with 20 free applications. No credit card required.
+            Start with 5 free applications. No credit card required.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link

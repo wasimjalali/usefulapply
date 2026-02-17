@@ -202,7 +202,7 @@ async function initializeUserCredits(userId: string): Promise<{ credits: UserCre
     .from('user_credits')
     .insert({
       user_id: userId,
-      monthly_credits: 40, // Starter plan credits (20 applications at 2 credits each)
+      monthly_credits: 10, // Starter plan credits (5 applications at 2 credits each)
       rollover_credits: 0,
       addon_credits: 0,
       plan_tier: 'starter',
@@ -217,10 +217,10 @@ async function initializeUserCredits(userId: string): Promise<{ credits: UserCre
   }
 
   // Log the initial credit grant
-  await logCreditTransaction(userId, 40, 'monthly_reset', {
+  await logCreditTransaction(userId, 10, 'monthly_reset', {
     description: 'Initial starter plan credits',
     balanceBefore: 0,
-    balanceAfter: 40,
+    balanceAfter: 10,
   });
 
   return { credits: data as UserCredits, error: null };

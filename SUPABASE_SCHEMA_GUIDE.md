@@ -497,7 +497,7 @@ CREATE TABLE subscription_plans (
 
 -- Insert default plans
 INSERT INTO subscription_plans (tier, name, description, price_monthly, credits_monthly, rollover_months, max_rollover_credits, addon_enabled, display_order) VALUES
-('starter', 'Starter', 'Perfect for trying out KarKo AI', 0.00, 50, 0, 0, FALSE, 1),
+('starter', 'Starter', 'Perfect for trying out KarKo AI', 0.00, 10, 0, 0, FALSE, 1),
 ('plus', 'Plus', 'For active job seekers', 19.99, 200, 1, 400, TRUE, 2),
 ('pro', 'Pro', 'For power users and professionals', 39.99, 400, 2, 800, TRUE, 3)
 ON CONFLICT (tier) DO UPDATE SET
@@ -683,7 +683,7 @@ CREATE OR REPLACE FUNCTION initialize_user_credits()
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO user_credits (user_id, monthly_credits, plan_tier, next_reset_date)
-  VALUES (NEW.id, 50, 'starter', NOW() + INTERVAL '1 month')
+  VALUES (NEW.id, 10, 'starter', NOW() + INTERVAL '1 month')
   ON CONFLICT (user_id) DO NOTHING;
   RETURN NEW;
 END;

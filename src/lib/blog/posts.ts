@@ -114,11 +114,11 @@ The job seekers who find work fastest aren't necessarily the most qualified. The
 
 ## Try It Yourself
 
-Karko AI is free for your first 20 applications. No credit card. No sign-up wall for the free tier. Just paste a job description and see what comes back.
+Karko AI is free for your first 5 applications. No credit card. No sign-up wall for the free tier. Just paste a job description and see what comes back.
 
 If you're currently in a job search, you already know how much time you're spending. The question is whether you want to keep spending it the same way.
 
-**[Try Karko AI Free — 20 Applications, No Credit Card](https://karkoai.com/dashboard)**
+**[Try Karko AI Free — 5 Applications, No Credit Card](https://karkoai.com/dashboard)**
 
 ---
 

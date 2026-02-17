@@ -138,7 +138,7 @@ export default function RootLayout({
                   name: 'Free',
                   price: '0',
                   priceCurrency: 'USD',
-                  description: '40 credits (~20 applications/month)',
+                  description: '10 credits (~5 applications/month)',
                 },
                 {
                   '@type': 'Offer',
@@ -225,7 +225,7 @@ export default function RootLayout({
                   name: 'Is KarKo AI free to use?',
                   acceptedAnswer: {
                     '@type': 'Answer',
-                    text: 'Yes! KarKo AI offers a free plan with 40 credits (~20 applications per month). No credit card required. Paid plans (Plus at $29.99/mo and Pro at $49.99/mo) offer more credits and advanced features.',
+                    text: 'Yes! KarKo AI offers a free plan with 10 credits (~5 applications per month). No credit card required. Paid plans (Plus at $29.99/mo and Pro at $49.99/mo) offer more credits and advanced features.',
                   },
                 },
                 {

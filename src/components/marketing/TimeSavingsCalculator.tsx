@@ -5,10 +5,10 @@ import { useState, useEffect, useRef } from 'react';
 const savingsTiers = [
   {
     plan: 'Starter',
-    apps: 20,
-    hoursSaved: 15,
+    apps: 5,
+    hoursSaved: 4,
     price: 'Free',
-    tagline: 'That is 15 hours you get back for free. No credit card required.',
+    tagline: 'That is 4 hours you get back for free. No credit card required.',
   },
   {
     plan: 'Plus',

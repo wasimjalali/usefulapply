@@ -14,15 +14,15 @@ interface SignUpWallModalProps {
 const TRIGGER_MESSAGES: Record<string, { title: string; subtitle: string }> = {
   download: {
     title: 'Sign up to download your documents',
-    subtitle: 'Free plan includes 40 credits (~20 applications/month)',
+    subtitle: 'Free plan includes 10 credits (~5 applications/month)',
   },
   'new-application': {
     title: 'Sign up to apply to more jobs',
-    subtitle: 'Free plan includes 40 credits (~20 applications/month)',
+    subtitle: 'Free plan includes 10 credits (~5 applications/month)',
   },
   general: {
     title: 'Create your free account',
-    subtitle: 'Free plan includes 40 credits (~20 applications/month)',
+    subtitle: 'Free plan includes 10 credits (~5 applications/month)',
   },
 };
 

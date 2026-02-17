@@ -186,7 +186,7 @@ async function handleSubscriptionUpdate(subscription: any) {
   // Determine plan tier from price ID
   const priceId = subscription.items.data[0]?.price.id;
   let planTier = 'starter';
-  let newPlanCredits = 40;
+  let newPlanCredits = 10;
 
   if (priceId === process.env.STRIPE_PRICE_ID_PLUS) {
     planTier = 'plus';
@@ -199,7 +199,7 @@ async function handleSubscriptionUpdate(subscription: any) {
   // Handle mid-cycle plan changes:
   // - Upgrade (e.g. Plus→Pro): give full new plan credits (rewards upgrading)
   // - Downgrade (e.g. Pro→Plus): cap at new plan limit so users can't gain credits
-  const oldPlanCredits = userCredits.plan_tier === 'pro' ? 240 : userCredits.plan_tier === 'plus' ? 120 : 40;
+  const oldPlanCredits = userCredits.plan_tier === 'pro' ? 240 : userCredits.plan_tier === 'plus' ? 120 : 10;
   const isDowngrade = newPlanCredits < oldPlanCredits;
   const monthlyCredits = isDowngrade
     ? Math.min(userCredits.monthly_credits, newPlanCredits)
@@ -245,7 +245,7 @@ async function handleSubscriptionDeleted(subscription: any) {
     .from('user_credits')
     .update({
       plan_tier: 'starter',
-      monthly_credits: 40,
+      monthly_credits: 10,
       subscription_status: 'canceled',
       stripe_subscription_id: null,
       updated_at: new Date().toISOString(),

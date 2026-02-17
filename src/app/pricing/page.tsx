@@ -19,20 +19,20 @@ const tiers = [
     price: 0,
     priceLabel: 'Free',
     priceSubtext: 'forever',
-    credits: 40,
-    applications: '20',
+    credits: 10,
+    applications: '5',
     description: 'See your first AI application',
     icon: Sparkles,
     popular: false,
     bestValue: false,
     features: [
-      { text: '20 complete applications/month', bold: true },
+      { text: '5 complete applications/month', bold: true },
       { text: 'Tailored CV, cover letter, email & follow-up' },
       { text: 'Fit score before you apply' },
       { text: 'US & EU professional templates' },
       { text: 'No watermark on any document' },
     ],
-    hoursSaved: '~15 hours saved/month',
+    hoursSaved: '~4 hours saved/month',
     cta: 'Start Free',
     ctaVariant: 'outline' as const,
     hasAddons: false,
@@ -87,7 +87,7 @@ const tiers = [
   },
 ];
 
-// Add-on credit packs (2 options — both above free tier's 40 credits)
+// Add-on credit packs (2 options — both above free tier's 10 credits)
 // TODO: Replace priceId values with actual Stripe Price IDs
 const addonPacks = [
   { name: 'Medium Pack', credits: 60, applications: 40, price: 14.99, perCredit: '$0.25', priceId: 'price_addon_medium' },
@@ -98,10 +98,10 @@ const addonPacks = [
 const savingsTiers = [
   {
     plan: 'Starter',
-    apps: 20,
-    hoursSaved: 15,
+    apps: 5,
+    hoursSaved: 4,
     price: 'Free',
-    tagline: 'That is 15 hours you get back for free. No credit card required.',
+    tagline: 'That is 4 hours you get back for free. No credit card required.',
   },
   {
     plan: 'Plus',
@@ -637,7 +637,7 @@ export default function PricingPage() {
             Ready to Transform Your Job Search?
           </h2>
           <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
-            Start with 20 free applications. No credit card required. See why job seekers are switching to KarKo AI.
+            Start with 5 free applications. No credit card required. See why job seekers are switching to KarKo AI.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
