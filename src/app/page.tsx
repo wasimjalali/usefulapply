@@ -130,110 +130,140 @@ export default function Home() {
         </div>
       </section>
 
-      {/* How It Works — Clean 3-step process (moved UP for AIDA flow: Interest phase) */}
+      {/* Step 1: Upload Your CV */}
       <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
         <div className="max-w-6xl mx-auto">
-          <ScrollReveal>
-          <div className="text-center mb-14">
-            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Simple Process</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
-              Three Steps to Your Next Interview
-            </h2>
-            <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-              Upload once, apply everywhere. Our AI handles the heavy lifting.
-            </p>
-          </div>
-          </ScrollReveal>
-
-          <div className="grid md:grid-cols-3 gap-8 relative">
-            {/* Connecting line (desktop only) */}
-            <div className="hidden md:block absolute top-16 left-[20%] right-[20%] h-0.5 bg-gradient-to-r from-gold-200 via-gold-400 to-gold-200" />
-
-            {[
-              {
-                step: '1',
-                title: 'Upload Your Master CV',
-                description: 'Upload your master CV or primary CV once. Karko AI parses your skills, experience, and achievements to build your professional profile.',
-                icon: FileText,
-                color: 'navy',
-              },
-              {
-                step: '2',
-                title: 'Paste the Job Description',
-                description: 'Drop in any job posting. The AI analyzes requirements, runs a fit analysis, and identifies skill matches automatically.',
-                icon: Search,
-                color: 'gold',
-              },
-              {
-                step: '3',
-                title: 'Get Your Complete Package',
-                description: 'Receive a tailored CV, personalized cover letter, application email, and follow-up email — all ready to send.',
-                icon: Zap,
-                color: 'sage',
-              },
-            ].map((item, idx) => {
-              const Icon = item.icon;
-              const bgColor = item.color === 'navy' ? 'bg-navy-100' : item.color === 'gold' ? 'bg-gold-100' : 'bg-sage-100';
-              const iconColor = item.color === 'navy' ? 'text-navy-600' : item.color === 'gold' ? 'text-gold-500' : 'text-sage-600';
-              return (
-                <ScrollReveal key={item.step} delay={idx * 200}>
-                <div className="text-center relative">
-                  <div className={`w-20 h-20 ${bgColor} rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-sm relative z-10`}>
-                    <Icon className={`w-9 h-9 ${iconColor}`} />
-                  </div>
-                  <div className="inline-flex items-center justify-center w-8 h-8 bg-navy-600 text-white text-sm font-bold rounded-full mb-4">
-                    {item.step}
-                  </div>
-                  <h3 className="text-xl font-bold text-charcoal mb-3">{item.title}</h3>
-                  <p className="text-warm-gray leading-relaxed">{item.description}</p>
-                </div>
-                </ScrollReveal>
-              );
-            })}
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <ScrollReveal direction="left">
+            <div>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="inline-flex items-center justify-center w-10 h-10 bg-navy-600 text-white text-lg font-bold rounded-full">1</div>
+                <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest">Step One</p>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
+                Upload Your CV Once
+              </h2>
+              <p className="text-lg text-warm-gray leading-relaxed mb-6">
+                Upload your master CV or primary CV one time. Karko AI reads through your entire professional history and builds a complete profile of your skills, experience, and achievements.
+              </p>
+              <p className="text-warm-gray leading-relaxed">
+                This is the foundation for every application you generate. The more detailed your CV, the better Karko AI can tailor your documents to each job.
+              </p>
+            </div>
+            </ScrollReveal>
+            <ScrollReveal direction="right" delay={200}>
+            <div className="bg-white rounded-2xl p-8 border border-cream-200 shadow-sm">
+              <div className="w-16 h-16 bg-navy-100 rounded-2xl flex items-center justify-center mb-6">
+                <FileText className="w-8 h-8 text-navy-600" />
+              </div>
+              <h3 className="text-lg font-bold text-charcoal mb-4">What Karko AI Extracts</h3>
+              <ul className="space-y-3">
+                {[
+                  'Your complete work history and job titles',
+                  'Technical and soft skills with context',
+                  'Achievements and measurable results',
+                  'Education, certifications, and languages',
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-sm">
+                    <CheckCircle className="w-4 h-4 text-sage-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-warm-gray">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            </ScrollReveal>
           </div>
         </div>
       </section>
 
-      {/* What You Get — Merged deliverables + differentiators (warm cream/gold for comfort) */}
+      {/* Step 2: Paste the Job Description */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <ScrollReveal direction="left" className="md:order-2">
+            <div>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="inline-flex items-center justify-center w-10 h-10 bg-gold-500 text-white text-lg font-bold rounded-full">2</div>
+                <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest">Step Two</p>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
+                Paste Any Job Description
+              </h2>
+              <p className="text-lg text-warm-gray leading-relaxed mb-6">
+                Copy and paste the job posting you want to apply for. Karko AI instantly analyzes the requirements and compares them to your profile.
+              </p>
+              <p className="text-warm-gray leading-relaxed">
+                You get an honest fit score before anything is generated. You see which skills match, which ones are missing, and whether the role is worth applying for.
+              </p>
+            </div>
+            </ScrollReveal>
+            <ScrollReveal direction="right" delay={200} className="md:order-1">
+            <div className="bg-cream-50 rounded-2xl p-8 border border-cream-200 shadow-sm">
+              <div className="w-16 h-16 bg-gold-100 rounded-2xl flex items-center justify-center mb-6">
+                <Search className="w-8 h-8 text-gold-500" />
+              </div>
+              <h3 className="text-lg font-bold text-charcoal mb-4">What the AI Does</h3>
+              <ul className="space-y-3">
+                {[
+                  'Analyzes job requirements and responsibilities',
+                  'Matches your skills to what the employer needs',
+                  'Identifies gaps so you know where you stand',
+                  'Gives you a fit score before you apply',
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-sm">
+                    <CheckCircle className="w-4 h-4 text-gold-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-warm-gray">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            </ScrollReveal>
+          </div>
+        </div>
+      </section>
+
+      {/* Step 3: Get Your Four Documents */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-cream-50 to-cream-100">
         <div className="max-w-6xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-14">
-            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">What You Get</p>
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <div className="inline-flex items-center justify-center w-10 h-10 bg-navy-600 text-white text-lg font-bold rounded-full">3</div>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest">Step Three</p>
+            </div>
             <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
-              Four Documents. One Click. Zero Guesswork.
+              Get Four Ready-to-Send Documents
             </h2>
             <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-              Every application is personalized to the job, the company, and your real experience — never fabricated.
+              Every document is personalized to the job, the company, and your real experience. Nothing is fabricated.
             </p>
           </div>
           </ScrollReveal>
 
-          {/* Deliverables grid — 4 cards */}
           <div className="grid sm:grid-cols-2 gap-6 mb-16">
             {[
               {
                 icon: FileText,
                 title: 'Tailored CV',
-                description: 'Skills reordered to match the job. Keywords optimized for ATS. Professional formatting for US and EU markets.',
+                description: 'Your skills reordered to match the job. Keywords optimized for ATS screening. Professional formatting for US and EU markets.',
                 accent: 'navy',
               },
               {
                 icon: Target,
                 title: 'Personalized Cover Letter',
-                description: 'Company-specific opening. Your achievements matched to their requirements. Tone adapted to company culture.',
+                description: 'Company-specific opening. Your achievements matched to their requirements. Tone adapted to the company culture.',
                 accent: 'gold',
               },
               {
                 icon: Zap,
                 title: 'Application Email',
-                description: 'Ready-to-send with the right subject line, professional tone, and your key qualifications highlighted.',
+                description: 'Ready to send with the right subject line, professional tone, and your key qualifications highlighted.',
                 accent: 'sage',
               },
               {
                 icon: Clock,
                 title: 'Follow-Up Email',
-                description: 'Timed for 5-7 days later. Highlights a different achievement than your first email. Confident, not desperate.',
+                description: 'Timed for 5 to 7 days after your application. Highlights a different achievement than your first email. Confident, not desperate.',
                 accent: 'gold',
               },
             ].map((pkg, i) => {
@@ -254,7 +284,7 @@ export default function Home() {
             })}
           </div>
 
-          {/* Why it's different — trust signals */}
+          {/* Why it's different */}
           <ScrollReveal delay={200}>
           <div className="bg-white rounded-2xl border border-cream-200 shadow-sm p-8 md:p-10">
             <h3 className="text-xl md:text-2xl font-bold text-navy-600 text-center mb-8">
@@ -265,7 +295,7 @@ export default function Home() {
                 {
                   icon: TrendingUp,
                   title: 'Honest Fit Score',
-                  description: 'See your real match before applying. Matching skills, gaps, and a fit score with no false hope.',
+                  description: 'See your real match before applying. Matching skills, gaps, and a clear score with no false hope.',
                 },
                 {
                   icon: Shield,
@@ -274,7 +304,7 @@ export default function Home() {
                 },
                 {
                   icon: Globe,
-                  title: 'US & EU Ready',
+                  title: 'US and EU Ready',
                   description: 'ATS-optimized US formats and German Lebenslauf templates, both built in.',
                 },
                 {
