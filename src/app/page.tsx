@@ -6,7 +6,6 @@ import Navbar from '@/components/marketing/Navbar';
 import { PlusPlanButton, ProPlanButton } from '@/components/marketing/HomePricingButtons';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
-import { CountUp } from '@/components/marketing/CountUp';
 import { TimeSavingsCalculator } from '@/components/marketing/TimeSavingsCalculator';
 
 export const metadata: Metadata = {
@@ -168,7 +167,7 @@ export default function Home() {
               {
                 step: '3',
                 title: 'Get Your Complete Package',
-                description: 'Receive a tailored CV, personalized cover letter, and professional email, ready to send.',
+                description: 'Receive a tailored CV, personalized cover letter, application email, and follow-up email — all ready to send.',
                 icon: Zap,
                 color: 'sage',
               },
@@ -195,121 +194,109 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Built Different — Merged trust + differentiation section (navy for authority) */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-navy-600">
-        <div className="max-w-5xl mx-auto">
-          <ScrollReveal>
-          <div className="text-center mb-14">
-            <p className="text-sm font-semibold text-gold-400 uppercase tracking-widest mb-3">Built Different</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              What You Won&apos;t Find Anywhere Else
-            </h2>
-            <p className="text-lg text-navy-200 max-w-2xl mx-auto">
-              Most AI tools generate text. Karko AI generates applications you can actually trust.
-            </p>
-          </div>
-          </ScrollReveal>
-
-          <div className="grid sm:grid-cols-2 gap-6">
-            {[
-              {
-                icon: TrendingUp,
-                title: 'Honest Fit Score',
-                description: 'Before generating anything, Karko compares your profile to the job. You see matching skills, gaps, and a real fit score. No false hope.',
-              },
-              {
-                icon: Shield,
-                title: 'Zero Skill Fabrication',
-                description: 'Other AI tools invent skills to boost keyword scores. Karko never does. Every skill on your CV is verified from your actual profile.',
-              },
-              {
-                icon: Globe,
-                title: 'US & EU Ready',
-                description: 'Professional templates for both markets. German Lebenslauf, US ATS-optimized formats, and region-appropriate cover letters, all built in.',
-              },
-              {
-                icon: Sparkles,
-                title: 'Self-Refining AI Agent',
-                description: 'Not a chatbot. Karko runs a multi-step workflow autonomously, then reviews and refines its own output before delivering it to you.',
-              },
-            ].map((feature, i) => {
-              const Icon = feature.icon;
-              return (
-                <ScrollReveal key={i} delay={i * 120}>
-                <div className="bg-navy-700/50 backdrop-blur-sm rounded-2xl p-8 border border-navy-500/30 hover:border-gold-400/30 transition-all group">
-                  <div className="w-14 h-14 bg-navy-500/40 rounded-xl flex items-center justify-center mb-5 group-hover:bg-gold-400/20 transition-colors">
-                    <Icon className="w-7 h-7 text-gold-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-white mb-3">{feature.title}</h3>
-                  <p className="text-navy-200 leading-relaxed">{feature.description}</p>
-                </div>
-                </ScrollReveal>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Complete Package Breakdown */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+      {/* What You Get — Merged deliverables + differentiators (warm cream/gold for comfort) */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-cream-50 to-cream-100">
         <div className="max-w-6xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-14">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">What You Get</p>
             <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
-              A Complete Application Package, Every Time
+              Four Documents. One Click. Zero Guesswork.
             </h2>
             <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-              Each application generates three professionally crafted documents, all personalized to the specific job and company.
+              Every application is personalized to the job, the company, and your real experience — never fabricated.
             </p>
           </div>
           </ScrollReveal>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          {/* Deliverables grid — 4 cards */}
+          <div className="grid sm:grid-cols-2 gap-6 mb-16">
             {[
               {
                 icon: FileText,
                 title: 'Tailored CV',
-                items: ['Skills reordered to match job requirements', 'Keywords optimized for ATS screening', 'No fabricated skills \u2014 only what\u2019s in your profile', 'Professional formatting (US & EU)'],
+                description: 'Skills reordered to match the job. Keywords optimized for ATS. Professional formatting for US and EU markets.',
                 accent: 'navy',
               },
               {
                 icon: Target,
                 title: 'Personalized Cover Letter',
-                items: ['Company-specific opening paragraph', 'Skill-to-requirement matching', 'Tone adapted to company culture', 'Achievement-based opening (not \u201cI am writing to express my interest\u201d)'],
+                description: 'Company-specific opening. Your achievements matched to their requirements. Tone adapted to company culture.',
                 accent: 'gold',
               },
               {
                 icon: Zap,
-                title: 'Professional Email',
-                items: ['Ready-to-send application email', 'Appropriate subject line', 'Concise and professional tone', 'Includes key qualifications'],
+                title: 'Application Email',
+                description: 'Ready-to-send with the right subject line, professional tone, and your key qualifications highlighted.',
                 accent: 'sage',
+              },
+              {
+                icon: Clock,
+                title: 'Follow-Up Email',
+                description: 'Timed for 5-7 days later. Highlights a different achievement than your first email. Confident, not desperate.',
+                accent: 'gold',
               },
             ].map((pkg, i) => {
               const Icon = pkg.icon;
-              const borderColor = pkg.accent === 'navy' ? 'border-navy-200' : pkg.accent === 'gold' ? 'border-gold-300' : 'border-sage-200';
               const iconBg = pkg.accent === 'navy' ? 'bg-navy-100' : pkg.accent === 'gold' ? 'bg-gold-100' : 'bg-sage-100';
               const iconColor = pkg.accent === 'navy' ? 'text-navy-600' : pkg.accent === 'gold' ? 'text-gold-500' : 'text-sage-600';
               return (
-                <ScrollReveal key={i} delay={i * 150}>
-                <div className={`bg-cream-50 rounded-2xl p-8 border ${borderColor} card-hover-lift`}>
-                  <div className={`w-14 h-14 ${iconBg} rounded-xl flex items-center justify-center mb-5`}>
+                <ScrollReveal key={i} delay={i * 120}>
+                <div className="bg-white rounded-2xl p-8 border border-cream-200 shadow-sm hover:shadow-md hover:border-gold-300/50 transition-all group">
+                  <div className={`w-14 h-14 ${iconBg} rounded-xl flex items-center justify-center mb-5 group-hover:scale-105 transition-transform`}>
                     <Icon className={`w-7 h-7 ${iconColor}`} />
                   </div>
-                  <h3 className="text-xl font-bold text-charcoal mb-4">{pkg.title}</h3>
-                  <ul className="space-y-3">
-                    {pkg.items.map((item, j) => (
-                      <li key={j} className="flex items-start gap-2.5 text-sm">
-                        <CheckCircle className="w-4 h-4 text-sage-500 flex-shrink-0 mt-0.5" />
-                        <span className="text-warm-gray">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <h3 className="text-xl font-bold text-navy-600 mb-3">{pkg.title}</h3>
+                  <p className="text-warm-gray leading-relaxed">{pkg.description}</p>
                 </div>
                 </ScrollReveal>
               );
             })}
           </div>
+
+          {/* Why it's different — trust signals */}
+          <ScrollReveal delay={200}>
+          <div className="bg-white rounded-2xl border border-cream-200 shadow-sm p-8 md:p-10">
+            <h3 className="text-xl md:text-2xl font-bold text-navy-600 text-center mb-8">
+              Why Job Seekers Trust Karko AI
+            </h3>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[
+                {
+                  icon: TrendingUp,
+                  title: 'Honest Fit Score',
+                  description: 'See your real match before applying. Matching skills, gaps, and a fit score with no false hope.',
+                },
+                {
+                  icon: Shield,
+                  title: 'Zero Fabrication',
+                  description: 'Every skill on your CV is verified from your actual profile. Nothing invented, nothing inflated.',
+                },
+                {
+                  icon: Globe,
+                  title: 'US & EU Ready',
+                  description: 'ATS-optimized US formats and German Lebenslauf templates, both built in.',
+                },
+                {
+                  icon: Sparkles,
+                  title: 'Self-Refining AI',
+                  description: 'Not a chatbot. Karko reviews and refines its own output before delivering it to you.',
+                },
+              ].map((feature, i) => {
+                const Icon = feature.icon;
+                return (
+                  <div key={i} className="text-center">
+                    <div className="w-12 h-12 bg-gold-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                      <Icon className="w-6 h-6 text-gold-500" />
+                    </div>
+                    <h4 className="text-sm font-bold text-navy-600 mb-2">{feature.title}</h4>
+                    <p className="text-sm text-warm-gray leading-relaxed">{feature.description}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          </ScrollReveal>
         </div>
       </section>
 
@@ -575,7 +562,41 @@ export default function Home() {
         </div>
       </section>
 
-      {/* What is a Master CV? */}
+      {/* Final CTA — High-impact conversion section (placed before Master CV for momentum) */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gold-400/5 rounded-full translate-y-1/2 -translate-x-1/2 animate-float-delayed" />
+
+        <ScrollReveal>
+        <div className="max-w-4xl mx-auto text-center relative">
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 leading-tight">
+            Your Next Interview Is{' '}
+            <span className="text-gold-400">90 Seconds Away</span>
+          </h2>
+          <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto leading-relaxed">
+            Start with 20 free applications. No credit card required.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="/dashboard"
+              className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-lg"
+            >
+              Try It Free
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+            <Link
+              href="/pricing"
+              className="w-full sm:w-auto px-10 py-4 glass-dark text-white font-semibold rounded-xl hover:bg-white/20 transition-all flex items-center justify-center text-lg"
+            >
+              View Pricing
+            </Link>
+          </div>
+        </div>
+        </ScrollReveal>
+      </section>
+
+      {/* What is a Master CV? — Helpful "one more thing" for users who scroll past CTA */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-5xl mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -627,40 +648,6 @@ export default function Home() {
             </ScrollReveal>
           </div>
         </div>
-      </section>
-
-      {/* Final CTA — High-impact conversion section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gold-400/5 rounded-full translate-y-1/2 -translate-x-1/2 animate-float-delayed" />
-
-        <ScrollReveal>
-        <div className="max-w-4xl mx-auto text-center relative">
-          <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 leading-tight">
-            Your Next Interview Is{' '}
-            <span className="text-gold-400">90 Seconds Away</span>
-          </h2>
-          <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Start with 20 free applications. No credit card required.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/dashboard"
-              className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-lg"
-            >
-              Try It Free
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <Link
-              href="/pricing"
-              className="w-full sm:w-auto px-10 py-4 glass-dark text-white font-semibold rounded-xl hover:bg-white/20 transition-all flex items-center justify-center text-lg"
-            >
-              View Pricing
-            </Link>
-          </div>
-        </div>
-        </ScrollReveal>
       </section>
 
       <Footer />
