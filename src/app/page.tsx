@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, FileText, Search, Zap, Clock, Target, CheckCircle, Shield, Globe, Sparkles, TrendingUp } from 'lucide-react';
+import { ArrowRight, FileText, Search, Zap, Clock, Target, Check, CheckCircle, Shield, Globe, Sparkles, Crown, TrendingUp } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import { PlusPlanButton, ProPlanButton } from '@/components/marketing/HomePricingButtons';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { CountUp } from '@/components/marketing/CountUp';
+import { TimeSavingsCalculator } from '@/components/marketing/TimeSavingsCalculator';
 
 export const metadata: Metadata = {
   title: 'KarKo AI | AI-Powered Job Application Assistant',
@@ -341,16 +342,10 @@ export default function Home() {
               <div>
                 <div className="space-y-4 text-warm-gray leading-relaxed">
                   <p className="text-lg">
-                    &ldquo;I was building an AI startup in Germany when I ran out of money. No savings, no investors, no degree to fall back on. I started applying for jobs.
+                    &ldquo;I ran out of money building a startup in Germany. No savings, no degree to fall back on. Generic job applications got me zero interviews. Tailoring each one by hand took 45 to 60 minutes, and it still was not fast enough.
                   </p>
                   <p className="text-lg">
-                    Generic applications got me nothing. Zero interviews. So I started tailoring every application by hand, researching the company, rewriting my CV, crafting a cover letter, drafting the email. Each one took 45 to 60 minutes. I built a manual solution inside Claude using my CV as context. The quality was better, but the process was still painfully slow.
-                  </p>
-                  <p className="text-lg">
-                    So I built Karko AI to automate the entire workflow. Paste a job description, get a complete tailored application in under 90 seconds: ATS-optimized CV, personalized cover letter, professional email, and an honest fit assessment. I used it on my own job search. Within about 20 applications, I got my first interview.
-                  </p>
-                  <p className="text-lg">
-                    That&apos;s when I knew every job seeker needed this tool.&rdquo;
+                    So I built Karko AI to do the entire workflow automatically. Paste a job description, get a tailored CV, cover letter, and professional email in under 90 seconds. Within about 20 applications, I got my first interview. That&apos;s when I knew every job seeker needed this.&rdquo;
                   </p>
                 </div>
                 <div className="mt-6 flex items-center gap-3">
@@ -366,9 +361,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Pricing Preview — Updated to new prices */}
+      {/* Pricing — Full value-focused cards */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-12">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Pricing</p>
@@ -376,45 +371,170 @@ export default function Home() {
               Simple, Transparent Pricing
             </h2>
             <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-              All features included in every plan. The only difference is how many applications you need.
+              All features included in every plan. You just choose your volume.
             </p>
           </div>
           </ScrollReveal>
 
-          <div className="grid sm:grid-cols-3 gap-6 mb-10">
+          <div className="grid md:grid-cols-3 gap-8 mb-10">
+            {/* Starter */}
             <ScrollReveal delay={0}>
-            <div className="bg-cream-50 rounded-2xl p-8 border border-cream-200 card-hover-lift">
-              <h3 className="font-bold text-charcoal text-lg mb-1">Starter</h3>
-              <p className="text-sm text-warm-gray mb-4">See your first AI application</p>
-              <div className="text-4xl font-bold text-navy-600 mb-1">Free</div>
-              <p className="text-sm text-warm-gray mb-6">20 applications included</p>
-              <Link
-                href="/dashboard"
-                className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium border-2 border-navy-200 text-navy-600 hover:bg-navy-50 transition-colors"
-              >
-                Try Free
-              </Link>
+            <div className="relative bg-white rounded-2xl border-2 border-cream-200 shadow-md overflow-hidden card-hover-lift">
+              <div className="p-8 flex flex-col h-full">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="p-2.5 rounded-xl bg-cream-100">
+                    <Sparkles className="w-6 h-6 text-navy-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-charcoal">Starter</h3>
+                    <p className="text-sm text-warm-gray">See your first AI application</p>
+                  </div>
+                </div>
+                <div className="mb-6">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-navy-600">Free</span>
+                    <span className="text-warm-gray">forever</span>
+                  </div>
+                  <div className="mt-2">
+                    <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-cream-100 text-navy-500 border border-cream-300">
+                      40 credits/month
+                    </span>
+                  </div>
+                </div>
+                <ul className="space-y-3 mb-5">
+                  {[
+                    { text: '20 complete applications/month', bold: true },
+                    { text: 'Tailored CV, cover letter, email & follow-up' },
+                    { text: 'Fit score before you apply' },
+                    { text: 'US & EU professional templates' },
+                    { text: 'No watermark on any document' },
+                  ].map((f, i) => (
+                    <li key={i} className="flex items-start gap-2.5">
+                      <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-sage-500" />
+                      <span className={`text-sm text-charcoal ${f.bold ? 'font-semibold' : ''}`}>{f.text}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex items-center gap-2.5 rounded-xl px-4 py-3 bg-cream-50 border border-cream-200">
+                  <Clock className="w-5 h-5 flex-shrink-0 text-navy-400" />
+                  <span className="text-sm font-semibold text-navy-600">~15 hours saved/month</span>
+                </div>
+                <div className="mt-auto pt-6">
+                  <Link
+                    href="/dashboard"
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold transition-all border-2 border-navy-200 text-navy-600 hover:bg-navy-50 hover:border-navy-400"
+                  >
+                    Start Free
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
             </div>
             </ScrollReveal>
+
+            {/* Plus — Most Popular */}
             <ScrollReveal delay={150}>
-            <div className="bg-white rounded-2xl p-8 border-2 border-gold-400 shadow-xl relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gold-400 text-white text-xs font-bold rounded-full">MOST POPULAR</div>
-              <h3 className="font-bold text-charcoal text-lg mb-1">Plus</h3>
-              <p className="text-sm text-warm-gray mb-4">For serious job seekers</p>
-              <div className="text-4xl font-bold text-navy-600 mb-1">$29.99<span className="text-lg font-normal text-warm-gray">/mo</span></div>
-              <p className="text-sm text-warm-gray mb-4">60 applications per month</p>
-              <p className="text-xs font-medium text-gold-500 mb-6">That&apos;s just $0.50 per complete application</p>
-              <PlusPlanButton />
+            <div className="relative bg-white rounded-2xl border-2 border-gold-400 shadow-xl scale-[1.02] overflow-hidden">
+              <div className="bg-gradient-to-r from-gold-400 to-gold-500 text-white text-xs font-bold px-4 py-2 text-center">
+                MOST POPULAR
+              </div>
+              <div className="p-8 flex flex-col h-full">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="p-2.5 rounded-xl bg-gold-100">
+                    <Zap className="w-6 h-6 text-gold-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-charcoal">Plus</h3>
+                    <p className="text-sm text-warm-gray">For serious job seekers</p>
+                  </div>
+                </div>
+                <div className="mb-6">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-navy-600">$29.99</span>
+                    <span className="text-warm-gray">/month</span>
+                  </div>
+                  <p className="text-xs text-warm-gray mt-1">~$0.50 per application</p>
+                  <div className="mt-2">
+                    <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-gold-50 text-gold-600 border border-gold-200">
+                      120 credits/month
+                    </span>
+                  </div>
+                </div>
+                <ul className="space-y-3 mb-5">
+                  {[
+                    { text: '60 complete applications/month', bold: true },
+                    { text: 'Tailored CV, cover letter, email & follow-up' },
+                    { text: 'Fit score before you apply' },
+                    { text: 'Unlimited application history' },
+                    { text: 'Add-on credit packs available' },
+                  ].map((f, i) => (
+                    <li key={i} className="flex items-start gap-2.5">
+                      <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-sage-500" />
+                      <span className={`text-sm text-charcoal ${f.bold ? 'font-semibold' : ''}`}>{f.text}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex items-center gap-2.5 rounded-xl px-4 py-3 bg-gold-50 border border-gold-200">
+                  <Clock className="w-5 h-5 flex-shrink-0 text-gold-500" />
+                  <span className="text-sm font-semibold text-navy-600">~45 hours saved/month</span>
+                </div>
+                <div className="mt-auto pt-6">
+                  <PlusPlanButton />
+                </div>
+              </div>
             </div>
             </ScrollReveal>
+
+            {/* Pro — Best Value */}
             <ScrollReveal delay={300}>
-            <div className="bg-cream-50 rounded-2xl p-8 border border-cream-200 card-hover-lift">
-              <h3 className="font-bold text-charcoal text-lg mb-1">Pro</h3>
-              <p className="text-sm text-warm-gray mb-4">For high-volume applicants</p>
-              <div className="text-4xl font-bold text-navy-600 mb-1">$49.99<span className="text-lg font-normal text-warm-gray">/mo</span></div>
-              <p className="text-sm text-warm-gray mb-4">120 applications per month</p>
-              <p className="text-xs font-medium text-sage-600 mb-6">That&apos;s just ~$0.42 per complete application</p>
-              <ProPlanButton />
+            <div className="relative bg-white rounded-2xl border-2 border-sage-400 shadow-lg overflow-hidden card-hover-lift">
+              <div className="bg-sage-500 text-white text-xs font-bold px-4 py-2 text-center">
+                BEST VALUE PER APPLICATION
+              </div>
+              <div className="p-8 flex flex-col h-full">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="p-2.5 rounded-xl bg-sage-100">
+                    <Crown className="w-6 h-6 text-sage-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-charcoal">Pro</h3>
+                    <p className="text-sm text-warm-gray">For high-volume applicants</p>
+                  </div>
+                </div>
+                <div className="mb-6">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-navy-600">$49.99</span>
+                    <span className="text-warm-gray">/month</span>
+                  </div>
+                  <p className="text-xs text-warm-gray mt-1">~$0.42 per application</p>
+                  <div className="mt-2">
+                    <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-sage-50 text-sage-600 border border-sage-200">
+                      240 credits/month
+                    </span>
+                  </div>
+                </div>
+                <ul className="space-y-3 mb-5">
+                  {[
+                    { text: '120 complete applications/month', bold: true },
+                    { text: 'Tailored CV, cover letter, email & follow-up' },
+                    { text: 'Fit score before you apply' },
+                    { text: 'Unlimited history + credit rollover (2 months)' },
+                    { text: 'Add-on credit packs available' },
+                  ].map((f, i) => (
+                    <li key={i} className="flex items-start gap-2.5">
+                      <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-sage-500" />
+                      <span className={`text-sm text-charcoal ${f.bold ? 'font-semibold' : ''}`}>{f.text}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex items-center gap-2.5 rounded-xl px-4 py-3 bg-navy-600">
+                  <Clock className="w-5 h-5 flex-shrink-0 text-gold-400" />
+                  <span className="text-sm font-semibold text-white">~90 hours saved/month</span>
+                </div>
+                <div className="mt-auto pt-6">
+                  <ProPlanButton />
+                </div>
+              </div>
             </div>
             </ScrollReveal>
           </div>
@@ -425,7 +545,7 @@ export default function Home() {
               href="/pricing"
               className="text-navy-600 font-medium hover:text-navy-700 transition-colors inline-flex items-center gap-2"
             >
-              Compare plans in detail
+              View credit details and add-ons
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -433,8 +553,30 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Time Savings Calculator */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-200/30 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gold-100/40 rounded-full translate-y-1/2 -translate-x-1/2 animate-float-delayed" />
+        <div className="max-w-4xl mx-auto relative">
+          <ScrollReveal>
+          <div className="text-center mb-10">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Time Savings</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-3">
+              How Much Time Will You Save?
+            </h2>
+            <p className="text-warm-gray max-w-lg mx-auto">
+              Each tailored application takes 45-60 minutes by hand. KarKo AI does it in under 90 seconds.
+            </p>
+          </div>
+          </ScrollReveal>
+          <ScrollReveal delay={150}>
+            <TimeSavingsCalculator />
+          </ScrollReveal>
+        </div>
+      </section>
+
       {/* What is a Master CV? */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-5xl mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <ScrollReveal direction="left">

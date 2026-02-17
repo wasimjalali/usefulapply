@@ -39,7 +39,7 @@ export function PlusPlanButton() {
     <button
       onClick={handleClick}
       disabled={loading}
-      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium bg-gradient-to-r from-gold-400 to-gold-500 text-white hover:from-gold-500 hover:to-gold-600 transition-all shadow-md disabled:opacity-70"
+      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium bg-gradient-to-r from-gold-400 to-gold-500 text-white hover:from-gold-500 hover:to-gold-600 transition-all shadow-md cursor-pointer disabled:opacity-70"
     >
       {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Plus <ArrowRight className="w-4 h-4" /></>}
     </button>
@@ -80,7 +80,7 @@ export function ProPlanButton() {
     <button
       onClick={handleClick}
       disabled={loading}
-      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium bg-navy-600 text-white hover:bg-navy-700 transition-colors shadow-md disabled:opacity-70"
+      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium bg-navy-600 text-white hover:bg-navy-700 transition-colors shadow-md cursor-pointer disabled:opacity-70"
     >
       {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Pro <ArrowRight className="w-4 h-4" /></>}
     </button>

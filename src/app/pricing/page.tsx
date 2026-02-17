@@ -3,70 +3,15 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Check, X, Sparkles, Zap, Crown, ArrowRight, ChevronDown, FileText, Search, Shield, MessageSquare, Globe, BarChart3, TrendingUp, Clock, Plus as PlusIcon, Loader2 } from 'lucide-react';
+import { Check, Sparkles, Zap, Crown, ArrowRight, ChevronDown, FileText, MessageSquare, BarChart3, Clock, Plus as PlusIcon, Loader2 } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Feature groups for pricing cards
-interface FeatureGroup {
-  label?: string;
-  features: { name: string; included: boolean; highlight: boolean }[];
-}
+// Value-focused feature lines per tier (6 lines each — pure value, no implementation details)
 
-const coreFeatures: FeatureGroup = {
-  features: [
-    { name: 'Complete application in under 90 seconds', included: true, highlight: true },
-    { name: 'Tailored CV, cover letter, and email per job', included: true, highlight: true },
-    { name: 'ATS-optimized formatting and keywords', included: true, highlight: false },
-    { name: 'Fit score before you apply (strong/good/weak)', included: true, highlight: false },
-  ],
-};
-
-const differentiators: FeatureGroup = {
-  features: [
-    { name: 'AI company research from job posting', included: true, highlight: false },
-    { name: 'Skill gap analysis (every gap listed)', included: true, highlight: false },
-    { name: 'Achievement-based cover letter opening', included: true, highlight: false },
-    { name: 'AI quality refinement pass on every document', included: true, highlight: false },
-  ],
-};
-
-const starterInfra: FeatureGroup = {
-  features: [
-    { name: 'US and EU templates (English and German)', included: true, highlight: false },
-    { name: 'No watermark on any document', included: true, highlight: false },
-    { name: 'PDF export', included: true, highlight: false },
-    { name: 'Application history (30 days)', included: true, highlight: false },
-    { name: 'Add-on credit packs', included: false, highlight: false },
-    { name: 'Credit rollover', included: false, highlight: false },
-  ],
-};
-
-const plusInfra: FeatureGroup = {
-  features: [
-    { name: 'US and EU templates (English and German)', included: true, highlight: false },
-    { name: 'No watermark on any document', included: true, highlight: false },
-    { name: 'PDF export', included: true, highlight: false },
-    { name: 'Application history (unlimited)', included: true, highlight: false },
-    { name: 'Add-on credit packs', included: true, highlight: false },
-    { name: 'Credit rollover (1 month)', included: true, highlight: false },
-  ],
-};
-
-const proInfra: FeatureGroup = {
-  features: [
-    { name: 'US and EU templates (English and German)', included: true, highlight: false },
-    { name: 'No watermark on any document', included: true, highlight: false },
-    { name: 'PDF export', included: true, highlight: false },
-    { name: 'Application history (unlimited)', included: true, highlight: false },
-    { name: 'Add-on credit packs', included: true, highlight: false },
-    { name: 'Credit rollover (2 months)', included: true, highlight: false },
-  ],
-};
-
-// Pricing tiers data - Updated pricing model
+// Pricing tiers data - Value-focused cards (6 lines each)
 const tiers = [
   {
     name: 'Starter',
@@ -80,7 +25,14 @@ const tiers = [
     icon: Sparkles,
     popular: false,
     bestValue: false,
-    featureGroups: [coreFeatures, differentiators, starterInfra],
+    features: [
+      { text: '20 complete applications/month', bold: true },
+      { text: 'Tailored CV, cover letter, email & follow-up' },
+      { text: 'Fit score before you apply' },
+      { text: 'US & EU professional templates' },
+      { text: 'No watermark on any document' },
+    ],
+    hoursSaved: '~15 hours saved/month',
     cta: 'Start Free',
     ctaVariant: 'outline' as const,
     hasAddons: false,
@@ -97,7 +49,14 @@ const tiers = [
     icon: Zap,
     popular: true,
     bestValue: false,
-    featureGroups: [coreFeatures, differentiators, plusInfra],
+    features: [
+      { text: '60 complete applications/month', bold: true },
+      { text: 'Tailored CV, cover letter, email & follow-up' },
+      { text: 'Fit score before you apply' },
+      { text: 'Unlimited application history' },
+      { text: 'Add-on credit packs available' },
+    ],
+    hoursSaved: '~45 hours saved/month',
     cta: 'Get Plus',
     ctaVariant: 'primary' as const,
     hasAddons: true,
@@ -114,7 +73,14 @@ const tiers = [
     icon: Crown,
     popular: false,
     bestValue: true,
-    featureGroups: [coreFeatures, differentiators, proInfra],
+    features: [
+      { text: '120 complete applications/month', bold: true },
+      { text: 'Tailored CV, cover letter, email & follow-up' },
+      { text: 'Fit score before you apply' },
+      { text: 'Unlimited history + credit rollover (2 months)' },
+      { text: 'Add-on credit packs available' },
+    ],
+    hoursSaved: '~90 hours saved/month',
     cta: 'Get Pro',
     ctaVariant: 'secondary' as const,
     hasAddons: true,
@@ -283,51 +249,20 @@ export default function PricingPage() {
           </ScrollReveal>
           <ScrollReveal delay={150}>
           <h1 className="text-4xl sm:text-5xl font-bold text-navy-600 mb-4 leading-tight">
-            All Features. Every Plan.{' '}
-            <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">Just Pick Your Volume.</span>
+            Simple, Transparent{' '}
+            <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">Pricing</span>
           </h1>
           </ScrollReveal>
           <ScrollReveal delay={300}>
           <p className="text-xl text-warm-gray max-w-2xl mx-auto">
-            Every plan includes the full AI workflow. You just choose your volume.
+            Every plan includes all features. The only difference is your volume.
           </p>
           </ScrollReveal>
         </div>
       </section>
 
-      {/* Value Strip — High-level trust signals (complements card details, no overlap) */}
-      <section className="pb-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto">
-          <ScrollReveal>
-          <div className="bg-navy-600 rounded-2xl p-6 md:p-8">
-            <p className="text-center text-sm font-semibold text-gold-400 uppercase tracking-widest mb-5">Every plan, same power</p>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {[
-                { icon: Clock, label: 'Under 90 Seconds' },
-                { icon: Shield, label: 'No Fabrication' },
-                { icon: FileText, label: 'No Watermark' },
-                { icon: Globe, label: 'US & EU Ready' },
-                { icon: TrendingUp, label: 'Honest Fit Score' },
-                { icon: Sparkles, label: 'All-in-One Workflow' },
-              ].map((item, i) => {
-                const Icon = item.icon;
-                return (
-                  <div key={i} className="flex flex-col items-center gap-2 text-center">
-                    <div className="w-10 h-10 bg-navy-500/50 rounded-lg flex items-center justify-center">
-                      <Icon className="w-5 h-5 text-gold-400" />
-                    </div>
-                    <span className="text-xs font-medium text-navy-200">{item.label}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          </ScrollReveal>
-        </div>
-      </section>
-
       {/* Pricing Cards */}
-      <section className="pb-20 px-4 sm:px-6 lg:px-8">
+      <section className="pb-20 pt-4 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-3 gap-8">
             {tiers.map((tier, tierIdx) => {
@@ -394,19 +329,16 @@ export default function PricingPage() {
                           ~${(tier.price / parseInt(tier.applications)).toFixed(2)} per application
                         </p>
                       )}
-                    </div>
-
-                    {/* Credits Box */}
-                    <div className={`rounded-xl p-4 mb-6 ${
-                      tier.popular ? 'bg-gold-50 border border-gold-200' : 'bg-cream-50 border border-cream-200'
-                    }`}>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-charcoal">Monthly Credits</span>
-                        <span className="text-xl font-bold text-navy-600">{tier.credits}</span>
-                      </div>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-sm text-warm-gray">Full Applications</span>
-                        <span className="text-lg font-bold text-charcoal">{tier.applications}</span>
+                      <div className="mt-2">
+                        <span className={`inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full ${
+                          tier.popular
+                            ? 'bg-gold-50 text-gold-600 border border-gold-200'
+                            : tier.bestValue
+                              ? 'bg-sage-50 text-sage-600 border border-sage-200'
+                              : 'bg-cream-100 text-navy-500 border border-cream-300'
+                        }`}>
+                          {tier.credits} credits/month
+                        </span>
                       </div>
                     </div>
 
@@ -455,35 +387,34 @@ export default function PricingPage() {
                       </div>
                     )}
 
-                    {/* Grouped Features */}
-                    <div className="space-y-4">
-                      {tier.featureGroups.map((group, groupIdx) => (
-                        <div key={groupIdx}>
-                          {groupIdx > 0 && (
-                            <div className="border-t border-cream-200 mb-4" />
-                          )}
-                          <ul className="space-y-3">
-                            {group.features.map((feature, idx) => (
-                              <li key={idx} className="flex items-start gap-2.5">
-                                {feature.included ? (
-                                  <Check className={`w-5 h-5 flex-shrink-0 mt-0.5 ${feature.highlight ? 'text-gold-500' : 'text-sage-500'}`} />
-                                ) : (
-                                  <X className="w-5 h-5 text-cream-400 flex-shrink-0 mt-0.5" />
-                                )}
-                                <span
-                                  className={`text-sm ${
-                                    feature.included
-                                      ? feature.highlight ? 'text-charcoal font-medium' : 'text-charcoal'
-                                      : 'text-warm-gray'
-                                  }`}
-                                >
-                                  {feature.name}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
+                    {/* Value Features (5 lines) */}
+                    <ul className="space-y-3 mb-5">
+                      {tier.features.map((feature, idx) => (
+                        <li key={idx} className="flex items-start gap-2.5">
+                          <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-sage-500" />
+                          <span className={`text-sm text-charcoal ${feature.bold ? 'font-semibold' : ''}`}>
+                            {feature.text}
+                          </span>
+                        </li>
                       ))}
+                    </ul>
+
+                    {/* Hours Saved — emotional anchor line */}
+                    <div className={`flex items-center gap-2.5 rounded-xl px-4 py-3 ${
+                      tier.bestValue
+                        ? 'bg-navy-600'
+                        : tier.popular
+                          ? 'bg-gold-50 border border-gold-200'
+                          : 'bg-cream-50 border border-cream-200'
+                    }`}>
+                      <Clock className={`w-5 h-5 flex-shrink-0 ${
+                        tier.bestValue ? 'text-gold-400' : tier.popular ? 'text-gold-500' : 'text-navy-400'
+                      }`} />
+                      <span className={`text-sm font-semibold ${
+                        tier.bestValue ? 'text-white' : tier.popular ? 'text-navy-600' : 'text-navy-600'
+                      }`}>
+                        {tier.hoursSaved}
+                      </span>
                     </div>
 
                     {/* CTA Button — at bottom after features for natural conversion flow */}
@@ -526,95 +457,70 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Interactive Time Savings Calculator — Moved up, directly below pricing cards */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
-        <div className="max-w-4xl mx-auto">
+      {/* Interactive Time Savings Calculator — Warm premium design */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-200/30 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gold-100/40 rounded-full translate-y-1/2 -translate-x-1/2 animate-float-delayed" />
+        <div className="max-w-4xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-10">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Time Savings</p>
-            <h2 className="text-3xl font-bold text-navy-600 mb-3">
+            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-3">
               How Much Time Will You Save?
             </h2>
+            <p className="text-warm-gray max-w-lg mx-auto">
+              Each tailored application takes 45-60 minutes by hand. KarKo AI does it in under 90 seconds.
+            </p>
           </div>
           </ScrollReveal>
 
           <ScrollReveal delay={150}>
           <div className="bg-white rounded-2xl border border-cream-200 shadow-lg p-8 md:p-10">
-            {/* Tier Selector / Slider */}
+            {/* Tier Selector — pill buttons */}
             <div className="flex items-center justify-center mb-10">
-              <div className="relative flex items-center w-full max-w-md">
-                {/* Track */}
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full h-1.5 bg-cream-200 rounded-full">
-                    <div
-                      className="h-1.5 bg-gradient-to-r from-gold-400 to-gold-500 rounded-full transition-all duration-300"
-                      style={{ width: `${selectedSavingsTier * 50}%` }}
-                    />
-                  </div>
-                </div>
-                {/* Stops */}
-                <div className="relative flex justify-between w-full">
-                  {savingsTiers.map((tier, i) => (
-                    <button
-                      key={tier.plan}
-                      onClick={() => setSelectedSavingsTier(i)}
-                      className="flex flex-col items-center cursor-pointer group"
-                    >
-                      <div
-                        className={`w-8 h-8 rounded-full border-4 transition-all duration-300 flex items-center justify-center ${
-                          i <= selectedSavingsTier
-                            ? 'bg-gold-400 border-gold-500 shadow-md'
-                            : 'bg-white border-cream-300 group-hover:border-gold-300'
-                        }`}
-                      >
-                        {i === selectedSavingsTier && (
-                          <div className="w-2 h-2 bg-white rounded-full" />
-                        )}
-                      </div>
-                      <span
-                        className={`mt-2 text-sm font-semibold transition-colors ${
-                          i === selectedSavingsTier ? 'text-navy-600' : 'text-warm-gray'
-                        }`}
-                      >
-                        {tier.plan}
-                      </span>
-                      <span className="text-xs text-warm-gray">{tier.price}</span>
-                    </button>
-                  ))}
-                </div>
+              <div className="inline-flex bg-cream-100 rounded-xl p-1.5 gap-1 border border-cream-200">
+                {savingsTiers.map((tier, i) => (
+                  <button
+                    key={tier.plan}
+                    onClick={() => setSelectedSavingsTier(i)}
+                    className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                      i === selectedSavingsTier
+                        ? 'bg-white text-navy-600 shadow-md border border-cream-200'
+                        : 'text-warm-gray hover:text-navy-600 hover:bg-cream-50'
+                    }`}
+                  >
+                    <span>{tier.plan}</span>
+                    <span className="block text-xs font-normal mt-0.5 opacity-70">{tier.price}</span>
+                  </button>
+                ))}
               </div>
             </div>
 
             {/* Stats Row */}
-            <div className="grid grid-cols-3 gap-4 md:gap-8 mb-8">
+            <div className="grid grid-cols-3 gap-4 md:gap-6 mb-8">
               <div className="text-center p-4 md:p-6 bg-cream-50 rounded-xl border border-cream-200">
-                <div className="text-3xl md:text-4xl font-bold text-navy-600 mb-1">{animatedApps}</div>
-                <div className="text-sm text-warm-gray">applications per month</div>
+                <div className="text-3xl md:text-5xl font-bold text-navy-600 mb-2">{animatedApps}</div>
+                <div className="text-sm text-warm-gray">applications/month</div>
               </div>
               <div className="text-center p-4 md:p-6 bg-cream-50 rounded-xl border border-cream-200">
-                <div className="text-3xl md:text-4xl font-bold text-gold-500 mb-1">&lt;90</div>
+                <div className="text-3xl md:text-5xl font-bold text-gold-500 mb-2">&lt;90</div>
                 <div className="text-sm text-warm-gray">seconds each</div>
               </div>
               <div className="text-center p-4 md:p-6 bg-navy-600 rounded-xl">
-                <div className="text-3xl md:text-4xl font-bold text-white mb-1">~{animatedHours}</div>
-                <div className="text-sm text-navy-200">hours saved/month</div>
+                <div className="text-3xl md:text-5xl font-bold text-gold-400 mb-2">~{animatedHours}</div>
+                <div className="text-sm text-gold-300 font-medium">hours saved/month</div>
               </div>
             </div>
 
             {/* Tagline */}
-            <p className="text-center text-lg font-medium text-charcoal mb-4">
+            <p className="text-center text-lg font-medium text-navy-600 mb-2">
               {currentSavings.tagline}
             </p>
 
             {/* Disclaimer */}
-            <div className="text-center space-y-1">
-              <p className="text-sm text-warm-gray">
-                Based on 45-60 minutes of manual work per tailored application.
-              </p>
-              <p className="text-sm text-warm-gray">
-                KarKo AI generates the complete package in under 90 seconds.
-              </p>
-            </div>
+            <p className="text-center text-sm text-warm-gray">
+              Based on 45-60 min of manual work per tailored application.
+            </p>
           </div>
           </ScrollReveal>
         </div>
