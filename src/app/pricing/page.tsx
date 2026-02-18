@@ -31,7 +31,7 @@ const tiers = [
       { text: 'Fit score before you apply' },
       { text: 'US & EU professional templates' },
       { text: 'No watermark on any document' },
-      { text: 'Claude Sonnet 4.6 — purpose-built for jobs' },
+      { text: 'Claude Sonnet 4.6 — specialized for job applications' },
     ],
     hoursSaved: '~4 hours saved/month',
     cta: 'Start Free',
@@ -56,7 +56,7 @@ const tiers = [
       { text: 'Fit score before you apply' },
       { text: 'Unlimited application history' },
       { text: 'Add-on credit packs available' },
-      { text: 'Claude Sonnet 4.6 — purpose-built for jobs' },
+      { text: 'Claude Sonnet 4.6 — specialized for job applications' },
     ],
     hoursSaved: '~45 hours saved/month',
     cta: 'Get Plus',
@@ -81,7 +81,7 @@ const tiers = [
       { text: 'Fit score before you apply' },
       { text: 'Unlimited history + credit rollover (2 months)' },
       { text: 'Add-on credit packs available' },
-      { text: 'Claude Sonnet 4.6 — purpose-built for jobs' },
+      { text: 'Claude Sonnet 4.6 — specialized for job applications' },
     ],
     hoursSaved: '~90 hours saved/month',
     cta: 'Get Pro',
@@ -270,7 +270,7 @@ export default function PricingPage() {
             <img src="/anthropic-logo.svg" alt="Anthropic" className="w-5 h-5 invert opacity-90" />
             <span className="text-white text-sm font-semibold">Claude Sonnet 4.6 by Anthropic</span>
             <span className="w-px h-4 bg-navy-400" />
-            <span className="text-navy-200 text-sm">Purpose-built for job applications · All plans</span>
+            <span className="text-navy-200 text-sm">Specialized for job applications · All plans</span>
           </div>
           </ScrollReveal>
         </div>

@@ -86,32 +86,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* AI Technology Credibility Bar */}
-      <section className="py-6 px-4 sm:px-6 lg:px-8 bg-navy-600 border-y border-navy-500">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-10">
-            <div className="flex items-center gap-3">
-              <div className="w-7 h-7 text-white opacity-90 flex-shrink-0">
-                <Image src="/anthropic-logo.svg" alt="Anthropic" width={28} height={28} className="w-7 h-7 invert" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-white font-bold text-sm leading-tight">Claude Sonnet 4.6</span>
-                <span className="text-navy-200 text-xs">by Anthropic</span>
-              </div>
-            </div>
-            <div className="hidden sm:block w-px h-8 bg-navy-400" />
-            <p className="text-navy-100 text-sm text-center sm:text-left">
-              <span className="text-gold-300 font-semibold">Purpose-built for job applications</span> — specialized system prompts, agentic workflow, and self-refinement.
-            </p>
-            <div className="hidden sm:block w-px h-8 bg-navy-400" />
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-sage-400 animate-pulse" />
-              <span className="text-navy-100 text-sm font-medium">US-based AI · All plans</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Logos / Trust Bar */}
       <section className="py-8 px-4 sm:px-6 lg:px-8 bg-white border-y border-cream-200 overflow-hidden">
         <div className="max-w-5xl mx-auto">
@@ -315,49 +289,111 @@ export default function Home() {
             })}
           </div>
 
-          {/* Why it's different */}
-          <ScrollReveal delay={200}>
-          <div className="bg-white rounded-2xl border border-cream-200 shadow-sm p-8 md:p-10">
-            <h3 className="text-xl md:text-2xl font-bold text-navy-600 text-center mb-8">
-              Why Job Seekers Trust Karko AI
-            </h3>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[
-                {
-                  icon: TrendingUp,
-                  title: 'Honest Fit Score',
-                  description: 'See your real match before applying. Matching skills, gaps, and a clear score with no false hope.',
-                },
-                {
-                  icon: Shield,
-                  title: 'Zero Fabrication',
-                  description: 'Every skill on your CV is verified from your actual profile. Nothing invented, nothing inflated.',
-                },
-                {
-                  icon: Globe,
-                  title: 'US and EU Ready',
-                  description: 'ATS-optimized US formats and German Lebenslauf templates, both built in.',
-                },
-                {
-                  icon: Sparkles,
-                  title: 'Self-Refining AI',
-                  description: 'Not a chatbot. Karko reviews and refines its own output before delivering it to you.',
-                },
-              ].map((feature, i) => {
-                const Icon = feature.icon;
-                return (
-                  <div key={i} className="text-center">
-                    <div className="w-12 h-12 bg-gold-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                      <Icon className="w-6 h-6 text-gold-500" />
-                    </div>
-                    <h4 className="text-sm font-bold text-navy-600 mb-2">{feature.title}</h4>
-                    <p className="text-sm text-warm-gray leading-relaxed">{feature.description}</p>
-                  </div>
-                );
-              })}
+        </div>
+      </section>
+
+      {/* Why Job Seekers Trust Karko AI — Standalone credibility section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <ScrollReveal>
+          <div className="text-center mb-14">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Why Trust Karko AI</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
+              Built Different. Built Better.
+            </h2>
+            <p className="text-lg text-warm-gray max-w-2xl mx-auto">
+              We don&apos;t cut corners on AI. Every application is powered by one of the world&apos;s most capable models, specialized for job applications.
+            </p>
+          </div>
+          </ScrollReveal>
+
+          {/* Claude Sonnet 4.6 hero card */}
+          <ScrollReveal delay={100}>
+          <div className="bg-white rounded-2xl border-2 border-cream-200 shadow-lg p-8 md:p-12 mb-10">
+            <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
+              <div className="flex-shrink-0">
+                <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl overflow-hidden shadow-md border-2 border-cream-200">
+                  <Image
+                    src="/anthropic-icon.jpg"
+                    alt="Anthropic AI"
+                    width={112}
+                    height={112}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+              <div className="flex-1 text-center md:text-left">
+                <div className="flex items-center justify-center md:justify-start gap-3 mb-3">
+                  <h3 className="text-2xl md:text-3xl font-bold text-navy-600">Claude Sonnet 4.6</h3>
+                  <span className="text-sm font-medium text-warm-gray">by Anthropic</span>
+                </div>
+                <p className="text-lg text-warm-gray leading-relaxed mb-4">
+                  KarKo AI runs on <span className="font-semibold text-charcoal">Claude Sonnet 4.6</span> — one of the most advanced AI models available today. Unlike competitors who rely on cheaper, open-source models, we use a <span className="font-semibold text-charcoal">US-based, frontier-grade AI</span> trusted by leading enterprises worldwide.
+                </p>
+                <p className="text-warm-gray leading-relaxed">
+                  On top of that, we&apos;ve built <span className="font-semibold text-charcoal">specialized system prompts and an agentic workflow</span> designed specifically for job applications — so the AI is not just powerful, it&apos;s precisely tuned to produce professional, ATS-optimized, role-specific documents.
+                </p>
+              </div>
             </div>
           </div>
           </ScrollReveal>
+
+          {/* Trust features grid */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              {
+                icon: Cpu,
+                title: 'Frontier AI Model',
+                description: 'Powered by Claude Sonnet 4.6 — the same AI trusted by top enterprises. No cheap shortcuts, no open-source compromises.',
+                accent: 'navy',
+              },
+              {
+                icon: Shield,
+                title: 'Zero Fabrication',
+                description: 'Every skill on your CV comes from your actual profile. Nothing invented, nothing inflated. Honest documents you can stand behind.',
+                accent: 'gold',
+              },
+              {
+                icon: TrendingUp,
+                title: 'Honest Fit Score',
+                description: 'See your real match before applying. Matching skills, gaps, and a clear score — no false hope, no wasted time.',
+                accent: 'sage',
+              },
+              {
+                icon: Globe,
+                title: 'US-Based AI',
+                description: 'Built on Anthropic\'s Claude — a US-based AI company. Your data is processed by a trusted, safety-focused provider.',
+                accent: 'navy',
+              },
+              {
+                icon: Sparkles,
+                title: 'Self-Refining AI',
+                description: 'Not a chatbot. Karko reviews and refines its own output before delivering it to you. Every document goes through multiple quality checks.',
+                accent: 'gold',
+              },
+              {
+                icon: Target,
+                title: 'Specialized for Jobs',
+                description: 'Custom system prompts and an agentic workflow designed only for job applications. Every output is ATS-optimized and role-specific.',
+                accent: 'sage',
+              },
+            ].map((feature, i) => {
+              const Icon = feature.icon;
+              const iconBg = feature.accent === 'navy' ? 'bg-navy-100' : feature.accent === 'gold' ? 'bg-gold-100' : 'bg-sage-100';
+              const iconColor = feature.accent === 'navy' ? 'text-navy-600' : feature.accent === 'gold' ? 'text-gold-500' : 'text-sage-600';
+              return (
+                <ScrollReveal key={i} delay={i * 80}>
+                <div className="bg-white rounded-2xl p-8 border border-cream-200 shadow-sm hover:shadow-md hover:border-gold-300/50 transition-all group">
+                  <div className={`w-14 h-14 ${iconBg} rounded-xl flex items-center justify-center mb-5 group-hover:scale-105 transition-transform`}>
+                    <Icon className={`w-7 h-7 ${iconColor}`} />
+                  </div>
+                  <h4 className="text-lg font-bold text-navy-600 mb-2">{feature.title}</h4>
+                  <p className="text-warm-gray leading-relaxed">{feature.description}</p>
+                </div>
+                </ScrollReveal>
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -456,7 +492,7 @@ export default function Home() {
                     { text: 'Fit score before you apply' },
                     { text: 'US & EU professional templates' },
                     { text: 'No watermark on any document' },
-                    { text: 'Claude Sonnet 4.6 — purpose-built for jobs' },
+                    { text: 'Claude Sonnet 4.6 — specialized for job applications' },
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-sage-500" />
@@ -516,7 +552,7 @@ export default function Home() {
                     { text: 'Fit score before you apply' },
                     { text: 'Unlimited application history' },
                     { text: 'Add-on credit packs available' },
-                    { text: 'Claude Sonnet 4.6 — purpose-built for jobs' },
+                    { text: 'Claude Sonnet 4.6 — specialized for job applications' },
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-sage-500" />
@@ -570,7 +606,7 @@ export default function Home() {
                     { text: 'Fit score before you apply' },
                     { text: 'Unlimited history + credit rollover (2 months)' },
                     { text: 'Add-on credit packs available' },
-                    { text: 'Claude Sonnet 4.6 — purpose-built for jobs' },
+                    { text: 'Claude Sonnet 4.6 — specialized for job applications' },
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-sage-500" />
