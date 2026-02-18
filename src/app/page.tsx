@@ -155,7 +155,7 @@ export default function Home() {
                   'Education, certifications, and languages',
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-2.5 text-sm">
-                    <CheckCircle className="w-4 h-4 text-sage-500 flex-shrink-0 mt-0.5" />
+                    <CheckCircle className="w-4 h-4 text-gold-500 flex-shrink-0 mt-0.5" />
                     <span className="text-warm-gray">{item}</span>
                   </li>
                 ))}
@@ -248,7 +248,7 @@ export default function Home() {
                 icon: Zap,
                 title: 'Application Email',
                 description: 'Ready to send with the right subject line, professional tone, and your key qualifications highlighted.',
-                accent: 'sage',
+                accent: 'gold',
               },
               {
                 icon: Clock,
@@ -715,7 +715,7 @@ export default function Home() {
                   'Professional mindset and approach',
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-2.5 text-sm">
-                    <CheckCircle className="w-4 h-4 text-sage-500 flex-shrink-0 mt-0.5" />
+                    <CheckCircle className="w-4 h-4 text-gold-500 flex-shrink-0 mt-0.5" />
                     <span className="text-warm-gray">{item}</span>
                   </li>
                 ))}

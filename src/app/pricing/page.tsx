@@ -580,8 +580,8 @@ export default function PricingPage() {
             </ScrollReveal>
             <ScrollReveal delay={200}>
             <div className="text-center p-8 bg-cream-50 rounded-2xl border border-cream-200 card-hover-lift">
-              <div className="w-14 h-14 bg-sage-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <MessageSquare className="w-7 h-7 text-sage-600" />
+              <div className="w-14 h-14 bg-gold-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="w-7 h-7 text-gold-600" />
               </div>
               <div className="text-3xl font-bold text-navy-600 mb-1">0.5</div>
               <div className="text-sm font-semibold text-charcoal mb-2">credits</div>
@@ -591,8 +591,8 @@ export default function PricingPage() {
             </ScrollReveal>
             <ScrollReveal delay={300}>
             <div className="text-center p-8 bg-cream-50 rounded-2xl border border-cream-200 card-hover-lift">
-              <div className="w-14 h-14 bg-sage-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Zap className="w-7 h-7 text-sage-600" />
+              <div className="w-14 h-14 bg-gold-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Zap className="w-7 h-7 text-gold-600" />
               </div>
               <div className="text-3xl font-bold text-navy-600 mb-1">0.5</div>
               <div className="text-sm font-semibold text-charcoal mb-2">credits</div>
