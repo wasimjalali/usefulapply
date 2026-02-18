@@ -266,11 +266,11 @@ export default function PricingPage() {
           </p>
           </ScrollReveal>
           <ScrollReveal delay={450}>
-          <div className="mt-6 inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-navy-600 shadow-md">
-            <img src="/anthropic-logo.svg" alt="Anthropic" className="w-5 h-5 invert opacity-90" />
-            <span className="text-white text-sm font-semibold">Claude Sonnet 4.6 by Anthropic</span>
-            <span className="w-px h-4 bg-navy-400" />
-            <span className="text-navy-200 text-sm">Specialized for job applications · All plans</span>
+          <div className="mt-6 inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-cream-100 border border-gold-300/60 shadow-sm">
+            <img src="/anthropic-icon.jpg" alt="Anthropic" className="w-7 h-7 rounded-md" />
+            <span className="text-navy-600 text-sm font-semibold">Claude Sonnet 4.6 by Anthropic</span>
+            <span className="w-px h-4 bg-cream-300" />
+            <span className="text-warm-gray text-sm">Specialized for job applications · All plans</span>
           </div>
           </ScrollReveal>
         </div>

@@ -330,7 +330,7 @@ export default function Home() {
                 icon: Shield,
                 title: 'Zero Fabrication',
                 description: 'Every skill on your CV comes from your actual profile. Nothing invented, nothing inflated.',
-                accent: 'navy',
+                accent: 'gold',
               },
               {
                 icon: TrendingUp,
@@ -341,8 +341,8 @@ export default function Home() {
               {
                 icon: Sparkles,
                 title: 'Self-Refining AI',
-                description: 'Karko reviews and refines its own output before delivering it to you.',
-                accent: 'navy',
+                description: 'Not a simple chatbot. Karko reviews and refines its own output before delivering it to you.',
+                accent: 'gold',
               },
               {
                 icon: Target,
@@ -352,8 +352,8 @@ export default function Home() {
               },
             ].map((feature, i) => {
               const Icon = feature.icon;
-              const iconBg = feature.accent === 'navy' ? 'bg-navy-100' : 'bg-gold-100';
-              const iconColor = feature.accent === 'navy' ? 'text-navy-600' : 'text-gold-500';
+              const iconBg = 'bg-gold-100';
+              const iconColor = 'text-gold-500';
               return (
                 <ScrollReveal key={i} delay={i * 80}>
                 <div className="bg-white rounded-2xl p-6 border border-cream-200 shadow-sm hover:shadow-md hover:border-gold-300/50 transition-all group flex items-center gap-5">
@@ -432,6 +432,12 @@ export default function Home() {
             <p className="text-lg text-warm-gray max-w-2xl mx-auto">
               All features included in every plan. You just choose your volume.
             </p>
+            <div className="mt-6 inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-cream-100 border border-gold-300/60 shadow-sm">
+              <img src="/anthropic-icon.jpg" alt="Anthropic" className="w-7 h-7 rounded-md" />
+              <span className="text-navy-600 text-sm font-semibold">Claude Sonnet 4.6 by Anthropic</span>
+              <span className="w-px h-4 bg-cream-300" />
+              <span className="text-warm-gray text-sm">Specialized for job applications</span>
+            </div>
           </div>
           </ScrollReveal>
 
