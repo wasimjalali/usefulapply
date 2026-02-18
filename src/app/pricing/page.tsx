@@ -31,6 +31,7 @@ const tiers = [
       { text: 'Fit score before you apply' },
       { text: 'US & EU professional templates' },
       { text: 'No watermark on any document' },
+      { text: 'Claude Sonnet 4.6 — purpose-built for jobs' },
     ],
     hoursSaved: '~4 hours saved/month',
     cta: 'Start Free',
@@ -55,6 +56,7 @@ const tiers = [
       { text: 'Fit score before you apply' },
       { text: 'Unlimited application history' },
       { text: 'Add-on credit packs available' },
+      { text: 'Claude Sonnet 4.6 — purpose-built for jobs' },
     ],
     hoursSaved: '~45 hours saved/month',
     cta: 'Get Plus',
@@ -79,6 +81,7 @@ const tiers = [
       { text: 'Fit score before you apply' },
       { text: 'Unlimited history + credit rollover (2 months)' },
       { text: 'Add-on credit packs available' },
+      { text: 'Claude Sonnet 4.6 — purpose-built for jobs' },
     ],
     hoursSaved: '~90 hours saved/month',
     cta: 'Get Pro',
@@ -144,6 +147,10 @@ const faqs = [
   {
     question: 'How is KarKo different from other resume builders?',
     answer: 'Most tools just help you format a resume. KarKo AI is an agentic system that analyzes the job description, extracts company insights, runs a fit analysis, generates a tailored CV, writes a personalized cover letter, and drafts a professional email, all automatically in one workflow. The entire process takes under 90 seconds.',
+  },
+  {
+    question: 'What AI model does KarKo use?',
+    answer: 'KarKo AI runs on Claude Sonnet 4.6 by Anthropic — one of the most capable AI models available for writing and agentic tasks. Unlike competitors who use cheaper open-source models, we use the same US-based, frontier-grade AI trusted by leading enterprises. On top of that, we have built specialized system prompts and a purpose-built agentic workflow designed specifically for job applications — so the model is not just powerful, it is precisely tuned to produce professional, ATS-optimized, role-specific documents.',
   },
 ];
 
@@ -257,6 +264,14 @@ export default function PricingPage() {
           <p className="text-xl text-warm-gray max-w-2xl mx-auto">
             Every plan includes all features. The only difference is your volume.
           </p>
+          </ScrollReveal>
+          <ScrollReveal delay={450}>
+          <div className="mt-6 inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-navy-600 shadow-md">
+            <img src="/anthropic-logo.svg" alt="Anthropic" className="w-5 h-5 invert opacity-90" />
+            <span className="text-white text-sm font-semibold">Claude Sonnet 4.6 by Anthropic</span>
+            <span className="w-px h-4 bg-navy-400" />
+            <span className="text-navy-200 text-sm">Purpose-built for job applications · All plans</span>
+          </div>
           </ScrollReveal>
         </div>
       </section>

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, FileText, Search, Zap, Clock, Target, Check, CheckCircle, Shield, Globe, Sparkles, Crown, TrendingUp } from 'lucide-react';
+import { ArrowRight, FileText, Search, Zap, Clock, Target, Check, CheckCircle, Shield, Globe, Sparkles, Crown, TrendingUp, Cpu } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import { PlusPlanButton, ProPlanButton } from '@/components/marketing/HomePricingButtons';
 import Footer from '@/components/marketing/Footer';
@@ -75,8 +75,39 @@ export default function Home() {
                 <Clock className="w-4 h-4 text-gold-400" />
                 <span className="font-medium">From 45 minutes to 90 seconds per application</span>
               </div>
+              <div className="hidden sm:block w-px h-4 bg-cream-300" />
+              <div className="flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-gold-400" />
+                <span className="font-medium">Powered by Claude Sonnet 4.6</span>
+              </div>
             </div>
             </ScrollReveal>
+          </div>
+        </div>
+      </section>
+
+      {/* AI Technology Credibility Bar */}
+      <section className="py-6 px-4 sm:px-6 lg:px-8 bg-navy-600 border-y border-navy-500">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-10">
+            <div className="flex items-center gap-3">
+              <div className="w-7 h-7 text-white opacity-90 flex-shrink-0">
+                <Image src="/anthropic-logo.svg" alt="Anthropic" width={28} height={28} className="w-7 h-7 invert" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-white font-bold text-sm leading-tight">Claude Sonnet 4.6</span>
+                <span className="text-navy-200 text-xs">by Anthropic</span>
+              </div>
+            </div>
+            <div className="hidden sm:block w-px h-8 bg-navy-400" />
+            <p className="text-navy-100 text-sm text-center sm:text-left">
+              <span className="text-gold-300 font-semibold">Purpose-built for job applications</span> — specialized system prompts, agentic workflow, and self-refinement.
+            </p>
+            <div className="hidden sm:block w-px h-8 bg-navy-400" />
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-sage-400 animate-pulse" />
+              <span className="text-navy-100 text-sm font-medium">US-based AI · All plans</span>
+            </div>
           </div>
         </div>
       </section>
@@ -425,6 +456,7 @@ export default function Home() {
                     { text: 'Fit score before you apply' },
                     { text: 'US & EU professional templates' },
                     { text: 'No watermark on any document' },
+                    { text: 'Claude Sonnet 4.6 — purpose-built for jobs' },
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-sage-500" />
@@ -484,6 +516,7 @@ export default function Home() {
                     { text: 'Fit score before you apply' },
                     { text: 'Unlimited application history' },
                     { text: 'Add-on credit packs available' },
+                    { text: 'Claude Sonnet 4.6 — purpose-built for jobs' },
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-sage-500" />
@@ -537,6 +570,7 @@ export default function Home() {
                     { text: 'Fit score before you apply' },
                     { text: 'Unlimited history + credit rollover (2 months)' },
                     { text: 'Add-on credit packs available' },
+                    { text: 'Claude Sonnet 4.6 — purpose-built for jobs' },
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-sage-500" />
