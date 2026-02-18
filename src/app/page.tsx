@@ -60,25 +60,10 @@ export default function Home() {
 
             {/* Social proof strip */}
             <ScrollReveal delay={600}>
-            <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-warm-gray">
+            <div className="mt-12 flex items-center justify-center text-sm text-warm-gray">
               <div className="flex items-center gap-2">
                 <Globe className="w-4 h-4 text-gold-400" />
                 <span className="font-medium">Built for job seekers worldwide</span>
-              </div>
-              <div className="hidden sm:block w-px h-4 bg-cream-300" />
-              <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-gold-400" />
-                <span className="font-medium">No sign-up required</span>
-              </div>
-              <div className="hidden sm:block w-px h-4 bg-cream-300" />
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-gold-400" />
-                <span className="font-medium">From 45 minutes to 90 seconds per application</span>
-              </div>
-              <div className="hidden sm:block w-px h-4 bg-cream-300" />
-              <div className="flex items-center gap-2">
-                <Cpu className="w-4 h-4 text-gold-400" />
-                <span className="font-medium">Powered by Claude Sonnet 4.6</span>
               </div>
             </div>
             </ScrollReveal>
@@ -328,10 +313,10 @@ export default function Home() {
                   <span className="text-sm font-medium text-warm-gray">by Anthropic</span>
                 </div>
                 <p className="text-lg text-warm-gray leading-relaxed mb-4">
-                  KarKo AI runs on <span className="font-semibold text-charcoal">Claude Sonnet 4.6</span> — one of the most advanced AI models available today. Unlike competitors who rely on cheaper, open-source models, we use a <span className="font-semibold text-charcoal">US-based, frontier-grade AI</span> trusted by leading enterprises worldwide.
+                  KarKo AI runs on <span className="font-semibold text-charcoal">Claude Sonnet 4.6</span>, one of the most advanced AI models available today. Unlike competitors who rely on cheaper, open-source models, we use a <span className="font-semibold text-charcoal">US-based, frontier-grade AI</span> trusted by leading enterprises worldwide.
                 </p>
                 <p className="text-warm-gray leading-relaxed">
-                  On top of that, we&apos;ve built <span className="font-semibold text-charcoal">specialized system prompts and an agentic workflow</span> designed specifically for job applications — so the AI is not just powerful, it&apos;s precisely tuned to produce professional, ATS-optimized, role-specific documents.
+                  On top of that, we&apos;ve built a <span className="font-semibold text-charcoal">specialized system and an agentic workflow</span> designed specifically for job applications, so the AI is not just powerful, it&apos;s precisely tuned to produce professional, ATS-optimized, role-specific documents.
                 </p>
               </div>
             </div>
@@ -339,43 +324,31 @@ export default function Home() {
           </ScrollReveal>
 
           {/* Trust features grid */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              {
-                icon: Cpu,
-                title: 'Frontier AI Model',
-                description: 'Powered by Claude Sonnet 4.6 — the same AI trusted by top enterprises. No cheap shortcuts, no open-source compromises.',
-                accent: 'navy',
-              },
               {
                 icon: Shield,
                 title: 'Zero Fabrication',
                 description: 'Every skill on your CV comes from your actual profile. Nothing invented, nothing inflated. Honest documents you can stand behind.',
-                accent: 'gold',
+                accent: 'navy',
               },
               {
                 icon: TrendingUp,
                 title: 'Honest Fit Score',
-                description: 'See your real match before applying. Matching skills, gaps, and a clear score — no false hope, no wasted time.',
-                accent: 'sage',
-              },
-              {
-                icon: Globe,
-                title: 'US-Based AI',
-                description: 'Built on Anthropic\'s Claude — a US-based AI company. Your data is processed by a trusted, safety-focused provider.',
-                accent: 'navy',
+                description: 'See your real match before applying. Matching skills, gaps, and a clear score. No false hope, no wasted time.',
+                accent: 'gold',
               },
               {
                 icon: Sparkles,
                 title: 'Self-Refining AI',
                 description: 'Not a chatbot. Karko reviews and refines its own output before delivering it to you. Every document goes through multiple quality checks.',
-                accent: 'gold',
+                accent: 'sage',
               },
               {
                 icon: Target,
                 title: 'Specialized for Jobs',
-                description: 'Custom system prompts and an agentic workflow designed only for job applications. Every output is ATS-optimized and role-specific.',
-                accent: 'sage',
+                description: 'A custom system and agentic workflow designed only for job applications. Every output is ATS-optimized and role-specific.',
+                accent: 'gold',
               },
             ].map((feature, i) => {
               const Icon = feature.icon;
@@ -492,7 +465,7 @@ export default function Home() {
                     { text: 'Fit score before you apply' },
                     { text: 'US & EU professional templates' },
                     { text: 'No watermark on any document' },
-                    { text: 'Claude Sonnet 4.6 — specialized for job applications' },
+                    { text: 'Claude Sonnet 4.6, specialized for job applications' },
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-sage-500" />
@@ -552,7 +525,7 @@ export default function Home() {
                     { text: 'Fit score before you apply' },
                     { text: 'Unlimited application history' },
                     { text: 'Add-on credit packs available' },
-                    { text: 'Claude Sonnet 4.6 — specialized for job applications' },
+                    { text: 'Claude Sonnet 4.6, specialized for job applications' },
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-sage-500" />
@@ -573,14 +546,14 @@ export default function Home() {
 
             {/* Pro — Best Value */}
             <ScrollReveal delay={300}>
-            <div className="relative bg-white rounded-2xl border-2 border-sage-400 shadow-lg overflow-hidden card-hover-lift">
-              <div className="bg-sage-500 text-white text-xs font-bold px-4 py-2 text-center">
+            <div className="relative bg-white rounded-2xl border-2 border-navy-400 shadow-lg overflow-hidden card-hover-lift">
+              <div className="bg-navy-600 text-white text-xs font-bold px-4 py-2 text-center">
                 BEST VALUE PER APPLICATION
               </div>
               <div className="p-8 flex flex-col h-full">
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="p-2.5 rounded-xl bg-sage-100">
-                    <Crown className="w-6 h-6 text-sage-500" />
+                  <div className="p-2.5 rounded-xl bg-navy-100">
+                    <Crown className="w-6 h-6 text-navy-600" />
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-charcoal">Pro</h3>
@@ -594,7 +567,7 @@ export default function Home() {
                   </div>
                   <p className="text-xs text-warm-gray mt-1">~$0.42 per application</p>
                   <div className="mt-2">
-                    <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-sage-50 text-sage-600 border border-sage-200">
+                    <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-navy-50 text-navy-600 border border-navy-200">
                       240 credits/month
                     </span>
                   </div>
@@ -606,7 +579,7 @@ export default function Home() {
                     { text: 'Fit score before you apply' },
                     { text: 'Unlimited history + credit rollover (2 months)' },
                     { text: 'Add-on credit packs available' },
-                    { text: 'Claude Sonnet 4.6 — specialized for job applications' },
+                    { text: 'Claude Sonnet 4.6, specialized for job applications' },
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-sage-500" />

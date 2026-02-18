@@ -31,7 +31,7 @@ const tiers = [
       { text: 'Fit score before you apply' },
       { text: 'US & EU professional templates' },
       { text: 'No watermark on any document' },
-      { text: 'Claude Sonnet 4.6 — specialized for job applications' },
+      { text: 'Claude Sonnet 4.6, specialized for job applications' },
     ],
     hoursSaved: '~4 hours saved/month',
     cta: 'Start Free',
@@ -56,7 +56,7 @@ const tiers = [
       { text: 'Fit score before you apply' },
       { text: 'Unlimited application history' },
       { text: 'Add-on credit packs available' },
-      { text: 'Claude Sonnet 4.6 — specialized for job applications' },
+      { text: 'Claude Sonnet 4.6, specialized for job applications' },
     ],
     hoursSaved: '~45 hours saved/month',
     cta: 'Get Plus',
@@ -81,7 +81,7 @@ const tiers = [
       { text: 'Fit score before you apply' },
       { text: 'Unlimited history + credit rollover (2 months)' },
       { text: 'Add-on credit packs available' },
-      { text: 'Claude Sonnet 4.6 — specialized for job applications' },
+      { text: 'Claude Sonnet 4.6, specialized for job applications' },
     ],
     hoursSaved: '~90 hours saved/month',
     cta: 'Get Pro',
@@ -150,7 +150,7 @@ const faqs = [
   },
   {
     question: 'What AI model does KarKo use?',
-    answer: 'KarKo AI runs on Claude Sonnet 4.6 by Anthropic — one of the most capable AI models available for writing and agentic tasks. Unlike competitors who use cheaper open-source models, we use the same US-based, frontier-grade AI trusted by leading enterprises. On top of that, we have built specialized system prompts and a purpose-built agentic workflow designed specifically for job applications — so the model is not just powerful, it is precisely tuned to produce professional, ATS-optimized, role-specific documents.',
+    answer: 'KarKo AI runs on Claude Sonnet 4.6 by Anthropic, one of the most capable AI models available for writing and agentic tasks. Unlike competitors who use cheaper open-source models, we use the same US-based, frontier-grade AI trusted by leading enterprises. On top of that, we have built a specialized system and agentic workflow designed specifically for job applications, so the model is not just powerful, it is precisely tuned to produce professional, ATS-optimized, role-specific documents.',
   },
 ];
 
@@ -289,7 +289,7 @@ export default function PricingPage() {
                     tier.popular
                       ? 'border-gold-400 shadow-xl scale-[1.02]'
                       : tier.bestValue
-                        ? 'border-sage-400 shadow-lg'
+                        ? 'border-navy-400 shadow-lg'
                         : 'border-cream-200 shadow-md'
                   } overflow-hidden transition-all card-hover-lift`}
                 >
@@ -300,7 +300,7 @@ export default function PricingPage() {
                     </div>
                   )}
                   {tier.bestValue && (
-                    <div className="bg-sage-500 text-white text-xs font-bold px-4 py-2 text-center">
+                    <div className="bg-navy-600 text-white text-xs font-bold px-4 py-2 text-center">
                       BEST VALUE PER APPLICATION
                     </div>
                   )}
@@ -313,7 +313,7 @@ export default function PricingPage() {
                           tier.popular
                             ? 'bg-gold-100'
                             : tier.bestValue
-                              ? 'bg-sage-100'
+                              ? 'bg-navy-100'
                               : 'bg-cream-100'
                         }`}
                       >
@@ -322,7 +322,7 @@ export default function PricingPage() {
                             tier.popular
                               ? 'text-gold-500'
                               : tier.bestValue
-                                ? 'text-sage-500'
+                                ? 'text-navy-600'
                                 : 'text-navy-600'
                           }`}
                         />
@@ -349,7 +349,7 @@ export default function PricingPage() {
                           tier.popular
                             ? 'bg-gold-50 text-gold-600 border border-gold-200'
                             : tier.bestValue
-                              ? 'bg-sage-50 text-sage-600 border border-sage-200'
+                              ? 'bg-navy-50 text-navy-600 border border-navy-200'
                               : 'bg-cream-100 text-navy-500 border border-cream-300'
                         }`}>
                           {tier.credits} credits/month

@@ -7,14 +7,14 @@ export default function Footer() {
     <footer className="bg-gradient-to-b from-navy-600 to-navy-800 text-white relative">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-gold-400/40 via-gold-500/60 to-gold-400/40" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid md:grid-cols-4 gap-8">
+        <div className="grid md:grid-cols-4 gap-8 md:gap-6">
           {/* Brand */}
-          <div className="md:col-span-1">
-            <Link href="/" className="flex items-center mb-4">
+          <div className="md:col-span-1 md:-ml-1">
+            <Link href="/" className="flex items-center mb-3">
               <KarkoLogo variant="full" size="lg" theme="dark" />
             </Link>
-            <p className="text-lg font-semibold text-white/90 mb-2">
-              One Click. Complete Job Application. Under 90 Seconds.
+            <p className="text-sm text-navy-200 leading-relaxed">
+              Get your complete job application package in 90 seconds.
             </p>
           </div>
 
