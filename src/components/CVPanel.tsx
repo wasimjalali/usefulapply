@@ -186,6 +186,14 @@ export function CVPanel() {
     
     setIsDownloading(true);
     try {
+      // Build smart filename: always English labels (industry standard for file naming)
+      const sanitize = (s: string) => s.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+      const applicantName = sanitize(cvData.personal.fullName || 'Applicant');
+      const companyName = sanitize(currentSession?.company || '');
+      const pdfTitle = showOptimized && companyName
+        ? `${applicantName}_${companyName}_CV`
+        : `${applicantName}_CV`;
+
       // Create a new window with just the CV content for printing
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
@@ -203,7 +211,7 @@ export function CVPanel() {
         <!DOCTYPE html>
         <html>
         <head>
-          <title>${cvData.personal.fullName || 'CV'} - Resume</title>
+          <title>${pdfTitle}</title>
           <style>
             /* Critical: Hide browser headers and footers */
             @page {

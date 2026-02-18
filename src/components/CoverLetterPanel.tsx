@@ -110,7 +110,18 @@ ${letter.signatureName}`;
     setShowDownloadMenu(false);
     
     try {
-      const companyName = (letterToDownload.companyAddress.companyName || 'Company').replace(/[^a-zA-Z0-9]/g, '-');
+      const sanitize = (s: string) => s.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+      const applicantName = sanitize(
+        letterToDownload.applicantAddress.name ||
+        letterToDownload.signatureName ||
+        structuredCV?.personal.fullName ||
+        'Applicant'
+      );
+      const companyName = sanitize(
+        letterToDownload.companyAddress.companyName ||
+        currentSession?.company ||
+        'Company'
+      );
       const doc = new jsPDF();
       
       const margin = 20;
@@ -226,7 +237,7 @@ ${letter.signatureName}`;
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `Cover-Letter-${companyName}.pdf`;
+      link.download = `${applicantName}_${companyName}_Cover_Letter.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -258,7 +269,18 @@ ${letter.signatureName}`;
     setShowDownloadMenu(false);
     
     try {
-      const companyName = (letterToDownload.companyAddress.companyName || 'Company').replace(/[^a-zA-Z0-9]/g, '-');
+      const sanitize = (s: string) => s.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+      const applicantName = sanitize(
+        letterToDownload.applicantAddress.name ||
+        letterToDownload.signatureName ||
+        structuredCV?.personal.fullName ||
+        'Applicant'
+      );
+      const companyName = sanitize(
+        letterToDownload.companyAddress.companyName ||
+        currentSession?.company ||
+        'Company'
+      );
       
       // Check if this is body-only format (3-agent architecture)
       const isBodyOnly = !letterToDownload.applicantAddress.name && letterToDownload.body;
@@ -335,7 +357,7 @@ ${letter.signatureName}`;
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `Cover-Letter-${companyName}.docx`;
+      link.download = `${applicantName}_${companyName}_Cover_Letter.docx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
