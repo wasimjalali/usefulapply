@@ -20,9 +20,10 @@ export interface FitAssessmentPromptInput {
 export function buildFitAssessmentPrompt(input: FitAssessmentPromptInput): string {
   const { applicant, job, match, masterCV } = input;
 
-  const fitLevel: 'strong' | 'good' | 'weak' = 
-    (match?.score ?? 0) >= 80 ? 'strong' :
-    (match?.score ?? 0) >= 40 ? 'good' : 'weak';
+  const fitLevel: 'strong' | 'good' | 'fair' | 'weak' = 
+    (match?.score ?? 0) >= 85 ? 'strong' :
+    (match?.score ?? 0) >= 70 ? 'good' :
+    (match?.score ?? 0) >= 55 ? 'fair' : 'weak';
 
   // Build experience summary with years and relevance
   const experienceSummary = applicant?.experiences?.map(e => {
@@ -30,29 +31,33 @@ export function buildFitAssessmentPrompt(input: FitAssessmentPromptInput): strin
     return `${e.title} at ${e.company}${duration ? ` (${duration})` : ''}`;
   }).join('; ') || 'Not specified';
 
-  return `You are conducting a professional Job Fit Assessment for a candidate applying to a specific role. Evaluate the candidate using the industry-standard Job Fit Scoring framework across these 5 dimensions, then write a concise assessment.
+  return `You are conducting a professional Job Fit Assessment for a candidate applying to a specific role. Your assessment must be calibrated to industry standards where 70%+ indicates genuine competitiveness and 85%+ indicates strong candidacy.
 
-=== EVALUATION FRAMEWORK ===
-1. SKILLS & COMPETENCY MATCH (Weight: 40%)
-   - How many required technical/hard skills does the candidate possess?
-   - Are there critical must-have skills missing vs. nice-to-have gaps?
-   
-2. EXPERIENCE RELEVANCE (Weight: 25%)
-   - Does the candidate's work history demonstrate relevant domain experience?
-   - Are their past roles at a comparable seniority level?
-   - Do they have industry-specific experience?
+=== EVALUATION FRAMEWORK (Industry-Standard Weighting) ===
 
-3. TRANSFERABLE VALUE (Weight: 15%)
-   - Can existing skills bridge any gaps? (e.g., similar frameworks, adjacent technologies)
-   - Does their career trajectory show ability to learn and adapt?
+**1. MUST-HAVE SKILLS MATCH (Weight: 40%)**
+- What percentage of required technical/hard skills does the candidate possess?
+- Are critical must-haves missing, or just nice-to-haves?
+- Quality of matches: Explicit skills > Semantic matches > Experience-based evidence
 
-4. ROLE READINESS (Weight: 10%)
-   - Could the candidate perform the core responsibilities on day one?
-   - How much ramp-up time would be needed?
+**2. EXPERIENCE RELEVANCE (Weight: 30%)**
+- Years of directly relevant experience in the domain
+- Seniority alignment (Junior/Mid/Senior/Lead)
+- Industry-specific context and knowledge
 
-5. COMPETITIVE POSITIONING (Weight: 10%)
-   - How would this candidate likely compare to the typical applicant pool?
-   - Are there standout qualifications that differentiate them?
+**3. NICE-TO-HAVE SKILLS & COMPETITIVE EDGE (Weight: 15%)**
+- How many preferred/nice-to-have qualifications does the candidate have?
+- Standout differentiators that give them an edge over typical applicants
+- Additional certifications, languages, or specialized skills
+
+**4. TRANSFERABLE VALUE & ADAPTABILITY (Weight: 10%)**
+- Can existing skills in adjacent domains bridge gaps?
+- Career trajectory showing ability to learn and adapt
+- Related frameworks, methodologies, or tech stacks
+
+**5. ROLE READINESS (Weight: 5%)**
+- Day-one performance potential for core responsibilities
+- Estimated ramp-up time needed
 
 === CANDIDATE PROFILE ===
 Name: ${applicant?.name || 'Candidate'}
@@ -82,7 +87,13 @@ Responsibilities: ${job?.responsibilities?.slice(0, 5).map(s => String(s)).join(
 Match Score: ${match?.score ?? 0}%
 Matching Skills: ${match?.matchingSkills?.join(', ') || 'None identified'}
 Missing Skills: ${match?.missingSkills?.join(', ') || 'None identified'}
-Assessed Fit Level: ${fitLevel.toUpperCase()} FIT
+Computed Fit Level: ${fitLevel.toUpperCase()} FIT
+
+Fit Level Definitions (Industry-Aligned):
+- STRONG FIT (85-100%): Highly competitive, excellent match for the role
+- GOOD FIT (70-84%): Solid match with minor gaps, genuinely competitive
+- FAIR FIT (55-69%): Notable gaps but worth applying with preparation
+- WEAK FIT (<55%): Significant gaps, upskilling recommended first
 
 <output_format>
 You MUST output in this exact markdown structure with BLANK LINES between each section. Do NOT deviate:
@@ -133,27 +144,45 @@ Return ONLY the structured assessment. Nothing else.`;
  * Build the fit assessment system prompt
  */
 export function buildFitAssessmentSystemPrompt(): string {
-  return `You are Karko AI, a senior talent acquisition specialist and career coach.
+  return `You are Karko AI, a senior talent acquisition specialist and career coach with expertise in ATS-calibrated candidate assessment.
 
 <assessment_guidelines>
-You evaluate job fit using the industry-standard 5-dimension framework: Skills & Competency Match, Experience Relevance, Transferable Value, Role Readiness, and Competitive Positioning.
+You evaluate job fit using industry-standard methodology calibrated to real-world hiring outcomes:
+- 85%+ = Highly competitive candidate, excellent match
+- 70-84% = Genuinely competitive, solid match (industry standard for advancement)
+- 55-69% = Fair match with gaps, worth applying with preparation
+- <55% = Significant gaps, upskilling recommended
 
-Your assessments follow these principles:
-1. HONESTY: Never sugarcoat weak fits. If the candidate lacks critical skills, say so clearly. If the fit is weak, state it directly.
-2. CONSTRUCTIVENESS: Always identify genuine strengths and transferable value, even in weak fits. Every candidate has something to offer.
-3. SPECIFICITY: Reference actual skill names, tools, and experience from the provided data. Never use vague statements like "you have relevant experience."
-4. ACTIONABILITY: Your recommendation should give the candidate a concrete strategy for their application.
-5. BREVITY: This is critical. The total output MUST be under 150 words. Each bullet must be under 12 words. Cut ruthlessly — short and punchy beats thorough and long. Users scan this in 5 seconds.
-6. PRECISION: Use exactly the numbers and percentages from the computed skill match data. Do not round or approximate.
-7. LANGUAGE: Write in a direct, coaching tone. Address the candidate as "you". Be honest but encouraging — like a mentor who respects the candidate enough to tell the truth.
+**Core Principles:**
+
+1. **INDUSTRY CALIBRATION**: Your assessments align with ATS and recruiter standards. A 70% score means genuinely competitive, not "barely acceptable." Be fair and realistic — neither overly harsh nor artificially generous.
+
+2. **BALANCED HONESTY**: State gaps clearly but also recognize transferable value. Missing one specific tool in a tech stack ≠ unqualified. Acknowledge when adjacent skills or domain experience bridge gaps.
+
+3. **MUST-HAVE vs NICE-TO-HAVE CLARITY**: Missing must-haves impacts core competitiveness. Missing nice-to-haves only impacts competitive edge. Make this distinction clear in your assessment.
+
+4. **SPECIFICITY**: Reference actual skill names, tools, technologies, and experience from the data. Avoid vague statements like "you have relevant experience" — name the specific experience.
+
+5. **ACTIONABILITY**: Your recommendation should give concrete next steps: what to emphasize in the cover letter, which gaps to address, or whether to apply now vs. after upskilling.
+
+6. **BREVITY**: Total output under 150 words. Each bullet under 12 words. Users scan this in 5 seconds.
+
+7. **PRECISION**: Use exact numbers from the computed match data. Don't round or approximate.
+
+8. **ENCOURAGING REALISM**: Like a mentor who tells the truth respectfully. Honest about gaps, but supportive about strengths and next steps.
 </assessment_guidelines>`;
 }
 
 /**
- * Compute the fit level from a score
+ * Compute the fit level from a score (Industry-aligned thresholds)
+ * 85%+ = Strong (highly competitive)
+ * 70-84% = Good (solid match, genuinely competitive)
+ * 55-69% = Fair (notable gaps but worth applying)
+ * <55% = Weak (significant gaps, upskilling recommended)
  */
-export function computeFitLevel(score: number): 'strong' | 'good' | 'weak' {
-  if (score >= 80) return 'strong';
-  if (score >= 40) return 'good';
+export function computeFitLevel(score: number): 'strong' | 'good' | 'fair' | 'weak' {
+  if (score >= 85) return 'strong';
+  if (score >= 70) return 'good';
+  if (score >= 55) return 'fair';
   return 'weak';
 }

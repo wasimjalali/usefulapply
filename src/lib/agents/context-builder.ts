@@ -268,38 +268,51 @@ export async function computeSkillMatch(
       prompt: `You are an expert recruiter performing a skill match analysis. Compare the candidate's skills and experience against the job requirements. Use SEMANTIC matching — skills don't need to be exact string matches.
 
 <matching_rules>
-STRICT SKILL MATCHING RULE (HIGHEST PRIORITY — OVERRIDES ALL OTHER MATCHING LOGIC):
+SKILL MATCHING HIERARCHY — Apply in this order:
 
-A skill can ONLY be classified as "matching" if it appears EXPLICITLY and BY NAME in the applicant's Primary CV or Master CV. 
+**TIER 1: EXPLICIT SKILL MATCH (Highest Confidence)**
+A skill is explicitly matching if the EXACT skill name, tool, or technology (or a direct synonym) appears in the applicant's Primary CV or Master CV.
 
-Do NOT infer skills from adjacent or related experience. Specific examples:
-- "Amazon PPC Campaign Management" in CV does NOT mean "Sponsored Products", "Sponsored Brands", or "Sponsored Display" are matching. These are specific ad product names. Unless the CV literally says "Sponsored Products," list each as MISSING.
-- "Amazon Seller Central management" does NOT mean "Amazon Advertising Console" is matching. These are different platforms.
-- "Google SEO fundamentals" does NOT mean "SEO best practices" or "technical SEO" is matching. The specific level matters.
-- "Social media marketing" does NOT mean specific platform expertise (e.g., "TikTok Shop management") is matching.
-- "Supply chain from China sourcing" does NOT mean "inventory management systems" is matching.
-- General experience in a domain does NOT mean specific tools, methodologies, or sub-specializations within that domain are matching.
+Examples of EXPLICIT matches:
+- "Python" in JD, "Python" in CV → MATCH
+- "Node.js" in JD, "Node" in CV → MATCH (synonym)
+- "Salesforce" in JD, "Salesforce CRM" in CV → MATCH (same tool, fuller name)
+- "German (C1)" in JD, "German (C1)" in CV → MATCH
 
-The test: Can you point to the EXACT words in the Primary CV or Master CV that name this skill? If yes → MATCHING. If you have to INFER, ASSUME, or DERIVE it → MISSING.
+Examples of NOT explicit matches (different tools/products):
+- "Google Analytics" in JD, only "Google SEO" in CV → NOT a match (different Google products)
+- "Amazon Advertising Console" in JD, only "Amazon Seller Central" in CV → NOT a match (different platforms)
+- "Sponsored Products" in JD, only "Amazon PPC" in CV → NOT a match (PPC is broader than specific ad types)
+- "TypeScript" in JD, only "JavaScript" in CV → NOT a match (different languages)
 
-When uncertain, ALWAYS classify as MISSING. It is better to understate matches than to fabricate them. The applicant can address gaps in their cover letter — but a fabricated skill match that appears in their CV will destroy credibility in an interview.
+**TIER 2: SEMANTIC SKILL MATCH (Medium Confidence)**
+A skill is semantically matching if:
+- Cross-language equivalent: "Project Management" (EN) = "Projektmanagement" (DE)
+- Broader category contains specific: "React" in CV matches "Frontend frameworks" in JD
+- Specific tool within category: "PostgreSQL" in CV matches "SQL databases" in JD
+- Related technologies in same ecosystem: "AWS Lambda" in CV provides evidence for "AWS cloud services" in JD
 
-1. CROSS-LANGUAGE MATCHING: Skills expressed in different languages that refer to the same concept or domain are matches. A skill in English and its equivalent in German (or any other language) should be matched if they describe the same competency area.
-2. CONCEPTUAL MATCHING: Skills that are closely related within the same professional domain count as matches. A specific tool matches a broader category it belongs to, and vice versa.
-3. EXPERIENCE-BASED MATCHING: If the candidate's work experience clearly demonstrates a competency even though it is not explicitly listed as a skill, count it as a match. Years of self-employment demonstrate independence; teaching experience demonstrates communication skills; managing suppliers demonstrates coordination skills.
-4. LANGUAGE PROFICIENCY: Match language requirements honestly using CEFR standards. B2 does NOT match requirements for "verhandlungssicher" or "business-fluent" (which require C1-C2). C1+ or "Fluent" CAN match "verhandlungssicher." Native speakers match native-level requirements.
-5. SOFT SKILLS: Match soft skills based on demonstrated experience in the candidate's work history, not just listed keywords.
-6. PARTIAL MATCHES: If the candidate has genuinely related experience in the same domain, count it as a match.
-7. HONESTY: Do not inflate. If there is genuinely no connection between a required skill and anything in the candidate's profile, mark it as missing.
-8. MATCHING ACCURACY: A skill is MATCHING only if the EXACT tool/technology (or a direct synonym) appears in the applicant's documents.
-   NOT matches (different products/tools):
-   - "Google SEO Fundamentals" ≠ "Google Analytics"
-   - "Amazon Seller Central" ≠ "Amazon Advertising Console"
-   - "JavaScript" ≠ "Python"
-   ARE matches (same tool, different naming):
-   - "Node.js" = "Node"
-   - "Helium 10" = "Helium10"
-   When uncertain, mark as MISSING. False negatives are far less harmful than false positives.
+**TIER 3: EXPERIENCE-BASED MATCH (Lower Confidence — Use Sparingly)**
+Only count as matching if the candidate's work history provides CLEAR, REPEATED evidence:
+- 5+ years self-employment demonstrates "Independent work" or "Entrepreneurship"
+- Teaching role demonstrates "Communication skills" or "Public speaking"
+- Led a team of 10 demonstrates "Team leadership" or "People management"
+- Managed international suppliers demonstrates "Cross-cultural communication"
+
+**MATCHING DECISION TREE:**
+1. Is the exact skill/tool name in the CV? → YES = Tier 1 MATCH
+2. If no, is it a semantic equivalent or broader/narrower match? → YES = Tier 2 MATCH
+3. If no, does their work experience provide clear repeated evidence? → YES = Tier 3 MATCH
+4. If no → MISSING
+
+**LANGUAGE PROFICIENCY MATCHING:**
+- B2 matches: "B2", "upper intermediate", "professional working proficiency"
+- B2 does NOT match: "C1", "fluent", "verhandlungssicher" (negotiation-level), "business fluent"
+- C1+ matches: "C1", "C2", "fluent", "verhandlungssicher", "business fluent"
+- Native matches: "Native", "Muttersprache", "mother tongue"
+
+**HONESTY PRINCIPLE:**
+When uncertain between two tiers, choose the LOWER tier (more conservative). It's better to slightly undercount than to overstate. The applicant can bridge gaps in their cover letter.
 </matching_rules>
 
 === CANDIDATE SKILLS (from extracted profile) ===
@@ -319,32 +332,55 @@ ${requiredSkills.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
 === FIT SCORE CALCULATION METHOD (FOLLOW THIS EXACTLY) ===
 
-Step 1: List all MUST-HAVE requirements from the job description (typically marked as "Required", "Must Have", or stated without "nice to have"/"plus" qualifiers).
+**STEP 1: Calculate Must-Have Match Rate**
+Identify all MUST-HAVE requirements (marked as "Required", "Essential", "Must Have", or listed without "nice to have"/"preferred"/"plus" qualifiers).
 
-Step 2: For each must-have, mark as MET only if the applicant has the skill classified as MATCHING per the Strict Skill Matching Rule above. Do not count inferred skills.
+For each must-have, classify as:
+- MET (Tier 1: explicit match in CV)
+- PARTIAL (Tier 2: semantic match OR Tier 3: experience-based evidence)
+- MISSING (no match in any tier)
 
-Step 3: Calculate base score:
-  base_score = (number of MET must-haves / total must-haves) x 100
+Base Score Formula:
+base_score = [(MET × 1.0) + (PARTIAL × 0.6)] / total_must_haves × 100
 
-Step 4: Apply adjustments (max +/-10 points total):
-  +5 if applicant has 2+ relevant nice-to-haves
-  +5 if applicant has directly related industry experience
-  -5 if applicant is missing a PRIMARY requirement (e.g., the main programming language, the core platform, a required degree)
-  -5 if the role requires experience the applicant has zero exposure to
+Example: 10 must-haves, 6 MET, 2 PARTIAL, 2 MISSING
+base_score = [(6 × 1.0) + (2 × 0.6)] / 10 × 100 = 72%
 
-Step 5: Apply hard caps:
-  - If applicant is missing the PRIMARY programming language or technical stack → cap at 55%
-  - If applicant is missing 50%+ of must-have requirements → cap at 50%
-  - If applicant matches nearly all must-haves with only 1-2 tool gaps → floor at 65%
-  - Never score above 85% unless applicant meets ALL must-haves
+**STEP 2: Apply Nice-to-Have Bonus (up to +10 points)**
+For each nice-to-have skill the applicant HAS:
+- +2 points per matched nice-to-have (maximum +10 points total)
+- This rewards competitive differentiation without over-inflating the score
 
-Step 6: Apply labels:
-  - 80-100%: STRONG FIT (green) — matches nearly all requirements
-  - 60-79%: GOOD FIT (yellow) — solid match with some gaps
-  - 40-59%: FAIR FIT (yellow) — notable gaps but transferable strengths
-  - Below 40%: WEAK FIT (red) — significant gaps, consider upskilling first
+Example: 3 nice-to-haves matched → +6 points
 
-IMPORTANT: An honest 50% score with clear gap flagging is MORE VALUABLE to the user than an inflated 78% that leads to interview embarrassment. Our product's credibility depends on honest assessment.
+**STEP 3: Apply Experience & Transferable Skills Adjustments (up to ±10 points)**
+Positive adjustments:
+- +5 points: Directly relevant industry experience (2+ years in same domain)
+- +3 points: Strong transferable skills in adjacent domain (e.g., React dev applying for Vue role)
+- +3 points: Higher seniority level than required (Senior applying for Mid-level)
+
+Negative adjustments:
+- -8 points: Missing THE PRIMARY requirement (e.g., main programming language for dev role, core certification for specialized role)
+- -5 points: Missing a CRITICAL requirement (e.g., required security clearance, mandatory license)
+- -7 points: Zero relevant experience in the domain (e.g., retail background applying for ML engineer)
+- -3 points: Significantly lower seniority than required (Junior applying for Lead role)
+
+Maximum total adjustments in Step 3: -10 to +10 points
+
+**STEP 4: Apply Smart Caps & Floors**
+- If missing 70%+ of must-haves → cap at 50% (too many critical gaps)
+- If missing PRIMARY requirement BUT has strong Tier 2 matches in same domain → floor at 60% (transferable potential)
+- If matches 90%+ of must-haves + 3+ nice-to-haves → allow up to 95%
+- Never exceed 95% unless applicant meets ALL must-haves + majority of nice-to-haves (reserve 96-100% for unicorn candidates)
+
+**STEP 5: Apply Industry-Aligned Labels**
+- 85-100%: STRONG FIT — Highly competitive, excellent match
+- 70-84%: GOOD FIT — Solid match with minor gaps, worth applying
+- 55-69%: FAIR FIT — Notable gaps but transferable strengths, apply with preparation
+- Below 55%: WEAK FIT — Significant gaps, upskilling recommended before applying
+
+**CALIBRATION PRINCIPLE:**
+A 70% score should mean the candidate is genuinely competitive for the role. Our scoring is optimized to match industry ATS standards where 70%+ typically advances to human review. Be fair but realistic — neither overly conservative nor overly generous.
 
 === COMPETITIVE ADVANTAGE DETECTION ===
 
@@ -382,7 +418,7 @@ Where:
 - "score" = fit percentage calculated using the FIT SCORE CALCULATION METHOD above (not a simple ratio)
 
 Return ONLY valid JSON, no explanation.`,
-      systemPrompt: 'You are a precise skill matching engine. Return only valid JSON. Be fair but honest — count semantic and cross-language matches, but never inflate.',
+      systemPrompt: 'You are an expert ATS-calibrated skill matching engine. Return only valid JSON. Use the tier-based matching hierarchy: explicit matches first, semantic matches second, experience-based evidence third. Be fair and realistic — follow industry standards where 70%+ indicates genuine competitiveness. Never inflate scores, but also avoid excessive conservatism that undervalues transferable skills.',
       jsonMode: true,
     });
 

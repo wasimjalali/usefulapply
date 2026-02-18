@@ -463,6 +463,92 @@ Standardized all CV templates to use system fonts only:
 
 ---
 
+## FIT Assessment Optimization — Industry-Aligned Scoring
+
+**Date:** February 18, 2026
+
+### Problem Statement
+The original FIT scoring system was overly conservative, with harsh penalties that didn't align with industry ATS standards. Key issues:
+1. **Too conservative ranges** - 40-79% labeled as "good" (industry: 70%+ is genuinely competitive)
+2. **Harsh caps** - max score capped at 50-55% even with transferable skills
+3. **Under-weighted nice-to-haves** - only +5 for 2+ nice-to-haves (should be +2 per skill up to +10)
+4. **Conflicting matching rules** - both "strict" and "semantic" rules created confusion
+5. **Narrow adjustment range** - max ±10 points insufficient for real-world variation
+
+### Research & Findings
+Industry research (Recruiterflow, ZYTHR, x0pa, Weekday, JobQuest) confirmed:
+- **85-100%**: Excellent/Strong match - highly competitive
+- **70-84%**: Good match - genuinely competitive, industry standard for ATS advancement
+- **55-69%**: Fair match - notable gaps but worth applying with preparation
+- **<55%**: Weak match - significant gaps, upskilling recommended
+- **Skills weighting**: 40% must-haves, 30% experience, 15% nice-to-haves, 10% transferable, 5% readiness
+- **Nice-to-haves bonus**: +2 per skill (max +10) to reward competitive differentiation
+
+### Changes Implemented
+
+#### 1. Updated Score Calculation (`context-builder.ts`)
+**New 5-step methodology:**
+- **Step 1**: Must-have match rate with tiered scoring (MET=1.0, PARTIAL=0.6, MISSING=0.0)
+- **Step 2**: Nice-to-have bonus (+2 per skill, max +10 points)
+- **Step 3**: Experience & transferable skills adjustments (±10 points total)
+- **Step 4**: Smart caps & floors (less harsh, allow transferable potential)
+- **Step 5**: Industry-aligned labels (85%+ strong, 70-84% good, 55-69% fair, <55% weak)
+
+**Improved matching hierarchy:**
+- **Tier 1**: Explicit skill match (highest confidence) - exact skill name in CV
+- **Tier 2**: Semantic match (medium confidence) - cross-language, broader/narrower equivalents
+- **Tier 3**: Experience-based match (lower confidence) - clear repeated evidence only
+
+#### 2. Updated Fit Level Thresholds
+**Old thresholds:**
+- Strong: 80%+
+- Good: 40-79%
+- Weak: <40%
+
+**New thresholds (industry-aligned):**
+- Strong: 85-100% (highly competitive, excellent match)
+- Good: 70-84% (solid match, genuinely competitive)
+- Fair: 55-69% (notable gaps but worth applying)
+- Weak: <55% (significant gaps, upskilling recommended)
+
+#### 3. Enhanced System Prompts
+**Skill matching system prompt** - Now emphasizes:
+- ATS calibration: 70%+ means genuinely competitive
+- Tier-based hierarchy: explicit > semantic > experience-based
+- Balance: neither overly harsh nor artificially generous
+- Transferable skills: don't undervalue adjacent domain experience
+
+**Fit assessment system prompt** - Now includes:
+- Industry calibration principles (70% = competitive, not "barely acceptable")
+- Balanced honesty (recognize transferable value, not just gaps)
+- Must-have vs nice-to-have clarity
+- Encouraging realism (mentor tone, honest but supportive)
+
+#### 4. Type System Updates
+- Added `'fair'` to `fitLevel` type in `types.ts`
+- Updated `computeFitLevel()` function with new thresholds and documentation
+- Added 🟠 orange emoji for fair fit level in UI (`useAgentWorkflow.ts`)
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `src/lib/agents/context-builder.ts` | New 5-step scoring methodology, tier-based matching hierarchy, improved system prompt |
+| `src/lib/agents/prompts/fit-assessment-prompt.ts` | Updated thresholds (85/70/55), new weighting framework, industry-calibrated system prompt, `computeFitLevel()` with 4 levels |
+| `src/lib/agents/types.ts` | Added `'fair'` to fitLevel type |
+| `src/components/chat/useAgentWorkflow.ts` | Added fair fit level display logic with 🟠 emoji |
+
+### Impact
+- **More realistic scores**: 70%+ now correctly represents competitive candidates
+- **Better nice-to-have recognition**: +2 per skill (max +10) vs. flat +5 bonus
+- **Clearer matching logic**: Tier-based hierarchy eliminates confusion
+- **Less harsh penalties**: Transferable skills properly valued, floors at 60% vs 50%
+- **Industry alignment**: Matches ATS standards where 70%+ advances to human review
+
+### Calibration Principle
+A 70% score now means the candidate is **genuinely competitive** for the role, not "barely acceptable." The system is optimized for Claude Sonnet 4.6's reasoning capabilities with clear, hierarchical instructions and industry-backed methodology.
+
+---
+
 ## Changelog
 
 | Date | Change | Files | Details |
@@ -503,4 +589,5 @@ Standardized all CV templates to use system fonts only:
 | Feb 17, 2026 | CV Template Font Standardization | USModernATSTemplate.tsx, GermanATSTemplate.tsx, USProfessionalTemplate.tsx | Standardized all templates to system fonts: Arial body + Georgia headers. Removed misleading Google Fonts references. ATS-optimized font stack for maximum compatibility. |
 | Feb 17, 2026 | Homepage sections redesign: merge + reorder | page.tsx | Merged "Built Different" (cold navy) + "Complete Package" (repetitive) into single "What You Get" section with warm cream/gold palette. Swapped CTA above Master CV for conversion momentum. Removed unused CountUp import. |
 | Feb 17, 2026 | Homepage: expand 3 steps into full sections | page.tsx | Replaced compact 3-column step cards + separate "What You Get" section (repetitive) with 3 expanded step sections. Step 1: Upload Your CV (2-col with extraction details). Step 2: Paste Any Job Description (2-col reversed with AI analysis details). Step 3: Get Four Ready-to-Send Documents (4 deliverable cards + trust signals). Removed all em dashes from user-facing text. Simplified titles to plain language. |
+| Feb 18, 2026 | FIT assessment optimization: industry-aligned scoring | context-builder.ts, fit-assessment-prompt.ts, types.ts, useAgentWorkflow.ts | **Root cause**: Overly conservative scoring (40-79% = "good"), harsh caps (max 50-55%), under-weighted nice-to-haves (+5 flat), conflicting matching rules. **Research**: Industry standards show 70%+ = genuinely competitive, 85%+ = strong. **Fix**: New 5-step scoring (base + nice-to-haves +2 each max +10 + experience ±10 + smart caps/floors + industry labels). Updated thresholds: 85%+ strong, 70-84% good, 55-69% fair, <55% weak. Tier-based matching hierarchy (explicit > semantic > experience-based). Enhanced system prompts for Claude Sonnet 4.6 with ATS calibration principles. Added 'fair' fit level with 🟠 emoji. Now matches industry ATS standards where 70%+ advances to human review. |
 | Jun 2025 | Deep Clean & Audit | 35 files deleted, CLAUDE.md updated | Removed 14 orphaned source files (2,364 lines), 6 orphaned public assets, 2 empty directories, 13 obsolete .md docs (4,633 lines). Total: ~7,000 lines of dead code/docs removed. Zero regressions. |

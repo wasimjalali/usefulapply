@@ -189,7 +189,7 @@ export interface MasterContext {
 
   // Fit analysis result (pre-generation assessment)
   fitAnalysis?: {
-    fitLevel: 'strong' | 'good' | 'weak';
+    fitLevel: 'strong' | 'good' | 'fair' | 'weak';
     score: number;           // 0-100 from computeSkillMatch
     assessment: string;      // 1-2 paragraph AI-written assessment
     matchingSkills: string[];

@@ -277,8 +277,14 @@ export function useAgentWorkflow() {
                   company: job?.companyName,
                 });
                 
-                const fitEmoji = fitAnalysis.fitLevel === 'strong' ? '🟢' : fitAnalysis.fitLevel === 'good' ? '🟡' : '🔴';
-                const fitLabel = fitAnalysis.fitLevel === 'strong' ? 'Strong Fit' : fitAnalysis.fitLevel === 'good' ? 'Good Fit' : 'Weak Fit';
+                const fitEmoji = 
+                  fitAnalysis.fitLevel === 'strong' ? '🟢' : 
+                  fitAnalysis.fitLevel === 'good' ? '🟡' : 
+                  fitAnalysis.fitLevel === 'fair' ? '🟠' : '🔴';
+                const fitLabel = 
+                  fitAnalysis.fitLevel === 'strong' ? 'Strong Fit' : 
+                  fitAnalysis.fitLevel === 'good' ? 'Good Fit' : 
+                  fitAnalysis.fitLevel === 'fair' ? 'Fair Fit' : 'Weak Fit';
                 
                 // Limit skills display: max 10 per section, ~300 chars each
                 const MAX_SKILLS_SHOWN = 6;
