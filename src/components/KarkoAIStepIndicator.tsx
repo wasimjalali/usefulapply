@@ -58,25 +58,25 @@ export function KarkoAIStepIndicator({
         <div className={`flex items-center gap-4 p-4 rounded-lg transition-all ${
           isComplete 
             ? 'bg-gold-50 border border-gold-200' 
-            : 'bg-navy-50 border border-navy-200'
+            : 'bg-cream-100 border border-cream-300'
         }`}>
           {/* Icon */}
           <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
-            isComplete ? 'bg-gold-100' : 'bg-navy-100'
+            isComplete ? 'bg-gold-100' : 'bg-cream-200'
           }`}>
             {isLoading ? (
-              <Loader2 className="w-6 h-6 animate-spin text-navy-600" />
+              <Loader2 className="w-6 h-6 animate-spin text-gold-500" />
             ) : isComplete ? (
               <CheckCircle2 className="w-6 h-6 text-gold-600" />
             ) : (
-              <StepIcon className="w-6 h-6 text-navy-600" />
+              <StepIcon className="w-6 h-6 text-warm-gray" />
             )}
           </div>
 
           {/* Text */}
           <div className="flex-grow">
             <h3 className={`text-base font-semibold ${
-              isComplete ? 'text-gold-700' : 'text-navy-700'
+              isComplete ? 'text-gold-700' : 'text-navy-800'
             }`}>
               {config.title}
             </h3>
@@ -88,7 +88,7 @@ export function KarkoAIStepIndicator({
           {/* Status */}
           <div className="flex-shrink-0">
             {isLoading && (
-              <span className="text-xs text-navy-500 font-medium">Processing...</span>
+              <span className="text-xs text-gold-600 font-medium">Processing...</span>
             )}
             {isComplete && (
               <span className="text-xs text-gold-600 font-medium">Done</span>

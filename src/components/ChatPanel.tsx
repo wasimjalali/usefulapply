@@ -86,6 +86,13 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
     scrollToBottom();
   }, [currentSession?.chatMessages, isTyping]);
 
+  // Auto-scroll when agent starts working
+  useEffect(() => {
+    if (isAgentWorking && agentSteps.length > 0) {
+      scrollToBottom();
+    }
+  }, [isAgentWorking, agentSteps]);
+
   const messages = currentSession?.chatMessages || [];
 
   const handleFeedbackClick = (messageId: string, content: string, type: 'positive' | 'negative') => {

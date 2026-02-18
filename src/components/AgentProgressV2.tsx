@@ -249,7 +249,7 @@ export function AgentProgressV2({
                 step.status === 'completed' 
                   ? 'bg-gold-50 text-navy-700 border border-gold-200' 
                   : step.status === 'running' 
-                    ? 'bg-navy-50 text-navy-700 border border-navy-200' 
+                    ? 'bg-cream-100 text-navy-700 border border-cream-300' 
                     : step.status === 'error' 
                       ? 'bg-red-50 text-red-600 border border-red-200'
                       : 'bg-cream-50 text-warm-gray border border-cream-200'
@@ -260,11 +260,11 @@ export function AgentProgressV2({
                 step.status === 'completed' 
                   ? 'bg-gold-100' 
                   : step.status === 'running' 
-                    ? 'bg-navy-100' 
+                    ? 'bg-cream-200' 
                     : 'bg-cream-100'
               }`}>
                 {step.status === 'running' ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-navy-600" />
+                  <Loader2 className="w-4 h-4 animate-spin text-gold-500" />
                 ) : step.status === 'completed' ? (
                   <CheckCircle2 className="w-4 h-4 text-gold-600" />
                 ) : step.status === 'error' ? (
@@ -284,7 +284,7 @@ export function AgentProgressV2({
                 <span className="text-xs text-gold-600 font-medium">Done</span>
               )}
               {step.status === 'running' && (
-                <span className="text-xs text-navy-500">Processing...</span>
+                <span className="text-xs text-gold-600 font-medium">Processing...</span>
               )}
             </div>
           );
