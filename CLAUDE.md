@@ -385,6 +385,51 @@ supabase/migrations/create_contact_submissions.sql
 
 ---
 
+## Prompt Caching Audit — Claude Sonnet 4.6
+
+**Date:** February 18, 2026
+
+### Summary
+Prompt caching is **correctly configured for the direct Anthropic API path** but **has no effect on the Amazon Bedrock path** (production). Sonnet 4.6 is confirmed supported for caching on the direct API but is **not yet listed** in the AWS Bedrock prompt caching supported models table as of Feb 2026.
+
+### What IS Correctly Configured ✅
+- **`cache_control: { type: 'ephemeral' }` syntax** — correct for Anthropic API
+- **Minimum token threshold** — Sonnet 4.6 requires 1,024 tokens min. CV prompt (~3,000+ tokens) and cover letter prompt (~1,500+ tokens) both exceed this ✅
+- **Cache breakpoint placement** — static system blocks first, `cache_control` at end of static block, dynamic user prompt after ✅
+- **Cache metrics tracking (non-streaming)** — `cache_creation_input_tokens` and `cache_read_input_tokens` correctly read from response ✅
+- **Cache metrics tracking (streaming)** — **Fixed Feb 18, 2026** — streaming path now also captures cache tokens from `message_start` event
+
+### What Is NOT Working ⚠️
+- **Bedrock path does NOT support Sonnet 4.6 caching** — AWS Bedrock prompt caching supported models table (as of Feb 2026) only lists up to Sonnet 4.5. `claude-sonnet-4-6` is not listed. The `cache_control` blocks are silently ignored on Bedrock — no error, no cache savings.
+- **`BedrockBearerTokenClient` strips `cache_control`** — intentional, since Bedrock Converse API uses a different format. When Bedrock adds Sonnet 4.6 caching support, this client will need updating.
+- **Fit assessment, email, follow-up email prompts** — use plain `systemPrompt` strings (no `systemBlocks`), so no caching even on direct API. These are candidates for future caching optimization.
+
+### Which Calls Use Caching (Direct API only)
+| Task | Caching | System Prompt Size |
+|------|---------|-------------------|
+| `optimize_cv` | ✅ `systemBlocks` with `cache_control` | ~3,000+ tokens |
+| `write_cover_letter` | ✅ `systemBlocks` with `cache_control` | ~1,500+ tokens |
+| `fit_assessment` | ❌ plain `systemPrompt` string | ~500 tokens |
+| `write_email` | ❌ plain `systemPrompt` string | ~800 tokens |
+| `write_follow_up_email` | ❌ plain `systemPrompt` string | ~600 tokens |
+| All context-builder tasks | ❌ plain `systemPrompt` string | small |
+
+### Pricing Impact (Direct API, when caching works)
+- Cache write: 1.25× base input price (one-time per 5 min window)
+- Cache read: 0.1× base input price (90% discount on cached tokens)
+- For CV optimization: ~3,000 tokens cached → saves ~$0.008 per cache hit at Sonnet 4.6 pricing
+
+### Action Required
+- **Monitor AWS Bedrock release notes** for Sonnet 4.6 prompt caching support. When added, update `BedrockBearerTokenClient` to pass `cache_control` in the Bedrock format.
+- No code changes needed for direct API path — caching is correctly implemented.
+
+### Files
+- `src/lib/models/anthropic.ts` — `callAnthropic()` (non-streaming) and `callAnthropicStream()` (streaming, fixed Feb 18)
+- `src/lib/agents/prompts/cv-prompt.ts` — `buildCVOptimizationSystemBlocks()` with `cache_control`
+- `src/lib/agents/prompts/cover-letter-prompt.ts` — `buildCoverLetterSystemBlocks()` with `cache_control`
+
+---
+
 ## CV Template Font Standardization
 
 **Date:** February 17, 2026

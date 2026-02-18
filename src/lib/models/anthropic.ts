@@ -258,6 +258,8 @@ export async function callAnthropicStream(
   let fullContent = '';
   let inputTokens = 0;
   let outputTokens = 0;
+  let cacheCreationTokens = 0;
+  let cacheReadTokens = 0;
   
   // For JSON mode, enhance the system prompt
   let finalSystemPrompt = systemPrompt || '';
@@ -326,6 +328,12 @@ export async function callAnthropicStream(
       
       if (event.type === 'message_start' && event.message.usage) {
         inputTokens = event.message.usage.input_tokens;
+        const usage = event.message.usage as unknown as Record<string, number>;
+        cacheCreationTokens = usage.cache_creation_input_tokens || 0;
+        cacheReadTokens = usage.cache_read_input_tokens || 0;
+        if (cacheCreationTokens > 0 || cacheReadTokens > 0) {
+          console.log(`[Anthropic Cache Stream] write=${cacheCreationTokens} read=${cacheReadTokens} input=${inputTokens}`);
+        }
       }
     }
     
@@ -334,6 +342,8 @@ export async function callAnthropicStream(
       usage: {
         inputTokens,
         outputTokens,
+        cacheCreationInputTokens: cacheCreationTokens || undefined,
+        cacheReadInputTokens: cacheReadTokens || undefined,
       },
       model: MODEL_ID,
       provider: USE_BEDROCK ? 'bedrock' : 'anthropic',
