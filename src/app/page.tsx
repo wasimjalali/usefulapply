@@ -323,45 +323,47 @@ export default function Home() {
           </div>
           </ScrollReveal>
 
-          {/* Trust features grid */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Trust features — horizontal cards, one per row */}
+          <div className="grid sm:grid-cols-2 gap-5">
             {[
               {
                 icon: Shield,
                 title: 'Zero Fabrication',
-                description: 'Every skill on your CV comes from your actual profile. Nothing invented, nothing inflated. Honest documents you can stand behind.',
+                description: 'Every skill on your CV comes from your actual profile. Nothing invented, nothing inflated.',
                 accent: 'navy',
               },
               {
                 icon: TrendingUp,
                 title: 'Honest Fit Score',
-                description: 'See your real match before applying. Matching skills, gaps, and a clear score. No false hope, no wasted time.',
+                description: 'See your real match before applying. Matching skills, gaps, and a clear score.',
                 accent: 'gold',
               },
               {
                 icon: Sparkles,
                 title: 'Self-Refining AI',
-                description: 'Not a chatbot. Karko reviews and refines its own output before delivering it to you. Every document goes through multiple quality checks.',
-                accent: 'sage',
+                description: 'Karko reviews and refines its own output before delivering it to you.',
+                accent: 'navy',
               },
               {
                 icon: Target,
                 title: 'Specialized for Jobs',
-                description: 'A custom system and agentic workflow designed only for job applications. Every output is ATS-optimized and role-specific.',
+                description: 'A custom system and agentic workflow designed only for job applications.',
                 accent: 'gold',
               },
             ].map((feature, i) => {
               const Icon = feature.icon;
-              const iconBg = feature.accent === 'navy' ? 'bg-navy-100' : feature.accent === 'gold' ? 'bg-gold-100' : 'bg-sage-100';
-              const iconColor = feature.accent === 'navy' ? 'text-navy-600' : feature.accent === 'gold' ? 'text-gold-500' : 'text-sage-600';
+              const iconBg = feature.accent === 'navy' ? 'bg-navy-100' : 'bg-gold-100';
+              const iconColor = feature.accent === 'navy' ? 'text-navy-600' : 'text-gold-500';
               return (
                 <ScrollReveal key={i} delay={i * 80}>
-                <div className="bg-white rounded-2xl p-8 border border-cream-200 shadow-sm hover:shadow-md hover:border-gold-300/50 transition-all group">
-                  <div className={`w-14 h-14 ${iconBg} rounded-xl flex items-center justify-center mb-5 group-hover:scale-105 transition-transform`}>
-                    <Icon className={`w-7 h-7 ${iconColor}`} />
+                <div className="bg-white rounded-2xl p-6 border border-cream-200 shadow-sm hover:shadow-md hover:border-gold-300/50 transition-all group flex items-center gap-5">
+                  <div className={`w-12 h-12 ${iconBg} rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform`}>
+                    <Icon className={`w-6 h-6 ${iconColor}`} />
                   </div>
-                  <h4 className="text-lg font-bold text-navy-600 mb-2">{feature.title}</h4>
-                  <p className="text-warm-gray leading-relaxed">{feature.description}</p>
+                  <div>
+                    <h4 className="text-base font-bold text-navy-600 mb-1">{feature.title}</h4>
+                    <p className="text-sm text-warm-gray leading-relaxed">{feature.description}</p>
+                  </div>
                 </div>
                 </ScrollReveal>
               );

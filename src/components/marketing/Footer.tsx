@@ -9,11 +9,11 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid md:grid-cols-4 gap-8 md:gap-6">
           {/* Brand */}
-          <div className="md:col-span-1 md:-ml-1">
+          <div className="md:col-span-1">
             <Link href="/" className="flex items-center mb-3">
               <KarkoLogo variant="full" size="lg" theme="dark" />
             </Link>
-            <p className="text-sm text-navy-200 leading-relaxed">
+            <p className="text-sm text-white/90 leading-relaxed max-w-[280px]">
               Get your complete job application package in 90 seconds.
             </p>
           </div>
