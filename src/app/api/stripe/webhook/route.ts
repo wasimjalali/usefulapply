@@ -91,10 +91,14 @@ async function upsertSubscription(opts: {
 }
 
 export async function POST(req: NextRequest) {
+  console.log('[Stripe Webhook] POST received');
+  console.log('[Stripe Webhook] ENV check: WEBHOOK_SECRET set:', !!process.env.STRIPE_WEBHOOK_SECRET, 'SERVICE_ROLE set:', !!process.env.SUPABASE_SERVICE_ROLE_KEY, 'SUPABASE_URL set:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+
   const body = await req.text();
   const signature = req.headers.get('stripe-signature');
 
   if (!signature) {
+    console.error('[Stripe Webhook] No stripe-signature header');
     return NextResponse.json({ error: 'No signature' }, { status: 400 });
   }
 
@@ -106,12 +110,12 @@ export async function POST(req: NextRequest) {
       signature,
       process.env.STRIPE_WEBHOOK_SECRET!
     );
-  } catch (err) {
-    console.error('Webhook signature verification failed:', err);
+  } catch (err: any) {
+    console.error('[Stripe Webhook] Signature verification FAILED:', err?.message || err);
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
-  console.log('[Stripe Webhook]', event.type);
+  console.log('[Stripe Webhook] Event verified:', event.type, 'id:', event.id);
 
   try {
     switch (event.type) {

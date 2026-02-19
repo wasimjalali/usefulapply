@@ -75,22 +75,28 @@ export async function disconnectAccount(
  * Get user's subscription
  */
 export async function getSubscription(userId: string): Promise<Subscription | null> {
-  const supabase = getUntypedSupabase();
+  try {
+    const supabase = getUntypedSupabase();
 
-  const { data, error } = await supabase
-    .from('subscriptions')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .single();
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .single();
 
-  if (error) {
-    if (error.code === 'PGRST116') return null; // No rows
-    console.error('Error fetching subscription:', error);
+    if (error) {
+      if (error.code === 'PGRST116') return null; // No rows
+      // 406 = table schema mismatch or missing table — fail gracefully
+      console.warn('getSubscription: error (non-fatal, using user_credits instead):', error.code, error.message);
+      return null;
+    }
+
+    return data as Subscription;
+  } catch (e) {
+    console.warn('getSubscription: unexpected error (non-fatal):', e);
     return null;
   }
-
-  return data as Subscription;
 }
 
 /**

@@ -99,20 +99,29 @@ function SettingsContent() {
       if (!authUser) return;
       
       setIsLoadingAccounts(true);
+
+      // Load credits first (primary source of truth)
       try {
-        const [sub, creditsResult] = await Promise.all([
-          getSubscription(authUser.id),
-          getUserCredits(authUser.id),
-        ]);
-        setSubscription(sub);
+        const creditsResult = await getUserCredits(authUser.id);
         if (creditsResult.credits) {
           setUserCredits(creditsResult.credits);
+          console.log('[Settings] Loaded user_credits:', creditsResult.credits.plan_tier, 'status:', creditsResult.credits.subscription_status);
+        } else {
+          console.warn('[Settings] No user_credits found for user:', authUser.id, creditsResult.error);
         }
       } catch (error) {
-        console.error('Error loading account data:', error);
-      } finally {
-        setIsLoadingAccounts(false);
+        console.error('[Settings] Error loading user credits:', error);
       }
+
+      // Load subscription separately (legacy table, may 406)
+      try {
+        const sub = await getSubscription(authUser.id);
+        setSubscription(sub);
+      } catch (error) {
+        console.warn('[Settings] Error loading subscription (non-fatal):', error);
+      }
+
+      setIsLoadingAccounts(false);
     };
     
     loadAccountData();
