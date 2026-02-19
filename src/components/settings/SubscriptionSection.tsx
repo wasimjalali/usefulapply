@@ -185,51 +185,64 @@ export function SubscriptionSection({
                 <th className="text-left pb-4 pr-4 w-[38%]" />
 
                 {/* Starter */}
-                <th className="pb-4 px-3 text-center">
-                  <div className={`rounded-xl px-2 py-2.5 ${
-                    isFreeTier ? 'bg-cream-100 ring-2 ring-cream-300' : 'bg-cream-50'
+                <th className="pb-5 px-2 text-center align-bottom">
+                  <div className={`rounded-2xl px-3 py-4 ${
+                    isFreeTier ? 'bg-cream-100 ring-2 ring-cream-300' : 'bg-cream-50 ring-1 ring-cream-200'
                   }`}>
-                    <div className="flex items-center justify-center gap-1.5 mb-1">
-                      <Sparkles className="w-3.5 h-3.5 text-warm-gray" />
-                      <span className="text-sm font-bold text-charcoal">Starter</span>
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <div className="p-1.5 bg-white rounded-lg shadow-sm">
+                        <Sparkles className="w-4 h-4 text-warm-gray" />
+                      </div>
+                      <span className="text-base font-bold text-charcoal">Starter</span>
                     </div>
-                    <p className="text-base font-bold text-charcoal">Free</p>
-                    <p className="text-[11px] text-warm-gray">10 credits/mo</p>
+                    <p className="text-2xl font-bold text-charcoal leading-tight">Free</p>
+                    <p className="text-xs text-warm-gray mt-1">10 credits/mo</p>
                   </div>
                 </th>
 
                 {/* Plus */}
-                <th className="pb-4 px-3 text-center">
-                  <div className={`rounded-xl px-2 py-2.5 relative ${
+                <th className="pb-5 px-2 text-center align-bottom">
+                  <div className="mb-2">
+                    <span className="inline-block text-[10px] font-bold bg-gold-500 text-white px-3 py-1 rounded-full tracking-wide">
+                      MOST POPULAR
+                    </span>
+                  </div>
+                  <div className={`rounded-2xl px-3 py-4 ${
                     subscriptionTier === 'plus'
                       ? 'bg-gold-50 ring-2 ring-gold-400'
-                      : 'bg-gold-50 ring-1 ring-gold-200'
+                      : 'bg-gold-50 ring-1 ring-gold-300'
                   }`}>
-                    <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[9px] font-bold bg-gold-500 text-white px-2 py-0.5 rounded-full whitespace-nowrap tracking-wide">
-                      POPULAR
-                    </span>
-                    <div className="flex items-center justify-center gap-1.5 mb-1">
-                      <Zap className="w-3.5 h-3.5 text-gold-500" />
-                      <span className="text-sm font-bold text-charcoal">Plus</span>
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <div className="p-1.5 bg-white rounded-lg shadow-sm">
+                        <Zap className="w-4 h-4 text-gold-500" />
+                      </div>
+                      <span className="text-base font-bold text-charcoal">Plus</span>
                     </div>
-                    <p className="text-base font-bold text-charcoal">$29.99</p>
-                    <p className="text-[11px] text-warm-gray">120 credits/mo</p>
+                    <p className="text-2xl font-bold text-charcoal leading-tight">$29.99</p>
+                    <p className="text-xs text-warm-gray mt-1">120 credits/mo</p>
                   </div>
                 </th>
 
                 {/* Pro */}
-                <th className="pb-4 px-3 text-center">
-                  <div className={`rounded-xl px-2 py-2.5 ${
+                <th className="pb-5 px-2 text-center align-bottom">
+                  <div className="mb-2">
+                    <span className="inline-block text-[10px] font-bold bg-navy-700 text-white px-3 py-1 rounded-full tracking-wide">
+                      BEST VALUE
+                    </span>
+                  </div>
+                  <div className={`rounded-2xl px-3 py-4 ${
                     subscriptionTier === 'pro'
                       ? 'bg-navy-50 ring-2 ring-navy-500'
-                      : 'bg-navy-50 ring-1 ring-navy-100'
+                      : 'bg-navy-50 ring-1 ring-navy-200'
                   }`}>
-                    <div className="flex items-center justify-center gap-1.5 mb-1">
-                      <Crown className="w-3.5 h-3.5 text-navy-600" />
-                      <span className="text-sm font-bold text-charcoal">Pro</span>
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <div className="p-1.5 bg-white rounded-lg shadow-sm">
+                        <Crown className="w-4 h-4 text-navy-600" />
+                      </div>
+                      <span className="text-base font-bold text-charcoal">Pro</span>
                     </div>
-                    <p className="text-base font-bold text-charcoal">$49.99</p>
-                    <p className="text-[11px] text-warm-gray">240 credits/mo</p>
+                    <p className="text-2xl font-bold text-charcoal leading-tight">$49.99</p>
+                    <p className="text-xs text-warm-gray mt-1">240 credits/mo</p>
                   </div>
                 </th>
               </tr>
