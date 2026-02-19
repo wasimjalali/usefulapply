@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, Crown, Sparkles, Plus, Loader2 } from 'lucide-react';
+import { Check, Crown, Sparkles, Plus, Loader2, Zap, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -172,170 +172,181 @@ export function SubscriptionSection({
 
       {/* Plan Comparison */}
       <Card className="p-6 rounded-2xl border-cream-200 shadow-sm">
-        <h3 className="text-sm font-semibold text-charcoal mb-4">Compare Plans</h3>
-        
-        {/* Mobile: Simple vertical list */}
-        <div className="md:hidden space-y-3">
+        <h3 className="text-sm font-semibold text-charcoal mb-5">Compare Plans</h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+
           {/* Starter */}
-          <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
-            isFreeTier ? 'border-gold-400 bg-gold-50/30' : 'border-cream-200'
+          <div className={`rounded-2xl border-2 overflow-hidden transition-all ${
+            isFreeTier ? 'border-gold-300 shadow-sm' : 'border-cream-200'
           }`}>
-            <div>
-              <h4 className="font-semibold text-charcoal">Starter</h4>
-              <p className="text-lg font-bold text-charcoal">$0<span className="text-xs font-normal text-warm-gray">/mo</span></p>
-              <p className="text-xs text-warm-gray">5 apps/month · 10 credits</p>
+            <div className="p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-cream-100 rounded-xl">
+                  <Sparkles className="w-5 h-5 text-warm-gray" />
+                </div>
+                <div>
+                  <p className="font-bold text-charcoal">Starter</p>
+                  <p className="text-xs text-warm-gray">See your first AI application</p>
+                </div>
+              </div>
+              <p className="text-3xl font-bold text-charcoal mb-0.5">
+                Free <span className="text-sm font-normal text-warm-gray">forever</span>
+              </p>
+              <p className="text-xs text-warm-gray mb-3">10 credits/month</p>
+              <ul className="space-y-2 mb-4">
+                {[
+                  '5 complete applications/month',
+                  'Tailored CV, cover letter, email & follow-up',
+                  'Fit score before you apply',
+                  'US & EU professional templates',
+                  'No watermark on any document',
+                  'Claude Sonnet 4.6, specialized for job applications',
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-sm text-charcoal">
+                    <Check className="w-4 h-4 text-sage-500 flex-shrink-0 mt-0.5" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium bg-cream-100 text-charcoal mb-4">
+                <Clock className="w-4 h-4 flex-shrink-0 text-warm-gray" />
+                ~4 hours saved/month
+              </div>
+              {isFreeTier ? (
+                <div className="w-full py-2.5 rounded-xl border-2 border-navy-600 text-navy-600 text-sm font-semibold text-center">
+                  Current Plan
+                </div>
+              ) : (
+                <div className="w-full py-2.5 rounded-xl border-2 border-cream-300 text-warm-gray text-sm font-semibold text-center">
+                  Free Plan
+                </div>
+              )}
             </div>
-            {isFreeTier && (
-              <span className="px-2.5 py-1 text-xs font-semibold bg-navy-50 text-navy-600 rounded-full">Current</span>
-            )}
           </div>
 
           {/* Plus */}
-          <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
-            subscriptionTier === 'plus' ? 'border-gold-400 bg-gold-50/30' : 'border-cream-200'
+          <div className={`rounded-2xl border-2 overflow-hidden transition-all relative ${
+            subscriptionTier === 'plus'
+              ? 'border-gold-400 shadow-md'
+              : 'border-gold-300 shadow-md shadow-gold-100'
           }`}>
-            <div>
-              <div className="flex items-center gap-2">
-                <h4 className="font-semibold text-charcoal">Plus</h4>
-                <span className="px-2 py-0.5 bg-gradient-to-r from-gold-400 to-gold-500 text-white text-[10px] font-semibold rounded-full">Popular</span>
-              </div>
-              <p className="text-lg font-bold text-charcoal">$29.99<span className="text-xs font-normal text-warm-gray">/mo</span></p>
-              <p className="text-xs text-warm-gray">60 apps/month · 120 credits</p>
+            <div className="bg-gold-500 px-4 py-2 text-center text-xs font-bold tracking-wide text-white">
+              MOST POPULAR
             </div>
-            {subscriptionTier === 'plus' ? (
-              <span className="px-2.5 py-1 text-xs font-semibold bg-navy-50 text-navy-600 rounded-full">Current</span>
-            ) : subscriptionTier === 'pro' && onManageBilling ? (
-              <Button variant="outline" size="sm" onClick={onManageBilling}>
-                Downgrade
-              </Button>
-            ) : onUpgrade && (
-              <Button variant="gold" size="sm" onClick={() => onUpgrade('plus')}>
-                Upgrade
-              </Button>
-            )}
+            <div className="p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-gold-100 rounded-xl">
+                  <Zap className="w-5 h-5 text-gold-500" />
+                </div>
+                <div>
+                  <p className="font-bold text-charcoal">Plus</p>
+                  <p className="text-xs text-warm-gray">For serious job seekers</p>
+                </div>
+              </div>
+              <p className="text-3xl font-bold text-charcoal mb-0.5">
+                $29.99 <span className="text-sm font-normal text-warm-gray">/month</span>
+              </p>
+              <p className="text-xs text-warm-gray mb-2">~$0.50 per application</p>
+              <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-gold-100 text-gold-700 border border-gold-300 mb-4">
+                120 credits/month
+              </span>
+              <ul className="space-y-2 mb-4">
+                {[
+                  '60 complete applications/month',
+                  'Tailored CV, cover letter, email & follow-up',
+                  'Fit score before you apply',
+                  'Unlimited application history',
+                  'Add-on credit packs available',
+                  'Claude Sonnet 4.6, specialized for job applications',
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-sm text-charcoal">
+                    <Check className="w-4 h-4 text-sage-500 flex-shrink-0 mt-0.5" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium bg-gold-500 text-white mb-4">
+                <Clock className="w-4 h-4 flex-shrink-0" />
+                ~45 hours saved/month
+              </div>
+              {subscriptionTier === 'plus' ? (
+                <div className="w-full py-2.5 rounded-xl border-2 border-navy-600 text-navy-600 text-sm font-semibold text-center">
+                  Current Plan
+                </div>
+              ) : subscriptionTier === 'pro' && onManageBilling ? (
+                <Button variant="outline" size="sm" className="w-full" onClick={onManageBilling}>
+                  Downgrade to Plus
+                </Button>
+              ) : onUpgrade && (
+                <button
+                  onClick={() => onUpgrade('plus')}
+                  className="w-full py-2.5 rounded-xl bg-gold-500 hover:bg-gold-600 text-white text-sm font-semibold transition-colors cursor-pointer"
+                >
+                  Get Plus →
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Pro */}
-          <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
-            subscriptionTier === 'pro' ? 'border-gold-400 bg-gold-50/30' : 'border-cream-200'
+          <div className={`rounded-2xl border-2 overflow-hidden transition-all ${
+            subscriptionTier === 'pro' ? 'border-navy-600 shadow-md' : 'border-navy-200'
           }`}>
-            <div>
-              <h4 className="font-semibold text-charcoal">Pro</h4>
-              <p className="text-lg font-bold text-charcoal">$49.99<span className="text-xs font-normal text-warm-gray">/mo</span></p>
-              <p className="text-xs text-warm-gray">120 apps/month · 240 credits</p>
+            <div className="bg-navy-700 px-4 py-2 text-center text-xs font-bold tracking-wide text-white">
+              BEST VALUE PER APPLICATION
             </div>
-            {subscriptionTier === 'pro' ? (
-              <span className="px-2.5 py-1 text-xs font-semibold bg-navy-50 text-navy-600 rounded-full">Current</span>
-            ) : onUpgrade && (
-              <Button variant="gold" size="sm" onClick={() => onUpgrade('pro')}>
-                Upgrade
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Desktop: Full 3-column grid with details */}
-        <div className="hidden md:grid grid-cols-3 gap-4">
-          {/* Starter */}
-          <div className={`p-4 rounded-xl border-2 transition-all ${
-            isFreeTier ? 'border-gold-400 bg-gold-50/30 shadow-sm' : 'border-cream-200 hover:border-cream-300'
-          }`}>
-            <h4 className="font-semibold text-charcoal">Starter</h4>
-            <p className="text-2xl font-bold text-charcoal mt-2">$0<span className="text-sm font-normal text-warm-gray">/mo</span></p>
-            <ul className="mt-4 space-y-2.5 text-sm text-warm-gray">
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-sage-500 flex-shrink-0" />
-                5 applications/month (10 credits)
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-sage-500 flex-shrink-0" />
-                All CV templates
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-sage-500 flex-shrink-0" />
-                CV + Cover Letter + Email
-              </li>
-            </ul>
-          </div>
-
-          {/* Plus */}
-          <div className={`p-4 rounded-xl border-2 transition-all relative ${
-            subscriptionTier === 'plus' ? 'border-gold-400 bg-gold-50/30 shadow-sm' : 'border-cream-200 hover:border-cream-300'
-          }`}>
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-gold-400 to-gold-500 text-white text-xs font-semibold rounded-full shadow-sm">
-              Popular
+            <div className="p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-navy-50 rounded-xl">
+                  <Crown className="w-5 h-5 text-navy-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-charcoal">Pro</p>
+                  <p className="text-xs text-warm-gray">For high-volume applicants</p>
+                </div>
+              </div>
+              <p className="text-3xl font-bold text-charcoal mb-0.5">
+                $49.99 <span className="text-sm font-normal text-warm-gray">/month</span>
+              </p>
+              <p className="text-xs text-warm-gray mb-2">~$0.42 per application</p>
+              <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-navy-100 text-navy-700 border border-navy-200 mb-4">
+                240 credits/month
+              </span>
+              <ul className="space-y-2 mb-4">
+                {[
+                  '120 complete applications/month',
+                  'Tailored CV, cover letter, email & follow-up',
+                  'Fit score before you apply',
+                  'Unlimited history + credit rollover (2 months)',
+                  'Add-on credit packs available',
+                  'Claude Sonnet 4.6, specialized for job applications',
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-sm text-charcoal">
+                    <Check className="w-4 h-4 text-sage-500 flex-shrink-0 mt-0.5" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium bg-navy-700 text-white mb-4">
+                <Clock className="w-4 h-4 flex-shrink-0" />
+                ~90 hours saved/month
+              </div>
+              {subscriptionTier === 'pro' ? (
+                <div className="w-full py-2.5 rounded-xl border-2 border-navy-600 text-navy-600 text-sm font-semibold text-center">
+                  Current Plan
+                </div>
+              ) : onUpgrade && (
+                <button
+                  onClick={() => onUpgrade('pro')}
+                  className="w-full py-2.5 rounded-xl bg-navy-700 hover:bg-navy-800 text-white text-sm font-semibold transition-colors cursor-pointer"
+                >
+                  Get Pro →
+                </button>
+              )}
             </div>
-            <h4 className="font-semibold text-charcoal">Plus</h4>
-            <p className="text-2xl font-bold text-charcoal mt-2">$29.99<span className="text-sm font-normal text-warm-gray">/mo</span></p>
-            <ul className="mt-4 space-y-2.5 text-sm text-warm-gray">
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-sage-500 flex-shrink-0" />
-                60 applications/month (120 credits)
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-sage-500 flex-shrink-0" />
-                Add-on credits available
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-sage-500 flex-shrink-0" />
-                1 month credit rollover
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-sage-500 flex-shrink-0" />
-                Priority support
-              </li>
-            </ul>
-            {subscriptionTier === 'plus' ? (
-              <div className="mt-4 text-center">
-                <span className="px-3 py-1.5 text-xs font-semibold bg-navy-50 text-navy-600 rounded-full">Current Plan</span>
-              </div>
-            ) : subscriptionTier === 'pro' && onManageBilling ? (
-              <Button variant="outline" size="sm" className="w-full mt-4" onClick={onManageBilling}>
-                Downgrade
-              </Button>
-            ) : onUpgrade && (
-              <Button variant="gold" size="sm" className="w-full mt-4" onClick={() => onUpgrade('plus')}>
-                <Sparkles className="w-4 h-4 mr-1" />
-                Upgrade
-              </Button>
-            )}
           </div>
 
-          {/* Pro */}
-          <div className={`p-4 rounded-xl border-2 transition-all ${
-            subscriptionTier === 'pro' ? 'border-gold-400 bg-gold-50/30 shadow-sm' : 'border-cream-200 hover:border-cream-300'
-          }`}>
-            <h4 className="font-semibold text-charcoal">Pro</h4>
-            <p className="text-2xl font-bold text-charcoal mt-2">$49.99<span className="text-sm font-normal text-warm-gray">/mo</span></p>
-            <ul className="mt-4 space-y-2.5 text-sm text-warm-gray">
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-gold-500 flex-shrink-0" />
-                120 applications/month (240 credits)
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-gold-500 flex-shrink-0" />
-                Add-on credits available
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-gold-500 flex-shrink-0" />
-                2 months credit rollover
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-gold-500 flex-shrink-0" />
-                Premium support
-              </li>
-            </ul>
-            {subscriptionTier === 'pro' ? (
-              <div className="mt-4 text-center">
-                <span className="px-3 py-1.5 text-xs font-semibold bg-navy-50 text-navy-600 rounded-full">Current Plan</span>
-              </div>
-            ) : onUpgrade && (
-              <Button variant="gold" size="sm" className="w-full mt-4" onClick={() => onUpgrade('pro')}>
-                <Sparkles className="w-4 h-4 mr-1" />
-                Upgrade
-              </Button>
-            )}
-          </div>
         </div>
       </Card>
     </div>

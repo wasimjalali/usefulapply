@@ -24,6 +24,7 @@ import {
 import KarkoLogo from '@/components/KarkoLogo';
 import { useRouter } from 'next/navigation';
 import { SignUpWallModal, hasUsedFreeGeneration } from '@/components/SignUpWallModal';
+import { InsufficientCreditsModal } from '@/components/InsufficientCreditsModal';
 import { usePostHog } from 'posthog-js/react';
 
 interface ChatPanelProps {
@@ -66,7 +67,12 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
     setFitAnalysisContextId,
     setFitAnalysisJD,
     setAgentSteps,
-  } = useAgentWorkflow();
+  } = useAgentWorkflow({
+    onInsufficientCredits: (required, available) => {
+      setCreditsModalData({ required, available });
+      setShowCreditsModal(true);
+    },
+  });
 
   const [inputValue, setInputValue] = useState('');
   const [showHistory, setShowHistory] = useState(false);
@@ -75,6 +81,8 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
   const [showSignUpWall, setShowSignUpWall] = useState(false);
   const [signUpWallTrigger, setSignUpWallTrigger] = useState<'download' | 'new-application' | 'general'>('new-application');
+  const [showCreditsModal, setShowCreditsModal] = useState(false);
+  const [creditsModalData, setCreditsModalData] = useState<{ required: number; available: number } | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -454,6 +462,14 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
         isOpen={showSignUpWall}
         onClose={() => setShowSignUpWall(false)}
         trigger={signUpWallTrigger}
+      />
+
+      {/* Insufficient Credits Modal */}
+      <InsufficientCreditsModal
+        isOpen={showCreditsModal}
+        onClose={() => setShowCreditsModal(false)}
+        required={creditsModalData?.required}
+        available={creditsModalData?.available}
       />
     </>
   );

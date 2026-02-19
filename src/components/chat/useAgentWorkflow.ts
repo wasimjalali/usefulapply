@@ -35,7 +35,9 @@ interface FitAnalysisContextData {
   fitAnalysis?: any;
 }
 
-export function useAgentWorkflow() {
+export function useAgentWorkflow(options?: {
+  onInsufficientCredits?: (required: number, available: number) => void;
+}) {
   const { user } = useAuth();
   const posthog = usePostHog();
   const {
@@ -313,10 +315,16 @@ export function useAgentWorkflow() {
                 break;
               }
               case 'error':
-                addChatMessage({
-                  role: 'assistant',
-                  content: `❌ Sorry, something went wrong: ${data.message}. Please try again.`,
-                });
+                if (data.code === 'INSUFFICIENT_CREDITS') {
+                  const required = data.details?.details?.required ?? 0;
+                  const available = data.details?.details?.available ?? 0;
+                  options?.onInsufficientCredits?.(required, available);
+                } else {
+                  addChatMessage({
+                    role: 'assistant',
+                    content: `❌ Sorry, something went wrong: ${data.message}. Please try again.`,
+                  });
+                }
                 break;
             }
           } catch (e) {
@@ -583,10 +591,16 @@ export function useAgentWorkflow() {
                 break;
                 
               case 'error':
-                addChatMessage({
-                  role: 'assistant',
-                  content: `❌ Sorry, something went wrong: ${data.message}. Please try again.`,
-                });
+                if (data.code === 'INSUFFICIENT_CREDITS') {
+                  const required = data.details?.details?.required ?? 0;
+                  const available = data.details?.details?.available ?? 0;
+                  options?.onInsufficientCredits?.(required, available);
+                } else {
+                  addChatMessage({
+                    role: 'assistant',
+                    content: `❌ Sorry, something went wrong: ${data.message}. Please try again.`,
+                  });
+                }
                 break;
             }
           } catch (e) {
