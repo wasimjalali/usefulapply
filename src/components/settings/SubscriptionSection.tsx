@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, Crown, Sparkles, Plus, Loader2, Zap, Clock } from 'lucide-react';
+import { Check, X, Crown, Sparkles, Plus, Loader2, Zap, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -172,181 +172,166 @@ export function SubscriptionSection({
 
       {/* Plan Comparison */}
       <Card className="p-6 rounded-2xl border-cream-200 shadow-sm">
-        <h3 className="text-sm font-semibold text-charcoal mb-5">Compare Plans</h3>
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-sm font-semibold text-charcoal">Compare Plans</h3>
+          <a href="/pricing" className="text-xs text-navy-600 hover:underline font-medium">View full pricing →</a>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+        <div className="overflow-x-auto -mx-1">
+          <table className="w-full min-w-[480px]">
+            <thead>
+              <tr>
+                {/* Feature label column */}
+                <th className="text-left pb-4 pr-4 w-[38%]" />
 
-          {/* Starter */}
-          <div className={`rounded-2xl border-2 overflow-hidden transition-all ${
-            isFreeTier ? 'border-gold-300 shadow-sm' : 'border-cream-200'
-          }`}>
-            <div className="p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-cream-100 rounded-xl">
-                  <Sparkles className="w-5 h-5 text-warm-gray" />
-                </div>
-                <div>
-                  <p className="font-bold text-charcoal">Starter</p>
-                  <p className="text-xs text-warm-gray">See your first AI application</p>
-                </div>
-              </div>
-              <p className="text-3xl font-bold text-charcoal mb-0.5">
-                Free <span className="text-sm font-normal text-warm-gray">forever</span>
-              </p>
-              <p className="text-xs text-warm-gray mb-3">10 credits/month</p>
-              <ul className="space-y-2 mb-4">
-                {[
-                  '5 complete applications/month',
-                  'Tailored CV, cover letter, email & follow-up',
-                  'Fit score before you apply',
-                  'US & EU professional templates',
-                  'No watermark on any document',
-                  'Claude Sonnet 4.6, specialized for job applications',
-                ].map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-charcoal">
-                    <Check className="w-4 h-4 text-sage-500 flex-shrink-0 mt-0.5" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium bg-cream-100 text-charcoal mb-4">
-                <Clock className="w-4 h-4 flex-shrink-0 text-warm-gray" />
-                ~4 hours saved/month
-              </div>
-              {isFreeTier ? (
-                <div className="w-full py-2.5 rounded-xl border-2 border-navy-600 text-navy-600 text-sm font-semibold text-center">
-                  Current Plan
-                </div>
-              ) : (
-                <div className="w-full py-2.5 rounded-xl border-2 border-cream-300 text-warm-gray text-sm font-semibold text-center">
-                  Free Plan
-                </div>
-              )}
-            </div>
-          </div>
+                {/* Starter */}
+                <th className="pb-4 px-3 text-center">
+                  <div className={`rounded-xl px-2 py-2.5 ${
+                    isFreeTier ? 'bg-cream-100 ring-2 ring-cream-300' : 'bg-cream-50'
+                  }`}>
+                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                      <Sparkles className="w-3.5 h-3.5 text-warm-gray" />
+                      <span className="text-sm font-bold text-charcoal">Starter</span>
+                    </div>
+                    <p className="text-base font-bold text-charcoal">Free</p>
+                    <p className="text-[11px] text-warm-gray">10 credits/mo</p>
+                  </div>
+                </th>
 
-          {/* Plus */}
-          <div className={`rounded-2xl border-2 overflow-hidden transition-all relative ${
-            subscriptionTier === 'plus'
-              ? 'border-gold-400 shadow-md'
-              : 'border-gold-300 shadow-md shadow-gold-100'
-          }`}>
-            <div className="bg-gold-500 px-4 py-2 text-center text-xs font-bold tracking-wide text-white">
-              MOST POPULAR
-            </div>
-            <div className="p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-gold-100 rounded-xl">
-                  <Zap className="w-5 h-5 text-gold-500" />
-                </div>
-                <div>
-                  <p className="font-bold text-charcoal">Plus</p>
-                  <p className="text-xs text-warm-gray">For serious job seekers</p>
-                </div>
-              </div>
-              <p className="text-3xl font-bold text-charcoal mb-0.5">
-                $29.99 <span className="text-sm font-normal text-warm-gray">/month</span>
-              </p>
-              <p className="text-xs text-warm-gray mb-2">~$0.50 per application</p>
-              <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-gold-100 text-gold-700 border border-gold-300 mb-4">
-                120 credits/month
-              </span>
-              <ul className="space-y-2 mb-4">
-                {[
-                  '60 complete applications/month',
-                  'Tailored CV, cover letter, email & follow-up',
-                  'Fit score before you apply',
-                  'Unlimited application history',
-                  'Add-on credit packs available',
-                  'Claude Sonnet 4.6, specialized for job applications',
-                ].map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-charcoal">
-                    <Check className="w-4 h-4 text-sage-500 flex-shrink-0 mt-0.5" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium bg-gold-500 text-white mb-4">
-                <Clock className="w-4 h-4 flex-shrink-0" />
-                ~45 hours saved/month
-              </div>
-              {subscriptionTier === 'plus' ? (
-                <div className="w-full py-2.5 rounded-xl border-2 border-navy-600 text-navy-600 text-sm font-semibold text-center">
-                  Current Plan
-                </div>
-              ) : subscriptionTier === 'pro' && onManageBilling ? (
-                <Button variant="outline" size="sm" className="w-full" onClick={onManageBilling}>
-                  Downgrade to Plus
-                </Button>
-              ) : onUpgrade && (
-                <button
-                  onClick={() => onUpgrade('plus')}
-                  className="w-full py-2.5 rounded-xl bg-gold-500 hover:bg-gold-600 text-white text-sm font-semibold transition-colors cursor-pointer"
-                >
-                  Get Plus →
-                </button>
-              )}
-            </div>
-          </div>
+                {/* Plus */}
+                <th className="pb-4 px-3 text-center">
+                  <div className={`rounded-xl px-2 py-2.5 relative ${
+                    subscriptionTier === 'plus'
+                      ? 'bg-gold-50 ring-2 ring-gold-400'
+                      : 'bg-gold-50 ring-1 ring-gold-200'
+                  }`}>
+                    <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[9px] font-bold bg-gold-500 text-white px-2 py-0.5 rounded-full whitespace-nowrap tracking-wide">
+                      POPULAR
+                    </span>
+                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                      <Zap className="w-3.5 h-3.5 text-gold-500" />
+                      <span className="text-sm font-bold text-charcoal">Plus</span>
+                    </div>
+                    <p className="text-base font-bold text-charcoal">$29.99</p>
+                    <p className="text-[11px] text-warm-gray">120 credits/mo</p>
+                  </div>
+                </th>
 
-          {/* Pro */}
-          <div className={`rounded-2xl border-2 overflow-hidden transition-all ${
-            subscriptionTier === 'pro' ? 'border-navy-600 shadow-md' : 'border-navy-200'
-          }`}>
-            <div className="bg-navy-700 px-4 py-2 text-center text-xs font-bold tracking-wide text-white">
-              BEST VALUE PER APPLICATION
-            </div>
-            <div className="p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-navy-50 rounded-xl">
-                  <Crown className="w-5 h-5 text-navy-600" />
-                </div>
-                <div>
-                  <p className="font-bold text-charcoal">Pro</p>
-                  <p className="text-xs text-warm-gray">For high-volume applicants</p>
-                </div>
-              </div>
-              <p className="text-3xl font-bold text-charcoal mb-0.5">
-                $49.99 <span className="text-sm font-normal text-warm-gray">/month</span>
-              </p>
-              <p className="text-xs text-warm-gray mb-2">~$0.42 per application</p>
-              <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-navy-100 text-navy-700 border border-navy-200 mb-4">
-                240 credits/month
-              </span>
-              <ul className="space-y-2 mb-4">
-                {[
-                  '120 complete applications/month',
-                  'Tailored CV, cover letter, email & follow-up',
-                  'Fit score before you apply',
-                  'Unlimited history + credit rollover (2 months)',
-                  'Add-on credit packs available',
-                  'Claude Sonnet 4.6, specialized for job applications',
-                ].map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-charcoal">
-                    <Check className="w-4 h-4 text-sage-500 flex-shrink-0 mt-0.5" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium bg-navy-700 text-white mb-4">
-                <Clock className="w-4 h-4 flex-shrink-0" />
-                ~90 hours saved/month
-              </div>
-              {subscriptionTier === 'pro' ? (
-                <div className="w-full py-2.5 rounded-xl border-2 border-navy-600 text-navy-600 text-sm font-semibold text-center">
-                  Current Plan
-                </div>
-              ) : onUpgrade && (
-                <button
-                  onClick={() => onUpgrade('pro')}
-                  className="w-full py-2.5 rounded-xl bg-navy-700 hover:bg-navy-800 text-white text-sm font-semibold transition-colors cursor-pointer"
-                >
-                  Get Pro →
-                </button>
-              )}
-            </div>
-          </div>
+                {/* Pro */}
+                <th className="pb-4 px-3 text-center">
+                  <div className={`rounded-xl px-2 py-2.5 ${
+                    subscriptionTier === 'pro'
+                      ? 'bg-navy-50 ring-2 ring-navy-500'
+                      : 'bg-navy-50 ring-1 ring-navy-100'
+                  }`}>
+                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                      <Crown className="w-3.5 h-3.5 text-navy-600" />
+                      <span className="text-sm font-bold text-charcoal">Pro</span>
+                    </div>
+                    <p className="text-base font-bold text-charcoal">$49.99</p>
+                    <p className="text-[11px] text-warm-gray">240 credits/mo</p>
+                  </div>
+                </th>
+              </tr>
+            </thead>
 
+            <tbody>
+              {([
+                { label: 'Applications/month',            starter: '5',      plus: '60',     pro: '120' },
+                { label: 'Price per application',         starter: '—',      plus: '~$0.50', pro: '~$0.42' },
+                { label: 'CV + Cover Letter + Email + Follow-up', starter: true, plus: true, pro: true },
+                { label: 'Fit score before you apply',    starter: true,     plus: true,     pro: true },
+                { label: 'US & EU templates',             starter: true,     plus: true,     pro: true },
+                { label: 'Unlimited application history', starter: false,    plus: true,     pro: true },
+                { label: 'Add-on credit packs',           starter: false,    plus: true,     pro: true },
+                { label: 'Credit rollover',               starter: false,    plus: false,    pro: '2 months' },
+                { label: 'Hours saved/month',             starter: '~4h',    plus: '~45h',   pro: '~90h' },
+              ] as const).map((row, i) => (
+                <tr key={row.label} className={i % 2 === 0 ? 'bg-cream-50/60' : ''}>
+                  <td className="py-2.5 pr-4 text-xs text-warm-gray rounded-l-lg pl-1">{row.label}</td>
+
+                  <td className={`py-2.5 px-3 text-center text-xs ${
+                    isFreeTier ? 'bg-cream-100/40' : ''
+                  }`}>
+                    {typeof row.starter === 'boolean'
+                      ? row.starter
+                        ? <Check className="w-4 h-4 text-sage-500 mx-auto" />
+                        : <X className="w-3.5 h-3.5 text-cream-300 mx-auto" />
+                      : <span className="font-medium text-charcoal">{row.starter}</span>
+                    }
+                  </td>
+
+                  <td className={`py-2.5 px-3 text-center text-xs ${
+                    subscriptionTier === 'plus' ? 'bg-gold-50/60' : 'bg-gold-50/30'
+                  }`}>
+                    {typeof row.plus === 'boolean'
+                      ? row.plus
+                        ? <Check className="w-4 h-4 text-sage-500 mx-auto" />
+                        : <X className="w-3.5 h-3.5 text-cream-300 mx-auto" />
+                      : <span className="font-medium text-charcoal">{row.plus}</span>
+                    }
+                  </td>
+
+                  <td className={`py-2.5 px-3 text-center text-xs rounded-r-lg ${
+                    subscriptionTier === 'pro' ? 'bg-navy-50/60' : 'bg-navy-50/30'
+                  }`}>
+                    {typeof row.pro === 'boolean'
+                      ? row.pro
+                        ? <Check className="w-4 h-4 text-sage-500 mx-auto" />
+                        : <X className="w-3.5 h-3.5 text-cream-300 mx-auto" />
+                      : <span className="font-medium text-charcoal">{row.pro}</span>
+                    }
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+
+            {/* CTA row */}
+            <tfoot>
+              <tr>
+                <td />
+                <td className="pt-4 px-3">
+                  {isFreeTier ? (
+                    <div className="text-center text-xs text-navy-600 font-semibold py-2 rounded-lg border-2 border-navy-200 bg-white">
+                      Current
+                    </div>
+                  ) : null}
+                </td>
+                <td className="pt-4 px-3">
+                  {subscriptionTier === 'plus' ? (
+                    <div className="text-center text-xs text-navy-600 font-semibold py-2 rounded-lg border-2 border-navy-200 bg-white">
+                      Current
+                    </div>
+                  ) : subscriptionTier === 'pro' && onManageBilling ? (
+                    <Button variant="outline" size="sm" className="w-full text-xs py-2" onClick={onManageBilling}>
+                      Downgrade
+                    </Button>
+                  ) : onUpgrade ? (
+                    <button
+                      onClick={() => onUpgrade('plus')}
+                      className="w-full py-2 rounded-lg bg-gold-500 hover:bg-gold-600 text-white text-xs font-semibold transition-colors cursor-pointer"
+                    >
+                      Get Plus →
+                    </button>
+                  ) : null}
+                </td>
+                <td className="pt-4 px-3">
+                  {subscriptionTier === 'pro' ? (
+                    <div className="text-center text-xs text-navy-600 font-semibold py-2 rounded-lg border-2 border-navy-200 bg-white">
+                      Current
+                    </div>
+                  ) : onUpgrade ? (
+                    <button
+                      onClick={() => onUpgrade('pro')}
+                      className="w-full py-2 rounded-lg bg-navy-700 hover:bg-navy-800 text-white text-xs font-semibold transition-colors cursor-pointer"
+                    >
+                      Get Pro →
+                    </button>
+                  ) : null}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
       </Card>
     </div>
