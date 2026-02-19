@@ -151,10 +151,24 @@ async function handleCheckoutCompleted(session: any) {
 
   // Handle subscription checkout
   const subscriptionId = session.subscription;
+  const planTier = session.metadata?.planTier || 'starter';
 
+  // Map plan tier to credits
+  let planCredits = 10;
+  if (planTier === 'plus') planCredits = 120;
+  else if (planTier === 'pro') planCredits = 240;
+
+  console.log(`[Stripe Webhook] checkout.session.completed: userId=${userId}, planTier=${planTier}, credits=${planCredits}`);
+
+  // Update user_credits with the new plan AND Stripe IDs in one shot.
+  // This is the authoritative update — handleSubscriptionUpdate may have
+  // already run (race condition) but we always overwrite here with the
+  // correct values derived from the checkout session metadata.
   const { error } = await supabase
     .from('user_credits')
     .update({
+      plan_tier: planTier,
+      monthly_credits: planCredits,
       stripe_customer_id: customerId,
       stripe_subscription_id: subscriptionId,
       subscription_status: 'active',
@@ -163,7 +177,9 @@ async function handleCheckoutCompleted(session: any) {
     .eq('user_id', userId);
 
   if (error) {
-    console.error('Failed to update user credits:', error);
+    console.error('[Stripe Webhook] Failed to update user credits on checkout:', error);
+  } else {
+    console.log(`[Stripe Webhook] Successfully upgraded user ${userId} to ${planTier} (${planCredits} credits)`);
   }
 }
 
@@ -171,15 +187,40 @@ async function handleSubscriptionUpdate(subscription: any) {
   const supabase = getSupabaseAdmin();
   const customerId = subscription.customer;
 
-  // Get user by customer ID
-  const { data: userCredits } = await supabase
+  // Try to find user by stripe_customer_id first (handles renewals / updates
+  // where the customer ID is already stored). For new subscriptions the
+  // customer.subscription.created event fires BEFORE checkout.session.completed,
+  // so stripe_customer_id may not be saved yet — fall back to subscription metadata.
+  let { data: userCredits } = await supabase
     .from('user_credits')
     .select('user_id, plan_tier, monthly_credits')
     .eq('stripe_customer_id', customerId)
     .single();
 
   if (!userCredits) {
-    console.error('User not found for customer:', customerId);
+    // Fallback: look up by userId stored in subscription metadata
+    const metaUserId = subscription.metadata?.userId;
+    if (metaUserId) {
+      console.log(`[Stripe Webhook] customer_id lookup missed, trying metadata userId: ${metaUserId}`);
+      const { data: creditsById } = await supabase
+        .from('user_credits')
+        .select('user_id, plan_tier, monthly_credits')
+        .eq('user_id', metaUserId)
+        .single();
+
+      if (creditsById) {
+        userCredits = creditsById;
+        // Persist the customer ID now so future lookups work
+        await supabase
+          .from('user_credits')
+          .update({ stripe_customer_id: customerId, updated_at: new Date().toISOString() })
+          .eq('user_id', metaUserId);
+      }
+    }
+  }
+
+  if (!userCredits) {
+    console.error('[Stripe Webhook] User not found for customer:', customerId, '(subscription event will be handled by checkout.session.completed)');
     return;
   }
 
@@ -275,7 +316,7 @@ async function handlePaymentSucceeded(invoice: any) {
   }
 
   // Reset monthly credits on successful payment
-  const baseCredits = userCredits.plan_tier === 'plus' ? 120 : userCredits.plan_tier === 'pro' ? 240 : 40;
+  const baseCredits = userCredits.plan_tier === 'plus' ? 120 : userCredits.plan_tier === 'pro' ? 240 : 10;
 
   const { error } = await supabase
     .from('user_credits')
@@ -325,7 +366,7 @@ async function handleChargeRefunded(charge: any) {
 
   if (isSubscription) {
     // Subscription refund: remove the plan's monthly credits
-    const planCredits = userCredits.plan_tier === 'pro' ? 240 : userCredits.plan_tier === 'plus' ? 120 : 40;
+    const planCredits = userCredits.plan_tier === 'pro' ? 240 : userCredits.plan_tier === 'plus' ? 120 : 10;
 
     if (refundedAmountCents >= totalAmountCents) {
       // Full refund — remove all plan credits

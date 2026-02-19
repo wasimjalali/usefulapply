@@ -118,6 +118,42 @@ function SettingsContent() {
     loadAccountData();
   }, [authUser]);
 
+  // After returning from Stripe checkout, switch to subscription tab and
+  // re-fetch credits with retries so the upgraded plan reflects immediately.
+  useEffect(() => {
+    const isSuccess = searchParams.get('success') === 'true';
+    const isAddonSuccess = searchParams.get('addon_success') === 'true';
+    if ((!isSuccess && !isAddonSuccess) || !authUser) return;
+
+    setActiveSection('subscription');
+
+    let attempts = 0;
+    const maxAttempts = 6;
+    const pollInterval = 2000; // 2s between attempts
+
+    const poll = async () => {
+      attempts++;
+      try {
+        const creditsResult = await getUserCredits(authUser.id);
+        if (creditsResult.credits) {
+          setUserCredits(creditsResult.credits);
+          // Stop polling once plan has upgraded (or max attempts reached)
+          const tier = creditsResult.credits.plan_tier;
+          if (tier !== 'starter' || isAddonSuccess || attempts >= maxAttempts) return;
+        }
+      } catch {
+        // ignore transient errors, keep polling
+      }
+      if (attempts < maxAttempts) {
+        setTimeout(poll, pollInterval);
+      }
+    };
+
+    // First poll after a short delay to give webhook time to fire
+    setTimeout(poll, 1500);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authUser]);
+
   useEffect(() => {
     if (!authLoading && !authUser) {
       router.push('/auth/login');
