@@ -538,6 +538,11 @@ CREATE TABLE user_credits (
   -- Plan reference
   plan_tier TEXT NOT NULL DEFAULT 'starter' REFERENCES subscription_plans(tier),
   
+  -- Stripe integration (written by webhook)
+  stripe_customer_id TEXT,
+  stripe_subscription_id TEXT,
+  subscription_status TEXT DEFAULT 'active',
+  
   -- Reset tracking
   last_reset_date TIMESTAMPTZ DEFAULT NOW(),
   next_reset_date TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '1 month'),

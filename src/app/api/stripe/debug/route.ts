@@ -40,17 +40,41 @@ export async function GET(req: NextRequest) {
     results.subscriptionsTable = { error: e.message };
   }
 
-  // Test user_credits table access
+  // Test user_credits table — first check which columns exist
+  try {
+    const { data, error, status } = await supabase
+      .from('user_credits')
+      .select('*')
+      .limit(1);
+    results.userCreditsColumns = data && data.length > 0 ? Object.keys(data[0]) : 'no rows to inspect';
+    results.userCreditsAccess = { error, httpStatus: status };
+  } catch (e: any) {
+    results.userCreditsColumns = { error: e.message };
+  }
+
+  // Test user_credits for specific user
   if (userId) {
     try {
       const { data, error, status } = await supabase
         .from('user_credits')
-        .select('user_id, plan_tier, monthly_credits, subscription_status, stripe_customer_id, stripe_subscription_id')
+        .select('*')
         .eq('user_id', userId)
         .single();
       results.userCredits = { data, error, httpStatus: status };
     } catch (e: any) {
       results.userCredits = { error: e.message };
+    }
+
+    // Test if the critical columns exist by trying to select them
+    try {
+      const { data, error } = await supabase
+        .from('user_credits')
+        .select('subscription_status, stripe_customer_id, stripe_subscription_id')
+        .eq('user_id', userId)
+        .single();
+      results.criticalColumnsTest = { data, error };
+    } catch (e: any) {
+      results.criticalColumnsTest = { error: e.message };
     }
 
     // Also check subscriptions for this user
