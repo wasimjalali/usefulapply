@@ -14,6 +14,82 @@ function getSupabaseAdmin() {
   );
 }
 
+/**
+ * Upsert into the `subscriptions` table so the frontend getSubscription()
+ * always has a row to read. Uses user_id as the conflict key (only one
+ * active subscription per user via the unique partial index).
+ */
+async function upsertSubscription(opts: {
+  userId: string;
+  tier: string;
+  status: string;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  stripePriceId?: string;
+  currentPeriodStart?: string;
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd?: boolean;
+}) {
+  const supabase = getSupabaseAdmin();
+
+  // Map internal tier names to the subscriptions table tier values
+  const tierMap: Record<string, string> = { starter: 'starter', plus: 'plus', pro: 'pro' };
+  const tier = tierMap[opts.tier] || opts.tier;
+
+  // Try to find existing subscription for this user
+  const { data: existing } = await supabase
+    .from('subscriptions')
+    .select('id')
+    .eq('user_id', opts.userId)
+    .limit(1)
+    .single();
+
+  if (existing) {
+    // Update existing row
+    const { error } = await supabase
+      .from('subscriptions')
+      .update({
+        tier,
+        status: opts.status,
+        stripe_customer_id: opts.stripeCustomerId,
+        stripe_subscription_id: opts.stripeSubscriptionId,
+        stripe_price_id: opts.stripePriceId,
+        current_period_start: opts.currentPeriodStart,
+        current_period_end: opts.currentPeriodEnd,
+        cancel_at_period_end: opts.cancelAtPeriodEnd ?? false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existing.id);
+
+    if (error) {
+      console.error('[Stripe Webhook] Failed to update subscriptions row:', error);
+    } else {
+      console.log(`[Stripe Webhook] Updated subscriptions row for user ${opts.userId} → ${tier}/${opts.status}`);
+    }
+  } else {
+    // Insert new row
+    const { error } = await supabase
+      .from('subscriptions')
+      .insert({
+        user_id: opts.userId,
+        tier,
+        status: opts.status,
+        stripe_customer_id: opts.stripeCustomerId,
+        stripe_subscription_id: opts.stripeSubscriptionId,
+        stripe_price_id: opts.stripePriceId,
+        current_period_start: opts.currentPeriodStart,
+        current_period_end: opts.currentPeriodEnd,
+        cancel_at_period_end: opts.cancelAtPeriodEnd ?? false,
+      });
+
+    if (error) {
+      console.error('[Stripe Webhook] Failed to insert subscriptions row:', error);
+    } else {
+      console.log(`[Stripe Webhook] Inserted subscriptions row for user ${opts.userId} → ${tier}/${opts.status}`);
+    }
+  }
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.text();
   const signature = req.headers.get('stripe-signature');
@@ -181,6 +257,35 @@ async function handleCheckoutCompleted(session: any) {
   } else {
     console.log(`[Stripe Webhook] Successfully upgraded user ${userId} to ${planTier} (${planCredits} credits)`);
   }
+
+  // Also upsert into the subscriptions table so getSubscription() works
+  // Retrieve the Stripe subscription object for period dates
+  let periodStart: string | undefined;
+  let periodEnd: string | undefined;
+  let stripePriceId: string | undefined;
+  try {
+    const stripeSub = await getStripe().subscriptions.retrieve(subscriptionId) as any;
+    periodStart = stripeSub.current_period_start
+      ? new Date(stripeSub.current_period_start * 1000).toISOString()
+      : undefined;
+    periodEnd = stripeSub.current_period_end
+      ? new Date(stripeSub.current_period_end * 1000).toISOString()
+      : undefined;
+    stripePriceId = stripeSub.items?.data?.[0]?.price?.id;
+  } catch (e) {
+    console.warn('[Stripe Webhook] Could not retrieve subscription details for subscriptions table:', e);
+  }
+
+  await upsertSubscription({
+    userId,
+    tier: planTier,
+    status: 'active',
+    stripeCustomerId: customerId,
+    stripeSubscriptionId: subscriptionId,
+    stripePriceId,
+    currentPeriodStart: periodStart,
+    currentPeriodEnd: periodEnd,
+  });
 }
 
 async function handleSubscriptionUpdate(subscription: any) {
@@ -263,6 +368,30 @@ async function handleSubscriptionUpdate(subscription: any) {
   if (error) {
     console.error('Failed to update subscription:', error);
   }
+
+  // Sync subscriptions table
+  let periodStart: string | undefined;
+  let periodEnd: string | undefined;
+  try {
+    periodStart = subscription.current_period_start
+      ? new Date(subscription.current_period_start * 1000).toISOString()
+      : undefined;
+    periodEnd = subscription.current_period_end
+      ? new Date(subscription.current_period_end * 1000).toISOString()
+      : undefined;
+  } catch { /* ignore */ }
+
+  await upsertSubscription({
+    userId: userCredits.user_id,
+    tier: planTier,
+    status: subscription.status,
+    stripeCustomerId: customerId,
+    stripeSubscriptionId: subscription.id,
+    stripePriceId: priceId,
+    currentPeriodStart: periodStart,
+    currentPeriodEnd: periodEnd,
+    cancelAtPeriodEnd: subscription.cancel_at_period_end,
+  });
 }
 
 async function handleSubscriptionDeleted(subscription: any) {
@@ -296,6 +425,15 @@ async function handleSubscriptionDeleted(subscription: any) {
   if (error) {
     console.error('Failed to cancel subscription:', error);
   }
+
+  // Sync subscriptions table
+  await upsertSubscription({
+    userId: userCredits.user_id,
+    tier: 'starter',
+    status: 'canceled',
+    stripeCustomerId: customerId,
+    stripeSubscriptionId: subscription.id,
+  });
 }
 
 async function handlePaymentSucceeded(invoice: any) {

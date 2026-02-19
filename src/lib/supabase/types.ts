@@ -272,7 +272,7 @@ export interface Database {
         Row: {
           id: string
           user_id: string
-          tier: 'free' | 'pro' | 'enterprise'
+          tier: 'free' | 'starter' | 'plus' | 'pro' | 'enterprise'
           status: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete'
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -291,7 +291,7 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
-          tier: 'free' | 'pro' | 'enterprise'
+          tier: 'free' | 'starter' | 'plus' | 'pro' | 'enterprise'
           status?: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete'
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -310,7 +310,7 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string
-          tier?: 'free' | 'pro' | 'enterprise'
+          tier?: 'free' | 'starter' | 'plus' | 'pro' | 'enterprise'
           status?: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete'
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null

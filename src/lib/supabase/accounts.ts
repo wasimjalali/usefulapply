@@ -16,10 +16,11 @@ export interface ConnectedAccount {
 export interface Subscription {
   id: string;
   user_id: string;
-  tier: 'free' | 'pro' | 'enterprise';
+  tier: 'free' | 'starter' | 'plus' | 'pro' | 'enterprise';
   status: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete';
   stripe_customer_id?: string;
   stripe_subscription_id?: string;
+  stripe_price_id?: string;
   current_period_start?: string;
   current_period_end?: string;
   cancel_at_period_end: boolean;
