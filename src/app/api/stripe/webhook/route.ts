@@ -15,6 +15,30 @@ function getSupabaseAdmin() {
 }
 
 /**
+ * Keep profiles.subscription_tier in sync so AuthContext / PostHog
+ * analytics always reflect the current plan.
+ */
+async function syncProfileTier(userId: string, tier: string) {
+  const supabase = getSupabaseAdmin();
+  // Map to the profiles table CHECK constraint values
+  // profiles uses 'free'|'pro'|'enterprise' but we also need 'starter'|'plus'
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      subscription_tier: tier,
+      subscription_status: 'active',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', userId);
+
+  if (error) {
+    console.error(`[Stripe Webhook] Failed to sync profiles.subscription_tier for ${userId}:`, error);
+  } else {
+    console.log(`[Stripe Webhook] Synced profiles.subscription_tier → ${tier} for ${userId}`);
+  }
+}
+
+/**
  * Upsert into the `subscriptions` table so the frontend getSubscription()
  * always has a row to read. Uses user_id as the conflict key (only one
  * active subscription per user via the unique partial index).
@@ -290,6 +314,9 @@ async function handleCheckoutCompleted(session: any) {
     currentPeriodStart: periodStart,
     currentPeriodEnd: periodEnd,
   });
+
+  // Keep profiles table in sync
+  await syncProfileTier(userId, planTier);
 }
 
 async function handleSubscriptionUpdate(subscription: any) {
@@ -396,6 +423,9 @@ async function handleSubscriptionUpdate(subscription: any) {
     currentPeriodEnd: periodEnd,
     cancelAtPeriodEnd: subscription.cancel_at_period_end,
   });
+
+  // Keep profiles table in sync
+  await syncProfileTier(userCredits.user_id, planTier);
 }
 
 async function handleSubscriptionDeleted(subscription: any) {
@@ -438,6 +468,17 @@ async function handleSubscriptionDeleted(subscription: any) {
     stripeCustomerId: customerId,
     stripeSubscriptionId: subscription.id,
   });
+
+  // Downgrade profiles table too
+  const supabaseForProfile = getSupabaseAdmin();
+  await supabaseForProfile
+    .from('profiles')
+    .update({
+      subscription_tier: 'starter',
+      subscription_status: 'canceled',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', userCredits.user_id);
 }
 
 async function handlePaymentSucceeded(invoice: any) {

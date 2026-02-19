@@ -21,7 +21,7 @@ export interface Database {
           github_url: string | null
           portfolio_url: string | null
           website_url: string | null
-          subscription_tier: 'free' | 'pro' | 'enterprise'
+          subscription_tier: 'free' | 'starter' | 'plus' | 'pro' | 'enterprise'
           subscription_status: 'active' | 'canceled' | 'past_due' | 'trialing'
           notify_tips: boolean
           notify_updates: boolean
@@ -41,7 +41,7 @@ export interface Database {
           github_url?: string | null
           portfolio_url?: string | null
           website_url?: string | null
-          subscription_tier?: 'free' | 'pro' | 'enterprise'
+          subscription_tier?: 'free' | 'starter' | 'plus' | 'pro' | 'enterprise'
           subscription_status?: 'active' | 'canceled' | 'past_due' | 'trialing'
           notify_tips?: boolean
           notify_updates?: boolean
@@ -61,7 +61,7 @@ export interface Database {
           github_url?: string | null
           portfolio_url?: string | null
           website_url?: string | null
-          subscription_tier?: 'free' | 'pro' | 'enterprise'
+          subscription_tier?: 'free' | 'starter' | 'plus' | 'pro' | 'enterprise'
           subscription_status?: 'active' | 'canceled' | 'past_due' | 'trialing'
           notify_tips?: boolean
           notify_updates?: boolean
