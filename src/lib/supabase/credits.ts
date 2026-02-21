@@ -87,7 +87,7 @@ export const CREDIT_COSTS = {
   CV_OPTIMIZATION: 1,       // CV only
   COVER_LETTER_REGEN: 0.5,  // Cover letter regeneration
   EMAIL_REGEN: 0.5,         // Email regeneration
-  FOLLOW_UP_REGEN: 0,       // Follow-up email regeneration (free)
+  FOLLOW_UP_REGEN: 0.5,     // Follow-up email regeneration
 } as const;
 
 export type CreditAction = keyof typeof CREDIT_COSTS;
