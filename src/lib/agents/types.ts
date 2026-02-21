@@ -213,7 +213,7 @@ export interface OptimizationAnalysis {
 // Event types for streaming progress
 export type AgentEvent = 
   | { type: 'step_started'; step: { id: string; description: string } }
-  | { type: 'step_completed'; step: { id: string; description?: string }; tokens?: { input: number; output: number } }
+  | { type: 'step_completed'; step: { id: string; description?: string }; tokens?: { input: number; output: number }; latencyMs?: number }
   | { type: 'step_error'; step: { id: string }; error: string }
   | { type: 'message'; content: string }
   | { type: 'progress'; percent: number; message: string }

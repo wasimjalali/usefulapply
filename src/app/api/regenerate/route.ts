@@ -6,6 +6,7 @@ import { checkAndDeductCredits, formatCreditErrorResponse, CREDIT_COSTS } from '
 import { setServerSupabaseClient, clearServerSupabaseClient } from '@/lib/supabase/credits';
 import { detectLanguage } from '@/lib/utils/language-detector';
 import { getPostHogServer } from '@/lib/posthog-server';
+import { randomUUID } from 'crypto';
 
 /**
  * API endpoint for regenerating cover letter or email
@@ -79,28 +80,71 @@ export async function POST(request: NextRequest) {
       verifiedMetrics: context.verifiedMetrics,
     };
 
-    // PostHog LLM tracking helper for regeneration
+    // PostHog LLM analytics for regeneration
+    const traceId = `trace_${randomUUID()}`;
+    const INPUT_COST_PER_M = 3;
+    const OUTPUT_COST_PER_M = 15;
+    const regenStartTime = Date.now();
+
     const trackRegenLLM = (step: string, tokens: { input: number; output: number }) => {
       try {
         const posthog = getPostHogServer();
+        const inputCost = (tokens.input / 1_000_000) * INPUT_COST_PER_M;
+        const outputCost = (tokens.output / 1_000_000) * OUTPUT_COST_PER_M;
+        const totalCost = inputCost + outputCost;
+        const latencySeconds = (Date.now() - regenStartTime) / 1000;
+
+        posthog.capture({
+          distinctId: user.id,
+          event: '$ai_generation',
+          properties: {
+            // Required PostHog LLM analytics properties
+            $ai_provider: 'anthropic',
+            $ai_model: 'claude-sonnet-4-6',
+            $ai_input_tokens: tokens.input,
+            $ai_output_tokens: tokens.output,
+            $ai_input_cost_usd: inputCost,
+            $ai_output_cost_usd: outputCost,
+            $ai_total_cost_usd: totalCost,
+            $ai_is_error: false,
+            $ai_http_status: 200,
+            $ai_trace_id: traceId,
+            $ai_latency: latencySeconds,
+            // Custom properties for segmentation
+            step,
+            total_tokens: tokens.input + tokens.output,
+            feature: 'regeneration',
+            workflow_action: `regen_${type}`,
+          },
+        });
+      } catch (e) {
+        console.error('[PostHog] Regen LLM tracking error:', e);
+      }
+    };
+
+    const trackRegenError = (step: string, error: unknown) => {
+      try {
+        const posthog = getPostHogServer();
+        const latencySeconds = (Date.now() - regenStartTime) / 1000;
+
         posthog.capture({
           distinctId: user.id,
           event: '$ai_generation',
           properties: {
             $ai_provider: 'anthropic',
             $ai_model: 'claude-sonnet-4-6',
-            $ai_input_tokens: tokens.input,
-            $ai_output_tokens: tokens.output,
-            $ai_is_error: false,
+            $ai_is_error: true,
+            $ai_http_status: 500,
+            $ai_trace_id: traceId,
+            $ai_latency: latencySeconds,
+            $ai_error: error instanceof Error ? error.message : String(error),
             step,
-            total_tokens: tokens.input + tokens.output,
-            estimated_cost_usd:
-              (tokens.input / 1_000_000) * 3 +
-              (tokens.output / 1_000_000) * 15,
+            feature: 'regeneration',
+            workflow_action: `regen_${type}`,
           },
         });
       } catch (e) {
-        console.error('[PostHog] Regen LLM tracking error:', e);
+        console.error('[PostHog] Regen error tracking error:', e);
       }
     };
 
@@ -148,6 +192,23 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     clearServerSupabaseClient();
     console.error('[Regenerate API] Error:', error);
+    // Track regeneration error in PostHog
+    try {
+      const posthog = getPostHogServer();
+      posthog.capture({
+        distinctId: 'unknown',
+        event: '$ai_generation',
+        properties: {
+          $ai_provider: 'anthropic',
+          $ai_model: 'claude-sonnet-4-6',
+          $ai_is_error: true,
+          $ai_http_status: 500,
+          $ai_error: error instanceof Error ? error.message : String(error),
+          step: 'regen_error',
+          feature: 'regeneration',
+        },
+      });
+    } catch (_) { /* ignore PostHog errors */ }
     return NextResponse.json(
       { error: 'Failed to regenerate content' },
       { status: 500 }

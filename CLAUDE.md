@@ -254,11 +254,43 @@ PostHog is integrated for product analytics, session replay, and LLM cost tracki
 | `document_copied` | EmailPanel | `document_type` (`email`, `email_body`, `follow_up_email`) |
 | `regeneration_requested` | EmailPanel | `section` (`email`, `follow_up_email`) |
 
-### LLM Analytics (Server-Side)
-Every agent step emits `$ai_generation` with: `$ai_provider`, `$ai_model`, `$ai_input_tokens`, `$ai_output_tokens`, `step`, `total_tokens`, `estimated_cost_usd`. Tracked at the route level via `trackLLMStep` helper (not inside the agent itself).
+### LLM Analytics (Server-Side) — Updated Feb 21, 2026
+Every agent step emits `$ai_generation` with ALL required PostHog LLM analytics properties. Tracked at the route level via `trackLLMStep` / `trackLLMError` helpers (not inside the agent itself).
+
+**Standard PostHog properties (enable all 9 dashboard insights):**
+| Property | Source | Insight |
+|----------|--------|---------|
+| `$ai_provider` | `'anthropic'` | — |
+| `$ai_model` | `'claude-sonnet-4-6'` | Cost by model, Latency by model |
+| `$ai_input_tokens` | Agent step tokens | — |
+| `$ai_output_tokens` | Agent step tokens | — |
+| `$ai_input_cost_usd` | Calculated: input × $3/1M | Total cost, Cost per user |
+| `$ai_output_cost_usd` | Calculated: output × $15/1M | Total cost, Cost per user |
+| `$ai_total_cost_usd` | input_cost + output_cost | Total cost, Cost per user, Cost by model |
+| `$ai_is_error` | `false` on success, `true` on error | AI Errors |
+| `$ai_http_status` | `200` on success, `500` on error | Generations by HTTP status |
+| `$ai_trace_id` | `trace_{uuid}` per request | Traces |
+| `$ai_latency` | Seconds from step_started to step_completed | Generation latency by model |
+| `$ai_error` | Error message (only on errors) | AI Errors |
+
+**Custom properties (for segmentation):**
+| Property | Values |
+|----------|--------|
+| `step` | `analysis`, `matching`, `cv_generation`, `cover_letter`, `email`, `fit_assessment`, `regen_*` |
+| `feature` | `fit_analysis`, `application_generation`, `regeneration` |
+| `workflow_action` | `fit_analysis`, `full_optimization`, `generate_with_context`, `regen_cover-letter`, etc. |
+
+**Error tracking:** Both routes emit `$ai_generation` with `$ai_is_error: true` on:
+- Individual step errors (`step_error` events from agent)
+- Top-level workflow/regeneration catch blocks
+
+**Trace IDs:** Each API request generates a unique `trace_{uuid}` shared across all steps in that request, enabling PostHog's Traces view to group related generations.
 
 ### Not Implemented (by design)
-- **`@posthog/ai`** — skipped due to known Anthropic streaming bugs
+- **`@posthog/ai` wrapper** — skipped; manual `$ai_generation` events provide full coverage without streaming compatibility issues
+- **`$ai_input` / `$ai_output_choices`** — prompts/responses not sent to PostHog (privacy by design)
+- **`posthog_groups`** — B2C app, no organization-level tracking needed
+- **User feedback tracking** — no thumbs up/down UI exists yet (future feature)
 - **Feature flags / A/B testing / surveys** — not needed yet
 - **`cv_uploaded` event** — requires adding tracking to the document upload component (future)
 - **`plan_selected` / `payment_completed`** — requires adding tracking to pricing/Stripe components (future)
@@ -596,4 +628,5 @@ A 70% score now means the candidate is **genuinely competitive** for the role, n
 | Feb 19, 2026 | Insufficient credits modal + settings subscription redesign | InsufficientCreditsModal.tsx (new), useAgentWorkflow.ts, ChatPanel.tsx, SubscriptionSection.tsx | **New**: `InsufficientCreditsModal` — shown when user has insufficient credits mid-workflow. Displays Plus and Pro cards in website pricing style (badges, icons, taglines, features, hours-saved line, CTA buttons). Triggers Stripe checkout directly. **Wire-up**: `useAgentWorkflow` now accepts `onInsufficientCredits` callback; detects `data.code === 'INSUFFICIENT_CREDITS'` SSE event in both `runFitAnalysisFlow` and `runAgentWorkflow` and fires callback instead of chat error message. `ChatPanel` wires callback → modal state. **Settings redesign**: `SubscriptionSection` Compare Plans section updated to match website pricing design — icons per plan, taglines, expanded 6-feature lists, hours-saved line, `Get Plus →` / `Get Pro →` CTAs, credit pill badges. |
 | Feb 19, 2026 | Fix starter credits 40→10 for new users | supabase/migrations/fix_starter_credits_10.sql | **Root cause**: `initialize_user_credits()` DB trigger was hardcoded to 40 credits (from `pricing_redesign_v5_2.sql`). TypeScript fallback in `credits.ts:205` correctly uses 10 but the DB trigger always runs first, so new signups received 40. **Fix**: Updated `subscription_plans.credits_monthly = 10` for starter tier; recreated `initialize_user_credits()` trigger with 10 credits. |
 | Feb 19, 2026 | Fix signup 500 "Database error saving new user" | supabase/migrations/fix_signup_triggers.sql | **Root cause**: `handle_new_user()` and `initialize_user_credits()` DB trigger functions had zero exception handling. Any error in the trigger chain (FK violation on `user_credits.plan_tier → subscription_plans.tier`, missing row, constraint issue) propagated to `auth.users` INSERT → Supabase returned 500. **Fix**: Added `EXCEPTION WHEN OTHERS THEN RAISE LOG` to both trigger functions; added `ON CONFLICT (id) DO NOTHING` to profile insert; added self-healing guard in `initialize_user_credits` to upsert 'starter' plan before inserting credits; re-attached both triggers. **Bonus fix**: Updated `credit_transactions` CHECK constraint to include `'full_application'`, `'fit_analysis'`, `'cv_optimization'`, `'follow_up_regen'` which the app uses but were missing from the original constraint. **Migration**: `supabase/migrations/fix_signup_triggers.sql` — run in Supabase SQL Editor. |
+| Feb 21, 2026 | PostHog LLM analytics: complete fix for all 9 insights | agent-v2/route.ts, regenerate/route.ts, agents/types.ts, CLAUDE.md | **Root cause**: Manual `$ai_generation` events were missing 5 of 9 required PostHog properties — `$ai_trace_id`, `$ai_total_cost_usd`/`$ai_input_cost_usd`/`$ai_output_cost_usd`, `$ai_latency`, `$ai_http_status`, and error events never set `$ai_is_error: true`. Only `estimated_cost_usd` (custom name, not recognized by PostHog) was sent. **Fix**: Added all standard PostHog LLM properties to both routes. Added `$ai_trace_id` (unique UUID per request) for Traces view. Added latency tracking via `stepStartTimes` Map (measures step_started→step_completed delta). Added `trackLLMError` helper that emits `$ai_is_error: true` + `$ai_http_status: 500` on step errors and top-level catch blocks. Added `feature`/`workflow_action` custom properties for segmentation. Hoisted PostHog helpers above try/catch for error accessibility. Added `latencyMs` to `AgentEvent.step_completed` type. Zero regressions (`tsc --noEmit` = 0 errors). **Optional recommendations evaluated**: privacy mode (N/A — prompts never sent), org groups (N/A — B2C app), user feedback (no UI yet), prompt versioning (implicit via step name). |
 | Jun 2025 | Deep Clean & Audit | 35 files deleted, CLAUDE.md updated | Removed 14 orphaned source files (2,364 lines), 6 orphaned public assets, 2 empty directories, 13 obsolete .md docs (4,633 lines). Total: ~7,000 lines of dead code/docs removed. Zero regressions. |

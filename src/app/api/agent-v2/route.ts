@@ -29,6 +29,7 @@ import {
   transformToGeneratedCV,
 } from '@/lib/utils/cv-transformers';
 import { getPostHogServer } from '@/lib/posthog-server';
+import { randomUUID } from 'crypto';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -88,11 +89,88 @@ export async function POST(request: NextRequest) {
   
   const stream = new ReadableStream({
     async start(controller) {
+      // PostHog LLM analytics — hoisted above try/catch so error tracking works in catch block
+      const traceId = `trace_${randomUUID()}`;
+      const stepStartTimes = new Map<string, number>();
+      let distinctId = 'anonymous';
+      let currentAction = 'unknown';
+
+      // Sonnet 4.6 pricing (per million tokens)
+      const INPUT_COST_PER_M = 3;   // $3 per 1M input tokens
+      const OUTPUT_COST_PER_M = 15;  // $15 per 1M output tokens
+
+      const trackLLMStep = (stepId: string, tokens?: { input: number; output: number }) => {
+        if (!tokens) return;
+        try {
+          const posthog = getPostHogServer();
+          const inputCost = (tokens.input / 1_000_000) * INPUT_COST_PER_M;
+          const outputCost = (tokens.output / 1_000_000) * OUTPUT_COST_PER_M;
+          const totalCost = inputCost + outputCost;
+          const stepStart = stepStartTimes.get(stepId);
+          const latencySeconds = stepStart ? (Date.now() - stepStart) / 1000 : undefined;
+
+          posthog.capture({
+            distinctId,
+            event: '$ai_generation',
+            properties: {
+              // Required PostHog LLM analytics properties
+              $ai_provider: 'anthropic',
+              $ai_model: 'claude-sonnet-4-6',
+              $ai_input_tokens: tokens.input,
+              $ai_output_tokens: tokens.output,
+              $ai_input_cost_usd: inputCost,
+              $ai_output_cost_usd: outputCost,
+              $ai_total_cost_usd: totalCost,
+              $ai_is_error: false,
+              $ai_http_status: 200,
+              $ai_trace_id: traceId,
+              ...(latencySeconds !== undefined && { $ai_latency: latencySeconds }),
+              // Custom properties for segmentation
+              step: stepId,
+              total_tokens: tokens.input + tokens.output,
+              feature: currentAction === 'fit_analysis' ? 'fit_analysis' : 'application_generation',
+              workflow_action: currentAction,
+            },
+          });
+        } catch (e) {
+          console.error('[PostHog] LLM tracking error:', e);
+        }
+      };
+
+      // Track LLM errors to PostHog
+      const trackLLMError = (stepId: string, error: unknown) => {
+        try {
+          const posthog = getPostHogServer();
+          const stepStart = stepStartTimes.get(stepId);
+          const latencySeconds = stepStart ? (Date.now() - stepStart) / 1000 : undefined;
+
+          posthog.capture({
+            distinctId,
+            event: '$ai_generation',
+            properties: {
+              $ai_provider: 'anthropic',
+              $ai_model: 'claude-sonnet-4-6',
+              $ai_is_error: true,
+              $ai_http_status: 500,
+              $ai_trace_id: traceId,
+              ...(latencySeconds !== undefined && { $ai_latency: latencySeconds }),
+              $ai_error: error instanceof Error ? error.message : String(error),
+              step: stepId,
+              feature: currentAction === 'fit_analysis' ? 'fit_analysis' : 'application_generation',
+              workflow_action: currentAction,
+            },
+          });
+        } catch (e) {
+          console.error('[PostHog] LLM error tracking error:', e);
+        }
+      };
+
       try {
         // Get authenticated user (optional — anonymous users get one free generation)
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
         const isAnonymous = !user;
+        distinctId = user?.id || 'anonymous';
 
         // Set server supabase client for credit operations (only if authenticated)
         if (user) {
@@ -109,6 +187,7 @@ export async function POST(request: NextRequest) {
           cachedContextData,
           enableWebSearch,
         } = body;
+        currentAction = action;
         
         console.log('[API_AGENT_V2] Request received:', {
           action,
@@ -119,36 +198,11 @@ export async function POST(request: NextRequest) {
           hasMasterCV: !!masterCV,
         });
 
-        // PostHog LLM analytics helper
-        const trackLLMStep = (stepId: string, tokens?: { input: number; output: number }) => {
-          if (!tokens) return;
-          try {
-            const posthog = getPostHogServer();
-            posthog.capture({
-              distinctId: user?.id || 'anonymous',
-              event: '$ai_generation',
-              properties: {
-                $ai_provider: 'anthropic',
-                $ai_model: 'claude-sonnet-4-6',
-                $ai_input_tokens: tokens.input,
-                $ai_output_tokens: tokens.output,
-                $ai_is_error: false,
-                step: stepId,
-                total_tokens: tokens.input + tokens.output,
-                estimated_cost_usd:
-                  (tokens.input / 1_000_000) * 3 +
-                  (tokens.output / 1_000_000) * 15,
-              },
-            });
-          } catch (e) {
-            console.error('[PostHog] LLM tracking error:', e);
-          }
-        };
-
         // Set up event handler to stream progress
         const createEventHandler = (stepIndexFn: (id: string) => number) => (event: AgentEvent) => {
           switch (event.type) {
             case 'step_started':
+              stepStartTimes.set(event.step.id, Date.now());
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                 type: 'step_start',
                 step: event.step.id,
@@ -166,6 +220,7 @@ export async function POST(request: NextRequest) {
               })}\n\n`));
               break;
             case 'step_error':
+              trackLLMError(event.step.id, event.error);
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                 type: 'step_error',
                 step: event.step.id,
@@ -532,6 +587,8 @@ export async function POST(request: NextRequest) {
         controller.close();
         
       } catch (error) {
+        // Track the top-level workflow error in PostHog
+        trackLLMError('workflow', error);
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
           type: 'error', 
           message: error instanceof Error ? error.message : 'Workflow failed'
