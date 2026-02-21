@@ -11,6 +11,8 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
       ui_host: 'https://us.i.posthog.com',
       capture_pageview: false,
       capture_pageleave: true,
+      autocapture: true,
+      capture_exceptions: true,
       session_recording: {
         maskAllInputs: false,
         maskTextSelector: '[data-ph-mask]',

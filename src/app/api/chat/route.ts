@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callModel } from '@/lib/models';
+import { getPostHogServer } from '@/lib/posthog-server';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -65,6 +66,12 @@ export async function POST(req: NextRequest) {
       actions 
     });
   } catch (error) {
+    const posthog = getPostHogServer();
+    posthog.captureException(error as Error, 'server', {
+      endpoint: '/api/chat',
+      method: 'POST',
+    });
+    await posthog.flush();
     console.error('Chat error:', error);
     return NextResponse.json(
       { error: 'Chat request failed' },

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument, rgb, StandardFonts, PDFPage, PDFFont } from 'pdf-lib';
 import { createClient } from '@supabase/supabase-js';
 import type { StructuredCV, CVDate } from '@/lib/types/cv-schema';
+import { getPostHogServer } from '@/lib/posthog-server';
 
 // Create Supabase client for server-side usage
 function getSupabaseAdmin() {
@@ -75,6 +76,12 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error) {
+    const posthog = getPostHogServer();
+    posthog.captureException(error as Error, 'server', {
+      endpoint: '/api/generate-pdf',
+      method: 'POST',
+    });
+    await posthog.flush();
     console.error('PDF generation error:', error);
     return NextResponse.json(
       { error: 'Failed to generate PDF' },

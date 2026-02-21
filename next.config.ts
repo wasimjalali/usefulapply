@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withPostHogConfig } from "@posthog/nextjs-config";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ['pdf-parse'],
@@ -25,4 +26,12 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withPostHogConfig(nextConfig, {
+  personalApiKey: process.env.POSTHOG_PERSONAL_API_KEY!,
+  projectId: process.env.POSTHOG_PROJECT_ID!,
+  host: 'https://us.i.posthog.com',
+  sourcemaps: {
+    enabled: true,
+    deleteAfterUpload: true,
+  },
+});

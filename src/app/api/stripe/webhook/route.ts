@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe';
 import { createClient } from '@supabase/supabase-js';
+import { getPostHogServer } from '@/lib/posthog-server';
 
 function getSupabaseAdmin() {
   return createClient(
@@ -186,6 +187,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
+    const posthog = getPostHogServer();
+    posthog.captureException(error as Error, 'server', {
+      endpoint: '/api/stripe/webhook',
+      method: 'POST',
+    });
+    await posthog.flush();
     console.error('Webhook handler error:', error);
     return NextResponse.json(
       { error: 'Webhook handler failed' },

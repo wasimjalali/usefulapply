@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe, STRIPE_ADDON_PRICES, ADDON_CREDIT_MAP } from '@/lib/stripe';
 import { createClient } from '@supabase/supabase-js';
+import { getPostHogServer } from '@/lib/posthog-server';
 
 function getSupabaseAdmin() {
   return createClient(
@@ -108,6 +109,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ sessionId: session.id, url: session.url });
   } catch (error: any) {
+    const posthog = getPostHogServer();
+    posthog.captureException(error as Error, 'server', {
+      endpoint: '/api/stripe/create-addon-checkout',
+      method: 'POST',
+    });
+    await posthog.flush();
     console.error('[Addon Checkout] Session creation error:', error?.message || error, error?.type, error?.raw?.message);
     return NextResponse.json(
       { error: error?.message || 'Failed to create checkout session' },

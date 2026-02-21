@@ -589,6 +589,15 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         // Track the top-level workflow error in PostHog
         trackLLMError('workflow', error);
+        // Also capture as exception for Error Tracking dashboard
+        try {
+          const posthog = getPostHogServer();
+          posthog.captureException(error as Error, distinctId, {
+            endpoint: '/api/agent-v2',
+            method: 'POST',
+            workflow_action: currentAction,
+          });
+        } catch (_) { /* ignore PostHog errors */ }
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
           type: 'error', 
           message: error instanceof Error ? error.message : 'Workflow failed'

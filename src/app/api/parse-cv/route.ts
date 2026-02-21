@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import pdf from 'pdf-parse';
 import { v4 as uuidv4 } from 'uuid';
 import { StructuredCV, createEmptyCV, withId } from '@/lib/types/cv-schema';
+import { getPostHogServer } from '@/lib/posthog-server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -103,6 +104,12 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error) {
+    const posthog = getPostHogServer();
+    posthog.captureException(error as Error, 'server', {
+      endpoint: '/api/parse-cv',
+      method: 'POST',
+    });
+    await posthog.flush();
     console.error('Parse error:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to parse CV' },

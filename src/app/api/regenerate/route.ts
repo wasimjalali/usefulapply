@@ -208,6 +208,13 @@ export async function POST(request: NextRequest) {
           feature: 'regeneration',
         },
       });
+      // Also capture as exception for Error Tracking dashboard
+      posthog.captureException(error as Error, 'server', {
+        endpoint: '/api/regenerate',
+        method: 'POST',
+        feature: 'regeneration',
+      });
+      await posthog.flush();
     } catch (_) { /* ignore PostHog errors */ }
     return NextResponse.json(
       { error: 'Failed to regenerate content' },
