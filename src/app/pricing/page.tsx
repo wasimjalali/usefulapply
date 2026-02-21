@@ -572,7 +572,7 @@ export default function PricingPage() {
               <div className="w-14 h-14 bg-gold-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <FileText className="w-7 h-7 text-gold-500" />
               </div>
-              <div className="text-3xl font-bold text-navy-600 mb-1">1.5</div>
+              <div className="text-3xl font-bold text-navy-600 mb-1">2</div>
               <div className="text-sm font-semibold text-charcoal mb-2">credits</div>
               <div className="text-sm font-medium text-charcoal">Full Application</div>
               <div className="text-xs text-warm-gray mt-2">CV + Cover Letter + Email</div>

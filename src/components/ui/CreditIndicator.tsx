@@ -185,7 +185,7 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
                     </div>
                     <div className="flex justify-between">
                       <span>Full Application</span>
-                      <span className="font-medium text-charcoal">1.5</span>
+                      <span className="font-medium text-charcoal">2</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Cover Letter Regen</span>
@@ -265,7 +265,7 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
                   </div>
                   <div className="flex justify-between">
                     <span>Full Application</span>
-                    <span className="font-medium text-charcoal">1.5</span>
+                    <span className="font-medium text-charcoal">2</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Cover Letter Regen</span>

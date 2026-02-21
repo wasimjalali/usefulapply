@@ -82,7 +82,7 @@ export interface AddonCreditPack {
 // =====================================================
 
 export const CREDIT_COSTS = {
-  FULL_APPLICATION: 1.5,    // CV + Cover Letter + Email (after fit analysis)
+  FULL_APPLICATION: 2.0,    // CV + Cover Letter + Email (after fit analysis)
   FIT_ANALYSIS: 0.5,        // Fit analysis before full generation
   CV_OPTIMIZATION: 1,       // CV only
   COVER_LETTER_REGEN: 0.5,  // Cover letter regeneration

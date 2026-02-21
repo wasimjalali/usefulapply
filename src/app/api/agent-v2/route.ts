@@ -331,7 +331,7 @@ export async function POST(request: NextRequest) {
         }
 
         // =====================================================
-        // ACTION: GENERATE WITH CONTEXT (Phase 2 only - 1.5 credits)
+        // ACTION: GENERATE WITH CONTEXT (Phase 2 only - 2.0 credits)
         // Uses cached context from fit analysis
         // =====================================================
         if (action === 'generate_with_context') {
@@ -436,7 +436,7 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          // Context found - deduct 1.5 credits for generation only (skip for anonymous)
+          // Context found - deduct 2.0 credits for generation only (skip for anonymous)
           if (!isAnonymous) {
             const creditResult = await checkAndDeductCredits(user!.id, 'FULL_APPLICATION');
             if (!creditResult.success) {
