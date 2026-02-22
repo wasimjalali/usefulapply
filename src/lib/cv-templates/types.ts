@@ -559,6 +559,56 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
     },
     sectionOrder: ['header', 'photo', 'summary', 'experience', 'education', 'skills', 'languages', 'certifications'],
   },
+  
+  // 5. German Classic - Single-column with photo (better ATS than two-column)
+  {
+    id: 'german-classic',
+    name: '🇩🇪 Deutsch Klassisch',
+    description: 'Single-column German CV with photo. Maximum ATS compatibility, clean charcoal design.',
+    region: 'EU',
+    style: 'classic',
+    includesPhoto: true,
+    pageSize: 'a4',
+    colors: {
+      primary: '#374151',      // Charcoal/Anthracite - neutral, professional
+      secondary: '#4B5563',    // Medium grey
+      accent: '#374151',       // Charcoal
+      text: '#1A1A1A',         // Near-black
+      textLight: '#4B5563',    // Medium grey
+      background: '#ffffff',
+      headerBg: '#F9FAFB',     // Very light grey
+    },
+    fonts: {
+      heading: 'Georgia, Times New Roman, serif',
+      body: 'Arial, Helvetica, sans-serif',
+    },
+    sectionOrder: ['header', 'photo', 'summary', 'skills', 'experience', 'education', 'certifications', 'languages'],
+  },
+  
+  // 6. Classic Green - English market, distinctive forest green accent
+  {
+    id: 'classic-green',
+    name: 'Classic Green',
+    description: 'Distinctive forest green design for all industries. Clean single-column, ATS-optimized.',
+    region: 'US',
+    style: 'modern-ats',
+    includesPhoto: false,
+    pageSize: 'letter',
+    colors: {
+      primary: '#2D6A4F',      // Forest Green - calm, professional
+      secondary: '#4B5563',    // Medium grey
+      accent: '#2D6A4F',       // Forest Green
+      text: '#1A1A1A',         // Near-black
+      textLight: '#4B5563',    // Medium grey
+      background: '#ffffff',
+      headerBg: '#ECFDF5',     // Very light green tint
+    },
+    fonts: {
+      heading: 'Georgia, Times New Roman, serif',
+      body: 'Arial, Helvetica, sans-serif',
+    },
+    sectionOrder: ['header', 'summary', 'skills', 'experience', 'education', 'certifications', 'languages'],
+  },
 ];
 
 export function getTemplateById(id: string): CVTemplate | undefined {

@@ -1,7 +1,7 @@
 'use client';
 
 import { CV_TEMPLATE_DEFINITIONS } from '@/lib/cv-templates/types';
-import { Check, FileText, Sparkles, Briefcase, Star, Globe } from 'lucide-react';
+import { Check, FileText, Sparkles, Briefcase, Star, Globe, Leaf, User } from 'lucide-react';
 
 interface TemplateSelectorProps {
   selectedTemplateId: string;
@@ -9,7 +9,7 @@ interface TemplateSelectorProps {
 }
 
 /**
- * Template Selector - 4 Templates (3 English + 1 German)
+ * Template Selector - 6 Templates (4 English + 2 German)
  */
 export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelectorProps) {
   const getTemplateIcon = (templateId: string) => {
@@ -18,6 +18,8 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
       case 'modern-professional': return Sparkles;
       case 'executive': return Briefcase;
       case 'german-ats': return Globe;
+      case 'german-classic': return User;
+      case 'classic-green': return Leaf;
       default: return FileText;
     }
   };
@@ -28,6 +30,8 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
       case 'modern-professional': return 'Best for tech & startups';
       case 'executive': return 'Best for senior roles';
       case 'german-ats': return 'For German job market';
+      case 'german-classic': return 'German CV, single-column';
+      case 'classic-green': return 'Fresh design, all industries';
       default: return '';
     }
   };
@@ -38,6 +42,8 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
       case 'modern-professional': return 'bg-gradient-to-br from-navy-500 to-navy-700';
       case 'executive': return 'bg-gradient-to-br from-navy-700 to-navy-900';
       case 'german-ats': return 'bg-gradient-to-br from-navy-600 to-navy-700';
+      case 'german-classic': return 'bg-gradient-to-br from-gray-600 to-gray-800';
+      case 'classic-green': return 'bg-gradient-to-br from-emerald-600 to-emerald-800';
       default: return 'bg-gradient-to-br from-navy-500 to-navy-700';
     }
   };
@@ -48,6 +54,8 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
       case 'modern-professional': return 'bg-navy-50 text-navy-600 border border-navy-100';
       case 'executive': return 'bg-navy-50 text-navy-600 border border-navy-100';
       case 'german-ats': return 'bg-navy-50 text-navy-600 border border-navy-100';
+      case 'german-classic': return 'bg-gray-50 text-gray-600 border border-gray-200';
+      case 'classic-green': return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
       default: return 'bg-cream-100 text-warm-gray';
     }
   };
@@ -57,7 +65,7 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
       {/* Header */}
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-charcoal">Choose Template</span>
-        <span className="text-[10px] text-warm-gray">ATS-Optimized • English/Global</span>
+        <span className="text-[10px] text-warm-gray">ATS-Optimized • 6 Templates</span>
       </div>
 
       {/* Template Grid */}

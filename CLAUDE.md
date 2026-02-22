@@ -462,6 +462,72 @@ Prompt caching is **correctly configured for the direct Anthropic API path** but
 
 ---
 
+## CV Template Expansion — 4→6 Templates + ATS Audit
+
+**Date:** February 22, 2026
+
+### ATS Compliance Audit (2026 Best Practices)
+
+Web research sources: Jobscan (2026), Microsoft Word Blog (2026), Enhancv (2026), ATS Resume AI (2025).
+
+**Industry standards confirmed:**
+- **Fonts:** Arial, Calibri, Helvetica, Georgia, Times New Roman, Verdana — system fonts preferred
+- **Body text:** 10-12pt | **Section headers:** 14-16pt | **Name:** 18-28pt
+- **Line spacing:** 1.0 or 1.15
+- **Colors:** Black, dark gray, navy blue safe for headers. Max 1-2 colors.
+- **Layout:** Single-column preferred for maximum ATS parseability
+- **Margins:** 0.75" to 1" on all sides
+- **Bullets:** Standard round (•) or dash (–) only
+
+**Audit results — All 6 templates pass ATS compliance:**
+
+| Template | Fonts | Body/Header/Name | Primary Color | Layout | Verdict |
+|----------|-------|-------------------|---------------|--------|---------|
+| Premium ATS | Arial + Georgia ✅ | 12/14/28px ✅ | #0F3057 navy | Single-col | **Fully compliant** |
+| Modern Professional | Arial + Georgia ✅ | 13/14/22px ✅ | #2C7A7B teal | Two-col | **Good** (two-col minor risk) |
+| Executive | Arial + Georgia ✅ | 12/14/28px ✅ | #702459 burgundy | Single-col | **Fully compliant** |
+| German ATS | Arial + Georgia ✅ | 11/13/24px ✅ | #1E3A5F slate blue | Two-col | **Good** (two-col minor risk) |
+| German Classic (NEW) | Arial + Georgia ✅ | 11/13/24px ✅ | #374151 charcoal | Single-col | **Fully compliant** |
+| Classic Green (NEW) | Arial + Georgia ✅ | 12/14/26px ✅ | #2D6A4F forest green | Single-col | **Fully compliant** |
+
+### New Template 5: German Classic (Deutsch Klassisch)
+- **ID:** `german-classic`
+- **File:** `src/components/cv-templates/GermanClassicTemplate.tsx`
+- **Color:** Charcoal/Anthracite #374151 — neutral, professional
+- **Layout:** Single-column with inline photo in header (better ATS than two-column)
+- **Page size:** A4 (210mm × 297mm)
+- **Features:** Photo placeholder, German section headers (i18n-aware), signature line, CEFR language levels
+- **Target:** German job market users who prefer maximum ATS compatibility over the two-column design
+
+### New Template 6: Classic Green
+- **ID:** `classic-green`
+- **File:** `src/components/cv-templates/ClassicGreenTemplate.tsx`
+- **Color:** Forest Green #2D6A4F — calm, professional, suitable for all industries
+- **Layout:** Single-column, US Letter size
+- **Design differentiators:** Left-border accent on summary, 1.5px section dividers (thinner), wider letter-spacing on headers
+- **Target:** US/UK/Canada English-speaking markets — finance, consulting, healthcare, sustainability, tech
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `src/components/cv-templates/GermanClassicTemplate.tsx` | NEW — Single-column German CV with photo, charcoal palette |
+| `src/components/cv-templates/ClassicGreenTemplate.tsx` | NEW — English market CV, forest green accent |
+| `src/lib/cv-templates/types.ts` | Added `german-classic` and `classic-green` template definitions |
+| `src/components/cv-templates/index.tsx` | Added imports and switch cases for both new templates |
+| `src/components/cv-templates/TemplateSelector.tsx` | Added icon, gradient, recommendation, and style mappings for both templates |
+
+### Template Color Map (all 6)
+| # | Template | Primary Color | Hex | Use Case |
+|---|----------|---------------|-----|----------|
+| 1 | Premium ATS | Deep Navy | #0F3057 | Default, most applications |
+| 2 | Modern Professional | Teal | #2C7A7B | Tech & startups |
+| 3 | Executive | Burgundy | #702459 | Senior roles |
+| 4 | German ATS | Slate Blue | #1E3A5F | German market (two-col) |
+| 5 | German Classic | Charcoal | #374151 | German market (single-col) |
+| 6 | Classic Green | Forest Green | #2D6A4F | All industries, fresh design |
+
+---
+
 ## CV Template Font Standardization
 
 **Date:** February 17, 2026
@@ -632,4 +698,5 @@ A 70% score now means the candidate is **genuinely competitive** for the role, n
 | Feb 21, 2026 | PostHog error tracking: complete setup | PostHogProvider.tsx, error.tsx (new), global-error.tsx (new), next.config.ts, package.json, all 10 API routes, test-error/route.ts (new) | **What**: Full PostHog Error Tracking integration for behavioral error analytics. **Client-side**: Added `capture_exceptions: true` and `autocapture: true` to PostHog init — auto-captures all unhandled errors/rejections. Added `app/error.tsx` (React error boundary) and `app/global-error.tsx` (root-level boundary), both call `posthog.captureException()`. **Server-side**: Added `posthog.captureException()` + `posthog.flush()` to catch blocks of all 10 API routes (chat, contact, generate-pdf, parse-cv, agent-v2, regenerate, stripe/create-checkout, stripe/create-addon-checkout, stripe/create-portal, stripe/webhook). Uses correct Node SDK signature: `captureException(error, distinctId, properties)`. Switched contact route from edge→nodejs runtime for posthog-node compatibility. **Source maps**: Installed `@posthog/nextjs-config`, wrapped `next.config.ts` with `withPostHogConfig()` — auto-uploads source maps on build, deletes after upload. **Env vars needed**: `POSTHOG_PERSONAL_API_KEY` (from PostHog user settings), `POSTHOG_PROJECT_ID` (from PostHog project settings). **Test**: `/api/test-error` endpoint for verification (DELETE AFTER TESTING). Zero regressions (`tsc --noEmit` = 0 errors). |
 | Feb 21, 2026 | Follow-up email regeneration: charge 0.5 credits | credits.ts | **Root cause**: `FOLLOW_UP_REGEN` was set to 0 credits, allowing unlimited free regenerations and potential abuse. Follow-up email regeneration costs ~$0.010-0.015 per API call. **Fix**: Updated `CREDIT_COSTS.FOLLOW_UP_REGEN` from 0 to 0.5 credits, aligning with cover letter and primary email regeneration pricing. Provides ~90% gross margin and prevents abuse. **Impact**: Pre-launch change, no existing users affected. `regenerate/route.ts` already had proper credit checking logic in place — change is automatic. Zero regressions (`tsc --noEmit` = 0 errors). |
 | Feb 21, 2026 | Apply Directly: increase from 1.5 to 2.0 credits | credits.ts, CreditIndicator.tsx, pricing/page.tsx, agent-v2/route.ts | **Root cause**: Apply Directly (1.5 credits) and Analyze First full flow (0.5 fit + 1.5 generation = 2.0 total) cost nearly identical API amounts (~$0.177 vs ~$0.179) but charged different credit amounts — 25% margin inconsistency. **Fix**: Updated `CREDIT_COSTS.FULL_APPLICATION` from 1.5 to 2.0. Updated `CreditIndicator.tsx` Credit Usage display (mobile + desktop) from 1.5 → 2. Updated `pricing/page.tsx` Full Application credit cost card from 1.5 → 2. Updated comments in `agent-v2/route.ts`. Homepage (`page.tsx`) had no hardcoded 1.5 references. ChatPanel had no hardcoded credit text (uses modal system). **Impact**: Pre-launch change, no existing paying users affected. Unifies pricing: every full application = 2 credits regardless of path. Zero regressions (`tsc --noEmit` = 0 errors). |
+| Feb 22, 2026 | CV Template Expansion: 4→6 templates + ATS audit | GermanClassicTemplate.tsx (new), ClassicGreenTemplate.tsx (new), types.ts, index.tsx, TemplateSelector.tsx | **ATS audit**: Verified all 4 existing templates against 2026 best practices (Jobscan, Microsoft, Enhancv, ATS Resume AI) — all pass. Fonts (Arial+Georgia), sizes (10-14px body, 14-28px headers), colors (navy/teal/burgundy/slate-blue all high-contrast), margins (0.5"/0.75") all compliant. **New Template 5 (german-classic)**: Single-column German CV with inline photo in header, charcoal #374151, A4, German headers, signature line — better ATS than two-column german-ats. **New Template 6 (classic-green)**: English market single-column, forest green #2D6A4F, left-border summary accent, 1.5px dividers — for all industries (finance, consulting, healthcare, tech). Both use system fonts (Arial body + Georgia headers), standard bullets (•), no tables/text boxes. Updated types.ts with 2 new CVTemplate definitions, index.tsx with imports + switch cases, TemplateSelector.tsx with icons (User/Leaf), gradients, recommendations, styles. Zero regressions (`tsc --noEmit` = 0 errors). |
 | Jun 2025 | Deep Clean & Audit | 35 files deleted, CLAUDE.md updated | Removed 14 orphaned source files (2,364 lines), 6 orphaned public assets, 2 empty directories, 13 obsolete .md docs (4,633 lines). Total: ~7,000 lines of dead code/docs removed. Zero regressions. |

@@ -5,12 +5,14 @@ import { USPremiumATSTemplate } from './USPremiumATSTemplate';
 import { USModernATSTemplate } from './USModernATSTemplate';
 import { USProfessionalTemplate } from './USProfessionalTemplate';
 import { GermanATSTemplate } from './GermanATSTemplate';
+import { GermanClassicTemplate } from './GermanClassicTemplate';
+import { ClassicGreenTemplate } from './ClassicGreenTemplate';
 
 export { CV_TEMPLATE_DEFINITIONS, getTemplateById };
 export type { CVData, CVTemplate };
 
 // Export premium template for direct use
-export { USPremiumATSTemplate, GermanATSTemplate };
+export { USPremiumATSTemplate, GermanATSTemplate, GermanClassicTemplate, ClassicGreenTemplate };
 
 interface CVTemplateRendererProps {
   data: CVData;
@@ -18,10 +20,13 @@ interface CVTemplateRendererProps {
 }
 
 /**
- * CV Template Renderer - Consolidated to 3 Premium Templates
+ * CV Template Renderer - 6 Premium Templates
  * 1. premium-ats - Default, best for most applications
  * 2. modern-professional - Tech/startups
  * 3. executive - Senior roles
+ * 4. german-ats - German market (two-column with photo)
+ * 5. german-classic - German market (single-column with photo)
+ * 6. classic-green - English market, forest green accent
  */
 export function CVTemplateRenderer({ data, templateId }: CVTemplateRendererProps) {
   const template = getTemplateById(templateId);
@@ -42,7 +47,7 @@ export function CVTemplateRenderer({ data, templateId }: CVTemplateRendererProps
   // Extract photo URL from data.personal if available
   const photoUrl = data.personal?.photoUrl;
   
-  // Map template IDs to components (4 templates)
+  // Map template IDs to components (6 templates)
   switch (templateId) {
     case 'premium-ats':
       return <USPremiumATSTemplate data={data} template={template} photoUrl={photoUrl} />;
@@ -55,6 +60,12 @@ export function CVTemplateRenderer({ data, templateId }: CVTemplateRendererProps
     
     case 'german-ats':
       return <GermanATSTemplate data={data} template={template} photoUrl={photoUrl} />;
+    
+    case 'german-classic':
+      return <GermanClassicTemplate data={data} template={template} photoUrl={photoUrl} />;
+    
+    case 'classic-green':
+      return <ClassicGreenTemplate data={data} template={template} />;
     
     // Legacy template ID fallbacks (for existing users)
     case 'us-premium-ats':
