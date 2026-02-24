@@ -392,8 +392,8 @@ export default function NinetySecondApplicationPackagePage() {
                 Try Karko AI Free, No Sign-Up Required
               </h2>
               <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
-                Generate your complete application package in under 90 seconds. 20 free applications
-                included.
+                Generate your complete application package in under 90 seconds. 5 free applications
+                included per month.
               </p>
               <a
                 href="https://www.karkoai.com"

@@ -9,13 +9,13 @@ const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'AI Job Application Pricing & Credits: Free, Plus & Pro Plans | Karko AI',
+    title: 'AI Job Application Pricing & Credits: Starter, Plus & Pro Plans | Karko AI',
     description:
-      'Karko AI pricing: Free (20 applications), Plus $29.99/month (60 applications), Pro $49.99/month (120 applications). Credit-based system with transparent cost per application.',
+      'Karko AI pricing: Starter free (5 applications), Plus $29.99/month (60 applications), Pro $49.99/month (120 applications). Credit-based system with transparent cost per application.',
     openGraph: {
-      title: 'AI Job Application Pricing & Credits: Free, Plus & Pro Plans | Karko AI',
+      title: 'AI Job Application Pricing & Credits: Starter, Plus & Pro Plans | Karko AI',
       description:
-        'Karko AI pricing: Free (20 applications), Plus $29.99/month (60 applications), Pro $49.99/month (120 applications). Credit-based system with transparent cost per application.',
+        'Karko AI pricing: Starter free (5 applications), Plus $29.99/month (60 applications), Pro $49.99/month (120 applications). Credit-based system with transparent cost per application.',
       url: `${SITE_URL}/ai-job-application/pricing-credits`,
       siteName: 'Karko AI',
       type: 'website',
@@ -33,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
 const faqs = [
   {
     q: 'How much does Karko AI cost?',
-    a: 'Free tier: 20 applications/month at no cost. Plus: $29.99/month for 60 applications. Pro: $49.99/month for 120 applications. All plans include the complete 4-document package (tailored CV, cover letter, application email, follow-up email).',
+    a: 'Starter (free): 5 applications/month at no cost. Plus: $29.99/month for 60 applications. Pro: $49.99/month for 120 applications. All plans include the complete 4-document package (tailored CV, cover letter, application email, follow-up email).',
   },
   {
     q: 'How many applications does 2 credits cover?',
@@ -41,7 +41,7 @@ const faqs = [
   },
   {
     q: 'Is there a free plan with no credit card?',
-    a: 'Yes. The free tier gives 20 complete applications with no credit card required and no expiry. The same AI quality as paid plans.',
+    a: 'Yes. The Starter plan gives 5 complete applications per month with no credit card required. The same AI quality as paid plans.',
   },
   {
     q: 'What happens if I run out of credits mid-month?',
@@ -92,7 +92,7 @@ export default function PricingCreditsPage() {
     '@type': 'Article',
     headline: 'AI Job Application Pricing & Credits: How Karko AI Plans Work',
     description:
-      'Karko AI pricing: Free (20 applications), Plus $29.99/month (60 applications), Pro $49.99/month (120 applications). Credit-based system with transparent cost per application.',
+      'Karko AI pricing: Starter free (5 applications), Plus $29.99/month (60 applications), Pro $49.99/month (120 applications). Credit-based system with transparent cost per application.',
     author: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
     publisher: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
     url: `${SITE_URL}/ai-job-application/pricing-credits`,
@@ -151,10 +151,10 @@ export default function PricingCreditsPage() {
             <ScrollReveal delay={300}>
               <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed">
                 Karko AI uses a credit-based pricing model: each complete application package costs 2
-                credits. The free tier gives 40 credits (20 applications). The Plus plan
+                credits. The Starter plan gives 10 credits (5 applications) free. The Plus plan
                 ($29.99/month) gives 120 credits (60 applications). The Pro plan ($49.99/month) gives
                 240 credits (120 applications). All tiers generate the same four documents with no
-                quality difference between free and paid.
+                quality difference between plans.
               </p>
             </ScrollReveal>
           </div>
@@ -171,8 +171,8 @@ export default function PricingCreditsPage() {
             </ScrollReveal>
             <ScrollReveal delay={150}>
             <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
-              Free: 40 credits, 20 complete applications, no credit card required. Good for
-              evaluating output quality or low-volume job searching. Plus ($29.99/month): 120
+              Starter (free): 10 credits, 5 complete applications per month, no credit card required. Good for
+              evaluating output quality before committing. Plus ($29.99/month): 120
               credits, 60 complete applications per month. Good for active job searchers applying to
               10 to 15 roles per week.
             </p>
@@ -238,8 +238,8 @@ export default function PricingCreditsPage() {
               </h2>
             </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
-              Start with the free tier to validate output quality. Move to Plus if you are
-              applying consistently and need more than 20 applications. Move to Pro if you are in
+              Start with the Starter plan to validate output quality. Move to Plus if you are
+              applying consistently and need more than 5 applications per month. Move to Pro if you are in
               an intensive job search phase: layoff, career transition, or high-volume market.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
@@ -337,7 +337,7 @@ export default function PricingCreditsPage() {
             <div className="max-w-4xl mx-auto text-center relative">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Get Started Free</h2>
               <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
-                20 complete applications at no cost. No credit card required. Same AI quality as paid
+                5 complete applications at no cost. No credit card required. Same AI quality as paid
                 plans.
               </p>
               <a

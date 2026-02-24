@@ -69,7 +69,7 @@ const pillars = [
   {
     title: 'Pricing & Credits',
     description:
-      'Free (20 applications), Plus $29.99/month (60 applications), Pro $49.99/month (120 applications). Transparent credit-based pricing.',
+      'Starter free (5 applications), Plus $29.99/month (60 applications), Pro $49.99/month (120 applications). Transparent credit-based pricing.',
     href: '/ai-job-application/pricing-credits',
     linkText: 'Pricing & credits explained →',
   },
@@ -93,7 +93,7 @@ const faqs = [
   },
   {
     q: 'Do I need to sign up to test an AI job application tool?',
-    a: "Not necessarily. Karko AI's free tier lets you create 20 applications without requiring a paid subscription, and you can see the output quality before committing to any plan.",
+    a: "Not necessarily. Karko AI's Starter plan lets you create 5 applications per month without requiring a paid subscription, and you can see the output quality before committing to any plan.",
   },
   {
     q: "How do I prevent AI from making up experience I don't have?",
@@ -384,7 +384,7 @@ export default function AIJobApplicationHub() {
               </h2>
               <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
                 Generate a complete, tailored application package in under 90 seconds. Free tier
-                includes 20 applications, no sign-up required.
+                includes 5 applications free, no sign-up required.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <a
