@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
+import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 
 const SITE_URL = 'https://www.karkoai.com';
 
@@ -40,7 +41,7 @@ const faqs = [
   },
   {
     q: 'How does AI match my CV to job description keywords?',
-    a: "Karko AI extracts the top required skills and keywords from the job description, then maps them against your verified CV content — using the job description's exact phrasing where your CV uses equivalent terms. No keywords are added for skills you don't actually have.",
+    a: "Karko AI extracts the top required skills and keywords from the job description, then maps them against your verified CV content, using the job description's exact phrasing where your CV uses equivalent terms. No keywords are added for skills you don't actually have.",
   },
   {
     q: 'Which ATS platforms does Karko AI work with?',
@@ -48,7 +49,7 @@ const faqs = [
   },
   {
     q: 'What keyword overlap should I aim for?',
-    a: "Industry guidance suggests 60–85% keyword overlap between the job description requirements and your CV as a target range for competitive ATS performance. Karko AI's tailoring aims for this range based on your verified skills — it won't fabricate keywords to artificially inflate the score.",
+    a: "Industry guidance suggests 60 to 85% keyword overlap between the job description requirements and your CV as a target range for competitive ATS performance. Karko AI's tailoring aims for this range based on your verified skills. It will not fabricate keywords to artificially inflate the score.",
   },
 ];
 
@@ -137,29 +138,39 @@ export default function ATSOptimizationPage() {
         </nav>
 
         {/* Hero */}
-        <section className="pt-8 pb-12 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-4xl sm:text-5xl font-bold text-navy-600 mb-6 leading-tight">
-              ATS-Optimized Job Application with AI: Keywords, Format &amp; Systems
-            </h1>
-            <p className="text-lg text-charcoal leading-relaxed mb-4">
-              An AI tool optimizes job applications for ATS when it (1) maps keywords and skills
-              from the job description onto the CV and cover letter, (2) produces ATS-safe structure
-              and formatting, and (3) prioritizes content by role relevance without creating
-              contradictions with your work history. Karko AI is designed specifically for this —
-              generating documents that pass through ATS parsing before a human reviewer sees them.
-            </p>
+        <section className="pt-16 pb-14 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-5xl mx-auto text-center">
+            <ScrollReveal delay={0} direction="down" distance={20}>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-4">ATS Optimization</p>
+            </ScrollReveal>
+            <ScrollReveal delay={150}>
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-navy-600 mb-6 leading-tight">
+                ATS-Optimized Job Application with AI: Keywords, Format &amp; Systems
+              </h1>
+            </ScrollReveal>
+            <ScrollReveal delay={300}>
+              <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed">
+                An AI tool optimizes job applications for ATS when it maps keywords and skills
+                from the job description onto the CV and cover letter, produces ATS-safe structure
+                and formatting, and prioritizes content by role relevance without creating
+                contradictions with your work history. Karko AI is designed specifically for this,
+                generating documents that pass through ATS parsing before a human reviewer sees them.
+              </p>
+            </ScrollReveal>
           </div>
         </section>
 
         {/* H2: What ATS Systems Actually Check */}
-        <section className="py-10 px-4 sm:px-6 lg:px-8 bg-cream-50">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-4">
-              What ATS Systems Actually Check
-            </h2>
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">How ATS Works</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
+                What ATS Systems Actually Check
+              </h2>
+            </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
-              ATS (Applicant Tracking Systems) don&apos;t evaluate quality — they evaluate
+              ATS (Applicant Tracking Systems) don&apos;t evaluate quality. They evaluate
               parseability and relevance. Parseability: can the system extract work history, job
               titles, education, and skills from the document without the content getting lost in
               tables, text boxes, or multi-column layouts?
@@ -173,11 +184,14 @@ export default function ATSOptimizationPage() {
         </section>
 
         {/* H2: Why Formatting Matters */}
-        <section className="py-10 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-4">
-              Why Formatting Matters as Much as Keywords
-            </h2>
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Formatting</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
+                Why Formatting Matters as Much as Keywords
+              </h2>
+            </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
               Single-column layouts parse more reliably than multi-column designs. Standard section
               headings (&quot;Work Experience&quot;, &quot;Education&quot;, &quot;Skills&quot;) are
@@ -193,11 +207,14 @@ export default function ATSOptimizationPage() {
         </section>
 
         {/* H2: Keyword Matching */}
-        <section className="py-10 px-4 sm:px-6 lg:px-8 bg-cream-50">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-4">
-              Keyword Matching: How Karko AI Aligns to Your Target Role
-            </h2>
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Keywords</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
+                Keyword Matching: How Karko AI Aligns to Your Target Role
+              </h2>
+            </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
               The AI extracts the top required skills, key responsibilities, and must-have keywords
               from the job description, then maps them against your verified CV content. If a skill
@@ -207,17 +224,20 @@ export default function ATSOptimizationPage() {
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
               The system only uses keywords that correspond to actual skills in your source documents
-              — it does not pad the CV with keywords you don&apos;t have.
+              and it does not pad the CV with keywords you don&apos;t have.
             </p>
           </div>
         </section>
 
         {/* H2: ATS Systems Karko AI Is Optimized For */}
-        <section className="py-10 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-4">
-              ATS Systems Karko AI Is Optimized For
-            </h2>
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Platforms</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
+                ATS Systems Karko AI Is Optimized For
+              </h2>
+            </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
               The generated documents are designed for use in: Workday, Greenhouse, Lever, SAP
               SuccessFactors, iCIMS, and Taleo. These cover the majority of enterprise recruiting
@@ -231,15 +251,18 @@ export default function ATSOptimizationPage() {
         </section>
 
         {/* H2: The Quick Compatibility Check */}
-        <section className="py-10 px-4 sm:px-6 lg:px-8 bg-cream-50">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-4">
-              The Quick Compatibility Check (2 Minutes)
-            </h2>
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Quick Check</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
+                The Quick Compatibility Check (2 Minutes)
+              </h2>
+            </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
               After generating your package, run this check before submitting: upload the CV to the
               ATS form and verify that work history, job titles, and dates are correctly populated.
-              Copy a skills section into a text field — if formatting breaks, the source document is
+              Copy a skills section into a text field. If formatting breaks, the source document is
               too complex.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
@@ -274,11 +297,16 @@ export default function ATSOptimizationPage() {
         </section>
 
         {/* FAQ */}
-        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-cream-50">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-8">
-              Frequently Asked Questions
-            </h2>
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <div className="text-center mb-10">
+                <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">FAQ</p>
+                <h2 className="text-3xl md:text-4xl font-bold text-navy-600">
+                  Frequently Asked Questions
+                </h2>
+              </div>
+            </ScrollReveal>
             <div className="space-y-6">
               {faqs.map((faq, i) => (
                 <div
@@ -306,22 +334,25 @@ export default function ATSOptimizationPage() {
         </section>
 
         {/* CTA */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-white mb-4">
-              Generate Your ATS-Optimized Application
-            </h2>
-            <p className="text-lg text-navy-200 mb-8 max-w-2xl mx-auto">
-              ATS-safe formatting, keyword alignment, and verified claims — all in under 90 seconds.
-            </p>
-            <a
-              href="https://www.karkoai.com"
-              className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg"
-            >
-              Generate Your ATS-Optimized Application
-              <ArrowRight className="w-5 h-5" />
-            </a>
-          </div>
+        <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow" />
+          <ScrollReveal>
+            <div className="max-w-4xl mx-auto text-center relative">
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                Generate Your ATS-Optimized Application
+              </h2>
+              <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
+                ATS-safe formatting, keyword alignment, and verified claims, all in under 90 seconds.
+              </p>
+              <a
+                href="https://www.karkoai.com"
+                className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg"
+              >
+                Generate Your ATS-Optimized Application
+                <ArrowRight className="w-5 h-5" />
+              </a>
+            </div>
+          </ScrollReveal>
         </section>
       </main>
 

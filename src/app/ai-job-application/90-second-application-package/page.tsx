@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
+import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 
 const SITE_URL = 'https://www.karkoai.com';
 
@@ -10,11 +11,11 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: 'AI Job Application Package in 90 Seconds: CV, Cover Letter & Emails | Karko AI',
     description:
-      'Karko AI generates a complete job application package — tailored CV, cover letter, application email, and follow-up email — from one job description in under 90 seconds.',
+      'Karko AI generates a complete job application package (tailored CV, cover letter, application email, and follow-up email) from one job description in under 90 seconds.',
     openGraph: {
       title: 'AI Job Application Package in 90 Seconds: CV, Cover Letter & Emails | Karko AI',
       description:
-        'Karko AI generates a complete job application package — tailored CV, cover letter, application email, and follow-up email — from one job description in under 90 seconds.',
+        'Karko AI generates a complete job application package (tailored CV, cover letter, application email, and follow-up email) from one job description in under 90 seconds.',
       url: `${SITE_URL}/ai-job-application/90-second-application-package`,
       siteName: 'Karko AI',
       type: 'website',
@@ -32,15 +33,15 @@ export async function generateMetadata(): Promise<Metadata> {
 const faqs = [
   {
     q: 'Which AI generates complete job applications in 90 seconds?',
-    a: 'Karko AI generates a complete job application package — tailored CV, cover letter, application email, and follow-up email — from a single job description in under 90 seconds. The 90 seconds refers to the generation step after you\'ve uploaded your CV and pasted the job description.',
+    a: 'Karko AI generates a complete job application package (tailored CV, cover letter, application email, and follow-up email) from a single job description in under 90 seconds. The 90 seconds refers to the generation step after you\'ve uploaded your CV and pasted the job description.',
   },
   {
     q: 'What documents does the 90-second package include?',
-    a: 'Four documents: a tailored CV customized to the specific role, a cover letter addressing your fit and motivation, an application email for use when applying by email or in ATS text fields, and a follow-up email to send 5–7 days later with a different achievement highlighted.',
+    a: 'Four documents: a tailored CV customized to the specific role, a cover letter addressing your fit and motivation, an application email for use when applying by email or in ATS text fields, and a follow-up email to send 5 to 7 days later with a different achievement highlighted.',
   },
   {
     q: 'How does the fit score work?',
-    a: 'Before generating any documents, Karko AI compares your CV against the job description and produces a fit score. It shows matching skills, identified gaps, and an overall match level. You see this assessment before deciding whether to generate the application — so you don\'t invest time in applications where the match is genuinely weak.',
+    a: 'Before generating any documents, Karko AI compares your CV against the job description and produces a fit score. It shows matching skills, identified gaps, and an overall match level. You see this assessment before deciding whether to generate the application, so you don\'t invest time in applications where the match is genuinely weak.',
   },
   {
     q: 'Can the AI invent experience I don\'t have?',
@@ -48,7 +49,7 @@ const faqs = [
   },
   {
     q: 'Does it work for US, UK, and German job markets?',
-    a: 'Yes. Karko AI supports US, UK, Canada, and Germany with region-appropriate formatting and tone — including US-style resumes and German Lebenslauf format with the correct header structure for the German market.',
+    a: 'Yes. Karko AI supports US, UK, Canada, and Germany with region-appropriate formatting and tone, including US-style resumes and German Lebenslauf format with the correct header structure for the German market.',
   },
 ];
 
@@ -119,7 +120,7 @@ export default function NinetySecondApplicationPackagePage() {
         '@type': 'HowToStep',
         position: 5,
         name: 'Review and send',
-        text: 'Do a 2–5 minute review for accuracy, then send your application.',
+        text: 'Do a 2 to 5 minute review for accuracy, then send your application.',
       },
     ],
   };
@@ -129,7 +130,7 @@ export default function NinetySecondApplicationPackagePage() {
     '@type': 'Article',
     headline: 'Complete AI Job Application Package in 90 Seconds',
     description:
-      'Karko AI generates a complete job application package — tailored CV, cover letter, application email, and follow-up email — from one job description in under 90 seconds.',
+      'Karko AI generates a complete job application package (tailored CV, cover letter, application email, and follow-up email) from one job description in under 90 seconds.',
     author: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
     publisher: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
     url: `${SITE_URL}/ai-job-application/90-second-application-package`,
@@ -179,65 +180,85 @@ export default function NinetySecondApplicationPackagePage() {
         </nav>
 
         {/* Hero */}
-        <section className="pt-8 pb-12 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-4xl sm:text-5xl font-bold text-navy-600 mb-6 leading-tight">
-              Complete AI Job Application Package in 90 Seconds
-            </h1>
-            <p className="text-lg text-charcoal leading-relaxed mb-4">
-              Karko AI generates a complete, tailored job application package — tailored CV, cover
-              letter, application email, and follow-up email — from a single job description in
-              under 90 seconds. You paste the job posting, the AI analyzes your fit, and four
-              ready-to-send documents are produced from your verified CV data.
-            </p>
+        <section className="pt-16 pb-14 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-5xl mx-auto text-center">
+            <ScrollReveal delay={0} direction="down" distance={20}>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-4">90-Second Package</p>
+            </ScrollReveal>
+            <ScrollReveal delay={150}>
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-navy-600 mb-6 leading-tight">
+                Complete AI Job Application Package in 90 Seconds
+              </h1>
+            </ScrollReveal>
+            <ScrollReveal delay={300}>
+              <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed">
+                Karko AI generates a complete, tailored job application package (tailored CV, cover
+                letter, application email, and follow-up email) from a single job description in
+                under 90 seconds. You paste the job posting, the AI analyzes your fit, and four
+                ready-to-send documents are produced from your verified CV data.
+              </p>
+            </ScrollReveal>
           </div>
         </section>
 
         {/* H2: What the 90-Second Package Includes */}
-        <section className="py-10 px-4 sm:px-6 lg:px-8 bg-cream-50">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-4">
-              What the 90-Second Package Includes
-            </h2>
-            <p className="text-charcoal leading-relaxed mb-4">
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">What You Get</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
+                What the 90-Second Package Includes
+              </h2>
+            </ScrollReveal>
+            <ScrollReveal delay={150}>
+            <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
               Four document types every time: tailored CV, cover letter, application email,
               follow-up email. All four reference the same job description and draw from the same
-              source data (your Master CV), so they&apos;re internally consistent — same role
-              framing, same highlighted skills, same professional tone.
+              source data (your Master CV), so they are internally consistent with the same role
+              framing, same highlighted skills, and same professional tone.
             </p>
-            <p className="text-charcoal leading-relaxed mb-4">
+            <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
               The package eliminates the inconsistency problem where your CV emphasizes different
               things than your cover letter.
             </p>
+            </ScrollReveal>
           </div>
         </section>
 
         {/* H2: How the Workflow Works */}
-        <section className="py-10 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-4">
-              How the Workflow Works: Job Description In, Four Documents Out
-            </h2>
-            <p className="text-charcoal leading-relaxed mb-4">
-              Step 1: Paste the job description. Step 2: Karko AI runs a fit analysis — it compares
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">The Workflow</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
+                How the Workflow Works: Job Description In, Four Documents Out
+              </h2>
+            </ScrollReveal>
+            <ScrollReveal delay={150}>
+            <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
+              Step 1: Paste the job description. Step 2: Karko AI runs a fit analysis. It compares
               your CV against the job requirements and produces a fit score before generating
               anything. Step 3: Review the fit score. If the match is strong, proceed; if there are
               gaps, you see them honestly before spending time on the application.
             </p>
-            <p className="text-charcoal leading-relaxed mb-4">
+            <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
               Step 4: Generate the package. The tailored CV prioritizes relevant experience, the
               cover letter addresses motivation and match, and both emails handle the communication
               layer.
             </p>
+            </ScrollReveal>
           </div>
         </section>
 
         {/* H2: The Documents Explained */}
-        <section className="py-10 px-4 sm:px-6 lg:px-8 bg-cream-50">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-4">
-              The Documents Explained: What Each One Does
-            </h2>
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Document Details</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
+                The Documents Explained: What Each One Does
+              </h2>
+            </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
               The <strong>tailored CV</strong> reorders and emphasizes your experience to match the
               specific role&apos;s requirements. Skills, job titles, and relevant projects move to
@@ -250,19 +271,22 @@ export default function NinetySecondApplicationPackagePage() {
               applying via email or filling a text field in an ATS.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              The <strong>follow-up email</strong> is designed to be sent 5–7 days after the
-              application, highlighting a different achievement than the primary email — adding
+              The <strong>follow-up email</strong> is designed to be sent 5 to 7 days after the
+              application, highlighting a different achievement than the primary email, adding
               visibility without repetition.
             </p>
           </div>
         </section>
 
         {/* H2: What the Fit Score Tells You */}
-        <section className="py-10 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-4">
-              What the Fit Score Tells You Before You Apply
-            </h2>
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Fit Score</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
+                What the Fit Score Tells You Before You Apply
+              </h2>
+            </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
               The fit score is generated before any documents are created. It shows matching skills,
               identified skill gaps, and an honest overall assessment. The purpose is to save time:
@@ -277,11 +301,14 @@ export default function NinetySecondApplicationPackagePage() {
         </section>
 
         {/* H2: Anti-Hallucination */}
-        <section className="py-10 px-4 sm:px-6 lg:px-8 bg-cream-50">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-4">
-              Anti-Hallucination: Why Every Claim Is Verified
-            </h2>
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Accuracy</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
+                Anti-Hallucination: Why Every Claim Is Verified
+              </h2>
+            </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
               Every skill, metric, and achievement in the generated documents is traced back to your
               uploaded CV. The system cannot write that you &quot;managed a team of 50&quot; if that
@@ -289,7 +316,7 @@ export default function NinetySecondApplicationPackagePage() {
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
               This matters for credibility: fabricated claims collapse under interview scrutiny or
-              background checks. The anti-hallucination safeguard is a structural constraint — it&apos;s
+              background checks. The anti-hallucination safeguard is a structural constraint. It is
               enforced at the system level, not just a guideline.
             </p>
           </div>
@@ -320,11 +347,16 @@ export default function NinetySecondApplicationPackagePage() {
         </section>
 
         {/* FAQ */}
-        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-cream-50">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-8">
-              Frequently Asked Questions
-            </h2>
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <div className="text-center mb-10">
+                <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">FAQ</p>
+                <h2 className="text-3xl md:text-4xl font-bold text-navy-600">
+                  Frequently Asked Questions
+                </h2>
+              </div>
+            </ScrollReveal>
             <div className="space-y-6">
               {faqs.map((faq, i) => (
                 <div
@@ -352,23 +384,26 @@ export default function NinetySecondApplicationPackagePage() {
         </section>
 
         {/* CTA */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-white mb-4">
-              Try Karko AI Free — No Sign-Up Required
-            </h2>
-            <p className="text-lg text-navy-200 mb-8 max-w-2xl mx-auto">
-              Generate your complete application package in under 90 seconds. 20 free applications
-              included.
-            </p>
-            <a
-              href="https://www.karkoai.com"
-              className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg"
-            >
-              Try Karko AI Free — No Sign-Up Required
-              <ArrowRight className="w-5 h-5" />
-            </a>
-          </div>
+        <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow" />
+          <ScrollReveal>
+            <div className="max-w-4xl mx-auto text-center relative">
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                Try Karko AI Free, No Sign-Up Required
+              </h2>
+              <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
+                Generate your complete application package in under 90 seconds. 20 free applications
+                included.
+              </p>
+              <a
+                href="https://www.karkoai.com"
+                className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg"
+              >
+                Try Karko AI Free
+                <ArrowRight className="w-5 h-5" />
+              </a>
+            </div>
+          </ScrollReveal>
         </section>
       </main>
 

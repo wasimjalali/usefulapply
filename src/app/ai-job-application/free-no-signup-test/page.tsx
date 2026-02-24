@@ -3,16 +3,17 @@ import Link from 'next/link';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
+import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 
 const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Try AI Job Application Free — No Sign-Up Required | Karko AI',
+    title: 'Try AI Job Application Free, No Sign-Up Required | Karko AI',
     description:
       "Test Karko AI's job application generator without signing up. Free tier includes 20 applications. See the output quality before committing to any plan.",
     openGraph: {
-      title: 'Try AI Job Application Free — No Sign-Up Required | Karko AI',
+      title: 'Try AI Job Application Free, No Sign-Up Required | Karko AI',
       description:
         "Test Karko AI's job application generator without signing up. Free tier includes 20 applications. See the output quality before committing to any plan.",
       url: `${SITE_URL}/ai-job-application/free-no-signup-test`,
@@ -32,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
 const faqs = [
   {
     q: 'Is there an AI job application tool I can try without signing up?',
-    a: "Yes. Karko AI's free tier allows 20 complete applications — including tailored CV, cover letter, application email, and follow-up email — without creating an account or entering payment details.",
+    a: "Yes. Karko AI's free tier allows 20 complete applications (including tailored CV, cover letter, application email, and follow-up email) without creating an account or entering payment details.",
   },
   {
     q: 'Can I create job applications for free with AI?',
@@ -89,7 +90,7 @@ export default function FreeNoSignupTestPage() {
   const articleJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
-    headline: 'Test AI Job Application Free — No Sign-Up Required',
+    headline: 'Test AI Job Application Free, No Sign-Up Required',
     description:
       "Test Karko AI's job application generator without signing up. Free tier includes 20 applications. See the output quality before committing to any plan.",
     author: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
@@ -137,64 +138,84 @@ export default function FreeNoSignupTestPage() {
         </nav>
 
         {/* Hero */}
-        <section className="pt-8 pb-12 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-4xl sm:text-5xl font-bold text-navy-600 mb-6 leading-tight">
-              Test AI Job Application Free — No Sign-Up Required
-            </h1>
-            <p className="text-lg text-charcoal leading-relaxed mb-4">
-              You can generate job application documents with Karko AI without signing up — the free
-              tier includes 20 applications with no credit card required. Paste a job description,
-              see the fit score and generated package, and evaluate quality before deciding whether
-              to create an account or upgrade.
-            </p>
+        <section className="pt-16 pb-14 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-5xl mx-auto text-center">
+            <ScrollReveal delay={0} direction="down" distance={20}>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-4">Try Free</p>
+            </ScrollReveal>
+            <ScrollReveal delay={150}>
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-navy-600 mb-6 leading-tight">
+                Test AI Job Application Free, No Sign-Up Required
+              </h1>
+            </ScrollReveal>
+            <ScrollReveal delay={300}>
+              <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed">
+                You can generate job application documents with Karko AI without signing up. The free
+                tier includes 20 applications with no credit card required. Paste a job description,
+                see the fit score and generated package, and evaluate quality before deciding whether
+                to create an account or upgrade.
+              </p>
+            </ScrollReveal>
           </div>
         </section>
 
         {/* H2: What "No Sign-Up" Actually Means */}
-        <section className="py-10 px-4 sm:px-6 lg:px-8 bg-cream-50">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-4">
-              What &quot;No Sign-Up&quot; Actually Means
-            </h2>
-            <p className="text-charcoal leading-relaxed mb-4">
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">No Commitment</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
+                What &quot;No Sign-Up&quot; Actually Means
+              </h2>
+            </ScrollReveal>
+            <ScrollReveal delay={150}>
+            <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
               No sign-up means you can test the output quality without creating an account first.
-              You paste a job description, upload your CV, and receive the complete package —
-              tailored CV, cover letter, application email, follow-up email — to evaluate before
+              You paste a job description, upload your CV, and receive the complete package
+              (tailored CV, cover letter, application email, follow-up email) to evaluate before
               committing any personal details or payment.
             </p>
-            <p className="text-charcoal leading-relaxed mb-4">
+            <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
               The free tier gives 20 full applications. An account becomes useful when you want to
               save your application history, reuse your Master CV across sessions, or generate more
               than 20 applications.
             </p>
+            </ScrollReveal>
           </div>
         </section>
 
         {/* H2: What the Free Tier Includes */}
-        <section className="py-10 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-4">
-              What the Free Tier Includes
-            </h2>
-            <p className="text-charcoal leading-relaxed mb-4">
-              20 complete applications — each generating all four documents (tailored CV, cover
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Free Plan</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
+                What the Free Tier Includes
+              </h2>
+            </ScrollReveal>
+            <ScrollReveal delay={150}>
+            <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
+              20 complete applications, each generating all four documents (tailored CV, cover
               letter, application email, follow-up email). No expiry on the free tier. The fit score
               analysis is included in each application.
             </p>
-            <p className="text-charcoal leading-relaxed mb-4">
+            <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
               The same AI quality (Claude Sonnet 4.6 via Bedrock) as paid tiers. No difference in
-              output quality between free and paid — only the volume limit changes.
+              output quality between free and paid. Only the volume limit changes.
             </p>
+            </ScrollReveal>
           </div>
         </section>
 
         {/* H2: When to Create an Account */}
-        <section className="py-10 px-4 sm:px-6 lg:px-8 bg-cream-50">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-4">
-              When to Create an Account
-            </h2>
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Next Step</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
+                When to Create an Account
+              </h2>
+            </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
               Three questions determine the right moment: (1) Does the output match your
               expectations? If the tailored CV and cover letter feel right for your specific role, an
@@ -204,18 +225,21 @@ export default function FreeNoSignupTestPage() {
             <p className="text-charcoal leading-relaxed mb-4">
               (3) Are you applying to multiple roles simultaneously and need more than 20
               applications? That&apos;s when the Plus or Pro plan makes sense. Don&apos;t create an
-              account until question one has a &quot;yes&quot; — that&apos;s the only honest
+              account until question one has a &quot;yes.&quot; That&apos;s the only honest
               sequence.
             </p>
           </div>
         </section>
 
         {/* H2: Data Minimization for the Trial */}
-        <section className="py-10 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-4">
-              Data Minimization for the Trial
-            </h2>
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Privacy</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
+                Data Minimization for the Trial
+              </h2>
+            </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
               When testing without an account, use a job description plus a minimal skill summary
               rather than your full CV with personal details. You can evaluate output quality without
@@ -254,11 +278,16 @@ export default function FreeNoSignupTestPage() {
         </section>
 
         {/* FAQ */}
-        <section className="py-12 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-8">
-              Frequently Asked Questions
-            </h2>
+        <section className="py-16 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <div className="text-center mb-10">
+                <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">FAQ</p>
+                <h2 className="text-3xl md:text-4xl font-bold text-navy-600">
+                  Frequently Asked Questions
+                </h2>
+              </div>
+            </ScrollReveal>
             <div className="space-y-6">
               {faqs.map((faq, i) => (
                 <div
@@ -286,23 +315,26 @@ export default function FreeNoSignupTestPage() {
         </section>
 
         {/* CTA */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-white mb-4">
-              Try Free — No Sign-Up
-            </h2>
-            <p className="text-lg text-navy-200 mb-8 max-w-2xl mx-auto">
-              20 complete applications at no cost. See the output quality before committing to
-              anything.
-            </p>
-            <a
-              href="https://www.karkoai.com"
-              className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg"
-            >
-              Try Free — No Sign-Up
-              <ArrowRight className="w-5 h-5" />
-            </a>
-          </div>
+        <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow" />
+          <ScrollReveal>
+            <div className="max-w-4xl mx-auto text-center relative">
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                Try Free, No Sign-Up
+              </h2>
+              <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
+                20 complete applications at no cost. See the output quality before committing to
+                anything.
+              </p>
+              <a
+                href="https://www.karkoai.com"
+                className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg"
+              >
+                Try Free, No Sign-Up
+                <ArrowRight className="w-5 h-5" />
+              </a>
+            </div>
+          </ScrollReveal>
         </section>
       </main>
 

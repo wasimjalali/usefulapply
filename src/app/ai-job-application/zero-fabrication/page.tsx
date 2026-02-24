@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
+import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 
 const SITE_URL = 'https://www.karkoai.com';
 
@@ -10,11 +11,11 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: 'Zero-Fabrication AI Job Applications: No Invented Experience | Karko AI',
     description:
-      "Karko AI's anti-hallucination system ensures every CV claim is verified against your source documents. No fabricated skills, metrics, or roles — ever.",
+      "Karko AI's anti-hallucination system ensures every CV claim is verified against your source documents. No fabricated skills, metrics, or roles, ever.",
     openGraph: {
       title: 'Zero-Fabrication AI Job Applications: No Invented Experience | Karko AI',
       description:
-        "Karko AI's anti-hallucination system ensures every CV claim is verified against your source documents. No fabricated skills, metrics, or roles — ever.",
+        "Karko AI's anti-hallucination system ensures every CV claim is verified against your source documents. No fabricated skills, metrics, or roles, ever.",
       url: `${SITE_URL}/ai-job-application/zero-fabrication`,
       siteName: 'Karko AI',
       type: 'website',
@@ -36,7 +37,7 @@ const faqs = [
   },
   {
     q: 'Can AI guarantee zero invented experience in job applications?',
-    a: 'No AI can provide an absolute guarantee, because generative models produce statistical outputs. What Karko AI does is enforce structural constraints — a verified skills list and verified metrics list extracted from your CV — that make fabrication structurally difficult rather than just discouraged by prompt instructions.',
+    a: 'No AI can provide an absolute guarantee, because generative models produce statistical outputs. What Karko AI does is enforce structural constraints (a verified skills list and verified metrics list extracted from your CV) that make fabrication structurally difficult rather than just discouraged by prompt instructions.',
   },
   {
     q: 'What should I review in an AI-generated application?',
@@ -44,7 +45,7 @@ const faqs = [
   },
   {
     q: 'How does the verified metrics system work?',
-    a: "During Phase 1 (before any documents are generated), Karko AI extracts all numbers from your uploaded CV — revenue figures, team sizes, percentages, timeframes. These become a binding list. In Phase 2, the CV agent can only use numbers from this list. If a number doesn't exist in your source documents, it doesn't appear in the output — even as an approximation.",
+    a: "During Phase 1 (before any documents are generated), Karko AI extracts all numbers from your uploaded CV: revenue figures, team sizes, percentages, timeframes. These become a binding list. In Phase 2, the CV agent can only use numbers from this list. If a number does not exist in your source documents, it does not appear in the output, not even as an approximation.",
   },
   {
     q: 'Is fabricated AI experience detectable by recruiters?',
@@ -91,7 +92,7 @@ export default function ZeroFabricationPage() {
     '@type': 'Article',
     headline: 'Zero-Fabrication AI Job Application: No Invented Experience',
     description:
-      "Karko AI's anti-hallucination system ensures every CV claim is verified against your source documents. No fabricated skills, metrics, or roles — ever.",
+      "Karko AI's anti-hallucination system ensures every CV claim is verified against your source documents. No fabricated skills, metrics, or roles, ever.",
     author: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
     publisher: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
     url: `${SITE_URL}/ai-job-application/zero-fabrication`,
@@ -137,51 +138,64 @@ export default function ZeroFabricationPage() {
         </nav>
 
         {/* Hero */}
-        <section className="pt-8 pb-12 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-4xl sm:text-5xl font-bold text-navy-600 mb-6 leading-tight">
-              Zero-Fabrication AI Job Application: No Invented Experience
-            </h1>
-            <p className="text-lg text-charcoal leading-relaxed mb-4">
+        <section className="pt-16 pb-14 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-5xl mx-auto text-center">
+            <ScrollReveal delay={0} direction="down" distance={20}>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-4">Zero Fabrication</p>
+            </ScrollReveal>
+            <ScrollReveal delay={150}>
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-navy-600 mb-6 leading-tight">
+                Zero-Fabrication AI Job Application: No Invented Experience
+              </h1>
+            </ScrollReveal>
+            <ScrollReveal delay={300}>
+              <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed">
               Zero-fabrication means the AI can only generate claims that exist in your uploaded CV.
               Karko AI enforces this structurally: before generating any document, the system
               extracts a verified list of skills and metrics from your source files, and every output
               is checked against that list. If a skill or achievement isn&apos;t in your CV, it
               doesn&apos;t appear in the application.
-            </p>
+              </p>
+            </ScrollReveal>
           </div>
         </section>
 
         {/* H2: What Zero-Fabrication Actually Means */}
-        <section className="py-10 px-4 sm:px-6 lg:px-8 bg-cream-50">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-4">
-              What Zero-Fabrication Actually Means (and What It Doesn&apos;t)
-            </h2>
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Definition</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
+                What Zero-Fabrication Actually Means (and What It Doesn&apos;t)
+              </h2>
+            </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
-              Zero-fabrication is not a promise that AI output is always perfect — generative models
+              Zero-fabrication is not a promise that AI output is always perfect. Generative models
               can still make formatting errors or emphasis mistakes. What it means specifically: the
               AI cannot invent new job titles, new employers, new time periods, new skills, or new
               metrics that don&apos;t exist in your source documents.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
               &quot;Zero fabrication&quot; = zero new facts about you. The AI can reformulate,
-              reorder, and emphasize — but it cannot create substance that doesn&apos;t already
+              reorder, and emphasize, but it cannot create substance that doesn&apos;t already
               exist in your CV.
             </p>
           </div>
         </section>
 
         {/* H2: Why This Matters */}
-        <section className="py-10 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-4">
-              Why This Matters: What Happens When AI Fabricates
-            </h2>
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Why It Matters</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
+                Why This Matters: What Happens When AI Fabricates
+              </h2>
+            </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
               Fabricated experience creates a credibility problem the moment the application
               succeeds. An interview question about a project you didn&apos;t do, a background check
-              that doesn&apos;t match, or a technical assessment for a skill the AI invented — these
+              that doesn&apos;t match, or a technical assessment for a skill the AI invented. These
               are the downstream consequences of fabricated applications.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
@@ -192,11 +206,14 @@ export default function ZeroFabricationPage() {
         </section>
 
         {/* H2: How Karko AI's Anti-Hallucination System Works */}
-        <section className="py-10 px-4 sm:px-6 lg:px-8 bg-cream-50">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-4">
-              How Karko AI&apos;s Anti-Hallucination System Works
-            </h2>
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">The System</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
+                How Karko AI&apos;s Anti-Hallucination System Works
+              </h2>
+            </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
               Phase 1 of every workflow extracts two verified lists from your uploaded CV: verified
               skills and verified metrics (actual numbers from your source documents). These lists
@@ -212,11 +229,14 @@ export default function ZeroFabricationPage() {
         </section>
 
         {/* H2: What You Still Need to Review */}
-        <section className="py-10 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-4">
-              What You Still Need to Review
-            </h2>
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Your Review</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
+                What You Still Need to Review
+              </h2>
+            </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
               Zero-fabrication protects against invented content, but review is still necessary for:
               date accuracy (were dates transferred correctly from your CV?), role title consistency
@@ -230,11 +250,14 @@ export default function ZeroFabricationPage() {
         </section>
 
         {/* H2: Zero-Fabrication in Different Markets */}
-        <section className="py-10 px-4 sm:px-6 lg:px-8 bg-cream-50">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-4">
-              Zero-Fabrication in Different Markets
-            </h2>
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Global Context</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
+                Zero-Fabrication in Different Markets
+              </h2>
+            </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
               In Germany and the EU, false claims in job applications can have legal consequences. In
               the US and UK, background checks are standard for professional roles.
@@ -269,11 +292,16 @@ export default function ZeroFabricationPage() {
         </section>
 
         {/* FAQ */}
-        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-cream-50">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-8">
-              Frequently Asked Questions
-            </h2>
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <div className="text-center mb-10">
+                <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">FAQ</p>
+                <h2 className="text-3xl md:text-4xl font-bold text-navy-600">
+                  Frequently Asked Questions
+                </h2>
+              </div>
+            </ScrollReveal>
             <div className="space-y-6">
               {faqs.map((faq, i) => (
                 <div
@@ -301,22 +329,25 @@ export default function ZeroFabricationPage() {
         </section>
 
         {/* CTA */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-white mb-4">
-              Generate Your Verified Application
-            </h2>
-            <p className="text-lg text-navy-200 mb-8 max-w-2xl mx-auto">
-              Every claim traced back to your CV. No fabricated skills, metrics, or experience.
-            </p>
-            <a
-              href="https://www.karkoai.com"
-              className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg"
-            >
-              Generate Your Verified Application
-              <ArrowRight className="w-5 h-5" />
-            </a>
-          </div>
+        <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow" />
+          <ScrollReveal>
+            <div className="max-w-4xl mx-auto text-center relative">
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                Generate Your Verified Application
+              </h2>
+              <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
+                Every claim traced back to your CV. No fabricated skills, metrics, or experience.
+              </p>
+              <a
+                href="https://www.karkoai.com"
+                className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg"
+              >
+                Generate Your Verified Application
+                <ArrowRight className="w-5 h-5" />
+              </a>
+            </div>
+          </ScrollReveal>
         </section>
       </main>
 
