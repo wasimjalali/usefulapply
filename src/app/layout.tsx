@@ -70,10 +70,10 @@ export const metadata: Metadata = {
       'Optimize your CV, generate tailored cover letters, and create professional application emails in minutes with AI.',
     images: [
       {
-        url: '/karko-ai.png',
+        url: '/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'KarKo AI | AI-Powered Job Application Assistant',
+        alt: 'Karko AI | AI-Powered Job Application Assistant',
       },
     ],
   },
@@ -82,7 +82,7 @@ export const metadata: Metadata = {
     title: 'KarKo AI | AI-Powered Job Application Assistant',
     description:
       'Optimize your CV, generate tailored cover letters, and create professional application emails in minutes with AI.',
-    images: ['/karko-ai.png'],
+    images: ['/opengraph-image'],
   },
   robots: {
     index: true,
