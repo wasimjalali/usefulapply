@@ -148,7 +148,7 @@ function SettingsContent() {
           setUserCredits(creditsResult.credits);
           // Stop polling once plan has upgraded (or max attempts reached)
           const tier = creditsResult.credits.plan_tier;
-          if (tier !== 'starter' || isAddonSuccess || attempts >= maxAttempts) return;
+          if (tier !== 'free' && tier !== 'starter' || isAddonSuccess || attempts >= maxAttempts) return;
         }
       } catch {
         // ignore transient errors, keep polling
@@ -327,7 +327,7 @@ function SettingsContent() {
     }
   };
 
-  const handleUpgrade = async (planTier: 'plus' | 'pro') => {
+  const handleUpgrade = async (planTier: 'plus' | 'max') => {
     if (!authUser) return;
     try {
       const res = await fetch('/api/stripe/create-checkout', {
@@ -366,7 +366,7 @@ function SettingsContent() {
     );
   }
 
-  const subscriptionTier = userCredits?.plan_tier || subscription?.tier || profile?.subscription_tier || 'starter' as string;
+  const subscriptionTier = userCredits?.plan_tier || subscription?.tier || profile?.subscription_tier || 'free' as string;
 
   const menuItems = [
     { id: 'profile' as const, label: 'Profile', icon: User, description: 'Your personal information' },

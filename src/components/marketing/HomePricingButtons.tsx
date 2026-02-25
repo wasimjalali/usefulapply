@@ -46,14 +46,14 @@ export function PlusPlanButton() {
   );
 }
 
-export function ProPlanButton() {
+export function MaxPlanButton() {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
 
   const handleClick = async () => {
     if (!user) {
-      router.push('/auth/signup?plan=pro');
+      router.push('/auth/signup?plan=max');
       return;
     }
     setLoading(true);
@@ -61,7 +61,7 @@ export function ProPlanButton() {
       const res = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, planTier: 'pro' }),
+        body: JSON.stringify({ userId: user.id, planTier: 'max' }),
       });
       const data = await res.json();
       if (data.url) {
@@ -82,7 +82,7 @@ export function ProPlanButton() {
       disabled={loading}
       className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium bg-navy-600 text-white hover:bg-navy-700 transition-colors shadow-md cursor-pointer disabled:opacity-70"
     >
-      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Pro <ArrowRight className="w-4 h-4" /></>}
+      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Max <ArrowRight className="w-4 h-4" /></>}
     </button>
   );
 }

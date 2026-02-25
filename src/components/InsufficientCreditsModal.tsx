@@ -16,21 +16,21 @@ const PLANS = [
     tier: 'plus' as const,
     name: 'Plus',
     tagline: 'For serious job seekers',
-    badge: 'MOST POPULAR',
+    badge: 'SAVE ~37 HOURS/MONTH',
     badgeStyle: 'bg-gold-500 text-white',
-    price: '$29.99',
-    priceNote: '~$0.50 per application',
-    credits: '120 credits/month',
+    price: '$39.99',
+    priceNote: '~$0.80 per application',
+    credits: '100 credits/month',
     creditsStyle: 'bg-gold-100 text-gold-700 border border-gold-300',
     features: [
-      '60 complete applications/month',
-      'Tailored CV, cover letter, email & follow-up',
-      'Fit score before you apply',
+      '50 complete applications/month',
+      'Everything in Free, plus:',
       'Unlimited application history',
-      'Add-on credit packs available',
-      'Claude Sonnet 4.6, specialized for job applications',
+      'Add-on credit packs (rollover)',
+      'Priority email support',
+      'Powered by Claude Sonnet 4.6',
     ],
-    hoursSaved: '~45 hours saved/month',
+    hoursSaved: 'Cancel anytime. No contracts.',
     hoursBg: 'bg-gold-500 text-white',
     cta: 'Get Plus →',
     ctaStyle: 'bg-gold-500 hover:bg-gold-600 text-white',
@@ -38,26 +38,26 @@ const PLANS = [
     headerStyle: 'bg-gold-500',
   },
   {
-    tier: 'pro' as const,
-    name: 'Pro',
-    tagline: 'For high-volume applicants',
-    badge: 'BEST VALUE PER APPLICATION',
+    tier: 'max' as const,
+    name: 'Max',
+    tagline: 'Full automation for power applicants',
+    badge: 'SAVE ~108 HOURS/MONTH',
     badgeStyle: 'bg-navy-700 text-white',
-    price: '$49.99',
-    priceNote: '~$0.42 per application',
-    credits: '240 credits/month',
+    price: '$79.99',
+    priceNote: '~$0.80 per application',
+    credits: '200 credits/month',
     creditsStyle: 'bg-navy-100 text-navy-700 border border-navy-200',
     features: [
-      '120 complete applications/month',
-      'Tailored CV, cover letter, email & follow-up',
-      'Fit score before you apply',
-      'Unlimited history + credit rollover (2 months)',
-      'Add-on credit packs available',
-      'Claude Sonnet 4.6, specialized for job applications',
+      '100 complete applications/month',
+      'Everything in Plus, plus:',
+      'Chrome Extension: auto-fill ATS forms (Coming Soon)',
+      'Chrome Extension: AI screening answers (Coming Soon)',
+      'Premium dedicated support',
+      'Powered by Claude Sonnet 4.6',
     ],
-    hoursSaved: '~90 hours saved/month',
+    hoursSaved: 'Cancel anytime. No contracts.',
     hoursBg: 'bg-navy-700 text-white',
-    cta: 'Get Pro →',
+    cta: 'Get Max →',
     ctaStyle: 'bg-navy-700 hover:bg-navy-800 text-white',
     cardStyle: 'border-2 border-navy-200',
     headerStyle: 'bg-navy-700',
@@ -71,11 +71,11 @@ export function InsufficientCreditsModal({
   available,
 }: InsufficientCreditsModalProps) {
   const { user } = useAuth();
-  const [loadingPlan, setLoadingPlan] = useState<'plus' | 'pro' | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState<'plus' | 'max' | null>(null);
 
   if (!isOpen) return null;
 
-  const handleUpgrade = async (planTier: 'plus' | 'pro') => {
+  const handleUpgrade = async (planTier: 'plus' | 'max') => {
     if (!user) return;
     setLoadingPlan(planTier);
     try {

@@ -26,7 +26,7 @@ export interface UserCredits {
   monthly_credits: number;
   rollover_credits: number;
   addon_credits: number;
-  plan_tier: 'starter' | 'plus' | 'pro';
+  plan_tier: 'free' | 'starter' | 'plus' | 'max' | 'pro';
   last_reset_date: string;
   next_reset_date: string;
   stripe_customer_id?: string;
@@ -51,7 +51,7 @@ export interface CreditTransaction {
 
 export interface SubscriptionPlan {
   id: string;
-  tier: 'starter' | 'plus' | 'pro';
+  tier: 'free' | 'starter' | 'plus' | 'max' | 'pro';
   name: string;
   description?: string;
   price_monthly: number;
@@ -179,7 +179,7 @@ export async function getUserCredits(userId: string): Promise<{ credits: UserCre
 
   if (error) {
     if (error.code === 'PGRST116') {
-      // No credits record - initialize with starter plan
+      // No credits record - initialize with free plan
       return await initializeUserCredits(userId);
     }
     console.error('Error fetching user credits:', error);
@@ -190,7 +190,7 @@ export async function getUserCredits(userId: string): Promise<{ credits: UserCre
 }
 
 /**
- * Initialize credits for new user (starter plan)
+ * Initialize credits for new user (free plan)
  */
 async function initializeUserCredits(userId: string): Promise<{ credits: UserCredits | null; error: Error | null }> {
   const supabase = getSupabaseClient();
@@ -202,10 +202,10 @@ async function initializeUserCredits(userId: string): Promise<{ credits: UserCre
     .from('user_credits')
     .insert({
       user_id: userId,
-      monthly_credits: 10, // Starter plan credits (5 applications at 2 credits each)
+      monthly_credits: 10, // Free plan credits (5 applications at 2 credits each)
       rollover_credits: 0,
       addon_credits: 0,
-      plan_tier: 'starter',
+      plan_tier: 'free',
       next_reset_date: nextReset.toISOString(),
     })
     .select()
@@ -218,7 +218,7 @@ async function initializeUserCredits(userId: string): Promise<{ credits: UserCre
 
   // Log the initial credit grant
   await logCreditTransaction(userId, 10, 'monthly_reset', {
-    description: 'Initial starter plan credits',
+    description: 'Initial free plan credits',
     balanceBefore: 0,
     balanceAfter: 10,
   });
@@ -267,7 +267,7 @@ export async function checkCreditBalance(
       hasEnough: false,
       required: CREDIT_COSTS[action],
       available: 0,
-      planTier: 'starter',
+      planTier: 'free',
       error: error || new Error('Credits not found'),
     };
   }
@@ -480,7 +480,7 @@ export async function addCredits(
  */
 export async function upgradePlan(
   userId: string,
-  newTier: 'plus' | 'pro'
+  newTier: 'plus' | 'max'
 ): Promise<{
   success: boolean;
   error: Error | null;
@@ -692,8 +692,8 @@ export async function processAddonPurchase(
     return { success: false, creditsAdded: 0, error: creditsError || new Error('Credits not found') };
   }
 
-  if (credits.plan_tier === 'starter') {
-    return { success: false, creditsAdded: 0, error: new Error('Add-ons not available for Starter plan') };
+  if (credits.plan_tier === 'free' || credits.plan_tier === 'starter') {
+    return { success: false, creditsAdded: 0, error: new Error('Add-ons not available for Free plan') };
   }
 
   // Add credits

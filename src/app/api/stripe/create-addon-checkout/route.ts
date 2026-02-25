@@ -27,8 +27,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Map pack size to price ID
+    // Map pack size to price ID (new single pack + legacy sizes)
     const priceMap: Record<string, string> = {
+      'credit pack': STRIPE_ADDON_PRICES.CREDIT_PACK,
+      credit: STRIPE_ADDON_PRICES.CREDIT_PACK,
       medium: STRIPE_ADDON_PRICES.MEDIUM,
       large: STRIPE_ADDON_PRICES.LARGE,
     };
@@ -62,9 +64,9 @@ export async function POST(req: NextRequest) {
       .eq('user_id', userId)
       .single();
 
-    if (!userCredits || userCredits.plan_tier === 'starter') {
+    if (!userCredits || userCredits.plan_tier === 'free' || userCredits.plan_tier === 'starter') {
       return NextResponse.json(
-        { error: 'Add-on credits are only available for Plus and Pro subscribers' },
+        { error: 'Add-on credits are only available for Plus and Max subscribers' },
         { status: 403 }
       );
     }

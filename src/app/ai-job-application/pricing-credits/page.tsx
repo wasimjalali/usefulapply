@@ -9,13 +9,13 @@ const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'AI Job Application Pricing & Credits: Starter, Plus & Pro Plans | Karko AI',
+    title: 'AI Job Application Pricing & Credits: Free, Plus & Max Plans | Karko AI',
     description:
-      'Karko AI pricing: Starter free (5 applications), Plus $29.99/month (60 applications), Pro $49.99/month (120 applications). Credit-based system with transparent cost per application.',
+      'Karko AI pricing: Free (5 applications), Plus $39.99/month (50 applications), Max $79.99/month (100 applications). Credit-based system with transparent cost per application.',
     openGraph: {
-      title: 'AI Job Application Pricing & Credits: Starter, Plus & Pro Plans | Karko AI',
+      title: 'AI Job Application Pricing & Credits: Free, Plus & Max Plans | Karko AI',
       description:
-        'Karko AI pricing: Starter free (5 applications), Plus $29.99/month (60 applications), Pro $49.99/month (120 applications). Credit-based system with transparent cost per application.',
+        'Karko AI pricing: Free (5 applications), Plus $39.99/month (50 applications), Max $79.99/month (100 applications). Credit-based system with transparent cost per application.',
       url: `${SITE_URL}/ai-job-application/pricing-credits`,
       siteName: 'Karko AI',
       type: 'website',
@@ -33,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
 const faqs = [
   {
     q: 'How much does Karko AI cost?',
-    a: 'Starter (free): 5 applications/month at no cost. Plus: $29.99/month for 60 applications. Pro: $49.99/month for 120 applications. All plans include the complete 4-document package (tailored CV, cover letter, application email, follow-up email).',
+    a: 'Free: 5 applications/month at no cost. Plus: $39.99/month for 50 applications. Max: $79.99/month for 100 applications. All plans include the complete 4-document package (tailored CV, cover letter, application email, follow-up email).',
   },
   {
     q: 'How many applications does 2 credits cover?',
@@ -41,7 +41,7 @@ const faqs = [
   },
   {
     q: 'Is there a free plan with no credit card?',
-    a: 'Yes. The Starter plan gives 5 complete applications per month with no credit card required. The same AI quality as paid plans.',
+    a: 'Yes. The Free plan gives 5 complete applications per month with no credit card required. The same AI quality as paid plans.',
   },
   {
     q: 'What happens if I run out of credits mid-month?',
@@ -49,7 +49,7 @@ const faqs = [
   },
   {
     q: 'What is the cheapest plan for heavy job searching?',
-    a: 'The Pro plan at $49.99/month gives 120 applications, which works out to approximately $0.42 per complete application package. For context: replacing 120 manual applications (at 45 minutes each) with Karko AI saves roughly 90 hours of work per month.',
+    a: 'The Max plan at $79.99/month gives 100 applications, which works out to approximately $0.80 per complete application package. For context: replacing 100 manual applications (at 45 minutes each) with Karko AI saves roughly 75 hours of work per month.',
   },
 ];
 
@@ -92,7 +92,7 @@ export default function PricingCreditsPage() {
     '@type': 'Article',
     headline: 'AI Job Application Pricing & Credits: How Karko AI Plans Work',
     description:
-      'Karko AI pricing: Starter free (5 applications), Plus $29.99/month (60 applications), Pro $49.99/month (120 applications). Credit-based system with transparent cost per application.',
+      'Karko AI pricing: Free (5 applications), Plus $39.99/month (50 applications), Max $79.99/month (100 applications). Credit-based system with transparent cost per application.',
     author: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
     publisher: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
     url: `${SITE_URL}/ai-job-application/pricing-credits`,
@@ -151,9 +151,9 @@ export default function PricingCreditsPage() {
             <ScrollReveal delay={300}>
               <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed">
                 Karko AI uses a credit-based pricing model: each complete application package costs 2
-                credits. The Starter plan gives 10 credits (5 applications) free. The Plus plan
-                ($29.99/month) gives 120 credits (60 applications). The Pro plan ($49.99/month) gives
-                240 credits (120 applications). All tiers generate the same four documents with no
+                credits. The Free plan gives 10 credits (5 applications) free. The Plus plan
+                ($39.99/month) gives 100 credits (50 applications). The Max plan ($79.99/month) gives
+                200 credits (100 applications). All tiers generate the same four documents with no
                 quality difference between plans.
               </p>
             </ScrollReveal>
@@ -171,13 +171,13 @@ export default function PricingCreditsPage() {
             </ScrollReveal>
             <ScrollReveal delay={150}>
             <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
-              Starter (free): 10 credits, 5 complete applications per month, no credit card required. Good for
-              evaluating output quality before committing. Plus ($29.99/month): 120
-              credits, 60 complete applications per month. Good for active job searchers applying to
+              Free: 10 credits, 5 complete applications per month, no credit card required. Good for
+              evaluating output quality before committing. Plus ($39.99/month): 100
+              credits, 50 complete applications per month. Good for active job searchers applying to
               10 to 15 roles per week.
             </p>
             <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
-              Pro ($49.99/month): 240 credits, 120 applications per month. Good for high-volume
+              Max ($79.99/month): 200 credits, 100 applications per month. Good for high-volume
               campaigns or career transitions with many active applications. All plans include the
               full document package, fit score, and anti-hallucination safeguards.
             </p>
@@ -217,13 +217,13 @@ export default function PricingCreditsPage() {
             </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
               The fair comparison metric is cost per complete application package, not cost per
-              month. Plus plan: $29.99 ÷ 60 applications = ~$0.50 per complete application package
-              (CV + cover letter + 2 emails). Pro plan: $49.99 ÷ 120 applications = ~$0.42 per
+              month. Plus plan: $39.99 ÷ 50 applications = ~$0.80 per complete application package
+              (CV + cover letter + 2 emails). Max plan: $79.99 ÷ 100 applications = ~$0.80 per
               application package.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              Compare this to the time cost of manual applications: at 45 to 60 minutes each, 60
-              applications is 45 to 60 hours of manual work.
+              Compare this to the time cost of manual applications: at 45 to 60 minutes each, 50
+              applications is 37 to 50 hours of manual work.
             </p>
           </div>
         </section>
@@ -238,8 +238,8 @@ export default function PricingCreditsPage() {
               </h2>
             </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
-              Start with the Starter plan to validate output quality. Move to Plus if you are
-              applying consistently and need more than 5 applications per month. Move to Pro if you are in
+              Start with the Free plan to validate output quality. Move to Plus if you are
+              applying consistently and need more than 5 applications per month. Move to Max if you are in
               an intensive job search phase: layoff, career transition, or high-volume market.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">

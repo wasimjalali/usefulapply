@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 
 const savingsTiers = [
   {
-    plan: 'Starter',
+    plan: 'Free',
     apps: 5,
     hoursSaved: 4,
     price: 'Free',
@@ -12,17 +12,17 @@ const savingsTiers = [
   },
   {
     plan: 'Plus',
-    apps: 60,
-    hoursSaved: 45,
-    price: '$29.99/mo',
-    tagline: 'That is over a full work week saved every month. At just $0.50 per application.',
+    apps: 50,
+    hoursSaved: 37,
+    price: '$39.99/mo',
+    tagline: 'That is nearly a full work week saved every month. At ~$0.80 per application.',
   },
   {
-    plan: 'Pro',
-    apps: 120,
-    hoursSaved: 90,
-    price: '$49.99/mo',
-    tagline: 'That is over two full work weeks saved. At just $0.42 per application.',
+    plan: 'Max',
+    apps: 100,
+    hoursSaved: 108,
+    price: '$79.99/mo',
+    tagline: 'That is over two and a half work weeks saved. Full automation at ~$0.80 per application.',
   },
 ];
 

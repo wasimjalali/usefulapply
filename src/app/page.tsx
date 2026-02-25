@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, FileText, Search, Zap, Clock, Target, Check, CheckCircle, Shield, Globe, Sparkles, Crown, TrendingUp, Cpu } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
-import { PlusPlanButton, ProPlanButton } from '@/components/marketing/HomePricingButtons';
+import { PlusPlanButton, MaxPlanButton } from '@/components/marketing/HomePricingButtons';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { TimeSavingsCalculator } from '@/components/marketing/TimeSavingsCalculator';
@@ -430,7 +430,7 @@ export default function Home() {
               Simple, Transparent Pricing
             </h2>
             <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-              All features included in every plan. You just choose your volume.
+              Every plan includes the full AI agent. Upgrade for more volume and automation.
             </p>
             <div className="mt-6 inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-cream-100 border border-gold-300/60 shadow-sm">
               <img src="/anthropic-icon.jpg" alt="Anthropic" className="w-7 h-7 rounded-md" />
@@ -442,7 +442,7 @@ export default function Home() {
           </ScrollReveal>
 
           <div className="grid md:grid-cols-3 gap-8 mb-10">
-            {/* Starter */}
+            {/* Free */}
             <ScrollReveal delay={0}>
             <div className="relative bg-white rounded-2xl border-2 border-cream-200 shadow-md overflow-hidden card-hover-lift">
               <div className="p-8 flex flex-col h-full">
@@ -451,8 +451,8 @@ export default function Home() {
                     <Sparkles className="w-6 h-6 text-navy-600" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-charcoal">Starter</h3>
-                    <p className="text-sm text-warm-gray">See your first AI application</p>
+                    <h3 className="text-xl font-bold text-charcoal">Free</h3>
+                    <p className="text-sm text-warm-gray">Try the full AI agent</p>
                   </div>
                 </div>
                 <div className="mb-6">
@@ -470,10 +470,10 @@ export default function Home() {
                   {[
                     { text: '5 complete applications/month', bold: true },
                     { text: 'Tailored CV, cover letter, email & follow-up' },
-                    { text: 'Fit score before you apply' },
-                    { text: 'US & EU professional templates' },
-                    { text: 'No watermark on any document' },
-                    { text: 'Claude Sonnet 4.6, specialized for job applications' },
+                    { text: 'Honest fit score before you apply' },
+                    { text: 'ATS-optimized, US & EU templates' },
+                    { text: 'Zero fabrication guarantee' },
+                    { text: 'Powered by Claude Sonnet 4.6' },
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-sage-500" />
@@ -498,11 +498,11 @@ export default function Home() {
             </div>
             </ScrollReveal>
 
-            {/* Plus — Most Popular */}
+            {/* Plus */}
             <ScrollReveal delay={150}>
             <div className="relative bg-white rounded-2xl border-2 border-gold-400 shadow-xl scale-[1.02] overflow-hidden">
               <div className="bg-gradient-to-r from-gold-400 to-gold-500 text-white text-xs font-bold px-4 py-2 text-center">
-                MOST POPULAR
+                SAVE ~37 HOURS EVERY MONTH
               </div>
               <div className="p-8 flex flex-col h-full">
                 <div className="flex items-center gap-3 mb-5">
@@ -516,24 +516,23 @@ export default function Home() {
                 </div>
                 <div className="mb-6">
                   <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-navy-600">$29.99</span>
+                    <span className="text-4xl font-bold text-navy-600">$39.99</span>
                     <span className="text-warm-gray">/month</span>
                   </div>
-                  <p className="text-xs text-warm-gray mt-1">~$0.50 per application</p>
                   <div className="mt-2">
                     <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-gold-50 text-gold-600 border border-gold-200">
-                      120 credits/month
+                      100 credits/month
                     </span>
                   </div>
                 </div>
                 <ul className="space-y-3 mb-5">
                   {[
-                    { text: '60 complete applications/month', bold: true },
-                    { text: 'Tailored CV, cover letter, email & follow-up' },
-                    { text: 'Fit score before you apply' },
+                    { text: '50 complete applications/month', bold: true },
+                    { text: 'Everything in Free, plus:' },
                     { text: 'Unlimited application history' },
-                    { text: 'Add-on credit packs available' },
-                    { text: 'Claude Sonnet 4.6, specialized for job applications' },
+                    { text: 'Add-on credit packs (rollover)' },
+                    { text: 'Priority email support' },
+                    { text: 'Powered by Claude Sonnet 4.6' },
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-sage-500" />
@@ -542,8 +541,7 @@ export default function Home() {
                   ))}
                 </ul>
                 <div className="flex items-center gap-2.5 rounded-xl px-4 py-3 bg-gold-50 border border-gold-200">
-                  <Clock className="w-5 h-5 flex-shrink-0 text-gold-500" />
-                  <span className="text-sm font-semibold text-navy-600">~45 hours saved/month</span>
+                  <span className="text-xs text-warm-gray">Cancel anytime. No contracts.</span>
                 </div>
                 <div className="mt-auto pt-6">
                   <PlusPlanButton />
@@ -552,11 +550,11 @@ export default function Home() {
             </div>
             </ScrollReveal>
 
-            {/* Pro — Best Value */}
+            {/* Max */}
             <ScrollReveal delay={300}>
             <div className="relative bg-white rounded-2xl border-2 border-navy-400 shadow-lg overflow-hidden card-hover-lift">
-              <div className="bg-navy-600 text-white text-xs font-bold px-4 py-2 text-center">
-                BEST VALUE PER APPLICATION
+              <div className="bg-gradient-to-r from-navy-600 to-navy-700 text-white text-xs font-bold px-4 py-2 text-center">
+                SAVE ~108 HOURS EVERY MONTH
               </div>
               <div className="p-8 flex flex-col h-full">
                 <div className="flex items-center gap-3 mb-5">
@@ -564,43 +562,46 @@ export default function Home() {
                     <Crown className="w-6 h-6 text-navy-600" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-charcoal">Pro</h3>
-                    <p className="text-sm text-warm-gray">For high-volume applicants</p>
+                    <h3 className="text-xl font-bold text-charcoal">Max</h3>
+                    <p className="text-sm text-warm-gray">Full automation for power applicants</p>
                   </div>
                 </div>
                 <div className="mb-6">
                   <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-navy-600">$49.99</span>
+                    <span className="text-4xl font-bold text-navy-600">$79.99</span>
                     <span className="text-warm-gray">/month</span>
                   </div>
-                  <p className="text-xs text-warm-gray mt-1">~$0.42 per application</p>
                   <div className="mt-2">
                     <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-navy-50 text-navy-600 border border-navy-200">
-                      240 credits/month
+                      200 credits/month
                     </span>
                   </div>
                 </div>
                 <ul className="space-y-3 mb-5">
                   {[
-                    { text: '120 complete applications/month', bold: true },
-                    { text: 'Tailored CV, cover letter, email & follow-up' },
-                    { text: 'Fit score before you apply' },
-                    { text: 'Unlimited history + credit rollover (2 months)' },
-                    { text: 'Add-on credit packs available' },
-                    { text: 'Claude Sonnet 4.6, specialized for job applications' },
-                  ].map((f, i) => (
+                    { text: '100 complete applications/month', bold: true },
+                    { text: 'Everything in Plus, plus:' },
+                    { text: 'Chrome Extension: auto-fill ATS forms', bold: true, comingSoon: true },
+                    { text: 'Chrome Extension: AI screening answers', bold: true, comingSoon: true },
+                    { text: 'Premium dedicated support' },
+                    { text: 'Powered by Claude Sonnet 4.6' },
+                  ].map((f: any, i: number) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-sage-500" />
-                      <span className={`text-sm text-charcoal ${f.bold ? 'font-semibold' : ''}`}>{f.text}</span>
+                      <span className={`text-sm text-charcoal ${f.bold ? 'font-semibold' : ''}`}>
+                        {f.text}
+                        {f.comingSoon && (
+                          <span className="ml-1.5 inline-flex items-center bg-navy-600/10 text-navy-600 text-[10px] font-medium px-2 py-0.5 rounded-full">Coming Soon</span>
+                        )}
+                      </span>
                     </li>
                   ))}
                 </ul>
-                <div className="flex items-center gap-2.5 rounded-xl px-4 py-3 bg-navy-600">
-                  <Clock className="w-5 h-5 flex-shrink-0 text-gold-400" />
-                  <span className="text-sm font-semibold text-white">~90 hours saved/month</span>
+                <div className="flex items-center gap-2.5 rounded-xl px-4 py-3 bg-navy-50 border border-navy-200">
+                  <span className="text-xs text-warm-gray">Cancel anytime. No contracts.</span>
                 </div>
                 <div className="mt-auto pt-6">
-                  <ProPlanButton />
+                  <MaxPlanButton />
                 </div>
               </div>
             </div>

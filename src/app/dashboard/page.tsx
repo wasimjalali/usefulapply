@@ -174,16 +174,24 @@ export default function Dashboard() {
                   className="flex items-center gap-2 px-1 sm:px-2 py-1.5 cursor-pointer"
                   title="Settings & Profile"
                 >
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-navy-500 to-navy-700 flex items-center justify-center overflow-hidden ring-2 ring-gold-300/40 ring-offset-1 ring-offset-white/80">
-                    {profile?.avatar_url ? (
-                      <img 
-                        src={profile.avatar_url} 
-                        alt="Profile" 
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-                    )}
+                  <div className="relative">
+                    <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-navy-500 to-navy-700 flex items-center justify-center overflow-hidden ring-2 ring-offset-1 ring-offset-white/80 ${
+                      profile?.subscription_tier === 'max' || profile?.subscription_tier === 'pro'
+                        ? 'ring-navy-600'
+                        : profile?.subscription_tier === 'plus'
+                          ? 'ring-gold-400'
+                          : 'ring-gray-300'
+                    }`}>
+                      {profile?.avatar_url ? (
+                        <img 
+                          src={profile.avatar_url} 
+                          alt="Profile" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                      )}
+                    </div>
                   </div>
                 </Link>
               ) : (

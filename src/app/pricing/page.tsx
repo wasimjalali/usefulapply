@@ -14,24 +14,24 @@ import { useAuth } from '@/contexts/AuthContext';
 // Pricing tiers data - Value-focused cards (6 lines each)
 const tiers = [
   {
-    name: 'Starter',
-    tier: 'starter',
+    name: 'Free',
+    tier: 'free',
     price: 0,
     priceLabel: 'Free',
     priceSubtext: 'forever',
     credits: 10,
     applications: '5',
-    description: 'See your first AI application',
+    description: 'Try the full AI agent',
     icon: Sparkles,
     popular: false,
     bestValue: false,
     features: [
       { text: '5 complete applications/month', bold: true },
       { text: 'Tailored CV, cover letter, email & follow-up' },
-      { text: 'Fit score before you apply' },
-      { text: 'US & EU professional templates' },
-      { text: 'No watermark on any document' },
-      { text: 'Claude Sonnet 4.6, specialized for job applications' },
+      { text: 'Honest fit score before you apply' },
+      { text: 'ATS-optimized, US & EU templates' },
+      { text: 'Zero fabrication guarantee' },
+      { text: 'Powered by Claude Sonnet 4.6' },
     ],
     hoursSaved: '~4 hours saved/month',
     cta: 'Start Free',
@@ -41,66 +41,65 @@ const tiers = [
   {
     name: 'Plus',
     tier: 'plus',
-    price: 29.99,
-    priceLabel: '$29.99',
+    price: 39.99,
+    priceLabel: '$39.99',
     priceSubtext: '/month',
-    credits: 120,
-    applications: '60',
+    credits: 100,
+    applications: '50',
     description: 'For serious job seekers',
     icon: Zap,
     popular: true,
     bestValue: false,
     features: [
-      { text: '60 complete applications/month', bold: true },
-      { text: 'Tailored CV, cover letter, email & follow-up' },
-      { text: 'Fit score before you apply' },
+      { text: '50 complete applications/month', bold: true },
+      { text: 'Everything in Free, plus:' },
       { text: 'Unlimited application history' },
-      { text: 'Add-on credit packs available' },
-      { text: 'Claude Sonnet 4.6, specialized for job applications' },
+      { text: 'Add-on credit packs (rollover)' },
+      { text: 'Priority email support' },
+      { text: 'Powered by Claude Sonnet 4.6' },
     ],
-    hoursSaved: '~45 hours saved/month',
+    hoursSaved: 'Cancel anytime. No contracts.',
     cta: 'Get Plus',
     ctaVariant: 'primary' as const,
     hasAddons: true,
   },
   {
-    name: 'Pro',
-    tier: 'pro',
-    price: 49.99,
-    priceLabel: '$49.99',
+    name: 'Max',
+    tier: 'max',
+    price: 79.99,
+    priceLabel: '$79.99',
     priceSubtext: '/month',
-    credits: 240,
-    applications: '120',
-    description: 'For high-volume applicants',
+    credits: 200,
+    applications: '100',
+    description: 'Full automation for power applicants',
     icon: Crown,
     popular: false,
     bestValue: true,
     features: [
-      { text: '120 complete applications/month', bold: true },
-      { text: 'Tailored CV, cover letter, email & follow-up' },
-      { text: 'Fit score before you apply' },
-      { text: 'Unlimited history + credit rollover (2 months)' },
-      { text: 'Add-on credit packs available' },
-      { text: 'Claude Sonnet 4.6, specialized for job applications' },
+      { text: '100 complete applications/month', bold: true },
+      { text: 'Everything in Plus, plus:' },
+      { text: 'Chrome Extension: auto-fill ATS forms', bold: true, comingSoon: true },
+      { text: 'Chrome Extension: AI screening answers', bold: true, comingSoon: true },
+      { text: 'Premium dedicated support' },
+      { text: 'Powered by Claude Sonnet 4.6' },
     ],
-    hoursSaved: '~90 hours saved/month',
-    cta: 'Get Pro',
+    hoursSaved: 'Cancel anytime. No contracts.',
+    cta: 'Get Max',
     ctaVariant: 'secondary' as const,
     hasAddons: true,
   },
 ];
 
-// Add-on credit packs (2 options — both above free tier's 10 credits)
-// TODO: Replace priceId values with actual Stripe Price IDs
+// Single add-on credit pack
+// TODO: Replace priceId value with actual Stripe Price ID
 const addonPacks = [
-  { name: 'Medium Pack', credits: 60, applications: 40, price: 14.99, perCredit: '$0.25', priceId: 'price_addon_medium' },
-  { name: 'Large Pack', credits: 120, applications: 80, price: 29.99, perCredit: '$0.25', priceId: 'price_addon_large' },
+  { name: 'Credit Pack', credits: 40, applications: 20, price: 19.99, perCredit: '$0.50', priceId: 'price_addon_credit_pack' },
 ];
 
 // Time savings data for interactive calculator
 const savingsTiers = [
   {
-    plan: 'Starter',
+    plan: 'Free',
     apps: 5,
     hoursSaved: 4,
     price: 'Free',
@@ -108,17 +107,17 @@ const savingsTiers = [
   },
   {
     plan: 'Plus',
-    apps: 60,
-    hoursSaved: 45,
-    price: '$29.99/mo',
-    tagline: 'That is over a full work week saved every month. At just $0.50 per application.',
+    apps: 50,
+    hoursSaved: 37,
+    price: '$39.99/mo',
+    tagline: 'That is nearly a full work week saved every month. At ~$0.80 per application.',
   },
   {
-    plan: 'Pro',
-    apps: 120,
-    hoursSaved: 90,
-    price: '$49.99/mo',
-    tagline: 'That is over two full work weeks saved. At just $0.42 per application.',
+    plan: 'Max',
+    apps: 100,
+    hoursSaved: 108,
+    price: '$79.99/mo',
+    tagline: 'That is over two and a half work weeks saved. Full automation at ~$0.80 per application.',
   },
 ];
 
@@ -134,11 +133,11 @@ const faqs = [
   },
   {
     question: 'What happens if I run out of credits?',
-    answer: 'Plus and Pro subscribers can purchase add-on credit packs anytime. Free tier credits reset monthly. You can also upgrade your plan for immediate access to more credits.',
+    answer: 'Plus and Max subscribers can purchase add-on credit packs anytime ($19.99 for 40 credits). Purchased credits roll over while your subscription is active. Free tier credits reset monthly. You can also upgrade your plan for immediate access to more credits.',
   },
   {
     question: 'Do unused credits expire?',
-    answer: 'Plus: credits roll over for 1 month (max 120 credits). Pro: credits roll over for 2 months (max 480 credits). Add-on credits never expire.',
+    answer: 'Monthly credits reset each billing cycle. Add-on credits roll over as long as your subscription is active. Upgrade to Plus or Max for add-on credit packs.',
   },
   {
     question: 'Can I change or cancel my plan?',
@@ -262,7 +261,7 @@ export default function PricingPage() {
           </ScrollReveal>
           <ScrollReveal delay={300}>
           <p className="text-xl text-warm-gray max-w-2xl mx-auto">
-            Every plan includes all features. The only difference is your volume.
+            Every plan includes the full AI agent. Upgrade for more volume and automation.
           </p>
           </ScrollReveal>
           <ScrollReveal delay={450}>
@@ -296,12 +295,12 @@ export default function PricingPage() {
                   {/* Badge */}
                   {tier.popular && (
                     <div className="bg-gradient-to-r from-gold-400 to-gold-500 text-white text-xs font-bold px-4 py-2 text-center">
-                      MOST POPULAR
+                      SAVE ~37 HOURS EVERY MONTH
                     </div>
                   )}
                   {tier.bestValue && (
-                    <div className="bg-navy-600 text-white text-xs font-bold px-4 py-2 text-center">
-                      BEST VALUE PER APPLICATION
+                    <div className="bg-gradient-to-r from-navy-600 to-navy-700 text-white text-xs font-bold px-4 py-2 text-center">
+                      SAVE ~108 HOURS EVERY MONTH
                     </div>
                   )}
 
@@ -339,11 +338,6 @@ export default function PricingPage() {
                         <span className="text-4xl font-bold text-navy-600">{tier.priceLabel}</span>
                         <span className="text-warm-gray">{tier.priceSubtext}</span>
                       </div>
-                      {tier.price > 0 && (
-                        <p className="text-xs text-warm-gray mt-1">
-                          ~${(tier.price / parseInt(tier.applications)).toFixed(2)} per application
-                        </p>
-                      )}
                       <div className="mt-2">
                         <span className={`inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full ${
                           tier.popular
@@ -380,8 +374,7 @@ export default function PricingPage() {
                             {addonPacks.map((pack) => (
                               <div key={pack.name} className="flex items-center justify-between">
                                 <div>
-                                  <span className="text-sm text-charcoal">{pack.credits} credits</span>
-                                  <span className="text-xs text-warm-gray ml-2">{pack.perCredit}/credit</span>
+                                  <span className="text-sm text-charcoal">{pack.credits} credits ({pack.applications} apps)</span>
                                 </div>
                                 <button
                                   onClick={() => handleBuyAddon(pack.name.split(' ')[0].toLowerCase())}
@@ -396,7 +389,7 @@ export default function PricingPage() {
                                 </button>
                               </div>
                             ))}
-                            <p className="text-xs text-warm-gray pt-1">Credits never expire.</p>
+                            <p className="text-xs text-warm-gray pt-1">Credits roll over while subscription is active.</p>
                           </div>
                         )}
                       </div>
@@ -409,6 +402,9 @@ export default function PricingPage() {
                           <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-sage-500" />
                           <span className={`text-sm text-charcoal ${feature.bold ? 'font-semibold' : ''}`}>
                             {feature.text}
+                            {(feature as any).comingSoon && (
+                              <span className="ml-1.5 inline-flex items-center bg-navy-600/10 text-navy-600 text-[10px] font-medium px-2 py-0.5 rounded-full">Coming Soon</span>
+                            )}
                           </span>
                         </li>
                       ))}

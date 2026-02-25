@@ -11,11 +11,11 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: 'Try AI Job Application Free, No Sign-Up Required | Karko AI',
     description:
-      "Test Karko AI's job application generator without signing up. Starter plan includes 5 applications free. See the output quality before committing to any plan.",
+      "Test Karko AI's job application generator without signing up. Free plan includes 5 applications free. See the output quality before committing to any plan.",
     openGraph: {
       title: 'Try AI Job Application Free, No Sign-Up Required | Karko AI',
       description:
-        "Test Karko AI's job application generator without signing up. Starter plan includes 5 applications free. See the output quality before committing to any plan.",
+        "Test Karko AI's job application generator without signing up. Free plan includes 5 applications free. See the output quality before committing to any plan.",
       url: `${SITE_URL}/ai-job-application/free-no-signup-test`,
       siteName: 'Karko AI',
       type: 'website',
@@ -33,19 +33,19 @@ export async function generateMetadata(): Promise<Metadata> {
 const faqs = [
   {
     q: 'Is there an AI job application tool I can try without signing up?',
-    a: "Yes. Karko AI's Starter plan allows 5 complete applications per month (including tailored CV, cover letter, application email, and follow-up email) without creating an account or entering payment details.",
+    a: "Yes. Karko AI's Free plan allows 5 complete applications per month (including tailored CV, cover letter, application email, and follow-up email) without creating an account or entering payment details.",
   },
   {
     q: 'Can I create job applications for free with AI?',
-    a: "Yes. Karko AI's Starter plan gives 5 full applications per month at no cost. Each generates all four documents from a single job description. Paid plans (Plus at $29.99/month and Pro at $49.99/month) increase the monthly volume.",
+    a: "Yes. Karko AI's Free plan gives 5 full applications per month at no cost. Each generates all four documents from a single job description. Paid plans (Plus at $39.99/month and Max at $79.99/month) increase the monthly volume.",
   },
   {
     q: 'How many free applications do I get?',
-    a: '5 complete applications per month on the Starter plan. Each application generates a tailored CV, cover letter, application email, and follow-up email from one job description.',
+    a: '5 complete applications per month on the Free plan. Each application generates a tailored CV, cover letter, application email, and follow-up email from one job description.',
   },
   {
     q: "What's the difference between the free tier and paid plans?",
-    a: 'Only volume. The Starter plan gives 5 applications per month for free. Plus gives 60 applications for $29.99/month. Pro gives 120 applications for $49.99/month. The AI quality, document types, and features are identical across all tiers.',
+    a: 'Only volume. The Free plan gives 5 applications per month for free. Plus gives 50 applications for $39.99/month. Max gives 100 applications for $79.99/month. The AI quality, document types, and features are identical across all tiers.',
   },
   {
     q: 'Do I need to give my real CV to test the tool?',
@@ -92,7 +92,7 @@ export default function FreeNoSignupTestPage() {
     '@type': 'Article',
     headline: 'Test AI Job Application Free, No Sign-Up Required',
     description:
-      "Test Karko AI's job application generator without signing up. Starter plan includes 5 applications free. See the output quality before committing to any plan.",
+      "Test Karko AI's job application generator without signing up. Free plan includes 5 applications free. See the output quality before committing to any plan.",
     author: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
     publisher: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
     url: `${SITE_URL}/ai-job-application/free-no-signup-test`,
@@ -150,7 +150,7 @@ export default function FreeNoSignupTestPage() {
             </ScrollReveal>
             <ScrollReveal delay={300}>
               <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed">
-                You can generate job application documents with Karko AI without signing up. The Starter
+                You can generate job application documents with Karko AI without signing up. The Free
                 plan includes 5 applications per month with no credit card required. Paste a job description,
                 see the fit score and generated package, and evaluate quality before deciding whether
                 to create an account or upgrade.
@@ -176,7 +176,7 @@ export default function FreeNoSignupTestPage() {
               committing any personal details or payment.
             </p>
             <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
-              The Starter plan gives 5 full applications per month. An account becomes useful when you want to
+              The Free plan gives 5 full applications per month. An account becomes useful when you want to
               save your application history, reuse your Master CV across sessions, or generate more
               than 5 applications per month.
             </p>
@@ -224,7 +224,7 @@ export default function FreeNoSignupTestPage() {
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
               (3) Are you applying to multiple roles simultaneously and need more than 20
-              applications? That&apos;s when the Plus or Pro plan makes sense. Don&apos;t create an
+              applications? That&apos;s when the Plus or Max plan makes sense. Don&apos;t create an
               account until question one has a &quot;yes.&quot; That&apos;s the only honest
               sequence.
             </p>

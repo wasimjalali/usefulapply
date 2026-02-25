@@ -65,7 +65,7 @@ export default function CreditBalance({ variant = 'compact', showUpgrade = true 
           )}
           <span className="text-sm font-medium">{totalCredits}</span>
         </div>
-        {showUpgrade && credits.plan_tier === 'starter' && (
+        {showUpgrade && (credits.plan_tier === 'free' || credits.plan_tier === 'starter') && (
           <Link
             href="/pricing"
             className="text-xs font-medium text-gold-500 hover:text-gold-600 transition-colors"
@@ -84,7 +84,7 @@ export default function CreditBalance({ variant = 'compact', showUpgrade = true 
         <h3 className="text-lg font-semibold text-charcoal">Credit Balance</h3>
         <span
           className={`px-2 py-1 text-xs font-medium rounded-full ${
-            credits.plan_tier === 'pro'
+            credits.plan_tier === 'max' || credits.plan_tier === 'pro'
               ? 'bg-sage-100 text-sage-600'
               : credits.plan_tier === 'plus'
                 ? 'bg-gold-100 text-gold-600'
@@ -173,7 +173,7 @@ export default function CreditBalance({ variant = 'compact', showUpgrade = true 
 
       {/* Actions */}
       <div className="flex gap-3">
-        {credits.plan_tier !== 'pro' && (
+        {credits.plan_tier !== 'max' && credits.plan_tier !== 'pro' && (
           <Link
             href="/pricing"
             className="flex-1 px-4 py-2 bg-gold-400 text-white text-sm font-medium rounded-lg hover:bg-gold-500 transition-colors text-center"
@@ -181,7 +181,7 @@ export default function CreditBalance({ variant = 'compact', showUpgrade = true 
             Upgrade Plan
           </Link>
         )}
-        {(credits.plan_tier === 'plus' || credits.plan_tier === 'pro') && (
+        {(credits.plan_tier === 'plus' || credits.plan_tier === 'max' || credits.plan_tier === 'pro') && (
           <Link
             href="/pricing#addons"
             className="flex-1 px-4 py-2 bg-navy-600 text-white text-sm font-medium rounded-lg hover:bg-navy-700 transition-colors text-center"

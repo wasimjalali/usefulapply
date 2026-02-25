@@ -29,7 +29,7 @@ export async function checkAndDeductCredits(
       error: balanceCheck.error.message,
       remainingCredits: 0,
       required: balanceCheck.required,
-      planTier: 'starter',
+      planTier: 'free',
       upgradeRequired: true,
     };
   }

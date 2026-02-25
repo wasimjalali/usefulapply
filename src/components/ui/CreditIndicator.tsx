@@ -88,14 +88,14 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
   const totalCredits = credits 
     ? credits.monthly_credits + credits.rollover_credits + credits.addon_credits 
     : 0;
-  const maxCredits = credits?.plan_tier === 'starter' ? 10 : credits?.plan_tier === 'plus' ? 160 : 300;
+  const maxCredits = (credits?.plan_tier === 'starter' || credits?.plan_tier === 'free') ? 10 : credits?.plan_tier === 'plus' ? 100 : 200;
   const percentRemaining = Math.min((totalCredits / maxCredits) * 100, 100);
 
-  // Color based on remaining credits
+  // Color based on remaining credits — brand palette
   const getColor = () => {
-    if (percentRemaining > 50) return 'text-sage-600';
-    if (percentRemaining > 20) return 'text-gold-500';
-    return 'text-red-500';
+    if (percentRemaining > 50) return 'text-gold-500';      // Gold — healthy
+    if (percentRemaining > 20) return 'text-amber-500';     // Warm amber — caution
+    return 'text-navy-600';                                  // Navy — urgent
   };
 
   if (compact) {

@@ -50,11 +50,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Get price ID for plan
-    const priceId = planTier === 'plus' ? STRIPE_PRICES.PLUS : STRIPE_PRICES.PRO;
+    const priceId = planTier === 'plus' ? STRIPE_PRICES.PLUS : planTier === 'max' ? STRIPE_PRICES.MAX : STRIPE_PRICES.PRO;
     console.log('[Checkout] Plan:', planTier, 'Price ID:', priceId);
 
     if (!priceId) {
-      console.error('[Checkout] Price ID is empty for plan:', planTier, 'PLUS:', STRIPE_PRICES.PLUS, 'PRO:', STRIPE_PRICES.PRO);
+      console.error('[Checkout] Price ID is empty for plan:', planTier, 'PLUS:', STRIPE_PRICES.PLUS, 'MAX:', STRIPE_PRICES.MAX);
       return NextResponse.json(
         { error: `Price not configured for ${planTier} plan. Check STRIPE_PRICE_ID_${planTier.toUpperCase()} env var.` },
         { status: 400 }

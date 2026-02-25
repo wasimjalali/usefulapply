@@ -21,7 +21,7 @@ export interface Database {
           github_url: string | null
           portfolio_url: string | null
           website_url: string | null
-          subscription_tier: 'free' | 'starter' | 'plus' | 'pro' | 'enterprise'
+          subscription_tier: 'free' | 'starter' | 'plus' | 'max' | 'pro' | 'enterprise'
           subscription_status: 'active' | 'canceled' | 'past_due' | 'trialing'
           notify_tips: boolean
           notify_updates: boolean
@@ -41,7 +41,7 @@ export interface Database {
           github_url?: string | null
           portfolio_url?: string | null
           website_url?: string | null
-          subscription_tier?: 'free' | 'starter' | 'plus' | 'pro' | 'enterprise'
+          subscription_tier?: 'free' | 'starter' | 'plus' | 'max' | 'pro' | 'enterprise'
           subscription_status?: 'active' | 'canceled' | 'past_due' | 'trialing'
           notify_tips?: boolean
           notify_updates?: boolean
@@ -61,7 +61,7 @@ export interface Database {
           github_url?: string | null
           portfolio_url?: string | null
           website_url?: string | null
-          subscription_tier?: 'free' | 'starter' | 'plus' | 'pro' | 'enterprise'
+          subscription_tier?: 'free' | 'starter' | 'plus' | 'max' | 'pro' | 'enterprise'
           subscription_status?: 'active' | 'canceled' | 'past_due' | 'trialing'
           notify_tips?: boolean
           notify_updates?: boolean
@@ -272,7 +272,7 @@ export interface Database {
         Row: {
           id: string
           user_id: string
-          tier: 'free' | 'starter' | 'plus' | 'pro' | 'enterprise'
+          tier: 'free' | 'starter' | 'plus' | 'max' | 'pro' | 'enterprise'
           status: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete'
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -291,7 +291,7 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
-          tier: 'free' | 'starter' | 'plus' | 'pro' | 'enterprise'
+          tier: 'free' | 'starter' | 'plus' | 'max' | 'pro' | 'enterprise'
           status?: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete'
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -310,7 +310,7 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string
-          tier?: 'free' | 'starter' | 'plus' | 'pro' | 'enterprise'
+          tier?: 'free' | 'starter' | 'plus' | 'max' | 'pro' | 'enterprise'
           status?: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete'
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null

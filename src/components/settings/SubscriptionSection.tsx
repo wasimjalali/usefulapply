@@ -6,11 +6,10 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 
-// Add-on credit packs (must match pricing page)
-// TODO: Replace priceId values with actual Stripe Price IDs
+// Single add-on credit pack (must match pricing page)
+// TODO: Replace priceId value with actual Stripe Price ID
 const addonPacks = [
-  { name: 'Medium', credits: 60, applications: 40, price: 14.99, priceId: 'price_addon_medium' },
-  { name: 'Large', credits: 120, applications: 80, price: 29.99, priceId: 'price_addon_large' },
+  { name: 'Credit Pack', credits: 40, applications: 20, price: 19.99, priceId: 'price_addon_credit_pack' },
 ];
 
 export interface UserCredits {
@@ -25,7 +24,7 @@ interface SubscriptionSectionProps {
   userCredits: UserCredits | null;
   userId?: string;
   onManageBilling?: () => void;
-  onUpgrade?: (planTier: 'plus' | 'pro') => void;
+  onUpgrade?: (planTier: 'plus' | 'max') => void;
   onBuyAddon?: (packSize: string) => Promise<void>;
 }
 
@@ -51,7 +50,7 @@ export function SubscriptionSection({
     ? userCredits.monthly_credits + userCredits.rollover_credits + userCredits.addon_credits 
     : 10;
   
-  const maxCredits = userCredits?.plan_tier === 'starter' ? 10 : userCredits?.plan_tier === 'plus' ? 120 : 240;
+  const maxCredits = userCredits?.plan_tier === 'starter' || userCredits?.plan_tier === 'free' ? 10 : userCredits?.plan_tier === 'plus' ? 100 : 200;
   const isFreeTier = subscriptionTier === 'starter' || subscriptionTier === 'free';
 
   return (
@@ -69,7 +68,7 @@ export function SubscriptionSection({
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-semibold text-charcoal">
-                {isFreeTier ? 'Starter Plan' : subscriptionTier === 'plus' ? 'Plus Plan' : 'Pro Plan'}
+                {isFreeTier ? 'Free Plan' : subscriptionTier === 'plus' ? 'Plus Plan' : 'Max Plan'}
               </h3>
               <span className="px-2 py-0.5 text-xs font-semibold bg-navy-50 text-navy-600 rounded-full border border-navy-100">
                 Current
@@ -106,7 +105,7 @@ export function SubscriptionSection({
               <div className="flex-1">
                 <h4 className="font-semibold text-charcoal">Upgrade to Plus</h4>
                 <p className="text-sm text-warm-gray mt-1">
-                  Get 60 applications per month (120 credits), add-on packs, and priority support.
+                  Get 50 applications per month (100 credits), add-on packs, and priority support.
                 </p>
                 <Button variant="gold" size="sm" className="mt-3" onClick={() => onUpgrade?.('plus')}>
                   <Sparkles className="w-4 h-4 mr-1" />
@@ -124,7 +123,7 @@ export function SubscriptionSection({
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-semibold text-charcoal">Need More Credits?</h3>
-              <p className="text-xs text-warm-gray mt-1">Purchase add-on credit packs. Credits never expire.</p>
+              <p className="text-xs text-warm-gray mt-1">Purchase add-on credit packs. Credits roll over while subscribed.</p>
             </div>
             <Link
               href="/pricing#addons"
@@ -163,7 +162,7 @@ export function SubscriptionSection({
             <div>
               <p className="text-sm font-medium text-charcoal">Add-on credit packs</p>
               <p className="text-xs text-warm-gray mt-0.5">
-                Upgrade to Plus or Pro to purchase add-on credit packs.
+                Upgrade to Plus or Max to purchase add-on credit packs.
               </p>
             </div>
           </div>
@@ -193,7 +192,7 @@ export function SubscriptionSection({
                       <div className="p-1.5 bg-white rounded-lg shadow-sm">
                         <Sparkles className="w-4 h-4 text-warm-gray" />
                       </div>
-                      <span className="text-base font-bold text-charcoal">Starter</span>
+                      <span className="text-base font-bold text-charcoal">Free</span>
                     </div>
                     <p className="text-2xl font-bold text-charcoal leading-tight">Free</p>
                     <p className="text-xs text-warm-gray mt-1">10 credits/mo</p>
@@ -204,7 +203,7 @@ export function SubscriptionSection({
                 <th className="pb-5 px-2 text-center align-bottom">
                   <div className="mb-2">
                     <span className="inline-block text-[10px] font-bold bg-gold-500 text-white px-3 py-1 rounded-full tracking-wide">
-                      MOST POPULAR
+                      SAVE ~37 HOURS
                     </span>
                   </div>
                   <div className={`rounded-2xl px-3 py-4 ${
@@ -218,20 +217,20 @@ export function SubscriptionSection({
                       </div>
                       <span className="text-base font-bold text-charcoal">Plus</span>
                     </div>
-                    <p className="text-2xl font-bold text-charcoal leading-tight">$29.99</p>
-                    <p className="text-xs text-warm-gray mt-1">120 credits/mo</p>
+                    <p className="text-2xl font-bold text-charcoal leading-tight">$39.99</p>
+                    <p className="text-xs text-warm-gray mt-1">100 credits/mo</p>
                   </div>
                 </th>
 
-                {/* Pro */}
+                {/* Max */}
                 <th className="pb-5 px-2 text-center align-bottom">
                   <div className="mb-2">
                     <span className="inline-block text-[10px] font-bold bg-navy-700 text-white px-3 py-1 rounded-full tracking-wide">
-                      BEST VALUE
+                      SAVE ~108 HOURS
                     </span>
                   </div>
                   <div className={`rounded-2xl px-3 py-4 ${
-                    subscriptionTier === 'pro'
+                    subscriptionTier === 'max' || subscriptionTier === 'pro'
                       ? 'bg-navy-50 ring-2 ring-navy-500'
                       : 'bg-navy-50 ring-1 ring-navy-200'
                   }`}>
@@ -239,10 +238,10 @@ export function SubscriptionSection({
                       <div className="p-1.5 bg-white rounded-lg shadow-sm">
                         <Crown className="w-4 h-4 text-navy-600" />
                       </div>
-                      <span className="text-base font-bold text-charcoal">Pro</span>
+                      <span className="text-base font-bold text-charcoal">Max</span>
                     </div>
-                    <p className="text-2xl font-bold text-charcoal leading-tight">$49.99</p>
-                    <p className="text-xs text-warm-gray mt-1">240 credits/mo</p>
+                    <p className="text-2xl font-bold text-charcoal leading-tight">$79.99</p>
+                    <p className="text-xs text-warm-gray mt-1">200 credits/mo</p>
                   </div>
                 </th>
               </tr>
@@ -250,15 +249,14 @@ export function SubscriptionSection({
 
             <tbody>
               {([
-                { label: 'Applications/month',            starter: '5',      plus: '60',     pro: '120' },
-                { label: 'Price per application',         starter: '—',      plus: '~$0.50', pro: '~$0.42' },
-                { label: 'CV + Cover Letter + Email + Follow-up', starter: true, plus: true, pro: true },
-                { label: 'Fit score before you apply',    starter: true,     plus: true,     pro: true },
-                { label: 'US & EU templates',             starter: true,     plus: true,     pro: true },
-                { label: 'Unlimited application history', starter: false,    plus: true,     pro: true },
-                { label: 'Add-on credit packs',           starter: false,    plus: true,     pro: true },
-                { label: 'Credit rollover',               starter: false,    plus: false,    pro: '2 months' },
-                { label: 'Hours saved/month',             starter: '~4h',    plus: '~45h',   pro: '~90h' },
+                { label: 'Applications/month',            free: '5',      plus: '50',     max: '100' },
+                { label: 'CV + Cover Letter + Email + Follow-up', free: true, plus: true, max: true },
+                { label: 'Honest fit score',              free: true,     plus: true,     max: true },
+                { label: 'ATS-optimized templates',       free: true,     plus: true,     max: true },
+                { label: 'Unlimited application history', free: false,    plus: true,     max: true },
+                { label: 'Add-on credit packs',           free: false,    plus: true,     max: true },
+                { label: 'Chrome Extension (Coming Soon)',free: false,    plus: false,    max: true },
+                { label: 'Hours saved/month',             free: '~4h',    plus: '~37h',   max: '~108h' },
               ] as const).map((row, i) => (
                 <tr key={row.label} className={i % 2 === 0 ? 'bg-cream-50/60' : ''}>
                   <td className="py-2.5 pr-4 text-xs text-warm-gray rounded-l-lg pl-1">{row.label}</td>
@@ -266,11 +264,11 @@ export function SubscriptionSection({
                   <td className={`py-2.5 px-3 text-center text-xs ${
                     isFreeTier ? 'bg-cream-100/40' : ''
                   }`}>
-                    {typeof row.starter === 'boolean'
-                      ? row.starter
+                    {typeof row.free === 'boolean'
+                      ? row.free
                         ? <Check className="w-4 h-4 text-sage-500 mx-auto" />
                         : <X className="w-3.5 h-3.5 text-cream-300 mx-auto" />
-                      : <span className="font-medium text-charcoal">{row.starter}</span>
+                      : <span className="font-medium text-charcoal">{row.free}</span>
                     }
                   </td>
 
@@ -286,13 +284,13 @@ export function SubscriptionSection({
                   </td>
 
                   <td className={`py-2.5 px-3 text-center text-xs rounded-r-lg ${
-                    subscriptionTier === 'pro' ? 'bg-navy-50/60' : 'bg-navy-50/30'
+                    subscriptionTier === 'max' || subscriptionTier === 'pro' ? 'bg-navy-50/60' : 'bg-navy-50/30'
                   }`}>
-                    {typeof row.pro === 'boolean'
-                      ? row.pro
+                    {typeof row.max === 'boolean'
+                      ? row.max
                         ? <Check className="w-4 h-4 text-sage-500 mx-auto" />
                         : <X className="w-3.5 h-3.5 text-cream-300 mx-auto" />
-                      : <span className="font-medium text-charcoal">{row.pro}</span>
+                      : <span className="font-medium text-charcoal">{row.max}</span>
                     }
                   </td>
                 </tr>
@@ -315,7 +313,7 @@ export function SubscriptionSection({
                     <div className="text-center text-xs text-navy-600 font-semibold py-2 rounded-lg border-2 border-navy-200 bg-white">
                       Current
                     </div>
-                  ) : subscriptionTier === 'pro' && onManageBilling ? (
+                  ) : (subscriptionTier === 'max' || subscriptionTier === 'pro') && onManageBilling ? (
                     <Button variant="outline" size="sm" className="w-full text-xs py-2" onClick={onManageBilling}>
                       Downgrade
                     </Button>
@@ -329,16 +327,16 @@ export function SubscriptionSection({
                   ) : null}
                 </td>
                 <td className="pt-4 px-3">
-                  {subscriptionTier === 'pro' ? (
+                  {subscriptionTier === 'max' || subscriptionTier === 'pro' ? (
                     <div className="text-center text-xs text-navy-600 font-semibold py-2 rounded-lg border-2 border-navy-200 bg-white">
                       Current
                     </div>
                   ) : onUpgrade ? (
                     <button
-                      onClick={() => onUpgrade('pro')}
+                      onClick={() => onUpgrade('max')}
                       className="w-full py-2 rounded-lg bg-navy-700 hover:bg-navy-800 text-white text-xs font-semibold transition-colors cursor-pointer"
                     >
-                      Get Pro →
+                      Get Max →
                     </button>
                   ) : null}
                 </td>
