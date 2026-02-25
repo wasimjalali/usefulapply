@@ -41,7 +41,7 @@ export const STRIPE_PRICES = {
  * Set these in your .env.local file
  */
 export const STRIPE_ADDON_PRICES = {
-  CREDIT_PACK: process.env.STRIPE_PRICE_ID_ADDON_CREDIT_PACK || '',
+  CREDIT_PACK: process.env.STRIPE_PRICE_ID_ADDON_CREDIT_PACK || process.env.STRIPE_PRICE_ID_ADDON_PACK || '',
   /** @deprecated Use CREDIT_PACK instead */
   MEDIUM: process.env.STRIPE_PRICE_ID_ADDON_MEDIUM || '',
   /** @deprecated Use CREDIT_PACK instead */

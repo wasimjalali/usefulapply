@@ -30,7 +30,7 @@ const tiers = [
       { text: 'Tailored CV, cover letter, email & follow-up' },
       { text: 'Honest fit score before you apply' },
       { text: 'ATS-optimized, US & EU templates' },
-      { text: 'Zero fabrication guarantee' },
+      { text: 'Anti-hallucination guardrails' },
       { text: 'Powered by Claude Sonnet 4.6' },
     ],
     hoursSaved: '~4 hours saved/month',

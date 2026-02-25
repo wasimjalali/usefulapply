@@ -328,7 +328,7 @@ export default function Home() {
             {[
               {
                 icon: Shield,
-                title: 'Zero Fabrication',
+                title: 'Anti-Hallucination Guardrails',
                 description: 'Every skill on your CV comes from your actual profile. Nothing invented, nothing inflated.',
                 accent: 'gold',
               },
@@ -472,7 +472,7 @@ export default function Home() {
                     { text: 'Tailored CV, cover letter, email & follow-up' },
                     { text: 'Honest fit score before you apply' },
                     { text: 'ATS-optimized, US & EU templates' },
-                    { text: 'Zero fabrication guarantee' },
+                    { text: 'Anti-hallucination guardrails' },
                     { text: 'Powered by Claude Sonnet 4.6' },
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
@@ -541,7 +541,8 @@ export default function Home() {
                   ))}
                 </ul>
                 <div className="flex items-center gap-2.5 rounded-xl px-4 py-3 bg-gold-50 border border-gold-200">
-                  <span className="text-xs text-warm-gray">Cancel anytime. No contracts.</span>
+                  <Clock className="w-5 h-5 flex-shrink-0 text-gold-500" />
+                  <span className="text-sm font-semibold text-navy-600">Cancel anytime. No contracts.</span>
                 </div>
                 <div className="mt-auto pt-6">
                   <PlusPlanButton />
@@ -597,8 +598,9 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <div className="flex items-center gap-2.5 rounded-xl px-4 py-3 bg-navy-50 border border-navy-200">
-                  <span className="text-xs text-warm-gray">Cancel anytime. No contracts.</span>
+                <div className="flex items-center gap-2.5 rounded-xl px-4 py-3 bg-navy-600">
+                  <Clock className="w-5 h-5 flex-shrink-0 text-gold-400" />
+                  <span className="text-sm font-semibold text-white">Cancel anytime. No contracts.</span>
                 </div>
                 <div className="mt-auto pt-6">
                   <MaxPlanButton />

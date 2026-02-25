@@ -150,7 +150,7 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
                   <div className="w-full bg-cream-200 rounded-full h-2">
                     <div 
                       className={`h-2 rounded-full transition-all ${
-                        percentRemaining > 50 ? 'bg-sage-500' : percentRemaining > 20 ? 'bg-gold-400' : 'bg-red-500'
+                        percentRemaining > 50 ? 'bg-gold-400' : percentRemaining > 20 ? 'bg-gold-600' : 'bg-navy-600'
                       }`}
                       style={{ width: `${percentRemaining}%` }}
                     />
@@ -230,7 +230,7 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
                 <div className="w-full bg-cream-200 rounded-full h-2">
                   <div 
                     className={`h-2 rounded-full transition-all ${
-                      percentRemaining > 50 ? 'bg-sage-500' : percentRemaining > 20 ? 'bg-gold-400' : 'bg-red-500'
+                      percentRemaining > 50 ? 'bg-gold-400' : percentRemaining > 20 ? 'bg-gold-600' : 'bg-navy-600'
                     }`}
                     style={{ width: `${percentRemaining}%` }}
                   />

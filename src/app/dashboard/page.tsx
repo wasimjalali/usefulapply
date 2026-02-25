@@ -192,6 +192,20 @@ export default function Dashboard() {
                         <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                       )}
                     </div>
+                    {/* Plan tier pill badge */}
+                    <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] sm:text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full leading-none whitespace-nowrap ${
+                      profile?.subscription_tier === 'max' || profile?.subscription_tier === 'pro'
+                        ? 'bg-navy-600 text-white'
+                        : profile?.subscription_tier === 'plus'
+                          ? 'bg-gold-400 text-white'
+                          : 'bg-cream-100 text-warm-gray border border-cream-200'
+                    }`}>
+                      {profile?.subscription_tier === 'max' || profile?.subscription_tier === 'pro'
+                        ? 'MAX'
+                        : profile?.subscription_tier === 'plus'
+                          ? 'PLUS'
+                          : 'FREE'}
+                    </span>
                   </div>
                 </Link>
               ) : (
