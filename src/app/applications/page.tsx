@@ -31,7 +31,7 @@ interface TrackerSession {
   created_at: string;
 }
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 25;
 
 const STATUS_CONFIG: Record<ApplicationStatus, { label: string; bg: string; text: string; dot: string }> = {
   applied: { label: 'Applied', bg: 'bg-gold-100', text: 'text-gold-700', dot: 'bg-gold-400' },
@@ -376,7 +376,7 @@ export default function ApplicationsPage() {
               placeholder="Search by company or job title..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-cream-300 rounded-xl text-sm text-charcoal placeholder:text-warm-gray/60 focus:outline-none focus:border-gold-400 focus:ring-1 focus:ring-gold-300 transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-cream-300 rounded-xl text-sm text-charcoal placeholder:text-warm-gray/60 focus:outline-none focus:border-gold-400 focus:ring-0 transition-all"
             />
           </div>
           <div className="relative sm:w-48">
@@ -385,7 +385,7 @@ export default function ApplicationsPage() {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as ApplicationStatus | 'all')}
               aria-label="Filter by status"
-              className="w-full pl-10 pr-8 py-2.5 bg-white border border-cream-300 rounded-xl text-sm text-charcoal appearance-none cursor-pointer focus:outline-none focus:border-gold-400 focus:ring-1 focus:ring-gold-300 transition-all"
+              className="w-full pl-10 pr-8 py-2.5 bg-white border border-cream-300 rounded-xl text-sm text-charcoal appearance-none cursor-pointer focus:outline-none focus:border-gold-400 focus:ring-0 transition-all"
             >
               <option value="all">All Statuses</option>
               {ALL_STATUSES.map((s) => (
@@ -451,10 +451,12 @@ export default function ApplicationsPage() {
                       return (
                         <tr
                           key={app.id}
-                          onClick={() => navigatingSessionId ? undefined : handleRowClick(app.id)}
-                          className={`transition-colors group ${navigatingSessionId === app.id ? 'bg-cream-50/80 opacity-70' : 'hover:bg-cream-50/60 cursor-pointer'}`}
+                          className={`transition-colors group ${navigatingSessionId === app.id ? 'bg-cream-50/80 opacity-70' : 'hover:bg-cream-50/60'}`}
                         >
-                          <td className="px-5 py-3.5">
+                          <td
+                            className="px-5 py-3.5 cursor-pointer"
+                            onClick={() => navigatingSessionId ? undefined : handleRowClick(app.id)}
+                          >
                             <div className="flex items-center gap-3">
                               <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-navy-100 to-navy-200 flex items-center justify-center">
                                 <Briefcase className="w-3.5 h-3.5 text-navy-600" />
@@ -464,12 +466,18 @@ export default function ApplicationsPage() {
                               </span>
                             </div>
                           </td>
-                          <td className="px-5 py-3.5">
+                          <td
+                            className="px-5 py-3.5 cursor-pointer"
+                            onClick={() => navigatingSessionId ? undefined : handleRowClick(app.id)}
+                          >
                             <span className="text-sm text-charcoal truncate block max-w-[220px]">
                               {app.job_title || 'Untitled Position'}
                             </span>
                           </td>
-                          <td className="px-5 py-3.5">
+                          <td
+                            className="px-5 py-3.5 cursor-pointer"
+                            onClick={() => navigatingSessionId ? undefined : handleRowClick(app.id)}
+                          >
                             <div className="flex items-center gap-1.5 text-xs text-warm-gray">
                               <CalendarDays className="w-3.5 h-3.5" />
                               {new Date(app.created_at).toLocaleDateString('en-US', {
@@ -479,7 +487,10 @@ export default function ApplicationsPage() {
                               })}
                             </div>
                           </td>
-                          <td className="px-5 py-3.5 text-center">
+                          <td
+                            className="px-5 py-3.5 text-center cursor-pointer"
+                            onClick={() => navigatingSessionId ? undefined : handleRowClick(app.id)}
+                          >
                             {app.match_score ? (
                               <div className="inline-flex items-center gap-1">
                                 <Target className="w-3.5 h-3.5 text-gold-500" />
@@ -526,11 +537,13 @@ export default function ApplicationsPage() {
                 return (
                   <div
                     key={app.id}
-                    onClick={() => navigatingSessionId ? undefined : handleRowClick(app.id)}
-                    className={`bg-white rounded-xl border border-cream-200 shadow-sm p-4 transition-all ${navigatingSessionId === app.id ? 'opacity-70' : 'cursor-pointer hover:border-cream-300 active:scale-[0.99]'}`}
+                    className={`bg-white rounded-xl border border-cream-200 shadow-sm p-4 transition-all ${navigatingSessionId === app.id ? 'opacity-70' : 'hover:border-cream-300'}`}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
+                      <div
+                        className={`flex-1 min-w-0 ${navigatingSessionId ? '' : 'cursor-pointer'}`}
+                        onClick={() => navigatingSessionId ? undefined : handleRowClick(app.id)}
+                      >
                         <div className="flex items-center gap-2 mb-1">
                           <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-gradient-to-br from-navy-100 to-navy-200 flex items-center justify-center">
                             <Briefcase className="w-3 h-3 text-navy-600" />
