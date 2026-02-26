@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSessionStore } from '@/store/useSessionStore';
-import { updateSession } from '@/lib/supabase/sessions';
+import { updateSession, getSession } from '@/lib/supabase/sessions';
 import { getSupabase } from '@/lib/supabase/client';
 import {
   ArrowLeft,
@@ -139,6 +139,7 @@ export default function ApplicationsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ApplicationStatus | 'all'>('all');
   const [updatingSessionId, setUpdatingSessionId] = useState<string | null>(null);
+  const [navigatingSessionId, setNavigatingSessionId] = useState<string | null>(null);
 
   // Fetch lightweight application data directly from Supabase (only columns needed for tracker)
   const fetchApplications = useCallback(async (offset: number, limit: number) => {
@@ -245,8 +246,55 @@ export default function ApplicationsPage() {
     }
   };
 
-  const handleRowClick = (sessionId: string) => {
-    loadSession(sessionId);
+  const handleRowClick = async (sessionId: string) => {
+    setNavigatingSessionId(sessionId);
+    try {
+      // Fetch the full session (all columns including generated CV, cover letter, email, follow-up)
+      const fullSession = await getSession(sessionId);
+      if (fullSession) {
+        // Map Supabase snake_case to Zustand camelCase and inject into the store
+        const store = useSessionStore.getState();
+        const mapped = {
+          id: fullSession.id,
+          jobTitle: fullSession.job_title || '',
+          company: fullSession.company || '',
+          jobDescription: fullSession.job_description || '',
+          createdAt: fullSession.created_at,
+          updatedAt: fullSession.updated_at,
+          matchScore: fullSession.match_score ?? undefined,
+          matchingSkills: fullSession.matching_skills || [],
+          missingSkills: fullSession.missing_skills || [],
+          suggestions: fullSession.suggestions || [],
+          requirements: fullSession.requirements ?? null,
+          gaps: fullSession.gaps ?? null,
+          generatedCV: fullSession.generated_cv ?? null,
+          optimizedCVData: fullSession.generated_cv?._optimizedCVData ?? undefined,
+          coverLetter: fullSession.cover_letter ?? null,
+          email: fullSession.email ?? null,
+          followUpEmail: fullSession.follow_up_email ?? null,
+          companyResearch: fullSession.company_research ?? null,
+          cvEdits: fullSession.cv_edits || [],
+          status: fullSession.status ?? 'applied',
+          chatMessages: [],
+        } as any;
+
+        // Upsert the full session into the sessions array
+        const existingSessions = store.sessions;
+        const updated = existingSessions.some((s) => s.id === sessionId)
+          ? existingSessions.map((s) => (s.id === sessionId ? { ...s, ...mapped } : s))
+          : [...existingSessions, mapped];
+        store.setSessions(updated);
+
+        // Set as current session
+        loadSession(sessionId);
+      }
+    } catch (err) {
+      console.error('[Applications] Error loading full session:', err);
+      // Fall back to loading whatever's in the store
+      loadSession(sessionId);
+    } finally {
+      setNavigatingSessionId(null);
+    }
     router.push('/dashboard');
   };
 
@@ -403,8 +451,8 @@ export default function ApplicationsPage() {
                       return (
                         <tr
                           key={app.id}
-                          onClick={() => handleRowClick(app.id)}
-                          className="hover:bg-cream-50/60 transition-colors cursor-pointer group"
+                          onClick={() => navigatingSessionId ? undefined : handleRowClick(app.id)}
+                          className={`transition-colors group ${navigatingSessionId === app.id ? 'bg-cream-50/80 opacity-70' : 'hover:bg-cream-50/60 cursor-pointer'}`}
                         >
                           <td className="px-5 py-3.5">
                             <div className="flex items-center gap-3">
@@ -449,7 +497,12 @@ export default function ApplicationsPage() {
                             )}
                           </td>
                           <td className="px-5 py-3.5 text-right">
-                            {updatingSessionId === app.id ? (
+                            {navigatingSessionId === app.id ? (
+                              <div className="flex items-center justify-end gap-1.5">
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-navy-500" />
+                                <span className="text-xs text-warm-gray">Opening...</span>
+                              </div>
+                            ) : updatingSessionId === app.id ? (
                               <Loader2 className="w-4 h-4 animate-spin text-gold-500 ml-auto" />
                             ) : (
                               <StatusDropdown
@@ -473,8 +526,8 @@ export default function ApplicationsPage() {
                 return (
                   <div
                     key={app.id}
-                    onClick={() => handleRowClick(app.id)}
-                    className="bg-white rounded-xl border border-cream-200 shadow-sm p-4 cursor-pointer hover:border-cream-300 transition-all active:scale-[0.99]"
+                    onClick={() => navigatingSessionId ? undefined : handleRowClick(app.id)}
+                    className={`bg-white rounded-xl border border-cream-200 shadow-sm p-4 transition-all ${navigatingSessionId === app.id ? 'opacity-70' : 'cursor-pointer hover:border-cream-300 active:scale-[0.99]'}`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">

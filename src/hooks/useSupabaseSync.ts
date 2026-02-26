@@ -229,6 +229,7 @@ export function useSupabaseSync() {
               address: row.company_address || row.company_research?.address,
               contactPerson: row.company_contact_person || row.company_research?.contactPerson,
             } : null,
+            status: row.status ?? 'applied',
             cvEdits: row.cv_edits || [],
             optimizedPdfRef: row.optimized_pdf_path ? { 
               id: row.id, 
