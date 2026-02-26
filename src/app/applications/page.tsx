@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSessionStore } from '@/store/useSessionStore';
-import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import { updateSession } from '@/lib/supabase/sessions';
+import { getSupabase } from '@/lib/supabase/client';
 import {
   ArrowLeft,
   Search,
@@ -22,6 +22,17 @@ import {
 
 type ApplicationStatus = 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up';
 
+interface TrackerSession {
+  id: string;
+  company: string | null;
+  job_title: string | null;
+  match_score: number | null;
+  status: ApplicationStatus;
+  created_at: string;
+}
+
+const PAGE_SIZE = 50;
+
 const STATUS_CONFIG: Record<ApplicationStatus, { label: string; bg: string; text: string; dot: string }> = {
   applied: { label: 'Applied', bg: 'bg-gold-100', text: 'text-gold-700', dot: 'bg-gold-400' },
   interview: { label: 'Interview', bg: 'bg-sage-100', text: 'text-sage-600', dot: 'bg-sage-500' },
@@ -31,16 +42,6 @@ const STATUS_CONFIG: Record<ApplicationStatus, { label: string; bg: string; text
 };
 
 const ALL_STATUSES: ApplicationStatus[] = ['applied', 'interview', 'follow_up', 'rejected', 'accepted'];
-
-function StatusBadge({ status }: { status: ApplicationStatus }) {
-  const config = STATUS_CONFIG[status] || STATUS_CONFIG.applied;
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
-      {config.label}
-    </span>
-  );
-}
 
 function StatusDropdown({
   status,
@@ -59,7 +60,7 @@ function StatusDropdown({
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer transition-all hover:ring-2 hover:ring-cream-300 ${config.bg} ${config.text}`}
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer transition-all hover:ring-2 hover:ring-gold-200 ${config.bg} ${config.text}`}
       >
         <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
         {config.label}
@@ -69,7 +70,7 @@ function StatusDropdown({
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-50 w-44 bg-white rounded-xl shadow-lg border border-cream-200 py-1 animate-in fade-in slide-in-from-top-1">
+          <div className="absolute right-0 top-full mt-1 z-50 w-44 bg-white rounded-xl shadow-lg border border-cream-200 py-1">
             {ALL_STATUSES.map((s) => {
               const sc = STATUS_CONFIG[s];
               return (
@@ -129,13 +130,50 @@ function StatPill({
 export default function ApplicationsPage() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
-  const { sessions, loadSession } = useSessionStore();
+  const { loadSession } = useSessionStore();
 
-  useSupabaseSync();
-
+  const [applications, setApplications] = useState<TrackerSession[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isLoadingInitial, setIsLoadingInitial] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ApplicationStatus | 'all'>('all');
   const [updatingSessionId, setUpdatingSessionId] = useState<string | null>(null);
+
+  // Fetch lightweight application data directly from Supabase (only columns needed for tracker)
+  const fetchApplications = useCallback(async (offset: number, limit: number) => {
+    if (!user) return { data: [], count: 0 };
+
+    const supabase = getSupabase() as any;
+    const { data, error, count } = await supabase
+      .from('application_sessions')
+      .select('id, company, job_title, match_score, status, created_at', { count: 'exact' })
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      console.error('[Applications] Error fetching:', error);
+      return { data: [], count: 0 };
+    }
+
+    return { data: (data || []) as TrackerSession[], count: count || 0 };
+  }, [user]);
+
+  // Initial load — fetch first 50 applications
+  useEffect(() => {
+    if (!user) return;
+
+    const load = async () => {
+      setIsLoadingInitial(true);
+      const { data, count } = await fetchApplications(0, PAGE_SIZE);
+      setApplications(data);
+      setTotalCount(count);
+      setIsLoadingInitial(false);
+    };
+
+    load();
+  }, [user, fetchApplications]);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -144,37 +182,40 @@ export default function ApplicationsPage() {
     }
   }, [authLoading, user, router]);
 
-  // Filter out local-only sessions (not yet synced to Supabase)
-  const syncedSessions = useMemo(() => {
-    return sessions
-      .filter((s) => !s.id.startsWith('session-'))
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [sessions]);
+  const hasMore = applications.length < totalCount;
 
-  // Apply search and status filters
-  const filteredSessions = useMemo(() => {
-    return syncedSessions.filter((session) => {
+  const handleLoadMore = async () => {
+    setIsLoadingMore(true);
+    const { data } = await fetchApplications(applications.length, PAGE_SIZE);
+    setApplications((prev) => [...prev, ...data]);
+    setIsLoadingMore(false);
+  };
+
+  // Apply search and status filters (client-side on loaded data)
+  const filteredApplications = useMemo(() => {
+    return applications.filter((app) => {
       const matchesSearch =
         !searchQuery ||
-        (session.company || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (session.jobTitle || '').toLowerCase().includes(searchQuery.toLowerCase());
+        (app.company || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (app.job_title || '').toLowerCase().includes(searchQuery.toLowerCase());
 
-      const sessionStatus = (session as any).status || 'applied';
-      const matchesStatus = statusFilter === 'all' || sessionStatus === statusFilter;
+      const appStatus = app.status || 'applied';
+      const matchesStatus = statusFilter === 'all' || appStatus === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
-  }, [syncedSessions, searchQuery, statusFilter]);
+  }, [applications, searchQuery, statusFilter]);
 
-  // Compute stats
+  // Compute stats from ALL loaded applications (not just filtered)
   const stats = useMemo(() => {
-    const counts: Record<string, number> = { all: syncedSessions.length };
-    for (const s of syncedSessions) {
-      const status = (s as any).status || 'applied';
+    const counts: Record<string, number> = { all: totalCount };
+    for (const app of applications) {
+      const status = app.status || 'applied';
       counts[status] = (counts[status] || 0) + 1;
     }
+    // If we haven't loaded all yet, "all" count comes from DB
     return counts;
-  }, [syncedSessions]);
+  }, [applications, totalCount]);
 
   const handleStatusChange = async (sessionId: string, newStatus: ApplicationStatus) => {
     setUpdatingSessionId(sessionId);
@@ -183,13 +224,16 @@ export default function ApplicationsPage() {
       if (error) {
         console.error('[Applications] Error updating status:', error);
       } else {
-        // Update local store
+        // Update local tracker list
+        setApplications((prev) =>
+          prev.map((app) => (app.id === sessionId ? { ...app, status: newStatus } : app))
+        );
+        // Also update Zustand store if session exists there
         const store = useSessionStore.getState();
         const updatedSessions = store.sessions.map((s) =>
           s.id === sessionId ? { ...s, status: newStatus } as any : s
         );
         store.setSessions(updatedSessions);
-        // Also update currentSession if it matches
         if (store.currentSession?.id === sessionId) {
           store.updateCurrentSession({ status: newStatus } as any);
         }
@@ -206,10 +250,13 @@ export default function ApplicationsPage() {
     router.push('/dashboard');
   };
 
-  if (authLoading) {
+  if (authLoading || isLoadingInitial) {
     return (
       <div className="min-h-screen bg-cream-100 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-navy-600" />
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-navy-600" />
+          <p className="text-sm text-warm-gray">Loading your applications...</p>
+        </div>
       </div>
     );
   }
@@ -257,7 +304,7 @@ export default function ApplicationsPage() {
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
           <StatPill
             label="All"
-            count={stats.all || 0}
+            count={totalCount}
             active={statusFilter === 'all'}
             onClick={() => setStatusFilter('all')}
           />
@@ -281,7 +328,7 @@ export default function ApplicationsPage() {
               placeholder="Search by company or job title..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-cream-200 rounded-xl text-sm text-charcoal placeholder:text-warm-gray/60 focus:outline-none focus:ring-2 focus:ring-navy-200 focus:border-navy-300 transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-cream-300 rounded-xl text-sm text-charcoal placeholder:text-warm-gray/60 focus:outline-none focus:border-gold-400 focus:ring-1 focus:ring-gold-300 transition-all"
             />
           </div>
           <div className="relative sm:w-48">
@@ -290,7 +337,7 @@ export default function ApplicationsPage() {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as ApplicationStatus | 'all')}
               aria-label="Filter by status"
-              className="w-full pl-10 pr-8 py-2.5 bg-white border border-cream-200 rounded-xl text-sm text-charcoal appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-navy-200 focus:border-navy-300 transition-all"
+              className="w-full pl-10 pr-8 py-2.5 bg-white border border-cream-300 rounded-xl text-sm text-charcoal appearance-none cursor-pointer focus:outline-none focus:border-gold-400 focus:ring-1 focus:ring-gold-300 transition-all"
             >
               <option value="all">All Statuses</option>
               {ALL_STATUSES.map((s) => (
@@ -302,28 +349,38 @@ export default function ApplicationsPage() {
         </div>
 
         {/* Applications List */}
-        {filteredSessions.length === 0 ? (
+        {applications.length === 0 ? (
           <div className="mt-12 text-center">
             <div className="inline-flex p-4 bg-cream-200/60 rounded-2xl mb-4">
               <Briefcase className="w-8 h-8 text-warm-gray" />
             </div>
-            <h3 className="text-lg font-semibold text-navy-700 mb-1">
-              {syncedSessions.length === 0 ? 'No applications yet' : 'No matching applications'}
-            </h3>
+            <h3 className="text-lg font-semibold text-navy-700 mb-1">No applications yet</h3>
             <p className="text-sm text-warm-gray mb-6 max-w-sm mx-auto">
-              {syncedSessions.length === 0
-                ? 'Start your first job application in the dashboard and track it here.'
-                : 'Try adjusting your search or filter criteria.'}
+              Start your first job application in the dashboard and track it here.
             </p>
-            {syncedSessions.length === 0 && (
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-gold-400 to-gold-500 rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                Start First Application
-              </Link>
-            )}
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-gold-400 to-gold-500 rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              Start First Application
+            </Link>
+          </div>
+        ) : filteredApplications.length === 0 ? (
+          <div className="mt-12 text-center">
+            <div className="inline-flex p-4 bg-cream-200/60 rounded-2xl mb-4">
+              <Search className="w-8 h-8 text-warm-gray" />
+            </div>
+            <h3 className="text-lg font-semibold text-navy-700 mb-1">No matching applications</h3>
+            <p className="text-sm text-warm-gray mb-4 max-w-sm mx-auto">
+              Try adjusting your search or filter criteria.
+            </p>
+            <button
+              onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}
+              className="text-sm font-medium text-gold-600 hover:text-gold-700 transition-colors cursor-pointer"
+            >
+              Clear filters
+            </button>
           </div>
         ) : (
           <>
@@ -341,12 +398,12 @@ export default function ApplicationsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cream-100">
-                    {filteredSessions.map((session) => {
-                      const sessionStatus = ((session as any).status || 'applied') as ApplicationStatus;
+                    {filteredApplications.map((app) => {
+                      const appStatus = app.status || 'applied';
                       return (
                         <tr
-                          key={session.id}
-                          onClick={() => handleRowClick(session.id)}
+                          key={app.id}
+                          onClick={() => handleRowClick(app.id)}
                           className="hover:bg-cream-50/60 transition-colors cursor-pointer group"
                         >
                           <td className="px-5 py-3.5">
@@ -355,19 +412,19 @@ export default function ApplicationsPage() {
                                 <Briefcase className="w-3.5 h-3.5 text-navy-600" />
                               </div>
                               <span className="text-sm font-semibold text-navy-700 group-hover:text-navy-800 truncate max-w-[180px]">
-                                {session.company || 'Unknown Company'}
+                                {app.company || 'Unknown Company'}
                               </span>
                             </div>
                           </td>
                           <td className="px-5 py-3.5">
                             <span className="text-sm text-charcoal truncate block max-w-[220px]">
-                              {session.jobTitle || 'Untitled Position'}
+                              {app.job_title || 'Untitled Position'}
                             </span>
                           </td>
                           <td className="px-5 py-3.5">
                             <div className="flex items-center gap-1.5 text-xs text-warm-gray">
                               <CalendarDays className="w-3.5 h-3.5" />
-                              {new Date(session.createdAt).toLocaleDateString('en-US', {
+                              {new Date(app.created_at).toLocaleDateString('en-US', {
                                 month: 'short',
                                 day: 'numeric',
                                 year: 'numeric',
@@ -375,16 +432,16 @@ export default function ApplicationsPage() {
                             </div>
                           </td>
                           <td className="px-5 py-3.5 text-center">
-                            {session.matchScore ? (
+                            {app.match_score ? (
                               <div className="inline-flex items-center gap-1">
                                 <Target className="w-3.5 h-3.5 text-gold-500" />
                                 <span className={`text-xs font-bold ${
-                                  session.matchScore >= 85 ? 'text-sage-600' :
-                                  session.matchScore >= 70 ? 'text-gold-600' :
-                                  session.matchScore >= 55 ? 'text-warm-gray' :
+                                  app.match_score >= 85 ? 'text-sage-600' :
+                                  app.match_score >= 70 ? 'text-gold-600' :
+                                  app.match_score >= 55 ? 'text-warm-gray' :
                                   'text-red-500'
                                 }`}>
-                                  {session.matchScore}%
+                                  {app.match_score}%
                                 </span>
                               </div>
                             ) : (
@@ -392,12 +449,12 @@ export default function ApplicationsPage() {
                             )}
                           </td>
                           <td className="px-5 py-3.5 text-right">
-                            {updatingSessionId === session.id ? (
+                            {updatingSessionId === app.id ? (
                               <Loader2 className="w-4 h-4 animate-spin text-gold-500 ml-auto" />
                             ) : (
                               <StatusDropdown
-                                status={sessionStatus}
-                                onStatusChange={(newStatus) => handleStatusChange(session.id, newStatus)}
+                                status={appStatus}
+                                onStatusChange={(newStatus) => handleStatusChange(app.id, newStatus)}
                               />
                             )}
                           </td>
@@ -411,12 +468,12 @@ export default function ApplicationsPage() {
 
             {/* Mobile Cards */}
             <div className="md:hidden mt-4 space-y-3">
-              {filteredSessions.map((session) => {
-                const sessionStatus = ((session as any).status || 'applied') as ApplicationStatus;
+              {filteredApplications.map((app) => {
+                const appStatus = app.status || 'applied';
                 return (
                   <div
-                    key={session.id}
-                    onClick={() => handleRowClick(session.id)}
+                    key={app.id}
+                    onClick={() => handleRowClick(app.id)}
                     className="bg-white rounded-xl border border-cream-200 shadow-sm p-4 cursor-pointer hover:border-cream-300 transition-all active:scale-[0.99]"
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -426,40 +483,40 @@ export default function ApplicationsPage() {
                             <Briefcase className="w-3 h-3 text-navy-600" />
                           </div>
                           <h3 className="text-sm font-semibold text-navy-700 truncate">
-                            {session.company || 'Unknown Company'}
+                            {app.company || 'Unknown Company'}
                           </h3>
                         </div>
                         <p className="text-xs text-charcoal ml-9 truncate">
-                          {session.jobTitle || 'Untitled Position'}
+                          {app.job_title || 'Untitled Position'}
                         </p>
                       </div>
-                      {updatingSessionId === session.id ? (
+                      {updatingSessionId === app.id ? (
                         <Loader2 className="w-4 h-4 animate-spin text-gold-500 flex-shrink-0" />
                       ) : (
                         <StatusDropdown
-                          status={sessionStatus}
-                          onStatusChange={(newStatus) => handleStatusChange(session.id, newStatus)}
+                          status={appStatus}
+                          onStatusChange={(newStatus) => handleStatusChange(app.id, newStatus)}
                         />
                       )}
                     </div>
                     <div className="flex items-center gap-4 mt-3 ml-9">
                       <div className="flex items-center gap-1 text-xs text-warm-gray">
                         <CalendarDays className="w-3 h-3" />
-                        {new Date(session.createdAt).toLocaleDateString('en-US', {
+                        {new Date(app.created_at).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
                         })}
                       </div>
-                      {session.matchScore && (
+                      {app.match_score && (
                         <div className="flex items-center gap-1">
                           <Target className="w-3 h-3 text-gold-500" />
                           <span className={`text-xs font-bold ${
-                            session.matchScore >= 85 ? 'text-sage-600' :
-                            session.matchScore >= 70 ? 'text-gold-600' :
-                            session.matchScore >= 55 ? 'text-warm-gray' :
+                            app.match_score >= 85 ? 'text-sage-600' :
+                            app.match_score >= 70 ? 'text-gold-600' :
+                            app.match_score >= 55 ? 'text-warm-gray' :
                             'text-red-500'
                           }`}>
-                            {session.matchScore}%
+                            {app.match_score}%
                           </span>
                         </div>
                       )}
@@ -469,10 +526,33 @@ export default function ApplicationsPage() {
               })}
             </div>
 
-            {/* Results count */}
-            <p className="mt-4 text-xs text-warm-gray text-center">
-              Showing {filteredSessions.length} of {syncedSessions.length} application{syncedSessions.length !== 1 ? 's' : ''}
-            </p>
+            {/* Load More + Count */}
+            <div className="mt-6 flex flex-col items-center gap-3">
+              {hasMore && (
+                <button
+                  onClick={handleLoadMore}
+                  disabled={isLoadingMore}
+                  className="flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-navy-700 bg-white border border-cream-300 rounded-xl hover:bg-cream-50 hover:border-gold-300 transition-all shadow-sm cursor-pointer disabled:opacity-60"
+                >
+                  {isLoadingMore ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      Load More Applications
+                      <span className="text-xs text-warm-gray">
+                        ({applications.length} of {totalCount})
+                      </span>
+                    </>
+                  )}
+                </button>
+              )}
+              <p className="text-xs text-warm-gray">
+                Showing {filteredApplications.length} of {totalCount} application{totalCount !== 1 ? 's' : ''}
+              </p>
+            </div>
           </>
         )}
       </div>
