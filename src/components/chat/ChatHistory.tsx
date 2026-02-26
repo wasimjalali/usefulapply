@@ -1,6 +1,7 @@
 'use client';
 
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
 export interface SessionSummary {
   id: string;
@@ -50,6 +51,13 @@ export function ChatHistory({ sessions, currentSessionId, onSelectSession }: Cha
             </button>
           ))}
         </div>
+        <Link
+          href="/applications"
+          className="flex items-center justify-center gap-1 mt-2 px-3 py-2 text-xs font-medium text-navy-600 hover:text-navy-800 hover:bg-cream-100 rounded-lg transition-colors"
+        >
+          View All Applications
+          <ArrowRight className="w-3 h-3" />
+        </Link>
       </div>
     </div>
   );

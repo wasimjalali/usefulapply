@@ -29,7 +29,7 @@ export interface ApplicationSession {
   email_subject?: string;
   email_body?: string;
   selected_template?: string;
-  status?: 'draft' | 'completed' | 'sent' | 'interview' | 'rejected' | 'accepted';
+  status?: 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up';
   cover_letter_language?: string;
   created_at: string;
   updated_at: string;

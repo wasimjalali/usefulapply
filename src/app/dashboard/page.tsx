@@ -8,7 +8,7 @@ import { ChatPanel } from '@/components/ChatPanel';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
-import { FileText, Mail, Send, FolderOpen, Settings, User, Loader2, Sparkles, MessageCircle, X } from 'lucide-react';
+import { FileText, Mail, Send, FolderOpen, ClipboardList, Settings, User, Loader2, Sparkles, MessageCircle, X } from 'lucide-react';
 import Link from 'next/link';
 import { CreditIndicator } from '@/components/ui/CreditIndicator';
 
@@ -164,6 +164,17 @@ export default function Dashboard() {
                 >
                   <FolderOpen className="w-4 h-4" />
                   <span className="hidden lg:inline">Documents</span>
+                </Link>
+              )}
+
+              {/* Applications Tracker Link — only for authenticated users */}
+              {user && (
+                <Link
+                  href="/applications"
+                  className="flex items-center gap-2 px-2 sm:px-3 py-2 text-sm font-medium text-warm-gray hover:text-navy-600 transition-colors cursor-pointer rounded-lg hover:bg-cream-100/60"
+                >
+                  <ClipboardList className="w-4 h-4" />
+                  <span className="hidden lg:inline">Applications</span>
                 </Link>
               )}
 
