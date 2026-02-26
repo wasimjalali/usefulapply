@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSessionStore } from '@/store/useSessionStore';
-import { updateSession, getSession } from '@/lib/supabase/sessions';
+import { updateSession, getSession, deleteSession } from '@/lib/supabase/sessions';
 import { getSupabase } from '@/lib/supabase/client';
 import {
   ArrowLeft,
@@ -18,6 +18,7 @@ import {
   Plus,
   Filter,
   ClipboardList,
+  Trash2,
 } from 'lucide-react';
 
 type ApplicationStatus = 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up';
@@ -51,15 +52,27 @@ function StatusDropdown({
   onStatusChange: (newStatus: ApplicationStatus) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [menuStyle, setMenuStyle] = useState<{ top: number; right: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.applied;
+
+  const openMenu = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuStyle({
+        top: rect.bottom + 6,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setIsOpen((prev) => !prev);
+  };
 
   return (
     <div className="relative">
       <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsOpen(!isOpen);
-        }}
+        ref={buttonRef}
+        onClick={openMenu}
         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer transition-all hover:ring-2 hover:ring-gold-200 ${config.bg} ${config.text}`}
       >
         <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
@@ -67,10 +80,13 @@ function StatusDropdown({
         <ChevronDown className="w-3 h-3" />
       </button>
 
-      {isOpen && (
+      {isOpen && menuStyle && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-50 w-44 bg-white rounded-xl shadow-lg border border-cream-200 py-1">
+          <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setIsOpen(false); }} />
+          <div
+            className="fixed z-50 w-44 bg-white rounded-xl shadow-xl border border-cream-200 py-1"
+            style={{ top: menuStyle.top, right: menuStyle.right }}
+          >
             {ALL_STATUSES.map((s) => {
               const sc = STATUS_CONFIG[s];
               return (
@@ -140,6 +156,8 @@ export default function ApplicationsPage() {
   const [statusFilter, setStatusFilter] = useState<ApplicationStatus | 'all'>('all');
   const [updatingSessionId, setUpdatingSessionId] = useState<string | null>(null);
   const [navigatingSessionId, setNavigatingSessionId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
 
   // Fetch lightweight application data directly from Supabase (only columns needed for tracker)
   const fetchApplications = useCallback(async (offset: number, limit: number) => {
@@ -161,7 +179,25 @@ export default function ApplicationsPage() {
     return { data: (data || []) as TrackerSession[], count: count || 0 };
   }, [user]);
 
-  // Initial load — fetch first 50 applications
+  const handleDelete = async (sessionId: string) => {
+    setDeletingSessionId(sessionId);
+    try {
+      const { error } = await deleteSession(sessionId);
+      if (!error) {
+        setApplications((prev) => prev.filter((a) => a.id !== sessionId));
+        setTotalCount((prev) => Math.max(0, prev - 1));
+      } else {
+        console.error('[Applications] Delete error:', error);
+      }
+    } catch (err) {
+      console.error('[Applications] Delete error:', err);
+    } finally {
+      setDeletingSessionId(null);
+      setConfirmDeleteId(null);
+    }
+  };
+
+  // Initial load — fetch first 25 applications
   useEffect(() => {
     if (!user) return;
 
@@ -377,6 +413,7 @@ export default function ApplicationsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-white border border-cream-300 rounded-xl text-sm text-charcoal placeholder:text-warm-gray/60 focus:outline-none focus:border-gold-400 focus:ring-0 transition-all"
+              style={{ boxShadow: 'none' }}
             />
           </div>
           <div className="relative sm:w-48">
@@ -386,6 +423,7 @@ export default function ApplicationsPage() {
               onChange={(e) => setStatusFilter(e.target.value as ApplicationStatus | 'all')}
               aria-label="Filter by status"
               className="w-full pl-10 pr-8 py-2.5 bg-white border border-cream-300 rounded-xl text-sm text-charcoal appearance-none cursor-pointer focus:outline-none focus:border-gold-400 focus:ring-0 transition-all"
+              style={{ boxShadow: 'none' }}
             >
               <option value="all">All Statuses</option>
               {ALL_STATUSES.map((s) => (
@@ -443,6 +481,7 @@ export default function ApplicationsPage() {
                       <th className="text-left px-5 py-3 text-xs font-semibold text-warm-gray uppercase tracking-wider">Date</th>
                       <th className="text-center px-5 py-3 text-xs font-semibold text-warm-gray uppercase tracking-wider">Match</th>
                       <th className="text-right px-5 py-3 text-xs font-semibold text-warm-gray uppercase tracking-wider">Status</th>
+                      <th className="px-3 py-3" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cream-100">
@@ -522,6 +561,34 @@ export default function ApplicationsPage() {
                               />
                             )}
                           </td>
+                          <td className="px-3 py-3.5 text-right">
+                            {deletingSessionId === app.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-red-400" />
+                            ) : confirmDeleteId === app.id ? (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDelete(app.id); }}
+                                  className="px-2 py-0.5 text-[10px] font-semibold text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors cursor-pointer"
+                                >
+                                  Yes
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
+                                  className="px-2 py-0.5 text-[10px] font-semibold text-warm-gray bg-cream-100 rounded-md hover:bg-cream-200 transition-colors cursor-pointer"
+                                >
+                                  No
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(app.id); }}
+                                className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-warm-gray hover:text-red-500 hover:bg-red-50 transition-all cursor-pointer"
+                                title="Delete application"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </td>
                         </tr>
                       );
                     })}
@@ -565,26 +632,54 @@ export default function ApplicationsPage() {
                         />
                       )}
                     </div>
-                    <div className="flex items-center gap-4 mt-3 ml-9">
-                      <div className="flex items-center gap-1 text-xs text-warm-gray">
-                        <CalendarDays className="w-3 h-3" />
-                        {new Date(app.created_at).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </div>
-                      {app.match_score && (
-                        <div className="flex items-center gap-1">
-                          <Target className="w-3 h-3 text-gold-500" />
-                          <span className={`text-xs font-bold ${
-                            app.match_score >= 85 ? 'text-sage-600' :
-                            app.match_score >= 70 ? 'text-gold-600' :
-                            app.match_score >= 55 ? 'text-warm-gray' :
-                            'text-red-500'
-                          }`}>
-                            {app.match_score}%
-                          </span>
+                    <div className="flex items-center justify-between mt-3 ml-9">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1 text-xs text-warm-gray">
+                          <CalendarDays className="w-3 h-3" />
+                          {new Date(app.created_at).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                          })}
                         </div>
+                        {app.match_score && (
+                          <div className="flex items-center gap-1">
+                            <Target className="w-3 h-3 text-gold-500" />
+                            <span className={`text-xs font-bold ${
+                              app.match_score >= 85 ? 'text-sage-600' :
+                              app.match_score >= 70 ? 'text-gold-600' :
+                              app.match_score >= 55 ? 'text-warm-gray' :
+                              'text-red-500'
+                            }`}>
+                              {app.match_score}%
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      {deletingSessionId === app.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-red-400" />
+                      ) : confirmDeleteId === app.id ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDelete(app.id); }}
+                            className="px-2 py-0.5 text-[10px] font-semibold text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors cursor-pointer"
+                          >
+                            Delete
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
+                            className="px-2 py-0.5 text-[10px] font-semibold text-warm-gray bg-cream-100 rounded-md hover:bg-cream-200 transition-colors cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(app.id); }}
+                          className="p-1.5 rounded-lg text-warm-gray hover:text-red-500 hover:bg-red-50 transition-all cursor-pointer"
+                          title="Delete application"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       )}
                     </div>
                   </div>
