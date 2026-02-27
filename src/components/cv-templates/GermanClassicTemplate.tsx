@@ -242,14 +242,13 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
           </h2>
           <div 
             style={{ 
-              display: 'flex', 
-              flexWrap: 'wrap', 
-              justifyContent: 'flex-start', 
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
               gap: '16px',
             }}
           >
-            {data.skills.slice(0, 4).map((group, groupIdx) => (
-              <div key={groupIdx} style={{ flex: '1', minWidth: '28%', maxWidth: '32%' }}>
+            {data.skills.slice(0, 5).map((group, groupIdx) => (
+              <div key={groupIdx}>
                 <h4 
                   style={{ 
                     color: classicColors.primary, 
@@ -284,9 +283,9 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
               </div>
             ))}
             
-            {/* Languages Column */}
+            {/* Languages Column — always placed in the grid alongside skills */}
             {data.languages.length > 0 && (
-              <div style={{ flex: '1', minWidth: '28%', maxWidth: '32%' }}>
+              <div>
                 <h4 
                   style={{ 
                     color: classicColors.primary, 
@@ -323,55 +322,6 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
               </div>
             )}
           </div>
-          
-          {/* Additional skill categories (5th+) */}
-          {data.skills.length > 4 && (
-            <div 
-              style={{ 
-                display: 'flex', 
-                flexWrap: 'wrap', 
-                justifyContent: 'flex-start', 
-                gap: '16px',
-                marginTop: '10px',
-              }}
-            >
-              {data.skills.slice(4, 7).map((group, groupIdx) => (
-                <div key={groupIdx} style={{ flex: '1', minWidth: '28%', maxWidth: '32%' }}>
-                  <h4 
-                    style={{ 
-                      color: classicColors.primary, 
-                      fontWeight: 700, 
-                      fontSize: '10px', 
-                      marginBottom: '4px', 
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                    }}
-                  >
-                    {group.category}
-                  </h4>
-                  <div style={{ margin: 0 }}>
-                    {group.items.slice(0, 5).map((skill, idx) => (
-                      <div 
-                        key={idx} 
-                        style={{ 
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          gap: '5px',
-                          fontSize: '11px',
-                          lineHeight: 1.3,
-                          marginBottom: '2px',
-                          color: classicColors.text,
-                        }}
-                      >
-                        <span style={{ flexShrink: 0 }}>•</span>
-                        <span>{skill}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </section>
       )}
 
