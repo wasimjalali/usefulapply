@@ -72,6 +72,10 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
       setCreditsModalData({ required, available });
       setShowCreditsModal(true);
     },
+    onAnonymousLimitReached: () => {
+      setSignUpWallTrigger('new-application');
+      setShowSignUpWall(true);
+    },
   });
 
   const [inputValue, setInputValue] = useState('');

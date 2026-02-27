@@ -3,9 +3,13 @@ import pdf from 'pdf-parse';
 import { v4 as uuidv4 } from 'uuid';
 import { StructuredCV, createEmptyCV, withId } from '@/lib/types/cv-schema';
 import { getPostHogServer } from '@/lib/posthog-server';
+import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
+
+// File size limit: 10 MB
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
 // Check if we have the required API keys
 const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
@@ -13,14 +17,32 @@ const hasBlobStorage = !!process.env.BLOB_READ_WRITE_TOKEN;
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const clientIP = getClientIP(request);
+    const rateLimitResult = checkRateLimit(`parse-cv:${clientIP}`, RATE_LIMITS['parse-cv']);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait a moment.' },
+        { status: 429 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const region = (formData.get('region') as string) || 'EU';
-    
+
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
-    
+
+    // File size validation
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      return NextResponse.json(
+        { error: `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum: 10 MB.` },
+        { status: 400 }
+      );
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
     
     // Optional: Upload to Vercel Blob if configured

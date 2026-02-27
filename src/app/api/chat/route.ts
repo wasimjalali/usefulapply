@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callModel } from '@/lib/models';
 import { getPostHogServer } from '@/lib/posthog-server';
+import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+
+// Input/output limits
+const MAX_MESSAGE_LENGTH = 2_000;
+const MAX_CHAT_MESSAGES_PER_SESSION = 10;
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -29,10 +34,37 @@ interface ChatContext {
 
 export async function POST(req: NextRequest) {
   try {
-    const { message, context } = await req.json() as { 
-      message: string; 
-      context: ChatContext 
+    // Rate limiting
+    const clientIP = getClientIP(req);
+    const rateLimitResult = checkRateLimit(`chat:${clientIP}`, RATE_LIMITS['chat']);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait a moment.' },
+        { status: 429 }
+      );
+    }
+
+    const { message, context } = await req.json() as {
+      message: string;
+      context: ChatContext
     };
+
+    // Input length validation
+    if (message && message.length > MAX_MESSAGE_LENGTH) {
+      return NextResponse.json(
+        { error: `Message is too long (${message.length} chars). Maximum: ${MAX_MESSAGE_LENGTH} characters.` },
+        { status: 400 }
+      );
+    }
+
+    // Chat message limit per session (count user messages in history)
+    const userMessageCount = context.chatHistory?.filter(m => m.role === 'user').length ?? 0;
+    if (userMessageCount >= MAX_CHAT_MESSAGES_PER_SESSION) {
+      return NextResponse.json(
+        { error: 'Chat message limit reached for this application. Start a new application to continue chatting.', code: 'CHAT_LIMIT_REACHED' },
+        { status: 429 }
+      );
+    }
 
     const systemPrompt = buildSystemPrompt(context);
     

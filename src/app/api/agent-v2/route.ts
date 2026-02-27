@@ -12,7 +12,7 @@
  */
 
 import { NextRequest } from 'next/server';
-import { 
+import {
   runJobCopilot,
   runFitAnalysis,
   runWithContext,
@@ -20,16 +20,18 @@ import {
   type MasterContext,
 } from '@/lib/agents';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 import { checkAndDeductCredits, formatCreditErrorResponse, CREDIT_COSTS } from '@/lib/middleware/creditCheck';
 import { setServerSupabaseClient, clearServerSupabaseClient } from '@/lib/supabase/credits';
-import { 
+import {
   extractOriginalExperience,
   extractOriginalHeadline,
   extractSectionByHeader,
   transformToGeneratedCV,
 } from '@/lib/utils/cv-transformers';
 import { getPostHogServer } from '@/lib/posthog-server';
-import { randomUUID } from 'crypto';
+import { randomUUID, createHash } from 'crypto';
+import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -65,11 +67,44 @@ function removeCachedContext(contextId: string): void {
   contextCache.delete(contextId);
 }
 
+// Input length limits
+const MAX_JOB_DESCRIPTION_LENGTH = 20_000;
+const MAX_CV_LENGTH = 35_000;
+const MAX_MASTER_CV_LENGTH = 35_000;
+
+// Anonymous generation tracking helpers
+function hashIP(ip: string): string {
+  return createHash('sha256').update(ip).digest('hex');
+}
+
+function getSupabaseAdmin() {
+  return createSupabaseAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
+async function hasAnonymousGeneration(ipHash: string): Promise<boolean> {
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data } = await supabaseAdmin
+    .from('anonymous_generations')
+    .select('id')
+    .eq('ip_hash', ipHash)
+    .limit(1);
+  return (data && data.length > 0) || false;
+}
+
+async function recordAnonymousGeneration(ipHash: string): Promise<void> {
+  const supabaseAdmin = getSupabaseAdmin();
+  await supabaseAdmin
+    .from('anonymous_generations')
+    .insert({ ip_hash: ipHash });
+}
+
 interface AgentRequest {
   jobDescription: string;
   currentCV: string;
   masterCV?: string;
-  certifications?: string;
   action: 'full_optimization' | 'fit_analysis' | 'generate_with_context' | 'analyze_only' | 'generate_cv' | 'generate_cover_letter' | 'generate_email';
   contextId?: string; // For generate_with_context: references cached fit analysis context
   cachedContextData?: { // Client-side fallback when server cache misses (e.g. dev hot-reload, serverless cold start)
@@ -166,6 +201,18 @@ export async function POST(request: NextRequest) {
       };
 
       try {
+        // Rate limiting
+        const clientIP = getClientIP(request);
+        const rateLimitResult = checkRateLimit(`agent-v2:${clientIP}`, RATE_LIMITS['agent-v2']);
+        if (!rateLimitResult.allowed) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'error',
+            message: 'Too many requests. Please wait a moment before trying again.',
+          })}\n\n`));
+          controller.close();
+          return;
+        }
+
         // Get authenticated user (optional — anonymous users get one free generation)
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
@@ -178,17 +225,58 @@ export async function POST(request: NextRequest) {
         }
 
         const body: AgentRequest = await request.json();
-        const { 
-          jobDescription, 
-          currentCV, 
-          masterCV, 
+        const {
+          jobDescription,
+          currentCV,
+          masterCV,
           action,
           contextId,
           cachedContextData,
           enableWebSearch,
         } = body;
         currentAction = action;
-        
+
+        // Input length validation
+        if (jobDescription && jobDescription.length > MAX_JOB_DESCRIPTION_LENGTH) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'error',
+            message: `Job description is too long (${jobDescription.length} chars). Maximum allowed: ${MAX_JOB_DESCRIPTION_LENGTH} characters.`,
+          })}\n\n`));
+          controller.close();
+          return;
+        }
+        if (currentCV && currentCV.length > MAX_CV_LENGTH) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'error',
+            message: `CV text is too long (${currentCV.length} chars). Maximum allowed: ${MAX_CV_LENGTH} characters.`,
+          })}\n\n`));
+          controller.close();
+          return;
+        }
+        if (masterCV && masterCV.length > MAX_MASTER_CV_LENGTH) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'error',
+            message: `Master CV text is too long (${masterCV.length} chars). Maximum allowed: ${MAX_MASTER_CV_LENGTH} characters.`,
+          })}\n\n`));
+          controller.close();
+          return;
+        }
+
+        // Server-side anonymous generation tracking
+        const ipHash = hashIP(clientIP);
+        if (isAnonymous) {
+          const alreadyUsed = await hasAnonymousGeneration(ipHash);
+          if (alreadyUsed) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: 'error',
+              code: 'ANONYMOUS_LIMIT_REACHED',
+              message: 'You have already used your free generation. Sign up for a free account to continue.',
+            })}\n\n`));
+            controller.close();
+            return;
+          }
+        }
+
         console.log('[API_AGENT_V2] Request received:', {
           action,
           contextId,
@@ -412,7 +500,11 @@ export async function POST(request: NextRequest) {
 
               if (result.success && result.data) {
                 const ctx = result.data.context;
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+                // Record anonymous generation server-side
+                if (isAnonymous) {
+                  await recordAnonymousGeneration(ipHash);
+                }
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                   type: 'workflow_complete',
                   results: {
                     job: ctx.job,
@@ -472,7 +564,11 @@ export async function POST(request: NextRequest) {
 
           if (result.success && result.data) {
             const ctx = result.data.context;
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+            // Record anonymous generation server-side
+            if (isAnonymous) {
+              await recordAnonymousGeneration(ipHash);
+            }
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               type: 'workflow_complete',
               results: {
                 job: ctx.job,
@@ -578,11 +674,16 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+        // Record anonymous generation server-side
+        if (isAnonymous) {
+          await recordAnonymousGeneration(ipHash);
+        }
+
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({
           type: 'workflow_complete',
           results,
         })}\n\n`));
-        
+
         clearServerSupabaseClient();
         controller.close();
         

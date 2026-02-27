@@ -7,6 +7,7 @@ import { setServerSupabaseClient, clearServerSupabaseClient } from '@/lib/supaba
 import { detectLanguage } from '@/lib/utils/language-detector';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { randomUUID } from 'crypto';
+import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 
 /**
  * API endpoint for regenerating cover letter or email
@@ -14,6 +15,16 @@ import { randomUUID } from 'crypto';
  */
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const clientIP = getClientIP(request);
+    const rateLimitResult = checkRateLimit(`regenerate:${clientIP}`, RATE_LIMITS['regenerate']);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait a moment.' },
+        { status: 429 }
+      );
+    }
+
     // Get authenticated user
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();

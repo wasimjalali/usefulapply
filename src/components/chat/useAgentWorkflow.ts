@@ -37,6 +37,7 @@ interface FitAnalysisContextData {
 
 export function useAgentWorkflow(options?: {
   onInsufficientCredits?: (required: number, available: number) => void;
+  onAnonymousLimitReached?: () => void;
 }) {
   const { user } = useAuth();
   const posthog = usePostHog();
@@ -162,10 +163,21 @@ export function useAgentWorkflow(options?: {
           actions: actions || [],
         });
       } else {
-        addChatMessage({
-          role: 'assistant',
-          content: getSmartFallbackResponse(message),
-        });
+        const errorData = await response.json().catch(() => null);
+        if (errorData?.code === 'CHAT_LIMIT_REACHED') {
+          addChatMessage({
+            role: 'assistant',
+            content: 'You\'ve reached the chat message limit for this application. Start a new application to continue.',
+            actions: [
+              { label: 'Start New Application', action: 'start-new-application', icon: 'new' },
+            ],
+          });
+        } else {
+          addChatMessage({
+            role: 'assistant',
+            content: getSmartFallbackResponse(message),
+          });
+        }
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
@@ -315,7 +327,9 @@ export function useAgentWorkflow(options?: {
                 break;
               }
               case 'error':
-                if (data.code === 'INSUFFICIENT_CREDITS') {
+                if (data.code === 'ANONYMOUS_LIMIT_REACHED') {
+                  options?.onAnonymousLimitReached?.();
+                } else if (data.code === 'INSUFFICIENT_CREDITS') {
                   const required = data.details?.details?.required ?? 0;
                   const available = data.details?.details?.available ?? 0;
                   options?.onInsufficientCredits?.(required, available);
@@ -358,13 +372,10 @@ export function useAgentWorkflow(options?: {
     setV2TokenUsage(null);
     
     try {
-      const { masterCV, certifications } = useAppStore.getState();
-      const certificationsText = certifications.length > 0 
-        ? certifications.map((cert: any) => `- ${cert.fileName}`).join('\n')
-        : undefined;
-      
+      const { masterCV } = useAppStore.getState();
+
       abortControllerRef.current = new AbortController();
-      
+
       const response = await fetch('/api/agent-v2', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -372,7 +383,6 @@ export function useAgentWorkflow(options?: {
           jobDescription,
           currentCV: currentCV.rawText,
           masterCV: masterCV?.rawText,
-          certifications: certificationsText,
           action: contextId ? 'generate_with_context' : 'full_optimization',
           contextId,
           cachedContextData: contextId ? fitAnalysisContextData : undefined,
@@ -591,7 +601,9 @@ export function useAgentWorkflow(options?: {
                 break;
                 
               case 'error':
-                if (data.code === 'INSUFFICIENT_CREDITS') {
+                if (data.code === 'ANONYMOUS_LIMIT_REACHED') {
+                  options?.onAnonymousLimitReached?.();
+                } else if (data.code === 'INSUFFICIENT_CREDITS') {
                   const required = data.details?.details?.required ?? 0;
                   const available = data.details?.details?.available ?? 0;
                   options?.onInsufficientCredits?.(required, available);

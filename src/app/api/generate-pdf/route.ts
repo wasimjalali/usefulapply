@@ -3,6 +3,7 @@ import { PDFDocument, rgb, StandardFonts, PDFPage, PDFFont } from 'pdf-lib';
 import { createClient } from '@supabase/supabase-js';
 import type { StructuredCV, CVDate } from '@/lib/types/cv-schema';
 import { getPostHogServer } from '@/lib/posthog-server';
+import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 
 // Create Supabase client for server-side usage
 function getSupabaseAdmin() {
@@ -29,6 +30,16 @@ interface RenderStats {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const clientIP = getClientIP(request);
+    const rateLimitResult = checkRateLimit(`generate-pdf:${clientIP}`, RATE_LIMITS['generate-pdf']);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait a moment.' },
+        { status: 429 }
+      );
+    }
+
     const supabase = getSupabaseAdmin();
     const { cv, templateId, userId }: GeneratePDFRequest = await request.json();
     
