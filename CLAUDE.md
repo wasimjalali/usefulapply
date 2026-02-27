@@ -708,6 +708,92 @@ A 70% score now means the candidate is **genuinely competitive** for the role, n
 
 ---
 
+## Security Hardening
+
+**Date:** February 27, 2026
+
+### Overview
+Security audit revealed 5 vulnerabilities. All fixed in a single pass with zero new dependencies.
+
+### 1. Server-Side Anonymous Generation Tracking
+
+**Problem:** Anonymous "one free generation" limit was enforced only via browser `localStorage`. Anyone could bypass it (incognito, clear storage, direct API call). Each generation costs ~$0.18 in Anthropic API calls.
+
+**Solution:** Server-side tracking via SHA-256 hashed IPs in Supabase.
+
+**Flow:**
+1. Extract client IP from `x-forwarded-for` header (Vercel provides this)
+2. Hash with SHA-256 (privacy — raw IPs never stored)
+3. Before anonymous generation: query `anonymous_generations` for matching `ip_hash`
+4. If found → SSE error `ANONYMOUS_LIMIT_REACHED` → frontend shows signup wall
+5. If not found → proceed, insert record after `workflow_complete`
+6. Frontend `localStorage` kept as fast-path UX optimization (prevents unnecessary API call)
+
+**Files:**
+| File | Change |
+|------|--------|
+| `supabase/migrations/anonymous_generation_tracking.sql` | NEW — `anonymous_generations` table with `ip_hash` (SHA-256), index, RLS (service role only) |
+| `src/app/api/agent-v2/route.ts` | `hashIP()`, `hasAnonymousGeneration()`, `recordAnonymousGeneration()` helpers. Check before generation, record after `workflow_complete` (all 3 paths) |
+| `src/components/chat/useAgentWorkflow.ts` | Detect `ANONYMOUS_LIMIT_REACHED` in SSE → fire `onAnonymousLimitReached` callback |
+| `src/components/ChatPanel.tsx` | Wire callback → show `SignUpWallModal` |
+
+### 2. Input Length Validation
+
+**Problem:** No max length on any input. Attacker could send massive payloads → DoS + API cost explosion.
+
+**Limits:**
+| Route | Field | Max | Rationale |
+|-------|-------|-----|-----------|
+| `agent-v2` | `jobDescription` | 20,000 chars | Typical JD 1,500-4,000. German/enterprise up to 12,000. 20K covers bilingual JDs with legal sections |
+| `agent-v2` | `currentCV` | 35,000 chars | 2-page CV ~6,400 chars. 35K covers 10 dense pages |
+| `agent-v2` | `masterCV` | 35,000 chars | Same as above |
+| `parse-cv` | file buffer | 10 MB | Generous for PDFs with embedded images |
+| `contact` | `name` | 200 chars | |
+| `contact` | `email` | 254 chars | RFC 5321 max |
+| `contact` | `subject` | 300 chars | |
+| `contact` | `message` | 5,000 chars | |
+| `chat` | `message` | 2,000 chars | |
+
+**Also removed:** Dead `certifications` field from `AgentRequest` interface and `useAgentWorkflow` request body (certifications are already included in the master CV).
+
+### 3. XSS Fix in Contact Form Email
+
+**Problem:** `src/app/api/contact/route.ts` injected raw user input into HTML email template — `${name}`, `${email}`, `${subject}`, `${message}` unescaped.
+
+**Fix:** Added `escapeHtml()` helper that escapes `& < > " '`. Applied to all 4 variables and the Resend subject line.
+
+### 4. Chat Message Limits
+
+**Problem:** No limit on general chat messages. Each calls Claude → costs money.
+
+**Key distinction:** Only limits `/api/chat` (general follow-up questions). Does NOT limit `/api/agent-v2` (job application generation — already gated by credits).
+
+**Limit:** 10 user messages per application session. Server counts `context.chatHistory` user messages. Returns `CHAT_LIMIT_REACHED` error code. Frontend shows "Start New Application" action.
+
+### 5. Basic Rate Limiting
+
+**Problem:** Zero rate limiting. Bots could spam any endpoint.
+
+**Solution:** In-memory sliding window rate limiter (`src/lib/middleware/rateLimiter.ts`). Zero dependencies, works on Vercel serverless. Resets on cold start but prevents active abuse during warm instances. Auto-cleanup of stale entries every 5 minutes.
+
+**Limits:**
+| Route | Limit | Window |
+|-------|-------|--------|
+| `agent-v2` | 5 req | 1 min |
+| `parse-cv` | 10 req | 1 min |
+| `chat` | 20 req | 1 min |
+| `contact` | 3 req | 1 min |
+| `generate-pdf` | 10 req | 1 min |
+| `regenerate` | 10 req | 1 min |
+
+**Files:**
+| File | Change |
+|------|--------|
+| `src/lib/middleware/rateLimiter.ts` | NEW — `checkRateLimit()`, `getClientIP()`, `RATE_LIMITS` config |
+| All 6 API routes | Added `checkRateLimit()` call at top of handler, returns 429 if exceeded |
+
+---
+
 ## Changelog
 
 | Date | Change | Files | Details |
@@ -765,3 +851,4 @@ A 70% score now means the candidate is **genuinely competitive** for the role, n
 | Jun 2025 | **Pricing Pivot v2: Free → Plus → Max** | 20+ files across UI, backend, types, SEO | **Tier rename**: Starter→Free, Pro→Max. **New pricing**: Free ($0, 10 credits/5 apps), Plus ($39.99, 100 credits/50 apps), Max ($79.99, 200 credits/100 apps). **Add-on consolidation**: 2 packs → 1 Credit Pack ($19.99/40 credits). **UI**: Updated pricing page, homepage, settings, insufficient credits modal, credit indicator (gold/amber/navy brand colors), avatar ring (tier-colored). Max tier features Chrome Extension (Coming Soon). **Backend**: Updated credits.ts types (`'free'|'starter'|'plus'|'max'|'pro'`), stripe.ts (STRIPE_PRICES.MAX, STRIPE_ADDON_PRICES.CREDIT_PACK), webhook (max tier handling, free on cancel), checkout (max tier), addon-checkout (single pack). **Types**: Added 'max' to subscription_tier in types.ts, accounts.ts. **SEO**: Updated 3 GEO pages, layout.tsx JSON-LD, pricing layout metadata. **Migration**: `supabase/migrations/pricing_pivot_v2_free_plus_max.sql` — updates subscription_plans, migrates users starter→free/pro→max, updates triggers. Backward-compatible: old 'starter'/'pro' values still handled in all conditionals. `tsc --noEmit` = 0 errors. |
 | Feb 25, 2026 | **Pricing Pivot v2 fixes & polish** | stripe.ts, CreditIndicator.tsx, page.tsx, pricing/page.tsx, dashboard/page.tsx, SubscriptionSection.tsx | **Add-on checkout fix**: `STRIPE_ADDON_PRICES.CREDIT_PACK` now falls back to `STRIPE_PRICE_ID_ADDON_PACK` env var (user's env used `ADDON_PACK` not `ADDON_CREDIT_PACK`). **Credit indicator progress bar**: Replaced `bg-sage-500` (green) with brand colors — `bg-gold-400` (>50%), `bg-gold-600` (20-50%), `bg-navy-600` (<20%) — both mobile and desktop popups. **Cancel anytime consistency**: Homepage Plus/Max cards now match pricing page design with `Clock` icon + bold text + tier-colored backgrounds. **Avatar plan badge**: Added pill badge (FREE/PLUS/MAX) at bottom-center of profile avatar in dashboard header. **Settings page**: Combined standalone add-on credits card into main billing card (inline section with border-top separator). Removed separate free-tier add-on placeholder card. **Feature wording**: "Zero fabrication guarantee" → "Anti-hallucination guardrails" across pricing page, homepage cards, and homepage trust feature card (safer legal positioning for AI product). `tsc --noEmit` = 0 errors. |
 | Feb 26, 2026 | **Application Tracker page + simplified statuses** | applications/page.tsx (new), types.ts, sessions.ts, ChatHistory.tsx, dashboard/page.tsx, simplify_application_status.sql (new) | **Schema change**: Simplified `application_sessions.status` from 6 confusing values (`draft`, `completed`, `sent`, `interview`, `rejected`, `accepted`) to 5 clear values: `applied`, `interview`, `rejected`, `accepted`, `follow_up`. SQL migration converts existing data (`draft`/`completed`/`sent` → `applied`), updates CHECK constraint and default. **New page**: `/applications` — full application tracker with summary stat pills (filterable), search by company/job title, inline status dropdown with colored badges, desktop table + mobile cards, click-to-load session in dashboard. Brand-consistent design (navy, gold, cream, sage). Auth-guarded. Available to all tiers. **Navigation**: Added "View All Applications →" link in ChatHistory panel. Added ClipboardList icon + "Applications" link in dashboard header (between Documents and Settings). **Types updated**: `src/lib/supabase/types.ts` (3 places) and `src/lib/supabase/sessions.ts` — new union `'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up'`. Zero new TS errors. |
+| Feb 27, 2026 | **Security hardening: 5 fixes** | rateLimiter.ts (new), anonymous_generation_tracking.sql (new), agent-v2/route.ts, chat/route.ts, contact/route.ts, parse-cv/route.ts, generate-pdf/route.ts, regenerate/route.ts, useAgentWorkflow.ts, ChatPanel.tsx | **Fix 1 (critical)**: Server-side anonymous generation tracking via SHA-256 hashed IPs in Supabase — prevents localStorage bypass (incognito, direct API). Records after workflow_complete, checks before generation. Frontend detects `ANONYMOUS_LIMIT_REACHED` → shows signup wall. **Fix 2**: Input length validation on all routes (JD 20K, CV 35K, file 10MB, chat msg 2K, contact fields). Removed dead `certifications` field from AgentRequest. **Fix 3**: XSS fix in contact email — `escapeHtml()` on all 4 user inputs + subject line. **Fix 4**: Chat message limit — 10 user messages per session on `/api/chat`, returns `CHAT_LIMIT_REACHED`. **Fix 5**: In-memory sliding window rate limiter on all 6 API routes (agent-v2: 5/min, parse-cv: 10/min, chat: 20/min, contact: 3/min, generate-pdf: 10/min, regenerate: 10/min). Zero dependencies, auto-cleanup. `tsc --noEmit` = 0 errors. |
