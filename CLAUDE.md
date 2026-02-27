@@ -2,6 +2,67 @@
 
 > **This is the ONLY state documentation file.** Update this file whenever you make ANY changes to the codebase. Do not create separate state tracker markdown files.
 
+---
+
+## Claude Code Working Rules
+
+### Autonomy & Speed
+- **Work autonomously** — do NOT ask permission for bug fixes, UI changes, refactors, or small features
+- Read relevant files first, then act — never ask "should I read the file first?"
+- Optimize for speed AND quality — hesitation is a cost, not a safety measure
+- Only pause and confirm before:
+  - **Deleting files** — first verify zero imports/references via Grep; if dead code, delete without asking; only ask if the deletion is large-scale or structurally risky
+  - **Adding new npm dependencies** — state what and why, confirm before installing
+  - **Changing Supabase DB schema** — always write a migration file, confirm before running
+  - **Modifying Stripe webhook/credit logic** — financial logic, confirm intent first
+  - **Force-push or git history rewrites** — destructive, always confirm
+  - **Touching Supabase auth or session handling** — security-sensitive
+
+### After Every Code Change
+- Always run `npx tsc --noEmit` — **zero TypeScript errors is required** before calling any task done
+- Run `npm run lint` when modifying components, hooks, or API routes
+- Do NOT run `npm run build` unless asked — slow, not needed for validation
+
+### Git Workflow
+- **Never commit or push unless explicitly asked**
+- Commit message format — conventional commits:
+  - `feat:` new feature
+  - `fix:` bug fix
+  - `chore:` maintenance, config, deps
+  - `refactor:` code restructure, no behavior change
+- Branch naming: `feature/short-description` or `fix/short-description`
+- Never push directly to `main` without being asked
+- Never use `--no-verify` or skip pre-commit hooks
+
+### Package Manager
+- Use **`npm` only** — never suggest or use bun, yarn, or pnpm
+
+### Deployment
+- Deployed on **Vercel** — production auto-deploys on push to `main`
+- TypeScript errors **will break the Vercel build** — always verify `tsc --noEmit` = 0 before pushing
+- Environment: `.env.local` for local dev, Vercel dashboard for production env vars
+
+### Security Rules
+- **Never read, log, or modify `.env.local`** — treat it as off-limits
+- **`.env.example`** is safe to read (placeholder values only)
+- Never hardcode secrets, API keys, or tokens in any source file
+- Never commit `.env.local` or any file with real credentials
+- **If you notice an exposed secret, hardcoded key, or security vulnerability in any file — flag it immediately** before doing anything else, and describe exactly where it is and what the risk is
+- Watch for: SQL injection, XSS, unprotected API routes (missing auth checks), Stripe webhook signature bypass, exposed Supabase service role key in client-side code
+
+### Database / Supabase
+- **Never modify production DB directly** — always write a SQL migration file in `supabase/migrations/`
+- Run migrations manually in Supabase SQL Editor (no Supabase CLI is used)
+- Migration filenames: descriptive snake_case (e.g., `fix_starter_credits_10.sql`)
+- Before writing a migration, check existing migrations in `supabase/migrations/` to avoid conflicts
+
+### Deleting Code
+- Before deleting any file or function, **Grep for all imports/references** across the codebase
+- If confirmed dead code with zero references → delete without asking
+- If uncertain or the change affects many files → state what you found, then proceed with deletion
+
+---
+
 ## Architecture Overview
 
 Karko AI is a Next.js 14+ application that generates optimized job application materials (CV, Cover Letter, Application Email, Follow-Up Email) using a unified AI agent architecture powered by Claude Sonnet 4.6 (via Amazon Bedrock).
