@@ -88,10 +88,14 @@ ${letter.signatureName}`;
 
   const handleCopy = async () => {
     if (coverLetter) {
-      const fullText = formatCoverLetterAsText(coverLetter);
-      await navigator.clipboard.writeText(fullText);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      try {
+        const fullText = formatCoverLetterAsText(coverLetter);
+        await navigator.clipboard.writeText(fullText);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error('Clipboard write failed:', err);
+      }
     }
   };
 

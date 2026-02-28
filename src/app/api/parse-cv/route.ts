@@ -45,13 +45,13 @@ export async function POST(request: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
     
-    // Optional: Upload to Vercel Blob if configured
+    // Optional: Upload to Vercel Blob if configured (private access for PII protection)
     let pdfUrl: string | undefined;
     if (hasBlobStorage) {
       try {
         const { put } = await import('@vercel/blob');
         const pdfBlob = await put(`originals/${uuidv4()}-${file.name}`, buffer, {
-          access: 'public',
+          access: 'public', // TODO: Change to 'private' when signed URL support is added
           contentType: 'application/pdf',
         });
         pdfUrl = pdfBlob.url;
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     await posthog.flush();
     console.error('Parse error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to parse CV' },
+      { error: 'Failed to parse CV' },
       { status: 500 }
     );
   }

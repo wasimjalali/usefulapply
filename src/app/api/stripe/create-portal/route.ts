@@ -6,7 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe';
 import { createClient } from '@supabase/supabase-js';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 import { getPostHogServer } from '@/lib/posthog-server';
+import { checkRateLimit, getClientIP } from '@/lib/middleware/rateLimiter';
 
 function getSupabaseAdmin() {
   return createClient(
@@ -17,12 +19,22 @@ function getSupabaseAdmin() {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
-    const { userId } = await req.json();
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
+    // Rate limiting
+    const clientIP = getClientIP(req);
+    const rateLimitResult = checkRateLimit(`create-portal:${clientIP}`, { limit: 3, windowMs: 60_000 });
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
     }
+
+    // Authentication: verify the caller is logged in
+    const authSupabase = await createServerClient();
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const supabase = getSupabaseAdmin();
+    const userId = user.id; // Use authenticated user ID, never trust client
 
     // Get user's Stripe customer ID
     const { data: userCredits } = await supabase

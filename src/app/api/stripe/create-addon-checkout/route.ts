@@ -6,7 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe, STRIPE_ADDON_PRICES, ADDON_CREDIT_MAP } from '@/lib/stripe';
 import { createClient } from '@supabase/supabase-js';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 import { getPostHogServer } from '@/lib/posthog-server';
+import { checkRateLimit, getClientIP } from '@/lib/middleware/rateLimiter';
 
 function getSupabaseAdmin() {
   return createClient(
@@ -17,12 +19,27 @@ function getSupabaseAdmin() {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
-    const { userId, packSize } = await req.json();
+    // Rate limiting
+    const clientIP = getClientIP(req);
+    const rateLimitResult = checkRateLimit(`create-addon-checkout:${clientIP}`, { limit: 5, windowMs: 60_000 });
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
+    }
 
-    if (!userId || !packSize) {
+    // Authentication: verify the caller is logged in
+    const authSupabase = await createServerClient();
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const supabase = getSupabaseAdmin();
+    const { packSize } = await req.json();
+    const userId = user.id; // Use authenticated user ID, never trust client
+
+    if (!packSize) {
       return NextResponse.json(
-        { error: 'Missing userId or packSize' },
+        { error: 'Missing packSize' },
         { status: 400 }
       );
     }
@@ -119,7 +136,7 @@ export async function POST(req: NextRequest) {
     await posthog.flush();
     console.error('[Addon Checkout] Session creation error:', error?.message || error, error?.type, error?.raw?.message);
     return NextResponse.json(
-      { error: error?.message || 'Failed to create checkout session' },
+      { error: 'Failed to create checkout session' },
       { status: 500 }
     );
   }

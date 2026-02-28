@@ -116,8 +116,6 @@ async function upsertSubscription(opts: {
 }
 
 export async function POST(req: NextRequest) {
-  console.log('[Stripe Webhook] POST received');
-  console.log('[Stripe Webhook] ENV check: WEBHOOK_SECRET set:', !!process.env.STRIPE_WEBHOOK_SECRET, 'SERVICE_ROLE set:', !!process.env.SUPABASE_SERVICE_ROLE_KEY, 'SUPABASE_URL set:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
 
   const body = await req.text();
   const signature = req.headers.get('stripe-signature');

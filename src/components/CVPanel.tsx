@@ -100,8 +100,6 @@ export function CVPanel() {
     // SOLUTION B: If we have optimizedCVData (structured JSON from AI), use it directly
     // This eliminates text parsing and prevents duplication issues
     if (showOptimized && optimizedCVData) {
-      console.log('[CVPanel] Using SOLUTION B - Structured JSON from AI (no parsing needed)');
-      
       // Convert optimizedCVData to CVData format
       // IMPORTANT: Preserve personal links from original CV if AI didn't return them
       // This prevents users from re-entering LinkedIn/GitHub/Portfolio/Website for each application
@@ -133,19 +131,11 @@ export function CVPanel() {
         localizedStrings: optimizedCVData.localizedStrings,
       };
       
-      console.log('=== CV RENDER DEBUG (Solution B) ===');
-      console.log('[CVPanel] Experience entries:', directData.experience?.length);
-      console.log('[CVPanel] Skills categories:', directData.skills?.length);
-      console.log('[CVPanel] Languages:', directData.languages?.length);
-      console.log('=== END CV DEBUG ===');
-      
       return directData;
     }
     
     // FALLBACK: If no optimizedCVData, use legacy text parsing
     if (showOptimized && optimizedContent) {
-      console.log('[CVPanel] FALLBACK: Using text parsing for optimized CV');
-      
       const optimizedData = parseOptimizedCVToData(optimizedContent, parsed);
       
       if (optimizedTagline) {
@@ -171,9 +161,13 @@ export function CVPanel() {
   }, [currentCV, structuredCV, optimizedContent, optimizedTagline, showOptimized, photoDataUrl, optimizedCVData, profile]);
 
   const handleCopy = async (text: string) => {
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Clipboard write failed:', err);
+    }
   };
 
   const handleDownloadPDF = async () => {
@@ -201,8 +195,11 @@ export function CVPanel() {
         return;
       }
       
-      // Get the CV template HTML
-      const cvContent = cvTemplateRef.current.innerHTML;
+      // Get the CV template HTML — sanitize to prevent XSS from AI-generated content
+      const rawContent = cvTemplateRef.current.innerHTML;
+      const cvContent = rawContent
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '');
       const isUSTemplate = selectedTemplateId.startsWith('us-');
       const pageWidth = isUSTemplate ? '8.5in' : '210mm';
       

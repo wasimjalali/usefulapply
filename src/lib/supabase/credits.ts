@@ -3,7 +3,9 @@ import { getSupabase } from './client';
 // Get untyped supabase client for tables not in generated types
 const getUntypedSupabase = () => getSupabase() as any;
 
-// Allow passing a custom supabase client (for server-side usage)
+// DEPRECATED: Global mutable client pattern removed for concurrency safety.
+// Use the explicit `supabaseClient` parameter on functions instead.
+// These stubs are kept temporarily for backward compatibility during migration.
 let serverSupabaseClient: any = null;
 
 export function setServerSupabaseClient(client: any) {
@@ -14,7 +16,7 @@ export function clearServerSupabaseClient() {
   serverSupabaseClient = null;
 }
 
-const getSupabaseClient = () => serverSupabaseClient || getUntypedSupabase();
+const getSupabaseClient = (explicitClient?: any) => explicitClient || serverSupabaseClient || getUntypedSupabase();
 
 // =====================================================
 // TYPES
@@ -298,13 +300,14 @@ export async function deductCredits(
   options?: {
     sessionId?: string;
     description?: string;
+    supabaseClient?: any;
   }
 ): Promise<{
   success: boolean;
   remainingCredits: number;
   error: Error | null;
 }> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseClient(options?.supabaseClient);
   const amount = CREDIT_COSTS[action];
 
   // Get current credits
@@ -355,8 +358,11 @@ export async function deductCredits(
     remaining -= deduct;
   }
 
-  // Update credits in database
-  const { error: updateError } = await supabase
+  // Atomic update with optimistic concurrency check:
+  // Only update if the values haven't changed since we read them.
+  // This prevents race conditions where two concurrent requests both
+  // pass the balance check and both deduct.
+  const { data: updateResult, error: updateError } = await supabase
     .from('user_credits')
     .update({
       monthly_credits: newMonthly,
@@ -364,15 +370,62 @@ export async function deductCredits(
       addon_credits: newAddon,
       updated_at: new Date().toISOString(),
     })
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .eq('monthly_credits', credits.monthly_credits)
+    .eq('rollover_credits', credits.rollover_credits)
+    .eq('addon_credits', credits.addon_credits)
+    .select('user_id');
 
   if (updateError) {
     console.error('Error updating credits:', updateError);
     return {
       success: false,
       remainingCredits: totalBefore,
-      error: new Error(updateError.message),
+      error: new Error('Failed to update credits'),
     };
+  }
+
+  // If no rows matched, another request modified credits concurrently — retry once
+  if (!updateResult || updateResult.length === 0) {
+    console.warn(`[Credits] Concurrent modification detected for user ${userId}, retrying...`);
+    // Re-read and retry once
+    const { credits: freshCredits, error: retryFetchError } = await getUserCredits(userId);
+    if (retryFetchError || !freshCredits) {
+      return { success: false, remainingCredits: 0, error: retryFetchError || new Error('Credits not found on retry') };
+    }
+    const freshTotal = getTotalCredits(freshCredits);
+    if (freshTotal < amount) {
+      return { success: false, remainingCredits: freshTotal, error: new Error(`Insufficient credits after retry. Required: ${amount}, Available: ${freshTotal}`) };
+    }
+    // Recalculate with fresh values
+    let retryRemaining = amount;
+    let retryMonthly = freshCredits.monthly_credits;
+    let retryRollover = freshCredits.rollover_credits;
+    let retryAddon = freshCredits.addon_credits;
+    if (retryRemaining > 0 && retryMonthly > 0) { const d = Math.min(retryRemaining, retryMonthly); retryMonthly -= d; retryRemaining -= d; }
+    if (retryRemaining > 0 && retryRollover > 0) { const d = Math.min(retryRemaining, retryRollover); retryRollover -= d; retryRemaining -= d; }
+    if (retryRemaining > 0 && retryAddon > 0) { const d = Math.min(retryRemaining, retryAddon); retryAddon -= d; retryRemaining -= d; }
+
+    const { data: retryResult, error: retryError } = await supabase
+      .from('user_credits')
+      .update({ monthly_credits: retryMonthly, rollover_credits: retryRollover, addon_credits: retryAddon, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .eq('monthly_credits', freshCredits.monthly_credits)
+      .eq('rollover_credits', freshCredits.rollover_credits)
+      .eq('addon_credits', freshCredits.addon_credits)
+      .select('user_id');
+
+    if (retryError || !retryResult || retryResult.length === 0) {
+      return { success: false, remainingCredits: freshTotal, error: new Error('Credit deduction failed due to concurrent access. Please try again.') };
+    }
+    const retryTotalAfter = retryMonthly + retryRollover + retryAddon;
+    await logCreditTransaction(userId, -amount, action.toLowerCase(), {
+      sessionId: options?.sessionId,
+      description: options?.description || `${action} credit deduction`,
+      balanceBefore: freshTotal,
+      balanceAfter: retryTotalAfter,
+    });
+    return { success: true, remainingCredits: retryTotalAfter, error: null };
   }
 
   const totalAfter = newMonthly + newRollover + newAddon;

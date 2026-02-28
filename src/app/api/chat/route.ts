@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { callModel } from '@/lib/models';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { createClient } from '@/lib/supabase/server';
 
 // Input/output limits
 const MAX_MESSAGE_LENGTH = 2_000;
@@ -41,6 +42,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Too many requests. Please wait a moment.' },
         { status: 429 }
+      );
+    }
+
+    // Authentication: require logged-in user for chat (costs API money)
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in to use chat.' },
+        { status: 401 }
       );
     }
 

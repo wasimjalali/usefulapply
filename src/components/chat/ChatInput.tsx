@@ -55,7 +55,7 @@ export function ChatInput({
             <div className="font-semibold mb-1">Analyze First</div>
             <p className="text-navy-200 leading-relaxed">Runs a fit analysis to show your match score and skill gaps before generating the full application.</p>
             <p className="text-navy-300 mt-1.5 italic">Best when you haven&apos;t read the job description yet and want AI to evaluate the fit for you first.</p>
-            <div className="mt-2 text-gold-400 font-medium">0.5 credits (analysis) + 1.5 credits (application)</div>
+            <div className="mt-2 text-gold-400 font-medium">0.5 credits (analysis) + 2 credits (application)</div>
             <div className="absolute top-full left-6 w-2.5 h-2.5 bg-navy-700 rotate-45 -mt-1.5" />
           </div>
         )}
@@ -64,7 +64,7 @@ export function ChatInput({
             <div className="font-semibold mb-1">Apply Directly</div>
             <p className="text-navy-200 leading-relaxed">Skips fit analysis and generates your optimized CV, cover letter, and email immediately.</p>
             <p className="text-navy-300 mt-1.5 italic">Best when you&apos;ve already read the job description and it matches your qualifications.</p>
-            <div className="mt-2 text-gold-400 font-medium">1.5 credits</div>
+            <div className="mt-2 text-gold-400 font-medium">2 credits</div>
             <div className="absolute top-full left-6 w-2.5 h-2.5 bg-navy-700 rotate-45 -mt-1.5" />
           </div>
         )}

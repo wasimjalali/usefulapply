@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument, rgb, StandardFonts, PDFPage, PDFFont } from 'pdf-lib';
 import { createClient } from '@supabase/supabase-js';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 import type { StructuredCV, CVDate } from '@/lib/types/cv-schema';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
@@ -9,7 +10,7 @@ import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateL
 function getSupabaseAdmin() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 }
 
@@ -40,8 +41,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Authentication: require logged-in user
+    const authSupabase = await createServerClient();
+    const { data: { user } } = await authSupabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const supabase = getSupabaseAdmin();
-    const { cv, templateId, userId }: GeneratePDFRequest = await request.json();
+    const { cv, templateId }: GeneratePDFRequest = await request.json();
+    const userId = user.id; // Use authenticated user ID
     
     if (!cv || !cv.personal?.fullName) {
       return NextResponse.json(
@@ -68,7 +77,7 @@ export async function POST(request: NextRequest) {
     if (uploadError) {
       console.error('Supabase upload error:', uploadError);
       return NextResponse.json(
-        { error: 'Failed to upload PDF: ' + uploadError.message },
+        { error: 'Failed to upload PDF' },
         { status: 500 }
       );
     }

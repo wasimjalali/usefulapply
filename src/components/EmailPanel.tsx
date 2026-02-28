@@ -143,34 +143,50 @@ export function EmailPanel() {
   const handleCopyBody = async () => {
     if (!user) { setShowSignUpWall(true); return; }
     if (email) {
-      await navigator.clipboard.writeText(email.body);
-      posthog?.capture('document_copied', { document_type: 'email_body' });
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      try {
+        await navigator.clipboard.writeText(email.body);
+        posthog?.capture('document_copied', { document_type: 'email_body' });
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error('Clipboard write failed:', err);
+      }
     }
   };
 
   const handleCopySubject = async () => {
     if (email) {
-      await navigator.clipboard.writeText(email.subject);
-      setCopiedSubject(true);
-      setTimeout(() => setCopiedSubject(false), 2000);
+      try {
+        await navigator.clipboard.writeText(email.subject);
+        setCopiedSubject(true);
+        setTimeout(() => setCopiedSubject(false), 2000);
+      } catch (err) {
+        console.error('Clipboard write failed:', err);
+      }
     }
   };
 
   const handleCopyFollowUpSubject = async () => {
     if (followUpEmail) {
-      await navigator.clipboard.writeText(followUpEmail.subject);
-      setCopiedFollowUpSubject(true);
-      setTimeout(() => setCopiedFollowUpSubject(false), 2000);
+      try {
+        await navigator.clipboard.writeText(followUpEmail.subject);
+        setCopiedFollowUpSubject(true);
+        setTimeout(() => setCopiedFollowUpSubject(false), 2000);
+      } catch (err) {
+        console.error('Clipboard write failed:', err);
+      }
     }
   };
 
   const handleCopyFollowUpBody = async () => {
     if (followUpEmail) {
-      await navigator.clipboard.writeText(followUpEmail.body);
-      setCopiedFollowUpBody(true);
-      setTimeout(() => setCopiedFollowUpBody(false), 2000);
+      try {
+        await navigator.clipboard.writeText(followUpEmail.body);
+        setCopiedFollowUpBody(true);
+        setTimeout(() => setCopiedFollowUpBody(false), 2000);
+      } catch (err) {
+        console.error('Clipboard write failed:', err);
+      }
     }
   };
 
@@ -246,11 +262,15 @@ export function EmailPanel() {
       return;
     }
     const fullText = `Subject: ${emailToUse.subject}\n\n${emailToUse.body}`;
-    await navigator.clipboard.writeText(fullText);
-    posthog?.capture('document_copied', { document_type: 'email' });
-    setCopiedFullPrimary(true);
-    toast.success('Primary email copied to clipboard.');
-    setTimeout(() => setCopiedFullPrimary(false), 2000);
+    try {
+      await navigator.clipboard.writeText(fullText);
+      posthog?.capture('document_copied', { document_type: 'email' });
+      setCopiedFullPrimary(true);
+      toast.success('Primary email copied to clipboard.');
+      setTimeout(() => setCopiedFullPrimary(false), 2000);
+    } catch (err) {
+      console.error('Clipboard write failed:', err);
+    }
   };
 
   const handleCopyFullFollowUp = async () => {
@@ -261,11 +281,15 @@ export function EmailPanel() {
       return;
     }
     const fullText = `Subject: ${followUp.subject}\n\n${followUp.body}`;
-    await navigator.clipboard.writeText(fullText);
-    posthog?.capture('document_copied', { document_type: 'follow_up_email' });
-    setCopiedFullFollowUp(true);
-    toast.success('Follow-up email copied to clipboard.');
-    setTimeout(() => setCopiedFullFollowUp(false), 2000);
+    try {
+      await navigator.clipboard.writeText(fullText);
+      posthog?.capture('document_copied', { document_type: 'follow_up_email' });
+      setCopiedFullFollowUp(true);
+      toast.success('Follow-up email copied to clipboard.');
+      setTimeout(() => setCopiedFullFollowUp(false), 2000);
+    } catch (err) {
+      console.error('Clipboard write failed:', err);
+    }
   };
 
   // Show loading indicator during full generation workflow

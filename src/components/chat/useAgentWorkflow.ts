@@ -6,7 +6,7 @@
  * handleStopGeneration, getSmartFallbackResponse, and all associated state.
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePostHog } from 'posthog-js/react';
@@ -713,6 +713,13 @@ export function useAgentWorkflow(options?: {
 
     return undefined;
   };
+
+  // Abort any in-flight SSE stream when the component unmounts
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   return {
     // State

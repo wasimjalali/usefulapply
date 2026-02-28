@@ -6,7 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe, STRIPE_PRICES } from '@/lib/stripe';
 import { createClient } from '@supabase/supabase-js';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 import { getPostHogServer } from '@/lib/posthog-server';
+import { checkRateLimit, getClientIP } from '@/lib/middleware/rateLimiter';
 
 function getSupabaseAdmin() {
   return createClient(
@@ -17,10 +19,24 @@ function getSupabaseAdmin() {
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
+    const clientIP = getClientIP(req);
+    const rateLimitResult = checkRateLimit(`create-checkout:${clientIP}`, { limit: 5, windowMs: 60_000 });
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
+    }
+
+    // Authentication: verify the caller is logged in
+    const authSupabase = await createServerClient();
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     // Validate env vars early
     if (!process.env.STRIPE_SECRET_KEY) {
       console.error('[Checkout] STRIPE_SECRET_KEY is not set');
-      return NextResponse.json({ error: 'Stripe not configured (missing secret key)' }, { status: 500 });
+      return NextResponse.json({ error: 'Payment system not configured' }, { status: 500 });
     }
     if (!process.env.NEXT_PUBLIC_APP_URL) {
       console.error('[Checkout] NEXT_PUBLIC_APP_URL is not set');
@@ -28,11 +44,12 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = getSupabaseAdmin();
-    const { userId, planTier } = await req.json();
+    const { planTier } = await req.json();
+    const userId = user.id; // Use authenticated user ID, never trust client
 
-    if (!userId || !planTier) {
+    if (!planTier) {
       return NextResponse.json(
-        { error: 'Missing userId or planTier' },
+        { error: 'Missing planTier' },
         { status: 400 }
       );
     }
@@ -116,7 +133,7 @@ export async function POST(req: NextRequest) {
     await posthog.flush();
     console.error('[Checkout] Session creation error:', error?.message || error, error?.type, error?.raw?.message);
     return NextResponse.json(
-      { error: error?.message || 'Failed to create checkout session' },
+      { error: 'Failed to create checkout session' },
       { status: 500 }
     );
   }
