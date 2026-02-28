@@ -111,14 +111,20 @@ export const unifiedWriterAgent = {
 
       // Step 1+2: Extract applicant profile and parse JD in parallel — they're independent
       emit({ type: 'progress', percent: 10, message: 'Analyzing CV and job description...' });
-      const [applicantResult, jobResult, metricsResult] = await Promise.all([
+      const [applicantSettled, jobSettled, metricsSettled] = await Promise.allSettled([
         this.extractApplicantProfile(context.rawCV, context.masterCV),
         this.parseJobDescription(context.jobDescription),
         this.extractVerifiedMetrics(context.rawCV, context.masterCV),
       ]);
+      // Critical: applicant and job must succeed
+      if (applicantSettled.status === 'rejected') throw applicantSettled.reason;
+      if (jobSettled.status === 'rejected') throw jobSettled.reason;
+      const applicantResult = applicantSettled.value;
+      const jobResult = jobSettled.value;
       context.applicant = applicantResult.result;
       context.job = jobResult.result;
-      context.verifiedMetrics = metricsResult.result;
+      // Non-critical: metrics extraction failure is non-blocking
+      context.verifiedMetrics = metricsSettled.status === 'fulfilled' ? metricsSettled.value.result : [];
       context.detectedLanguage = this.detectLanguage(context.jobDescription);
       console.log('[KarkoAI] Detected language:', context.detectedLanguage);
       console.log('[KarkoAI] Verified metrics count:', context.verifiedMetrics?.length || 0);
@@ -168,8 +174,13 @@ export const unifiedWriterAgent = {
       emit({ type: 'progress', percent: 93, message: 'Composing follow-up email...' });
       const followUpResult = await this.generateFollowUpEmail(context);
       context.followUpEmail = followUpResult.result;
-      emit({ type: 'step_completed', step: { id: 'email', description: 'Email + follow-up ready' }, tokens: emailResult.tokens });
-      
+      // Combine token counts from primary email + follow-up email for accurate cost tracking
+      const emailStepTokens: TokenUsage = {
+        input: emailResult.tokens.input + followUpResult.tokens.input,
+        output: emailResult.tokens.output + followUpResult.tokens.output,
+      };
+      emit({ type: 'step_completed', step: { id: 'email', description: 'Email + follow-up ready' }, tokens: emailStepTokens });
+
       emit({ type: 'progress', percent: 100, message: 'Complete!' });
 
       return {
@@ -246,14 +257,18 @@ export const unifiedWriterAgent = {
       }
 
       // Run applicant extraction, JD parsing, and metrics extraction in parallel — they're independent
-      const [applicantResult, jobResult, metricsResult] = await Promise.all([
+      const [applicantSettled2, jobSettled2, metricsSettled2] = await Promise.allSettled([
         this.extractApplicantProfile(context.rawCV, context.masterCV),
         this.parseJobDescription(context.jobDescription),
         this.extractVerifiedMetrics(context.rawCV, context.masterCV),
       ]);
+      if (applicantSettled2.status === 'rejected') throw applicantSettled2.reason;
+      if (jobSettled2.status === 'rejected') throw jobSettled2.reason;
+      const applicantResult = applicantSettled2.value;
+      const jobResult = jobSettled2.value;
       context.applicant = applicantResult.result;
       context.job = jobResult.result;
-      context.verifiedMetrics = metricsResult.result;
+      context.verifiedMetrics = metricsSettled2.status === 'fulfilled' ? metricsSettled2.value.result : [];
       context.detectedLanguage = this.detectLanguage(context.jobDescription);
       emit({ type: 'step_completed', step: { id: 'analysis', description: 'CV parsed and job analyzed' }, tokens: applicantResult.tokens });
 
@@ -332,8 +347,12 @@ export const unifiedWriterAgent = {
       emit({ type: 'progress', percent: 90, message: 'Composing follow-up email...' });
       const followUpResult = await this.generateFollowUpEmail(context);
       context.followUpEmail = followUpResult.result;
-      emit({ type: 'step_completed', step: { id: 'email', description: 'Email + follow-up ready' }, tokens: emailResult.tokens });
-      
+      const emailStepTokens2: TokenUsage = {
+        input: emailResult.tokens.input + followUpResult.tokens.input,
+        output: emailResult.tokens.output + followUpResult.tokens.output,
+      };
+      emit({ type: 'step_completed', step: { id: 'email', description: 'Email + follow-up ready' }, tokens: emailStepTokens2 });
+
       emit({ type: 'progress', percent: 100, message: 'Complete!' });
 
       return {

@@ -67,15 +67,19 @@ export async function getSessions(userId: string): Promise<ApplicationSession[]>
 
 /**
  * Get a specific session
+ * @param userId - When provided, adds user_id filter for defense-in-depth (RLS provides primary protection)
  */
-export async function getSession(sessionId: string): Promise<ApplicationSession | null> {
+export async function getSession(sessionId: string, userId?: string): Promise<ApplicationSession | null> {
   const supabase = getUntypedSupabase();
-  
-  const { data, error } = await supabase
+
+  let query = supabase
     .from('application_sessions')
     .select('*')
-    .eq('id', sessionId)
-    .single();
+    .eq('id', sessionId);
+
+  if (userId) query = query.eq('user_id', userId);
+
+  const { data, error } = await query.single();
 
   if (error) {
     console.error('Error fetching session:', error);
@@ -116,20 +120,26 @@ export async function createSession(
 
 /**
  * Update a session
+ * @param userId - When provided, adds user_id filter for defense-in-depth
  */
 export async function updateSession(
   sessionId: string,
-  updates: Partial<Omit<ApplicationSession, 'id' | 'user_id' | 'created_at'>>
+  updates: Partial<Omit<ApplicationSession, 'id' | 'user_id' | 'created_at'>>,
+  userId?: string
 ): Promise<{ error: Error | null }> {
   const supabase = getUntypedSupabase();
-  
-  const { error } = await supabase
+
+  let query = supabase
     .from('application_sessions')
     .update({
       ...updates,
       updated_at: new Date().toISOString(),
     })
     .eq('id', sessionId);
+
+  if (userId) query = query.eq('user_id', userId);
+
+  const { error } = await query;
 
   if (error) {
     return { error: new Error(error.message) };
@@ -140,14 +150,19 @@ export async function updateSession(
 
 /**
  * Delete a session
+ * @param userId - When provided, adds user_id filter for defense-in-depth
  */
-export async function deleteSession(sessionId: string): Promise<{ error: Error | null }> {
+export async function deleteSession(sessionId: string, userId?: string): Promise<{ error: Error | null }> {
   const supabase = getUntypedSupabase();
-  
-  const { error } = await supabase
+
+  let query = supabase
     .from('application_sessions')
     .delete()
     .eq('id', sessionId);
+
+  if (userId) query = query.eq('user_id', userId);
+
+  const { error } = await query;
 
   if (error) {
     return { error: new Error(error.message) };

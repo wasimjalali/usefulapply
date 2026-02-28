@@ -203,7 +203,7 @@ export interface Database {
           email_subject?: string | null
           email_body?: string | null
           selected_template?: string
-          status?: 'draft' | 'completed' | 'sent' | 'interview' | 'rejected' | 'accepted'
+          status?: 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up'
           cover_letter_language?: string
           created_at?: string
           updated_at?: string
@@ -233,7 +233,7 @@ export interface Database {
           email_subject?: string | null
           email_body?: string | null
           selected_template?: string
-          status?: 'draft' | 'completed' | 'sent' | 'interview' | 'rejected' | 'accepted'
+          status?: 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up'
           cover_letter_language?: string
           created_at?: string
           updated_at?: string
@@ -365,6 +365,181 @@ export interface Database {
           updated_at?: string
         }
       }
+      anonymous_generations: {
+        Row: {
+          id: string
+          ip_hash: string
+          generated_at: string
+        }
+        Insert: {
+          id?: string
+          ip_hash: string
+          generated_at?: string
+        }
+        Update: {
+          id?: string
+          ip_hash?: string
+          generated_at?: string
+        }
+      }
+      contact_submissions: {
+        Row: {
+          id: string
+          name: string
+          email: string
+          subject: string
+          message: string
+          submitted_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          email: string
+          subject: string
+          message: string
+          submitted_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          email?: string
+          subject?: string
+          message?: string
+          submitted_at?: string
+          created_at?: string
+        }
+      }
+      user_credits: {
+        Row: {
+          id: string
+          user_id: string
+          monthly_credits: number
+          rollover_credits: number
+          addon_credits: number
+          plan_tier: 'free' | 'starter' | 'plus' | 'max' | 'pro'
+          last_reset_date: string | null
+          next_reset_date: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          monthly_credits?: number
+          rollover_credits?: number
+          addon_credits?: number
+          plan_tier?: 'free' | 'starter' | 'plus' | 'max' | 'pro'
+          last_reset_date?: string | null
+          next_reset_date?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          monthly_credits?: number
+          rollover_credits?: number
+          addon_credits?: number
+          plan_tier?: 'free' | 'starter' | 'plus' | 'max' | 'pro'
+          last_reset_date?: string | null
+          next_reset_date?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      credit_transactions: {
+        Row: {
+          id: string
+          user_id: string
+          amount: number
+          transaction_type: string
+          session_id: string | null
+          description: string | null
+          metadata: Json
+          balance_before: number
+          balance_after: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          amount: number
+          transaction_type: string
+          session_id?: string | null
+          description?: string | null
+          metadata?: Json
+          balance_before: number
+          balance_after: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          amount?: number
+          transaction_type?: string
+          session_id?: string | null
+          description?: string | null
+          metadata?: Json
+          balance_before?: number
+          balance_after?: number
+          created_at?: string
+        }
+      }
+      subscription_plans: {
+        Row: {
+          id: string
+          tier: 'free' | 'starter' | 'plus' | 'max' | 'pro'
+          name: string
+          description: string | null
+          price_monthly: number
+          credits_monthly: number
+          rollover_months: number
+          max_rollover_credits: number
+          addon_enabled: boolean
+          display_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tier: 'free' | 'starter' | 'plus' | 'max' | 'pro'
+          name: string
+          description?: string | null
+          price_monthly?: number
+          credits_monthly?: number
+          rollover_months?: number
+          max_rollover_credits?: number
+          addon_enabled?: boolean
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tier?: 'free' | 'starter' | 'plus' | 'max' | 'pro'
+          name?: string
+          description?: string | null
+          price_monthly?: number
+          credits_monthly?: number
+          rollover_months?: number
+          max_rollover_credits?: number
+          addon_enabled?: boolean
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -391,3 +566,8 @@ export type ApplicationSession = Tables<'application_sessions'>
 export type ChatMessage = Tables<'chat_messages'>
 export type Subscription = Tables<'subscriptions'>
 export type ConnectedAccount = Tables<'connected_accounts'>
+export type AnonymousGeneration = Tables<'anonymous_generations'>
+export type ContactSubmission = Tables<'contact_submissions'>
+export type UserCreditsRow = Tables<'user_credits'>
+export type CreditTransaction = Tables<'credit_transactions'>
+export type SubscriptionPlan = Tables<'subscription_plans'>

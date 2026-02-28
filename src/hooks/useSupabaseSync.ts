@@ -80,7 +80,9 @@ export function useSupabaseSync() {
   const initialLoadCompleteRef = useRef(false);
   const docsLoadedRef = useRef(false);
   const isCreatingSessionRef = useRef<Set<string>>(new Set());
-  const supabase = createClient();
+  // Create the client once per hook instance — not on every render
+  const supabaseRef = useRef(createClient());
+  const supabase = supabaseRef.current;
 
   // CRITICAL: Load documents (primary CV, master CV, profile photo) from Supabase on mount
   useEffect(() => {
@@ -430,7 +432,7 @@ export function useSupabaseSync() {
                   email: currentSession.email,
                   follow_up_email: currentSession.followUpEmail,
                   company_research: currentSession.companyResearch,
-                });
+                }, user.id);
               }
               
               // Sync existing chat messages to Supabase
@@ -490,7 +492,7 @@ export function useSupabaseSync() {
             cover_letter_language: (currentSession as any).coverLetterLanguage,
             company_address: currentSession.companyResearch?.address,
             company_contact_person: currentSession.companyResearch?.contactPerson,
-          });
+          }, user.id);
           
           if (error) {
             console.error('[SupabaseSync] Error updating session:', error);

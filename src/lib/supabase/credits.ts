@@ -3,20 +3,9 @@ import { getSupabase } from './client';
 // Get untyped supabase client for tables not in generated types
 const getUntypedSupabase = () => getSupabase() as any;
 
-// DEPRECATED: Global mutable client pattern removed for concurrency safety.
-// Use the explicit `supabaseClient` parameter on functions instead.
-// These stubs are kept temporarily for backward compatibility during migration.
-let serverSupabaseClient: any = null;
-
-export function setServerSupabaseClient(client: any) {
-  serverSupabaseClient = client;
-}
-
-export function clearServerSupabaseClient() {
-  serverSupabaseClient = null;
-}
-
-const getSupabaseClient = (explicitClient?: any) => explicitClient || serverSupabaseClient || getUntypedSupabase();
+// Use explicit client when provided (server-side routes pass their auth'd client),
+// otherwise fall back to the module-level client (client-side / non-authed calls).
+const getSupabaseClient = (explicitClient?: any) => explicitClient || getUntypedSupabase();
 
 // =====================================================
 // TYPES
@@ -170,8 +159,8 @@ export async function getAddonCreditPacks(): Promise<{ packs: AddonCreditPack[];
 /**
  * Get user's credit balance
  */
-export async function getUserCredits(userId: string): Promise<{ credits: UserCredits | null; error: Error | null }> {
-  const supabase = getSupabaseClient();
+export async function getUserCredits(userId: string, supabaseClient?: any): Promise<{ credits: UserCredits | null; error: Error | null }> {
+  const supabase = getSupabaseClient(supabaseClient);
 
   const { data, error } = await supabase
     .from('user_credits')
@@ -182,7 +171,7 @@ export async function getUserCredits(userId: string): Promise<{ credits: UserCre
   if (error) {
     if (error.code === 'PGRST116') {
       // No credits record - initialize with free plan
-      return await initializeUserCredits(userId);
+      return await initializeUserCredits(userId, supabaseClient);
     }
     console.error('Error fetching user credits:', error);
     return { credits: null, error: new Error(error.message) };
@@ -194,8 +183,8 @@ export async function getUserCredits(userId: string): Promise<{ credits: UserCre
 /**
  * Initialize credits for new user (free plan)
  */
-async function initializeUserCredits(userId: string): Promise<{ credits: UserCredits | null; error: Error | null }> {
-  const supabase = getSupabaseClient();
+async function initializeUserCredits(userId: string, supabaseClient?: any): Promise<{ credits: UserCredits | null; error: Error | null }> {
+  const supabase = getSupabaseClient(supabaseClient);
 
   const nextReset = new Date();
   nextReset.setMonth(nextReset.getMonth() + 1);
@@ -223,7 +212,7 @@ async function initializeUserCredits(userId: string): Promise<{ credits: UserCre
     description: 'Initial free plan credits',
     balanceBefore: 0,
     balanceAfter: 10,
-  });
+  }, supabaseClient);
 
   return { credits: data as UserCredits, error: null };
 }
@@ -254,7 +243,8 @@ export async function hasEnoughCredits(userId: string, action: CreditAction): Pr
  */
 export async function checkCreditBalance(
   userId: string,
-  action: CreditAction
+  action: CreditAction,
+  supabaseClient?: any
 ): Promise<{
   hasEnough: boolean;
   required: number;
@@ -262,7 +252,7 @@ export async function checkCreditBalance(
   planTier: string;
   error: Error | null;
 }> {
-  const { credits, error } = await getUserCredits(userId);
+  const { credits, error } = await getUserCredits(userId, supabaseClient);
 
   if (error || !credits) {
     return {
@@ -310,8 +300,8 @@ export async function deductCredits(
   const supabase = getSupabaseClient(options?.supabaseClient);
   const amount = CREDIT_COSTS[action];
 
-  // Get current credits
-  const { credits, error: fetchError } = await getUserCredits(userId);
+  // Get current credits (pass explicit client for concurrency safety)
+  const { credits, error: fetchError } = await getUserCredits(userId, options?.supabaseClient);
   if (fetchError || !credits) {
     return {
       success: false,
@@ -389,7 +379,7 @@ export async function deductCredits(
   if (!updateResult || updateResult.length === 0) {
     console.warn(`[Credits] Concurrent modification detected for user ${userId}, retrying...`);
     // Re-read and retry once
-    const { credits: freshCredits, error: retryFetchError } = await getUserCredits(userId);
+    const { credits: freshCredits, error: retryFetchError } = await getUserCredits(userId, options?.supabaseClient);
     if (retryFetchError || !freshCredits) {
       return { success: false, remainingCredits: 0, error: retryFetchError || new Error('Credits not found on retry') };
     }
@@ -424,7 +414,7 @@ export async function deductCredits(
       description: options?.description || `${action} credit deduction`,
       balanceBefore: freshTotal,
       balanceAfter: retryTotalAfter,
-    });
+    }, options?.supabaseClient);
     return { success: true, remainingCredits: retryTotalAfter, error: null };
   }
 
@@ -436,7 +426,7 @@ export async function deductCredits(
     description: options?.description || `${action} credit deduction`,
     balanceBefore: totalBefore,
     balanceAfter: totalAfter,
-  });
+  }, options?.supabaseClient);
 
   return {
     success: true,
@@ -490,22 +480,37 @@ export async function addCredits(
       ? credits.rollover_credits
       : credits.addon_credits;
 
-  // Update credits
-  const { error: updateError } = await supabase
+  // Atomic update with optimistic concurrency check — prevents double-add from concurrent requests
+  const { data: updateResult, error: updateError } = await supabase
     .from('user_credits')
     .update({
       [updateField]: currentValue + amount,
       updated_at: new Date().toISOString(),
     })
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .eq(updateField, currentValue)
+    .select('user_id');
 
   if (updateError) {
     console.error('Error adding credits:', updateError);
     return {
       success: false,
       newBalance: totalBefore,
-      error: new Error(updateError.message),
+      error: new Error('Failed to add credits'),
     };
+  }
+
+  // If no rows matched, concurrent modification — retry once
+  if (!updateResult || updateResult.length === 0) {
+    const { credits: fresh, error: fetchErr } = await getUserCredits(userId);
+    if (fetchErr || !fresh) return { success: false, newBalance: 0, error: new Error('Credits not found on retry') };
+    const freshField = creditType === 'monthly' ? fresh.monthly_credits : creditType === 'rollover' ? fresh.rollover_credits : fresh.addon_credits;
+    const { error: retryErr } = await supabase
+      .from('user_credits')
+      .update({ [updateField]: freshField + amount, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .eq(updateField, freshField);
+    if (retryErr) return { success: false, newBalance: getTotalCredits(fresh), error: new Error('Credit addition failed due to concurrent access') };
   }
 
   const totalAfter = totalBefore + amount;
@@ -666,9 +671,10 @@ async function logCreditTransaction(
     balanceBefore: number;
     balanceAfter: number;
     metadata?: Record<string, any>;
-  }
+  },
+  supabaseClient?: any
 ): Promise<void> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseClient(supabaseClient);
 
   const { error } = await supabase.from('credit_transactions').insert({
     user_id: userId,

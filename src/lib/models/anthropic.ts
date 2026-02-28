@@ -119,6 +119,18 @@ class BedrockBearerTokenClient {
   }
 }
 
+// Cached bearer token client — reused across calls to avoid recreating per invocation
+let cachedBearerClient: BedrockBearerTokenClient | null = null;
+function getBearerTokenClient(): BedrockBearerTokenClient {
+  if (!cachedBearerClient) {
+    cachedBearerClient = new BedrockBearerTokenClient(
+      process.env.AWS_BEARER_TOKEN_BEDROCK!,
+      process.env.AWS_BEDROCK_ENDPOINT_URL || AWS_REGION
+    );
+  }
+  return cachedBearerClient;
+}
+
 // Export the active model IDs (used by the rest of the codebase)
 // Priority: USE_FALLBACK_MODEL (Haiku) > USE_PREVIOUS_MODEL (Sonnet 4.5) > default (Sonnet 4.6)
 const ACTIVE_BEDROCK_MODEL_ID = USE_FALLBACK ? BEDROCK_FALLBACK_MODEL_ID : USE_PREVIOUS ? BEDROCK_PREVIOUS_MODEL_ID : BEDROCK_MODEL_ID;
@@ -191,11 +203,8 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
     let response;
     
     if (HAS_BEARER_TOKEN) {
-      // Use custom bearer token client
-      const bearerClient = new BedrockBearerTokenClient(
-        process.env.AWS_BEARER_TOKEN_BEDROCK!,
-        AWS_REGION
-      );
+      // Use cached bearer token client
+      const bearerClient = getBearerTokenClient();
       response = await bearerClient.create({
         model: MODEL_ID,
         max_tokens: maxTokens,
@@ -205,6 +214,7 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
       });
     } else {
       // Use Anthropic SDK (either Bedrock with traditional keys or direct Anthropic)
+      if (!anthropic) throw new Error('Anthropic client not initialized — check API key configuration');
       response = await (anthropic as Anthropic).messages.create({
         model: MODEL_ID,
         max_tokens: maxTokens,
@@ -252,46 +262,49 @@ export async function callAnthropicStream(
   options: AnthropicCallOptions,
   onChunk: (chunk: string) => void
 ): Promise<ModelResponse> {
-  const { prompt, systemPrompt, temperature = 0.7, maxTokens = 4096, jsonMode = false } = options;
-  
+  const { prompt, systemPrompt, systemBlocks, temperature = 0.7, maxTokens = 4096, jsonMode = false } = options;
+
   const startTime = Date.now();
   let fullContent = '';
   let inputTokens = 0;
   let outputTokens = 0;
   let cacheCreationTokens = 0;
   let cacheReadTokens = 0;
-  
-  // For JSON mode, enhance the system prompt
-  let finalSystemPrompt = systemPrompt || '';
-  if (jsonMode) {
-    const jsonInstruction = '\n\nIMPORTANT: You MUST respond with ONLY valid JSON. No markdown code blocks, no explanations, no text before or after the JSON. Start your response with { and end with }. Ensure all strings are properly escaped.';
-    finalSystemPrompt = finalSystemPrompt + jsonInstruction;
+
+  // Build system parameter — mirrors callAnthropic: prefer systemBlocks (with cache_control)
+  // over plain systemPrompt string
+  let systemParam: string | Array<{ type: 'text'; text: string; cache_control?: { type: 'ephemeral' } }> | undefined;
+  const jsonInstruction = '\n\nIMPORTANT: You MUST respond with ONLY valid JSON. No markdown code blocks, no explanations, no text before or after the JSON. Start your response with { and end with }. Ensure all strings are properly escaped.';
+
+  if (systemBlocks && systemBlocks.length > 0) {
+    const blocks = [...systemBlocks];
+    if (jsonMode) {
+      blocks.push({ type: 'text', text: jsonInstruction.trim() });
+    }
+    systemParam = blocks;
+  } else if (systemPrompt) {
+    systemParam = jsonMode ? systemPrompt + jsonInstruction : systemPrompt;
   }
-  
+
   try {
     let stream;
-    
+
     if (HAS_BEARER_TOKEN) {
-      // For now, use non-streaming for bearer token (can implement streaming later if needed)
-      const bearerClient = new BedrockBearerTokenClient(
-        process.env.AWS_BEARER_TOKEN_BEDROCK!,
-        AWS_REGION
-      );
+      // Bearer token path uses non-streaming (streaming can be added later)
+      const bearerClient = getBearerTokenClient();
       const response = await bearerClient.create({
         model: MODEL_ID,
         max_tokens: maxTokens,
         temperature,
-        ...(finalSystemPrompt && { system: finalSystemPrompt }),
-        messages: [
-          { role: 'user', content: prompt }
-        ],
+        ...(systemParam && { system: systemParam }),
+        messages: [{ role: 'user', content: prompt }],
       });
-      
+
       // Simulate streaming for consistency
       fullContent = response.content[0]?.text || '';
       inputTokens = response.usage?.input_tokens || 0;
       outputTokens = response.usage?.output_tokens || 0;
-      
+
       return {
         content: fullContent,
         usage: {
@@ -304,14 +317,13 @@ export async function callAnthropicStream(
       };
     } else {
       // Use Anthropic SDK streaming
+      if (!anthropic) throw new Error('Anthropic client not initialized — check API key configuration');
       stream = (anthropic as Anthropic).messages.stream({
         model: MODEL_ID,
         max_tokens: maxTokens,
         temperature,
-        ...(finalSystemPrompt && { system: finalSystemPrompt }),
-        messages: [
-          { role: 'user', content: prompt }
-        ],
+        ...(systemParam && { system: systemParam }),
+        messages: [{ role: 'user', content: prompt }],
       });
     }
     

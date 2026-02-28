@@ -22,7 +22,6 @@ import {
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 import { checkAndDeductCredits, formatCreditErrorResponse, CREDIT_COSTS } from '@/lib/middleware/creditCheck';
-import { setServerSupabaseClient, clearServerSupabaseClient } from '@/lib/supabase/credits';
 import {
   extractOriginalExperience,
   extractOriginalHeadline,
@@ -43,12 +42,23 @@ export const maxDuration = 120;
 // =====================================================
 const contextCache = new Map<string, { context: MasterContext; expiresAt: number }>();
 const CONTEXT_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const MAX_CACHE_SIZE = 100; // Prevent unbounded memory growth
 
 function cacheContext(contextId: string, context: MasterContext): void {
   // Clean up expired entries
   const now = Date.now();
   for (const [key, value] of contextCache.entries()) {
     if (value.expiresAt < now) contextCache.delete(key);
+  }
+  // Evict oldest entries if cache exceeds max size
+  if (contextCache.size >= MAX_CACHE_SIZE) {
+    const entriesToDelete = contextCache.size - MAX_CACHE_SIZE + 1;
+    let deleted = 0;
+    for (const key of contextCache.keys()) {
+      if (deleted >= entriesToDelete) break;
+      contextCache.delete(key);
+      deleted++;
+    }
   }
   contextCache.set(contextId, { context, expiresAt: now + CONTEXT_CACHE_TTL_MS });
 }
@@ -105,7 +115,7 @@ interface AgentRequest {
   jobDescription: string;
   currentCV: string;
   masterCV?: string;
-  action: 'full_optimization' | 'fit_analysis' | 'generate_with_context' | 'analyze_only' | 'generate_cv' | 'generate_cover_letter' | 'generate_email';
+  action: 'full_optimization' | 'fit_analysis' | 'generate_with_context';
   contextId?: string; // For generate_with_context: references cached fit analysis context
   cachedContextData?: { // Client-side fallback when server cache misses (e.g. dev hot-reload, serverless cold start)
     applicant: MasterContext['applicant'];
@@ -219,11 +229,6 @@ export async function POST(request: NextRequest) {
         const isAnonymous = !user;
         distinctId = user?.id || 'anonymous';
 
-        // Set server supabase client for credit operations (only if authenticated)
-        if (user) {
-          setServerSupabaseClient(supabase);
-        }
-
         const body: AgentRequest = await request.json();
         const {
           jobDescription,
@@ -257,6 +262,17 @@ export async function POST(request: NextRequest) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'error',
             message: `Master CV text is too long (${masterCV.length} chars). Maximum allowed: ${MAX_MASTER_CV_LENGTH} characters.`,
+          })}\n\n`));
+          controller.close();
+          return;
+        }
+
+        // Action validation
+        const validActions = ['full_optimization', 'fit_analysis', 'generate_with_context'];
+        if (!validActions.includes(action)) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'error',
+            message: 'Invalid action',
           })}\n\n`));
           controller.close();
           return;
@@ -355,7 +371,7 @@ export async function POST(request: NextRequest) {
 
           // Deduct 0.5 credits for fit analysis (skip for anonymous users — free generation)
           if (!isAnonymous) {
-            const creditResult = await checkAndDeductCredits(user!.id, 'FIT_ANALYSIS');
+            const creditResult = await checkAndDeductCredits(user!.id, 'FIT_ANALYSIS', undefined, supabase);
             if (!creditResult.success) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
                 type: 'error', 
@@ -420,7 +436,6 @@ export async function POST(request: NextRequest) {
             await recordAnonymousGeneration(ipHash);
           }
 
-          clearServerSupabaseClient();
           controller.close();
           return;
         }
@@ -443,6 +458,18 @@ export async function POST(request: NextRequest) {
           let cachedContext = getCachedContext(contextId);
           
           if (!cachedContext) {
+            // Validate client-sent context data structure before using it
+            if (cachedContextData) {
+              if (!cachedContextData.applicant || !cachedContextData.job || !cachedContextData.match) {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                  type: 'error',
+                  message: 'Invalid context data',
+                })}\n\n`));
+                controller.close();
+                return;
+              }
+            }
+
             // Server cache miss — try reconstructing from client-sent context data
             if (cachedContextData && cachedContextData.applicant && cachedContextData.job && cachedContextData.match && jobDescription && currentCV) {
               console.log('[API_AGENT_V2] Server cache miss, reconstructing from client-sent context data');
@@ -471,7 +498,7 @@ export async function POST(request: NextRequest) {
               console.warn('[API_AGENT_V2] Context cache miss AND no client context data, falling back to full optimization');
 
               if (!isAnonymous) {
-                const creditResult = await checkAndDeductCredits(user!.id, 'FULL_APPLICATION');
+                const creditResult = await checkAndDeductCredits(user!.id, 'FULL_APPLICATION', undefined, supabase);
                 if (!creditResult.success) {
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
                     type: 'error', 
@@ -529,7 +556,6 @@ export async function POST(request: NextRequest) {
                 throw new Error(result.error || 'Optimization failed');
               }
 
-              clearServerSupabaseClient();
               controller.close();
               return;
             }
@@ -537,7 +563,7 @@ export async function POST(request: NextRequest) {
 
           // Context found - deduct 2.0 credits for generation only (skip for anonymous)
           if (!isAnonymous) {
-            const creditResult = await checkAndDeductCredits(user!.id, 'FULL_APPLICATION');
+            const creditResult = await checkAndDeductCredits(user!.id, 'FULL_APPLICATION', undefined, supabase);
             if (!creditResult.success) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
                 type: 'error', 
@@ -593,7 +619,6 @@ export async function POST(request: NextRequest) {
             throw new Error(result.error || 'Generation failed');
           }
 
-          clearServerSupabaseClient();
           controller.close();
           return;
         }
@@ -612,7 +637,7 @@ export async function POST(request: NextRequest) {
 
         // Check and deduct credits for full application (skip for anonymous)
         if (!isAnonymous) {
-          const creditResult = await checkAndDeductCredits(user!.id, 'FULL_APPLICATION');
+          const creditResult = await checkAndDeductCredits(user!.id, 'FULL_APPLICATION', undefined, supabase);
           
           if (!creditResult.success) {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
@@ -691,7 +716,6 @@ export async function POST(request: NextRequest) {
           results,
         })}\n\n`));
 
-        clearServerSupabaseClient();
         controller.close();
         
       } catch (error) {

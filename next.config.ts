@@ -26,12 +26,18 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withPostHogConfig(nextConfig, {
-  personalApiKey: process.env.POSTHOG_PERSONAL_API_KEY!,
-  projectId: process.env.POSTHOG_PROJECT_ID!,
-  host: 'https://us.i.posthog.com',
-  sourcemaps: {
-    enabled: true,
-    deleteAfterUpload: true,
-  },
-});
+// PostHog source map upload — only enabled when env vars are set (build-time)
+const posthogApiKey = process.env.POSTHOG_PERSONAL_API_KEY;
+const posthogProjectId = process.env.POSTHOG_PROJECT_ID;
+
+export default posthogApiKey && posthogProjectId
+  ? withPostHogConfig(nextConfig, {
+      personalApiKey: posthogApiKey,
+      projectId: posthogProjectId,
+      host: 'https://us.i.posthog.com',
+      sourcemaps: {
+        enabled: true,
+        deleteAfterUpload: true,
+      },
+    })
+  : nextConfig;

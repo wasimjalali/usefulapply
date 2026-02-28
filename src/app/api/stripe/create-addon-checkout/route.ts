@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ sessionId: session.id, url: session.url });
   } catch (error: any) {
     const posthog = getPostHogServer();
-    posthog.captureException(error as Error, 'server', {
+    posthog.captureException(error as Error, 'server_error', {
       endpoint: '/api/stripe/create-addon-checkout',
       method: 'POST',
     });

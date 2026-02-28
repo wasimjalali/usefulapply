@@ -18,10 +18,11 @@ export interface CreditCheckResult {
 export async function checkAndDeductCredits(
   userId: string,
   action: CreditAction,
-  sessionId?: string
+  sessionId?: string,
+  supabaseClient?: any
 ): Promise<CreditCheckResult> {
   // Check balance first
-  const balanceCheck = await checkCreditBalance(userId, action);
+  const balanceCheck = await checkCreditBalance(userId, action, supabaseClient);
 
   if (balanceCheck.error) {
     return {
@@ -49,6 +50,7 @@ export async function checkAndDeductCredits(
   const deductResult = await deductCredits(userId, action, {
     sessionId,
     description: `${action} credit deduction`,
+    supabaseClient,
   });
 
   if (!deductResult.success) {

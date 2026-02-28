@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     const posthog = getPostHogServer();
-    posthog.captureException(error as Error, 'server', {
+    posthog.captureException(error as Error, 'server_error', {
       endpoint: '/api/generate-pdf',
       method: 'POST',
     });

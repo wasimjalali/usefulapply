@@ -11,10 +11,14 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    posthog.captureException(error, {
-      source: 'react_error_boundary',
-      error_digest: error.digest,
-    });
+    try {
+      posthog.captureException(error, {
+        source: 'react_error_boundary',
+        error_digest: error.digest,
+      });
+    } catch {
+      // PostHog may not be initialized yet during early page load errors
+    }
   }, [error]);
 
   return (

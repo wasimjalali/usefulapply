@@ -39,12 +39,14 @@ export function CoverLetterPanel() {
     return fullText.includes('[Company Address') || fullText.includes('[Insert Company Address');
   };
 
-  // Initialize edited cover letter when cover letter changes
+  // Sync edited cover letter when cover letter changes (e.g., after regeneration)
+  // Only skip sync when user is actively editing to avoid overwriting their changes
   useEffect(() => {
-    if (coverLetter && !editedCoverLetter) {
+    if (coverLetter && !isEditMode) {
       setEditedCoverLetter(coverLetter);
     }
-  }, [coverLetter, editedCoverLetter]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coverLetter]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -519,12 +521,16 @@ ${letter.signatureName}`;
   // Update a field in the edited cover letter
   const updateField = (path: string, value: string) => {
     if (!activeCoverLetter) return;
-    
-    const newLetter = JSON.parse(JSON.stringify(activeCoverLetter));
+    // Shallow-clone top level and both address sub-objects (the only nested fields)
+    const newLetter: GeneratedCoverLetter = {
+      ...activeCoverLetter,
+      applicantAddress: { ...activeCoverLetter.applicantAddress },
+      companyAddress: { ...activeCoverLetter.companyAddress },
+    };
     const keys = path.split('.');
-    let obj = newLetter;
+    let obj: Record<string, unknown> = newLetter as unknown as Record<string, unknown>;
     for (let i = 0; i < keys.length - 1; i++) {
-      obj = obj[keys[i]];
+      obj = obj[keys[i]] as Record<string, unknown>;
     }
     obj[keys[keys.length - 1]] = value;
     setEditedCoverLetter(newLetter);

@@ -33,14 +33,27 @@ export type {
 
 /**
  * Unified App Store Hook
- * 
- * Combines all three stores into a single interface.
- * This maintains backward compatibility with existing code that uses useAppStore.
- * 
- * @example
+ *
+ * @deprecated This hook spreads all three stores into a single object on every render,
+ * which defeats Zustand's selector-based re-render optimization. Components that use
+ * `useAppStore()` will re-render on ANY state change across CV, Session, and UI stores.
+ *
+ * **Migration guide — import from individual stores instead:**
  * ```typescript
- * const { currentCV, setCurrentCV, isAnalyzing, setIsAnalyzing } = useAppStore();
+ * // BEFORE (triggers unnecessary re-renders)
+ * const { currentCV, isAnalyzing } = useAppStore();
+ *
+ * // AFTER (only re-renders when selected state changes)
+ * import { useCVStore } from '@/store/useCVStore';
+ * import { useUIStore } from '@/store/useUIStore';
+ * const currentCV = useCVStore(state => state.currentCV);
+ * const isAnalyzing = useUIStore(state => state.isAnalyzing);
  * ```
+ *
+ * Individual stores:
+ * - `useCVStore`      — CV data, parsed profiles, templates
+ * - `useSessionStore` — application sessions, chat history, generated documents
+ * - `useUIStore`      — loading states, panel visibility, UI flags
  */
 export const useAppStore = () => {
   const cvStore = useCVStore();

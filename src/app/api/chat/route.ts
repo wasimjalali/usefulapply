@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     const posthog = getPostHogServer();
-    posthog.captureException(error as Error, 'server', {
+    posthog.captureException(error as Error, 'server_error', {
       endpoint: '/api/chat',
       method: 'POST',
     });

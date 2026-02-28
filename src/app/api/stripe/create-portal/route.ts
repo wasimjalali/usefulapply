@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: session.url });
   } catch (error) {
     const posthog = getPostHogServer();
-    posthog.captureException(error as Error, 'server', {
+    posthog.captureException(error as Error, 'server_error', {
       endpoint: '/api/stripe/create-portal',
       method: 'POST',
     });

@@ -70,12 +70,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Save to Supabase for tracking
+    // Save to Supabase using the anon key — the contact_submissions table allows public inserts via RLS
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    if (supabaseUrl && supabaseKey) {
-      const supabase = createClient(supabaseUrl, supabaseKey);
+    if (supabaseUrl && supabaseAnonKey) {
+      const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
       // Create contact_submissions table if it doesn't exist (admin should do this)
       // For now, just log the submission
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     const posthog = getPostHogServer();
-    posthog.captureException(error as Error, 'server', {
+    posthog.captureException(error as Error, 'server_error', {
       endpoint: '/api/contact',
       method: 'POST',
     });

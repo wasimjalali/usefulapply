@@ -14,13 +14,14 @@ const store = new Map<string, RateLimitEntry>();
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 let lastCleanup = Date.now();
 
-function cleanup(windowMs: number) {
+function cleanup() {
   const now = Date.now();
   if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
   lastCleanup = now;
 
   for (const [key, entry] of store.entries()) {
-    entry.timestamps = entry.timestamps.filter(t => now - t < windowMs);
+    // Use a generous window for cleanup — individual route checks handle their own filtering
+    entry.timestamps = entry.timestamps.filter(t => now - t < 120_000); // 2 minutes (covers all current 60s windows)
     if (entry.timestamps.length === 0) {
       store.delete(key);
     }
@@ -49,7 +50,7 @@ interface RateLimitResult {
  */
 export function checkRateLimit(key: string, config: RateLimitConfig): RateLimitResult {
   const now = Date.now();
-  cleanup(config.windowMs);
+  cleanup();
 
   let entry = store.get(key);
   if (!entry) {

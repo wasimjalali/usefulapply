@@ -3,7 +3,6 @@ import { unifiedWriterAgent } from '@/lib/agents/unified-writer-agent';
 import { type MasterContext } from '@/lib/agents/types';
 import { createClient } from '@/lib/supabase/server';
 import { checkAndDeductCredits, formatCreditErrorResponse, CREDIT_COSTS } from '@/lib/middleware/creditCheck';
-import { setServerSupabaseClient, clearServerSupabaseClient } from '@/lib/supabase/credits';
 import { detectLanguage } from '@/lib/utils/language-detector';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { randomUUID } from 'crypto';
@@ -36,9 +35,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Set server supabase client for credit operations
-    setServerSupabaseClient(supabase);
-
     const body = await request.json();
     const { type, context } = body;
 
@@ -55,7 +51,7 @@ export async function POST(request: NextRequest) {
       : 'EMAIL_REGEN';
     
     // Check and deduct credits (follow-up regen is free, others cost credits)
-    const creditResult = await checkAndDeductCredits(user.id, creditAction);
+    const creditResult = await checkAndDeductCredits(user.id, creditAction, undefined, supabase);
     
     if (!creditResult.success) {
       return NextResponse.json(
@@ -162,7 +158,6 @@ export async function POST(request: NextRequest) {
     if (type === 'cover-letter') {
       const { result: coverLetter, tokens } = await unifiedWriterAgent.generateCoverLetter(masterContext);
       trackRegenLLM('regen_cover_letter', tokens);
-      clearServerSupabaseClient();
       return NextResponse.json({ 
         coverLetter,
         creditsDeducted: CREDIT_COSTS.COVER_LETTER_REGEN,
@@ -172,7 +167,6 @@ export async function POST(request: NextRequest) {
     } else if (type === 'email') {
       const { result: email, tokens } = await unifiedWriterAgent.generateApplicationEmail(masterContext);
       trackRegenLLM('regen_email', tokens);
-      clearServerSupabaseClient();
       return NextResponse.json({ 
         email,
         creditsDeducted: CREDIT_COSTS.EMAIL_REGEN,
@@ -186,7 +180,6 @@ export async function POST(request: NextRequest) {
       }
       const { result: followUpEmail, tokens } = await unifiedWriterAgent.generateFollowUpEmail(masterContext);
       trackRegenLLM('regen_follow_up_email', tokens);
-      clearServerSupabaseClient();
       return NextResponse.json({ 
         followUpEmail,
         creditsDeducted: CREDIT_COSTS.FOLLOW_UP_REGEN,
@@ -194,14 +187,12 @@ export async function POST(request: NextRequest) {
         tokens,
       });
     } else {
-      clearServerSupabaseClient();
       return NextResponse.json(
         { error: 'Invalid type. Must be "cover-letter", "email", or "follow_up_email"' },
         { status: 400 }
       );
     }
   } catch (error) {
-    clearServerSupabaseClient();
     console.error('[Regenerate API] Error:', error);
     // Track regeneration error in PostHog
     try {
@@ -220,7 +211,7 @@ export async function POST(request: NextRequest) {
         },
       });
       // Also capture as exception for Error Tracking dashboard
-      posthog.captureException(error as Error, 'server', {
+      posthog.captureException(error as Error, 'server_error', {
         endpoint: '/api/regenerate',
         method: 'POST',
         feature: 'regeneration',

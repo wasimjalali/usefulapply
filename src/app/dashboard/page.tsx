@@ -81,14 +81,14 @@ export default function Dashboard() {
     };
   }, [isResizing]);
 
-  // Lock body scroll when mobile chat drawer is open
+  // Lock body scroll when mobile chat drawer is open — use class to avoid conflicts with other components
   useEffect(() => {
     if (isMobileChatOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.classList.add('overflow-hidden');
     } else {
-      document.body.style.overflow = '';
+      document.body.classList.remove('overflow-hidden');
     }
-    return () => { document.body.style.overflow = ''; };
+    return () => { document.body.classList.remove('overflow-hidden'); };
   }, [isMobileChatOpen]);
 
   // Show loading state while checking auth (brief — just to resolve user state)

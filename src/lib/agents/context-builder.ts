@@ -243,8 +243,14 @@ export async function computeSkillMatch(
     return { score: 0, matchingSkills: [], missingSkills: [] };
   }
 
-  const toStr = (s: unknown): string => (typeof s === 'string' ? s : String(s ?? '')).trim();
-  
+  const toStr = (s: unknown): string => {
+    if (s === null || s === undefined) return '';
+    if (typeof s === 'string') return s.trim();
+    if (Array.isArray(s)) return s.map(toStr).join(', ');
+    if (typeof s === 'object') return JSON.stringify(s);
+    return String(s).trim();
+  };
+
   const applicantSkillsList = [
     ...(applicant.skills || []).map(toStr),
     ...(applicant.tools || []).map(toStr),
@@ -433,8 +439,21 @@ Return ONLY valid JSON, no explanation.`,
     
     const matchingSkills = Array.isArray(parsed.matching) ? parsed.matching.map(toStr).filter(Boolean) : [];
     const missingSkills = Array.isArray(parsed.missing) ? parsed.missing.map(toStr).filter(Boolean) : [];
-    const score = typeof parsed.score === 'number' ? Math.max(0, Math.min(100, Math.round(parsed.score))) : 
-      (requiredSkills.length > 0 ? Math.round((matchingSkills.length / requiredSkills.length) * 100) : 0);
+
+    let score: number;
+    if (typeof parsed.score === 'number') {
+      const llmScore = Math.max(0, Math.min(100, Math.round(parsed.score)));
+      // Sanity check: if LLM score deviates >40 points from the actual skill ratio, blend them
+      // (prevents hallucinated 95% when only 1/10 skills match)
+      const actualRatio = requiredSkills.length > 0
+        ? Math.round((matchingSkills.length / requiredSkills.length) * 100)
+        : llmScore;
+      score = Math.abs(llmScore - actualRatio) > 40
+        ? Math.round((llmScore + actualRatio) / 2)
+        : llmScore;
+    } else {
+      score = requiredSkills.length > 0 ? Math.round((matchingSkills.length / requiredSkills.length) * 100) : 0;
+    }
 
     console.log(`[KarkoAI] LLM skill match: ${score}% (${matchingSkills.length} matching, ${missingSkills.length} missing)`);
     return { score, matchingSkills, missingSkills };
@@ -456,7 +475,13 @@ export function computeSkillMatchFallback(
     return { score: 0, matchingSkills: [], missingSkills: [] };
   }
 
-  const toStr = (s: unknown): string => (typeof s === 'string' ? s : String(s ?? '')).toLowerCase().trim();
+  const toStr = (s: unknown): string => {
+    if (s === null || s === undefined) return '';
+    if (typeof s === 'string') return s.toLowerCase().trim();
+    if (Array.isArray(s)) return s.map(toStr).join(', ');
+    if (typeof s === 'object') return JSON.stringify(s).toLowerCase();
+    return String(s).toLowerCase().trim();
+  };
   const applicantSkills = new Set([
     ...(applicant.skills || []).map(toStr),
     ...(applicant.tools || []).map(toStr),

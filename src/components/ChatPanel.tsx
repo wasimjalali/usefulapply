@@ -29,11 +29,10 @@ import { usePostHog } from 'posthog-js/react';
 
 interface ChatPanelProps {
   onTabChange?: (tab: 'cv' | 'cover-letter' | 'email') => void;
-  onAnalyze?: () => void;
   isMobileDrawer?: boolean;
 }
 
-export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: ChatPanelProps) {
+export function ChatPanel({ onTabChange, isMobileDrawer = false }: ChatPanelProps) {
   const router = useRouter();
   const { user } = useAuth();
   const posthog = usePostHog();
@@ -286,7 +285,7 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
         {/* History Sidebar */}
         {showHistory && (
           <ChatHistory
-            sessions={sessions as SessionSummary[]}
+            sessions={sessions.map(s => ({ id: s.id, company: s.company, jobTitle: s.jobTitle, updatedAt: s.updatedAt }))}
             currentSessionId={currentSession?.id}
             onSelectSession={async (sessionId) => {
               loadSession(sessionId);
@@ -298,6 +297,8 @@ export function ChatPanel({ onTabChange, onAnalyze, isMobileDrawer = false }: Ch
               if (loaded && loaded.chatMessages.length === 0 && !sessionId.startsWith('session-')) {
                 try {
                   const messages = await getChatMessages(sessionId);
+                  // Guard: if user switched sessions during async fetch, discard stale messages
+                  if (useSessionStore.getState().currentSession?.id !== sessionId) return;
                   if (messages && messages.length > 0) {
                     const mapped = messages.map((msg: any) => ({
                       id: msg.id,

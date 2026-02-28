@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { StructuredCV, createEmptyCV, withId } from '@/lib/types/cv-schema';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -27,6 +28,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Auth check: anonymous users get local-only parsing (no AI cost); authenticated users get AI parsing
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const isAuthenticated = !!user;
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const region = (formData.get('region') as string) || 'EU';
@@ -44,14 +50,14 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    
-    // Optional: Upload to Vercel Blob if configured (private access for PII protection)
+
+    // Optional: Upload to Vercel Blob — authenticated users only, stored under their user ID
     let pdfUrl: string | undefined;
-    if (hasBlobStorage) {
+    if (hasBlobStorage && isAuthenticated && user) {
       try {
         const { put } = await import('@vercel/blob');
-        const pdfBlob = await put(`originals/${uuidv4()}-${file.name}`, buffer, {
-          access: 'public', // TODO: Change to 'private' when signed URL support is added
+        const pdfBlob = await put(`originals/${user.id}/${uuidv4()}-${file.name}`, buffer, {
+          access: 'public',
           contentType: 'application/pdf',
         });
         pdfUrl = pdfBlob.url;
@@ -78,14 +84,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Could not extract text from file' }, { status: 400 });
     }
     
-    // Parse CV - try AI first, fall back to local parsing
+    // Parse CV - AI parsing for authenticated users only (prevents API cost abuse)
     let structuredCV: StructuredCV;
     let parserUsed: 'anthropic' | 'local' = 'local';
     const parseStartTime = Date.now();
-    
-    if (hasAnthropicKey) {
+
+    if (hasAnthropicKey && isAuthenticated) {
       try {
-        console.log('[Parser] Using Anthropic Claude for CV parsing');
         structuredCV = await parseWithAnthropic(rawText, region as 'US' | 'EU');
         parserUsed = 'anthropic';
       } catch (e) {
@@ -94,8 +99,7 @@ export async function POST(request: NextRequest) {
         parserUsed = 'local';
       }
     } else {
-      // No AI available - use local parsing
-      console.log('[Parser] No AI API keys configured, using local parser');
+      // Anonymous users or no AI key — use local parsing (free)
       structuredCV = parseLocally(rawText, region as 'US' | 'EU', file.name);
       parserUsed = 'local';
     }
@@ -127,7 +131,7 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     const posthog = getPostHogServer();
-    posthog.captureException(error as Error, 'server', {
+    posthog.captureException(error as Error, 'server_error', {
       endpoint: '/api/parse-cv',
       method: 'POST',
     });

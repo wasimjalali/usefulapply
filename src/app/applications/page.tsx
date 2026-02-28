@@ -182,7 +182,7 @@ export default function ApplicationsPage() {
   const handleDelete = async (sessionId: string) => {
     setDeletingSessionId(sessionId);
     try {
-      const { error } = await deleteSession(sessionId);
+      const { error } = await deleteSession(sessionId, user?.id);
       if (!error) {
         setApplications((prev) => prev.filter((a) => a.id !== sessionId));
         setTotalCount((prev) => Math.max(0, prev - 1));
@@ -257,7 +257,7 @@ export default function ApplicationsPage() {
   const handleStatusChange = async (sessionId: string, newStatus: ApplicationStatus) => {
     setUpdatingSessionId(sessionId);
     try {
-      const { error } = await updateSession(sessionId, { status: newStatus });
+      const { error } = await updateSession(sessionId, { status: newStatus }, user?.id);
       if (error) {
         console.error('[Applications] Error updating status:', error);
       } else {
@@ -286,7 +286,7 @@ export default function ApplicationsPage() {
     setNavigatingSessionId(sessionId);
     try {
       // Fetch the full session (all columns including generated CV, cover letter, email, follow-up)
-      const fullSession = await getSession(sessionId);
+      const fullSession = await getSession(sessionId, user?.id);
       if (fullSession) {
         // Map Supabase snake_case to Zustand camelCase and inject into the store
         const store = useSessionStore.getState();

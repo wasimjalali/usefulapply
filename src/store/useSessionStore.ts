@@ -149,6 +149,7 @@ export interface ApplicationSession {
     body: string;
     recommendedDelay: number;
   } | null;
+  fitAssessment?: string | null;
   companyResearch: CompanyResearch | null;
   
   cvEdits: CVEdit[];

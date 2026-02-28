@@ -155,35 +155,37 @@ export function AgentProgressV2({
 }: AgentProgressV2Props) {
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
   const [currentActionIndex, setCurrentActionIndex] = useState<Record<string, number>>({});
-  
+
+  // Derive running step ID outside effects to use as stable dependency
+  const runningStepId = steps.find(s => s.status === 'running')?.id ?? null;
+
   // Auto-expand running steps
   useEffect(() => {
-    const runningStep = steps.find(s => s.status === 'running');
-    if (runningStep) {
-      setExpandedSteps(prev => new Set([...prev, runningStep.id]));
+    if (runningStepId) {
+      setExpandedSteps(prev => new Set([...prev, runningStepId]));
     }
-  }, [steps]);
+  }, [runningStepId]);
 
-  // Simulate action progress for running steps
+  // Simulate action progress — depends only on runningStepId so interval
+  // does NOT restart when other steps change status (M9 fix)
   useEffect(() => {
-    const runningStep = steps.find(s => s.status === 'running');
-    if (!runningStep) return;
+    if (!runningStepId) return;
 
-    const config = STEP_CONFIG[runningStep.id];
+    const config = STEP_CONFIG[runningStepId];
     if (!config) return;
 
     const interval = setInterval(() => {
       setCurrentActionIndex(prev => {
-        const current = prev[runningStep.id] || 0;
+        const current = prev[runningStepId] || 0;
         if (current < config.actions.length - 1) {
-          return { ...prev, [runningStep.id]: current + 1 };
+          return { ...prev, [runningStepId]: current + 1 };
         }
         return prev;
       });
     }, 1500);
 
     return () => clearInterval(interval);
-  }, [steps]);
+  }, [runningStepId]);
 
   // Reset action index when step completes
   useEffect(() => {

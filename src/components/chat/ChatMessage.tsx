@@ -173,32 +173,35 @@ export function ChatMessage({
         {/* Feedback icons for assistant messages */}
         {message.role === 'assistant' && (
           <div className="flex items-center gap-1 mt-2 ml-1">
-            <button 
+            <button
               onClick={() => onFeedback(message.id, message.content, 'positive')}
               className={`p-1.5 rounded transition-colors cursor-pointer ${
-                feedback === 'positive' 
-                  ? 'text-sage-600 bg-sage-100' 
+                feedback === 'positive'
+                  ? 'text-sage-600 bg-sage-100'
                   : 'text-warm-gray hover:text-charcoal hover:bg-cream-200'
               }`}
               title="Good response"
+              aria-label="Good response"
             >
               <ThumbsUp className="w-3.5 h-3.5" />
             </button>
-            <button 
+            <button
               onClick={() => onFeedback(message.id, message.content, 'negative')}
               className={`p-1.5 rounded transition-colors cursor-pointer ${
-                feedback === 'negative' 
-                  ? 'text-red-500 bg-red-50' 
+                feedback === 'negative'
+                  ? 'text-red-500 bg-red-50'
                   : 'text-warm-gray hover:text-charcoal hover:bg-cream-200'
               }`}
               title="Bad response"
+              aria-label="Bad response"
             >
               <ThumbsDown className="w-3.5 h-3.5" />
             </button>
-            <button 
+            <button
               onClick={handleCopy}
               className="p-1.5 text-warm-gray hover:text-charcoal hover:bg-cream-200 rounded transition-colors cursor-pointer"
               title="Copy message"
+              aria-label="Copy message"
             >
               {copied ? (
                 <Check className="w-3.5 h-3.5 text-sage-600" />
