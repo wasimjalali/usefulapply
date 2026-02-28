@@ -12,6 +12,7 @@ import { PortalTooltip } from './ui/PortalTooltip';
 import { useAuth } from '@/contexts/AuthContext';
 import { SignUpWallModal } from '@/components/SignUpWallModal';
 import { usePostHog } from 'posthog-js/react';
+import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
 
 export function EmailPanel() {
   const { user } = useAuth();
@@ -130,6 +131,7 @@ export function EmailPanel() {
           attachmentNote: 'Please find my CV and cover letter attached.',
         });
         setEditedEmail(null);
+        triggerCreditUpdate();
       } else {
         console.error('Email generation failed:', await response.text());
       }
@@ -242,6 +244,7 @@ export function EmailPanel() {
             recommendedDelay: data.followUpEmail.recommendedDelay || 5,
           },
         });
+        triggerCreditUpdate();
       } else {
         console.error('Follow-up email regeneration failed:', await response.text());
         toast.error('Failed to regenerate follow-up email. Please try again.');

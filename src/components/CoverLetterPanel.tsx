@@ -12,6 +12,7 @@ import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import { useToast } from './ui/Toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { SignUpWallModal } from '@/components/SignUpWallModal';
+import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
 
 export function CoverLetterPanel() {
   const { user } = useAuth();
@@ -451,6 +452,7 @@ ${letter.signatureName}`;
         };
         setCoverLetter(newCoverLetter);
         setEditedCoverLetter(null);
+        triggerCreditUpdate();
       } else {
         console.error('Cover letter generation failed:', await response.text());
       }

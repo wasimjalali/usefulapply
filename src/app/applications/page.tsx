@@ -150,6 +150,8 @@ export default function ApplicationsPage() {
 
   const [applications, setApplications] = useState<TrackerSession[]>([]);
   const [totalCount, setTotalCount] = useState(0);
+  // Accurate per-status counts from full DB (not just loaded page)
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [isLoadingInitial, setIsLoadingInitial] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -184,8 +186,14 @@ export default function ApplicationsPage() {
     try {
       const { error } = await deleteSession(sessionId, user?.id);
       if (!error) {
+        const deleted = applications.find((a) => a.id === sessionId);
         setApplications((prev) => prev.filter((a) => a.id !== sessionId));
         setTotalCount((prev) => Math.max(0, prev - 1));
+        // Keep statusCounts accurate
+        if (deleted) {
+          const s = deleted.status || 'applied';
+          setStatusCounts((prev) => ({ ...prev, [s]: Math.max(0, (prev[s] || 0) - 1) }));
+        }
       } else {
         console.error('[Applications] Delete error:', error);
       }
@@ -197,15 +205,35 @@ export default function ApplicationsPage() {
     }
   };
 
-  // Initial load — fetch first 25 applications
+  // Initial load — fetch first page + accurate status counts from full DB in parallel
   useEffect(() => {
     if (!user) return;
 
     const load = async () => {
       setIsLoadingInitial(true);
-      const { data, count } = await fetchApplications(0, PAGE_SIZE);
-      setApplications(data);
-      setTotalCount(count);
+      const supabase = getSupabase() as any;
+
+      const [pageResult, statusResult] = await Promise.all([
+        fetchApplications(0, PAGE_SIZE),
+        // Lightweight query: only status column, no heavy content — for accurate pill counts
+        supabase
+          .from('application_sessions')
+          .select('status')
+          .eq('user_id', user.id) as Promise<{ data: { status: string | null }[] | null; error: unknown }>,
+      ]);
+
+      setApplications(pageResult.data);
+      setTotalCount(pageResult.count);
+
+      if (statusResult.data) {
+        const counts: Record<string, number> = {};
+        for (const row of statusResult.data) {
+          const s = row.status || 'applied';
+          counts[s] = (counts[s] || 0) + 1;
+        }
+        setStatusCounts(counts);
+      }
+
       setIsLoadingInitial(false);
     };
 
@@ -243,16 +271,10 @@ export default function ApplicationsPage() {
     });
   }, [applications, searchQuery, statusFilter]);
 
-  // Compute stats from ALL loaded applications (not just filtered)
-  const stats = useMemo(() => {
-    const counts: Record<string, number> = { all: totalCount };
-    for (const app of applications) {
-      const status = app.status || 'applied';
-      counts[status] = (counts[status] || 0) + 1;
-    }
-    // If we haven't loaded all yet, "all" count comes from DB
-    return counts;
-  }, [applications, totalCount]);
+  // Stats use DB-accurate counts from statusCounts (full dataset, not just loaded page)
+  const stats = useMemo((): Record<string, number> => {
+    return { all: totalCount, ...statusCounts };
+  }, [totalCount, statusCounts]);
 
   const handleStatusChange = async (sessionId: string, newStatus: ApplicationStatus) => {
     setUpdatingSessionId(sessionId);
@@ -261,10 +283,18 @@ export default function ApplicationsPage() {
       if (error) {
         console.error('[Applications] Error updating status:', error);
       } else {
-        // Update local tracker list
+        // Update local tracker list and keep statusCounts accurate
+        const oldStatus = applications.find((a) => a.id === sessionId)?.status || 'applied';
         setApplications((prev) =>
           prev.map((app) => (app.id === sessionId ? { ...app, status: newStatus } : app))
         );
+        if (oldStatus !== newStatus) {
+          setStatusCounts((prev) => ({
+            ...prev,
+            [oldStatus]: Math.max(0, (prev[oldStatus] || 0) - 1),
+            [newStatus]: (prev[newStatus] || 0) + 1,
+          }));
+        }
         // Also update Zustand store if session exists there
         const store = useSessionStore.getState();
         const updatedSessions = store.sessions.map((s) =>
