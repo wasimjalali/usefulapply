@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ThumbsUp, ThumbsDown, Check } from 'lucide-react';
 
 interface FeedbackModalProps {
@@ -17,8 +17,18 @@ export function FeedbackModal({ type, onSubmit, onCancel, isSuccess = false }: F
     onSubmit(feedbackText);
   };
 
+  // Escape key handler for accessibility
+  const handleEscape = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') onCancel();
+  }, [onCancel]);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [handleEscape]);
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-label="Submit feedback">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
         {/* Modal Header */}
         <div className={`px-6 py-4 ${type === 'positive' ? 'bg-sage-50' : 'bg-red-50'}`}>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, Zap, Crown, Check, Clock, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -73,6 +73,18 @@ export function InsufficientCreditsModal({
   const { user } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<'plus' | 'max' | null>(null);
 
+  // Escape key handler for accessibility
+  const handleEscape = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [isOpen, handleEscape]);
+
   if (!isOpen) return null;
 
   const handleUpgrade = async (planTier: 'plus' | 'max') => {
@@ -98,7 +110,7 @@ export function InsufficientCreditsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Insufficient credits">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"

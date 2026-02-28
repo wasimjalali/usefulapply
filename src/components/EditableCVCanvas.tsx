@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Edit3, Check, X, Sparkles, Plus, Trash2, GripVertical } from 'lucide-react';
 import { Button } from './ui/Button';
 import { CVData } from '@/lib/cv-templates/types';
@@ -87,6 +87,13 @@ export function EditableCVCanvas({ cvData, onSave, onAIImprove }: EditableCVCanv
   const [data, setData] = useState<CVData>(cvData);
   const [hasChanges, setHasChanges] = useState(false);
   const [isAIProcessing, setIsAIProcessing] = useState<string | null>(null);
+
+  // Sync internal state when cvData prop changes externally (e.g., tab switch, regeneration)
+  useEffect(() => {
+    if (!hasChanges) {
+      setData(cvData);
+    }
+  }, [cvData, hasChanges]);
 
   const updateField = useCallback((path: string, value: string | string[]) => {
     setData(prev => {

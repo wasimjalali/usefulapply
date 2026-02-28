@@ -234,9 +234,10 @@ export async function deleteUserAccount(userId: string): Promise<{ error: Error 
     // Delete from database tables (order matters due to foreign keys)
     const tables = [
       'chat_messages',
-      'application_sessions', 
+      'application_sessions',
       'documents',
       'connected_accounts',
+      'contact_submissions',
       'user_credits',
       'credit_transactions',
       'subscriptions',

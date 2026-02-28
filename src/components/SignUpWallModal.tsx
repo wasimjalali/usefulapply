@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, Sparkles, ArrowRight, Loader2, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import KarkoLogo from '@/components/KarkoLogo';
@@ -39,6 +39,18 @@ export function SignUpWallModal({ isOpen, onClose, trigger }: SignUpWallModalPro
   const [success, setSuccess] = useState(false);
 
   const { title, subtitle } = TRIGGER_MESSAGES[trigger] || TRIGGER_MESSAGES.general;
+
+  // Escape key handler for accessibility
+  const handleEscape = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [isOpen, handleEscape]);
 
   if (!isOpen) return null;
 
@@ -101,7 +113,7 @@ export function SignUpWallModal({ isOpen, onClose, trigger }: SignUpWallModalPro
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="signup-wall-title">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 

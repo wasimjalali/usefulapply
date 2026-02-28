@@ -6,7 +6,11 @@ import { PostHogProvider as PHProvider } from 'posthog-js/react';
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY as string, {
+    if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) {
+      console.warn('[PostHog] NEXT_PUBLIC_POSTHOG_KEY is not set — analytics disabled');
+      return;
+    }
+    posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
       api_host: '/ingest',
       ui_host: 'https://us.i.posthog.com',
       capture_pageview: false,

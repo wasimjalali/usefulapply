@@ -360,9 +360,22 @@ Every agent step emits `$ai_generation` with ALL required PostHog LLM analytics 
 
 ## Deep Clean & Audit (Completed)
 
-**Date:** June 2025
+**Date:** June 2025 (initial), February 28, 2026 (pre-launch audit)
 
 A comprehensive codebase audit was performed to eliminate technical debt. The following categories of dead code were identified and removed:
+
+### Feb 28, 2026 — Pre-Launch Dead Code Removal
+
+| Category | Items Removed |
+|----------|--------------|
+| Dead source files | `indexeddb.ts`, `validation.ts`, `text-analysis.ts`, `cv-print.css` (4 files, ~600 lines) |
+| Dead UI components | `Select.tsx`, `Input.tsx`, `Modal.tsx`, `Textarea.tsx`, `Tabs.tsx`, `ui/index.ts` (6 files, ~400 lines) |
+| Dead assets | `anthropic-logo.svg`, `claude-sonnet-46.png` |
+| Unused npm packages | `@pinecone-database/pinecone`, `@tavily/core`, `html2canvas`, `idb`, `pdfjs-dist`, `react-pdf`, `@radix-ui/react-dialog`, `@radix-ui/react-tabs`, `file-saver`, `@types/file-saver`, `@stripe/stripe-js`, `@pdf-lib/fontkit`, `mammoth` (13 packages, ~15MB) |
+
+Full audit report: `PRE_LAUNCH_AUDIT_REPORT.md`
+
+### June 2025 — Initial Cleanup
 
 ### Deleted Orphaned Source Files (14 files, 2,364 lines)
 | File | Lines | Reason |
@@ -710,10 +723,42 @@ A 70% score now means the candidate is **genuinely competitive** for the role, n
 
 ## Security Hardening
 
-**Date:** February 27, 2026
+**Date:** February 27-28, 2026
 
-### Overview
-Security audit revealed 5 vulnerabilities. All fixed in a single pass with zero new dependencies.
+### Overview (Updated Feb 28)
+Security audit revealed 5 vulnerabilities (Feb 27). Full pre-launch audit (Feb 28) identified 7 additional critical issues. All fixed with zero new dependencies.
+
+### Feb 28 Additions (Pre-Launch Audit)
+
+**6. Authentication on Stripe Routes (CRITICAL — IDOR fix)**
+All 3 Stripe routes (`create-checkout`, `create-addon-checkout`, `create-portal`) now verify the caller via `supabase.auth.getUser()`. `userId` is taken from the authenticated session, never from the request body. Rate limiting added (5/min checkout, 3/min portal).
+
+**7. Credit Deduction Race Condition (CRITICAL — TOCTOU fix)**
+`deductCredits()` now uses optimistic concurrency: the UPDATE includes `.eq()` checks on the original values read. If another request modified credits between read and write, zero rows match and the function retries once with fresh data. Prevents negative balances from concurrent requests.
+
+**8. Anonymous Generation Double-Free (CRITICAL)**
+`fit_analysis` path now calls `recordAnonymousGeneration()` after completion. Previously, anonymous users could get fit analysis (free, no recording) then `generate_with_context` (passes check again) — double the expected free API cost.
+
+**9. Auth on Chat + Generate-PDF Routes**
+`/api/chat` requires authenticated user (prevents unauthenticated Claude API abuse). `/api/generate-pdf` requires auth and removed anon key fallback.
+
+**10. XSS Fix in CVPanel PDF Download**
+`innerHTML` is sanitized (script tags and event handlers stripped) before injection into print window.
+
+**11. SSE Stream Cleanup on Unmount**
+`useAgentWorkflow` now aborts the SSE stream on component unmount via `useEffect` cleanup.
+
+**12. Error Response Sanitization**
+All API routes now return generic error messages. Raw `error.message` no longer exposed to clients.
+
+**13. Modal Accessibility**
+All 3 modals (SignUpWall, InsufficientCredits, Feedback) now have: Escape key handler, `role="dialog"`, `aria-modal="true"`.
+
+**14. PostHog Env Guard**
+Client and server PostHog initialization guarded against missing `NEXT_PUBLIC_POSTHOG_KEY`. Server returns no-op client instead of crashing.
+
+**15. Account Deletion Completeness**
+`deleteUserAccount` now includes `contact_submissions` table.
 
 ### 1. Server-Side Anonymous Generation Tracking
 
@@ -852,3 +897,4 @@ Security audit revealed 5 vulnerabilities. All fixed in a single pass with zero 
 | Feb 25, 2026 | **Pricing Pivot v2 fixes & polish** | stripe.ts, CreditIndicator.tsx, page.tsx, pricing/page.tsx, dashboard/page.tsx, SubscriptionSection.tsx | **Add-on checkout fix**: `STRIPE_ADDON_PRICES.CREDIT_PACK` now falls back to `STRIPE_PRICE_ID_ADDON_PACK` env var (user's env used `ADDON_PACK` not `ADDON_CREDIT_PACK`). **Credit indicator progress bar**: Replaced `bg-sage-500` (green) with brand colors — `bg-gold-400` (>50%), `bg-gold-600` (20-50%), `bg-navy-600` (<20%) — both mobile and desktop popups. **Cancel anytime consistency**: Homepage Plus/Max cards now match pricing page design with `Clock` icon + bold text + tier-colored backgrounds. **Avatar plan badge**: Added pill badge (FREE/PLUS/MAX) at bottom-center of profile avatar in dashboard header. **Settings page**: Combined standalone add-on credits card into main billing card (inline section with border-top separator). Removed separate free-tier add-on placeholder card. **Feature wording**: "Zero fabrication guarantee" → "Anti-hallucination guardrails" across pricing page, homepage cards, and homepage trust feature card (safer legal positioning for AI product). `tsc --noEmit` = 0 errors. |
 | Feb 26, 2026 | **Application Tracker page + simplified statuses** | applications/page.tsx (new), types.ts, sessions.ts, ChatHistory.tsx, dashboard/page.tsx, simplify_application_status.sql (new) | **Schema change**: Simplified `application_sessions.status` from 6 confusing values (`draft`, `completed`, `sent`, `interview`, `rejected`, `accepted`) to 5 clear values: `applied`, `interview`, `rejected`, `accepted`, `follow_up`. SQL migration converts existing data (`draft`/`completed`/`sent` → `applied`), updates CHECK constraint and default. **New page**: `/applications` — full application tracker with summary stat pills (filterable), search by company/job title, inline status dropdown with colored badges, desktop table + mobile cards, click-to-load session in dashboard. Brand-consistent design (navy, gold, cream, sage). Auth-guarded. Available to all tiers. **Navigation**: Added "View All Applications →" link in ChatHistory panel. Added ClipboardList icon + "Applications" link in dashboard header (between Documents and Settings). **Types updated**: `src/lib/supabase/types.ts` (3 places) and `src/lib/supabase/sessions.ts` — new union `'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up'`. Zero new TS errors. |
 | Feb 27, 2026 | **Security hardening: 5 fixes** | rateLimiter.ts (new), anonymous_generation_tracking.sql (new), agent-v2/route.ts, chat/route.ts, contact/route.ts, parse-cv/route.ts, generate-pdf/route.ts, regenerate/route.ts, useAgentWorkflow.ts, ChatPanel.tsx | **Fix 1 (critical)**: Server-side anonymous generation tracking via SHA-256 hashed IPs in Supabase — prevents localStorage bypass (incognito, direct API). Records after workflow_complete, checks before generation. Frontend detects `ANONYMOUS_LIMIT_REACHED` → shows signup wall. **Fix 2**: Input length validation on all routes (JD 20K, CV 35K, file 10MB, chat msg 2K, contact fields). Removed dead `certifications` field from AgentRequest. **Fix 3**: XSS fix in contact email — `escapeHtml()` on all 4 user inputs + subject line. **Fix 4**: Chat message limit — 10 user messages per session on `/api/chat`, returns `CHAT_LIMIT_REACHED`. **Fix 5**: In-memory sliding window rate limiter on all 6 API routes (agent-v2: 5/min, parse-cv: 10/min, chat: 20/min, contact: 3/min, generate-pdf: 10/min, regenerate: 10/min). Zero dependencies, auto-cleanup. `tsc --noEmit` = 0 errors. |
+| Feb 28, 2026 | **Pre-launch security audit + fixes (113 findings)** | 29 files changed, 13 packages removed, 10 dead files deleted | **Full audit**: 5-area parallel audit (security, frontend, backend, types, dead code) identified 7 CRITICAL, 16 HIGH, 25 MEDIUM, 20 LOW findings + 45 dead code items. **CRITICAL fixes**: (C1) Added auth (`supabase.auth.getUser()`) to all 3 Stripe routes — prevents IDOR billing takeover. (C2) Fixed credit deduction TOCTOU race condition — optimistic concurrency check with retry on conflict. (C4) Fixed XSS in CVPanel PDF download — strips script tags and event handlers from innerHTML. (C5) Added SSE stream cleanup on component unmount via `useEffect` abort. (C6) Added auth to `/api/chat` route. (C7) Fixed anonymous generation double-free — `recordAnonymousGeneration` now called after `fit_analysis` too. **HIGH fixes**: Auth added to `/api/generate-pdf` (removed anon key fallback). Rate limiting added to all 3 Stripe routes. Error responses sanitized across all routes (no more `error.message` leaks). `EditableCVCanvas` syncs state when `cvData` prop changes. Clipboard API calls wrapped in try/catch (EmailPanel, CoverLetterPanel, ChatMessage, CVPanel). Modal accessibility: Escape key handler + `role="dialog"` + `aria-modal="true"` on SignUpWallModal, InsufficientCreditsModal, FeedbackModal. `deleteUserAccount` now includes `contact_submissions` table. PostHog init guarded against missing env var (client + server). **OTHER fixes**: Stale credit amounts in ChatInput (1.5 → 2 credits). Debug console.logs removed from CVPanel. Debug webhook ENV log removed. **Dead code**: Deleted 10 files (~1,300 lines): indexeddb.ts, validation.ts, text-analysis.ts, cv-print.css, Select/Input/Modal/Textarea/Tabs.tsx, ui/index.ts, 2 unused assets. Removed 13 npm packages (~15MB): Pinecone, Tavily, html2canvas, idb, pdfjs-dist, react-pdf, radix-dialog/tabs, file-saver, stripe-js, fontkit, mammoth. `tsc --noEmit` = 0 errors. Audit report: `PRE_LAUNCH_AUDIT_REPORT.md`. |

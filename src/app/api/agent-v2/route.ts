@@ -413,6 +413,13 @@ export async function POST(request: NextRequest) {
             throw new Error(result.error || 'Fit analysis failed');
           }
 
+          // Record anonymous generation after fit analysis to prevent double-free:
+          // Without this, an anonymous user gets fit_analysis free (no recording),
+          // then calls generate_with_context and passes the anonymous check again.
+          if (isAnonymous) {
+            await recordAnonymousGeneration(ipHash);
+          }
+
           clearServerSupabaseClient();
           controller.close();
           return;
