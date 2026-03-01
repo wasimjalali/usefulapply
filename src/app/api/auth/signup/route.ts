@@ -44,13 +44,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Name is too long.' }, { status: 400 });
     }
 
-    const siteUrl = new URL(request.url).origin;
+    // Use NEXT_PUBLIC_SITE_URL env var so redirectTo is always the canonical
+    // production URL — never a Vercel preview URL that isn't in Supabase's allowlist.
+    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin).replace(/\/$/, '');
     const supabaseAdmin = createAdminClient();
 
+    // Pre-check: detect existing confirmed users by querying profiles table.
+    // Service role bypasses RLS so this always works.
+    const { data: existingProfile } = await (supabaseAdmin as any)
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+    if (existingProfile) {
+      return NextResponse.json(
+        { error: 'An account with this email already exists. Please sign in instead.' },
+        { status: 409 }
+      );
+    }
+
     // Generate a signup confirmation link via admin API.
-    // This creates the user in auth.users with email_confirmed_at = null
-    // and returns a one-time confirmation link we send ourselves via Resend.
-    // Root cause fix: bypasses Supabase's built-in email service (3 emails/hour limit).
+    // Creates user in auth.users (email_confirmed_at = null) and returns
+    // a one-time confirmation URL we send via Resend instead of Supabase SMTP.
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'signup',
       email,
@@ -62,19 +77,18 @@ export async function POST(request: NextRequest) {
     });
 
     if (linkError) {
-      // User already exists — direct them to login
-      if (
-        linkError.message.toLowerCase().includes('already registered') ||
-        linkError.message.toLowerCase().includes('already exists') ||
-        linkError.message.toLowerCase().includes('duplicate')
-      ) {
-        return NextResponse.json(
-          { error: 'An account with this email already exists. Please sign in instead.' },
-          { status: 409 }
-        );
-      }
-      console.error('[/api/auth/signup] generateLink error:', linkError.message);
-      return NextResponse.json({ error: 'Failed to create account. Please try again.' }, { status: 400 });
+      console.error('[/api/auth/signup] generateLink error:', {
+        message: linkError.message,
+        status: linkError.status,
+        name: linkError.name,
+      });
+      // Return the actual Supabase error — surfacing it is the only way to
+      // diagnose remaining config issues (e.g. redirectTo not in allowlist,
+      // password policy violation, project-level restrictions).
+      return NextResponse.json(
+        { error: linkError.message || 'Failed to create account. Please try again.' },
+        { status: 400 }
+      );
     }
 
     // Create profile immediately with service role key — no RLS, no trigger dependency.
