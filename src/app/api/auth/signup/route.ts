@@ -49,21 +49,11 @@ export async function POST(request: NextRequest) {
     const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin).replace(/\/$/, '');
     const supabaseAdmin = createAdminClient();
 
-    // Pre-check: detect existing confirmed users by querying profiles table.
-    // Service role bypasses RLS so this always works.
-    const { data: existingProfile } = await (supabaseAdmin as any)
-      .from('profiles')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle();
-    if (existingProfile) {
-      return NextResponse.json(
-        { error: 'An account with this email already exists. Please sign in instead.' },
-        { status: 409 }
-      );
-    }
-
     // Generate a signup confirmation link via admin API.
+    // generateLink handles all cases correctly:
+    //   - New email → creates user + generates confirmation link
+    //   - Existing unconfirmed email → regenerates confirmation link (resend flow)
+    //   - Existing confirmed email → returns error (surfaced to client)
     // Creates user in auth.users (email_confirmed_at = null) and returns
     // a one-time confirmation URL we send via Resend instead of Supabase SMTP.
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
