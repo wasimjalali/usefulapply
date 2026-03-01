@@ -1,18 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, User, Sparkles } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import KarkoLogo from '@/components/KarkoLogo';
 
 export default function SignUpPage() {
-  const router = useRouter();
-  const { signUp } = useAuth();
-  
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,13 +27,24 @@ export default function SignUpPage() {
 
     setIsLoading(true);
 
-    const { error: signUpError } = await signUp(email, password, fullName);
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, fullName }),
+      });
 
-    if (signUpError) {
-      setError(signUpError.message);
-      setIsLoading(false);
-    } else {
-      setSuccess(true);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error ?? 'Signup failed. Please try again.');
+        setIsLoading(false);
+      } else {
+        setSuccess(true);
+        setIsLoading(false);
+      }
+    } catch {
+      setError('An unexpected error occurred. Please try again.');
       setIsLoading(false);
     }
   };

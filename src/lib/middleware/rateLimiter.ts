@@ -97,6 +97,7 @@ export const RATE_LIMITS = {
   'contact':     { limit: 3,  windowMs: 60_000 },
   'generate-pdf': { limit: 10, windowMs: 60_000 },
   'regenerate':  { limit: 10, windowMs: 60_000 },
+  'signup':      { limit: 3,  windowMs: 60_000 },
 } as const;
 
 export type RateLimitRoute = keyof typeof RATE_LIMITS;
