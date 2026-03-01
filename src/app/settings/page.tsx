@@ -10,10 +10,9 @@ import { AccountSection, PasswordModal, DeleteConfirmModal } from '@/components/
 import { SubscriptionSection } from '@/components/settings/SubscriptionSection';
 import { NotificationsSection } from '@/components/settings/NotificationsSection';
 import { uploadAvatar, deleteAvatar } from '@/lib/supabase/storage';
-import { 
+import {
   getSubscription,
   changePassword,
-  deleteUserAccount,
   type Subscription,
 } from '@/lib/supabase';
 import { getUserCredits, type UserCredits } from '@/lib/supabase/credits';
@@ -243,22 +242,30 @@ function SettingsContent() {
 
   const handleDeleteAccount = async () => {
     if (!authUser) return;
-    
+
     const typedConfirm = window.prompt('Type "DELETE" to permanently delete your account and all data:');
     if (typedConfirm !== 'DELETE') {
       setShowDeleteConfirm(false);
       return;
     }
-    
+
     try {
-      const { error } = await deleteUserAccount(authUser.id);
-      
-      if (error) {
-        alert('Failed to delete account: ' + error.message);
+      // Call server-side route that uses admin API to delete auth.users record
+      const res = await fetch('/api/auth/delete-account', { method: 'DELETE' });
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert('Failed to delete account: ' + (data.error || 'Unknown error'));
         return;
       }
-      
-      localStorage.removeItem('job-copilot-storage');
+
+      // Clear all local state
+      try {
+        localStorage.removeItem('session-store');
+        localStorage.removeItem('cv-store');
+        localStorage.removeItem('job-copilot-storage');
+      } catch { /* ignore */ }
+
       router.push('/');
     } catch (err) {
       console.error('Delete account error:', err);
