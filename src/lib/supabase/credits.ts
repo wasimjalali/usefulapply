@@ -189,16 +189,18 @@ async function initializeUserCredits(userId: string, supabaseClient?: any): Prom
   const nextReset = new Date();
   nextReset.setMonth(nextReset.getMonth() + 1);
 
+  // Use upsert to handle race condition with DB trigger initialize_user_credits()
+  // which may have already created the row before this client-side call runs.
   const { data, error } = await supabase
     .from('user_credits')
-    .insert({
+    .upsert({
       user_id: userId,
       monthly_credits: 10, // Free plan credits (5 applications at 2 credits each)
       rollover_credits: 0,
       addon_credits: 0,
       plan_tier: 'free',
       next_reset_date: nextReset.toISOString(),
-    })
+    }, { onConflict: 'user_id' })
     .select()
     .single();
 

@@ -232,32 +232,46 @@ export async function deleteUserAccount(userId: string): Promise<{ error: Error 
     }
 
     // Delete from database tables (order matters due to foreign keys)
-    const tables = [
+    // Most tables use `user_id` as the FK column, but `profiles` uses `id`.
+    // `contact_submissions` has no user FK — it's a public form (skip it).
+    const tablesWithUserId = [
       'chat_messages',
       'application_sessions',
       'documents',
       'connected_accounts',
-      'contact_submissions',
       'user_credits',
       'credit_transactions',
       'subscriptions',
       'message_feedback',
-      'profiles',
     ];
 
-    for (const table of tables) {
+    for (const table of tablesWithUserId) {
       try {
         const { error } = await (supabase as any)
           .from(table)
           .delete()
           .eq('user_id', userId);
-        
+
         if (error && error.code !== 'PGRST116') {
           console.warn(`Error deleting from ${table}:`, error.message);
         }
       } catch (e) {
         console.warn(`Could not delete from table ${table}:`, e);
       }
+    }
+
+    // profiles table uses `id` (not `user_id`) as the primary key
+    try {
+      const { error } = await (supabase as any)
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+
+      if (error && error.code !== 'PGRST116') {
+        console.warn('Error deleting from profiles:', error.message);
+      }
+    } catch (e) {
+      console.warn('Could not delete from profiles:', e);
     }
 
     // Finally sign out the user (this doesn't delete auth.users but ends the session)
