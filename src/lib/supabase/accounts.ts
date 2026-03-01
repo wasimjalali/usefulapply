@@ -78,21 +78,21 @@ export async function getSubscription(userId: string): Promise<Subscription | nu
   try {
     const supabase = getUntypedSupabase();
 
+    // Use maybeSingle() to avoid 406 HTTP errors when no subscription exists.
+    // Most users have no row here — the app uses user_credits for plan management.
     const { data, error } = await supabase
       .from('subscriptions')
       .select('*')
       .eq('user_id', userId)
       .eq('status', 'active')
-      .single();
+      .maybeSingle();
 
     if (error) {
-      if (error.code === 'PGRST116') return null; // No rows
-      // 406 = table schema mismatch or missing table — fail gracefully
-      console.warn('getSubscription: error (non-fatal, using user_credits instead):', error.code, error.message);
+      // Table missing or other schema issue — fail gracefully
       return null;
     }
 
-    return data as Subscription;
+    return data as Subscription | null;
   } catch (e) {
     console.warn('getSubscription: unexpected error (non-fatal):', e);
     return null;

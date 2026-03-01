@@ -162,19 +162,23 @@ export async function getAddonCreditPacks(): Promise<{ packs: AddonCreditPack[];
 export async function getUserCredits(userId: string, supabaseClient?: any): Promise<{ credits: UserCredits | null; error: Error | null }> {
   const supabase = getSupabaseClient(supabaseClient);
 
+  // Use maybeSingle() to avoid 406 HTTP errors when no row exists.
+  // .single() throws PGRST116 (406) when 0 rows found, which floods
+  // the browser console. maybeSingle() returns null cleanly.
   const { data, error } = await supabase
     .from('user_credits')
     .select('*')
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) {
-    if (error.code === 'PGRST116') {
-      // No credits record - initialize with free plan
-      return await initializeUserCredits(userId, supabaseClient);
-    }
     console.error('Error fetching user credits:', error);
     return { credits: null, error: new Error(error.message) };
+  }
+
+  if (!data) {
+    // No credits record — initialize with free plan
+    return await initializeUserCredits(userId, supabaseClient);
   }
 
   return { credits: data as UserCredits, error: null };
