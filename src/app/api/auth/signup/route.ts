@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     const greeting = safeName ? `Hi ${safeName},` : 'Hi there,';
 
     const { error: emailError } = await resend.emails.send({
-      from: 'onboarding@resend.dev',
+      from: 'KarKo AI <noreply@karkoai.com>',
       to: email,
       subject: 'Confirm your KarKo AI account',
       html: `
