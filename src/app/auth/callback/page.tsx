@@ -14,6 +14,14 @@ function CallbackHandler() {
     const handleCallback = async () => {
       const supabase = createClient();
 
+      // Clear any previous user's persisted store data BEFORE setting a new
+      // session. This prevents cross-user data leakage when a new user
+      // confirms their email on a browser that had a different user's session.
+      try {
+        localStorage.removeItem('session-store');
+        localStorage.removeItem('cv-store');
+      } catch { /* ignore */ }
+
       // Flow 1: PKCE code exchange (OAuth, client-side signUp)
       const code = searchParams.get('code');
       if (code) {

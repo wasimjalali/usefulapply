@@ -1,10 +1,24 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { User, Session, AuthError, SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase } from '@/lib/supabase/client';
 import type { Profile } from '@/lib/supabase/types';
 import posthog from 'posthog-js';
+
+/**
+ * Clear all persisted Zustand stores to prevent cross-user data leakage.
+ * Called on sign-out AND when the authenticated user changes (e.g. new user
+ * signs in on the same browser without the previous user signing out first).
+ */
+function clearPersistedStores() {
+  try {
+    localStorage.removeItem('session-store');
+    localStorage.removeItem('cv-store');
+  } catch (e) {
+    console.error('[Auth] Failed to clear persist storage:', e);
+  }
+}
 
 type SupabaseClientType = SupabaseClient<any, 'public', any>;
 
@@ -30,6 +44,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const supabase = getSupabase() as SupabaseClientType;
+
+  // Track the previous user ID to detect user switches on the same browser
+  const prevUserIdRef = useRef<string | null>(null);
 
   // Fetch user profile from database, create if doesn't exist
   const fetchProfile = useCallback(async (userId: string, userEmail?: string) => {
@@ -91,6 +108,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ]) as Awaited<typeof sessionPromise>;
         
         if (initialSession) {
+          // If a different user is now logged in, clear stale stores
+          const storedUserId = prevUserIdRef.current;
+          if (storedUserId && storedUserId !== initialSession.user.id) {
+            clearPersistedStores();
+          }
+          prevUserIdRef.current = initialSession.user.id;
+
           setSession(initialSession);
           setUser(initialSession.user);
           // Fetch profile but don't block on it
@@ -110,6 +134,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
+        // Detect user switch: clear stale persisted data before setting new user
+        if (newSession?.user) {
+          const prevId = prevUserIdRef.current;
+          if (prevId && prevId !== newSession.user.id) {
+            clearPersistedStores();
+          }
+          prevUserIdRef.current = newSession.user.id;
+        } else if (event === 'SIGNED_OUT') {
+          prevUserIdRef.current = null;
+        }
+
         setSession(newSession);
         setUser(newSession?.user ?? null);
         setIsLoading(false);
@@ -185,15 +220,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setProfile(null);
     setSession(null);
-    
-    // Clear Zustand persist storage to prevent stale session data
-    // from leaking to the next user on the same browser
-    try {
-      localStorage.removeItem('session-store');
-      localStorage.removeItem('cv-store');
-    } catch (e) {
-      console.error('[Auth] Failed to clear persist storage on signOut:', e);
-    }
+    clearPersistedStores();
   };
 
   // Update user profile - optimistic update for better UX

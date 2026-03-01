@@ -80,8 +80,21 @@ export function useSupabaseSync() {
   const initialLoadCompleteRef = useRef(false);
   const docsLoadedRef = useRef(false);
   const isCreatingSessionRef = useRef<Set<string>>(new Set());
+  // Track user ID to reset refs when user changes (prevents cross-user data)
+  const prevSyncUserIdRef = useRef<string | null>(null);
   // Create the client once per hook instance — not on every render
   const supabaseRef = useRef(createClient());
+
+  // Reset sync state when user changes — ensures docs/sessions reload for new user
+  useEffect(() => {
+    if (!user) return;
+    if (prevSyncUserIdRef.current && prevSyncUserIdRef.current !== user.id) {
+      docsLoadedRef.current = false;
+      initialLoadCompleteRef.current = false;
+      isInitialLoadRef.current = true;
+    }
+    prevSyncUserIdRef.current = user.id;
+  }, [user]);
   const supabase = supabaseRef.current;
 
   // CRITICAL: Load documents (primary CV, master CV, profile photo) from Supabase on mount
