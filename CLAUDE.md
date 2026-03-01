@@ -839,6 +839,47 @@ Client and server PostHog initialization guarded against missing `NEXT_PUBLIC_PO
 
 ---
 
+## Auth Flow Fixes
+
+**Date:** March 1, 2026
+
+### Problems Fixed
+
+**1. Sign-up confirmation email had broken links**
+`signUp()` in `AuthContext.tsx` did not pass `emailRedirectTo`. Supabase fell back to the Site URL configured in the Supabase dashboard (which defaults to `localhost:3000` in development and may be wrong in production). Confirmation emails sent to new users contained a broken link — clicking it failed to verify the account, leaving users unable to log in.
+
+**Fix:** Added `emailRedirectTo: ${window.location.origin}/auth/callback` to the `signUp()` call. The redirect URL is now always derived from the live domain of the request, regardless of what is set in the Supabase dashboard.
+
+**2. Password reset flow sent users to /dashboard with no way to enter a new password**
+`sendPasswordResetEmail()` used `redirectTo: .../auth/callback?type=recovery`. The callback route (`/auth/callback/route.ts`) ignored `type=recovery` and always redirected to `/dashboard` (the `next` param default). There was also **no `/auth/reset-password` page** in the codebase.
+
+**Fix 1:** Changed `redirectTo` to use `?next=/auth/reset-password` so the callback route sends users to the correct page after the code exchange.
+
+**Fix 2:** Created `/src/app/auth/reset-password/page.tsx` — a dedicated page with new password + confirm password fields, client-side validation (min 6 chars, passwords must match), success state, and auto-redirect to dashboard after 2 seconds.
+
+**3. Missing Next.js session refresh proxy**
+`@supabase/ssr` requires a root-level proxy (formerly `middleware.ts`, renamed to `proxy.ts` in Next.js 16) to call `supabase.auth.getUser()` on every request. This refreshes the session token in cookies and keeps server components in sync with the authenticated state. Without it, server components saw stale or expired tokens causing intermittent logged-out states.
+
+**Fix:** Created `src/proxy.ts` using the Next.js 16 `proxy` convention (replaces the deprecated `middleware` convention). Matches all non-static routes via the `config.matcher`.
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/contexts/AuthContext.tsx` | Added `emailRedirectTo: ${window.location.origin}/auth/callback` to `signUp()` |
+| `src/lib/supabase/accounts.ts` | Updated `sendPasswordResetEmail()` redirect to `?next=/auth/reset-password` |
+| `src/app/auth/reset-password/page.tsx` | NEW — Reset password page with password/confirm fields, validation, success state |
+| `src/proxy.ts` | NEW — Next.js 16 session refresh proxy (replaces `middleware.ts` convention) |
+
+### Supabase Dashboard Requirement
+For the auth flow to work end-to-end in production, the following must be set in the Supabase dashboard under **Authentication → URL Configuration**:
+- **Site URL:** `https://karkoai.com`
+- **Redirect URLs (allowlist):** `https://karkoai.com/auth/callback`
+
+Without the redirect URL in the allowlist, Supabase will block the OAuth/email confirmation redirect even if the code is valid.
+
+---
+
 ## Changelog
 
 | Date | Change | Files | Details |
@@ -897,4 +938,5 @@ Client and server PostHog initialization guarded against missing `NEXT_PUBLIC_PO
 | Feb 25, 2026 | **Pricing Pivot v2 fixes & polish** | stripe.ts, CreditIndicator.tsx, page.tsx, pricing/page.tsx, dashboard/page.tsx, SubscriptionSection.tsx | **Add-on checkout fix**: `STRIPE_ADDON_PRICES.CREDIT_PACK` now falls back to `STRIPE_PRICE_ID_ADDON_PACK` env var (user's env used `ADDON_PACK` not `ADDON_CREDIT_PACK`). **Credit indicator progress bar**: Replaced `bg-sage-500` (green) with brand colors — `bg-gold-400` (>50%), `bg-gold-600` (20-50%), `bg-navy-600` (<20%) — both mobile and desktop popups. **Cancel anytime consistency**: Homepage Plus/Max cards now match pricing page design with `Clock` icon + bold text + tier-colored backgrounds. **Avatar plan badge**: Added pill badge (FREE/PLUS/MAX) at bottom-center of profile avatar in dashboard header. **Settings page**: Combined standalone add-on credits card into main billing card (inline section with border-top separator). Removed separate free-tier add-on placeholder card. **Feature wording**: "Zero fabrication guarantee" → "Anti-hallucination guardrails" across pricing page, homepage cards, and homepage trust feature card (safer legal positioning for AI product). `tsc --noEmit` = 0 errors. |
 | Feb 26, 2026 | **Application Tracker page + simplified statuses** | applications/page.tsx (new), types.ts, sessions.ts, ChatHistory.tsx, dashboard/page.tsx, simplify_application_status.sql (new) | **Schema change**: Simplified `application_sessions.status` from 6 confusing values (`draft`, `completed`, `sent`, `interview`, `rejected`, `accepted`) to 5 clear values: `applied`, `interview`, `rejected`, `accepted`, `follow_up`. SQL migration converts existing data (`draft`/`completed`/`sent` → `applied`), updates CHECK constraint and default. **New page**: `/applications` — full application tracker with summary stat pills (filterable), search by company/job title, inline status dropdown with colored badges, desktop table + mobile cards, click-to-load session in dashboard. Brand-consistent design (navy, gold, cream, sage). Auth-guarded. Available to all tiers. **Navigation**: Added "View All Applications →" link in ChatHistory panel. Added ClipboardList icon + "Applications" link in dashboard header (between Documents and Settings). **Types updated**: `src/lib/supabase/types.ts` (3 places) and `src/lib/supabase/sessions.ts` — new union `'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up'`. Zero new TS errors. |
 | Feb 27, 2026 | **Security hardening: 5 fixes** | rateLimiter.ts (new), anonymous_generation_tracking.sql (new), agent-v2/route.ts, chat/route.ts, contact/route.ts, parse-cv/route.ts, generate-pdf/route.ts, regenerate/route.ts, useAgentWorkflow.ts, ChatPanel.tsx | **Fix 1 (critical)**: Server-side anonymous generation tracking via SHA-256 hashed IPs in Supabase — prevents localStorage bypass (incognito, direct API). Records after workflow_complete, checks before generation. Frontend detects `ANONYMOUS_LIMIT_REACHED` → shows signup wall. **Fix 2**: Input length validation on all routes (JD 20K, CV 35K, file 10MB, chat msg 2K, contact fields). Removed dead `certifications` field from AgentRequest. **Fix 3**: XSS fix in contact email — `escapeHtml()` on all 4 user inputs + subject line. **Fix 4**: Chat message limit — 10 user messages per session on `/api/chat`, returns `CHAT_LIMIT_REACHED`. **Fix 5**: In-memory sliding window rate limiter on all 6 API routes (agent-v2: 5/min, parse-cv: 10/min, chat: 20/min, contact: 3/min, generate-pdf: 10/min, regenerate: 10/min). Zero dependencies, auto-cleanup. `tsc --noEmit` = 0 errors. |
+| Mar 1, 2026 | **Auth flow fixes: sign-up, login, password reset** | `AuthContext.tsx`, `accounts.ts`, `reset-password/page.tsx` (new), `proxy.ts` (new) | **Fix 1**: Added `emailRedirectTo` to `signUp()` — confirmation emails now point to the correct live domain instead of Supabase dashboard Site URL. **Fix 2**: Fixed `sendPasswordResetEmail()` redirect from `?type=recovery` (ignored) to `?next=/auth/reset-password` (handled). **Fix 3**: Created `/auth/reset-password` page with password/confirm fields, validation, and auto-redirect. **Fix 4**: Created `src/proxy.ts` — Next.js 16 session refresh proxy (replaces deprecated `middleware.ts`); calls `supabase.auth.getUser()` on every request to keep session tokens alive. `tsc --noEmit` = 0 errors. |
 | Feb 28, 2026 | **Pre-launch security audit + fixes (113 findings)** | 29 files changed, 13 packages removed, 10 dead files deleted | **Full audit**: 5-area parallel audit (security, frontend, backend, types, dead code) identified 7 CRITICAL, 16 HIGH, 25 MEDIUM, 20 LOW findings + 45 dead code items. **CRITICAL fixes**: (C1) Added auth (`supabase.auth.getUser()`) to all 3 Stripe routes — prevents IDOR billing takeover. (C2) Fixed credit deduction TOCTOU race condition — optimistic concurrency check with retry on conflict. (C4) Fixed XSS in CVPanel PDF download — strips script tags and event handlers from innerHTML. (C5) Added SSE stream cleanup on component unmount via `useEffect` abort. (C6) Added auth to `/api/chat` route. (C7) Fixed anonymous generation double-free — `recordAnonymousGeneration` now called after `fit_analysis` too. **HIGH fixes**: Auth added to `/api/generate-pdf` (removed anon key fallback). Rate limiting added to all 3 Stripe routes. Error responses sanitized across all routes (no more `error.message` leaks). `EditableCVCanvas` syncs state when `cvData` prop changes. Clipboard API calls wrapped in try/catch (EmailPanel, CoverLetterPanel, ChatMessage, CVPanel). Modal accessibility: Escape key handler + `role="dialog"` + `aria-modal="true"` on SignUpWallModal, InsufficientCreditsModal, FeedbackModal. `deleteUserAccount` now includes `contact_submissions` table. PostHog init guarded against missing env var (client + server). **OTHER fixes**: Stale credit amounts in ChatInput (1.5 → 2 credits). Debug console.logs removed from CVPanel. Debug webhook ENV log removed. **Dead code**: Deleted 10 files (~1,300 lines): indexeddb.ts, validation.ts, text-analysis.ts, cv-print.css, Select/Input/Modal/Textarea/Tabs.tsx, ui/index.ts, 2 unused assets. Removed 13 npm packages (~15MB): Pinecone, Tavily, html2canvas, idb, pdfjs-dist, react-pdf, radix-dialog/tabs, file-saver, stripe-js, fontkit, mammoth. `tsc --noEmit` = 0 errors. Audit report: `PRE_LAUNCH_AUDIT_REPORT.md`. |
