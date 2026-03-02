@@ -146,25 +146,27 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Documents Icon */}
+        {/* Documents */}
         {user && (
           <Link
             href="/documents"
-            className="p-2 text-warm-gray hover:text-navy-600 hover:bg-cream-100/60 rounded-lg transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-warm-gray hover:text-navy-600 hover:bg-cream-100/60 rounded-lg transition-all cursor-pointer"
             title="Documents"
           >
-            <FolderOpen className="w-4.5 h-4.5" />
+            <FolderOpen className="w-3.5 h-3.5" />
+            Docs
           </Link>
         )}
 
-        {/* Applications Icon */}
+        {/* Applications */}
         {user && (
           <Link
             href="/applications"
-            className="p-2 text-warm-gray hover:text-navy-600 hover:bg-cream-100/60 rounded-lg transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-warm-gray hover:text-navy-600 hover:bg-cream-100/60 rounded-lg transition-all cursor-pointer"
             title="Applications"
           >
-            <ClipboardList className="w-4.5 h-4.5" />
+            <ClipboardList className="w-3.5 h-3.5" />
+            Tracker
           </Link>
         )}
 
