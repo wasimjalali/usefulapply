@@ -21,7 +21,7 @@ import {
   History,
   Sparkles,
 } from 'lucide-react';
-import KarkoLogo from '@/components/KarkoLogo';
+// KarkoLogo removed — logo is now in Tier 1 global nav bar
 import { useRouter } from 'next/navigation';
 import { SignUpWallModal, hasUsedFreeGeneration } from '@/components/SignUpWallModal';
 import { InsufficientCreditsModal } from '@/components/InsufficientCreditsModal';
@@ -231,12 +231,12 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false }: ChatPanelProp
       )}
     
       <div className={`h-full flex flex-col bg-cream-50 ${isMobileDrawer ? '' : 'border-l border-cream-200'}`}>
-        {/* Header — hidden in mobile drawer mode (drawer provides its own) */}
-        {!isMobileDrawer && (
-        <div className="relative px-4 py-3 glass-header">
+        {/* Chat Header — simplified: "Chat" label + action icons */}
+        <div className="relative px-4 py-2.5 glass-header">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <KarkoLogo variant="full" size="xs" theme="light" />
+              <Sparkles className="w-4 h-4 text-gold-500" />
+              <span className="text-sm font-semibold text-navy-700">Chat</span>
             </div>
             <div className="flex items-center gap-1">
               <button
@@ -258,29 +258,6 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false }: ChatPanelProp
             </div>
           </div>
         </div>
-        )}
-
-        {/* Mobile drawer mini toolbar */}
-        {isMobileDrawer && (
-        <div className="flex items-center justify-end gap-1 px-3 py-1.5 glass-toolbar">
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            className={`p-2 rounded-lg transition-all cursor-pointer ${
-              showHistory ? 'bg-navy-50 text-navy-600 shadow-sm' : 'text-warm-gray hover:bg-cream-100 hover:text-navy-600'
-            }`}
-            title="Application History"
-          >
-            <History className="w-4 h-4" />
-          </button>
-          <button
-            onClick={handleNewApplication}
-            className="p-2 rounded-lg text-warm-gray hover:bg-cream-100 hover:text-navy-600 transition-all cursor-pointer"
-            title="New Application"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
-        </div>
-        )}
 
         {/* History Sidebar */}
         {showHistory && (

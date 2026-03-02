@@ -134,40 +134,41 @@ export function ChatMessage({
             />
           )}
           
-          {/* Action Buttons */}
-          {message.actions && message.actions.length > 0 && (
-            <div className="mt-4 space-y-0">
-              {message.actions
-                .filter(action => action.action !== 'none')
-                .map((action, index, filteredActions) => (
-                <div key={index} className="flex items-stretch">
-                  {/* Connecting line */}
-                  <div className="flex flex-col items-center mr-3">
-                    <div className={`w-px bg-cream-300 ${index === 0 ? 'h-2' : 'h-2'}`} />
-                    <div className="w-2 h-2 rounded-full border-2 border-gold-300 bg-white flex-shrink-0" />
-                    <div className={`w-px bg-cream-300 flex-1 ${index === filteredActions.length - 1 ? 'opacity-0' : ''}`} />
+          {/* Action Buttons — vertical stacked with connecting line */}
+          {message.actions && message.actions.length > 0 && (() => {
+            const actionItems = message.actions.filter(a => a.action !== 'none');
+            const hintAction = message.actions.find(a => a.action === 'none');
+
+            return (
+              <div className="mt-4 space-y-2">
+                {actionItems.map((action, index) => (
+                  <div key={index} className="flex items-stretch">
+                    <div className="flex flex-col items-center mr-3">
+                      <div className="w-px bg-cream-300 h-2" />
+                      <div className="w-2 h-2 rounded-full border-2 border-gold-300 bg-white flex-shrink-0" />
+                      <div className={`w-px bg-cream-300 flex-1 ${index === actionItems.length - 1 ? 'opacity-0' : ''}`} />
+                    </div>
+                    <button
+                      onClick={() => onAction(action.action)}
+                      className="flex items-center gap-2 px-4 py-2.5 my-1 text-sm font-medium bg-white text-charcoal border border-cream-200 rounded-xl hover:bg-cream-50 hover:border-gold-300 hover:shadow-sm transition-all cursor-pointer"
+                    >
+                      {action.icon === 'cv' && <FileText className="w-4 h-4 text-navy-600" />}
+                      {action.icon === 'cover-letter' && <Mail className="w-4 h-4 text-gold-600" />}
+                      {action.icon === 'email' && <Send className="w-4 h-4 text-sage-600" />}
+                      {action.icon === 'new' && <Plus className="w-4 h-4 text-gold-500" />}
+                      {action.label}
+                    </button>
                   </div>
-                  {/* Button */}
-                  <button
-                    onClick={() => onAction(action.action)}
-                    className="flex items-center gap-2 px-4 py-2.5 my-1 text-sm font-medium bg-white text-charcoal border border-cream-200 rounded-xl hover:bg-cream-50 hover:border-gold-300 hover:shadow-sm transition-all cursor-pointer"
-                  >
-                    {action.icon === 'cv' && <FileText className="w-4 h-4 text-navy-600" />}
-                    {action.icon === 'cover-letter' && <Mail className="w-4 h-4 text-gold-600" />}
-                    {action.icon === 'email' && <Send className="w-4 h-4 text-sage-600" />}
-                    {action.icon === 'new' && <Plus className="w-4 h-4 text-gold-500" />}
-                    {action.label}
-                  </button>
-                </div>
-              ))}
-              {/* Render hint text (action === 'none') */}
-              {message.actions.some(a => a.action === 'none') && (
-                <p className="text-xs text-warm-gray mt-3 ml-5 italic">
-                  {message.actions.find(a => a.action === 'none')?.label.replace(/^💡\s*/, '')}
-                </p>
-              )}
-            </div>
-          )}
+                ))}
+                {/* Hint text */}
+                {hintAction && (
+                  <p className="text-xs text-warm-gray mt-1 ml-5 italic">
+                    {hintAction.label.replace(/^💡\s*/, '')}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
         </Card>
         
         {/* Feedback icons for assistant messages */}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useAppStore } from '@/store/useAppStore';
@@ -9,11 +10,10 @@ import { TemplateSelector } from './cv-templates/TemplateSelector';
 import { parsedCVToCVData, structuredCVToCVData } from '@/lib/cv-templates/parser';
 import { parseOptimizedCVToData } from '@/lib/cv-parser/parse-optimized-cv';
 import type { CVData } from '@/lib/cv-templates/types';
-import { 
-  FileText, 
-  Download, 
-  CheckCircle, 
-  AlertCircle,
+import {
+  FileText,
+  Download,
+  CheckCircle,
   TrendingUp,
   Eye,
   FileOutput,
@@ -33,7 +33,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { SignUpWallModal } from '@/components/SignUpWallModal';
 import Link from 'next/link';
 
-export function CVPanel() {
+interface CVPanelProps {
+  toolbarPortal?: HTMLDivElement | null;
+}
+
+export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
   const { 
     currentCV,
     structuredCV,
@@ -511,128 +515,141 @@ export function CVPanel() {
   const isLoading = isAnalyzing || isGenerating || isAgentWorking;
   const displayContent = showOptimized && generatedCV ? generatedCV.content : currentCV.rawText;
 
+  // Toolbar content — rendered via portal (desktop) or inline (mobile)
+  const toolbarContent = !isLoading ? (
+    <>
+      {/* Original/Optimized Toggle */}
+      {generatedCV && (
+        <div className="flex items-center bg-cream-100/80 rounded-lg p-0.5 flex-shrink-0">
+          <button
+            onClick={() => { setShowOptimized(false); setEditedCVData(null); }}
+            className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+              !showOptimized ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
+            }`}
+          >
+            Original
+          </button>
+          <button
+            onClick={() => { setShowOptimized(true); setEditedCVData(null); }}
+            className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+              showOptimized ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
+            }`}
+          >
+            Optimized
+          </button>
+        </div>
+      )}
+
+      {/* Content/Changes Toggle — only when Optimized is selected */}
+      {showOptimized && generatedCV && (
+        <div className="flex items-center bg-cream-100/80 rounded-lg p-0.5 flex-shrink-0">
+          <button
+            onClick={() => setActiveTab('content')}
+            className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+              activeTab === 'content' ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
+            }`}
+          >
+            <Eye className="w-3 h-3" />
+            Content
+          </button>
+          <button
+            onClick={() => setActiveTab('changes')}
+            className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+              activeTab === 'changes' ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
+            }`}
+          >
+            <Sparkles className={`w-3 h-3 ${activeTab === 'changes' ? 'text-gold-500' : ''}`} />
+            Changes {changes.length > 0 && `(${changes.length})`}
+          </button>
+        </div>
+      )}
+
+      {/* Template selector button */}
+      {activeTab === 'content' && !isEditMode && (
+        <button
+          onClick={() => setShowTemplateSelector(!showTemplateSelector)}
+          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-white border border-cream-200 rounded-lg hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0"
+        >
+          <Layout className="w-3 h-3 text-navy-500" />
+          <span className="hidden sm:inline">{selectedTemplate?.name || 'Template'}</span>
+          {showTemplateSelector ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+        </button>
+      )}
+
+      {/* Edit button */}
+      {activeTab === 'content' && !isEditMode && cvData && (
+        <button
+          onClick={() => {
+            setIsEditMode(true);
+            if (cvData && !editedCVData) setEditedCVData(cvData);
+          }}
+          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-white border border-cream-200 rounded-lg hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0"
+        >
+          <Edit3 className="w-3 h-3 text-navy-500" />
+          <span className="hidden sm:inline">Edit</span>
+        </button>
+      )}
+
+      {/* Edit mode indicators */}
+      {isEditMode && (
+        <>
+          <span className="text-xs font-medium text-navy-600 flex-shrink-0">Editing</span>
+          <button
+            onClick={() => { setIsEditMode(false); setEditedCVData(null); }}
+            className="px-2.5 py-1.5 text-xs font-medium text-warm-gray hover:text-charcoal rounded-md hover:bg-cream-100 transition-all cursor-pointer flex-shrink-0"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => setIsEditMode(false)}
+            className="px-2.5 py-1.5 text-xs font-semibold text-white bg-gold-500 hover:bg-gold-600 rounded-md transition-all cursor-pointer flex-shrink-0"
+          >
+            <Check className="w-3 h-3 inline mr-1" />
+            Save
+          </button>
+        </>
+      )}
+
+      {/* Action buttons — visible when content tab is active and not editing */}
+      {activeTab === 'content' && !isEditMode && (
+        <>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleCopy(displayContent)}
+            title="Copy to clipboard"
+            className="flex-shrink-0"
+          >
+            {copied ? <Check className="w-4 h-4 text-sage-600" /> : <Copy className="w-4 h-4" />}
+          </Button>
+          <Button
+            variant="gold"
+            size="sm"
+            onClick={handleDownloadPDF}
+            disabled={isDownloading || !cvData}
+            title="Download as PDF"
+            className="flex-shrink-0"
+          >
+            {isDownloading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            <span className="ml-1 hidden sm:inline">PDF</span>
+          </Button>
+        </>
+      )}
+    </>
+  ) : null;
+
   return (
     <div className="h-full flex flex-col bg-cream-50">
-      {/* Compact Single-Row Toolbar — always visible when not loading */}
-      {!isLoading && (
+      {/* Toolbar: portal to tab bar on desktop, inline on mobile */}
+      {toolbarContent && toolbarPortal && createPortal(toolbarContent, toolbarPortal)}
+      {toolbarContent && !toolbarPortal && (
         <div className="px-2.5 sm:px-4 py-1.5 sm:py-2 glass-toolbar flex-shrink-0">
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-            {/* Original/Optimized Toggle — first position */}
-            {generatedCV && (
-              <div className="flex items-center bg-cream-100/80 rounded-lg p-0.5 flex-shrink-0">
-                <button
-                  onClick={() => { setShowOptimized(false); setEditedCVData(null); }}
-                  className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                    !showOptimized ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-                  }`}
-                >
-                  Original
-                </button>
-                <button
-                  onClick={() => { setShowOptimized(true); setEditedCVData(null); }}
-                  className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                    showOptimized ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-                  }`}
-                >
-                  Optimized
-                </button>
-              </div>
-            )}
-
-            {/* Content/Changes Toggle — second position */}
-            <div className="flex items-center bg-cream-100/80 rounded-lg p-0.5 flex-shrink-0">
-              <button
-                onClick={() => setActiveTab('content')}
-                className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                  activeTab === 'content' ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-                }`}
-              >
-                <Eye className="w-3 h-3" />
-                Content
-              </button>
-              <button
-                onClick={() => setActiveTab('changes')}
-                className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                  activeTab === 'changes' ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-                }`}
-              >
-                <Sparkles className={`w-3 h-3 ${activeTab === 'changes' ? 'text-gold-500' : ''}`} />
-                Changes {changes.length > 0 && `(${changes.length})`}
-              </button>
-            </div>
-
-            {activeTab === 'content' && (
-              <>
-                
-                {/* Template Selector Toggle */}
-                <button
-                  onClick={() => setShowTemplateSelector(!showTemplateSelector)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium bg-cream-50 border border-cream-200 rounded-lg hover:bg-cream-100 transition-all cursor-pointer flex-shrink-0"
-                >
-                  <Layout className="w-3.5 h-3.5 text-navy-500" />
-                  <span className="hidden sm:inline">{selectedTemplate?.name || 'Template'}</span>
-                  <span className="sm:hidden">Tmpl</span>
-                  {showTemplateSelector ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                </button>
-
-                {/* Spacer */}
-                <div className="flex-1 min-w-2" />
-
-                {/* View/Edit Mode Toggle */}
-                <div className="flex items-center bg-cream-100/80 rounded-lg p-0.5 flex-shrink-0">
-                  <button
-                    onClick={() => setIsEditMode(false)}
-                    className={`flex items-center gap-1 px-2 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                      !isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-                    }`}
-                    title="View mode"
-                  >
-                    <Eye className="w-3 h-3" />
-                    <span className="hidden sm:inline">View</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsEditMode(true);
-                      if (cvData && !editedCVData) {
-                        setEditedCVData(cvData);
-                      }
-                    }}
-                    className={`flex items-center gap-1 px-2 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                      isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-                    }`}
-                    title="Edit mode"
-                  >
-                    <Edit3 className="w-3 h-3" />
-                    <span className="hidden sm:inline">Edit</span>
-                  </button>
-                </div>
-                
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => handleCopy(displayContent)}
-                  title="Copy to clipboard"
-                  className="flex-shrink-0"
-                >
-                  {copied ? <Check className="w-4 h-4 text-sage-600" /> : <Copy className="w-4 h-4" />}
-                </Button>
-                <Button 
-                  variant="gold" 
-                  size="sm" 
-                  onClick={handleDownloadPDF}
-                  disabled={isDownloading || !cvData}
-                  title="Download as PDF"
-                  className="flex-shrink-0"
-                >
-                  {isDownloading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Download className="w-4 h-4" />
-                  )}
-                  <span className="ml-1 hidden sm:inline">PDF</span>
-                </Button>
-              </>
-            )}
+            {toolbarContent}
           </div>
         </div>
       )}
@@ -662,37 +679,36 @@ export function CVPanel() {
                 />
               </div>
             )}
-            
+
             {/* CV Content - View Mode or Edit Mode */}
             <div className="flex-1 overflow-auto p-2 sm:p-6 bg-gray-100">
               {isEditMode && cvData ? (
                 /* Edit Mode - Editable Canvas */
-                <EditableCVCanvas
-                  cvData={editedCVData || cvData}
-                  onSave={(updatedData) => {
-                    setEditedCVData(updatedData);
-                    // Persist personal links to Supabase profiles table
-                    const p = updatedData.personal;
-                    const linkUpdates: Record<string, string | null> = {};
-                    if (p.linkedIn !== undefined) linkUpdates.linkedin_url = p.linkedIn || null;
-                    if (p.github !== undefined) linkUpdates.github_url = p.github || null;
-                    if (p.portfolio !== undefined) linkUpdates.portfolio_url = p.portfolio || null;
-                    if (p.website !== undefined) linkUpdates.website_url = p.website || null;
-                    if (Object.keys(linkUpdates).length > 0) {
-                      updateProfile(linkUpdates as any).catch((err: any) =>
-                        console.error('[CVPanel] Failed to save personal links:', err)
-                      );
-                    }
-                  }}
-                  onAIImprove={async (section, content) => {
-                    // TODO: Call AI to improve the section
-                    return content;
-                  }}
-                />
+                <div className="flex flex-col h-full">
+                  <EditableCVCanvas
+                    cvData={editedCVData || cvData}
+                    onSave={(updatedData) => {
+                      setEditedCVData(updatedData);
+                      const p = updatedData.personal;
+                      const linkUpdates: Record<string, string | null> = {};
+                      if (p.linkedIn !== undefined) linkUpdates.linkedin_url = p.linkedIn || null;
+                      if (p.github !== undefined) linkUpdates.github_url = p.github || null;
+                      if (p.portfolio !== undefined) linkUpdates.portfolio_url = p.portfolio || null;
+                      if (p.website !== undefined) linkUpdates.website_url = p.website || null;
+                      if (Object.keys(linkUpdates).length > 0) {
+                        updateProfile(linkUpdates as any).catch((err: any) =>
+                          console.error('[CVPanel] Failed to save personal links:', err)
+                        );
+                      }
+                    }}
+                    onAIImprove={async (section, content) => {
+                      return content;
+                    }}
+                  />
+                </div>
               ) : cvData ? (
                 /* View Mode - Template Preview */
-                <div className="flex flex-col items-center gap-4">
-                  {/* Page container - scales down on mobile to fit screen */}
+                <div className="flex flex-col items-center">
                   <div className="cv-pages-container w-full max-w-[800px] origin-top">
                     <div className="cv-page-wrapper relative bg-white shadow-lg cv-mobile-scale">
                       <div ref={cvTemplateRef}>

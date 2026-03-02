@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useAppStore } from '@/store/useAppStore';
-import { Send, Copy, Check, RefreshCw, Edit3, Eye, Clock } from 'lucide-react';
+import { Send, Copy, Check, RefreshCw, Edit3, Clock } from 'lucide-react';
 import type { GeneratedEmail } from '@/lib/types';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import { useToast } from './ui/Toast';
@@ -14,7 +15,11 @@ import { SignUpWallModal } from '@/components/SignUpWallModal';
 import { usePostHog } from 'posthog-js/react';
 import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
 
-export function EmailPanel() {
+interface EmailPanelProps {
+  toolbarPortal?: HTMLDivElement | null;
+}
+
+export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   const { user } = useAuth();
   const posthog = usePostHog();
   const { 
@@ -349,50 +354,48 @@ export function EmailPanel() {
     );
   }
 
-  return (
-    <div className="h-full flex flex-col bg-cream-50">
-      {/* Compact Single-Row Toolbar */}
-      <div className="px-2.5 sm:px-4 py-1.5 sm:py-2 glass-toolbar flex-shrink-0">
-        <div className="flex items-center gap-1.5">
-          {/* View/Edit Toggle */}
-          <div className="flex items-center bg-cream-100/80 rounded-lg p-0.5 flex-shrink-0">
-            <button
-              onClick={() => setIsEditMode(false)}
-              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                !isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-              }`}
-              title="View mode"
-            >
-              <Eye className="w-3 h-3" />
-              View
-            </button>
-            <button
-              onClick={() => {
-                setIsEditMode(true);
-                if (email && !editedEmail) setEditedEmail(email);
-                if (followUpEmail && !editedFollowUp) setEditedFollowUp(followUpEmail);
-              }}
-              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-              }`}
-              title="Edit mode"
-            >
-              <Edit3 className="w-3 h-3" />
-              Edit
-            </button>
-          </div>
-          
-          {isEditMode && (
-            <Button variant="primary" size="sm" onClick={handleSaveEdits} className="flex-shrink-0">
-              <Check className="w-4 h-4 mr-1" />
-              Save
-            </Button>
-          )}
+  // Toolbar content — rendered via portal (desktop) or inline (mobile)
+  const toolbarContent = (
+    <>
+      {/* Edit mode controls */}
+      {isEditMode && (
+        <>
+          <span className="text-xs font-medium text-navy-600 flex-shrink-0">Editing</span>
+          <Button variant="primary" size="sm" onClick={handleSaveEdits} className="flex-shrink-0">
+            <Check className="w-4 h-4 mr-1" />
+            Save
+          </Button>
+          <button
+            onClick={() => {
+              setIsEditMode(false);
+              setEditedEmail(null);
+              setEditedFollowUp(null);
+            }}
+            className="px-2.5 py-1.5 text-xs font-medium text-warm-gray hover:text-charcoal rounded-md hover:bg-cream-100 transition-all cursor-pointer flex-shrink-0"
+          >
+            Cancel
+          </button>
+        </>
+      )}
 
-          {/* Spacer */}
-          <div className="flex-1" />
+      {/* Edit button (view mode) */}
+      {!isEditMode && email && (
+        <button
+          onClick={() => {
+            setIsEditMode(true);
+            if (email && !editedEmail) setEditedEmail(email);
+            if (followUpEmail && !editedFollowUp) setEditedFollowUp(followUpEmail);
+          }}
+          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-white border border-cream-200 rounded-lg hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0"
+        >
+          <Edit3 className="w-3 h-3 text-navy-500" />
+          <span className="hidden sm:inline">Edit</span>
+        </button>
+      )}
 
-          {/* Copy Full Email Buttons */}
+      {/* Copy Full Email Buttons (view mode) */}
+      {!isEditMode && (
+        <>
           <PortalTooltip text="Copy full primary email">
             <Button variant="primary" size="sm" onClick={handleCopyFullPrimary}>
               {copiedFullPrimary ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
@@ -407,8 +410,25 @@ export function EmailPanel() {
               </Button>
             </PortalTooltip>
           )}
+        </>
+      )}
+    </>
+  );
+
+  return (
+    <>
+    {/* Toolbar: portal to tab bar on desktop, inline on mobile */}
+    {toolbarPortal && createPortal(toolbarContent, toolbarPortal)}
+
+    <div className="h-full flex flex-col bg-cream-50">
+      {/* Inline toolbar for mobile only (no portal) */}
+      {!toolbarPortal && (
+        <div className="px-2.5 sm:px-4 py-1.5 sm:py-2 glass-toolbar flex-shrink-0">
+          <div className="flex items-center gap-1.5">
+            {toolbarContent}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex-1 overflow-auto p-3 sm:p-6">
         {isLoadingEmail || isGenerating || isAgentWorking ? (
@@ -418,6 +438,7 @@ export function EmailPanel() {
             message="Composing a professional application email..."
           />
         ) : (
+          <>
           <Card className="max-w-2xl mx-auto">
             {/* Primary Application Email Badge */}
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold mb-4" style={{ backgroundColor: 'rgba(201, 168, 76, 0.12)', color: '#b8952f' }}>
@@ -628,6 +649,8 @@ export function EmailPanel() {
               )}
             </div>
           </Card>
+
+          </>
         )}
       </div>
       {/* Sign Up Wall Modal */}
@@ -637,5 +660,6 @@ export function EmailPanel() {
         trigger="download"
       />
     </div>
+    </>
   );
 }

@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useAppStore } from '@/store/useAppStore';
-import { Mail, Download, Copy, Check, RefreshCw, ChevronDown, FileText, File, Edit3, Eye } from 'lucide-react';
+import { Mail, Download, Copy, Check, RefreshCw, ChevronDown, FileText, File, Edit3 } from 'lucide-react';
 import type { GeneratedCoverLetter } from '@/lib/types';
 import { jsPDF } from 'jspdf';
 import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
@@ -14,7 +15,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { SignUpWallModal } from '@/components/SignUpWallModal';
 import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
 
-export function CoverLetterPanel() {
+interface CoverLetterPanelProps {
+  toolbarPortal?: HTMLDivElement | null;
+}
+
+export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) {
   const { user } = useAuth();
   const { currentSession, isGenerating, isAgentWorking, setCoverLetter, currentCV, structuredCV, masterCV } = useAppStore();
   const [showSignUpWall, setShowSignUpWall] = useState(false);
@@ -546,105 +551,113 @@ ${letter.signatureName}`;
     }
   };
 
-  return (
-    <div className="h-full flex flex-col bg-cream-50">
-      {/* Compact Single-Row Toolbar */}
-      <div className="px-2.5 sm:px-4 py-1.5 sm:py-2 glass-toolbar flex-shrink-0">
-        <div className="flex items-center gap-1.5">
-          <div className="flex-1 flex items-center gap-1.5 overflow-x-auto scrollbar-hide min-w-0">
-            {/* View/Edit Toggle */}
-            <div className="flex items-center bg-cream-100/80 rounded-lg p-0.5 flex-shrink-0">
+  // Toolbar content — rendered via portal (desktop) or inline (mobile)
+  const toolbarContent = (
+    <>
+      {/* Edit mode controls */}
+      {isEditMode && (
+        <>
+          <span className="text-xs font-medium text-navy-600 flex-shrink-0">Editing</span>
+          <Button variant="primary" size="sm" onClick={handleSaveEdits} className="flex-shrink-0">
+            <Check className="w-4 h-4 mr-1" />
+            Save
+          </Button>
+          <button
+            onClick={() => { setIsEditMode(false); setEditedCoverLetter(coverLetter); }}
+            className="px-2.5 py-1.5 text-xs font-medium text-warm-gray hover:text-charcoal rounded-md hover:bg-cream-100 transition-all cursor-pointer flex-shrink-0"
+          >
+            Cancel
+          </button>
+        </>
+      )}
+
+      {/* Edit button (view mode) */}
+      {!isEditMode && coverLetter && (
+        <button
+          onClick={() => setIsEditMode(true)}
+          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-white border border-cream-200 rounded-lg hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0"
+        >
+          <Edit3 className="w-3 h-3 text-navy-500" />
+          <span className="hidden sm:inline">Edit</span>
+        </button>
+      )}
+
+      {/* Action Buttons (view mode) */}
+      {!isEditMode && (
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGenerateCoverLetter}
+            isLoading={isLoadingCoverLetter}
+            className="flex-shrink-0"
+          >
+            <RefreshCw className="w-4 h-4 mr-1" />
+            <span className="hidden sm:inline">Regenerate</span>
+            <span className="sm:hidden">Regen</span>
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleCopy} className="flex-shrink-0">
+            {copied ? <Check className="w-4 h-4 text-sage-600" /> : <Copy className="w-4 h-4" />}
+            <span className="ml-1 hidden sm:inline">{copied ? 'Copied!' : 'Copy'}</span>
+          </Button>
+        </>
+      )}
+
+      {/* Download Dropdown (view mode) */}
+      {!isEditMode && (
+        <div className="relative flex-shrink-0" ref={downloadMenuRef}>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+            disabled={isDownloading}
+          >
+            {isDownloading ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-1" />
+            ) : (
+              <Download className="w-4 h-4 mr-1" />
+            )}
+            <span className="hidden sm:inline">Download</span>
+            <ChevronDown className="w-3 h-3 ml-1" />
+          </Button>
+
+          {showDownloadMenu && (
+            <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-cream-200 py-1 z-50">
               <button
-                onClick={() => setIsEditMode(false)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                  !isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-                }`}
-                title="View mode"
+                onClick={handleDownloadPDF}
+                className="w-full px-4 py-2 text-left text-sm text-charcoal hover:bg-cream-100 flex items-center gap-2 cursor-pointer"
               >
-                <Eye className="w-3 h-3" />
-                View
+                <FileText className="w-4 h-4 text-red-500" />
+                Download as PDF
               </button>
               <button
-                onClick={() => setIsEditMode(true)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                  isEditMode ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-                }`}
-                title="Edit mode"
+                onClick={handleDownloadDOCX}
+                className="w-full px-4 py-2 text-left text-sm text-charcoal hover:bg-cream-100 flex items-center gap-2 cursor-pointer"
               >
-                <Edit3 className="w-3 h-3" />
-                Edit
+                <File className="w-4 h-4 text-blue-500" />
+                Download as DOCX
               </button>
             </div>
-            
-            {isEditMode && (
-              <Button variant="primary" size="sm" onClick={handleSaveEdits} className="flex-shrink-0">
-                <Check className="w-4 h-4 mr-1" />
-                Save
-              </Button>
-            )}
+          )}
+        </div>
+      )}
+    </>
+  );
 
-            {/* Divider */}
-            <div className="w-px h-5 bg-cream-200 flex-shrink-0" />
+  return (
+    <>
+    {/* Toolbar: portal to tab bar on desktop, inline on mobile */}
+    {toolbarPortal && createPortal(toolbarContent, toolbarPortal)}
 
-            {/* Spacer */}
-            <div className="flex-1 min-w-2" />
-
-            {/* Action Buttons */}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleGenerateCoverLetter}
-              isLoading={isLoadingCoverLetter}
-              className="flex-shrink-0"
-            >
-              <RefreshCw className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Regenerate</span>
-              <span className="sm:hidden">Regen</span>
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleCopy} className="flex-shrink-0">
-              {copied ? <Check className="w-4 h-4 text-sage-600" /> : <Copy className="w-4 h-4" />}
-              <span className="ml-1 hidden sm:inline">{copied ? 'Copied!' : 'Copy'}</span>
-            </Button>
-          </div>
-          
-          {/* Download Dropdown — OUTSIDE overflow container so it's never clipped */}
-          <div className="relative flex-shrink-0" ref={downloadMenuRef}>
-            <Button 
-              variant="primary" 
-              size="sm" 
-              onClick={() => setShowDownloadMenu(!showDownloadMenu)}
-              disabled={isDownloading}
-            >
-              {isDownloading ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-1" />
-              ) : (
-                <Download className="w-4 h-4 mr-1" />
-              )}
-              <span className="hidden sm:inline">Download</span>
-              <ChevronDown className="w-3 h-3 ml-1" />
-            </Button>
-            
-            {showDownloadMenu && (
-              <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-cream-200 py-1 z-50">
-                <button
-                  onClick={handleDownloadPDF}
-                  className="w-full px-4 py-2 text-left text-sm text-charcoal hover:bg-cream-100 flex items-center gap-2 cursor-pointer"
-                >
-                  <FileText className="w-4 h-4 text-red-500" />
-                  Download as PDF
-                </button>
-                <button
-                  onClick={handleDownloadDOCX}
-                  className="w-full px-4 py-2 text-left text-sm text-charcoal hover:bg-cream-100 flex items-center gap-2 cursor-pointer"
-                >
-                  <File className="w-4 h-4 text-blue-500" />
-                  Download as DOCX
-                </button>
-              </div>
-            )}
+    <div className="h-full flex flex-col bg-cream-50">
+      {/* Inline toolbar for mobile only (no portal) */}
+      {!toolbarPortal && (
+        <div className="px-2.5 sm:px-4 py-1.5 sm:py-2 glass-toolbar flex-shrink-0">
+          <div className="flex items-center gap-1.5">
+            {toolbarContent}
           </div>
         </div>
-      </div>
+      )}
 
       <div className="flex-1 overflow-auto p-3 sm:p-6">
         {isGenerating || isLoadingCoverLetter || isAgentWorking ? (
@@ -654,73 +667,61 @@ ${letter.signatureName}`;
             message="Crafting a personalized cover letter that highlights your qualifications..."
           />
         ) : (
-          <Card className="max-w-2xl mx-auto p-8">
-            {isEditMode ? (
-              /* Edit Mode - Single textarea for full cover letter content */
-              <div className="space-y-2">
-                <p className="text-xs text-warm-gray mb-2">
-                  Edit your cover letter content below. The full letter including salutation and closing is included.
-                </p>
-                <textarea
-                  value={activeCoverLetter?.body || ''}
-                  onChange={(e) => updateField('body', e.target.value)}
-                  className="w-full text-sm text-charcoal leading-relaxed bg-cream-50 border border-cream-300 rounded px-3 py-3 focus:border-navy-400 focus:outline-none resize-none"
-                  rows={20}
-                  placeholder="Cover letter content..."
-                />
-              </div>
-            ) : (
-              /* View Mode */
-              <>
-                {/* Check if we have structured data or just the body (3-agent architecture) */}
-                {activeCoverLetter?.applicantAddress.name ? (
-                  <>
-                    {/* Applicant Address - only show if we have structured data */}
-                    <div className="text-sm text-charcoal mb-6">
-                      <p className="font-medium">{activeCoverLetter?.applicantAddress.name}</p>
-                      {activeCoverLetter?.applicantAddress.street && <p>{activeCoverLetter.applicantAddress.street}</p>}
-                      {activeCoverLetter?.applicantAddress.city && <p>{activeCoverLetter.applicantAddress.city}</p>}
-                      {activeCoverLetter?.applicantAddress.country && <p>{activeCoverLetter.applicantAddress.country}</p>}
-                      {activeCoverLetter?.applicantAddress.phone && <p className="mt-2">{activeCoverLetter.applicantAddress.phone}</p>}
-                      {activeCoverLetter?.applicantAddress.email && <p>{activeCoverLetter.applicantAddress.email}</p>}
-                    </div>
-
-                    {/* Date */}
-                    {activeCoverLetter?.date && <p className="text-sm text-charcoal mb-6">{activeCoverLetter.date}</p>}
-
-                    {/* Company Address */}
-                    {activeCoverLetter?.companyAddress.companyName && (
+          <>
+            <Card className="max-w-2xl mx-auto p-8">
+              {isEditMode ? (
+                /* Edit Mode */
+                <div className="space-y-2">
+                  <p className="text-xs text-warm-gray mb-2">
+                    Edit your cover letter content below. The full letter including salutation and closing is included.
+                  </p>
+                  <textarea
+                    value={activeCoverLetter?.body || ''}
+                    onChange={(e) => updateField('body', e.target.value)}
+                    className="w-full text-sm text-charcoal leading-relaxed bg-cream-50 border border-cream-300 rounded px-3 py-3 focus:border-navy-400 focus:outline-none resize-none"
+                    rows={20}
+                    placeholder="Cover letter content..."
+                  />
+                </div>
+              ) : (
+                /* View Mode */
+                <>
+                  {activeCoverLetter?.applicantAddress.name ? (
+                    <>
                       <div className="text-sm text-charcoal mb-6">
-                        <p className="font-medium">{activeCoverLetter.companyAddress.companyName}</p>
-                        {activeCoverLetter.companyAddress.department && <p>{activeCoverLetter.companyAddress.department}</p>}
-                        {activeCoverLetter.companyAddress.street && <p>{activeCoverLetter.companyAddress.street}</p>}
-                        {activeCoverLetter.companyAddress.city && <p>{activeCoverLetter.companyAddress.city}</p>}
+                        <p className="font-medium">{activeCoverLetter?.applicantAddress.name}</p>
+                        {activeCoverLetter?.applicantAddress.street && <p>{activeCoverLetter.applicantAddress.street}</p>}
+                        {activeCoverLetter?.applicantAddress.city && <p>{activeCoverLetter.applicantAddress.city}</p>}
+                        {activeCoverLetter?.applicantAddress.country && <p>{activeCoverLetter.applicantAddress.country}</p>}
+                        {activeCoverLetter?.applicantAddress.phone && <p className="mt-2">{activeCoverLetter.applicantAddress.phone}</p>}
+                        {activeCoverLetter?.applicantAddress.email && <p>{activeCoverLetter.applicantAddress.email}</p>}
                       </div>
-                    )}
-
-                    {/* Salutation */}
-                    {activeCoverLetter?.salutation && <p className="text-sm text-charcoal mb-4">{activeCoverLetter.salutation}</p>}
-
-                    {/* Body */}
-                    <div className="text-sm text-charcoal whitespace-pre-wrap mb-6 leading-relaxed">
+                      {activeCoverLetter?.date && <p className="text-sm text-charcoal mb-6">{activeCoverLetter.date}</p>}
+                      {activeCoverLetter?.companyAddress.companyName && (
+                        <div className="text-sm text-charcoal mb-6">
+                          <p className="font-medium">{activeCoverLetter.companyAddress.companyName}</p>
+                          {activeCoverLetter.companyAddress.department && <p>{activeCoverLetter.companyAddress.department}</p>}
+                          {activeCoverLetter.companyAddress.street && <p>{activeCoverLetter.companyAddress.street}</p>}
+                          {activeCoverLetter.companyAddress.city && <p>{activeCoverLetter.companyAddress.city}</p>}
+                        </div>
+                      )}
+                      {activeCoverLetter?.salutation && <p className="text-sm text-charcoal mb-4">{activeCoverLetter.salutation}</p>}
+                      <div className="text-sm text-charcoal whitespace-pre-wrap mb-6 leading-relaxed">
+                        {activeCoverLetter?.body}
+                      </div>
+                      {activeCoverLetter?.closing && <p className="text-sm text-charcoal mb-8">{activeCoverLetter.closing}</p>}
+                      {activeCoverLetter?.signatureName && <p className="text-sm text-charcoal font-medium">{activeCoverLetter.signatureName}</p>}
+                    </>
+                  ) : (
+                    <div className="text-sm text-charcoal whitespace-pre-wrap leading-relaxed">
                       {activeCoverLetter?.body}
                     </div>
+                  )}
+                </>
+              )}
+            </Card>
 
-                    {/* Closing */}
-                    {activeCoverLetter?.closing && <p className="text-sm text-charcoal mb-8">{activeCoverLetter.closing}</p>}
-
-                    {/* Signature */}
-                    {activeCoverLetter?.signatureName && <p className="text-sm text-charcoal font-medium">{activeCoverLetter.signatureName}</p>}
-                  </>
-                ) : (
-                  /* 3-Agent Architecture: Body contains the full formatted letter */
-                  <div className="text-sm text-charcoal whitespace-pre-wrap leading-relaxed">
-                    {activeCoverLetter?.body}
-                  </div>
-                )}
-              </>
-            )}
-          </Card>
+          </>
         )}
       </div>
 
@@ -731,5 +732,6 @@ ${letter.signatureName}`;
         trigger="download"
       />
     </div>
+    </>
   );
 }
