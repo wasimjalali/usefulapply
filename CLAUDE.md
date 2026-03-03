@@ -937,6 +937,43 @@ Currently using `onboarding@resend.dev` (same as the contact form — confirmed 
 
 ---
 
+## Supabase Database Audit
+
+**Date:** March 3, 2026
+
+### Overview
+Comprehensive audit of all 14 Supabase public tables against the codebase. Found and fixed 19 issues across 5 severity levels. Applied 5 SQL migrations. Security advisor warnings reduced from 10 to 3 (all intentional).
+
+### SQL Migrations Applied (run in Supabase SQL Editor)
+| Migration | Fixes |
+|-----------|-------|
+| `audit_fix_drop_wildcard_rls_policies` | Dropped dangerous wildcard RLS on `user_credits`, `subscriptions`, `contact_submissions` |
+| `audit_fix_user_data_sync_and_tier_defaults` | Synced 3 users' plan_tier data, changed default to `'free'`, deactivated `'starter'` tier |
+| `audit_fix_triggers_and_functions` | Rewrote `initialize_user_credits` to use `'free'`, fixed `search_path` on 3 functions, dropped 4 orphaned functions |
+| `audit_fix_chat_policy_index_and_comment` | Added `chat_messages` UPDATE policy, `user_id` index, `anonymous_generations` documentation comment |
+| `audit_fix_rls_performance_optimization` | Rewrote all 30+ RLS policies across 9 tables with `(select auth.uid())` caching |
+
+### Key Security Fixes
+- **Wildcard RLS policies removed** — `user_credits` and `subscriptions` had `{public}` role with `qual: true`, allowing ANY user to read/write ANY row (including setting credits to 999999)
+- **Contact submissions privacy** — SELECT policy allowed any logged-in user to read all submissions, not just admins
+- **Orphaned functions deleted** — 4 unused credit functions with mutable `search_path` vulnerability
+- **Function search_path fixed** — All 3 active trigger functions now use `SET search_path = public`
+
+### TypeScript Types Synced
+- `application_sessions`: added `fit_assessment`, `generation_completed`, `follow_up_email`
+- `subscription_plans`: added `stripe_product_id`, `stripe_price_id_monthly`, `active`
+- New tables: `addon_credit_packs`, `message_feedback` (full Row/Insert/Update types)
+- Yearly pricing columns (`price_yearly`, `stripe_price_id_yearly`): kept in DB (nullable, future-ready), not added to types.ts (no code uses them)
+
+### Dashboard Action Required
+**Enable Leaked Password Protection:** Supabase Dashboard > Authentication > Settings > Toggle on "Leaked Password Protection"
+
+### Reports
+- `SUPABASE_AUDIT_REPORT.md` — Full technical report with 19 findings, SQL migrations, severity ratings
+- `SUPABASE_AUDIT_FIXES_EXPLAINED.md` — Plain-English explanation of every fix
+
+---
+
 ## Changelog
 
 | Date | Change | Files | Details |
@@ -1006,3 +1043,4 @@ Currently using `onboarding@resend.dev` (same as the contact form — confirmed 
 | Mar 1, 2026 | **Account deletion: server-side with auth.users removal** | `api/auth/delete-account/route.ts` (new), `settings/page.tsx` | **Root cause**: `deleteUserAccount()` ran client-side with the anon key — it could delete from public tables but never touched `auth.users` (requires service role key). Users could still log in after "deleting" their account. **Fix**: New `DELETE /api/auth/delete-account` server-side route that: (1) verifies caller via `supabase.auth.getUser()`, (2) deletes all user data from public tables via admin client (bypasses RLS), (3) deletes user from `auth.users` via `admin.deleteUser(userId)`, (4) clears storage bucket files. Settings page now calls this API route instead of the old client-side function. |
 | Mar 2, 2026 | **Dashboard UX redesign: two-tier header, portal toolbars, mobile bottom tab bar** | `dashboard/page.tsx`, `CVPanel.tsx`, `CoverLetterPanel.tsx`, `EmailPanel.tsx`, `ChatPanel.tsx`, `chat/ChatMessage.tsx` | **Core problem**: Three header layers (global nav + tabs + panel toolbar = ~120px before content), toolbar overload on all 3 panels, mobile chat drawer felt like afterthought, duplicate Settings icon + avatar both linking to settings. **Fix**: Two clean tiers — **Tier 1** = global nav with logo + document tabs (CV/Cover Letter/Email) inline + credits + nav icons (Documents/Applications) + avatar (Settings icon removed, avatar links to settings). **Tier 2** = panel-specific toolbar only (no tabs). Each panel renders its controls into a `toolbarPortal` slot using React `createPortal`; mobile falls back to inline toolbar. **(1) CV Panel**: Original/Optimized, Content/Changes, Template, Edit, Copy, PDF all portal into Tier 2 toolbar. Floating bottom buttons removed. **(2) Cover Letter Panel**: Edit, Regenerate, Copy, Download portal into Tier 2. Floating Edit removed. **(3) Email Panel**: Edit, Copy Email, Copy Follow-Up portal into Tier 2. Floating Edit removed. **(4) Chat Panel**: Header simplified to "Chat" with Sparkles icon; mobile drawer removed. **(5) Mobile**: Bottom tab bar (Chat/CV/Letter/Email/More); "More" popover with Documents/Applications/Settings; full-screen panels; safe area insets. **(6) ChatMessage**: All action buttons use consistent vertical stacked layout with connecting line dots. `tsc --noEmit` = 0 errors. Full analysis: `UX_REDESIGN_ANALYSIS.md`. |
 | Mar 3, 2026 | **Fix 3 PostHog-tracked bugs: QuotaExceededError, React #310, auth login** | `useCVStore.ts`, `dashboard/page.tsx`, `AuthContext.tsx`, `login/page.tsx` | **Bug 1 (QuotaExceededError)**: Profile photo base64 dataUrl (6+ MB) stored in localStorage via Zustand persist exceeded ~5 MB quota. **Fix**: Added `partialize` to `useCVStore` excluding `profilePhoto` from persistence; photo reloads from Supabase each session. **Bug 2 (React Error #310)**: Two `useState` hooks (`mobileTab`, `showMobileMore`) called after early `return` in dashboard violated Rules of Hooks — 8 hooks on loading render, 10 after. **Fix**: Moved both hooks before the early return. **Bug 3 (auth "Invalid credentials")**: Supabase returns `email_not_confirmed` error code when unconfirmed users try to login, but app showed generic "Invalid credentials" — users had no idea they needed to confirm email. **Fix**: `signIn()` detects `email_not_confirmed` code and returns sentinel; login page shows amber info box with clear instructions + "Resend confirmation email" button (calls `/api/auth/signup` which regenerates confirmation link via Resend). `tsc --noEmit` = 0 errors. |
+| Mar 3, 2026 | **Supabase full audit: 19 findings fixed (5 critical, 6 high, 5 medium, 3 low)** | `types.ts`, `delete-account/route.ts`, 5 SQL migrations | **19 findings across RLS, data integrity, types, performance, and security.** **CRITICAL (5)**: (C1) `initialize_user_credits` trigger used deprecated `'starter'` instead of `'free'` — fixed trigger + column default. (C2) 3/4 users had mismatched `profiles.subscription_tier` vs `user_credits.plan_tier` — synced all. (C3) 4 orphaned DB functions (`check_credit_balance`, `deduct_user_credits`, `get_total_credits`, `add_credits`) with mutable `search_path` vulnerability — deleted all 4 + fixed `search_path` on 3 active functions. (C4) `user_credits` had wildcard RLS policy (`{public}` role, `qual: true`) — anyone could set credits to 999999 — dropped. (C5) `subscriptions` had same wildcard RLS — dropped. **HIGH (6)**: (H1-H3) TypeScript `types.ts` missing 3 columns on `application_sessions` + 3 on `subscription_plans` + 2 entire tables (`addon_credit_packs`, `message_feedback`) — all added. (H4) `contact_submissions` "admin" SELECT policy actually allowed ANY logged-in user to read all submissions — dropped. (H5) 3 active functions had mutable `search_path` — fixed with `SET search_path = public`. (H6) Leaked password protection disabled — Dashboard toggle required (manual). **MEDIUM (5)**: (M1) Ghost `cv-uploads` bucket in delete-account — removed. (M2) Duplicate `starter`/`free` tiers in `subscription_plans` — deactivated starter (`active = false`). (M3) `chat_messages` missing UPDATE RLS policy — added. (M4) All 30+ RLS policies used `auth.uid()` per-row — rewrote all to `(select auth.uid())` for caching. (M5) Missing index on `chat_messages.user_id` — added. **LOW (3)**: (L1) `anonymous_generations` intentionally has no policies (service-role only) — added documentation comment. (L2) Account deletion redundant manual deletes (FK CASCADE exists) — documented as defense-in-depth. (L3) Contact form INSERT open to anon — intentional, rate-limited. **Migrations applied**: `audit_fix_drop_wildcard_rls_policies`, `audit_fix_user_data_sync_and_tier_defaults`, `audit_fix_triggers_and_functions`, `audit_fix_chat_policy_index_and_comment`, `audit_fix_rls_performance_optimization`. Security advisor warnings: 10 → 3 (all intentional). Reports: `SUPABASE_AUDIT_REPORT.md`, `SUPABASE_AUDIT_FIXES_EXPLAINED.md`. `tsc --noEmit` = 0 errors. |

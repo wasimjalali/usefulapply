@@ -53,7 +53,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete storage files
-    const buckets = ['avatars', 'profile-photos', 'generated-pdfs', 'cv-uploads', 'cv-files'];
+    const buckets = ['avatars', 'profile-photos', 'generated-pdfs', 'cv-files'];
     for (const bucket of buckets) {
       try {
         const { data: files } = await supabaseAdmin.storage.from(bucket).list(userId);

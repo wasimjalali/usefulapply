@@ -175,6 +175,9 @@ export interface Database {
           selected_template: string
           status: 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up'
           cover_letter_language: string
+          fit_assessment: Json | null
+          generation_completed: boolean
+          follow_up_email: Json | null
           created_at: string
           updated_at: string
         }
@@ -205,6 +208,9 @@ export interface Database {
           selected_template?: string
           status?: 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up'
           cover_letter_language?: string
+          fit_assessment?: Json | null
+          generation_completed?: boolean
+          follow_up_email?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -235,6 +241,9 @@ export interface Database {
           selected_template?: string
           status?: 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up'
           cover_letter_language?: string
+          fit_assessment?: Json | null
+          generation_completed?: boolean
+          follow_up_email?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -507,6 +516,9 @@ export interface Database {
           rollover_months: number
           max_rollover_credits: number
           addon_enabled: boolean
+          stripe_product_id: string | null
+          stripe_price_id_monthly: string | null
+          active: boolean
           display_order: number
           created_at: string
           updated_at: string
@@ -521,6 +533,9 @@ export interface Database {
           rollover_months?: number
           max_rollover_credits?: number
           addon_enabled?: boolean
+          stripe_product_id?: string | null
+          stripe_price_id_monthly?: string | null
+          active?: boolean
           display_order?: number
           created_at?: string
           updated_at?: string
@@ -535,9 +550,82 @@ export interface Database {
           rollover_months?: number
           max_rollover_credits?: number
           addon_enabled?: boolean
+          stripe_product_id?: string | null
+          stripe_price_id_monthly?: string | null
+          active?: boolean
           display_order?: number
           created_at?: string
           updated_at?: string
+        }
+      }
+      addon_credit_packs: {
+        Row: {
+          id: string
+          name: string
+          credits: number
+          price: number
+          discount_percent: number
+          stripe_product_id: string | null
+          stripe_price_id: string | null
+          active: boolean
+          display_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          credits: number
+          price: number
+          discount_percent?: number
+          stripe_product_id?: string | null
+          stripe_price_id?: string | null
+          active?: boolean
+          display_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          credits?: number
+          price?: number
+          discount_percent?: number
+          stripe_product_id?: string | null
+          stripe_price_id?: string | null
+          active?: boolean
+          display_order?: number
+          created_at?: string
+        }
+      }
+      message_feedback: {
+        Row: {
+          id: string
+          user_id: string
+          session_id: string | null
+          message_id: string
+          feedback_type: 'positive' | 'negative'
+          feedback_text: string | null
+          message_content: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          session_id?: string | null
+          message_id: string
+          feedback_type: 'positive' | 'negative'
+          feedback_text?: string | null
+          message_content?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          session_id?: string | null
+          message_id?: string
+          feedback_type?: 'positive' | 'negative'
+          feedback_text?: string | null
+          message_content?: string | null
+          created_at?: string
         }
       }
     }
@@ -571,3 +659,5 @@ export type ContactSubmission = Tables<'contact_submissions'>
 export type UserCreditsRow = Tables<'user_credits'>
 export type CreditTransaction = Tables<'credit_transactions'>
 export type SubscriptionPlan = Tables<'subscription_plans'>
+export type AddonCreditPack = Tables<'addon_credit_packs'>
+export type MessageFeedback = Tables<'message_feedback'>
