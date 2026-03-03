@@ -280,7 +280,7 @@ DROP FUNCTION IF EXISTS add_credits(uuid, integer, text, text, text);
 
 **Problem:** Supabase Auth can check passwords against HaveIBeenPwned.org to block compromised credentials. This is currently disabled.
 
-**Fix:** Enable in Supabase Dashboard: **Authentication > Settings > Password Protection > Enable Leaked Password Protection**
+**Fix:** Enable in Supabase Dashboard: **Authentication > Settings > Password Protection > Enable Leaked Password Protection**. Note: Requires paid Supabase plan — enable when upgrading from free tier.
 
 ---
 
@@ -649,9 +649,9 @@ Regenerate types using `npx supabase gen types typescript` or manually add:
 **subscription_plans:** Add `price_yearly`, `stripe_product_id`, `stripe_price_id_monthly`, `stripe_price_id_yearly`, `active`
 **New tables:** Add `addon_credit_packs` and `message_feedback` full definitions
 
-### Item 12: Enable Leaked Password Protection
+### Item 12: Enable Leaked Password Protection (Pending — requires paid Supabase plan)
 
-Supabase Dashboard > Authentication > Settings > Enable "Leaked Password Protection"
+Supabase Dashboard > Authentication > Settings > Enable "Leaked Password Protection". Requires paid plan — enable when upgrading from free tier.
 
 ### Item 13: Remove phantom bucket reference
 

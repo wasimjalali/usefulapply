@@ -965,8 +965,8 @@ Comprehensive audit of all 14 Supabase public tables against the codebase. Found
 - New tables: `addon_credit_packs`, `message_feedback` (full Row/Insert/Update types)
 - Yearly pricing columns (`price_yearly`, `stripe_price_id_yearly`): kept in DB (nullable, future-ready), not added to types.ts (no code uses them)
 
-### Dashboard Action Required
-**Enable Leaked Password Protection:** Supabase Dashboard > Authentication > Settings > Toggle on "Leaked Password Protection"
+### Dashboard Action (Pending Supabase Plan Upgrade)
+**Leaked Password Protection:** Requires paid Supabase plan. Currently on free tier — enable when upgrading: Dashboard > Authentication > Settings > Toggle on "Leaked Password Protection"
 
 ### Reports
 - `SUPABASE_AUDIT_REPORT.md` — Full technical report with 19 findings, SQL migrations, severity ratings

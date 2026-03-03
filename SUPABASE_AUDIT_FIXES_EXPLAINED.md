@@ -89,7 +89,7 @@ This document explains each problem found in the Supabase audit, what could have
 
 **What Could Have Gone Wrong:** A user signs up with a password like "password123" that's been leaked in 10,000 breaches. An attacker tries common leaked passwords against your login and gets in.
 
-**The Fix:** This is a Dashboard setting — go to **Supabase Dashboard > Authentication > Settings > Enable "Leaked Password Protection"**. I couldn't change this via code, but it's a one-click toggle.
+**The Fix:** This is a Dashboard setting — go to **Supabase Dashboard > Authentication > Settings > Enable "Leaked Password Protection"**. Note: This feature requires a **paid Supabase plan**. Currently on the free tier — enable when upgrading.
 
 ---
 
