@@ -199,6 +199,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password,
     });
 
+    // Supabase returns a generic "Invalid credentials" message for unconfirmed
+    // emails. Surface a clear, actionable message instead.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase error code not in AuthError type
+    if (error && (error as any).code === 'email_not_confirmed') {
+      return {
+        error: {
+          ...error,
+          message: 'EMAIL_NOT_CONFIRMED',
+        } as AuthError,
+      };
+    }
+
     return { error };
   };
 

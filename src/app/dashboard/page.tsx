@@ -43,6 +43,10 @@ export default function Dashboard() {
     setActiveTab(tab);
   }, [setActiveTab]);
 
+  // Mobile tab state — must be before any early returns (Rules of Hooks)
+  const [mobileTab, setMobileTab] = useState<'chat' | 'cv' | 'cover-letter' | 'email'>('chat');
+  const [showMobileMore, setShowMobileMore] = useState(false);
+
   // Resize effect (desktop only)
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -78,10 +82,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
-  // Mobile tab state — manages which tab is shown on mobile (including chat)
-  const [mobileTab, setMobileTab] = useState<'chat' | 'cv' | 'cover-letter' | 'email'>('chat');
-  const [showMobileMore, setShowMobileMore] = useState(false);
 
   // Sync mobile tab with active tab on desktop
   const handleMobileTabChange = (tab: 'chat' | 'cv' | 'cover-letter' | 'email') => {

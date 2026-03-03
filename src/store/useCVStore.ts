@@ -110,6 +110,16 @@ export const useCVStore = create<CVState & CVActions>()(
     {
       name: 'cv-store',
       storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        currentCV: state.currentCV,
+        masterCV: state.masterCV,
+        structuredCV: state.structuredCV,
+        optimizedCV: state.optimizedCV,
+        certifications: state.certifications,
+        originalPdfRef: state.originalPdfRef,
+        // profilePhoto excluded — base64 dataUrl can be 6+ MB, exceeding
+        // localStorage's ~5 MB quota. Photo reloads from Supabase on each session.
+      }),
     }
   )
 );
