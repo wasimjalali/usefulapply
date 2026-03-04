@@ -34,6 +34,11 @@ import { SignUpWallModal } from '@/components/SignUpWallModal';
 import { useToast } from './ui/Toast';
 import Link from 'next/link';
 
+// White margin added at the top and bottom of every PDF page (~10mm).
+// Content per page = pageHeight - 2×gutter; both the PDF slicer and the
+// preview indicator must use the same value so the line matches the cut.
+const CV_PAGE_GUTTER_PX = 40;
+
 interface CVPanelProps {
   toolbarPortal?: HTMLDivElement | null;
 }
@@ -90,11 +95,13 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
         setCvScale(1);
         setCvScaledHeight(null);
       }
-      // Page break indicator positions (in natural pixels, before any CSS transform)
+      // Page break indicator positions (in natural pixels, before any CSS transform).
+      // Use contentHeightPx (not full pageHeightPx) so the line matches the PDF cut point.
       const isGerman = selectedTemplateId.startsWith('german');
       const pageHeightPx = isGerman ? Math.round((297 / 25.4) * 96) : 1056;
+      const contentHeightPx = pageHeightPx - 2 * CV_PAGE_GUTTER_PX;
       const breaks: number[] = [];
-      for (let y = pageHeightPx; y < naturalHeight; y += pageHeightPx) {
+      for (let y = contentHeightPx; y < naturalHeight; y += contentHeightPx) {
         breaks.push(y);
       }
       setPageBreaks(breaks);
@@ -310,21 +317,27 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
         orientation: 'portrait',
       });
 
-      const pageCanvasHeight = pageHeightNaturalPx * captureScale;
-      const totalPages = Math.ceil(canvas.height / pageCanvasHeight);
+      // pageCanvasH  = full PDF page height in canvas pixels (destination size)
+      // contentCanvasH = content slice height per page (source size), leaving room for gutters
+      const pageCanvasH = pageHeightNaturalPx * captureScale;
+      const contentCanvasH = (pageHeightNaturalPx - 2 * CV_PAGE_GUTTER_PX) * captureScale;
+      const gutterCanvasH = CV_PAGE_GUTTER_PX * captureScale;
+      const totalPages = Math.ceil(canvas.height / contentCanvasH);
 
       for (let page = 0; page < totalPages; page++) {
         if (page > 0) doc.addPage();
-        const srcY = page * pageCanvasHeight;
-        const srcH = Math.min(pageCanvasHeight, canvas.height - srcY);
+        const srcY = page * contentCanvasH;
+        const srcH = Math.min(contentCanvasH, canvas.height - srcY);
         const pageCanvas = document.createElement('canvas');
         pageCanvas.width = canvas.width;
-        pageCanvas.height = pageCanvasHeight;
+        pageCanvas.height = pageCanvasH;
         const ctx = pageCanvas.getContext('2d');
         if (ctx) {
+          // White background fills entire page (creates top + bottom margins automatically)
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-          ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+          // Draw content slice offset by gutterCanvasH from the top
+          ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, gutterCanvasH, canvas.width, srcH);
         }
         doc.addImage(pageCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pageWidthMm, pageHeightMm);
       }
@@ -590,29 +603,37 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
                       <div ref={cvTemplateRef}>
                         <CVTemplateRenderer data={editedCVData || cvData} templateId={selectedTemplateId} />
                       </div>
-                      {/* Page break indicators — outside cvTemplateRef so not captured in PDF */}
+                      {/* Page break indicators — outside cvTemplateRef so not captured in PDF.
+                          Band spans CV_PAGE_GUTTER_PX above + below the cut point, mirroring
+                          the white margins that will appear in the downloaded PDF. */}
                       {pageBreaks.map((y, i) => (
                         <div
                           key={y}
                           style={{
                             position: 'absolute',
-                            top: y,
+                            top: y - CV_PAGE_GUTTER_PX,
                             left: 0,
                             right: 0,
+                            height: CV_PAGE_GUTTER_PX * 2,
+                            background: 'rgba(241, 245, 249, 0.75)',
+                            borderTop: '2px dashed #94A3B8',
+                            borderBottom: '2px dashed #94A3B8',
                             pointerEvents: 'none',
                             zIndex: 10,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'flex-end',
+                            paddingRight: 10,
                           }}
                         >
-                          <div style={{ borderTop: '2px dashed #CBD5E0', width: '100%' }} />
                           <span style={{
-                            position: 'absolute',
-                            top: 3,
-                            right: 8,
                             fontSize: 10,
-                            color: '#94A3B8',
-                            background: 'white',
-                            padding: '0 4px',
-                            lineHeight: 1,
+                            color: '#475569',
+                            background: 'rgba(248, 250, 252, 0.95)',
+                            padding: '2px 6px',
+                            borderRadius: 4,
+                            fontWeight: 500,
+                            lineHeight: 1.4,
                           }}>
                             Page {i + 1} | Page {i + 2}
                           </span>
