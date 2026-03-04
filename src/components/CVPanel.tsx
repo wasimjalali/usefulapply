@@ -465,21 +465,19 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
             }
           });
           // Replace photo <img> elements with the pre-cropped data URL.
-          // The cropped image is exactly the container size × scale, so we remove
-          // object-fit — html2canvas renders it as a plain <img> with no CSS tricks.
-          // This keeps the <img> in the DOM (preserving flex layout) and avoids the
-          // multi-MB background-image CSS value that caused blurry rendering.
+          // The cropped image is exactly the container size × scale, so we strip
+          // object-fit entirely and set explicit pixel dimensions — html2canvas
+          // renders it as a simple <img> with no CSS interpretation needed.
           if (croppedPhotoDataUrl) {
             clonedEl.querySelectorAll<HTMLImageElement>('img').forEach((img) => {
               if (!img.src || !img.parentElement) return;
               if (img.style.objectFit === 'cover' || img.style.objectFit === 'contain') {
+                const parentW = img.parentElement.offsetWidth;
+                const parentH = img.parentElement.offsetHeight;
                 img.src = croppedPhotoDataUrl!;
-                img.style.objectFit = 'fill';
-                img.style.width = '100%';
-                img.style.height = '100%';
-              } else if (img.src && !img.src.startsWith('data:')) {
-                // Non-objectFit images: just swap to base64 to avoid CORS
-                img.src = croppedPhotoDataUrl!;
+                img.style.objectFit = '';
+                img.style.width = parentW + 'px';
+                img.style.height = parentH + 'px';
               }
             });
           }
@@ -527,8 +525,9 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
           // Draw content slice offset by gutterCanvasH from the top
           ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, gutterCanvasH, canvas.width, srcH);
         }
-        // PNG is lossless — eliminates JPEG artifacts around sharp text edges and photo details.
-        doc.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidthMm, pageHeightMm);
+        // JPEG at 0.92 quality — visually indistinguishable from PNG for CV content
+        // but ~15-20× smaller (1-2MB vs 20MB for a 2-page CV).
+        doc.addImage(pageCanvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, pageWidthMm, pageHeightMm);
       }
 
       const blob = doc.output('blob');
