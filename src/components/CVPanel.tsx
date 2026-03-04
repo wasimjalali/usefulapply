@@ -308,6 +308,20 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
               style.textContent = style.textContent.replace(unsupportedColorRe, 'inherit');
             }
           });
+          // Fix: html2canvas 1.4.1 ignores CSS object-fit: cover — the <img> renders at
+          // its natural dimensions, overflows the container, and breaks the layout.
+          // Convert each affected <img> to a background-image on its parent instead;
+          // html2canvas correctly supports background-size: cover.
+          clonedEl.querySelectorAll<HTMLImageElement>('img').forEach((img) => {
+            if (!img.src || !img.parentElement) return;
+            if (img.style.objectFit !== 'cover' && img.style.objectFit !== 'contain') return;
+            const parent = img.parentElement;
+            parent.style.backgroundImage = `url('${img.src}')`;
+            parent.style.backgroundSize = img.style.objectFit;
+            parent.style.backgroundPosition = 'center center';
+            parent.style.backgroundRepeat = 'no-repeat';
+            img.remove();
+          });
         },
       });
 
@@ -615,9 +629,9 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
                             left: 0,
                             right: 0,
                             height: CV_PAGE_GUTTER_PX * 2,
-                            background: 'rgba(241, 245, 249, 0.75)',
-                            borderTop: '2px dashed #94A3B8',
-                            borderBottom: '2px dashed #94A3B8',
+                            background: 'rgba(148, 163, 184, 0.1)',
+                            borderTop: '1px dashed #CBD5E0',
+                            borderBottom: '1px dashed #CBD5E0',
                             pointerEvents: 'none',
                             zIndex: 10,
                             display: 'flex',
@@ -628,11 +642,11 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
                         >
                           <span style={{
                             fontSize: 10,
-                            color: '#475569',
-                            background: 'rgba(248, 250, 252, 0.95)',
-                            padding: '2px 6px',
-                            borderRadius: 4,
-                            fontWeight: 500,
+                            color: '#94A3B8',
+                            background: 'rgba(255, 255, 255, 0.9)',
+                            padding: '1px 5px',
+                            borderRadius: 3,
+                            fontWeight: 400,
                             lineHeight: 1.4,
                           }}>
                             Page {i + 1} | Page {i + 2}
