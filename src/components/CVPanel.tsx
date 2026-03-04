@@ -39,12 +39,97 @@ import Link from 'next/link';
 // preview indicator must use the same value so the line matches the cut.
 const CV_PAGE_GUTTER_PX = 40;
 
+/**
+ * Implements CSS `object-fit: cover` logic on a canvas: center-crops the source
+ * image to fill the target dimensions, then returns a small JPEG data URL.
+ * This replaces the html2canvas background-image workaround that caused blurry
+ * photos and layout shifts.
+ */
+function cropImageCover(
+  src: string,
+  targetW: number,
+  targetH: number,
+  quality = 0.92,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const srcRatio = img.naturalWidth / img.naturalHeight;
+      const tgtRatio = targetW / targetH;
+
+      let sx: number, sy: number, sw: number, sh: number;
+      if (srcRatio > tgtRatio) {
+        // Source is wider — crop horizontally
+        sh = img.naturalHeight;
+        sw = sh * tgtRatio;
+        sx = (img.naturalWidth - sw) / 2;
+        sy = 0;
+      } else {
+        // Source is taller — crop vertically
+        sw = img.naturalWidth;
+        sh = sw / tgtRatio;
+        sx = 0;
+        sy = (img.naturalHeight - sh) / 2;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = targetW;
+      canvas.height = targetH;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject(new Error('Could not get 2d context'));
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => reject(new Error('Image load failed'));
+    img.src = src;
+  });
+}
+
+/**
+ * Scans the captured canvas for the row with the fewest non-white pixels
+ * near `targetY`, within ±`searchRange` pixels. Returns the optimal Y
+ * coordinate for slicing to avoid cutting through text.
+ */
+function findBestBreakY(
+  canvas: HTMLCanvasElement,
+  targetY: number,
+  searchRange: number,
+): number {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return targetY;
+
+  const startY = Math.max(0, targetY - searchRange);
+  const endY = Math.min(canvas.height - 1, targetY);
+  if (startY >= endY) return targetY;
+
+  const width = canvas.width;
+  let bestY = targetY;
+  let bestScore = Infinity;
+
+  for (let y = startY; y <= endY; y++) {
+    const row = ctx.getImageData(0, y, width, 1).data;
+    let darkPixels = 0;
+    for (let x = 0; x < width; x++) {
+      const idx = x * 4;
+      // A pixel is "dark" (non-white) if any channel is below 240
+      if (row[idx] < 240 || row[idx + 1] < 240 || row[idx + 2] < 240) {
+        darkPixels++;
+      }
+    }
+    if (darkPixels < bestScore) {
+      bestScore = darkPixels;
+      bestY = y;
+    }
+  }
+  return bestY;
+}
+
 interface CVPanelProps {
   toolbarPortal?: HTMLDivElement | null;
 }
 
 export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
-  const { 
+  const {
     currentCV,
     structuredCV,
     currentSession,
@@ -52,6 +137,7 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
     isAnalyzing,
     isAgentWorking,
     profilePhoto,
+    setProfilePhoto,
   } = useAppStore();
   const { user, profile, updateProfile } = useAuth();
   const { toast } = useToast();
@@ -123,7 +209,27 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
   // selectedTemplateId triggers re-mount of CVTemplateRenderer; ResizeObserver handles rest
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTemplateId]);
-  
+
+  // Refresh photo URL when a Supabase signed URL has expired (long sessions).
+  // base64 data URLs are always valid; only re-check external URLs.
+  useEffect(() => {
+    if (!user || !profilePhoto?.dataUrl) return;
+    if (profilePhoto.dataUrl.startsWith('data:')) return;
+
+    const img = new Image();
+    img.onerror = async () => {
+      try {
+        const { getProfilePhotoUrl } = await import('@/lib/supabase/storage');
+        const { url } = await getProfilePhotoUrl(user.id);
+        if (url) {
+          setProfilePhoto({ ...profilePhoto, dataUrl: url });
+        }
+      } catch { /* ignore */ }
+    };
+    img.src = profilePhoto.dataUrl;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, profilePhoto?.dataUrl]);
+
   // Extract stable values from generatedCV to prevent unnecessary re-parses
   // This ensures parsing only happens when content actually changes, not on every render
   const optimizedContent = generatedCV?.content;
@@ -282,6 +388,48 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
         })
       );
 
+      // Pre-fetch photo as base64 and pre-crop it to exactly match the container
+      // dimensions × captureScale. This replaces the old background-image hack that
+      // caused blurry photos, layout shifts, and multi-MB CSS values.
+      let croppedPhotoDataUrl: string | null = null;
+      const photoSrc = cvData.personal.photoUrl;
+      if (photoSrc) {
+        try {
+          // Get the base64 of the source image
+          let photoBase64 = photoSrc;
+          if (!photoSrc.startsWith('data:')) {
+            const resp = await fetch(photoSrc);
+            const blob = await resp.blob();
+            photoBase64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+          }
+          // Find the live photo <img> and read its container dimensions
+          const el = cvTemplateRef.current!;
+          const liveImg = el.querySelector<HTMLImageElement>('img[style*="object-fit"]');
+          if (liveImg && liveImg.parentElement) {
+            const containerW = liveImg.parentElement.offsetWidth;
+            const containerH = liveImg.parentElement.offsetHeight;
+            if (containerW > 0 && containerH > 0) {
+              croppedPhotoDataUrl = await cropImageCover(
+                photoBase64,
+                containerW * captureScale,
+                containerH * captureScale,
+              );
+            }
+          }
+          // Fallback: if we couldn't read container dims, use the base64 as-is
+          if (!croppedPhotoDataUrl) {
+            croppedPhotoDataUrl = photoBase64;
+          }
+        } catch {
+          console.warn('Could not pre-fetch/crop profile photo for PDF');
+        }
+      }
+
       const el = cvTemplateRef.current;
       const canvas = await html2canvas(el, {
         scale: captureScale,
@@ -308,20 +456,25 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
               style.textContent = style.textContent.replace(unsupportedColorRe, 'inherit');
             }
           });
-          // Fix: html2canvas 1.4.1 ignores CSS object-fit: cover — the <img> renders at
-          // its natural dimensions, overflows the container, and breaks the layout.
-          // Convert each affected <img> to a background-image on its parent instead;
-          // html2canvas correctly supports background-size: cover.
-          clonedEl.querySelectorAll<HTMLImageElement>('img').forEach((img) => {
-            if (!img.src || !img.parentElement) return;
-            if (img.style.objectFit !== 'cover' && img.style.objectFit !== 'contain') return;
-            const parent = img.parentElement;
-            parent.style.backgroundImage = `url('${img.src}')`;
-            parent.style.backgroundSize = img.style.objectFit;
-            parent.style.backgroundPosition = 'center center';
-            parent.style.backgroundRepeat = 'no-repeat';
-            img.remove();
-          });
+          // Replace photo <img> elements with the pre-cropped data URL.
+          // The cropped image is exactly the container size × scale, so we remove
+          // object-fit — html2canvas renders it as a plain <img> with no CSS tricks.
+          // This keeps the <img> in the DOM (preserving flex layout) and avoids the
+          // multi-MB background-image CSS value that caused blurry rendering.
+          if (croppedPhotoDataUrl) {
+            clonedEl.querySelectorAll<HTMLImageElement>('img').forEach((img) => {
+              if (!img.src || !img.parentElement) return;
+              if (img.style.objectFit === 'cover' || img.style.objectFit === 'contain') {
+                img.src = croppedPhotoDataUrl!;
+                img.style.objectFit = 'fill';
+                img.style.width = '100%';
+                img.style.height = '100%';
+              } else if (img.src && !img.src.startsWith('data:')) {
+                // Non-objectFit images: just swap to base64 to avoid CORS
+                img.src = croppedPhotoDataUrl!;
+              }
+            });
+          }
         },
       });
 
@@ -336,12 +489,25 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
       const pageCanvasH = pageHeightNaturalPx * captureScale;
       const contentCanvasH = (pageHeightNaturalPx - 2 * CV_PAGE_GUTTER_PX) * captureScale;
       const gutterCanvasH = CV_PAGE_GUTTER_PX * captureScale;
-      const totalPages = Math.ceil(canvas.height / contentCanvasH);
+
+      // Compute smart break points: scan for whitespace rows near each nominal
+      // break to avoid slicing through text. Search range = 80px natural ≈ 4-5 lines.
+      const breakSearchRange = 80 * captureScale;
+      const breakPoints: number[] = [0]; // first page starts at 0
+      let cursor = 0;
+      while (cursor + contentCanvasH < canvas.height) {
+        const nominalBreak = cursor + contentCanvasH;
+        const bestBreak = findBestBreakY(canvas, nominalBreak, breakSearchRange);
+        breakPoints.push(bestBreak);
+        cursor = bestBreak;
+      }
+      const totalPages = breakPoints.length;
 
       for (let page = 0; page < totalPages; page++) {
         if (page > 0) doc.addPage();
-        const srcY = page * contentCanvasH;
-        const srcH = Math.min(contentCanvasH, canvas.height - srcY);
+        const srcY = breakPoints[page];
+        const srcEnd = page + 1 < totalPages ? breakPoints[page + 1] : canvas.height;
+        const srcH = Math.min(srcEnd - srcY, contentCanvasH);
         const pageCanvas = document.createElement('canvas');
         pageCanvas.width = canvas.width;
         pageCanvas.height = pageCanvasH;
@@ -353,7 +519,8 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
           // Draw content slice offset by gutterCanvasH from the top
           ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, gutterCanvasH, canvas.width, srcH);
         }
-        doc.addImage(pageCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pageWidthMm, pageHeightMm);
+        // PNG is lossless — eliminates JPEG artifacts around sharp text edges and photo details.
+        doc.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidthMm, pageHeightMm);
       }
 
       const blob = doc.output('blob');

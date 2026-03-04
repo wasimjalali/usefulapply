@@ -33,6 +33,44 @@ import {
 import Link from 'next/link';
 import type { ParsedCV } from '@/lib/types';
 
+/**
+ * Resizes an image file to fit within `maxSize` pixels on its longest side,
+ * preserving aspect ratio. Returns a JPEG data URL (~50–100KB for 800px).
+ * This keeps the preview sharp without storing a multi-MB base64 in state.
+ */
+function resizeImage(file: File, maxSize: number, quality = 0.9): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Image load failed'));
+      img.onload = () => {
+        let w = img.naturalWidth;
+        let h = img.naturalHeight;
+        if (w > maxSize || h > maxSize) {
+          if (w > h) {
+            h = Math.round(h * (maxSize / w));
+            w = maxSize;
+          } else {
+            w = Math.round(w * (maxSize / h));
+            h = maxSize;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('Could not get 2d context'));
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function DocumentsPage() {
   const { user, isLoading: authLoading } = useAuth();
   
@@ -305,21 +343,21 @@ export default function DocumentsPage() {
       return;
     }
     
-    // Convert to base64 for local storage and immediate display
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const dataUrl = e.target?.result as string;
+    // Resize to max 800px on longest side for crisp preview without storing
+    // a multi-MB base64 in Zustand. Original file still uploaded to Supabase.
+    try {
+      const dataUrl = await resizeImage(file, 800);
       const photo: ProfilePhoto = {
         id: `photo-${Date.now()}`,
         fileName: file.name,
         dataUrl,
         uploadedAt: new Date().toISOString(),
       };
-      
+
       // Save to local state immediately for display
       setProfilePhoto(photo);
-      
-      // Also upload to Supabase storage if user is logged in
+
+      // Also upload original file to Supabase storage if user is logged in
       if (user) {
         try {
           const { url, error } = await uploadProfilePhoto(user.id, file);
@@ -337,8 +375,9 @@ export default function DocumentsPage() {
           console.error('Profile photo upload error:', err);
         }
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Image resize error:', err);
+    }
   };
   
   // Load profile photo from Supabase on mount
