@@ -213,7 +213,7 @@ export function USPremiumATSTemplate({
                 textTransform: 'uppercase',
                 letterSpacing: '2px',
                 marginBottom: '8px',
-                paddingBottom: '6px',
+                paddingBottom: '8px',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
@@ -243,7 +243,7 @@ export function USPremiumATSTemplate({
                 textTransform: 'uppercase',
                 letterSpacing: '2px',
                 marginBottom: '12px',
-                paddingBottom: '6px',
+                paddingBottom: '8px',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
@@ -398,7 +398,7 @@ export function USPremiumATSTemplate({
                 textTransform: 'uppercase',
                 letterSpacing: '2px',
                 marginBottom: '8px',
-                paddingBottom: '6px',
+                paddingBottom: '8px',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
@@ -487,7 +487,7 @@ export function USPremiumATSTemplate({
                 textTransform: 'uppercase',
                 letterSpacing: '2px',
                 marginBottom: '8px',
-                paddingBottom: '6px',
+                paddingBottom: '8px',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
@@ -548,7 +548,7 @@ export function USPremiumATSTemplate({
                 textTransform: 'uppercase',
                 letterSpacing: '2px',
                 marginBottom: '8px',
-                paddingBottom: '6px',
+                paddingBottom: '8px',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
@@ -599,7 +599,7 @@ export function USPremiumATSTemplate({
                 textTransform: 'uppercase',
                 letterSpacing: '2px',
                 marginBottom: '8px',
-                paddingBottom: '6px',
+                paddingBottom: '8px',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}

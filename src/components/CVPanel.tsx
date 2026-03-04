@@ -407,9 +407,17 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
               reader.readAsDataURL(blob);
             });
           }
-          // Find the live photo <img> and read its container dimensions
+          // Find the live photo <img> and read its container dimensions.
+          // Use direct DOM property check instead of CSS attribute selector
+          // because browsers may not serialize objectFit into the style attribute.
           const el = cvTemplateRef.current!;
-          const liveImg = el.querySelector<HTMLImageElement>('img[style*="object-fit"]');
+          let liveImg: HTMLImageElement | null = null;
+          for (const img of Array.from(el.querySelectorAll<HTMLImageElement>('img'))) {
+            if (img.style.objectFit === 'cover' || img.style.objectFit === 'contain') {
+              liveImg = img;
+              break;
+            }
+          }
           if (liveImg && liveImg.parentElement) {
             const containerW = liveImg.parentElement.offsetWidth;
             const containerH = liveImg.parentElement.offsetHeight;

@@ -210,7 +210,7 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
               letterSpacing: '1px',
               color: classicColors.primary,
               marginBottom: '6px',
-              paddingBottom: '4px',
+              paddingBottom: '8px',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >
@@ -234,7 +234,7 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
               letterSpacing: '1px',
               color: classicColors.primary,
               marginBottom: '8px',
-              paddingBottom: '4px',
+              paddingBottom: '8px',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >
@@ -337,7 +337,7 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
               letterSpacing: '1px',
               color: classicColors.primary,
               marginBottom: '10px',
-              paddingBottom: '4px',
+              paddingBottom: '8px',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >
@@ -397,7 +397,7 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
               letterSpacing: '1px',
               color: classicColors.primary,
               marginBottom: '6px',
-              paddingBottom: '4px',
+              paddingBottom: '8px',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >
@@ -438,7 +438,7 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
               letterSpacing: '1px',
               color: classicColors.primary,
               marginBottom: '6px',
-              paddingBottom: '4px',
+              paddingBottom: '8px',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >
@@ -467,7 +467,7 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
               letterSpacing: '1px',
               color: classicColors.primary,
               marginBottom: '6px',
-              paddingBottom: '4px',
+              paddingBottom: '8px',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >

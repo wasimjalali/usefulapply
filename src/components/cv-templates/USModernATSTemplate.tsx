@@ -159,7 +159,7 @@ export function USModernATSTemplate({ data, template }: Props) {
               letterSpacing: '1px',
               color: modernColors.primary,
               marginBottom: '8px',
-              paddingBottom: '4px',
+              paddingBottom: '8px',
               borderBottom: `2px solid ${modernColors.primary}`,
             }}
           >
@@ -199,7 +199,7 @@ export function USModernATSTemplate({ data, template }: Props) {
                 letterSpacing: '1px',
                 color: modernColors.primary,
                 marginBottom: '8px',
-                paddingBottom: '4px',
+                paddingBottom: '8px',
                 borderBottom: `2px solid ${modernColors.primary}`,
               }}
             >
@@ -293,7 +293,7 @@ export function USModernATSTemplate({ data, template }: Props) {
                 letterSpacing: '1px',
                 color: modernColors.primary,
                 marginBottom: '8px',
-                paddingBottom: '4px',
+                paddingBottom: '8px',
                 borderBottom: `2px solid ${modernColors.primary}`,
               }}
             >
@@ -327,7 +327,7 @@ export function USModernATSTemplate({ data, template }: Props) {
                 letterSpacing: '1px',
                 color: modernColors.primary,
                 marginBottom: '12px',
-                paddingBottom: '4px',
+                paddingBottom: '8px',
                 borderBottom: `2px solid ${modernColors.primary}`,
               }}
             >
@@ -388,7 +388,7 @@ export function USModernATSTemplate({ data, template }: Props) {
                 letterSpacing: '1px',
                 color: modernColors.primary,
                 marginBottom: '8px',
-                paddingBottom: '4px',
+                paddingBottom: '8px',
                 borderBottom: `2px solid ${modernColors.primary}`,
               }}
             >
@@ -429,7 +429,7 @@ export function USModernATSTemplate({ data, template }: Props) {
                 letterSpacing: '1px',
                 color: modernColors.primary,
                 marginBottom: '8px',
-                paddingBottom: '4px',
+                paddingBottom: '8px',
                 borderBottom: `2px solid ${modernColors.primary}`,
               }}
             >

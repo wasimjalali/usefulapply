@@ -163,7 +163,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
               letterSpacing: '1px',
               color: germanColors.primary,
               marginBottom: '6px',
-              paddingBottom: '4px',
+              paddingBottom: '8px',
               borderBottom: `2px solid ${germanColors.primary}`,
             }}
           >
@@ -233,7 +233,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                 letterSpacing: '1px',
                 color: germanColors.primary,
                 marginBottom: '6px',
-                paddingBottom: '3px',
+                paddingBottom: '8px',
                 borderBottom: `2px solid ${germanColors.primary}`,
               }}
             >
@@ -327,7 +327,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                 letterSpacing: '1px',
                 color: germanColors.primary,
                 marginBottom: '6px',
-                paddingBottom: '3px',
+                paddingBottom: '8px',
                 borderBottom: `2px solid ${germanColors.primary}`,
               }}
             >
@@ -361,7 +361,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                 letterSpacing: '1px',
                 color: germanColors.primary,
                 marginBottom: '10px',
-                paddingBottom: '4px',
+                paddingBottom: '8px',
                 borderBottom: `2px solid ${germanColors.primary}`,
               }}
             >
@@ -422,7 +422,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                 letterSpacing: '1px',
                 color: germanColors.primary,
                 marginBottom: '6px',
-                paddingBottom: '4px',
+                paddingBottom: '8px',
                 borderBottom: `2px solid ${germanColors.primary}`,
               }}
             >
@@ -463,7 +463,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                 letterSpacing: '1px',
                 color: germanColors.primary,
                 marginBottom: '6px',
-                paddingBottom: '4px',
+                paddingBottom: '8px',
                 borderBottom: `2px solid ${germanColors.primary}`,
               }}
             >
