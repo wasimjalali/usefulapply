@@ -257,6 +257,24 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
       const pageHeightNaturalPx = isGerman ? Math.round((297 / 25.4) * 96) : 1056;
       const captureScale = 2;
 
+      // html2canvas 1.4.1 can't parse CSS Color Level 4 functions (oklch, lab, etc.)
+      // used by Tailwind v4. Pre-fetch all stylesheets, replace unsupported color values,
+      // then inject the cleaned CSS in onclone (which is synchronous — can't fetch inside it).
+      const unsupportedColorRe = /\b(?:oklch|oklab|lab|lch)\s*\([^)]*\)/g;
+      const linkEls = Array.from(
+        document.head.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')
+      );
+      const cssMap = new Map<string, string>();
+      await Promise.allSettled(
+        linkEls.map(async (link) => {
+          try {
+            const res = await fetch(link.href);
+            const css = await res.text();
+            cssMap.set(link.href, css.replace(unsupportedColorRe, 'inherit'));
+          } catch { /* leave out of map — link will be replaced with empty style */ }
+        })
+      );
+
       const el = cvTemplateRef.current;
       const canvas = await html2canvas(el, {
         scale: captureScale,
@@ -270,6 +288,19 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
             clonedEl.parentElement.style.transform = 'none';
             clonedEl.parentElement.style.boxShadow = 'none';
           }
+          // Replace every <link rel="stylesheet"> with the pre-cleaned inline <style>
+          // so html2canvas never encounters unsupported color functions when parsing CSS.
+          _doc.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]').forEach((link) => {
+            const style = _doc.createElement('style');
+            style.textContent = cssMap.get(link.href) ?? '';
+            link.parentNode?.replaceChild(style, link);
+          });
+          // Also clean any inline <style> tags (dev mode inlines Tailwind)
+          _doc.querySelectorAll('style').forEach((style) => {
+            if (style.textContent) {
+              style.textContent = style.textContent.replace(unsupportedColorRe, 'inherit');
+            }
+          });
         },
       });
 
