@@ -31,6 +31,7 @@ import { EditableCVCanvas } from './EditableCVCanvas';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import { useAuth } from '@/contexts/AuthContext';
 import { SignUpWallModal } from '@/components/SignUpWallModal';
+import { useToast } from './ui/Toast';
 import Link from 'next/link';
 
 interface CVPanelProps {
@@ -48,6 +49,7 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
     profilePhoto,
   } = useAppStore();
   const { user, profile, updateProfile } = useAuth();
+  const { toast } = useToast();
   const [showSignUpWall, setShowSignUpWall] = useState(false);
   
   const generatedCV = currentSession?.generatedCV;
@@ -63,6 +65,7 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedCVData, setEditedCVData] = useState<CVData | null>(null);
+  const [pageBreaks, setPageBreaks] = useState<number[]>([]);
   const cvTemplateRef = useRef<HTMLDivElement>(null);
 
   // Responsive CV scaling — JS-based because CSS transform: scale can't dynamically
@@ -78,15 +81,23 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
       const containerWidth = cvContainerRef.current.clientWidth;
       // scrollWidth gives the actual rendered width, unaffected by transform: scale
       const naturalWidth = cvWrapperRef.current.scrollWidth;
+      const naturalHeight = cvWrapperRef.current.scrollHeight;
       if (containerWidth > 0 && naturalWidth > 0 && containerWidth < naturalWidth) {
         const newScale = containerWidth / naturalWidth;
-        const naturalHeight = cvWrapperRef.current.scrollHeight;
         setCvScale(newScale);
         setCvScaledHeight(naturalHeight > 0 ? Math.ceil(naturalHeight * newScale) : null);
       } else {
         setCvScale(1);
         setCvScaledHeight(null);
       }
+      // Page break indicator positions (in natural pixels, before any CSS transform)
+      const isGerman = selectedTemplateId.startsWith('german');
+      const pageHeightPx = isGerman ? Math.round((297 / 25.4) * 96) : 1056;
+      const breaks: number[] = [];
+      for (let y = pageHeightPx; y < naturalHeight; y += pageHeightPx) {
+        breaks.push(y);
+      }
+      setPageBreaks(breaks);
     };
 
     // Delay slightly so the CV template renders at its natural size first
@@ -222,310 +233,84 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
       return;
     }
     if (!cvTemplateRef.current || !cvData) return;
-    
+
     setIsDownloading(true);
     try {
-      // Build smart filename: always English labels (industry standard for file naming)
-      const sanitize = (s: string) => s.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
+
+      const sanitize = (s: string) =>
+        s.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
       const applicantName = sanitize(cvData.personal.fullName || 'Applicant');
       const companyName = sanitize(currentSession?.company || '');
-      const pdfTitle = showOptimized && companyName
-        ? `${applicantName}_${companyName}_CV`
-        : `${applicantName}_CV`;
+      const filename =
+        showOptimized && companyName
+          ? `${applicantName}_${companyName}_CV.pdf`
+          : `${applicantName}_CV.pdf`;
 
-      // Create a new window with just the CV content for printing
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        alert('Please allow popups to download PDF');
-        return;
+      const isGerman = selectedTemplateId.startsWith('german');
+      const pageWidthMm = isGerman ? 210 : 215.9;
+      const pageHeightMm = isGerman ? 297 : 279.4;
+      // Page height in natural pixels at 96 dpi
+      const pageHeightNaturalPx = isGerman ? Math.round((297 / 25.4) * 96) : 1056;
+      const captureScale = 2;
+
+      const el = cvTemplateRef.current;
+      const canvas = await html2canvas(el, {
+        scale: captureScale,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        windowWidth: el.scrollWidth,
+        onclone: (_doc: Document, clonedEl: HTMLElement) => {
+          clonedEl.style.boxShadow = 'none';
+          if (clonedEl.parentElement) {
+            clonedEl.parentElement.style.transform = 'none';
+            clonedEl.parentElement.style.boxShadow = 'none';
+          }
+        },
+      });
+
+      const doc = new jsPDF({
+        format: isGerman ? 'a4' : 'letter',
+        unit: 'mm',
+        orientation: 'portrait',
+      });
+
+      const pageCanvasHeight = pageHeightNaturalPx * captureScale;
+      const totalPages = Math.ceil(canvas.height / pageCanvasHeight);
+
+      for (let page = 0; page < totalPages; page++) {
+        if (page > 0) doc.addPage();
+        const srcY = page * pageCanvasHeight;
+        const srcH = Math.min(pageCanvasHeight, canvas.height - srcY);
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = pageCanvasHeight;
+        const ctx = pageCanvas.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+          ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+        }
+        doc.addImage(pageCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pageWidthMm, pageHeightMm);
       }
-      
-      // Get the CV template HTML — sanitize to prevent XSS from AI-generated content
-      const rawContent = cvTemplateRef.current.innerHTML;
-      const cvContent = rawContent
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '');
-      const isGermanTemplate = selectedTemplateId.startsWith('german');
-      const pageWidth = isGermanTemplate ? '210mm' : '8.5in';
 
-      // Create print-optimized HTML with CSS to hide browser headers/footers
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>${pdfTitle}</title>
-          <style>
-            /* Critical: Hide browser headers and footers */
-            @page {
-              size: ${isGermanTemplate ? 'A4' : 'letter'};
-              margin: 0.75in; /* Industry standard: 0.75in all sides; also ensures iOS Safari header/footer doesn't overlap content */
-            }
-            
-            * {
-              margin: 0;
-              padding: 0;
-              box-sizing: border-box;
-            }
-            
-            html, body {
-              font-family: Arial, Helvetica, sans-serif;
-              font-size: 10.5pt; /* Base body text size */
-              line-height: 1.4;
-              color: #1a1a1a;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              background: white;
-            }
-            
-            .cv-container {
-              width: 100%;
-              max-width: ${pageWidth};
-              margin: 0 auto;
-              background: white;
-              padding: 0;
-            }
-            
-            /* ===========================================
-               PROFESSIONAL CV TYPOGRAPHY (HR Standard)
-               - Name: 20pt (bold)
-               - Section Headers: 12pt (bold, uppercase)
-               - Job/Degree Titles: 11pt (bold)
-               - Category Headers: 9pt (bold, uppercase)
-               - Body Text: 10.5pt (summary, bullets, skills)
-               - Secondary Text: 9pt (dates, locations)
-               =========================================== */
-            
-            /* Name - 20pt bold */
-            h1 { 
-              font-size: 20pt !important; 
-              font-weight: bold !important; 
-              margin-bottom: 4pt !important; 
-              letter-spacing: -0.3pt !important;
-            }
-            
-            /* Section Headers - 12pt bold uppercase */
-            h2 { 
-              font-size: 12pt !important; 
-              font-weight: bold !important; 
-              text-transform: uppercase !important; 
-              letter-spacing: 1pt !important; 
-              margin-bottom: 8pt !important; 
-              padding-bottom: 4pt !important; 
-            }
-            
-            /* Job/Degree Titles - 11pt bold */
-            h3 { 
-              font-size: 11pt !important; 
-              font-weight: bold !important; 
-              margin-bottom: 2pt !important; 
-            }
-            
-            /* Category Headers (skills) - 9pt bold uppercase */
-            h4 { 
-              font-size: 9pt !important; 
-              font-weight: bold !important; 
-              text-transform: uppercase !important; 
-              letter-spacing: 0.5pt !important; 
-              margin-bottom: 4pt !important; 
-            }
-            
-            /* Body Text - 10.5pt */
-            p, li, span { 
-              font-size: 10.5pt !important; 
-              line-height: 1.4 !important; 
-            }
-            
-            /* Ensure divs don't override body text size (except for containers) */
-            div:not(.cv-container):not(.cv-template) { 
-              font-size: inherit !important; 
-            }
-            
-            /* Bold text styling */
-            strong, b { 
-              font-weight: bold !important; 
-            }
-            
-            /* Override ALL inline fontSize styles for consistency */
-            [style*="fontSize: '10px'"], 
-            [style*="fontSize: '11px'"], 
-            [style*="fontSize: '12px'"], 
-            [style*="fontSize: '13px'"] { 
-              font-size: 10.5pt !important; 
-            }
-            
-            [style*="fontSize: '14px'"] { 
-              font-size: 12pt !important; 
-            }
-            
-            [style*="fontSize: '28px'"], 
-            [style*="fontSize: '24px'"] { 
-              font-size: 20pt !important; 
-            }
-            
-            /* Spacing */
-            section { margin-bottom: 12pt !important; }
-            ul { padding-left: 12pt !important; margin: 0 !important; }
-            li { margin-bottom: 2pt !important; }
-            
-            /* Grid layouts */
-            .grid { display: grid; }
-            .flex { display: flex; }
-            .gap-2 { gap: 6pt !important; }
-            .gap-3 { gap: 8pt !important; }
-            .gap-4 { gap: 10pt !important; }
-            .gap-6 { gap: 14pt !important; }
-            
-            /* Padding overrides */
-            .px-8 { padding-left: 16pt !important; padding-right: 16pt !important; }
-            .py-6 { padding-top: 12pt !important; padding-bottom: 12pt !important; }
-            .py-5 { padding-top: 10pt !important; padding-bottom: 10pt !important; }
-            .p-6 { padding: 12pt !important; }
-            .space-y-5 > * + * { margin-top: 10pt !important; }
-            .space-y-4 > * + * { margin-top: 8pt !important; }
-            .space-y-3 > * + * { margin-top: 6pt !important; }
-            .mb-6 { margin-bottom: 12pt !important; }
-            .mb-4 { margin-bottom: 8pt !important; }
-            .mb-3 { margin-bottom: 6pt !important; }
-            .mt-4 { margin-top: 8pt !important; }
-            
-            /* Tailwind text size overrides - standardize to our scale */
-            .text-3xl { font-size: 20pt !important; } /* Name */
-            .text-2xl { font-size: 12pt !important; } /* Section headers */
-            .text-xl { font-size: 11pt !important; }  /* Job titles */
-            .text-lg { font-size: 10.5pt !important; } /* Body */
-            .text-base { font-size: 10.5pt !important; } /* Body */
-            .text-sm { font-size: 10pt !important; }  /* Slightly smaller */
-            .text-xs { font-size: 9pt !important; }   /* Dates, secondary */
-            
-            /* Colors - preserve print colors */
-            [style*="background"] { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            [style*="color"] { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            
-            /* Images */
-            img { max-width: 100%; height: auto; -webkit-print-color-adjust: exact !important; }
-            .w-28 { width: 80pt !important; }
-            .h-36 { height: 100pt !important; }
-            .w-32 { width: 90pt !important; }
-            .h-40 { height: 110pt !important; }
-            
-            /* Hide scrollbars */
-            ::-webkit-scrollbar { display: none; }
-            
-            /* Remove shadows */
-            .shadow-lg, .shadow-md, .shadow, [class*="shadow"] {
-              box-shadow: none !important;
-            }
-            
-            /* Template styling */
-            .cv-template {
-              box-shadow: none !important;
-              margin: 0 !important;
-              width: 100% !important;
-              max-width: 100% !important;
-              min-height: auto !important;
-              /* Keep template padding for proper page margins */
-            }
-            
-            .mx-auto {
-              margin-left: 0 !important;
-              margin-right: 0 !important;
-            }
-            
-            .cv-template header {
-              padding-left: 0 !important;
-              padding-right: 0 !important;
-            }
-            
-            .cv-template > div:not(header) {
-              padding-left: 0 !important;
-              padding-right: 0 !important;
-            }
-            
-            /* Print-specific styles */
-            @media print {
-              html, body {
-                width: 100%;
-                margin: 0;
-                padding: 0;
-              }
-              
-              .cv-container {
-                width: 100%;
-              }
-              
-              /* Ensure @page margins are respected */
-              .cv-template {
-                padding: 0 !important; /* Let @page margin handle all margins for print */
-              }
-              
-              /* Allow sections to break naturally across pages */
-              section { 
-                page-break-inside: auto;
-                break-inside: auto;
-              }
-              
-              /* Keep headers with following content */
-              h2, h3 { 
-                page-break-after: avoid;
-                break-after: avoid;
-              }
-              
-              /* Certification grid items: never split across pages */
-              /* React renders camelCase styles as kebab-case in DOM */
-              .certifications-grid > div,
-              [style*="grid-template-columns"] > div {
-                page-break-inside: avoid;
-                break-inside: avoid;
-              }
-
-              /* Experience/education items: try to keep together; browser will break if too long */
-              .experience-item, .education-item, .mb-4, .mb-3 {
-                page-break-inside: avoid;
-                break-inside: avoid;
-              }
-
-              /* Skill categories: keep together */
-              .skill-category {
-                page-break-inside: avoid;
-                break-inside: avoid;
-              }
-
-              /* Bullets: allow breaking but prevent orphans */
-              ul, li {
-                page-break-inside: auto;
-                break-inside: auto;
-                orphans: 2;
-                widows: 2;
-              }
-              
-              .cv-template {
-                page-break-before: auto;
-                page-break-after: auto;
-              }
-            }
-          </style>
-          <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
-        </head>
-        <body>
-          <div class="cv-container">
-            ${cvContent}
-          </div>
-          <script>
-            window.onload = function() {
-              // Wait for styles to load, then print
-              setTimeout(function() {
-                window.print();
-                setTimeout(function() { window.close(); }, 100);
-              }, 800);
-            };
-          </script>
-        </body>
-        </html>
-      `);
-      printWindow.document.close();
-    } catch (error) {
-      console.error('PDF generation failed:', error);
-      alert('Failed to generate PDF. Please try again.');
+      const blob = doc.output('blob');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('PDF downloaded!');
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      toast.error('Failed to download PDF. Please try again.');
     } finally {
       setIsDownloading(false);
     }
@@ -774,6 +559,34 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
                       <div ref={cvTemplateRef}>
                         <CVTemplateRenderer data={editedCVData || cvData} templateId={selectedTemplateId} />
                       </div>
+                      {/* Page break indicators — outside cvTemplateRef so not captured in PDF */}
+                      {pageBreaks.map((y, i) => (
+                        <div
+                          key={y}
+                          style={{
+                            position: 'absolute',
+                            top: y,
+                            left: 0,
+                            right: 0,
+                            pointerEvents: 'none',
+                            zIndex: 10,
+                          }}
+                        >
+                          <div style={{ borderTop: '2px dashed #CBD5E0', width: '100%' }} />
+                          <span style={{
+                            position: 'absolute',
+                            top: 3,
+                            right: 8,
+                            fontSize: 10,
+                            color: '#94A3B8',
+                            background: 'white',
+                            padding: '0 4px',
+                            lineHeight: 1,
+                          }}>
+                            Page {i + 1} | Page {i + 2}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
