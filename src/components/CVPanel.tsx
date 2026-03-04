@@ -245,9 +245,9 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
       const cvContent = rawContent
         .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
         .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '');
-      const isUSTemplate = selectedTemplateId.startsWith('us-');
-      const pageWidth = isUSTemplate ? '8.5in' : '210mm';
-      
+      const isGermanTemplate = selectedTemplateId.startsWith('german');
+      const pageWidth = isGermanTemplate ? '210mm' : '8.5in';
+
       // Create print-optimized HTML with CSS to hide browser headers/footers
       printWindow.document.write(`
         <!DOCTYPE html>
@@ -257,8 +257,8 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
           <style>
             /* Critical: Hide browser headers and footers */
             @page {
-              size: ${isUSTemplate ? 'letter' : 'A4'};
-              margin: 0.5in 0.75in; /* Professional standard: 0.5in top/bottom, 0.75in left/right */
+              size: ${isGermanTemplate ? 'A4' : 'letter'};
+              margin: 0.75in; /* Industry standard: 0.75in all sides; also ensures iOS Safari header/footer doesn't overlap content */
             }
             
             * {
@@ -470,25 +470,27 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
                 break-after: avoid;
               }
               
-              /* Individual entries can break if needed */
-              .mb-4, .mb-3 {
-                page-break-inside: auto;
-                break-inside: auto;
+              /* Certification grid items: never split across pages */
+              /* React renders camelCase styles as kebab-case in DOM */
+              .certifications-grid > div,
+              [style*="grid-template-columns"] > div {
+                page-break-inside: avoid;
+                break-inside: avoid;
               }
-              
-              /* Experience/education items - avoid break only if short */
-              .experience-item, .education-item {
-                page-break-inside: auto;
-                break-inside: auto;
+
+              /* Experience/education items: try to keep together; browser will break if too long */
+              .experience-item, .education-item, .mb-4, .mb-3 {
+                page-break-inside: avoid;
+                break-inside: avoid;
               }
-              
-              /* Skill categories can break */
+
+              /* Skill categories: keep together */
               .skill-category {
-                page-break-inside: auto;
-                break-inside: auto;
+                page-break-inside: avoid;
+                break-inside: avoid;
               }
-              
-              /* Bullets can break across pages */
+
+              /* Bullets: allow breaking but prevent orphans */
               ul, li {
                 page-break-inside: auto;
                 break-inside: auto;
