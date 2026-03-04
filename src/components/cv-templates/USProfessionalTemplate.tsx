@@ -190,7 +190,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
               letterSpacing: '1.5px',
               color: executiveColors.primary,
               marginBottom: '12px',
-              paddingBottom: '6px',
+              paddingBottom: '8px',
               borderBottom: `2px solid ${executiveColors.primary}`,
             }}
           >
@@ -345,7 +345,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
               letterSpacing: '1.5px',
               color: executiveColors.primary,
               marginBottom: '14px',
-              paddingBottom: '6px',
+              paddingBottom: '8px',
               borderBottom: `2px solid ${executiveColors.primary}`,
             }}
           >
@@ -420,7 +420,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
               letterSpacing: '1.5px',
               color: executiveColors.primary,
               marginBottom: '8px',
-              paddingBottom: '6px',
+              paddingBottom: '8px',
               borderBottom: `2px solid ${executiveColors.primary}`,
             }}
           >
@@ -468,7 +468,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
               letterSpacing: '1.5px',
               color: executiveColors.primary,
               marginBottom: '8px',
-              paddingBottom: '4px',
+              paddingBottom: '8px',
               borderBottom: `2px solid ${executiveColors.primary}`,
             }}
           >
@@ -497,7 +497,7 @@ export function USProfessionalTemplate({ data, template }: Props) {
               letterSpacing: '1.5px',
               color: executiveColors.primary,
               marginBottom: '8px',
-              paddingBottom: '4px',
+              paddingBottom: '8px',
               borderBottom: `2px solid ${executiveColors.primary}`,
             }}
           >

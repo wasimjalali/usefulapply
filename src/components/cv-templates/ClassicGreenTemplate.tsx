@@ -218,7 +218,7 @@ export function ClassicGreenTemplate({ data, template }: Props) {
               letterSpacing: '1.5px',
               color: greenColors.primary,
               marginBottom: '10px',
-              paddingBottom: '4px',
+              paddingBottom: '8px',
               borderBottom: `1.5px solid ${greenColors.primary}`,
             }}
           >
@@ -371,7 +371,7 @@ export function ClassicGreenTemplate({ data, template }: Props) {
               letterSpacing: '1.5px',
               color: greenColors.primary,
               marginBottom: '10px',
-              paddingBottom: '4px',
+              paddingBottom: '8px',
               borderBottom: `1.5px solid ${greenColors.primary}`,
             }}
           >
@@ -445,7 +445,7 @@ export function ClassicGreenTemplate({ data, template }: Props) {
               letterSpacing: '1.5px',
               color: greenColors.primary,
               marginBottom: '8px',
-              paddingBottom: '4px',
+              paddingBottom: '8px',
               borderBottom: `1.5px solid ${greenColors.primary}`,
             }}
           >
@@ -494,7 +494,7 @@ export function ClassicGreenTemplate({ data, template }: Props) {
               letterSpacing: '1.5px',
               color: greenColors.primary,
               marginBottom: '8px',
-              paddingBottom: '4px',
+              paddingBottom: '8px',
               borderBottom: `1.5px solid ${greenColors.primary}`,
             }}
           >
@@ -523,7 +523,7 @@ export function ClassicGreenTemplate({ data, template }: Props) {
               letterSpacing: '1.5px',
               color: greenColors.primary,
               marginBottom: '8px',
-              paddingBottom: '4px',
+              paddingBottom: '8px',
               borderBottom: `1.5px solid ${greenColors.primary}`,
             }}
           >
