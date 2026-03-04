@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -64,6 +64,47 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedCVData, setEditedCVData] = useState<CVData | null>(null);
   const cvTemplateRef = useRef<HTMLDivElement>(null);
+
+  // Responsive CV scaling — JS-based because CSS transform: scale can't dynamically
+  // compensate for the CV template's fixed width (8.5in / 210mm).
+  const cvContainerRef = useRef<HTMLDivElement>(null);
+  const cvWrapperRef = useRef<HTMLDivElement>(null);
+  const [cvScale, setCvScale] = useState(1);
+  const [cvScaledHeight, setCvScaledHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    const updateScale = () => {
+      if (!cvContainerRef.current || !cvWrapperRef.current) return;
+      const containerWidth = cvContainerRef.current.clientWidth;
+      // scrollWidth gives the actual rendered width, unaffected by transform: scale
+      const naturalWidth = cvWrapperRef.current.scrollWidth;
+      if (containerWidth > 0 && naturalWidth > 0 && containerWidth < naturalWidth) {
+        const newScale = containerWidth / naturalWidth;
+        const naturalHeight = cvWrapperRef.current.scrollHeight;
+        setCvScale(newScale);
+        setCvScaledHeight(naturalHeight > 0 ? Math.ceil(naturalHeight * newScale) : null);
+      } else {
+        setCvScale(1);
+        setCvScaledHeight(null);
+      }
+    };
+
+    // Delay slightly so the CV template renders at its natural size first
+    const timer = setTimeout(updateScale, 50);
+    // Watch container width changes (window resize, chat panel resize)
+    const roContainer = new ResizeObserver(updateScale);
+    // Watch CV wrapper height changes (content switches: original ↔ optimized)
+    const roWrapper = new ResizeObserver(updateScale);
+    if (cvContainerRef.current) roContainer.observe(cvContainerRef.current);
+    if (cvWrapperRef.current) roWrapper.observe(cvWrapperRef.current);
+    return () => {
+      clearTimeout(timer);
+      roContainer.disconnect();
+      roWrapper.disconnect();
+    };
+  // selectedTemplateId triggers re-mount of CVTemplateRenderer; ResizeObserver handles rest
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTemplateId]);
   
   // Extract stable values from generatedCV to prevent unnecessary re-parses
   // This ensures parsing only happens when content actually changes, not on every render
@@ -647,10 +688,12 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
       {/* Toolbar: portal to tab bar on desktop, inline on mobile */}
       {toolbarContent && toolbarPortal && createPortal(toolbarContent, toolbarPortal)}
       {toolbarContent && !toolbarPortal && (
-        <div className="px-2.5 sm:px-4 py-1.5 sm:py-2 glass-toolbar flex-shrink-0">
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+        <div className="px-2.5 sm:px-4 py-1.5 sm:py-2 glass-toolbar flex-shrink-0 relative">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pr-6">
             {toolbarContent}
           </div>
+          {/* Right-fade hint that toolbar is scrollable on mobile */}
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white/80 to-transparent pointer-events-none sm:hidden" />
         </div>
       )}
 
@@ -708,9 +751,24 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
                 </div>
               ) : cvData ? (
                 /* View Mode - Template Preview */
-                <div className="flex flex-col items-center">
-                  <div className="cv-pages-container w-full max-w-[800px] origin-top">
-                    <div className="cv-page-wrapper relative bg-white shadow-lg cv-mobile-scale">
+                <div ref={cvContainerRef} className="flex flex-col items-center">
+                  {/* Size wrapper: reserves the correct visual space after scaling,
+                      and clips the layout overflow that transform: scale doesn't affect */}
+                  <div
+                    style={{
+                      width: cvScale < 1 ? Math.ceil((cvWrapperRef.current?.scrollWidth ?? 816) * cvScale) : undefined,
+                      height: cvScaledHeight ?? undefined,
+                      overflow: cvScale < 1 ? 'hidden' : undefined,
+                    }}
+                  >
+                    <div
+                      ref={cvWrapperRef}
+                      className="relative bg-white shadow-lg"
+                      style={cvScale < 1 ? {
+                        transform: `scale(${cvScale})`,
+                        transformOrigin: 'top left',
+                      } : undefined}
+                    >
                       <div ref={cvTemplateRef}>
                         <CVTemplateRenderer data={editedCVData || cvData} templateId={selectedTemplateId} />
                       </div>

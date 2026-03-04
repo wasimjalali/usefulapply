@@ -308,28 +308,7 @@ body {
   transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease-out;
 }
 
-/* Mobile CV scaling - fit CV preview to screen width */
-@media (max-width: 640px) {
-  .cv-mobile-scale {
-    transform: scale(0.55);
-    transform-origin: top left;
-    width: 181.8%; /* 100 / 0.55 = ~181.8% to compensate for scale */
-  }
-  .cv-pages-container {
-    overflow: hidden;
-  }
-}
-
-@media (min-width: 641px) and (max-width: 768px) {
-  .cv-mobile-scale {
-    transform: scale(0.7);
-    transform-origin: top left;
-    width: 142.8%; /* 100 / 0.7 */
-  }
-  .cv-pages-container {
-    overflow: hidden;
-  }
-}
+/* CV scaling is handled dynamically in CVPanel.tsx via ResizeObserver */
 
 /* Hide scrollbar utility */
 .scrollbar-hide {
