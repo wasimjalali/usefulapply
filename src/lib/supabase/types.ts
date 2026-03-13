@@ -1,0 +1,669 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export interface Database {
+  public: {
+    Tables: {
+      profiles: {
+        Row: {
+          id: string
+          email: string
+          full_name: string | null
+          phone: string | null
+          location: string | null
+          avatar_url: string | null
+          linkedin_url: string | null
+          github_url: string | null
+          portfolio_url: string | null
+          website_url: string | null
+          date_of_birth: string | null
+          nationality: string | null
+          subscription_tier: 'free' | 'starter' | 'plus' | 'max' | 'pro' | 'enterprise'
+          subscription_status: 'active' | 'canceled' | 'past_due' | 'trialing'
+          notify_tips: boolean
+          notify_updates: boolean
+          notify_weekly: boolean
+          notify_marketing: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          email: string
+          full_name?: string | null
+          phone?: string | null
+          location?: string | null
+          avatar_url?: string | null
+          linkedin_url?: string | null
+          github_url?: string | null
+          portfolio_url?: string | null
+          website_url?: string | null
+          date_of_birth?: string | null
+          nationality?: string | null
+          subscription_tier?: 'free' | 'starter' | 'plus' | 'max' | 'pro' | 'enterprise'
+          subscription_status?: 'active' | 'canceled' | 'past_due' | 'trialing'
+          notify_tips?: boolean
+          notify_updates?: boolean
+          notify_weekly?: boolean
+          notify_marketing?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          full_name?: string | null
+          phone?: string | null
+          location?: string | null
+          avatar_url?: string | null
+          linkedin_url?: string | null
+          github_url?: string | null
+          portfolio_url?: string | null
+          website_url?: string | null
+          date_of_birth?: string | null
+          nationality?: string | null
+          subscription_tier?: 'free' | 'starter' | 'plus' | 'max' | 'pro' | 'enterprise'
+          subscription_status?: 'active' | 'canceled' | 'past_due' | 'trialing'
+          notify_tips?: boolean
+          notify_updates?: boolean
+          notify_weekly?: boolean
+          notify_marketing?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      documents: {
+        Row: {
+          id: string
+          user_id: string
+          type: 'primary_cv' | 'master_cv'
+          file_name: string
+          file_type: 'pdf' | 'docx'
+          file_size: number | null
+          storage_path: string | null
+          raw_text: string | null
+          sections: Json
+          all_skills: string[]
+          all_experiences: string[]
+          all_education: string[]
+          structured_data: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          type: 'primary_cv' | 'master_cv'
+          file_name: string
+          file_type: 'pdf' | 'docx'
+          file_size?: number | null
+          storage_path?: string | null
+          raw_text?: string | null
+          sections?: Json
+          all_skills?: string[]
+          all_experiences?: string[]
+          all_education?: string[]
+          structured_data?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          type?: 'primary_cv' | 'master_cv'
+          file_name?: string
+          file_type?: 'pdf' | 'docx'
+          file_size?: number | null
+          storage_path?: string | null
+          raw_text?: string | null
+          sections?: Json
+          all_skills?: string[]
+          all_experiences?: string[]
+          all_education?: string[]
+          structured_data?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      profile_photos: {
+        Row: {
+          id: string
+          user_id: string
+          file_name: string
+          storage_path: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          file_name: string
+          storage_path: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          file_name?: string
+          storage_path?: string
+          created_at?: string
+        }
+      }
+      application_sessions: {
+        Row: {
+          id: string
+          user_id: string
+          job_title: string | null
+          company: string | null
+          job_description: string
+          job_url: string | null
+          match_score: number | null
+          matching_skills: string[]
+          missing_skills: string[]
+          suggestions: string[]
+          requirements: Json | null
+          gaps: Json | null
+          generated_cv: Json | null
+          cover_letter: Json | null
+          email: Json | null
+          company_research: Json | null
+          company_address: string | null
+          company_contact_person: string | null
+          cv_edits: Json
+          optimized_pdf_path: string | null
+          optimized_cv_text: string | null
+          email_subject: string | null
+          email_body: string | null
+          selected_template: string
+          status: 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up'
+          cover_letter_language: string
+          fit_assessment: Json | null
+          generation_completed: boolean
+          follow_up_email: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          job_title?: string | null
+          company?: string | null
+          job_description: string
+          job_url?: string | null
+          match_score?: number | null
+          matching_skills?: string[]
+          missing_skills?: string[]
+          suggestions?: string[]
+          requirements?: Json | null
+          gaps?: Json | null
+          generated_cv?: Json | null
+          cover_letter?: Json | null
+          email?: Json | null
+          company_research?: Json | null
+          company_address?: string | null
+          company_contact_person?: string | null
+          cv_edits?: Json
+          optimized_pdf_path?: string | null
+          optimized_cv_text?: string | null
+          email_subject?: string | null
+          email_body?: string | null
+          selected_template?: string
+          status?: 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up'
+          cover_letter_language?: string
+          fit_assessment?: Json | null
+          generation_completed?: boolean
+          follow_up_email?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          job_title?: string | null
+          company?: string | null
+          job_description?: string
+          job_url?: string | null
+          match_score?: number | null
+          matching_skills?: string[]
+          missing_skills?: string[]
+          suggestions?: string[]
+          requirements?: Json | null
+          gaps?: Json | null
+          generated_cv?: Json | null
+          cover_letter?: Json | null
+          email?: Json | null
+          company_research?: Json | null
+          company_address?: string | null
+          company_contact_person?: string | null
+          cv_edits?: Json
+          optimized_pdf_path?: string | null
+          optimized_cv_text?: string | null
+          email_subject?: string | null
+          email_body?: string | null
+          selected_template?: string
+          status?: 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up'
+          cover_letter_language?: string
+          fit_assessment?: Json | null
+          generation_completed?: boolean
+          follow_up_email?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      chat_messages: {
+        Row: {
+          id: string
+          session_id: string
+          user_id: string
+          role: 'user' | 'assistant' | 'system'
+          content: string
+          actions: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          user_id: string
+          role: 'user' | 'assistant' | 'system'
+          content: string
+          actions?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          user_id?: string
+          role?: 'user' | 'assistant' | 'system'
+          content?: string
+          actions?: Json
+          created_at?: string
+        }
+      }
+      subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          tier: 'free' | 'starter' | 'plus' | 'max' | 'pro' | 'enterprise'
+          status: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete'
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          stripe_price_id: string | null
+          current_period_start: string | null
+          current_period_end: string | null
+          cancel_at_period_end: boolean
+          canceled_at: string | null
+          trial_start: string | null
+          trial_end: string | null
+          applications_used: number
+          applications_limit: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          tier: 'free' | 'starter' | 'plus' | 'max' | 'pro' | 'enterprise'
+          status?: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete'
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          stripe_price_id?: string | null
+          current_period_start?: string | null
+          current_period_end?: string | null
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          trial_start?: string | null
+          trial_end?: string | null
+          applications_used?: number
+          applications_limit?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          tier?: 'free' | 'starter' | 'plus' | 'max' | 'pro' | 'enterprise'
+          status?: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete'
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          stripe_price_id?: string | null
+          current_period_start?: string | null
+          current_period_end?: string | null
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          trial_start?: string | null
+          trial_end?: string | null
+          applications_used?: number
+          applications_limit?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      connected_accounts: {
+        Row: {
+          id: string
+          user_id: string
+          provider: 'google' | 'linkedin' | 'github'
+          provider_user_id: string
+          provider_email: string | null
+          access_token: string | null
+          refresh_token: string | null
+          token_expires_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          provider: 'google' | 'linkedin' | 'github'
+          provider_user_id: string
+          provider_email?: string | null
+          access_token?: string | null
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          provider?: 'google' | 'linkedin' | 'github'
+          provider_user_id?: string
+          provider_email?: string | null
+          access_token?: string | null
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      anonymous_generations: {
+        Row: {
+          id: string
+          ip_hash: string
+          generated_at: string
+        }
+        Insert: {
+          id?: string
+          ip_hash: string
+          generated_at?: string
+        }
+        Update: {
+          id?: string
+          ip_hash?: string
+          generated_at?: string
+        }
+      }
+      contact_submissions: {
+        Row: {
+          id: string
+          name: string
+          email: string
+          subject: string
+          message: string
+          submitted_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          email: string
+          subject: string
+          message: string
+          submitted_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          email?: string
+          subject?: string
+          message?: string
+          submitted_at?: string
+          created_at?: string
+        }
+      }
+      user_credits: {
+        Row: {
+          id: string
+          user_id: string
+          monthly_credits: number
+          rollover_credits: number
+          addon_credits: number
+          plan_tier: 'free' | 'starter' | 'plus' | 'max' | 'pro'
+          last_reset_date: string | null
+          next_reset_date: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          monthly_credits?: number
+          rollover_credits?: number
+          addon_credits?: number
+          plan_tier?: 'free' | 'starter' | 'plus' | 'max' | 'pro'
+          last_reset_date?: string | null
+          next_reset_date?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          monthly_credits?: number
+          rollover_credits?: number
+          addon_credits?: number
+          plan_tier?: 'free' | 'starter' | 'plus' | 'max' | 'pro'
+          last_reset_date?: string | null
+          next_reset_date?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      credit_transactions: {
+        Row: {
+          id: string
+          user_id: string
+          amount: number
+          transaction_type: string
+          session_id: string | null
+          description: string | null
+          metadata: Json
+          balance_before: number
+          balance_after: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          amount: number
+          transaction_type: string
+          session_id?: string | null
+          description?: string | null
+          metadata?: Json
+          balance_before: number
+          balance_after: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          amount?: number
+          transaction_type?: string
+          session_id?: string | null
+          description?: string | null
+          metadata?: Json
+          balance_before?: number
+          balance_after?: number
+          created_at?: string
+        }
+      }
+      subscription_plans: {
+        Row: {
+          id: string
+          tier: 'free' | 'starter' | 'plus' | 'max' | 'pro'
+          name: string
+          description: string | null
+          price_monthly: number
+          credits_monthly: number
+          rollover_months: number
+          max_rollover_credits: number
+          addon_enabled: boolean
+          stripe_product_id: string | null
+          stripe_price_id_monthly: string | null
+          active: boolean
+          display_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tier: 'free' | 'starter' | 'plus' | 'max' | 'pro'
+          name: string
+          description?: string | null
+          price_monthly?: number
+          credits_monthly?: number
+          rollover_months?: number
+          max_rollover_credits?: number
+          addon_enabled?: boolean
+          stripe_product_id?: string | null
+          stripe_price_id_monthly?: string | null
+          active?: boolean
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tier?: 'free' | 'starter' | 'plus' | 'max' | 'pro'
+          name?: string
+          description?: string | null
+          price_monthly?: number
+          credits_monthly?: number
+          rollover_months?: number
+          max_rollover_credits?: number
+          addon_enabled?: boolean
+          stripe_product_id?: string | null
+          stripe_price_id_monthly?: string | null
+          active?: boolean
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      addon_credit_packs: {
+        Row: {
+          id: string
+          name: string
+          credits: number
+          price: number
+          discount_percent: number
+          stripe_product_id: string | null
+          stripe_price_id: string | null
+          active: boolean
+          display_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          credits: number
+          price: number
+          discount_percent?: number
+          stripe_product_id?: string | null
+          stripe_price_id?: string | null
+          active?: boolean
+          display_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          credits?: number
+          price?: number
+          discount_percent?: number
+          stripe_product_id?: string | null
+          stripe_price_id?: string | null
+          active?: boolean
+          display_order?: number
+          created_at?: string
+        }
+      }
+      message_feedback: {
+        Row: {
+          id: string
+          user_id: string
+          session_id: string | null
+          message_id: string
+          feedback_type: 'positive' | 'negative'
+          feedback_text: string | null
+          message_content: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          session_id?: string | null
+          message_id: string
+          feedback_type: 'positive' | 'negative'
+          feedback_text?: string | null
+          message_content?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          session_id?: string | null
+          message_id?: string
+          feedback_type?: 'positive' | 'negative'
+          feedback_text?: string | null
+          message_content?: string | null
+          created_at?: string
+        }
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+  }
+}
+
+// Helper types
+export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
+export type InsertTables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert']
+export type UpdateTables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Update']
+
+// Convenience types
+export type Profile = Tables<'profiles'>
+export type Document = Tables<'documents'>
+export type ProfilePhoto = Tables<'profile_photos'>
+export type ApplicationSession = Tables<'application_sessions'>
+export type ChatMessage = Tables<'chat_messages'>
+export type Subscription = Tables<'subscriptions'>
+export type ConnectedAccount = Tables<'connected_accounts'>
+export type AnonymousGeneration = Tables<'anonymous_generations'>
+export type ContactSubmission = Tables<'contact_submissions'>
+export type UserCreditsRow = Tables<'user_credits'>
+export type CreditTransaction = Tables<'credit_transactions'>
+export type SubscriptionPlan = Tables<'subscription_plans'>
+export type AddonCreditPack = Tables<'addon_credit_packs'>
+export type MessageFeedback = Tables<'message_feedback'>
