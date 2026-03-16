@@ -84,6 +84,8 @@ export function useSupabaseSync() {
   const prevSyncUserIdRef = useRef<string | null>(null);
   // Create the client once per hook instance — not on every render
   const supabaseRef = useRef(createClient());
+  // Track synced chat message IDs to avoid duplicates
+  const syncedMessageIdsRef = useRef<Set<string>>(new Set());
 
   // Reset sync state when user changes — ensures docs/sessions reload for new user
   useEffect(() => {
@@ -193,6 +195,8 @@ export function useSupabaseSync() {
         
         if (error) {
           console.error('[SupabaseSync] Error loading sessions:', error);
+          // CRITICAL: Still mark load as complete so sync isn't permanently blocked
+          initialLoadCompleteRef.current = true;
           return;
         }
         
@@ -258,11 +262,19 @@ export function useSupabaseSync() {
           }));
           
           // Get current localStorage sessions — only keep truly local ones not yet in Supabase
-          const { sessions: localSessions } = useSessionStore.getState();
+          const { sessions: localSessions, currentSession: cachedCurrent } = useSessionStore.getState();
           const supabaseIds = new Set(supabaseSessions.map(s => s.id));
-          const localOnlySessions = localSessions.filter(s => 
+          const localOnlySessions = localSessions.filter(s =>
             s.id.startsWith('session-') && !supabaseIds.has(s.id)
           );
+          // CRITICAL FIX: On page refresh, sessions array is empty (not persisted) but
+          // currentSession IS persisted in localStorage. Include it so history toggle shows it.
+          if (cachedCurrent && cachedCurrent.id.startsWith('session-') && !supabaseIds.has(cachedCurrent.id)) {
+            const alreadyIncluded = localOnlySessions.some(s => s.id === cachedCurrent.id);
+            if (!alreadyIncluded) {
+              localOnlySessions.push(cachedCurrent);
+            }
+          }
           
           // FIX: Build a map so we can update sessions by ID without replacing the whole array
           const sessionMap = new Map<string, ApplicationSession>();
@@ -355,9 +367,11 @@ export function useSupabaseSync() {
         }
       } catch (err) {
         console.error('[SupabaseSync] Failed to load sessions:', err);
+        // CRITICAL: Still mark load as complete so sync isn't permanently blocked
+        initialLoadCompleteRef.current = true;
       }
     };
-    
+
     loadSessionsFromSupabase();
   }, [user, setSessions]);
 
@@ -432,16 +446,20 @@ export function useSupabaseSync() {
               console.log('[SupabaseSync] Replaced local ID:', oldSessionId, '->', newSession.id);
               
               // Update the new session with full data
-              if (currentSession.jobTitle || currentSession.company) {
+              if (currentSession.jobTitle || currentSession.company || currentSession.generatedCV) {
                 const newGenCV = currentSession.generatedCV
                   ? { ...currentSession.generatedCV, _optimizedCVData: currentSession.optimizedCVData || undefined }
                   : currentSession.optimizedCVData
                     ? { _optimizedCVData: currentSession.optimizedCVData }
                     : null;
-                await updateSupabaseSession(newSession.id, {
+                // Clamp match_score to INTEGER 0-100 to satisfy DB CHECK constraint
+                const safeMatchScore = currentSession.matchScore != null
+                  ? Math.round(Math.min(100, Math.max(0, currentSession.matchScore)))
+                  : undefined;
+                const { error: updateErr } = await updateSupabaseSession(newSession.id, {
                   job_title: currentSession.jobTitle,
                   company: currentSession.company,
-                  match_score: currentSession.matchScore,
+                  match_score: safeMatchScore,
                   matching_skills: currentSession.matchingSkills,
                   missing_skills: currentSession.missingSkills,
                   requirements: currentSession.requirements,
@@ -452,6 +470,9 @@ export function useSupabaseSync() {
                   follow_up_email: currentSession.followUpEmail,
                   company_research: currentSession.companyResearch,
                 }, user.id);
+                if (updateErr) {
+                  console.error('[SupabaseSync] Error updating new session with full data:', updateErr);
+                }
               }
               
               // Sync existing chat messages to Supabase
@@ -486,11 +507,15 @@ export function useSupabaseSync() {
             : currentSession.optimizedCVData
               ? { _optimizedCVData: currentSession.optimizedCVData }
               : null;
+          // Clamp match_score to INTEGER 0-100 to satisfy DB CHECK constraint
+          const safeMatchScore = currentSession.matchScore != null
+            ? Math.round(Math.min(100, Math.max(0, currentSession.matchScore)))
+            : undefined;
           const { error } = await updateSupabaseSession(currentSession.id, {
             job_title: currentSession.jobTitle,
             company: currentSession.company,
             job_description: currentSession.jobDescription,
-            match_score: currentSession.matchScore,
+            match_score: safeMatchScore,
             matching_skills: currentSession.matchingSkills,
             missing_skills: currentSession.missingSkills,
             suggestions: currentSession.suggestions,
@@ -528,9 +553,6 @@ export function useSupabaseSync() {
     const timeoutId = setTimeout(syncSession, 2000);
     return () => clearTimeout(timeoutId);
   }, [user, currentSession]);
-
-  // Track synced chat message IDs to avoid duplicates
-  const syncedMessageIdsRef = useRef<Set<string>>(new Set());
 
   // On mount, pre-populate synced message IDs from current sessions AND currentSession
   // to avoid re-syncing messages that were already saved to Supabase.

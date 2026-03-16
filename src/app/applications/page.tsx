@@ -319,10 +319,12 @@ export default function ApplicationsPage() {
       const [pageResult, statusResult] = await Promise.all([
         fetchApplications(0, PAGE_SIZE),
         // Lightweight query: only status column, no heavy content — for accurate pill counts
+        // Must match fetchApplications filter (generated_cv IS NOT NULL) for consistent counts
         supabase
           .from('application_sessions')
           .select('status')
-          .eq('user_id', user.id) as Promise<{ data: { status: string | null }[] | null; error: unknown }>,
+          .eq('user_id', user.id)
+          .not('generated_cv', 'is', null) as Promise<{ data: { status: string | null }[] | null; error: unknown }>,
       ]);
 
       setApplications(pageResult.data);
