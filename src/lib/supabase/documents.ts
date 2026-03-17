@@ -8,7 +8,7 @@ export interface Document {
   user_id: string;
   type: 'primary_cv' | 'master_cv';
   file_name: string;
-  file_type: 'pdf' | 'docx';
+  file_type: 'pdf' | 'docx' | 'txt';
   file_size?: number;
   storage_path?: string;
   raw_text?: string;
@@ -75,7 +75,7 @@ export async function saveDocument(
   type: 'primary_cv' | 'master_cv',
   data: {
     file_name: string;
-    file_type: 'pdf' | 'docx';
+    file_type: 'pdf' | 'docx' | 'txt';
     file_size?: number;
     storage_path?: string;
     raw_text?: string;

@@ -21,9 +21,11 @@ export function FileUpload({
   accept = {
     'application/pdf': ['.pdf'],
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+    'text/plain': ['.txt'],
+    'text/markdown': ['.md'],
   },
   label = 'Upload your CV',
-  description = 'PDF or DOCX (max 4.5 MB)',
+  description = 'PDF, DOCX, TXT, or MD (max 4.5 MB)',
   isLoading = false,
 }: FileUploadProps) {
   const onDrop = useCallback(

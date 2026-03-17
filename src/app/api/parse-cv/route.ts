@@ -6,6 +6,7 @@ import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { createClient } from '@/lib/supabase/server';
 import { detectCVLanguage, extractOriginalHeaders, generateLocalizedHeaders, splitIntoSections } from '@/lib/cv-parser/section-splitter';
+import { callAnthropic } from '@/lib/models/anthropic';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -13,8 +14,13 @@ export const maxDuration = 60;
 // File size limit: 4.5 MB (matches Vercel serverless body limit)
 const MAX_FILE_SIZE_BYTES = 4.5 * 1024 * 1024;
 
-// Check if we have the required API keys
+// Accepted file extensions
+const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.txt', '.md'];
+
+// Check if we have the required API keys (Bedrock OR direct Anthropic)
 const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
+const hasBedrockKeys = !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) || !!process.env.AWS_BEARER_TOKEN_BEDROCK;
+const hasAICapability = hasAnthropicKey || hasBedrockKeys;
 const hasBlobStorage = !!process.env.BLOB_READ_WRITE_TOKEN;
 
 export async function POST(request: NextRequest) {
@@ -50,7 +56,17 @@ export async function POST(request: NextRequest) {
 
     if (!file || !(file instanceof File) || file.size === 0) {
       console.error('[Parser] No valid file in form data. Keys:', [...formData.keys()]);
-      return NextResponse.json({ error: 'No file provided. Please select a PDF or DOCX file.' }, { status: 400 });
+      return NextResponse.json({ error: 'No file provided. Please select a PDF, DOCX, TXT, or MD file.' }, { status: 400 });
+    }
+
+    const fileName = file.name.toLowerCase();
+    const fileExt = '.' + (fileName.split('.').pop() || '');
+
+    if (!ACCEPTED_EXTENSIONS.includes(fileExt)) {
+      return NextResponse.json(
+        { error: `Unsupported file type "${fileExt}". Accepted formats: PDF, DOCX, TXT, MD.` },
+        { status: 400 }
+      );
     }
 
     console.log(`[Parser] Received file: ${file.name}, size: ${(file.size / 1024).toFixed(1)} KB, type: ${file.type}`);
@@ -74,9 +90,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Buffer integrity check
+    if (buffer.length === 0) {
+      console.error(`[Parser] Empty buffer received (file.size=${file.size}, buffer.length=0)`);
+      return NextResponse.json(
+        { error: 'File appears to be empty. Please try uploading again.' },
+        { status: 400 }
+      );
+    }
+    if (Math.abs(buffer.length - file.size) > 100) {
+      console.warn(`[Parser] Buffer size mismatch: file.size=${file.size}, buffer.length=${buffer.length}`);
+    }
+
     // Optional: Upload to Vercel Blob — authenticated users only, stored under their user ID
     let pdfUrl: string | undefined;
-    if (hasBlobStorage && isAuthenticated && user) {
+    if (hasBlobStorage && isAuthenticated && user && fileExt === '.pdf') {
       try {
         const { put } = await import('@vercel/blob');
         const pdfBlob = await put(`originals/${user.id}/${uuidv4()}-${file.name}`, buffer, {
@@ -88,48 +116,23 @@ export async function POST(request: NextRequest) {
         console.warn('Blob storage not available, skipping upload');
       }
     }
-    
-    // Extract text from PDF
+
+    // Extract text based on file type
     let rawText = '';
-    if (file.name.toLowerCase().endsWith('.pdf')) {
-      try {
-        const pdfData = await pdf(buffer);
-        rawText = pdfData.text;
-        console.log(`[Parser] PDF text extracted: ${rawText.length} chars from ${pdfData.numpages} pages`);
-      } catch (e) {
-        console.error('[Parser] PDF parsing failed:', e);
-        return NextResponse.json(
-          { error: 'Failed to parse PDF file. The file may be corrupted or password-protected. Please try a different file.' },
-          { status: 400 }
-        );
-      }
-    } else if (file.name.toLowerCase().endsWith('.docx')) {
-      // DOCX files are ZIP archives containing XML — extract readable text
-      const rawBuffer = buffer.toString('utf-8');
-      // Extract text between XML tags in the document.xml inside the ZIP
-      const xmlTextParts: string[] = [];
-      const xmlTagPattern = /<w:t[^>]*>([^<]+)<\/w:t>/g;
-      let match;
-      while ((match = xmlTagPattern.exec(rawBuffer)) !== null) {
-        xmlTextParts.push(match[1]);
-      }
-      if (xmlTextParts.length > 0) {
-        rawText = xmlTextParts.join(' ').replace(/\s+/g, ' ').trim();
-        console.log(`[Parser] DOCX text extracted via XML tags: ${rawText.length} chars`);
-      } else {
-        // Fallback: strip non-printable chars
-        rawText = rawBuffer.replace(/[^\x20-\x7E\n\r\t\u00C0-\u024F]/g, ' ').replace(/\s+/g, ' ').trim();
-        console.log(`[Parser] DOCX text extracted via fallback: ${rawText.length} chars`);
-      }
+    if (fileExt === '.pdf') {
+      rawText = await extractTextFromPDF(buffer);
+    } else if (fileExt === '.docx') {
+      rawText = extractTextFromDOCX(buffer);
     } else {
+      // TXT, MD — plain text, easiest to parse
       rawText = buffer.toString('utf-8');
     }
 
-    if (!rawText || rawText.trim().length < 50) {
+    // If local extraction got insufficient text, try AI OCR for PDFs
+    if ((!rawText || rawText.trim().length < 50) && fileExt === '.pdf') {
       console.log(`[Parser] Insufficient text from local extraction (${rawText?.trim().length || 0} chars), trying AI OCR fallback...`);
 
-      // AI OCR fallback: use Claude's document understanding for scanned/image PDFs
-      if (hasAnthropicKey && isAuthenticated && file.name.toLowerCase().endsWith('.pdf')) {
+      if (hasAICapability && isAuthenticated) {
         try {
           rawText = await extractTextWithAI(buffer);
           console.log(`[Parser] AI OCR extracted: ${rawText.length} chars`);
@@ -137,27 +140,27 @@ export async function POST(request: NextRequest) {
           console.error('[Parser] AI OCR fallback failed:', e);
         }
       }
-
-      if (!rawText || rawText.trim().length < 50) {
-        console.error(`[Parser] All text extraction methods failed. Final length: ${rawText?.trim().length || 0} chars`);
-        return NextResponse.json(
-          { error: 'Could not extract text from file. The file may be image-based (scanned) or empty. Please upload a text-based PDF.' },
-          { status: 400 }
-        );
-      }
     }
-    
+
+    if (!rawText || rawText.trim().length < 50) {
+      console.error(`[Parser] All text extraction methods failed. Final length: ${rawText?.trim().length || 0} chars`);
+      return NextResponse.json(
+        { error: 'Could not extract text from file. The file may be image-based (scanned) or empty. Please try uploading a text-based PDF, or use TXT/MD format instead.' },
+        { status: 400 }
+      );
+    }
+
     // Parse CV - AI parsing for authenticated users only (prevents API cost abuse)
     let structuredCV: StructuredCV;
-    let parserUsed: 'anthropic' | 'local' = 'local';
+    let parserUsed: 'ai' | 'local' = 'local';
     const parseStartTime = Date.now();
 
-    if (hasAnthropicKey && isAuthenticated) {
+    if (hasAICapability && isAuthenticated) {
       try {
-        structuredCV = await parseWithAnthropic(rawText, region as 'US' | 'EU');
-        parserUsed = 'anthropic';
+        structuredCV = await parseWithAI(rawText, region as 'US' | 'EU');
+        parserUsed = 'ai';
       } catch (e) {
-        console.warn('[Parser] Anthropic parsing failed, using local parser:', e);
+        console.warn('[Parser] AI parsing failed, using local parser:', e);
         structuredCV = parseLocally(rawText, region as 'US' | 'EU', file.name);
         parserUsed = 'local';
       }
@@ -166,13 +169,13 @@ export async function POST(request: NextRequest) {
       structuredCV = parseLocally(rawText, region as 'US' | 'EU', file.name);
       parserUsed = 'local';
     }
-    
+
     const parseTime = Date.now() - parseStartTime;
     console.log(`[Parser] Completed using ${parserUsed} parser in ${parseTime}ms`);
     console.log(`[Parser] Extracted: ${structuredCV.experience.length} experiences, ${structuredCV.education.length} education entries, ${structuredCV.skills.length} skill categories`);
-    
+
     structuredCV.sourceFileName = file.name;
-    structuredCV.sourceFormat = file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx';
+    structuredCV.sourceFormat = fileExt === '.pdf' ? 'pdf' : fileExt === '.docx' ? 'docx' : 'txt';
 
     // Detect CV language and generate localized strings (Present/Heute, GPA/Note, etc.)
     const detectedLang = detectCVLanguage(rawText);
@@ -196,7 +199,7 @@ export async function POST(request: NextRequest) {
     if (!detectedSections.has('CERTIFICATIONS')) {
       structuredCV.certifications = [];
     }
-    
+
     return NextResponse.json({
       success: true,
       structuredCV,
@@ -214,7 +217,7 @@ export async function POST(request: NextRequest) {
         textLength: rawText.length,
       },
     });
-    
+
   } catch (error) {
     const posthog = getPostHogServer();
     posthog.captureException(error as Error, 'server_error', {
@@ -231,20 +234,108 @@ export async function POST(request: NextRequest) {
 }
 
 /**
+ * Extract text from PDF — tries default pdfjs first, falls back to v2.0.550
+ */
+async function extractTextFromPDF(buffer: Buffer): Promise<string> {
+  // Try with the default pdfjs version first
+  try {
+    const pdfData = await pdf(buffer);
+    console.log(`[Parser] PDF text extracted (default): ${pdfData.text.length} chars from ${pdfData.numpages} pages`);
+    if (pdfData.text.trim().length >= 50) {
+      return pdfData.text;
+    }
+    console.log('[Parser] Default pdfjs extracted insufficient text, trying v2.0.550...');
+  } catch (e) {
+    console.warn('[Parser] Default pdfjs failed, trying v2.0.550:', (e as Error).message);
+  }
+
+  // Fallback: try with newer pdfjs v2.0.550 (better Node.js 24 compatibility)
+  try {
+    const pdfData = await pdf(buffer, { version: 'v2.0.550' });
+    console.log(`[Parser] PDF text extracted (v2.0.550): ${pdfData.text.length} chars from ${pdfData.numpages} pages`);
+    return pdfData.text;
+  } catch (e) {
+    console.error('[Parser] v2.0.550 also failed:', (e as Error).message);
+  }
+
+  // Both versions failed
+  return '';
+}
+
+/**
+ * Extract text from DOCX — parses XML from ZIP archive
+ */
+function extractTextFromDOCX(buffer: Buffer): string {
+  const rawBuffer = buffer.toString('utf-8');
+  // Extract text between XML <w:t> tags in the document.xml inside the ZIP
+  const xmlTextParts: string[] = [];
+  const xmlTagPattern = /<w:t[^>]*>([^<]+)<\/w:t>/g;
+  let match;
+  while ((match = xmlTagPattern.exec(rawBuffer)) !== null) {
+    xmlTextParts.push(match[1]);
+  }
+  if (xmlTextParts.length > 0) {
+    const text = xmlTextParts.join(' ').replace(/\s+/g, ' ').trim();
+    console.log(`[Parser] DOCX text extracted via XML tags: ${text.length} chars`);
+    return text;
+  }
+  // Fallback: strip non-printable chars
+  const text = rawBuffer.replace(/[^\x20-\x7E\n\r\t\u00C0-\u024F]/g, ' ').replace(/\s+/g, ' ').trim();
+  console.log(`[Parser] DOCX text extracted via fallback: ${text.length} chars`);
+  return text;
+}
+
+/**
+ * Extract text from a PDF using Claude's document understanding (handles scanned/image PDFs).
+ * Uses the shared callAnthropic function which supports both Bedrock and direct API.
+ */
+async function extractTextWithAI(pdfBuffer: Buffer): Promise<string> {
+  // Use callAnthropic which supports both Bedrock and direct Anthropic API
+  const base64Data = pdfBuffer.toString('base64');
+  const prompt = `I'm providing a PDF document as base64. The document is a CV/resume. Extract ALL text content preserving the original structure, section headers, dates, bullet points, and formatting. Return ONLY the extracted text, nothing else.\n\nPDF (base64):\n${base64Data}`;
+
+  const response = await callAnthropic({
+    prompt,
+    systemPrompt: 'You are a document text extractor. Extract all text from the provided document faithfully. Preserve structure and formatting.',
+    temperature: 0,
+    maxTokens: 8192,
+  });
+
+  return response.content;
+}
+
+/**
+ * Parse CV using AI (supports both Bedrock and direct Anthropic API)
+ */
+async function parseWithAI(rawText: string, region: 'US' | 'EU'): Promise<StructuredCV> {
+  const prompt = getParsingPrompt(rawText);
+
+  const response = await callAnthropic({
+    prompt,
+    systemPrompt: 'You are a precise CV parser. Extract factual information only. Return valid JSON. Do not infer or fabricate any information not explicitly present in the source document.',
+    temperature: 0.3,
+    maxTokens: 4096,
+    jsonMode: true,
+  });
+
+  return parseAIResponse(response.content, region);
+}
+
+/**
  * Local CV parser - works without any external API
  */
 function parseLocally(rawText: string, region: 'US' | 'EU', fileName: string): StructuredCV {
   const cv = createEmptyCV(region);
   const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
-  
+
   // Extract email
   const emailMatch = rawText.match(/[\w.-]+@[\w.-]+\.\w+/);
   if (emailMatch) cv.personal.email = emailMatch[0];
-  
+
   // Extract phone
   const phoneMatch = rawText.match(/[\+]?[(]?[0-9]{1,3}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,9}/);
   if (phoneMatch) cv.personal.phone = phoneMatch[0];
-  
+
   // Extract name from first few lines (skip common headers)
   const nameExclusions = ['resume', 'cv', 'curriculum', 'vitae', 'contact', 'email', 'phone', 'address', 'lebenslauf', 'bewerbung'];
   for (const line of lines.slice(0, 10)) {
@@ -265,13 +356,13 @@ function parseLocally(rawText: string, region: 'US' | 'EU', fileName: string): S
     }
   }
   // No email-based name fallback — better to leave blank than guess wrong
-  
+
   // Extract summary (look for profile/summary section)
   const summaryMatch = rawText.match(/(?:profile|summary|objective|about)[:\s]*\n?([\s\S]*?)(?=\n\s*(?:experience|education|skills|work)|$)/i);
   if (summaryMatch && summaryMatch[1]) {
     cv.summary = summaryMatch[1].trim().split('\n').slice(0, 5).join(' ').substring(0, 500);
   }
-  
+
   // Extract skills — preserve proficiency levels like "Python (Proficient)" or "Excel - Advanced"
   const skillsMatch = rawText.match(/(?:skills|competencies|expertise)[:\s]*\n?([\s\S]*?)(?=\n\s*(?:experience|education|languages|certifications)|$)/i);
   if (skillsMatch && skillsMatch[1]) {
@@ -307,7 +398,7 @@ function parseLocally(rawText: string, region: 'US' | 'EU', fileName: string): S
       cv.skills = [withId({ category: 'Skills', skills: [...new Set(skillItems)].slice(0, 20) })];
     }
   }
-  
+
   // Extract languages — includes both English and native-language names
   const knownLanguages = [
     'english', 'englisch', 'german', 'deutsch', 'french', 'français',
@@ -364,7 +455,7 @@ function parseLocally(rawText: string, region: 'US' | 'EU', fileName: string): S
       }));
     }
   }
-  
+
   return cv;
 }
 
@@ -452,10 +543,10 @@ Return ONLY valid JSON with this structure:
 function parseAIResponse(content: string, region: 'US' | 'EU'): StructuredCV {
   const jsonMatch = content.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error('No JSON in response');
-  
+
   const parsed = JSON.parse(jsonMatch[0]);
   const cv = createEmptyCV(region);
-  
+
   // Map ALL personal info fields
   cv.personal = {
     fullName: parsed.personal?.fullName || '',
@@ -473,9 +564,9 @@ function parseAIResponse(content: string, region: 'US' | 'EU'): StructuredCV {
     github: parsed.personal?.github,
     photoUrl: parsed.personal?.photoUrl,
   };
-  
+
   cv.summary = parsed.summary;
-  
+
   // Map experience with ALL fields
   cv.experience = (parsed.experience || []).map((exp: any) => withId({
     company: exp.company || '',
@@ -486,7 +577,7 @@ function parseAIResponse(content: string, region: 'US' | 'EU'): StructuredCV {
     current: exp.current || false,
     bullets: exp.bullets || [],
   }));
-  
+
   // Map education with ALL fields including startDate
   cv.education = (parsed.education || []).map((edu: any) => withId({
     institution: edu.institution || '',
@@ -498,27 +589,27 @@ function parseAIResponse(content: string, region: 'US' | 'EU'): StructuredCV {
     grade: edu.grade,
     highlights: edu.highlights || [],
   }));
-  
+
   // Map skills - ensure proper categorization
   cv.skills = (parsed.skills || []).map((cat: any) => withId({
     category: cat.category || 'Skills',
     skills: Array.isArray(cat.skills) ? cat.skills : [],
   }));
-  
+
   // Map certifications
   cv.certifications = (parsed.certifications || []).map((cert: any) => withId({
     name: cert.name || '',
     issuer: cert.issuer || '',
     date: cert.date,
   }));
-  
+
   // Map languages
   cv.languages = (parsed.languages || []).map((lang: any) => withId({
     language: lang.language || '',
     proficiency: lang.proficiency || 'Professional',
     certification: lang.certification,
   }));
-  
+
   // Map projects if present
   cv.projects = (parsed.projects || []).map((proj: any) => withId({
     name: proj.name || '',
@@ -526,64 +617,6 @@ function parseAIResponse(content: string, region: 'US' | 'EU'): StructuredCV {
     technologies: proj.technologies || [],
     url: proj.url,
   }));
-  
+
   return cv;
-}
-
-/**
- * Extract text from a PDF using Claude's document understanding (handles scanned/image PDFs)
- */
-async function extractTextWithAI(pdfBuffer: Buffer): Promise<string> {
-  const Anthropic = (await import('@anthropic-ai/sdk')).default;
-  const anthropic = new Anthropic();
-
-  const response = await anthropic.messages.create({
-    model: process.env.USE_FALLBACK_MODEL === 'true' ? 'claude-haiku-4-5' : 'claude-sonnet-4-6',
-    max_tokens: 8192,
-    temperature: 0,
-    messages: [{
-      role: 'user',
-      content: [
-        {
-          type: 'document',
-          source: {
-            type: 'base64',
-            media_type: 'application/pdf',
-            data: pdfBuffer.toString('base64'),
-          },
-        },
-        {
-          type: 'text',
-          text: 'Extract ALL text content from this PDF document. Preserve the original structure, section headers, dates, bullet points, and formatting as closely as possible. Return ONLY the extracted text, nothing else.',
-        },
-      ],
-    }],
-  });
-
-  const content = response.content[0];
-  if (content.type !== 'text') throw new Error('Unexpected response type');
-  return content.text;
-}
-
-/**
- * Parse CV using Anthropic
- */
-async function parseWithAnthropic(rawText: string, region: 'US' | 'EU'): Promise<StructuredCV> {
-  const Anthropic = (await import('@anthropic-ai/sdk')).default;
-  const anthropic = new Anthropic();
-  
-  const prompt = getParsingPrompt(rawText);
-
-  const response = await anthropic.messages.create({
-    model: process.env.USE_FALLBACK_MODEL === 'true' ? 'claude-haiku-4-5' : (process.env.USE_PREVIOUS_MODEL === 'true' ? 'claude-sonnet-4-5-20250929' : 'claude-sonnet-4-6'),
-    max_tokens: 4096,
-    temperature: 0.3,
-    system: 'You are a precise CV parser. Extract factual information only. Return valid JSON. Do not infer or fabricate any information not explicitly present in the source document.',
-    messages: [{ role: 'user', content: prompt }],
-  });
-  
-  const content = response.content[0];
-  if (content.type !== 'text') throw new Error('Unexpected response type');
-  
-  return parseAIResponse(content.text, region);
 }

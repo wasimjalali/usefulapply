@@ -245,7 +245,7 @@ export default function DocumentsPage() {
             ).join('\n') || '',
           },
           fileName: file.name,
-          fileType: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx',
+          fileType: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : file.name.toLowerCase().endsWith('.docx') ? 'docx' : 'txt',
         };
 
         // Return both the legacy format AND the structured CV
@@ -290,7 +290,7 @@ export default function DocumentsPage() {
           'primary_cv',
           {
             file_name: file.name,
-            file_type: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx',
+            file_type: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : file.name.toLowerCase().endsWith('.docx') ? 'docx' : 'txt',
             file_size: file.size,
             storage_path: storagePath || undefined,
             raw_text: result.parsedCV.rawText,
@@ -347,7 +347,7 @@ export default function DocumentsPage() {
           'master_cv',
           {
             file_name: file.name,
-            file_type: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx',
+            file_type: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : file.name.toLowerCase().endsWith('.docx') ? 'docx' : 'txt',
             file_size: file.size,
             storage_path: storagePath || undefined,
             raw_text: parsedCV.rawText,
@@ -597,7 +597,7 @@ export default function DocumentsPage() {
                   <FileUpload
                     onFileSelect={handleCVUpload}
                     label="Upload your CV"
-                    description="PDF or DOCX (max 4.5 MB)"
+                    description="PDF, DOCX, TXT, or MD (max 4.5 MB)"
                   />
                 )}
               </div>

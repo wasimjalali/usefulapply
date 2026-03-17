@@ -83,7 +83,7 @@ export interface Database {
           user_id: string
           type: 'primary_cv' | 'master_cv'
           file_name: string
-          file_type: 'pdf' | 'docx'
+          file_type: 'pdf' | 'docx' | 'txt'
           file_size: number | null
           storage_path: string | null
           raw_text: string | null
@@ -100,7 +100,7 @@ export interface Database {
           user_id: string
           type: 'primary_cv' | 'master_cv'
           file_name: string
-          file_type: 'pdf' | 'docx'
+          file_type: 'pdf' | 'docx' | 'txt'
           file_size?: number | null
           storage_path?: string | null
           raw_text?: string | null

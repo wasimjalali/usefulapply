@@ -27,7 +27,7 @@ export interface StructuredCV {
   createdAt: string;
   updatedAt: string;
   sourceFileName: string;
-  sourceFormat: 'pdf' | 'docx' | 'manual';
+  sourceFormat: 'pdf' | 'docx' | 'txt' | 'manual';
   
   settings: CVSettings;
   

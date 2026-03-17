@@ -13,7 +13,7 @@ export interface ParsedCV {
     other?: string;
   };
   fileName: string;
-  fileType: 'pdf' | 'docx';
+  fileType: 'pdf' | 'docx' | 'txt';
 }
 
 export interface MasterCV extends ParsedCV {
