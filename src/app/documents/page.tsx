@@ -596,6 +596,7 @@ export default function DocumentsPage() {
                 ) : (
                   <FileUpload
                     onFileSelect={handleCVUpload}
+                    onError={(msg) => setUploadError(msg)}
                     label="Upload your CV"
                     description="PDF, DOCX, TXT, or MD (max 4.5 MB)"
                   />
@@ -692,6 +693,7 @@ export default function DocumentsPage() {
                 ) : (
                   <FileUpload
                     onFileSelect={handleMasterCVUpload}
+                    onError={(msg) => setMasterCVUploadError(msg)}
                     label="Upload master CV"
                     description="PDF, DOCX, TXT, or MD (max 4.5 MB)"
                   />

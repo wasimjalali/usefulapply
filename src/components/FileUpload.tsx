@@ -12,6 +12,7 @@ interface FileUploadProps {
   label?: string;
   description?: string;
   isLoading?: boolean;
+  onError?: (message: string) => void;
 }
 
 export function FileUpload({
@@ -27,6 +28,7 @@ export function FileUpload({
   label = 'Upload your CV',
   description = 'PDF, DOCX, TXT, or MD (max 4.5 MB)',
   isLoading = false,
+  onError,
 }: FileUploadProps) {
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -37,8 +39,29 @@ export function FileUpload({
     [onFileSelect]
   );
 
+  const onDropRejected = useCallback(
+    (fileRejections: readonly { file: File; errors: readonly { code: string; message: string }[] }[]) => {
+      const rejection = fileRejections[0];
+      if (!rejection) return;
+      const errorCode = rejection.errors[0]?.code;
+      let message = 'File could not be uploaded.';
+      if (errorCode === 'file-too-large') {
+        message = `File is too large (${(rejection.file.size / 1024 / 1024).toFixed(1)} MB). Maximum: 4.5 MB.`;
+      } else if (errorCode === 'file-invalid-type') {
+        message = 'Unsupported file type. Please upload a PDF, DOCX, TXT, or MD file.';
+      }
+      if (onError) {
+        onError(message);
+      } else {
+        console.error('[FileUpload] Rejected:', message);
+      }
+    },
+    [onError]
+  );
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
+    onDropRejected,
     accept,
     maxFiles: 1,
     maxSize: 4.5 * 1024 * 1024,

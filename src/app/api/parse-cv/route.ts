@@ -234,32 +234,22 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Extract text from PDF — uses pdfjs v2.0.550 (newest bundled version),
- * falls back to v1.10.100 only if the newer version fails.
+ * Extract text from PDF using pdf-parse.
+ *
+ * IMPORTANT: pdf-parse caches its internal pdfjs engine in a module-level variable.
+ * Once loaded with a specific version, ALL subsequent calls use that same version
+ * regardless of the `version` option. So we must NOT mix version options across calls.
+ * The default (v1.10.100) is the most battle-tested and was previously working in production.
  */
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
-  // Primary: pdfjs v2.0.550 — newest bundled version, best Node.js 24 compatibility
-  try {
-    const pdfData = await pdf(buffer, { version: 'v2.0.550' });
-    console.log(`[Parser] PDF text extracted (v2.0.550): ${pdfData.text.length} chars from ${pdfData.numpages} pages`);
-    if (pdfData.text.trim().length >= 50) {
-      return pdfData.text;
-    }
-    console.log('[Parser] v2.0.550 extracted insufficient text, trying legacy v1.10.100...');
-  } catch (e) {
-    console.warn('[Parser] v2.0.550 failed, trying legacy v1.10.100:', (e as Error).message);
-  }
-
-  // Fallback: legacy pdfjs v1.10.100
   try {
     const pdfData = await pdf(buffer);
-    console.log(`[Parser] PDF text extracted (v1.10.100): ${pdfData.text.length} chars from ${pdfData.numpages} pages`);
+    console.log(`[Parser] PDF text extracted: ${pdfData.text.length} chars from ${pdfData.numpages} pages`);
     return pdfData.text;
   } catch (e) {
-    console.error('[Parser] Legacy v1.10.100 also failed:', (e as Error).message);
+    console.error('[Parser] pdf-parse failed:', (e as Error).message);
+    return '';
   }
-
-  return '';
 }
 
 /**
