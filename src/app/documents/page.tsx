@@ -693,7 +693,7 @@ export default function DocumentsPage() {
                   <FileUpload
                     onFileSelect={handleMasterCVUpload}
                     label="Upload master CV"
-                    description="Your complete skills and experience bank"
+                    description="PDF, DOCX, TXT, or MD (max 4.5 MB)"
                   />
                 )}
               </div>

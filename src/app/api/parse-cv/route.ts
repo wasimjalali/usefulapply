@@ -234,31 +234,31 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Extract text from PDF — tries default pdfjs first, falls back to v2.0.550
+ * Extract text from PDF — uses pdfjs v2.0.550 (newest bundled version),
+ * falls back to v1.10.100 only if the newer version fails.
  */
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
-  // Try with the default pdfjs version first
-  try {
-    const pdfData = await pdf(buffer);
-    console.log(`[Parser] PDF text extracted (default): ${pdfData.text.length} chars from ${pdfData.numpages} pages`);
-    if (pdfData.text.trim().length >= 50) {
-      return pdfData.text;
-    }
-    console.log('[Parser] Default pdfjs extracted insufficient text, trying v2.0.550...');
-  } catch (e) {
-    console.warn('[Parser] Default pdfjs failed, trying v2.0.550:', (e as Error).message);
-  }
-
-  // Fallback: try with newer pdfjs v2.0.550 (better Node.js 24 compatibility)
+  // Primary: pdfjs v2.0.550 — newest bundled version, best Node.js 24 compatibility
   try {
     const pdfData = await pdf(buffer, { version: 'v2.0.550' });
     console.log(`[Parser] PDF text extracted (v2.0.550): ${pdfData.text.length} chars from ${pdfData.numpages} pages`);
-    return pdfData.text;
+    if (pdfData.text.trim().length >= 50) {
+      return pdfData.text;
+    }
+    console.log('[Parser] v2.0.550 extracted insufficient text, trying legacy v1.10.100...');
   } catch (e) {
-    console.error('[Parser] v2.0.550 also failed:', (e as Error).message);
+    console.warn('[Parser] v2.0.550 failed, trying legacy v1.10.100:', (e as Error).message);
   }
 
-  // Both versions failed
+  // Fallback: legacy pdfjs v1.10.100
+  try {
+    const pdfData = await pdf(buffer);
+    console.log(`[Parser] PDF text extracted (v1.10.100): ${pdfData.text.length} chars from ${pdfData.numpages} pages`);
+    return pdfData.text;
+  } catch (e) {
+    console.error('[Parser] Legacy v1.10.100 also failed:', (e as Error).message);
+  }
+
   return '';
 }
 
