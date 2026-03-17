@@ -126,11 +126,25 @@ export async function POST(request: NextRequest) {
     }
 
     if (!rawText || rawText.trim().length < 50) {
-      console.error(`[Parser] Insufficient text extracted: ${rawText?.trim().length || 0} chars`);
-      return NextResponse.json(
-        { error: 'Could not extract text from file. The file may be image-based (scanned) or empty. Please upload a text-based PDF.' },
-        { status: 400 }
-      );
+      console.log(`[Parser] Insufficient text from local extraction (${rawText?.trim().length || 0} chars), trying AI OCR fallback...`);
+
+      // AI OCR fallback: use Claude's document understanding for scanned/image PDFs
+      if (hasAnthropicKey && isAuthenticated && file.name.toLowerCase().endsWith('.pdf')) {
+        try {
+          rawText = await extractTextWithAI(buffer);
+          console.log(`[Parser] AI OCR extracted: ${rawText.length} chars`);
+        } catch (e) {
+          console.error('[Parser] AI OCR fallback failed:', e);
+        }
+      }
+
+      if (!rawText || rawText.trim().length < 50) {
+        console.error(`[Parser] All text extraction methods failed. Final length: ${rawText?.trim().length || 0} chars`);
+        return NextResponse.json(
+          { error: 'Could not extract text from file. The file may be image-based (scanned) or empty. Please upload a text-based PDF.' },
+          { status: 400 }
+        );
+      }
     }
     
     // Parse CV - AI parsing for authenticated users only (prevents API cost abuse)
@@ -514,6 +528,41 @@ function parseAIResponse(content: string, region: 'US' | 'EU'): StructuredCV {
   }));
   
   return cv;
+}
+
+/**
+ * Extract text from a PDF using Claude's document understanding (handles scanned/image PDFs)
+ */
+async function extractTextWithAI(pdfBuffer: Buffer): Promise<string> {
+  const Anthropic = (await import('@anthropic-ai/sdk')).default;
+  const anthropic = new Anthropic();
+
+  const response = await anthropic.messages.create({
+    model: process.env.USE_FALLBACK_MODEL === 'true' ? 'claude-haiku-4-5' : 'claude-sonnet-4-6',
+    max_tokens: 8192,
+    temperature: 0,
+    messages: [{
+      role: 'user',
+      content: [
+        {
+          type: 'document',
+          source: {
+            type: 'base64',
+            media_type: 'application/pdf',
+            data: pdfBuffer.toString('base64'),
+          },
+        },
+        {
+          type: 'text',
+          text: 'Extract ALL text content from this PDF document. Preserve the original structure, section headers, dates, bullet points, and formatting as closely as possible. Return ONLY the extracted text, nothing else.',
+        },
+      ],
+    }],
+  });
+
+  const content = response.content[0];
+  if (content.type !== 'text') throw new Error('Unexpected response type');
+  return content.text;
 }
 
 /**
