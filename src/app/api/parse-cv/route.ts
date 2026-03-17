@@ -10,8 +10,8 @@ import { detectCVLanguage, extractOriginalHeaders, generateLocalizedHeaders, spl
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-// File size limit: 10 MB
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+// File size limit: 4.5 MB (matches Vercel serverless body limit)
+const MAX_FILE_SIZE_BYTES = 4.5 * 1024 * 1024;
 
 // Check if we have the required API keys
 const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
@@ -34,23 +34,45 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     const isAuthenticated = !!user;
 
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
-    const region = (formData.get('region') as string) || 'EU';
-
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-    }
-
-    // File size validation
-    if (file.size > MAX_FILE_SIZE_BYTES) {
+    let formData: FormData;
+    try {
+      formData = await request.formData();
+    } catch (e) {
+      console.error('[Parser] Failed to parse form data:', e);
       return NextResponse.json(
-        { error: `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum: 10 MB.` },
+        { error: 'Failed to read upload. The file may be too large (max 4.5 MB).' },
         { status: 400 }
       );
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const file = formData.get('file') as File;
+    const region = (formData.get('region') as string) || 'EU';
+
+    if (!file || !(file instanceof File) || file.size === 0) {
+      console.error('[Parser] No valid file in form data. Keys:', [...formData.keys()]);
+      return NextResponse.json({ error: 'No file provided. Please select a PDF or DOCX file.' }, { status: 400 });
+    }
+
+    console.log(`[Parser] Received file: ${file.name}, size: ${(file.size / 1024).toFixed(1)} KB, type: ${file.type}`);
+
+    // File size validation
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      return NextResponse.json(
+        { error: `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum: 4.5 MB.` },
+        { status: 400 }
+      );
+    }
+
+    let buffer: Buffer;
+    try {
+      buffer = Buffer.from(await file.arrayBuffer());
+    } catch (e) {
+      console.error('[Parser] Failed to read file buffer:', e);
+      return NextResponse.json(
+        { error: 'Failed to read file contents. Please try again.' },
+        { status: 400 }
+      );
+    }
 
     // Optional: Upload to Vercel Blob — authenticated users only, stored under their user ID
     let pdfUrl: string | undefined;
@@ -73,16 +95,42 @@ export async function POST(request: NextRequest) {
       try {
         const pdfData = await pdf(buffer);
         rawText = pdfData.text;
+        console.log(`[Parser] PDF text extracted: ${rawText.length} chars from ${pdfData.numpages} pages`);
       } catch (e) {
-        console.error('PDF parsing failed:', e);
-        return NextResponse.json({ error: 'Failed to parse PDF file' }, { status: 400 });
+        console.error('[Parser] PDF parsing failed:', e);
+        return NextResponse.json(
+          { error: 'Failed to parse PDF file. The file may be corrupted or password-protected. Please try a different file.' },
+          { status: 400 }
+        );
+      }
+    } else if (file.name.toLowerCase().endsWith('.docx')) {
+      // DOCX files are ZIP archives containing XML — extract readable text
+      const rawBuffer = buffer.toString('utf-8');
+      // Extract text between XML tags in the document.xml inside the ZIP
+      const xmlTextParts: string[] = [];
+      const xmlTagPattern = /<w:t[^>]*>([^<]+)<\/w:t>/g;
+      let match;
+      while ((match = xmlTagPattern.exec(rawBuffer)) !== null) {
+        xmlTextParts.push(match[1]);
+      }
+      if (xmlTextParts.length > 0) {
+        rawText = xmlTextParts.join(' ').replace(/\s+/g, ' ').trim();
+        console.log(`[Parser] DOCX text extracted via XML tags: ${rawText.length} chars`);
+      } else {
+        // Fallback: strip non-printable chars
+        rawText = rawBuffer.replace(/[^\x20-\x7E\n\r\t\u00C0-\u024F]/g, ' ').replace(/\s+/g, ' ').trim();
+        console.log(`[Parser] DOCX text extracted via fallback: ${rawText.length} chars`);
       }
     } else {
       rawText = buffer.toString('utf-8');
     }
-    
+
     if (!rawText || rawText.trim().length < 50) {
-      return NextResponse.json({ error: 'Could not extract text from file' }, { status: 400 });
+      console.error(`[Parser] Insufficient text extracted: ${rawText?.trim().length || 0} chars`);
+      return NextResponse.json(
+        { error: 'Could not extract text from file. The file may be image-based (scanned) or empty. Please upload a text-based PDF.' },
+        { status: 400 }
+      );
     }
     
     // Parse CV - AI parsing for authenticated users only (prevents API cost abuse)

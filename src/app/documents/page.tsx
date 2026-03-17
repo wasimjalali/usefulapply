@@ -191,7 +191,13 @@ export default function DocumentsPage() {
     );
   }
 
-  const parseDocument = async (file: File): Promise<{ parsedCV: ParsedCV; structuredCV: any } | null> => {
+  const parseDocument = async (file: File): Promise<{ parsedCV: ParsedCV; structuredCV: any }> => {
+    // Client-side file size check (Vercel serverless limit is 4.5MB)
+    const MAX_UPLOAD_SIZE = 4.5 * 1024 * 1024;
+    if (file.size > MAX_UPLOAD_SIZE) {
+      throw new Error(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum upload size is 4.5 MB.`);
+    }
+
     const formData = new FormData();
     formData.append('file', file);
 
@@ -201,48 +207,64 @@ export default function DocumentsPage() {
         body: formData,
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        
-        // API returns { success, structuredCV, originalPdf, rawText }
-        if (result.success && result.rawText) {
-          // Create ParsedCV for backward compatibility
-          const parsedCV: ParsedCV = {
-            rawText: result.rawText,
-            sections: {
-              contactInfo: result.structuredCV?.personal ? 
-                `${result.structuredCV.personal.fullName || ''}\n${result.structuredCV.personal.email || ''}\n${result.structuredCV.personal.phone || ''}` : '',
-              summary: result.structuredCV?.summary || '',
-              experience: result.structuredCV?.experience?.map((e: any) => 
-                `${e.position} at ${e.company}\n${e.bullets?.join('\n') || ''}`
-              ).join('\n\n') || '',
-              education: result.structuredCV?.education?.map((e: any) => 
-                `${e.degree} - ${e.institution}`
-              ).join('\n') || '',
-              skills: result.structuredCV?.skills?.map((s: any) => 
-                `${s.category}: ${s.skills?.join(', ') || ''}`
-              ).join('\n') || '',
-            },
-            fileName: file.name,
-            fileType: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx',
-          };
-          
-          // Return both the legacy format AND the structured CV
-          return { 
-            parsedCV, 
-            structuredCV: result.structuredCV 
-          };
+      if (!response.ok) {
+        let errorMessage = 'Failed to parse CV';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If response body isn't JSON, use status-based message
+          if (response.status === 413) {
+            errorMessage = 'File is too large. Please upload a smaller file (max 4.5 MB).';
+          } else if (response.status === 429) {
+            errorMessage = 'Too many requests. Please wait a moment and try again.';
+          }
         }
-        
-        // Fallback: try legacy format
-        if (result.data) {
-          return { parsedCV: result.data as ParsedCV, structuredCV: null };
-        }
+        throw new Error(errorMessage);
       }
-      return null;
+
+      const result = await response.json();
+
+      // API returns { success, structuredCV, originalPdf, rawText }
+      if (result.success && result.rawText) {
+        // Create ParsedCV for backward compatibility
+        const parsedCV: ParsedCV = {
+          rawText: result.rawText,
+          sections: {
+            contactInfo: result.structuredCV?.personal ?
+              `${result.structuredCV.personal.fullName || ''}\n${result.structuredCV.personal.email || ''}\n${result.structuredCV.personal.phone || ''}` : '',
+            summary: result.structuredCV?.summary || '',
+            experience: result.structuredCV?.experience?.map((e: any) =>
+              `${e.position} at ${e.company}\n${e.bullets?.join('\n') || ''}`
+            ).join('\n\n') || '',
+            education: result.structuredCV?.education?.map((e: any) =>
+              `${e.degree} - ${e.institution}`
+            ).join('\n') || '',
+            skills: result.structuredCV?.skills?.map((s: any) =>
+              `${s.category}: ${s.skills?.join(', ') || ''}`
+            ).join('\n') || '',
+          },
+          fileName: file.name,
+          fileType: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx',
+        };
+
+        // Return both the legacy format AND the structured CV
+        return {
+          parsedCV,
+          structuredCV: result.structuredCV
+        };
+      }
+
+      // Fallback: try legacy format
+      if (result.data) {
+        return { parsedCV: result.data as ParsedCV, structuredCV: null };
+      }
+
+      throw new Error('CV was parsed but no content was extracted. The file may be empty or image-based.');
     } catch (error) {
-      console.error('Upload error:', error);
-      return null;
+      // Re-throw with the actual error message so callers can display it
+      if (error instanceof Error) throw error;
+      throw new Error('Upload failed. Please try again.');
     }
   };
 
@@ -251,41 +273,37 @@ export default function DocumentsPage() {
     setUploadError(null);
     try {
       const result = await parseDocument(file);
-      if (result) {
-        // Store BOTH the legacy ParsedCV AND the StructuredCV locally
-        setCurrentCV(result.parsedCV);
-        if (result.structuredCV) {
-          setStructuredCV(result.structuredCV);
-        }
-        
-        // Save to Supabase
-        if (user) {
-          // Upload file to storage
-          const { path: storagePath } = await uploadCVFile(user.id, 'primary_cv', file);
-          
-          // Save document metadata to database
-          const { document: savedDoc, error: saveError } = await saveDocument(
-            user.id,
-            'primary_cv',
-            {
-              file_name: file.name,
-              file_type: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx',
-              file_size: file.size,
-              storage_path: storagePath || undefined,
-              raw_text: result.parsedCV.rawText,
-              sections: result.parsedCV.sections,
-              structured_data: result.structuredCV,
-            }
-          );
-          
-          if (saveError) {
-            console.error('Error saving to Supabase:', saveError);
-          } else if (savedDoc) {
-            setSupabaseDocs(prev => ({ ...prev, primary: savedDoc }));
+      // Store BOTH the legacy ParsedCV AND the StructuredCV locally
+      setCurrentCV(result.parsedCV);
+      if (result.structuredCV) {
+        setStructuredCV(result.structuredCV);
+      }
+
+      // Save to Supabase
+      if (user) {
+        // Upload file to storage
+        const { path: storagePath } = await uploadCVFile(user.id, 'primary_cv', file);
+
+        // Save document metadata to database
+        const { document: savedDoc, error: saveError } = await saveDocument(
+          user.id,
+          'primary_cv',
+          {
+            file_name: file.name,
+            file_type: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx',
+            file_size: file.size,
+            storage_path: storagePath || undefined,
+            raw_text: result.parsedCV.rawText,
+            sections: result.parsedCV.sections,
+            structured_data: result.structuredCV,
           }
+        );
+
+        if (saveError) {
+          console.error('Error saving to Supabase:', saveError);
+        } else if (savedDoc) {
+          setSupabaseDocs(prev => ({ ...prev, primary: savedDoc }));
         }
-      } else {
-        setUploadError('Failed to parse CV. Please try again.');
       }
     } catch (error) {
       console.error('CV upload error:', error);
@@ -300,55 +318,51 @@ export default function DocumentsPage() {
     setMasterCVUploadError(null);
     try {
       const result = await parseDocument(file);
-      if (result) {
-        const { parsedCV } = result;
-        // Convert ParsedCV to MasterCV by adding required fields
-        const allSkills = parsedCV.sections.skills 
-          ? parsedCV.sections.skills.split(/[,\n•·\-]/).map((s: string) => s.trim()).filter(Boolean)
-          : [];
-        const allExperiences = parsedCV.sections.experience 
-          ? parsedCV.sections.experience.split(/\n\n/).filter(Boolean)
-          : [];
-        const allEducation = parsedCV.sections.education 
-          ? parsedCV.sections.education.split(/\n\n/).filter(Boolean)
-          : [];
-        
-        const masterCVData = {
-          ...parsedCV,
-          allSkills,
-          allExperiences,
-          allEducation,
-        };
-        setMasterCV(masterCVData);
-        
-        // Save to Supabase
-        if (user) {
-          const { path: storagePath } = await uploadCVFile(user.id, 'master_cv', file);
-          
-          const { document: savedDoc, error: saveError } = await saveDocument(
-            user.id,
-            'master_cv',
-            {
-              file_name: file.name,
-              file_type: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx',
-              file_size: file.size,
-              storage_path: storagePath || undefined,
-              raw_text: parsedCV.rawText,
-              sections: parsedCV.sections,
-              all_skills: allSkills,
-              all_experiences: allExperiences,
-              all_education: allEducation,
-            }
-          );
-          
-          if (saveError) {
-            console.error('Error saving master CV to Supabase:', saveError);
-          } else if (savedDoc) {
-            setSupabaseDocs(prev => ({ ...prev, master: savedDoc }));
+      const { parsedCV } = result;
+      // Convert ParsedCV to MasterCV by adding required fields
+      const allSkills = parsedCV.sections.skills
+        ? parsedCV.sections.skills.split(/[,\n•·\-]/).map((s: string) => s.trim()).filter(Boolean)
+        : [];
+      const allExperiences = parsedCV.sections.experience
+        ? parsedCV.sections.experience.split(/\n\n/).filter(Boolean)
+        : [];
+      const allEducation = parsedCV.sections.education
+        ? parsedCV.sections.education.split(/\n\n/).filter(Boolean)
+        : [];
+
+      const masterCVData = {
+        ...parsedCV,
+        allSkills,
+        allExperiences,
+        allEducation,
+      };
+      setMasterCV(masterCVData);
+
+      // Save to Supabase
+      if (user) {
+        const { path: storagePath } = await uploadCVFile(user.id, 'master_cv', file);
+
+        const { document: savedDoc, error: saveError } = await saveDocument(
+          user.id,
+          'master_cv',
+          {
+            file_name: file.name,
+            file_type: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx',
+            file_size: file.size,
+            storage_path: storagePath || undefined,
+            raw_text: parsedCV.rawText,
+            sections: parsedCV.sections,
+            all_skills: allSkills,
+            all_experiences: allExperiences,
+            all_education: allEducation,
           }
+        );
+
+        if (saveError) {
+          console.error('Error saving master CV to Supabase:', saveError);
+        } else if (savedDoc) {
+          setSupabaseDocs(prev => ({ ...prev, master: savedDoc }));
         }
-      } else {
-        setMasterCVUploadError('Failed to parse Master CV. Please try again.');
       }
     } catch (error) {
       console.error('Master CV upload error:', error);
@@ -583,7 +597,7 @@ export default function DocumentsPage() {
                   <FileUpload
                     onFileSelect={handleCVUpload}
                     label="Upload your CV"
-                    description="PDF or DOCX (max 10MB)"
+                    description="PDF or DOCX (max 4.5 MB)"
                   />
                 )}
               </div>

@@ -23,7 +23,7 @@ export function FileUpload({
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
   },
   label = 'Upload your CV',
-  description = 'PDF or DOCX (max 10MB)',
+  description = 'PDF or DOCX (max 4.5 MB)',
   isLoading = false,
 }: FileUploadProps) {
   const onDrop = useCallback(
@@ -39,7 +39,7 @@ export function FileUpload({
     onDrop,
     accept,
     maxFiles: 1,
-    maxSize: 10 * 1024 * 1024,
+    maxSize: 4.5 * 1024 * 1024,
     disabled: isLoading,
   });
 
