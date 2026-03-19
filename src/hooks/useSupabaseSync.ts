@@ -448,7 +448,7 @@ export function useSupabaseSync() {
               // Update the new session with full data
               if (currentSession.jobTitle || currentSession.company || currentSession.generatedCV) {
                 const newGenCV = currentSession.generatedCV
-                  ? { ...currentSession.generatedCV, _optimizedCVData: currentSession.optimizedCVData || undefined }
+                  ? { ...currentSession.generatedCV, _optimizedCVData: currentSession.optimizedCVData ?? undefined }
                   : currentSession.optimizedCVData
                     ? { _optimizedCVData: currentSession.optimizedCVData }
                     : null;
@@ -503,7 +503,7 @@ export function useSupabaseSync() {
           // Update existing session in Supabase
           // Embed optimizedCVData inside generated_cv JSONB to persist Changes tab + structured CV data
           const generatedCVWithData = currentSession.generatedCV
-            ? { ...currentSession.generatedCV, _optimizedCVData: currentSession.optimizedCVData || undefined }
+            ? { ...currentSession.generatedCV, _optimizedCVData: currentSession.optimizedCVData ?? undefined }
             : currentSession.optimizedCVData
               ? { _optimizedCVData: currentSession.optimizedCVData }
               : null;
