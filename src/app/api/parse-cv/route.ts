@@ -5,7 +5,7 @@ import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { createClient } from '@/lib/supabase/server';
 import { detectCVLanguage, extractOriginalHeaders, generateLocalizedHeaders, splitIntoSections } from '@/lib/cv-parser/section-splitter';
-import { callAnthropic } from '@/lib/models/anthropic';
+import { callAnthropic, extractDocumentText } from '@/lib/models/anthropic';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -22,6 +22,22 @@ const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
 const hasBedrockKeys = !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) || !!process.env.AWS_BEARER_TOKEN_BEDROCK;
 const hasAICapability = hasAnthropicKey || hasBedrockKeys;
 const hasBlobStorage = !!process.env.BLOB_READ_WRITE_TOKEN;
+
+/**
+ * Check if extracted text is actually readable (not garbage from broken font encoding).
+ * PDFs with custom fonts can produce 200+ chars of symbols like §!Ýû that pass length checks.
+ */
+function isReadableText(text: string): boolean {
+  const trimmed = text.trim();
+  if (trimmed.length < 50) return false;
+  // Sample the first 500 chars to check quality
+  const sample = trimmed.substring(0, 500);
+  // Count alphanumeric + common accented Latin characters
+  const readable = sample.match(/[a-zA-Z0-9À-ÿ]/g)?.length || 0;
+  const ratio = readable / sample.length;
+  // Readable CV text should be at least 30% alphanumeric
+  return ratio >= 0.3;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -173,24 +189,25 @@ export async function POST(request: NextRequest) {
       rawText = buffer.toString('utf-8');
     }
 
-    // If local extraction got insufficient text, try AI OCR for PDFs
-    if ((!rawText || rawText.trim().length < 50) && fileExt === '.pdf') {
-      console.log(`[Parser] Insufficient text from local extraction (${rawText?.trim().length || 0} chars), trying AI OCR fallback...`);
+    // If local extraction got insufficient or unreadable text, try AI document understanding for PDFs
+    if ((!rawText || !isReadableText(rawText)) && fileExt === '.pdf') {
+      const reason = !rawText || rawText.trim().length < 50 ? 'insufficient text' : 'unreadable text (broken font encoding)';
+      console.log(`[Parser] ${reason} from local extraction (${rawText?.trim().length || 0} chars), trying AI document understanding...`);
 
       if (hasAICapability && isAuthenticated) {
         try {
-          rawText = await extractTextWithAI(buffer);
-          console.log(`[Parser] AI OCR extracted: ${rawText.length} chars`);
+          rawText = await extractDocumentText(buffer);
+          console.log(`[Parser] AI document extraction: ${rawText.length} chars`);
         } catch (e) {
-          console.error('[Parser] AI OCR fallback failed:', e);
+          console.error('[Parser] AI document extraction failed:', e);
         }
       }
     }
 
-    if (!rawText || rawText.trim().length < 50) {
-      console.error(`[Parser] All text extraction methods failed. Final length: ${rawText?.trim().length || 0} chars`);
+    if (!rawText || !isReadableText(rawText)) {
+      console.error(`[Parser] All text extraction methods failed. Final length: ${rawText?.trim().length || 0} chars, readable: ${rawText ? isReadableText(rawText) : false}`);
       return NextResponse.json(
-        { error: 'Could not extract text from file. The file may be image-based (scanned) or empty. Please try uploading a text-based PDF, or use TXT/MD format instead.' },
+        { error: 'Could not extract text from file. The file may be image-based (scanned), use custom fonts, or be empty. Please try uploading a text-based PDF, or use TXT/MD format instead.' },
         { status: 400 }
       );
     }
@@ -350,8 +367,10 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
 
     doc.destroy();
     console.log(`[Parser] pdfjs-dist extracted: ${fullText.length} chars from ${doc.numPages} pages`);
-    if (fullText.trim().length >= 50) return fullText;
-    console.log('[Parser] pdfjs-dist got insufficient text, trying binary fallback...');
+    if (fullText.trim().length >= 50 && isReadableText(fullText)) {
+      return fullText;
+    }
+    console.log(`[Parser] pdfjs-dist text ${fullText.trim().length < 50 ? 'insufficient' : 'unreadable (broken font encoding)'}, trying binary fallback...`);
   } catch (e) {
     console.error('[Parser] pdfjs-dist failed:', (e as Error).message);
     console.error('[Parser] Stack:', (e as Error).stack?.split('\n').slice(0, 3).join('\n'));
@@ -361,11 +380,11 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   // Decompresses FlateDecode streams and extracts text from PDF operators
   try {
     const text = extractTextFromPDFBinary(buffer);
-    if (text.trim().length >= 50) {
+    if (text.trim().length >= 50 && isReadableText(text)) {
       console.log(`[Parser] Binary fallback extracted: ${text.length} chars`);
       return text;
     }
-    console.log(`[Parser] Binary fallback got only ${text.trim().length} chars`);
+    console.log(`[Parser] Binary fallback ${text.trim().length < 50 ? `got only ${text.trim().length} chars` : 'text unreadable (broken font encoding)'}`);
   } catch (e) {
     console.error('[Parser] Binary fallback failed:', (e as Error).message);
   }
@@ -558,25 +577,6 @@ function extractTextFromDOCX(buffer: Buffer): string {
   const text = rawBuffer.replace(/[^\x20-\x7E\n\r\t\u00C0-\u024F]/g, ' ').replace(/\s+/g, ' ').trim();
   console.log(`[Parser] DOCX text extracted via fallback: ${text.length} chars`);
   return text;
-}
-
-/**
- * Extract text from a PDF using Claude's document understanding (handles scanned/image PDFs).
- * Uses the shared callAnthropic function which supports both Bedrock and direct API.
- */
-async function extractTextWithAI(pdfBuffer: Buffer): Promise<string> {
-  // Use callAnthropic which supports both Bedrock and direct Anthropic API
-  const base64Data = pdfBuffer.toString('base64');
-  const prompt = `I'm providing a PDF document as base64. The document is a CV/resume. Extract ALL text content preserving the original structure, section headers, dates, bullet points, and formatting. Return ONLY the extracted text, nothing else.\n\nPDF (base64):\n${base64Data}`;
-
-  const response = await callAnthropic({
-    prompt,
-    systemPrompt: 'You are a document text extractor. Extract all text from the provided document faithfully. Preserve structure and formatting.',
-    temperature: 0,
-    maxTokens: 8192,
-  });
-
-  return response.content;
 }
 
 /**

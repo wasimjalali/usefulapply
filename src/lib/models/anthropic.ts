@@ -368,6 +368,96 @@ export async function callAnthropicStream(
 }
 
 /**
+ * Extract text from a PDF using Claude's native document understanding.
+ * Sends the PDF as a proper document content block — NOT as base64 text.
+ * Works for scanned PDFs and PDFs with broken font encoding.
+ */
+export async function extractDocumentText(pdfBuffer: Buffer): Promise<string> {
+  const base64Data = pdfBuffer.toString('base64');
+  const startTime = Date.now();
+
+  const systemPrompt = 'You are a document text extractor. Extract ALL text content from the provided document faithfully. Preserve the original structure, section headers, dates, bullet points, and formatting. Return ONLY the extracted text, nothing else.';
+  const userText = 'Extract ALL text content from this CV/resume document. Preserve the original structure including section headers, dates, company names, job titles, bullet points, skills, education, and languages. Return ONLY the extracted text with proper formatting.';
+
+  try {
+    if (HAS_BEARER_TOKEN) {
+      // Bedrock Converse API with document content block
+      const bearerToken = process.env.AWS_BEARER_TOKEN_BEDROCK!;
+      const region = process.env.AWS_BEDROCK_ENDPOINT_URL || AWS_REGION;
+      const url = `https://bedrock-runtime.${region}.amazonaws.com/model/${MODEL_ID}/converse`;
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${bearerToken}`,
+        },
+        body: JSON.stringify({
+          modelId: MODEL_ID,
+          messages: [{
+            role: 'user',
+            content: [
+              {
+                document: {
+                  name: 'cv',
+                  format: 'pdf',
+                  source: { bytes: base64Data },
+                },
+              },
+              { text: userText },
+            ],
+          }],
+          system: [{ text: systemPrompt }],
+          inferenceConfig: { maxTokens: 8192, temperature: 0 },
+        }),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Bedrock document extraction error: ${res.status} ${errorText}`);
+      }
+
+      const data = await res.json();
+      const text = data.output?.message?.content?.[0]?.text || '';
+      console.log(`[Anthropic] PDF document extraction via Bedrock: ${text.length} chars in ${Date.now() - startTime}ms`);
+      return text;
+    }
+
+    // Anthropic SDK (Bedrock traditional keys or direct API)
+    if (!anthropic) throw new Error('Anthropic client not initialized');
+
+    const response = await (anthropic as any).messages.create({
+      model: MODEL_ID,
+      max_tokens: 8192,
+      temperature: 0,
+      system: systemPrompt,
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'document',
+            source: {
+              type: 'base64',
+              media_type: 'application/pdf',
+              data: base64Data,
+            },
+          },
+          { type: 'text', text: userText },
+        ],
+      }],
+    });
+
+    const textContent = response.content.find((b: any) => b.type === 'text');
+    const text = textContent?.text || '';
+    console.log(`[Anthropic] PDF document extraction: ${text.length} chars in ${Date.now() - startTime}ms`);
+    return text;
+  } catch (error) {
+    console.error('[Anthropic] Document extraction failed:', error);
+    throw error;
+  }
+}
+
+/**
  * Parse JSON response from Claude (handles markdown code blocks)
  */
 export function parseAnthropicJSON<T>(content: string): T {

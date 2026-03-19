@@ -362,6 +362,7 @@ export default function DocumentsPage() {
             storage_path: storagePath,
             raw_text: parsedCV.rawText,
             sections: parsedCV.sections,
+            structured_data: result.structuredCV,
             all_skills: allSkills,
             all_experiences: allExperiences,
             all_education: allEducation,
