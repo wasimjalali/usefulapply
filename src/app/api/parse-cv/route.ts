@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'No file provided. Please select a PDF, DOCX, TXT, or MD file.' }, { status: 400 });
       }
 
-      originalFileName = originalFileName;
+      originalFileName = file.name;
       fileExt = '.' + (originalFileName.toLowerCase().split('.').pop() || '');
 
       if (!ACCEPTED_EXTENSIONS.includes(fileExt)) {
@@ -315,18 +315,37 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
       const page = await doc.getPage(i);
       const content = await page.getTextContent();
       let lastY: number | undefined;
+      let lastX: number | undefined;
       let pageText = '';
       for (const item of content.items) {
         if ('str' in item) {
-          const textItem = item as { str: string; transform: number[] };
-          if (lastY !== undefined && Math.abs(lastY - textItem.transform[5]) > 1) {
+          const textItem = item as { str: string; transform: number[]; width?: number; hasEOL?: boolean };
+          const currentY = textItem.transform[5];
+          const currentX = textItem.transform[4];
+
+          if (lastY !== undefined && Math.abs(lastY - currentY) > 1) {
+            // Different line — add newline
+            pageText += '\n';
+          } else if (lastX !== undefined && textItem.str.length > 0 && pageText.length > 0) {
+            // Same line — add space if there's a gap between items
+            const gap = currentX - lastX;
+            if (gap > 2 && !pageText.endsWith(' ') && !textItem.str.startsWith(' ')) {
+              pageText += ' ';
+            }
+          }
+
+          pageText += textItem.str;
+
+          if (textItem.hasEOL) {
             pageText += '\n';
           }
-          pageText += textItem.str;
-          lastY = textItem.transform[5];
+
+          lastY = currentY;
+          // Track end X position for space detection
+          lastX = currentX + (textItem.width || textItem.str.length * 5);
         }
       }
-      fullText += '\n\n' + pageText;
+      fullText += (i > 1 ? '\n\n' : '') + pageText;
     }
 
     doc.destroy();
@@ -378,9 +397,21 @@ function installPDFJSPolyfills() {
         this.e = this.m41 = init[4]; this.f = this.m42 = init[5];
       }
     } as unknown as typeof globalThis.DOMMatrix;
+    // Static methods
     (DM as any).fromMatrix = () => new (DM as any)();
     (DM as any).fromFloat64Array = (a: Float64Array) => new (DM as any)(Array.from(a));
     (DM as any).fromFloat32Array = (a: Float32Array) => new (DM as any)(Array.from(a));
+    // Instance methods — pdfjs-dist calls these during text extraction for glyph positioning
+    const proto = (DM as any).prototype;
+    proto.multiply = function (other: any) { return new (DM as any)(); };
+    proto.inverse = function () { return new (DM as any)(); };
+    proto.translate = function () { return new (DM as any)(); };
+    proto.scale = function () { return new (DM as any)(); };
+    proto.rotate = function () { return new (DM as any)(); };
+    proto.rotateAxisAngle = function () { return new (DM as any)(); };
+    proto.transformPoint = function (p: any) { return p || { x: 0, y: 0, z: 0, w: 1 }; };
+    proto.toFloat64Array = function () { return new Float64Array(16); };
+    proto.toString = function () { return 'matrix(1, 0, 0, 1, 0, 0)'; };
     globalThis.DOMMatrix = DM;
   }
   if (typeof globalThis.Path2D === 'undefined') {
@@ -462,7 +493,27 @@ function extractTextFromPDFBinary(buffer: Buffer): string {
     pos = endStream + 9;
   }
 
-  return texts.join('\n').replace(/\r/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  // Deduplicate: binary extraction processes ALL streams (page content + form XObjects)
+  // which can contain the same text twice. Remove consecutive duplicate lines.
+  const rawResult = texts.join('\n').replace(/\r/g, '\n');
+  const lines = rawResult.split('\n');
+  const deduped: string[] = [];
+  const seen = new Set<string>();
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      // Preserve blank lines for structure but collapse multiples
+      if (deduped.length > 0 && deduped[deduped.length - 1] !== '') {
+        deduped.push('');
+      }
+      continue;
+    }
+    // Skip exact duplicate lines (handles doubled streams)
+    if (seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    deduped.push(line);
+  }
+  return deduped.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 /** Decode hex-encoded PDF string: "4A6F686E" → "John" */
