@@ -2,11 +2,8 @@ import type { NextConfig } from "next";
 import { withPostHogConfig } from "@posthog/nextjs-config";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['pdfjs-dist'],
-  // Ensure pdfjs-dist files are included in Vercel serverless bundles
-  outputFileTracingIncludes: {
-    '/api/parse-cv': ['./node_modules/pdfjs-dist/**/*'],
-  },
+  // pdfjs-dist is ESM-only — let the bundler handle it (NOT serverExternalPackages)
+  // so webpack can apply canvas=false alias and bundle the .mjs correctly
   // Image optimization — serve modern formats for smaller payloads
   images: {
     formats: ['image/avif', 'image/webp'],

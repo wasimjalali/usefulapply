@@ -163,6 +163,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract text based on file type
+    console.log(`[Parser] Starting extraction: file=${originalFileName}, ext=${fileExt}, bufferSize=${buffer.length}, mode=${contentType.includes('application/json') ? 'storage' : 'direct'}`);
     let rawText = '';
     if (fileExt === '.pdf') {
       rawText = await extractTextFromPDF(buffer);
@@ -283,15 +284,21 @@ export async function POST(request: NextRequest) {
  */
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
+    // Dynamic import — let the bundler resolve the ESM module
     const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    console.log('[Parser] pdfjs-dist loaded, getDocument:', typeof pdfjsLib.getDocument);
 
     // pdfjs-dist requires Uint8Array, not Buffer
     const data = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+    console.log(`[Parser] Buffer: ${buffer.length} bytes, byteOffset=${buffer.byteOffset}, Uint8Array: ${data.length} bytes`);
 
     const doc = await pdfjsLib.getDocument({
       data,
       useSystemFonts: true,
+      isEvalSupported: false,
+      disableFontFace: true,
     }).promise;
+    console.log(`[Parser] PDF loaded: ${doc.numPages} pages`);
 
     let fullText = '';
     for (let i = 1; i <= doc.numPages; i++) {
@@ -317,6 +324,7 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
     return fullText;
   } catch (e) {
     console.error('[Parser] pdfjs-dist failed:', (e as Error).message);
+    console.error('[Parser] pdfjs-dist stack:', (e as Error).stack?.split('\n').slice(0, 5).join('\n'));
     return '';
   }
 }
