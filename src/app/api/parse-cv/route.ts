@@ -8,7 +8,7 @@ import { detectCVLanguage, extractOriginalHeaders, generateLocalizedHeaders, spl
 import { callAnthropic } from '@/lib/models/anthropic';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 // File size limits
 const MAX_FILE_SIZE_DIRECT = 4.5 * 1024 * 1024;  // Direct upload (Vercel body limit)
@@ -195,6 +195,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Cap text length to avoid AI timeout — 20K chars ≈ 6K tokens, keeps parsing under 40s
+    const MAX_AI_TEXT_LENGTH = 20000;
+    const textForAI = rawText.length > MAX_AI_TEXT_LENGTH
+      ? rawText.substring(0, MAX_AI_TEXT_LENGTH) + '\n\n[... truncated for parsing efficiency ...]'
+      : rawText;
+    if (rawText.length > MAX_AI_TEXT_LENGTH) {
+      console.log(`[Parser] Text truncated for AI: ${rawText.length} → ${MAX_AI_TEXT_LENGTH} chars`);
+    }
+
     // Parse CV - AI parsing for authenticated users only (prevents API cost abuse)
     let structuredCV: StructuredCV;
     let parserUsed: 'ai' | 'local' = 'local';
@@ -202,7 +211,7 @@ export async function POST(request: NextRequest) {
 
     if (hasAICapability && isAuthenticated) {
       try {
-        structuredCV = await parseWithAI(rawText, region as 'US' | 'EU');
+        structuredCV = await parseWithAI(textForAI, region as 'US' | 'EU');
         parserUsed = 'ai';
       } catch (e) {
         console.warn('[Parser] AI parsing failed, using local parser:', e);
@@ -210,7 +219,6 @@ export async function POST(request: NextRequest) {
         parserUsed = 'local';
       }
     } else {
-      // Anonymous users or no AI key — use local parsing (free)
       structuredCV = parseLocally(rawText, region as 'US' | 'EU', originalFileName);
       parserUsed = 'local';
     }
@@ -285,6 +293,10 @@ export async function POST(request: NextRequest) {
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   // Approach 1: pdfjs-dist (full parser — handles all PDF features)
   try {
+    // Polyfill browser APIs that pdfjs-dist v5.x requires at module load time.
+    // Only needed for rendering (not text extraction), but the module won't load without them.
+    installPDFJSPolyfills();
+
     const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
     console.log('[Parser] pdfjs-dist loaded successfully');
 
@@ -347,6 +359,42 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
  * Decompresses FlateDecode streams and extracts text from Tj/TJ operators.
  * Handles both parenthesized strings (text) and hex strings <hex>.
  */
+/** Install minimal polyfills for pdfjs-dist v5.x in Node.js serverless */
+function installPDFJSPolyfills() {
+  if (typeof globalThis.DOMMatrix === 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-extraneous-class
+    const DM = function DOMMatrix(this: Record<string, number>, init?: string | number[]) {
+      // 4x4 identity matrix defaults
+      this.m11 = 1; this.m12 = 0; this.m13 = 0; this.m14 = 0;
+      this.m21 = 0; this.m22 = 1; this.m23 = 0; this.m24 = 0;
+      this.m31 = 0; this.m32 = 0; this.m33 = 1; this.m34 = 0;
+      this.m41 = 0; this.m42 = 0; this.m43 = 0; this.m44 = 1;
+      // Alias properties (a-f for 2D transforms)
+      this.a = 1; this.b = 0; this.c = 0; this.d = 1; this.e = 0; this.f = 0;
+      this.is2D = 1;
+      if (Array.isArray(init) && init.length === 6) {
+        this.a = this.m11 = init[0]; this.b = this.m12 = init[1];
+        this.c = this.m21 = init[2]; this.d = this.m22 = init[3];
+        this.e = this.m41 = init[4]; this.f = this.m42 = init[5];
+      }
+    } as unknown as typeof globalThis.DOMMatrix;
+    (DM as any).fromMatrix = () => new (DM as any)();
+    (DM as any).fromFloat64Array = (a: Float64Array) => new (DM as any)(Array.from(a));
+    (DM as any).fromFloat32Array = (a: Float32Array) => new (DM as any)(Array.from(a));
+    globalThis.DOMMatrix = DM;
+  }
+  if (typeof globalThis.Path2D === 'undefined') {
+    globalThis.Path2D = function Path2D() {} as unknown as typeof globalThis.Path2D;
+    const p = globalThis.Path2D.prototype as unknown as Record<string, () => void>;
+    p.addPath = p.closePath = p.moveTo = p.lineTo = p.bezierCurveTo = p.rect = p.arc = p.ellipse = function () {};
+  }
+  if (typeof globalThis.ImageData === 'undefined') {
+    globalThis.ImageData = function ImageData(this: { width: number; height: number; data: Uint8ClampedArray }, w: number, h: number) {
+      this.width = w; this.height = h; this.data = new Uint8ClampedArray(w * h * 4);
+    } as unknown as typeof globalThis.ImageData;
+  }
+}
+
 function extractTextFromPDFBinary(buffer: Buffer): string {
   const zlib = require('zlib') as typeof import('zlib');
   const texts: string[] = [];
