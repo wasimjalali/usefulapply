@@ -8,7 +8,7 @@ import { detectCVLanguage, extractOriginalHeaders, generateLocalizedHeaders, spl
 import { callAnthropic, extractDocumentText } from '@/lib/models/anthropic';
 
 export const runtime = 'nodejs';
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 // File size limits
 const MAX_FILE_SIZE_DIRECT = 4.5 * 1024 * 1024;  // Direct upload (Vercel body limit)
@@ -242,7 +242,7 @@ export async function POST(request: NextRequest) {
 
     const parseTime = Date.now() - parseStartTime;
     console.log(`[Parser] Completed using ${parserUsed} parser in ${parseTime}ms`);
-    console.log(`[Parser] Extracted: ${structuredCV.experience.length} experiences, ${structuredCV.education.length} education entries, ${structuredCV.skills.length} skill categories`);
+    console.log(`[Parser] Extracted: ${structuredCV.experience.length} exp, ${structuredCV.education.length} edu, ${structuredCV.skills.length} skills, ${structuredCV.languages.length} langs, ${structuredCV.certifications.length} certs`);
 
     structuredCV.sourceFileName = originalFileName;
     structuredCV.sourceFormat = fileExt === '.pdf' ? 'pdf' : fileExt === '.docx' ? 'docx' : 'txt';
@@ -258,16 +258,20 @@ export async function POST(request: NextRequest) {
     structuredCV.settings.language = detectedLang;
 
     // Guard sections: only keep data for sections that actually exist in the CV text.
-    // Prevents fabricating sections from scattered mentions (e.g., language names in bullets).
+    // Only apply to local parser — the AI parser is reliable and the AI-extracted rawText
+    // may format section headers differently than what splitIntoSections expects.
     const detectedSections = splitIntoSections(rawText);
     if (!detectedSections.has('PROJECTS')) {
       structuredCV.projects = undefined;
     }
-    if (!detectedSections.has('LANGUAGES')) {
-      structuredCV.languages = [];
-    }
-    if (!detectedSections.has('CERTIFICATIONS')) {
-      structuredCV.certifications = [];
+    if (parserUsed === 'local') {
+      // Local parser can fabricate languages from scattered mentions (e.g., "Python" as a language)
+      if (!detectedSections.has('LANGUAGES')) {
+        structuredCV.languages = [];
+      }
+      if (!detectedSections.has('CERTIFICATIONS')) {
+        structuredCV.certifications = [];
+      }
     }
 
     return NextResponse.json({

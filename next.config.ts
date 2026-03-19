@@ -2,8 +2,9 @@ import type { NextConfig } from "next";
 import { withPostHogConfig } from "@posthog/nextjs-config";
 
 const nextConfig: NextConfig = {
-  // pdfjs-dist is ESM-only — let the bundler handle it (NOT serverExternalPackages)
-  // so webpack can apply canvas=false alias and bundle the .mjs correctly
+  // pdfjs-dist must be external so its dynamic worker import (pdf.worker.mjs) resolves
+  // from node_modules at runtime instead of failing as a missing Turbopack chunk
+  serverExternalPackages: ['pdfjs-dist'],
   // Image optimization — serve modern formats for smaller payloads
   images: {
     formats: ['image/avif', 'image/webp'],
