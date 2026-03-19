@@ -22,7 +22,7 @@
     "lucide-react": "^0.563.0",
     "next": "16.1.6",
     "pdf-lib": "^1.17.1",
-    "pdf-parse": "^1.1.4",
+    "pdfjs-dist": "^5.5.207",
     "posthog-js": "^1.347.0",
     "posthog-node": "^5.24.15",
     "react": "19.2.3",
@@ -37,7 +37,6 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
-    "@types/pdf-parse": "^1.1.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

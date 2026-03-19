@@ -191,21 +191,31 @@ export default function DocumentsPage() {
     );
   }
 
-  const parseDocument = async (file: File): Promise<{ parsedCV: ParsedCV; structuredCV: any }> => {
-    // Client-side file size check (Vercel serverless limit is 4.5MB)
-    const MAX_UPLOAD_SIZE = 4.5 * 1024 * 1024;
+  const parseDocument = async (file: File, storagePath?: string): Promise<{ parsedCV: ParsedCV; structuredCV: any }> => {
+    const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
     if (file.size > MAX_UPLOAD_SIZE) {
-      throw new Error(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum upload size is 4.5 MB.`);
+      throw new Error(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum: 10 MB.`);
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-      const response = await fetch('/api/parse-cv', {
-        method: 'POST',
-        body: formData,
-      });
+      let response: Response;
+
+      if (storagePath) {
+        // Storage-first mode: file already in Supabase Storage, send only the path
+        response = await fetch('/api/parse-cv', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storagePath, fileName: file.name }),
+        });
+      } else {
+        // Direct upload mode (fallback for files ≤ 4.5 MB or unauthenticated)
+        const formData = new FormData();
+        formData.append('file', file);
+        response = await fetch('/api/parse-cv', {
+          method: 'POST',
+          body: formData,
+        });
+      }
 
       if (!response.ok) {
         let errorMessage = 'Failed to parse CV';
@@ -213,9 +223,8 @@ export default function DocumentsPage() {
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
         } catch {
-          // If response body isn't JSON, use status-based message
           if (response.status === 413) {
-            errorMessage = 'File is too large. Please upload a smaller file (max 4.5 MB).';
+            errorMessage = 'File is too large. Please try a smaller file.';
           } else if (response.status === 429) {
             errorMessage = 'Too many requests. Please wait a moment and try again.';
           }
@@ -227,7 +236,6 @@ export default function DocumentsPage() {
 
       // API returns { success, structuredCV, originalPdf, rawText }
       if (result.success && result.rawText) {
-        // Create ParsedCV for backward compatibility
         const parsedCV: ParsedCV = {
           rawText: result.rawText,
           sections: {
@@ -248,21 +256,15 @@ export default function DocumentsPage() {
           fileType: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : file.name.toLowerCase().endsWith('.docx') ? 'docx' : 'txt',
         };
 
-        // Return both the legacy format AND the structured CV
-        return {
-          parsedCV,
-          structuredCV: result.structuredCV
-        };
+        return { parsedCV, structuredCV: result.structuredCV };
       }
 
-      // Fallback: try legacy format
       if (result.data) {
         return { parsedCV: result.data as ParsedCV, structuredCV: null };
       }
 
       throw new Error('CV was parsed but no content was extracted. The file may be empty or image-based.');
     } catch (error) {
-      // Re-throw with the actual error message so callers can display it
       if (error instanceof Error) throw error;
       throw new Error('Upload failed. Please try again.');
     }
@@ -272,19 +274,22 @@ export default function DocumentsPage() {
     setIsUploadingCV(true);
     setUploadError(null);
     try {
-      const result = await parseDocument(file);
-      // Store BOTH the legacy ParsedCV AND the StructuredCV locally
+      // For authenticated users: upload to Supabase Storage first, then parse via storage path
+      // This bypasses Vercel's 4.5MB body limit — supports files up to 10MB
+      let storagePath: string | undefined;
+      if (user) {
+        const uploadResult = await uploadCVFile(user.id, 'primary_cv', file);
+        storagePath = uploadResult.path || undefined;
+      }
+
+      const result = await parseDocument(file, storagePath);
       setCurrentCV(result.parsedCV);
       if (result.structuredCV) {
         setStructuredCV(result.structuredCV);
       }
 
-      // Save to Supabase
+      // Save document metadata to Supabase
       if (user) {
-        // Upload file to storage
-        const { path: storagePath } = await uploadCVFile(user.id, 'primary_cv', file);
-
-        // Save document metadata to database
         const { document: savedDoc, error: saveError } = await saveDocument(
           user.id,
           'primary_cv',
@@ -292,7 +297,7 @@ export default function DocumentsPage() {
             file_name: file.name,
             file_type: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : file.name.toLowerCase().endsWith('.docx') ? 'docx' : 'txt',
             file_size: file.size,
-            storage_path: storagePath || undefined,
+            storage_path: storagePath,
             raw_text: result.parsedCV.rawText,
             sections: result.parsedCV.sections,
             structured_data: result.structuredCV,
@@ -317,9 +322,16 @@ export default function DocumentsPage() {
     setIsUploadingMasterCV(true);
     setMasterCVUploadError(null);
     try {
-      const result = await parseDocument(file);
+      // Upload to Supabase Storage first (bypasses Vercel body limit)
+      let storagePath: string | undefined;
+      if (user) {
+        const uploadResult = await uploadCVFile(user.id, 'master_cv', file);
+        storagePath = uploadResult.path || undefined;
+      }
+
+      const result = await parseDocument(file, storagePath);
       const { parsedCV } = result;
-      // Convert ParsedCV to MasterCV by adding required fields
+
       const allSkills = parsedCV.sections.skills
         ? parsedCV.sections.skills.split(/[,\n•·\-]/).map((s: string) => s.trim()).filter(Boolean)
         : [];
@@ -338,10 +350,8 @@ export default function DocumentsPage() {
       };
       setMasterCV(masterCVData);
 
-      // Save to Supabase
+      // Save document metadata to Supabase
       if (user) {
-        const { path: storagePath } = await uploadCVFile(user.id, 'master_cv', file);
-
         const { document: savedDoc, error: saveError } = await saveDocument(
           user.id,
           'master_cv',
@@ -349,7 +359,7 @@ export default function DocumentsPage() {
             file_name: file.name,
             file_type: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : file.name.toLowerCase().endsWith('.docx') ? 'docx' : 'txt',
             file_size: file.size,
-            storage_path: storagePath || undefined,
+            storage_path: storagePath,
             raw_text: parsedCV.rawText,
             sections: parsedCV.sections,
             all_skills: allSkills,
@@ -598,7 +608,7 @@ export default function DocumentsPage() {
                     onFileSelect={handleCVUpload}
                     onError={(msg) => setUploadError(msg)}
                     label="Upload your CV"
-                    description="PDF, DOCX, TXT, or MD (max 4.5 MB)"
+                    description="PDF, DOCX, TXT, or MD (max 10 MB)"
                   />
                 )}
               </div>
@@ -695,7 +705,7 @@ export default function DocumentsPage() {
                     onFileSelect={handleMasterCVUpload}
                     onError={(msg) => setMasterCVUploadError(msg)}
                     label="Upload master CV"
-                    description="PDF, DOCX, TXT, or MD (max 4.5 MB)"
+                    description="PDF, DOCX, TXT, or MD (max 10 MB)"
                   />
                 )}
               </div>

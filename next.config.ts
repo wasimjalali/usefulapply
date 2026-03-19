@@ -2,10 +2,10 @@ import type { NextConfig } from "next";
 import { withPostHogConfig } from "@posthog/nextjs-config";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['pdf-parse'],
-  // Ensure pdf-parse internal pdfjs files are included in Vercel serverless bundles
+  serverExternalPackages: ['pdfjs-dist'],
+  // Ensure pdfjs-dist files are included in Vercel serverless bundles
   outputFileTracingIncludes: {
-    '/api/parse-cv': ['./node_modules/pdf-parse/**/*'],
+    '/api/parse-cv': ['./node_modules/pdfjs-dist/**/*'],
   },
   // Image optimization — serve modern formats for smaller payloads
   images: {

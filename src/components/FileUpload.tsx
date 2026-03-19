@@ -26,7 +26,7 @@ export function FileUpload({
     'text/markdown': ['.md'],
   },
   label = 'Upload your CV',
-  description = 'PDF, DOCX, TXT, or MD (max 4.5 MB)',
+  description = 'PDF, DOCX, TXT, or MD (max 10 MB)',
   isLoading = false,
   onError,
 }: FileUploadProps) {
@@ -46,7 +46,7 @@ export function FileUpload({
       const errorCode = rejection.errors[0]?.code;
       let message = 'File could not be uploaded.';
       if (errorCode === 'file-too-large') {
-        message = `File is too large (${(rejection.file.size / 1024 / 1024).toFixed(1)} MB). Maximum: 4.5 MB.`;
+        message = `File is too large (${(rejection.file.size / 1024 / 1024).toFixed(1)} MB). Maximum: 10 MB.`;
       } else if (errorCode === 'file-invalid-type') {
         message = 'Unsupported file type. Please upload a PDF, DOCX, TXT, or MD file.';
       }
@@ -64,7 +64,7 @@ export function FileUpload({
     onDropRejected,
     accept,
     maxFiles: 1,
-    maxSize: 4.5 * 1024 * 1024,
+    maxSize: 10 * 1024 * 1024,
     disabled: isLoading,
   });
 

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pdf from 'pdf-parse';
 import { v4 as uuidv4 } from 'uuid';
 import { StructuredCV, createEmptyCV, withId } from '@/lib/types/cv-schema';
 import { getPostHogServer } from '@/lib/posthog-server';
@@ -11,8 +10,9 @@ import { callAnthropic } from '@/lib/models/anthropic';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-// File size limit: 4.5 MB (matches Vercel serverless body limit)
-const MAX_FILE_SIZE_BYTES = 4.5 * 1024 * 1024;
+// File size limits
+const MAX_FILE_SIZE_DIRECT = 4.5 * 1024 * 1024;  // Direct upload (Vercel body limit)
+const MAX_FILE_SIZE_STORAGE = 10 * 1024 * 1024;   // Storage-first upload (no body limit)
 
 // Accepted file extensions
 const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.txt', '.md'];
@@ -40,74 +40,119 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     const isAuthenticated = !!user;
 
-    let formData: FormData;
-    try {
-      formData = await request.formData();
-    } catch (e) {
-      console.error('[Parser] Failed to parse form data:', e);
-      return NextResponse.json(
-        { error: 'Failed to read upload. The file may be too large (max 4.5 MB).' },
-        { status: 400 }
-      );
-    }
+    // Two input modes:
+    // 1) FormData with 'file' field — direct upload (≤ 4.5 MB, Vercel body limit)
+    // 2) JSON with 'storagePath' + 'fileName' — storage-first (up to 10 MB)
+    let buffer: Buffer = undefined!;
+    let originalFileName = '';
+    let fileExt: string;
+    let region = 'EU';
 
-    const file = formData.get('file') as File;
-    const region = (formData.get('region') as string) || 'EU';
+    const contentType = request.headers.get('content-type') || '';
 
-    if (!file || !(file instanceof File) || file.size === 0) {
-      console.error('[Parser] No valid file in form data. Keys:', [...formData.keys()]);
-      return NextResponse.json({ error: 'No file provided. Please select a PDF, DOCX, TXT, or MD file.' }, { status: 400 });
-    }
+    if (contentType.includes('application/json')) {
+      // Mode 2: Storage-first — file already uploaded to Supabase Storage
+      if (!isAuthenticated) {
+        return NextResponse.json({ error: 'Authentication required for storage-based parsing.' }, { status: 401 });
+      }
 
-    const fileName = file.name.toLowerCase();
-    const fileExt = '.' + (fileName.split('.').pop() || '');
+      const body = await request.json();
+      const { storagePath, fileName } = body;
+      region = body.region || 'EU';
 
-    if (!ACCEPTED_EXTENSIONS.includes(fileExt)) {
-      return NextResponse.json(
-        { error: `Unsupported file type "${fileExt}". Accepted formats: PDF, DOCX, TXT, MD.` },
-        { status: 400 }
-      );
-    }
+      if (!storagePath || !fileName) {
+        return NextResponse.json({ error: 'Missing storagePath or fileName.' }, { status: 400 });
+      }
 
-    console.log(`[Parser] Received file: ${file.name}, size: ${(file.size / 1024).toFixed(1)} KB, type: ${file.type}`);
+      originalFileName = fileName;
+      fileExt = '.' + (fileName.toLowerCase().split('.').pop() || '');
 
-    // File size validation
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      return NextResponse.json(
-        { error: `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum: 4.5 MB.` },
-        { status: 400 }
-      );
-    }
+      if (!ACCEPTED_EXTENSIONS.includes(fileExt)) {
+        return NextResponse.json(
+          { error: `Unsupported file type "${fileExt}". Accepted formats: PDF, DOCX, TXT, MD.` },
+          { status: 400 }
+        );
+      }
 
-    let buffer: Buffer;
-    try {
-      buffer = Buffer.from(await file.arrayBuffer());
-    } catch (e) {
-      console.error('[Parser] Failed to read file buffer:', e);
-      return NextResponse.json(
-        { error: 'Failed to read file contents. Please try again.' },
-        { status: 400 }
-      );
+      console.log(`[Parser] Storage-first mode: ${fileName}, path: ${storagePath}`);
+
+      // Download from Supabase Storage
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from('cv-files')
+        .download(storagePath);
+
+      if (downloadError || !fileData) {
+        console.error('[Parser] Failed to download from storage:', downloadError);
+        return NextResponse.json({ error: 'Failed to download file from storage.' }, { status: 400 });
+      }
+
+      buffer = Buffer.from(await fileData.arrayBuffer());
+
+      if (buffer.length > MAX_FILE_SIZE_STORAGE) {
+        return NextResponse.json(
+          { error: `File is too large (${(buffer.length / 1024 / 1024).toFixed(1)} MB). Maximum: 10 MB.` },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Mode 1: Direct FormData upload (original path)
+      let formData: FormData;
+      try {
+        formData = await request.formData();
+      } catch (e) {
+        console.error('[Parser] Failed to parse form data:', e);
+        return NextResponse.json(
+          { error: 'Failed to read upload. The file may be too large (max 4.5 MB). For larger files, try from the Documents page.' },
+          { status: 400 }
+        );
+      }
+
+      const file = formData.get('file') as File;
+      region = (formData.get('region') as string) || 'EU';
+
+      if (!file || !(file instanceof File) || file.size === 0) {
+        console.error('[Parser] No valid file in form data. Keys:', [...formData.keys()]);
+        return NextResponse.json({ error: 'No file provided. Please select a PDF, DOCX, TXT, or MD file.' }, { status: 400 });
+      }
+
+      originalFileName = originalFileName;
+      fileExt = '.' + (originalFileName.toLowerCase().split('.').pop() || '');
+
+      if (!ACCEPTED_EXTENSIONS.includes(fileExt)) {
+        return NextResponse.json(
+          { error: `Unsupported file type "${fileExt}". Accepted formats: PDF, DOCX, TXT, MD.` },
+          { status: 400 }
+        );
+      }
+
+      console.log(`[Parser] Direct upload: ${originalFileName}, size: ${(file.size / 1024).toFixed(1)} KB`);
+
+      if (file.size > MAX_FILE_SIZE_DIRECT) {
+        return NextResponse.json(
+          { error: `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum for direct upload: 4.5 MB. For larger files, use the Documents page.` },
+          { status: 400 }
+        );
+      }
+
+      try {
+        buffer = Buffer.from(await file.arrayBuffer());
+      } catch (e) {
+        console.error('[Parser] Failed to read file buffer:', e);
+        return NextResponse.json({ error: 'Failed to read file contents. Please try again.' }, { status: 400 });
+      }
     }
 
     // Buffer integrity check
     if (buffer.length === 0) {
-      console.error(`[Parser] Empty buffer received (file.size=${file.size}, buffer.length=0)`);
-      return NextResponse.json(
-        { error: 'File appears to be empty. Please try uploading again.' },
-        { status: 400 }
-      );
-    }
-    if (Math.abs(buffer.length - file.size) > 100) {
-      console.warn(`[Parser] Buffer size mismatch: file.size=${file.size}, buffer.length=${buffer.length}`);
+      return NextResponse.json({ error: 'File appears to be empty. Please try uploading again.' }, { status: 400 });
     }
 
-    // Optional: Upload to Vercel Blob — authenticated users only, stored under their user ID
+    // Optional: Upload to Vercel Blob — authenticated users only, PDFs only
     let pdfUrl: string | undefined;
     if (hasBlobStorage && isAuthenticated && user && fileExt === '.pdf') {
       try {
         const { put } = await import('@vercel/blob');
-        const pdfBlob = await put(`originals/${user.id}/${uuidv4()}-${file.name}`, buffer, {
+        const pdfBlob = await put(`originals/${user.id}/${uuidv4()}-${originalFileName}`, buffer, {
           access: 'public',
           contentType: 'application/pdf',
         });
@@ -124,7 +169,6 @@ export async function POST(request: NextRequest) {
     } else if (fileExt === '.docx') {
       rawText = extractTextFromDOCX(buffer);
     } else {
-      // TXT, MD — plain text, easiest to parse
       rawText = buffer.toString('utf-8');
     }
 
@@ -161,12 +205,12 @@ export async function POST(request: NextRequest) {
         parserUsed = 'ai';
       } catch (e) {
         console.warn('[Parser] AI parsing failed, using local parser:', e);
-        structuredCV = parseLocally(rawText, region as 'US' | 'EU', file.name);
+        structuredCV = parseLocally(rawText, region as 'US' | 'EU', originalFileName);
         parserUsed = 'local';
       }
     } else {
       // Anonymous users or no AI key — use local parsing (free)
-      structuredCV = parseLocally(rawText, region as 'US' | 'EU', file.name);
+      structuredCV = parseLocally(rawText, region as 'US' | 'EU', originalFileName);
       parserUsed = 'local';
     }
 
@@ -174,7 +218,7 @@ export async function POST(request: NextRequest) {
     console.log(`[Parser] Completed using ${parserUsed} parser in ${parseTime}ms`);
     console.log(`[Parser] Extracted: ${structuredCV.experience.length} experiences, ${structuredCV.education.length} education entries, ${structuredCV.skills.length} skill categories`);
 
-    structuredCV.sourceFileName = file.name;
+    structuredCV.sourceFileName = originalFileName;
     structuredCV.sourceFormat = fileExt === '.pdf' ? 'pdf' : fileExt === '.docx' ? 'docx' : 'txt';
 
     // Detect CV language and generate localized strings (Present/Heute, GPA/Note, etc.)
@@ -206,7 +250,7 @@ export async function POST(request: NextRequest) {
       originalPdf: {
         id: uuidv4(),
         url: pdfUrl,
-        fileName: file.name,
+        fileName: originalFileName,
         size: buffer.length,
       },
       rawText,
@@ -234,20 +278,45 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Extract text from PDF using pdf-parse.
- *
- * IMPORTANT: pdf-parse caches its internal pdfjs engine in a module-level variable.
- * Once loaded with a specific version, ALL subsequent calls use that same version
- * regardless of the `version` option. So we must NOT mix version options across calls.
- * The default (v1.10.100) is the most battle-tested and was previously working in production.
+ * Extract text from PDF using pdfjs-dist (Mozilla's official PDF.js).
+ * Requires Uint8Array input — Node.js Buffer is not accepted by modern pdfjs.
  */
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
-    const pdfData = await pdf(buffer);
-    console.log(`[Parser] PDF text extracted: ${pdfData.text.length} chars from ${pdfData.numpages} pages`);
-    return pdfData.text;
+    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+
+    // pdfjs-dist requires Uint8Array, not Buffer
+    const data = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+
+    const doc = await pdfjsLib.getDocument({
+      data,
+      useSystemFonts: true,
+    }).promise;
+
+    let fullText = '';
+    for (let i = 1; i <= doc.numPages; i++) {
+      const page = await doc.getPage(i);
+      const content = await page.getTextContent();
+      let lastY: number | undefined;
+      let pageText = '';
+      for (const item of content.items) {
+        if ('str' in item) {
+          const textItem = item as { str: string; transform: number[] };
+          if (lastY !== undefined && Math.abs(lastY - textItem.transform[5]) > 1) {
+            pageText += '\n';
+          }
+          pageText += textItem.str;
+          lastY = textItem.transform[5];
+        }
+      }
+      fullText += '\n\n' + pageText;
+    }
+
+    doc.destroy();
+    console.log(`[Parser] PDF text extracted: ${fullText.length} chars from ${doc.numPages} pages`);
+    return fullText;
   } catch (e) {
-    console.error('[Parser] pdf-parse failed:', (e as Error).message);
+    console.error('[Parser] pdfjs-dist failed:', (e as Error).message);
     return '';
   }
 }
