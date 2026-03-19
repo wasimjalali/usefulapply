@@ -21,7 +21,6 @@ const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.txt', '.md'];
 const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
 const hasBedrockKeys = !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) || !!process.env.AWS_BEARER_TOKEN_BEDROCK;
 const hasAICapability = hasAnthropicKey || hasBedrockKeys;
-const hasBlobStorage = !!process.env.BLOB_READ_WRITE_TOKEN;
 
 /**
  * Check if extracted text is actually readable (not garbage from broken font encoding).
@@ -163,20 +162,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File appears to be empty. Please try uploading again.' }, { status: 400 });
     }
 
-    // Optional: Upload to Vercel Blob — authenticated users only, PDFs only
-    let pdfUrl: string | undefined;
-    if (hasBlobStorage && isAuthenticated && user && fileExt === '.pdf') {
-      try {
-        const { put } = await import('@vercel/blob');
-        const pdfBlob = await put(`originals/${user.id}/${uuidv4()}-${originalFileName}`, buffer, {
-          access: 'public',
-          contentType: 'application/pdf',
-        });
-        pdfUrl = pdfBlob.url;
-      } catch (e) {
-        console.warn('Blob storage not available, skipping upload');
-      }
-    }
+    // Original PDFs are already stored securely in Supabase Storage (storage-first path).
+    // No public blob upload — CVs contain sensitive personal data.
 
     // Extract text based on file type
     console.log(`[Parser] Starting extraction: file=${originalFileName}, ext=${fileExt}, bufferSize=${buffer.length}, mode=${contentType.includes('application/json') ? 'storage' : 'direct'}`);
@@ -279,7 +266,7 @@ export async function POST(request: NextRequest) {
       structuredCV,
       originalPdf: {
         id: uuidv4(),
-        url: pdfUrl,
+        url: undefined,
         fileName: originalFileName,
         size: buffer.length,
       },

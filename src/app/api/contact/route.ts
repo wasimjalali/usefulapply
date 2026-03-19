@@ -73,12 +73,12 @@ export async function POST(request: NextRequest) {
     // Save to Supabase using the anon key — the contact_submissions table allows public inserts via RLS
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    let dbSaved = false;
+    let emailSent = false;
 
     if (supabaseUrl && supabaseAnonKey) {
       const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-      // Create contact_submissions table if it doesn't exist (admin should do this)
-      // For now, just log the submission
       const { error: dbError } = await supabase
         .from('contact_submissions')
         .insert({
@@ -91,7 +91,8 @@ export async function POST(request: NextRequest) {
 
       if (dbError) {
         console.error('Failed to save contact submission:', dbError);
-        // Don't fail the request if DB save fails
+      } else {
+        dbSaved = true;
       }
     }
 
@@ -134,9 +135,17 @@ export async function POST(request: NextRequest) {
         subject: `KarKo AI Contact: ${safeSubject}`,
         html: emailContent,
       });
+      emailSent = true;
     } catch (emailError) {
       console.error('Failed to send email:', emailError);
-      // Don't fail the request if email sending fails
+    }
+
+    // Require at least one delivery path to succeed
+    if (!dbSaved && !emailSent) {
+      return NextResponse.json(
+        { error: 'Failed to submit form. Please try again.' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({

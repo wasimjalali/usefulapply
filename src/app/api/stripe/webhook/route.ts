@@ -489,12 +489,11 @@ async function handleSubscriptionDeleted(subscription: any) {
 async function handlePaymentSucceeded(invoice: any) {
   const supabase = getSupabaseAdmin();
   const customerId = invoice.customer;
-  const subscriptionId = invoice.subscription;
 
-  // Get user by customer ID
+  // Get user by customer ID — include rollover_credits for proper reset
   const { data: userCredits } = await supabase
     .from('user_credits')
-    .select('user_id, plan_tier, monthly_credits')
+    .select('user_id, plan_tier, monthly_credits, rollover_credits, addon_credits')
     .eq('stripe_customer_id', customerId)
     .single();
 
@@ -503,20 +502,36 @@ async function handlePaymentSucceeded(invoice: any) {
     return;
   }
 
-  // Reset monthly credits on successful payment
+  // Determine base credits for the plan
   const baseCredits = userCredits.plan_tier === 'plus' ? 100 : (userCredits.plan_tier === 'max' || userCredits.plan_tier === 'pro') ? 200 : 10;
+
+  // Rollover unused monthly credits (capped per plan)
+  const maxRollover = userCredits.plan_tier === 'plus' ? 50 : (userCredits.plan_tier === 'max' || userCredits.plan_tier === 'pro') ? 100 : 0;
+  const newRollover = Math.min(
+    (userCredits.rollover_credits || 0) + (userCredits.monthly_credits || 0),
+    maxRollover
+  );
+
+  const now = new Date();
+  const nextReset = new Date(now);
+  nextReset.setMonth(nextReset.getMonth() + 1);
 
   const { error } = await supabase
     .from('user_credits')
     .update({
       monthly_credits: baseCredits,
+      rollover_credits: newRollover,
       subscription_status: 'active',
-      updated_at: new Date().toISOString(),
+      last_reset_date: now.toISOString(),
+      next_reset_date: nextReset.toISOString(),
+      updated_at: now.toISOString(),
     })
     .eq('user_id', userCredits.user_id);
 
   if (error) {
     console.error('Failed to reset credits:', error);
+  } else {
+    console.log(`[Webhook] Renewal for ${userCredits.user_id}: ${baseCredits} monthly, ${newRollover} rollover (was ${userCredits.rollover_credits || 0} + ${userCredits.monthly_credits || 0})`);
   }
 }
 

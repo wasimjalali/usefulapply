@@ -72,11 +72,10 @@ export async function POST(request: NextRequest) {
         status: linkError.status,
         name: linkError.name,
       });
-      // Return the actual Supabase error — surfacing it is the only way to
-      // diagnose remaining config issues (e.g. redirectTo not in allowlist,
-      // password policy violation, project-level restrictions).
+      // Return generic message — never expose raw provider errors to prevent
+      // account enumeration and leaking backend configuration details.
       return NextResponse.json(
-        { error: linkError.message || 'Failed to create account. Please try again.' },
+        { error: 'Failed to create account. Please try again.' },
         { status: 400 }
       );
     }

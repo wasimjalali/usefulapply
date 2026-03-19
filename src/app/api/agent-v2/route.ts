@@ -429,12 +429,9 @@ export async function POST(request: NextRequest) {
             throw new Error(result.error || 'Fit analysis failed');
           }
 
-          // Record anonymous generation after fit analysis to prevent double-free:
-          // Without this, an anonymous user gets fit_analysis free (no recording),
-          // then calls generate_with_context and passes the anonymous check again.
-          if (isAnonymous) {
-            await recordAnonymousGeneration(ipHash);
-          }
+          // Don't record anonymous generation yet — user still needs to call
+          // generate_with_context to complete the two-step flow.
+          // Recording happens after phase 2 completes.
 
           controller.close();
           return;
@@ -561,12 +558,12 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          // Context found - deduct 2.0 credits for generation only (skip for anonymous)
+          // Context found - deduct 1.5 credits (fit was 0.5, total = 2.0; skip for anonymous)
           if (!isAnonymous) {
-            const creditResult = await checkAndDeductCredits(user!.id, 'FULL_APPLICATION', undefined, supabase);
+            const creditResult = await checkAndDeductCredits(user!.id, 'GENERATION_AFTER_FIT', undefined, supabase);
             if (!creditResult.success) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-                type: 'error', 
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'error',
                 code: 'INSUFFICIENT_CREDITS',
                 message: creditResult.error || 'Insufficient credits',
                 details: formatCreditErrorResponse(creditResult),
@@ -575,9 +572,9 @@ export async function POST(request: NextRequest) {
               return;
             }
 
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-              type: 'credits_deducted', 
-              creditsUsed: CREDIT_COSTS.FULL_APPLICATION,
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: 'credits_deducted',
+              creditsUsed: CREDIT_COSTS.GENERATION_AFTER_FIT,
               remainingCredits: creditResult.remainingCredits,
             })}\n\n`));
           }

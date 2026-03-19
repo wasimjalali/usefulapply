@@ -136,8 +136,10 @@ function SettingsContent() {
     setActiveSection('subscription');
 
     let attempts = 0;
-    const maxAttempts = 6;
+    const maxAttempts = 10;
     const pollInterval = 2000; // 2s between attempts
+    // Capture initial credits to detect when webhook adds addon credits
+    const initialAddonCredits = userCredits?.addon_credits ?? -1;
 
     const poll = async () => {
       attempts++;
@@ -145,9 +147,13 @@ function SettingsContent() {
         const creditsResult = await getUserCredits(authUser.id);
         if (creditsResult.credits) {
           setUserCredits(creditsResult.credits);
-          // Stop polling once plan has upgraded (or max attempts reached)
           const tier = creditsResult.credits.plan_tier;
-          if (tier !== 'free' && tier !== 'starter' || isAddonSuccess || attempts >= maxAttempts) return;
+          // For subscription upgrades: stop when tier changes from free/starter
+          if (isSuccess && (tier !== 'free' && tier !== 'starter')) return;
+          // For addon purchases: stop when addon_credits actually increases
+          if (isAddonSuccess && creditsResult.credits.addon_credits > initialAddonCredits) return;
+          // Safety: stop after max attempts
+          if (attempts >= maxAttempts) return;
         }
       } catch {
         // ignore transient errors, keep polling

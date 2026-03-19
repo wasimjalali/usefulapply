@@ -54,6 +54,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Only allow known plan tiers — reject unknown values to prevent billing errors
+    const allowedTiers = ['plus', 'max'] as const;
+    if (!allowedTiers.includes(planTier)) {
+      return NextResponse.json(
+        { error: 'Invalid plan selected.' },
+        { status: 400 }
+      );
+    }
+
     // Get user's email
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
@@ -67,7 +76,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get price ID for plan
-    const priceId = planTier === 'plus' ? STRIPE_PRICES.PLUS : planTier === 'max' ? STRIPE_PRICES.MAX : STRIPE_PRICES.PRO;
+    const priceId = planTier === 'plus' ? STRIPE_PRICES.PLUS : STRIPE_PRICES.MAX;
     console.log('[Checkout] Plan:', planTier, 'Price ID:', priceId);
 
     if (!priceId) {

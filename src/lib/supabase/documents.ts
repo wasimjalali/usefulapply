@@ -92,6 +92,11 @@ export async function saveDocument(
   const existing = await getDocumentByType(userId, type);
   
   if (existing) {
+    // Delete old storage file if path changed
+    if (existing.storage_path && data.storage_path && existing.storage_path !== data.storage_path) {
+      await supabase.storage.from('cv-files').remove([existing.storage_path]);
+    }
+
     // Update existing
     const { data: updated, error } = await supabase
       .from('documents')
@@ -131,7 +136,14 @@ export async function saveDocument(
  */
 export async function deleteDocument(documentId: string): Promise<{ error: Error | null }> {
   const supabase = getUntypedSupabase();
-  
+
+  // Fetch the document first to get the storage path
+  const { data: doc } = await supabase
+    .from('documents')
+    .select('storage_path')
+    .eq('id', documentId)
+    .single();
+
   const { error } = await supabase
     .from('documents')
     .delete()
@@ -140,6 +152,12 @@ export async function deleteDocument(documentId: string): Promise<{ error: Error
   if (error) {
     return { error: new Error(error.message) };
   }
+
+  // Clean up storage file after successful DB delete
+  if (doc?.storage_path) {
+    await supabase.storage.from('cv-files').remove([doc.storage_path]);
+  }
+
   return { error: null };
 }
 
