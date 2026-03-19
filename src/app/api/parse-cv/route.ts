@@ -280,17 +280,16 @@ export async function POST(request: NextRequest) {
 
 /**
  * Extract text from PDF using pdfjs-dist (Mozilla's official PDF.js).
- * Requires Uint8Array input — Node.js Buffer is not accepted by modern pdfjs.
+ * Falls back to binary PDF text extraction if pdfjs-dist fails.
  */
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
+  // Approach 1: pdfjs-dist (full parser — handles all PDF features)
   try {
-    // Dynamic import — let the bundler resolve the ESM module
     const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
-    console.log('[Parser] pdfjs-dist loaded, getDocument:', typeof pdfjsLib.getDocument);
+    console.log('[Parser] pdfjs-dist loaded successfully');
 
-    // pdfjs-dist requires Uint8Array, not Buffer
+    // pdfjs-dist requires Uint8Array, not Node.js Buffer
     const data = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
-    console.log(`[Parser] Buffer: ${buffer.length} bytes, byteOffset=${buffer.byteOffset}, Uint8Array: ${data.length} bytes`);
 
     const doc = await pdfjsLib.getDocument({
       data,
@@ -298,7 +297,6 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
       isEvalSupported: false,
       disableFontFace: true,
     }).promise;
-    console.log(`[Parser] PDF loaded: ${doc.numPages} pages`);
 
     let fullText = '';
     for (let i = 1; i <= doc.numPages; i++) {
@@ -320,13 +318,124 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
     }
 
     doc.destroy();
-    console.log(`[Parser] PDF text extracted: ${fullText.length} chars from ${doc.numPages} pages`);
-    return fullText;
+    console.log(`[Parser] pdfjs-dist extracted: ${fullText.length} chars from ${doc.numPages} pages`);
+    if (fullText.trim().length >= 50) return fullText;
+    console.log('[Parser] pdfjs-dist got insufficient text, trying binary fallback...');
   } catch (e) {
     console.error('[Parser] pdfjs-dist failed:', (e as Error).message);
-    console.error('[Parser] pdfjs-dist stack:', (e as Error).stack?.split('\n').slice(0, 5).join('\n'));
-    return '';
+    console.error('[Parser] Stack:', (e as Error).stack?.split('\n').slice(0, 3).join('\n'));
   }
+
+  // Approach 2: Binary PDF text extraction (no dependencies — works everywhere)
+  // Decompresses FlateDecode streams and extracts text from PDF operators
+  try {
+    const text = extractTextFromPDFBinary(buffer);
+    if (text.trim().length >= 50) {
+      console.log(`[Parser] Binary fallback extracted: ${text.length} chars`);
+      return text;
+    }
+    console.log(`[Parser] Binary fallback got only ${text.trim().length} chars`);
+  } catch (e) {
+    console.error('[Parser] Binary fallback failed:', (e as Error).message);
+  }
+
+  return '';
+}
+
+/**
+ * Extract text from PDF binary data without any external library.
+ * Decompresses FlateDecode streams and extracts text from Tj/TJ operators.
+ * Handles both parenthesized strings (text) and hex strings <hex>.
+ */
+function extractTextFromPDFBinary(buffer: Buffer): string {
+  const zlib = require('zlib') as typeof import('zlib');
+  const texts: string[] = [];
+
+  // Find and decompress all streams
+  let pos = 0;
+  while (pos < buffer.length) {
+    // Find "stream\n" or "stream\r\n"
+    let streamStart = buffer.indexOf('stream\n', pos);
+    let headerLen = 7;
+    if (streamStart === -1) {
+      streamStart = buffer.indexOf('stream\r\n', pos);
+      headerLen = 8;
+      if (streamStart === -1) break;
+    }
+    pos = streamStart + headerLen;
+
+    const endStream = buffer.indexOf('endstream', pos);
+    if (endStream === -1) break;
+
+    // Trim trailing whitespace from stream data
+    let endPos = endStream;
+    while (endPos > pos && (buffer[endPos - 1] === 0x0a || buffer[endPos - 1] === 0x0d)) endPos--;
+    const streamData = buffer.subarray(pos, endPos);
+
+    let decoded: string;
+    try {
+      const inflated = zlib.inflateSync(streamData);
+      decoded = inflated.toString('latin1');
+    } catch {
+      decoded = streamData.toString('latin1');
+    }
+
+    // Extract text between BT...ET blocks (text objects)
+    const btBlocks = decoded.matchAll(/BT\s*([\s\S]*?)\s*ET/g);
+    for (const block of btBlocks) {
+      const content = block[1];
+
+      // Hex strings: <4A6F686E...> Tj
+      const hexTj = content.matchAll(/<([0-9A-Fa-f\s]+)>\s*Tj/g);
+      for (const m of hexTj) {
+        texts.push(decodeHexString(m[1]));
+      }
+
+      // Parenthesized strings: (text) Tj
+      const parenTj = content.matchAll(/\(([^)]*)\)\s*Tj/g);
+      for (const m of parenTj) {
+        texts.push(decodePDFString(m[1]));
+      }
+
+      // TJ arrays: [<hex> num <hex> ...] TJ or [(text) num ...] TJ
+      const tjArrays = content.matchAll(/\[([\s\S]*?)\]\s*TJ/g);
+      for (const m of tjArrays) {
+        const parts: string[] = [];
+        // Match both hex and paren strings in the array
+        const items = m[1].matchAll(/<([0-9A-Fa-f\s]+)>|\(([^)]*)\)/g);
+        for (const item of items) {
+          if (item[1]) parts.push(decodeHexString(item[1]));
+          else if (item[2]) parts.push(decodePDFString(item[2]));
+        }
+        if (parts.length > 0) texts.push(parts.join(''));
+      }
+    }
+
+    pos = endStream + 9;
+  }
+
+  return texts.join('\n').replace(/\r/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/** Decode hex-encoded PDF string: "4A6F686E" → "John" */
+function decodeHexString(hex: string): string {
+  const clean = hex.replace(/\s/g, '');
+  let result = '';
+  for (let i = 0; i < clean.length; i += 2) {
+    result += String.fromCharCode(parseInt(clean.substring(i, i + 2), 16));
+  }
+  return result;
+}
+
+/** Decode PDF escape sequences in parenthesized strings */
+function decodePDFString(s: string): string {
+  return s
+    .replace(/\\n/g, '\n')
+    .replace(/\\r/g, '\r')
+    .replace(/\\t/g, '\t')
+    .replace(/\\\\/g, '\\')
+    .replace(/\\([()])/g, '$1')
+    .replace(/\\(\d{1,3})/g, (_, oct) => String.fromCharCode(parseInt(oct, 8)));
 }
 
 /**
