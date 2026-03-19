@@ -140,6 +140,25 @@ export async function POST(req: NextRequest) {
 
   console.log('[Stripe Webhook] Event verified:', event.type, 'id:', event.id);
 
+  // Idempotency: skip events we've already processed (Stripe retries are normal)
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data: existing } = await supabaseAdmin
+    .from('webhook_events')
+    .select('event_id')
+    .eq('event_id', event.id)
+    .single();
+
+  if (existing) {
+    console.log('[Stripe Webhook] Duplicate event, skipping:', event.id);
+    return NextResponse.json({ received: true, duplicate: true });
+  }
+
+  // Record event BEFORE processing to prevent race conditions with concurrent retries
+  await supabaseAdmin.from('webhook_events').insert({
+    event_id: event.id,
+    event_type: event.type,
+  });
+
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
