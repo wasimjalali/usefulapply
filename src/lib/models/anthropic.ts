@@ -67,15 +67,15 @@ class BedrockBearerTokenClient {
     messages: Array<{ role: 'user' | 'assistant'; content: string }>;
   }) {
     const url = `${this.baseUrl}/model/${params.model}/converse`;
-    
+
     // Convert Anthropic format to Bedrock format
     const bedrockMessages = params.messages.map(msg => ({
       role: msg.role,
       content: [{ text: msg.content }]
     }));
 
+    // Converse API: modelId goes in URL path only, NOT in the request body
     const payload: any = {
-      modelId: params.model,
       messages: bedrockMessages,
       inferenceConfig: {
         maxTokens: params.max_tokens,
@@ -92,30 +92,50 @@ class BedrockBearerTokenClient {
       }
     }
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.bearerToken}`,
-      },
-      body: JSON.stringify(payload),
-    });
+    // Retry with exponential backoff for transient errors (503, 429, 500)
+    const MAX_RETRIES = 2;
+    let lastError: Error | null = null;
 
-    if (!response.ok) {
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      if (attempt > 0) {
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 4000);
+        console.log(`[Bedrock] Retry attempt ${attempt}/${MAX_RETRIES} after ${delay}ms`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.bearerToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Convert Bedrock response back to Anthropic format
+        return {
+          content: [{ type: 'text' as const, text: data.output?.message?.content?.[0]?.text || '' }],
+          usage: {
+            input_tokens: data.usage?.inputTokens || 0,
+            output_tokens: data.usage?.outputTokens || 0,
+          }
+        };
+      }
+
       const errorText = await response.text();
-      throw new Error(`Bedrock API error: ${response.status} ${errorText}`);
+      lastError = new Error(`Bedrock API error: ${response.status} ${errorText}`);
+
+      // Only retry on transient errors
+      if (![500, 503, 429].includes(response.status)) {
+        throw lastError;
+      }
+      console.warn(`[Bedrock] Transient error ${response.status}, will retry...`);
     }
 
-    const data = await response.json();
-    
-    // Convert Bedrock response back to Anthropic format
-    return {
-      content: [{ type: 'text' as const, text: data.output?.message?.content?.[0]?.text || '' }],
-      usage: {
-        input_tokens: data.usage?.inputTokens || 0,
-        output_tokens: data.usage?.outputTokens || 0,
-      }
-    };
+    throw lastError!;
   }
 }
 
@@ -393,7 +413,6 @@ export async function extractDocumentText(pdfBuffer: Buffer): Promise<string> {
           'Authorization': `Bearer ${bearerToken}`,
         },
         body: JSON.stringify({
-          modelId: MODEL_ID,
           messages: [{
             role: 'user',
             content: [
