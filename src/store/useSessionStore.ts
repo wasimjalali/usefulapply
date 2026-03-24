@@ -117,6 +117,13 @@ export interface ApplicationSession {
       issuer: string;
       date?: string;
     }>;
+    projects?: Array<{
+      id: string;
+      name: string;
+      description: string;
+      technologies?: string[];
+      url?: string;
+    }>;
     analysis?: {
       summary: string;
       key_changes: string[];
@@ -132,6 +139,7 @@ export interface ApplicationSession {
       languages?: string;
       contact?: string;
       additionalInfo?: string;
+      projects?: string;
     };
     localizedStrings?: {
       present?: string;

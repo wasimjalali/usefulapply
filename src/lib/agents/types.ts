@@ -158,6 +158,13 @@ export interface MasterContext {
       issuer: string;
       date?: string;
     }>;
+    projects?: Array<{
+      id: string;
+      name: string;
+      description: string;
+      technologies?: string[];
+      url?: string;
+    }>;
     // NEW: Optimization analysis for "Changes" tab
     analysis?: OptimizationAnalysis;
     // i18n: AI-generated section headers and localized strings

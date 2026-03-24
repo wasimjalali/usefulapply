@@ -489,9 +489,9 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
       heading: 'Inter, Calibri, Arial, sans-serif',  // Modern + ATS-safe
       body: 'Inter, Calibri, Arial, sans-serif',
     },
-    sectionOrder: ['header', 'summary', 'skills', 'experience', 'education', 'certifications', 'languages'],
+    sectionOrder: ['header', 'summary', 'skills', 'experience', 'projects', 'education', 'certifications', 'languages'],
   },
-  
+
   // 2. Modern Professional - Tech/Startups
   {
     id: 'modern-professional',
@@ -539,9 +539,9 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
       heading: 'Georgia, Cambria, serif',      // 9/10 ATS, executive feel
       body: 'Calibri, Arial, sans-serif',
     },
-    sectionOrder: ['header', 'summary', 'experience', 'skills', 'education', 'certifications', 'languages'],
+    sectionOrder: ['header', 'summary', 'experience', 'projects', 'skills', 'education', 'certifications', 'languages'],
   },
-  
+
   // 4. German ATS - For German job market (with photo support)
   {
     id: 'german-ats',
@@ -564,9 +564,9 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
       heading: 'Arial, Helvetica, sans-serif',  // German standard
       body: 'Arial, Helvetica, sans-serif',
     },
-    sectionOrder: ['header', 'photo', 'summary', 'experience', 'education', 'skills', 'languages', 'certifications'],
+    sectionOrder: ['header', 'photo', 'summary', 'experience', 'projects', 'education', 'skills', 'languages', 'certifications'],
   },
-  
+
   // 5. German Classic - Single-column with photo (better ATS than two-column)
   {
     id: 'german-classic',
@@ -589,9 +589,9 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
       heading: 'Georgia, Times New Roman, serif',
       body: 'Arial, Helvetica, sans-serif',
     },
-    sectionOrder: ['header', 'photo', 'summary', 'skills', 'experience', 'education', 'certifications', 'languages'],
+    sectionOrder: ['header', 'photo', 'summary', 'skills', 'experience', 'projects', 'education', 'certifications', 'languages'],
   },
-  
+
   // 6. Classic Green - English market, distinctive forest green accent
   {
     id: 'classic-green',
@@ -614,7 +614,7 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
       heading: 'Georgia, Times New Roman, serif',
       body: 'Arial, Helvetica, sans-serif',
     },
-    sectionOrder: ['header', 'summary', 'skills', 'experience', 'education', 'certifications', 'languages'],
+    sectionOrder: ['header', 'summary', 'skills', 'experience', 'projects', 'education', 'certifications', 'languages'],
   },
 ];
 

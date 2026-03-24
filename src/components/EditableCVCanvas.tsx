@@ -551,6 +551,133 @@ export function EditableCVCanvas({ cvData, onSave, onAIImprove }: EditableCVCanv
         ))}
       </section>
 
+      {/* Projects */}
+      <section className="mb-6">
+        <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600 mb-3">
+          Projects
+        </h3>
+        {(data.projects || []).map((proj, projIndex) => (
+          <div key={proj.id || `proj-${projIndex}`} className="mb-4 p-4 bg-cream-50 rounded-lg border border-cream-200">
+            <div className="flex items-start gap-2 mb-2">
+              <div className="flex-1">
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <EditableField
+                    label="Project Name"
+                    value={proj.name}
+                    onChange={(v) => {
+                      const newProjects = [...(data.projects || [])];
+                      newProjects[projIndex] = { ...newProjects[projIndex], name: v };
+                      setData(prev => ({ ...prev, projects: newProjects }));
+                      setHasChanges(true);
+                    }}
+                    placeholder="Project name"
+                    className="font-medium"
+                  />
+                  <EditableField
+                    label="URL (optional)"
+                    value={proj.url || ''}
+                    onChange={(v) => {
+                      const newProjects = [...(data.projects || [])];
+                      newProjects[projIndex] = { ...newProjects[projIndex], url: v || undefined };
+                      setData(prev => ({ ...prev, projects: newProjects }));
+                      setHasChanges(true);
+                    }}
+                    placeholder="https://..."
+                    className="text-sm"
+                  />
+                </div>
+                <EditableField
+                  label="Description"
+                  value={proj.description}
+                  onChange={(v) => {
+                    const newProjects = [...(data.projects || [])];
+                    newProjects[projIndex] = { ...newProjects[projIndex], description: v };
+                    setData(prev => ({ ...prev, projects: newProjects }));
+                    setHasChanges(true);
+                  }}
+                  placeholder="1-2 sentences describing the project"
+                  multiline
+                  className="text-sm mb-2"
+                />
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <span className="text-xs text-warm-gray">Technologies:</span>
+                  {(proj.technologies || []).map((tech, techIndex) => (
+                    <div key={techIndex} className="flex items-center gap-1 bg-cream-100 rounded px-2 py-1 group">
+                      <EditableField
+                        value={tech}
+                        onChange={(v) => {
+                          const newProjects = [...(data.projects || [])];
+                          const newTech = [...(newProjects[projIndex].technologies || [])];
+                          newTech[techIndex] = v;
+                          newProjects[projIndex] = { ...newProjects[projIndex], technologies: newTech };
+                          setData(prev => ({ ...prev, projects: newProjects }));
+                          setHasChanges(true);
+                        }}
+                        placeholder="Tech"
+                        className="text-sm"
+                      />
+                      <button
+                        onClick={() => {
+                          const newProjects = [...(data.projects || [])];
+                          const newTech = (newProjects[projIndex].technologies || []).filter((_, i) => i !== techIndex);
+                          newProjects[projIndex] = { ...newProjects[projIndex], technologies: newTech };
+                          setData(prev => ({ ...prev, projects: newProjects }));
+                          setHasChanges(true);
+                        }}
+                        className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        title="Remove technology"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => {
+                      const newProjects = [...(data.projects || [])];
+                      const newTech = [...(newProjects[projIndex].technologies || []), ''];
+                      newProjects[projIndex] = { ...newProjects[projIndex], technologies: newTech };
+                      setData(prev => ({ ...prev, projects: newProjects }));
+                      setHasChanges(true);
+                    }}
+                    className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 px-2 py-1 border border-dashed border-navy-300 rounded cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add tech
+                  </button>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  const newProjects = (data.projects || []).filter((_, i) => i !== projIndex);
+                  setData(prev => ({ ...prev, projects: newProjects.length > 0 ? newProjects : undefined }));
+                  setHasChanges(true);
+                }}
+                className="p-1 text-red-400 hover:text-red-600 transition-colors cursor-pointer"
+                title="Remove project"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ))}
+        <button
+          onClick={() => {
+            const newProject = {
+              id: `proj-${Date.now()}`,
+              name: '',
+              description: '',
+              technologies: [],
+            };
+            setData(prev => ({ ...prev, projects: [...(prev.projects || []), newProject] }));
+            setHasChanges(true);
+          }}
+          className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 px-2 py-1 border border-dashed border-navy-300 rounded cursor-pointer"
+        >
+          <Plus className="w-3 h-3" />
+          Add project
+        </button>
+      </section>
+
       {/* Education */}
       <section className="mb-6">
         <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600 mb-3">
@@ -678,6 +805,52 @@ export function EditableCVCanvas({ cvData, onSave, onAIImprove }: EditableCVCanv
           >
             <Plus className="w-3 h-3" />
             Add certification
+          </button>
+        </div>
+      </section>
+
+      {/* Additional Information */}
+      <section className="mb-6">
+        <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600 mb-3">
+          Additional Information
+        </h3>
+        <div className="space-y-2">
+          {(data.additionalInfo || []).map((item, itemIndex) => (
+            <div key={`addl-${itemIndex}`} className="flex items-start gap-2 group">
+              <span className="text-warm-gray mt-2">•</span>
+              <EditableField
+                value={item}
+                onChange={(v) => {
+                  const newInfo = [...(data.additionalInfo || [])];
+                  newInfo[itemIndex] = v;
+                  setData(prev => ({ ...prev, additionalInfo: newInfo }));
+                  setHasChanges(true);
+                }}
+                placeholder="e.g., Work authorization, volunteer work, awards, interests..."
+                className="flex-1 text-sm"
+              />
+              <button
+                onClick={() => {
+                  const newInfo = (data.additionalInfo || []).filter((_, i) => i !== itemIndex);
+                  setData(prev => ({ ...prev, additionalInfo: newInfo.length > 0 ? newInfo : undefined }));
+                  setHasChanges(true);
+                }}
+                className="p-1 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                title="Remove item"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+          <button
+            onClick={() => {
+              setData(prev => ({ ...prev, additionalInfo: [...(prev.additionalInfo || []), ''] }));
+              setHasChanges(true);
+            }}
+            className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 px-2 py-1 border border-dashed border-navy-300 rounded cursor-pointer"
+          >
+            <Plus className="w-3 h-3" />
+            Add item
           </button>
         </div>
       </section>

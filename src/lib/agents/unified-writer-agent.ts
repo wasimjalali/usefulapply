@@ -500,6 +500,8 @@ export const unifiedWriterAgent = {
       console.log('  - Personal:', parsed.personal?.fullName);
       console.log('  - Experience entries:', parsed.experience?.length || 0);
       console.log('  - Skill categories:', parsed.skills?.length || 0);
+      console.log('  - Projects:', parsed.projects?.length || 0);
+      console.log('  - Additional Info:', parsed.additionalInfo?.length || 0);
       console.log('  - Driver License:', parsed.personal?.driverLicense ?? parsed.personal?.driver_license ?? 'not present');
       console.log('  - sectionHeaders:', parsed.sectionHeaders ? JSON.stringify(parsed.sectionHeaders) : 'NOT PRESENT');
       console.log('  - localizedStrings:', parsed.localizedStrings ? JSON.stringify(parsed.localizedStrings) : 'NOT PRESENT');
@@ -556,6 +558,14 @@ export const unifiedWriterAgent = {
           issuer: cert.issuer as string || '',
           date: cert.date as string | undefined,
         })),
+        projects: (parsed.projects || []).map((proj: Record<string, unknown>, idx: number) => ({
+          id: proj.id as string || `proj-${idx + 1}`,
+          name: proj.name as string || '',
+          description: proj.description as string || '',
+          technologies: (proj.technologies as string[]) || [],
+          url: proj.url as string | undefined,
+        })),
+        additionalInfo: (parsed.additionalInfo as string[])?.filter(Boolean) || undefined,
         analysis: parsed.analysis ? {
           summary: parsed.analysis.summary as string || '',
           key_changes: (parsed.analysis.key_changes as string[]) || [],
@@ -689,11 +699,34 @@ export const unifiedWriterAgent = {
       }
     }
 
+    // Projects
+    if (cvData.projects && cvData.projects.length > 0) {
+      lines.push('');
+      lines.push(isGerman ? 'PROJEKTE' : 'PROJECTS');
+      for (const proj of cvData.projects) {
+        lines.push(`${proj.name}${proj.url ? ` (${proj.url})` : ''}`);
+        if (proj.description) lines.push(proj.description);
+        if (proj.technologies && proj.technologies.length > 0) {
+          lines.push(`Technologies: ${proj.technologies.join(', ')}`);
+        }
+        lines.push('');
+      }
+    }
+
     // Additional Info (driver's license, etc.)
-    if (cvData.personal.driverLicense) {
+    const additionalItems: string[] = [];
+    if (cvData.additionalInfo && cvData.additionalInfo.length > 0) {
+      additionalItems.push(...cvData.additionalInfo);
+    }
+    if (cvData.personal.driverLicense && !additionalItems.some(item => item.toLowerCase().includes('license') || item.toLowerCase().includes('führerschein'))) {
+      additionalItems.push(isGerman ? `Führerschein: ${cvData.personal.driverLicense}` : `Driver's License: ${cvData.personal.driverLicense}`);
+    }
+    if (additionalItems.length > 0) {
       lines.push('');
       lines.push(isGerman ? 'WEITERE INFORMATIONEN' : 'ADDITIONAL INFORMATION');
-      lines.push(isGerman ? `Führerschein: ${cvData.personal.driverLicense}` : `Driver's License: ${cvData.personal.driverLicense}`);
+      for (const item of additionalItems) {
+        lines.push(`• ${item}`);
+      }
     }
     
     return lines.join('\n');
