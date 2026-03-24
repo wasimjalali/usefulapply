@@ -502,6 +502,7 @@ export const unifiedWriterAgent = {
       console.log('  - Skill categories:', parsed.skills?.length || 0);
       console.log('  - Projects:', parsed.projects?.length || 0);
       console.log('  - Additional Info:', parsed.additionalInfo?.length || 0);
+      console.log('  - Custom Sections:', parsed.customSections?.length || 0);
       console.log('  - Driver License:', parsed.personal?.driverLicense ?? parsed.personal?.driver_license ?? 'not present');
       console.log('  - sectionHeaders:', parsed.sectionHeaders ? JSON.stringify(parsed.sectionHeaders) : 'NOT PRESENT');
       console.log('  - localizedStrings:', parsed.localizedStrings ? JSON.stringify(parsed.localizedStrings) : 'NOT PRESENT');
@@ -566,6 +567,11 @@ export const unifiedWriterAgent = {
           url: proj.url as string | undefined,
         })),
         additionalInfo: (parsed.additionalInfo as string[])?.filter(Boolean) || undefined,
+        customSections: (parsed.customSections || []).map((s: Record<string, unknown>, idx: number) => ({
+          id: s.id as string || `custom-${idx + 1}`,
+          title: s.title as string || '',
+          items: ((s.items as string[]) || []).filter(Boolean),
+        })).filter((s: { items: string[] }) => s.items.length > 0) || undefined,
         analysis: parsed.analysis ? {
           summary: parsed.analysis.summary as string || '',
           key_changes: (parsed.analysis.key_changes as string[]) || [],

@@ -747,7 +747,10 @@ function parseLocally(rawText: string, region: 'US' | 'EU', fileName: string): S
     if (projects!.length > 0) cv.projects = projects;
   }
 
-  // Extract additional info sections (volunteer, awards, interests, etc.)
+  // Extract additional info and custom sections
+  const allAdditionalSections: typeof cv.additionalSections = [];
+
+  // True "Additional Information" catch-all
   const additionalContent = sections.get('ADDITIONAL INFORMATION');
   if (additionalContent) {
     const items = additionalContent
@@ -757,8 +760,30 @@ function parseLocally(rawText: string, region: 'US' | 'EU', fileName: string): S
       .filter((i: string) => !i.match(/^additional\s+information$/i));
     const unique = [...new Set(items)];
     if (unique.length > 0) {
-      cv.additionalSections = [withId({ title: 'Additional Information', items: unique })];
+      allAdditionalSections.push(withId({ title: 'Additional Information', items: unique }));
     }
+  }
+
+  // Extract other non-canonical sections (achievements, volunteer, publications, etc.)
+  const canonicalKeys = new Set(['SUMMARY', 'EXPERIENCE', 'EDUCATION', 'SKILLS', 'LANGUAGES', 'CERTIFICATIONS', 'PROJECTS', 'ADDITIONAL INFORMATION']);
+  const customTitles: Record<string, string> = {
+    'ACHIEVEMENTS': 'Selected Achievements', 'VOLUNTEER': 'Volunteer Experience',
+    'PUBLICATIONS': 'Publications', 'REFERENCES': 'References',
+    'INTERESTS': 'Interests', 'TEACHING': 'Teaching Experience',
+    'RESEARCH': 'Research', 'COURSEWORK': 'Relevant Coursework',
+    'PORTFOLIO': 'Portfolio',
+  };
+  for (const [key, content] of sections) {
+    if (canonicalKeys.has(key) || !content || content.trim().length < 3) continue;
+    const title = customTitles[key] || key.charAt(0) + key.slice(1).toLowerCase();
+    const items = content.split(/[•\n]/).map((i: string) => i.trim()).filter((i: string) => i.length > 2 && i.length < 500);
+    if (items.length > 0) {
+      allAdditionalSections.push(withId({ title, items: [...new Set(items)] }));
+    }
+  }
+
+  if (allAdditionalSections.length > 0) {
+    cv.additionalSections = allAdditionalSections;
   }
 
   return cv;

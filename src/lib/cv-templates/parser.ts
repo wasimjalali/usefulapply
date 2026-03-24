@@ -7,7 +7,7 @@ import type { CVData } from './types';
 import type { ParsedCV } from '@/lib/types';
 import type { StructuredCV } from '@/lib/types/cv-schema';
 import { splitIntoSections, normalizeHeader } from '@/lib/cv-parser/section-splitter';
-import { parseCertificationsSection, parseProjectsSection, parseAdditionalInfoSection } from '@/lib/cv-parser/parse-other';
+import { parseCertificationsSection, parseProjectsSection, parseAdditionalInfoSection, parseCustomSections } from '@/lib/cv-parser/parse-other';
 
 // Common words to exclude from names
 const NAME_EXCLUSIONS = ['present', 'current', 'summary', 'profile', 'experience', 'education', 
@@ -43,6 +43,7 @@ export function parseRawCVText(rawText: string, fileName?: string): CVData {
     certifications: extractCertifications(rawText),
     projects: parseProjectsSection(sections),
     additionalInfo: parseAdditionalInfoSection(sections),
+    customSections: parseCustomSections(sections),
   };
 }
 
@@ -71,6 +72,7 @@ export function parsedCVToCVData(parsedCV: ParsedCV): CVData {
     certifications: extractCertifications(rawText),
     projects: parseProjectsSection(splitSections),
     additionalInfo: parseAdditionalInfoSection(splitSections),
+    customSections: parseCustomSections(splitSections),
   };
 }
 
@@ -140,7 +142,12 @@ export function structuredCVToCVData(cv: StructuredCV): CVData {
       technologies: proj.technologies,
       url: proj.url,
     })),
-    additionalInfo: cv.additionalSections?.flatMap(s => s.items) || undefined,
+    additionalInfo: cv.additionalSections
+      ?.filter(s => s.title.toLowerCase() === 'additional information')
+      .flatMap(s => s.items) || undefined,
+    customSections: cv.additionalSections
+      ?.filter(s => s.title.toLowerCase() !== 'additional information')
+      .map(s => ({ id: s.id, title: s.title, items: s.items })) || undefined,
     sectionHeaders: cv.sectionHeaders,
     localizedStrings: cv.localizedStrings,
   };

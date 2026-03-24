@@ -482,6 +482,33 @@ export function USModernATSTemplate({ data, template }: Props) {
             </p>
           </section>
         )}
+
+        {/* Custom Sections (generic fallback) */}
+        {data.customSections && data.customSections.length > 0 && data.customSections.map((section) => (
+          <section key={section.id} style={{ marginBottom: '20px' }}>
+            <h2
+              style={{
+                fontSize: '14px',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '1.5px',
+                marginBottom: '10px',
+                paddingBottom: '6px',
+                borderBottom: `2px solid ${modernColors.accent}`,
+                color: modernColors.primary,
+              }}
+            >
+              {section.title}
+            </h2>
+            <ul style={{ listStyleType: 'disc', paddingLeft: '18px', margin: 0 }}>
+              {section.items.map((item, idx) => (
+                <li key={idx} style={{ fontSize: '12px', color: modernColors.text, marginBottom: '3px', lineHeight: 1.5 }}>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
       </main>
       </div>
     </div>

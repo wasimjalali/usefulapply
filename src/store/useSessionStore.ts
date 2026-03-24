@@ -124,6 +124,11 @@ export interface ApplicationSession {
       technologies?: string[];
       url?: string;
     }>;
+    customSections?: Array<{
+      id: string;
+      title: string;
+      items: string[];
+    }>;
     analysis?: {
       summary: string;
       key_changes: string[];

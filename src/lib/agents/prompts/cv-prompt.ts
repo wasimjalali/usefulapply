@@ -405,7 +405,14 @@ Return ONLY this JSON structure - no markdown, no preamble, no explanation:
       "url": "string (optional)"
     }
   ],
-  "additionalInfo": ["string — each item is a standalone bullet/fact (work authorization, driver's license, portfolio links, interests, volunteer work, awards, etc.)"],
+  "additionalInfo": ["string — each item is a standalone bullet/fact (work authorization, driver's license, portfolio links, etc.)"],
+  "customSections": [
+    {
+      "id": "custom-1",
+      "title": "string — ATS-safe section heading (e.g., 'Selected Achievements', 'Volunteer Experience', 'Publications', 'References', 'Interests')",
+      "items": ["string — each bullet or item in the section"]
+    }
+  ],
   "sectionHeaders": {
     "summary": "ATS-compliant section header for Summary in the output language",
     "skills": "ATS-compliant section header for Skills in the output language",
@@ -518,7 +525,8 @@ The following fields from the original CV or Master CV must ALWAYS be preserved 
 3. Work Authorization status — if mentioned in Master CV or Primary CV
 4. Location — always include current city
 5. Projects — if the source CV contains a Projects section, include the most relevant 2-4 projects. Include project name, 1-2 sentence description, and technologies used. Output in the "projects" array.
-6. Additional Information — preserve any catch-all content: work authorization, volunteer work, awards, publications, interests, professional memberships, board seats. Combine into concise bullet points in the "additionalInfo" array.
+6. Additional Information — preserve catch-all content like work authorization in the "additionalInfo" array.
+7. Custom Sections — if the source CV contains sections like Selected Achievements, Career Highlights, Volunteer Experience, Publications, Conference Presentations, Teaching Experience, Research, Interests, References, Coursework, or Portfolio, preserve each as a separate entry in the "customSections" array with its ATS-safe title. Do NOT flatten these into additionalInfo.
 These fields cost zero space in terms of relevance but can be disqualifying if missing.
 
 DRIVER'S LICENSE (MANDATORY — USE THE JSON FIELD):

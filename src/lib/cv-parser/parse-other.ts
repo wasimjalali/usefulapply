@@ -140,6 +140,57 @@ export function parseProjectsSection(sections: Map<string, string>): CVData['pro
   return projects.length > 0 ? projects : undefined;
 }
 
+/**
+ * ATS-safe display titles for canonical custom section keys.
+ */
+const CUSTOM_SECTION_TITLES: Record<string, string> = {
+  'ACHIEVEMENTS': 'Selected Achievements',
+  'VOLUNTEER': 'Volunteer Experience',
+  'PUBLICATIONS': 'Publications',
+  'REFERENCES': 'References',
+  'INTERESTS': 'Interests',
+  'TEACHING': 'Teaching Experience',
+  'RESEARCH': 'Research',
+  'COURSEWORK': 'Relevant Coursework',
+  'PORTFOLIO': 'Portfolio',
+};
+
+/** Canonical section keys that have dedicated renderers (not custom) */
+const CANONICAL_KEYS = new Set([
+  'SUMMARY', 'EXPERIENCE', 'EDUCATION', 'SKILLS',
+  'LANGUAGES', 'CERTIFICATIONS', 'PROJECTS', 'ADDITIONAL INFORMATION',
+]);
+
+/**
+ * Extract all non-canonical sections as customSections for the generic fallback renderer.
+ * This ensures no parsed section is ever silently dropped.
+ */
+export function parseCustomSections(sections: Map<string, string>): CVData['customSections'] {
+  const custom: NonNullable<CVData['customSections']> = [];
+
+  for (const [key, content] of sections) {
+    if (CANONICAL_KEYS.has(key)) continue;
+    if (!content || content.trim().length < 3) continue;
+
+    const title = CUSTOM_SECTION_TITLES[key] || key.charAt(0) + key.slice(1).toLowerCase();
+    const items = content
+      .split(/[•\n]/)
+      .map(i => i.trim())
+      .filter(i => i.length > 2 && i.length < 500);
+
+    if (items.length > 0) {
+      custom.push({
+        id: `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        title,
+        items: [...new Set(items)],
+      });
+    }
+  }
+
+  console.log('[ParseOther] Parsed', custom.length, 'custom sections:', custom.map(s => s.title).join(', '));
+  return custom.length > 0 ? custom : undefined;
+}
+
 export function parseAdditionalInfoSection(sections: Map<string, string>): string[] | undefined {
   const content = sections.get('ADDITIONAL INFORMATION');
   if (!content) return undefined;

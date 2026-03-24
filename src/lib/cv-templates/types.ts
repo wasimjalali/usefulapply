@@ -458,6 +458,14 @@ export interface CVData {
 
   // Additional information (work authorization, driver's license, etc.)
   additionalInfo?: string[];
+
+  // Generic catch-all for any other sections (achievements, references, volunteer, publications, etc.)
+  // Ensures no parsed section is ever silently dropped
+  customSections?: Array<{
+    id: string;
+    title: string;   // ATS-safe display heading (e.g., "Selected Achievements", "References")
+    items: string[];  // Bullet points or paragraph items
+  }>;
 }
 
 // Template definitions - Consolidated Premium Templates (January 2026)

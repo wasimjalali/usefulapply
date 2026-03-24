@@ -165,6 +165,11 @@ export interface MasterContext {
       technologies?: string[];
       url?: string;
     }>;
+    customSections?: Array<{
+      id: string;
+      title: string;
+      items: string[];
+    }>;
     // NEW: Optimization analysis for "Changes" tab
     analysis?: OptimizationAnalysis;
     // i18n: AI-generated section headers and localized strings

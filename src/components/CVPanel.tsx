@@ -329,6 +329,7 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
         languages: optimizedCVData.languages,
         certifications: optimizedCVData.certifications,
         projects: optimizedCVData.projects || undefined,
+        customSections: optimizedCVData.customSections || undefined,
         additionalInfo: optimizedCVData.additionalInfo || (optimizedCVData.personal.driverLicense
           ? [`Driver's License: ${optimizedCVData.personal.driverLicense}`]
           : undefined),

@@ -855,6 +855,101 @@ export function EditableCVCanvas({ cvData, onSave, onAIImprove }: EditableCVCanv
         </div>
       </section>
 
+      {/* Custom Sections (achievements, references, volunteer, publications, etc.) */}
+      {(data.customSections || []).map((section, secIndex) => (
+        <section key={section.id || `custom-${secIndex}`} className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <EditableField
+              value={section.title}
+              onChange={(v) => {
+                const newSections = [...(data.customSections || [])];
+                newSections[secIndex] = { ...newSections[secIndex], title: v };
+                setData(prev => ({ ...prev, customSections: newSections }));
+                setHasChanges(true);
+              }}
+              placeholder="Section title"
+              className="text-sm font-bold uppercase tracking-wider text-navy-600"
+            />
+            <button
+              onClick={() => {
+                const newSections = (data.customSections || []).filter((_, i) => i !== secIndex);
+                setData(prev => ({ ...prev, customSections: newSections.length > 0 ? newSections : undefined }));
+                setHasChanges(true);
+              }}
+              className="p-1 text-red-400 hover:text-red-600 cursor-pointer"
+              title="Remove section"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="space-y-1">
+            {section.items.map((item, itemIndex) => (
+              <div key={itemIndex} className="flex items-start gap-2 group">
+                <span className="text-warm-gray mt-2">•</span>
+                <EditableField
+                  value={item}
+                  onChange={(v) => {
+                    const newSections = [...(data.customSections || [])];
+                    const newItems = [...newSections[secIndex].items];
+                    newItems[itemIndex] = v;
+                    newSections[secIndex] = { ...newSections[secIndex], items: newItems };
+                    setData(prev => ({ ...prev, customSections: newSections }));
+                    setHasChanges(true);
+                  }}
+                  placeholder="Item..."
+                  className="flex-1 text-sm"
+                />
+                <button
+                  onClick={() => {
+                    const newSections = [...(data.customSections || [])];
+                    newSections[secIndex] = {
+                      ...newSections[secIndex],
+                      items: newSections[secIndex].items.filter((_, i) => i !== itemIndex),
+                    };
+                    setData(prev => ({ ...prev, customSections: newSections }));
+                    setHasChanges(true);
+                  }}
+                  className="p-1 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  title="Remove item"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={() => {
+                const newSections = [...(data.customSections || [])];
+                newSections[secIndex] = {
+                  ...newSections[secIndex],
+                  items: [...newSections[secIndex].items, ''],
+                };
+                setData(prev => ({ ...prev, customSections: newSections }));
+                setHasChanges(true);
+              }}
+              className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 mt-2 cursor-pointer"
+            >
+              <Plus className="w-3 h-3" />
+              Add item
+            </button>
+          </div>
+        </section>
+      ))}
+      <button
+        onClick={() => {
+          const newSection = {
+            id: `custom-${Date.now()}`,
+            title: '',
+            items: [''],
+          };
+          setData(prev => ({ ...prev, customSections: [...(prev.customSections || []), newSection] }));
+          setHasChanges(true);
+        }}
+        className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 px-2 py-1 border border-dashed border-navy-300 rounded cursor-pointer mb-6"
+      >
+        <Plus className="w-3 h-3" />
+        Add custom section
+      </button>
+
       {/* Languages */}
       <section>
         <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600 mb-3">

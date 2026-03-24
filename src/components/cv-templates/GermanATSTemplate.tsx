@@ -531,6 +531,33 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
           </section>
         )}
 
+        {/* Custom Sections (generic fallback) */}
+        {data.customSections && data.customSections.length > 0 && data.customSections.map((section) => (
+          <section key={section.id} style={{ marginBottom: '18px' }}>
+            <h2
+              style={{
+                fontSize: '13px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '1.5px',
+                marginBottom: '8px',
+                paddingBottom: '6px',
+                borderBottom: `2px solid ${germanColors.primary}`,
+                color: germanColors.primary,
+              }}
+            >
+              {section.title}
+            </h2>
+            <ul style={{ listStyleType: 'disc', paddingLeft: '18px', margin: 0 }}>
+              {section.items.map((item, idx) => (
+                <li key={idx} style={{ fontSize: '12px', color: germanColors.text, marginBottom: '3px', lineHeight: 1.5 }}>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+
         {/* Signature Line - German standard (controlled by data.signature.includeSignature) */}
         {data.signature?.includeSignature && (
           <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: `1px solid ${germanColors.border}` }}>
