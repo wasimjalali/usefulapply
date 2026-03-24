@@ -567,11 +567,14 @@ export const unifiedWriterAgent = {
           url: proj.url as string | undefined,
         })),
         additionalInfo: (parsed.additionalInfo as string[])?.filter(Boolean) || undefined,
-        customSections: (parsed.customSections || []).map((s: Record<string, unknown>, idx: number) => ({
-          id: s.id as string || `custom-${idx + 1}`,
-          title: s.title as string || '',
-          items: ((s.items as string[]) || []).filter(Boolean),
-        })).filter((s: { items: string[] }) => s.items.length > 0) || undefined,
+        customSections: (() => {
+          const mapped = (parsed.customSections || []).map((s: Record<string, unknown>, idx: number) => ({
+            id: s.id as string || `custom-${idx + 1}`,
+            title: s.title as string || '',
+            items: ((s.items as string[]) || []).filter(Boolean),
+          })).filter((s: { items: string[] }) => s.items.length > 0);
+          return mapped.length > 0 ? mapped : undefined;
+        })(),
         analysis: parsed.analysis ? {
           summary: parsed.analysis.summary as string || '',
           key_changes: (parsed.analysis.key_changes as string[]) || [],
@@ -734,7 +737,18 @@ export const unifiedWriterAgent = {
         lines.push(`• ${item}`);
       }
     }
-    
+
+    // Custom Sections (achievements, references, volunteer, publications, etc.)
+    if (cvData.customSections && cvData.customSections.length > 0) {
+      for (const section of cvData.customSections) {
+        lines.push('');
+        lines.push(section.title.toUpperCase());
+        for (const item of section.items) {
+          lines.push(`• ${item}`);
+        }
+      }
+    }
+
     return lines.join('\n');
   },
 

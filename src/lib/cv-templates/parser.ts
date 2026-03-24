@@ -142,12 +142,18 @@ export function structuredCVToCVData(cv: StructuredCV): CVData {
       technologies: proj.technologies,
       url: proj.url,
     })),
-    additionalInfo: cv.additionalSections
-      ?.filter(s => s.title.toLowerCase() === 'additional information')
-      .flatMap(s => s.items) || undefined,
-    customSections: cv.additionalSections
-      ?.filter(s => s.title.toLowerCase() !== 'additional information')
-      .map(s => ({ id: s.id, title: s.title, items: s.items })) || undefined,
+    additionalInfo: (() => {
+      const items = cv.additionalSections
+        ?.filter(s => s.title.toLowerCase() === 'additional information')
+        .flatMap(s => s.items);
+      return items && items.length > 0 ? items : undefined;
+    })(),
+    customSections: (() => {
+      const sections = cv.additionalSections
+        ?.filter(s => s.title.toLowerCase() !== 'additional information')
+        .map(s => ({ id: s.id, title: s.title, items: s.items }));
+      return sections && sections.length > 0 ? sections : undefined;
+    })(),
     sectionHeaders: cv.sectionHeaders,
     localizedStrings: cv.localizedStrings,
   };
