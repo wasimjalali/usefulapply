@@ -229,7 +229,7 @@ export async function POST(request: NextRequest) {
 
     const parseTime = Date.now() - parseStartTime;
     console.log(`[Parser] Completed using ${parserUsed} parser in ${parseTime}ms`);
-    console.log(`[Parser] Extracted: ${structuredCV.experience.length} exp, ${structuredCV.education.length} edu, ${structuredCV.skills.length} skills, ${structuredCV.languages.length} langs, ${structuredCV.certifications.length} certs`);
+    console.log(`[Parser] Extracted: ${structuredCV.experience.length} exp, ${structuredCV.education.length} edu, ${structuredCV.skills.length} skills, ${structuredCV.languages.length} langs, ${structuredCV.certifications.length} certs, ${structuredCV.projects?.length || 0} projects, ${structuredCV.additionalSections?.length || 0} additional sections`);
 
     structuredCV.sourceFileName = originalFileName;
     structuredCV.sourceFormat = fileExt === '.pdf' ? 'pdf' : fileExt === '.docx' ? 'docx' : 'txt';
@@ -248,9 +248,6 @@ export async function POST(request: NextRequest) {
     // Only apply to local parser — the AI parser is reliable and the AI-extracted rawText
     // may format section headers differently than what splitIntoSections expects.
     const detectedSections = splitIntoSections(rawText);
-    if (!detectedSections.has('PROJECTS')) {
-      structuredCV.projects = undefined;
-    }
     if (parserUsed === 'local') {
       // Local parser can fabricate languages from scattered mentions (e.g., "Python" as a language)
       if (!detectedSections.has('LANGUAGES')) {
@@ -258,6 +255,9 @@ export async function POST(request: NextRequest) {
       }
       if (!detectedSections.has('CERTIFICATIONS')) {
         structuredCV.certifications = [];
+      }
+      if (!detectedSections.has('PROJECTS')) {
+        structuredCV.projects = undefined;
       }
     }
 
@@ -594,6 +594,9 @@ function parseLocally(rawText: string, region: 'US' | 'EU', fileName: string): S
   const cv = createEmptyCV(region);
   const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
 
+  // Use section splitter for projects and additional info
+  const sections = splitIntoSections(rawText);
+
   // Extract email
   const emailMatch = rawText.match(/[\w.-]+@[\w.-]+\.\w+/);
   if (emailMatch) cv.personal.email = emailMatch[0];
@@ -722,6 +725,42 @@ function parseLocally(rawText: string, region: 'US' | 'EU', fileName: string): S
     }
   }
 
+  // Extract projects from dedicated section
+  const projectsContent = sections.get('PROJECTS');
+  if (projectsContent) {
+    const projLines = projectsContent.split('\n').map((l: string) => l.trim()).filter(Boolean);
+    let currentProj: { name: string; bullets: string[] } | null = null;
+    const projects: typeof cv.projects = [];
+    for (const line of projLines) {
+      if (line.startsWith('•') || line.startsWith('-') || line.startsWith('*')) {
+        if (currentProj) currentProj.bullets.push(line.replace(/^[•\-\*]\s*/, '').trim());
+      } else if (line.length > 0 && line.length < 150) {
+        if (currentProj && currentProj.name) {
+          projects!.push(withId({ name: currentProj.name, description: currentProj.bullets.join(' '), technologies: [] as string[] }));
+        }
+        currentProj = { name: line, bullets: [] };
+      }
+    }
+    if (currentProj && currentProj.name) {
+      projects!.push(withId({ name: currentProj.name, description: currentProj.bullets.join(' '), technologies: [] as string[] }));
+    }
+    if (projects!.length > 0) cv.projects = projects;
+  }
+
+  // Extract additional info sections (volunteer, awards, interests, etc.)
+  const additionalContent = sections.get('ADDITIONAL INFORMATION');
+  if (additionalContent) {
+    const items = additionalContent
+      .split(/[•\n]/)
+      .map((i: string) => i.trim())
+      .filter((i: string) => i.length > 2 && i.length < 200)
+      .filter((i: string) => !i.match(/^additional\s+information$/i));
+    const unique = [...new Set(items)];
+    if (unique.length > 0) {
+      cv.additionalSections = [withId({ title: 'Additional Information', items: unique })];
+    }
+  }
+
   return cv;
 }
 
@@ -741,6 +780,7 @@ RULES:
 3. If a date is ambiguous (just "2022"), mark confidence as "medium"
 4. If something is missing, use null or empty arrays - do NOT invent
 9. PROJECTS: Only extract projects if the CV has a DEDICATED "Projects" section header (e.g., "Projects", "Projekte", "Projets", "Key Projects"). Do NOT extract projects from experience bullets or other sections. If no explicit Projects section exists, return an empty array for "projects".
+10. ADDITIONAL SECTIONS: Extract any remaining sections like "Additional Information", "Volunteer Experience", "Awards", "Interests", "Hobbies", "References", "Publications", etc. Group each under its original section title with bullet items. If none exist, return an empty array for "additionalSections".
 5. Split skills into logical categories (e.g., "Programming", "Marketing", "Tools", etc.)
 6. SKILL PROFICIENCY LEVELS: If a skill has a proficiency level, qualifier, or descriptor attached (e.g., "Python (Proficient)", "Excel - Advanced", "SQL: Fundamentals", "Photoshop, Basic"), you MUST preserve it in the output as "SkillName (Level)". If a skill has NO level attached, output just the skill name. NEVER invent or guess proficiency levels — only preserve what is explicitly written.
 7. For German CVs, look for "Berufserfahrung", "Ausbildung", "Kenntnisse", "Sprachen", etc.
@@ -798,6 +838,9 @@ Return ONLY valid JSON with this structure:
   ],
   "projects": [
     { "name": "string", "description": "string", "technologies": ["string"], "url": "string|null" }
+  ],
+  "additionalSections": [
+    { "title": "string (section header, e.g., 'Volunteer Experience', 'Awards', 'Interests', 'References')", "items": ["string (each item/bullet as separate entry)"] }
   ]
 }
 `;
@@ -883,6 +926,14 @@ function parseAIResponse(content: string, region: 'US' | 'EU'): StructuredCV {
     technologies: proj.technologies || [],
     url: proj.url,
   }));
+
+  // Map additional sections (volunteer, awards, interests, references, etc.)
+  if (parsed.additionalSections && Array.isArray(parsed.additionalSections) && parsed.additionalSections.length > 0) {
+    cv.additionalSections = parsed.additionalSections.map((section: any) => withId({
+      title: section.title || 'Additional Information',
+      items: Array.isArray(section.items) ? section.items.filter(Boolean) : [],
+    }));
+  }
 
   return cv;
 }
