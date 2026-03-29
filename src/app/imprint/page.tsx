@@ -7,6 +7,13 @@ export const metadata: Metadata = {
   description:
     'Legal information and company details for KarKo AI. Impressum as required by German law.',
   alternates: { canonical: '/imprint' },
+  openGraph: {
+    title: 'Imprint (Impressum)',
+    description: 'Legal information and company details for KarKo AI.',
+    url: '/imprint',
+    siteName: 'KarKo AI',
+    type: 'website',
+  },
 };
 
 export default function ImprintPage() {

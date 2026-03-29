@@ -9,23 +9,20 @@ const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'AI Job Application Pricing & Credits: Free, Plus & Max Plans | Karko AI',
+    title: 'AI Application Pricing & Credits',
     description:
-      'Karko AI pricing: Free (5 applications), Plus $39.99/month (50 applications), Max $79.99/month (100 applications). Credit-based system with transparent cost per application.',
+      'KarKo AI pricing: Free (5 apps/month), Plus $39.99/month (50 apps), Max $79.99/month (100 apps). Transparent credit-based pricing.',
     openGraph: {
-      title: 'AI Job Application Pricing & Credits: Free, Plus & Max Plans | Karko AI',
+      title: 'AI Application Pricing & Credits | KarKo AI',
       description:
-        'Karko AI pricing: Free (5 applications), Plus $39.99/month (50 applications), Max $79.99/month (100 applications). Credit-based system with transparent cost per application.',
-      url: `${SITE_URL}/ai-job-application/pricing-credits`,
-      siteName: 'Karko AI',
+        'Free (5 apps/month), Plus $39.99/month (50 apps), Max $79.99/month (100 apps). Transparent credit-based pricing.',
+      url: '/ai-job-application/pricing-credits',
+      siteName: 'KarKo AI',
       type: 'website',
+      locale: 'en_US',
     },
     alternates: {
-      canonical: `${SITE_URL}/ai-job-application/pricing-credits`,
-      languages: {
-        en: `${SITE_URL}/ai-job-application/pricing-credits`,
-        de: `${SITE_URL}/de/bewerbung-ki/preise-viele-bewerbungen`,
-      },
+      canonical: '/ai-job-application/pricing-credits',
     },
   };
 }
@@ -93,11 +90,17 @@ export default function PricingCreditsPage() {
     headline: 'AI Job Application Pricing & Credits: How Karko AI Plans Work',
     description:
       'Karko AI pricing: Free (5 applications), Plus $39.99/month (50 applications), Max $79.99/month (100 applications). Credit-based system with transparent cost per application.',
-    author: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
-    publisher: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
+    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+    publisher: {
+      '@type': 'Organization',
+      name: 'KarKo AI',
+      url: SITE_URL,
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/karko-ai.png` },
+    },
+    image: `${SITE_URL}/opengraph-image`,
     url: `${SITE_URL}/ai-job-application/pricing-credits`,
     datePublished: '2026-02-24',
-    dateModified: '2026-02-24',
+    dateModified: '2026-03-29',
   };
 
   return (

@@ -7,6 +7,13 @@ export const metadata: Metadata = {
   description:
     'Read the KarKo AI Terms of Service. Understand the rules, responsibilities, and conditions for using our AI-powered job application assistant.',
   alternates: { canonical: '/terms' },
+  openGraph: {
+    title: 'Terms of Service',
+    description: 'KarKo AI Terms of Service for the AI-powered job application assistant.',
+    url: '/terms',
+    siteName: 'KarKo AI',
+    type: 'website',
+  },
 };
 
 export default function TermsPage() {

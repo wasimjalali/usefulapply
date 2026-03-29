@@ -7,14 +7,17 @@ import { getAllPosts, getAllCategories, CATEGORY_COLORS } from '@/lib/blog';
 import type { BlogCategory } from '@/lib/blog';
 
 export const metadata: Metadata = {
-  title: 'Blog — Career Tips, AI Insights & Job Search Strategies',
+  title: 'Blog: Career Tips & AI Job Search',
   description:
-    'Expert advice on CV optimization, cover letter writing, job search strategies, and how AI is transforming the hiring process. Practical tips from the KarKo AI team.',
+    'Expert advice on CV optimization, cover letter writing, job search strategies, and how AI is transforming hiring. Tips from the KarKo AI team.',
   alternates: { canonical: '/blog' },
   openGraph: {
-    title: 'KarKo AI Blog — Career Tips & Job Search Strategies',
+    title: 'Blog: Career Tips & AI Job Search | KarKo AI',
     description:
       'Expert advice on CV optimization, cover letter writing, and how AI is transforming job applications.',
+    url: '/blog',
+    siteName: 'KarKo AI',
+    type: 'website',
   },
 };
 

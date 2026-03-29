@@ -11,13 +11,71 @@ import { TimeSavingsCalculator } from '@/components/marketing/TimeSavingsCalcula
 export const metadata: Metadata = {
   title: 'KarKo AI | AI-Powered Job Application Assistant',
   description:
-    'Apply to jobs 10x faster with AI. KarKo AI optimizes your CV for each role, generates tailored cover letters, and creates professional application emails, all in under 90 seconds.',
+    'Apply to jobs 10x faster. KarKo AI generates a tailored CV, cover letter, and application email from any job description in under 90 seconds.',
   alternates: { canonical: '/' },
 };
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-cream-100">
+      {/* SoftwareApplication Schema — homepage only.
+          Google requires aggregateRating or review for rich results.
+          Add real review data here when available (e.g. from Trustpilot). */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'SoftwareApplication',
+            name: 'KarKo AI',
+            applicationCategory: 'BusinessApplication',
+            operatingSystem: 'Web',
+            description:
+              'AI-powered job application assistant that generates a tailored CV, cover letter, and application email from any job description in under 90 seconds.',
+            url: SITE_URL,
+            image: `${SITE_URL}/karko-ai.png`,
+            featureList: [
+              'AI CV Optimization',
+              'Tailored Cover Letter Generation',
+              'Professional Application Email Drafting',
+              'Smart Fit Analysis',
+              'ATS-Friendly Output',
+              'Multi-Language Support',
+              'Master CV Support',
+            ],
+            offers: [
+              {
+                '@type': 'Offer',
+                name: 'Free',
+                price: '0',
+                priceCurrency: 'USD',
+                description: '10 credits/month (~5 applications)',
+              },
+              {
+                '@type': 'Offer',
+                name: 'Plus',
+                price: '39.99',
+                priceCurrency: 'USD',
+                description: '100 credits/month (~50 applications)',
+              },
+              {
+                '@type': 'Offer',
+                name: 'Max',
+                price: '79.99',
+                priceCurrency: 'USD',
+                description: '200 credits/month (~100 applications)',
+              },
+            ],
+            creator: {
+              '@type': 'Organization',
+              name: 'KarKo AI',
+              url: SITE_URL,
+            },
+          }),
+        }}
+      />
       <Navbar />
 
       {/* Hero Section */}

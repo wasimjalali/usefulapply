@@ -9,23 +9,20 @@ const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Try AI Job Application Free, No Sign-Up Required | Karko AI',
+    title: 'Try AI Job Applications Free',
     description:
-      "Test Karko AI's job application generator without signing up. Free plan includes 5 applications free. See the output quality before committing to any plan.",
+      "Test KarKo AI's job application generator without signing up. Free plan includes 5 applications/month. See output quality before committing.",
     openGraph: {
-      title: 'Try AI Job Application Free, No Sign-Up Required | Karko AI',
+      title: 'Try AI Job Applications Free | KarKo AI',
       description:
-        "Test Karko AI's job application generator without signing up. Free plan includes 5 applications free. See the output quality before committing to any plan.",
-      url: `${SITE_URL}/ai-job-application/free-no-signup-test`,
-      siteName: 'Karko AI',
+        "Test KarKo AI's job application generator free. 5 applications/month included, no sign-up required.",
+      url: '/ai-job-application/free-no-signup-test',
+      siteName: 'KarKo AI',
       type: 'website',
+      locale: 'en_US',
     },
     alternates: {
-      canonical: `${SITE_URL}/ai-job-application/free-no-signup-test`,
-      languages: {
-        en: `${SITE_URL}/ai-job-application/free-no-signup-test`,
-        de: `${SITE_URL}/de/bewerbung-ki/ohne-anmeldung-kostenlos`,
-      },
+      canonical: '/ai-job-application/free-no-signup-test',
     },
   };
 }
@@ -93,11 +90,17 @@ export default function FreeNoSignupTestPage() {
     headline: 'Test AI Job Application Free, No Sign-Up Required',
     description:
       "Test Karko AI's job application generator without signing up. Free plan includes 5 applications free. See the output quality before committing to any plan.",
-    author: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
-    publisher: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
+    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+    publisher: {
+      '@type': 'Organization',
+      name: 'KarKo AI',
+      url: SITE_URL,
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/karko-ai.png` },
+    },
+    image: `${SITE_URL}/opengraph-image`,
     url: `${SITE_URL}/ai-job-application/free-no-signup-test`,
     datePublished: '2026-02-24',
-    dateModified: '2026-02-24',
+    dateModified: '2026-03-29',
   };
 
   return (

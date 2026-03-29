@@ -9,8 +9,16 @@ import { CountUp } from '@/components/marketing/CountUp';
 export const metadata: Metadata = {
   title: 'About KarKo AI',
   description:
-    'Learn about KarKo AI, the AI-powered job application assistant built by a job seeker, for job seekers. Our mission is to help you apply smarter and land interviews faster.',
+    'KarKo AI is an AI-powered job application assistant built by a job seeker, for job seekers. Apply smarter and land interviews faster.',
   alternates: { canonical: '/about' },
+  openGraph: {
+    title: 'About KarKo AI',
+    description:
+      'AI-powered job application assistant built by a job seeker, for job seekers.',
+    url: '/about',
+    siteName: 'KarKo AI',
+    type: 'website',
+  },
 };
 
 export default function AboutPage() {

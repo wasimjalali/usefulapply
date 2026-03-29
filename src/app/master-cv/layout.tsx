@@ -1,14 +1,17 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Master CV — Build Your Complete Career Profile',
+  title: 'Master CV — Build Your Career Profile',
   description:
-    'Create a comprehensive Master CV with AI assistance. A Master CV captures your entire professional history so KarKo AI can generate perfectly tailored applications for every job.',
+    'Create a comprehensive Master CV with AI. Capture your entire professional history so KarKo AI can generate tailored applications for every job.',
   alternates: { canonical: '/master-cv' },
   openGraph: {
-    title: 'Master CV — Build Your Complete Career Profile | KarKo AI',
+    title: 'Master CV — Build Your Career Profile | KarKo AI',
     description:
-      'Create a comprehensive Master CV with AI. Capture your full professional history for perfectly tailored job applications.',
+      'Create a comprehensive Master CV with AI. Capture your full professional history for tailored job applications.',
+    url: '/master-cv',
+    siteName: 'KarKo AI',
+    type: 'website',
   },
 };
 

@@ -7,6 +7,13 @@ export const metadata: Metadata = {
   description:
     'KarKo AI Privacy Policy. Learn how we handle your data, protect your CV information, and ensure GDPR compliance.',
   alternates: { canonical: '/privacy' },
+  openGraph: {
+    title: 'Privacy Policy',
+    description: 'How KarKo AI handles your data, protects your CV information, and ensures GDPR compliance.',
+    url: '/privacy',
+    siteName: 'KarKo AI',
+    type: 'website',
+  },
 };
 
 export default function PrivacyPage() {

@@ -9,23 +9,20 @@ const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Master CV Template: Build Your AI Job Application Foundation | Karko AI',
+    title: 'Master CV Template',
     description:
-      'A Master CV is your complete, structured source document. Build it once, use it for every AI-generated application. Template, structure, and workflow in 45–90 minutes.',
+      'Build a complete Master CV once, use it for every AI-generated application. Template, structure, and workflow in 45 to 90 minutes.',
     openGraph: {
-      title: 'Master CV Template: Build Your AI Job Application Foundation | Karko AI',
+      title: 'Master CV Template | KarKo AI',
       description:
-        'A Master CV is your complete, structured source document. Build it once, use it for every AI-generated application. Template, structure, and workflow in 45–90 minutes.',
-      url: `${SITE_URL}/master-cv-template`,
-      siteName: 'Karko AI',
+        'Build a complete Master CV once, use it for every AI-generated job application. Template, structure, and workflow guide.',
+      url: '/master-cv-template',
+      siteName: 'KarKo AI',
       type: 'website',
+      locale: 'en_US',
     },
     alternates: {
-      canonical: `${SITE_URL}/master-cv-template`,
-      languages: {
-        en: `${SITE_URL}/master-cv-template`,
-        de: `${SITE_URL}/de/bewerbung-unterlagen/master-cv-vorlage-erstellen`,
-      },
+      canonical: '/master-cv-template',
     },
   };
 }
@@ -131,11 +128,17 @@ export default function MasterCVTemplatePage() {
     headline: 'Master CV Template: Build Your Foundation for AI Job Applications',
     description:
       'A Master CV is your complete, structured source document. Build it once, use it for every AI-generated application. Template, structure, and workflow in 45–90 minutes.',
-    author: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
-    publisher: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
+    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+    publisher: {
+      '@type': 'Organization',
+      name: 'KarKo AI',
+      url: SITE_URL,
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/karko-ai.png` },
+    },
+    image: `${SITE_URL}/opengraph-image`,
     url: `${SITE_URL}/master-cv-template`,
     datePublished: '2026-02-24',
-    dateModified: '2026-02-24',
+    dateModified: '2026-03-29',
   };
 
   return (

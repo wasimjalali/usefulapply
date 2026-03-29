@@ -36,6 +36,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
       title: post.title,
       description: post.description,
       url: `${SITE_URL}/blog/${post.slug}`,
+      siteName: 'KarKo AI',
       publishedTime: post.publishedAt,
       modifiedTime: post.updatedAt || post.publishedAt,
       authors: [post.author.name],
