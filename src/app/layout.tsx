@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     template: '%s | KarKo AI',
   },
   description:
-    'KarKo AI optimizes your CV, generates tailored cover letters, and creates professional application emails in minutes. Built for job seekers who want to apply smarter, not harder.',
+    'KarKo AI optimizes your CV, generates tailored cover letters, and creates professional application emails in under 90 seconds.',
   keywords: [
     'AI job application',
     'CV optimizer',
@@ -107,71 +107,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="author" href={`${SITE_URL}/about`} />
-        {/* SoftwareApplication Schema */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'SoftwareApplication',
-              name: 'KarKo AI',
-              applicationCategory: 'BusinessApplication',
-              applicationSubCategory: 'Job Application Tool',
-              operatingSystem: 'Web',
-              description:
-                'AI-powered job application assistant that optimizes your CV, generates tailored cover letters, and creates professional application emails in under 90 seconds.',
-              url: SITE_URL,
-              image: `${SITE_URL}/karko-ai.png`,
-              screenshot: `${SITE_URL}/karko-ai.png`,
-              featureList: [
-                'AI CV Optimization',
-                'Tailored Cover Letter Generation',
-                'Professional Application Email Drafting',
-                'Smart Fit Analysis',
-                'ATS-Friendly Output',
-                'Multi-Language Support',
-                'Master CV Support',
-              ],
-              offers: [
-                {
-                  '@type': 'Offer',
-                  name: 'Free',
-                  price: '0',
-                  priceCurrency: 'USD',
-                  description: '10 credits (~5 applications/month)',
-                },
-                {
-                  '@type': 'Offer',
-                  name: 'Plus',
-                  price: '29.99',
-                  priceCurrency: 'USD',
-                  billingIncrement: 'P1M',
-                  description: '200 credits, priority processing',
-                },
-                {
-                  '@type': 'Offer',
-                  name: 'Pro',
-                  price: '49.99',
-                  priceCurrency: 'USD',
-                  billingIncrement: 'P1M',
-                  description: '500 credits, advanced AI models, premium support',
-                },
-              ],
-              creator: {
-                '@type': 'Organization',
-                name: 'KarKo AI',
-                url: SITE_URL,
-                founder: {
-                  '@type': 'Person',
-                  name: 'Wasim Jalali',
-                  jobTitle: 'Founder & CEO',
-                },
-              },
-              aggregateRating: undefined,
-            }),
-          }}
-        />
-        {/* Organization Schema */}
+        {/* Organization Schema — site-wide */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -192,59 +128,6 @@ export default function RootLayout({
                 url: `${SITE_URL}/contact`,
                 contactType: 'customer support',
               },
-              sameAs: [],
-            }),
-          }}
-        />
-        {/* FAQ Schema for rich snippets */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'FAQPage',
-              mainEntity: [
-                {
-                  '@type': 'Question',
-                  name: 'How does KarKo AI optimize my CV?',
-                  acceptedAnswer: {
-                    '@type': 'Answer',
-                    text: 'KarKo AI analyzes the job description to identify key requirements, then tailors your CV to highlight matching skills and experience. It ensures ATS compatibility while preserving your authentic professional history — no fabricated skills or hallucinated content.',
-                  },
-                },
-                {
-                  '@type': 'Question',
-                  name: 'How long does it take to generate an application?',
-                  acceptedAnswer: {
-                    '@type': 'Answer',
-                    text: 'KarKo AI generates a complete application package (optimized CV, tailored cover letter, and professional email) in under 90 seconds. What typically takes 45-60 minutes manually is done almost instantly.',
-                  },
-                },
-                {
-                  '@type': 'Question',
-                  name: 'Is KarKo AI free to use?',
-                  acceptedAnswer: {
-                    '@type': 'Answer',
-                    text: 'Yes! KarKo AI offers a Free plan with 10 credits (~5 applications per month). No credit card required. Paid plans (Plus at $39.99/mo and Max at $79.99/mo) offer more credits and advanced features.',
-                  },
-                },
-                {
-                  '@type': 'Question',
-                  name: 'What is a Master CV?',
-                  acceptedAnswer: {
-                    '@type': 'Answer',
-                    text: 'A Master CV is a comprehensive 5-10 page document that captures your entire professional history — every skill, project, certification, and achievement. KarKo AI uses it as a rich source to generate perfectly tailored applications for any job.',
-                  },
-                },
-                {
-                  '@type': 'Question',
-                  name: 'Does KarKo AI make up skills or experience?',
-                  acceptedAnswer: {
-                    '@type': 'Answer',
-                    text: 'No. KarKo AI has strict anti-hallucination rules. Every skill, metric, and claim in your optimized CV must be traceable to your original CV or Master CV. If a required skill is missing, it highlights transferable skills instead of fabricating content.',
-                  },
-                },
-              ],
             }),
           }}
         />
