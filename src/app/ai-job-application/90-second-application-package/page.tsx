@@ -9,23 +9,20 @@ const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'AI Job Application Package in 90 Seconds: CV, Cover Letter & Emails | Karko AI',
+    title: '90-Second AI Application Package',
     description:
-      'Karko AI generates a complete job application package (tailored CV, cover letter, application email, and follow-up email) from one job description in under 90 seconds.',
+      'Generate a tailored CV, cover letter, application email, and follow-up email from one job description in under 90 seconds with KarKo AI.',
     openGraph: {
-      title: 'AI Job Application Package in 90 Seconds: CV, Cover Letter & Emails | Karko AI',
+      title: '90-Second AI Application Package | KarKo AI',
       description:
-        'Karko AI generates a complete job application package (tailored CV, cover letter, application email, and follow-up email) from one job description in under 90 seconds.',
-      url: `${SITE_URL}/ai-job-application/90-second-application-package`,
-      siteName: 'Karko AI',
+        'Generate a tailored CV, cover letter, application email, and follow-up email from one job description in under 90 seconds.',
+      url: '/ai-job-application/90-second-application-package',
+      siteName: 'KarKo AI',
       type: 'website',
+      locale: 'en_US',
     },
     alternates: {
-      canonical: `${SITE_URL}/ai-job-application/90-second-application-package`,
-      languages: {
-        en: `${SITE_URL}/ai-job-application/90-second-application-package`,
-        de: `${SITE_URL}/de/bewerbung-ki/90-sekunden-bewerbungspaket`,
-      },
+      canonical: '/ai-job-application/90-second-application-package',
     },
   };
 }
@@ -131,11 +128,17 @@ export default function NinetySecondApplicationPackagePage() {
     headline: 'Complete AI Job Application Package in 90 Seconds',
     description:
       'Karko AI generates a complete job application package (tailored CV, cover letter, application email, and follow-up email) from one job description in under 90 seconds.',
-    author: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
-    publisher: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
+    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+    publisher: {
+      '@type': 'Organization',
+      name: 'KarKo AI',
+      url: SITE_URL,
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/karko-ai.png` },
+    },
+    image: `${SITE_URL}/opengraph-image`,
     url: `${SITE_URL}/ai-job-application/90-second-application-package`,
     datePublished: '2026-02-24',
-    dateModified: '2026-02-24',
+    dateModified: '2026-03-29',
   };
 
   return (

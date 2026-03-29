@@ -9,23 +9,20 @@ const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'AI Job Application: Complete Guide to Tools, ATS & Workflow | Karko AI',
+    title: 'AI Job Application Guide',
     description:
-      'Everything about AI job applications in one place: 90-second workflow, ATS optimization, zero-fabrication, integrations, pricing, and Master CV templates.',
+      'AI job applications in one place: 90-second workflow, ATS optimization, zero-fabrication, integrations, pricing, and Master CV templates.',
     openGraph: {
-      title: 'AI Job Application: Complete Guide to Tools, ATS & Workflow | Karko AI',
+      title: 'AI Job Application Guide | KarKo AI',
       description:
-        'Everything about AI job applications in one place: 90-second workflow, ATS optimization, zero-fabrication, integrations, pricing, and Master CV templates.',
-      url: `${SITE_URL}/ai-job-application`,
-      siteName: 'Karko AI',
+        'AI job applications in one place: 90-second workflow, ATS optimization, zero-fabrication, integrations, pricing, and Master CV templates.',
+      url: '/ai-job-application',
+      siteName: 'KarKo AI',
       type: 'website',
+      locale: 'en_US',
     },
     alternates: {
-      canonical: `${SITE_URL}/ai-job-application`,
-      languages: {
-        en: `${SITE_URL}/ai-job-application`,
-        de: `${SITE_URL}/de/bewerbung-ki`,
-      },
+      canonical: '/ai-job-application',
     },
   };
 }
@@ -159,11 +156,17 @@ export default function AIJobApplicationHub() {
     headline: 'AI Job Application: Tools, Workflow, ATS & Templates',
     description:
       'Everything about AI job applications in one place: 90-second workflow, ATS optimization, zero-fabrication, integrations, pricing, and Master CV templates.',
-    author: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
-    publisher: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
+    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+    publisher: {
+      '@type': 'Organization',
+      name: 'KarKo AI',
+      url: SITE_URL,
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/karko-ai.png` },
+    },
+    image: `${SITE_URL}/opengraph-image`,
     url: `${SITE_URL}/ai-job-application`,
     datePublished: '2026-02-24',
-    dateModified: '2026-02-24',
+    dateModified: '2026-03-29',
   };
 
   return (
@@ -387,13 +390,13 @@ export default function AIJobApplicationHub() {
                 includes 5 applications free, no sign-up required.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <a
-                  href="https://www.karkoai.com"
+                <Link
+                  href="/dashboard"
                   className="px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg inline-flex items-center gap-2"
                 >
                   Try Karko AI Free
                   <ArrowRight className="w-5 h-5" />
-                </a>
+                </Link>
                 <Link
                   href="/pricing"
                   className="px-10 py-4 glass-dark text-white font-semibold rounded-xl hover:bg-white/30 hover:shadow-xl hover:scale-[1.02] hover:border-gold-400/50 transition-all duration-300 text-lg"

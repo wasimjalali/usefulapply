@@ -9,23 +9,20 @@ const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'AI Job Applications for Workday, Greenhouse & Lever: ATS Compatibility | Karko AI',
+    title: 'Workday, Greenhouse & Lever Compatibility',
     description:
-      "How Karko AI's generated documents work in Workday, Greenhouse, Lever, SAP SuccessFactors, iCIMS, and Taleo. Upload workflows, parsing, and copy-paste compatibility.",
+      "How KarKo AI documents work in Workday, Greenhouse, Lever, SAP SuccessFactors, iCIMS, and Taleo. Upload, parsing, and copy-paste ready.",
     openGraph: {
-      title: 'AI Job Applications for Workday, Greenhouse & Lever: ATS Compatibility | Karko AI',
+      title: 'Workday, Greenhouse & Lever Compatibility | KarKo AI',
       description:
-        "How Karko AI's generated documents work in Workday, Greenhouse, Lever, SAP SuccessFactors, iCIMS, and Taleo. Upload workflows, parsing, and copy-paste compatibility.",
-      url: `${SITE_URL}/ai-job-application/integrations-workday-greenhouse-lever`,
-      siteName: 'Karko AI',
+        'KarKo AI documents work in Workday, Greenhouse, Lever, SAP SuccessFactors, iCIMS, and Taleo.',
+      url: '/ai-job-application/integrations-workday-greenhouse-lever',
+      siteName: 'KarKo AI',
       type: 'website',
+      locale: 'en_US',
     },
     alternates: {
-      canonical: `${SITE_URL}/ai-job-application/integrations-workday-greenhouse-lever`,
-      languages: {
-        en: `${SITE_URL}/ai-job-application/integrations-workday-greenhouse-lever`,
-        de: `${SITE_URL}/de/bewerbung-ki/integrationen-workday-greenhouse-lever`,
-      },
+      canonical: '/ai-job-application/integrations-workday-greenhouse-lever',
     },
   };
 }
@@ -93,11 +90,17 @@ export default function IntegrationsWorkdayGreenhouseLeverPage() {
     headline: 'AI Job Applications for Workday, Greenhouse & Lever: Compatibility Guide',
     description:
       "How Karko AI's generated documents work in Workday, Greenhouse, Lever, SAP SuccessFactors, iCIMS, and Taleo. Upload workflows, parsing, and copy-paste compatibility.",
-    author: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
-    publisher: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
+    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+    publisher: {
+      '@type': 'Organization',
+      name: 'KarKo AI',
+      url: SITE_URL,
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/karko-ai.png` },
+    },
+    image: `${SITE_URL}/opengraph-image`,
     url: `${SITE_URL}/ai-job-application/integrations-workday-greenhouse-lever`,
     datePublished: '2026-02-24',
-    dateModified: '2026-02-24',
+    dateModified: '2026-03-29',
   };
 
   return (

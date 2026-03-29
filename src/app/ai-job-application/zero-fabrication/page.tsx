@@ -9,23 +9,20 @@ const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Zero-Fabrication AI Job Applications: No Invented Experience | Karko AI',
+    title: 'Zero-Fabrication AI Applications',
     description:
-      "Karko AI's anti-hallucination system ensures every CV claim is verified against your source documents. No fabricated skills, metrics, or roles, ever.",
+      "KarKo AI's anti-hallucination system verifies every CV claim against your source documents. No fabricated skills, metrics, or roles.",
     openGraph: {
-      title: 'Zero-Fabrication AI Job Applications: No Invented Experience | Karko AI',
+      title: 'Zero-Fabrication AI Applications | KarKo AI',
       description:
-        "Karko AI's anti-hallucination system ensures every CV claim is verified against your source documents. No fabricated skills, metrics, or roles, ever.",
-      url: `${SITE_URL}/ai-job-application/zero-fabrication`,
-      siteName: 'Karko AI',
+        'Every CV claim verified against your source documents. No fabricated skills, metrics, or roles.',
+      url: '/ai-job-application/zero-fabrication',
+      siteName: 'KarKo AI',
       type: 'website',
+      locale: 'en_US',
     },
     alternates: {
-      canonical: `${SITE_URL}/ai-job-application/zero-fabrication`,
-      languages: {
-        en: `${SITE_URL}/ai-job-application/zero-fabrication`,
-        de: `${SITE_URL}/de/bewerbung-ki/keine-erfindungen-zero-fabrication`,
-      },
+      canonical: '/ai-job-application/zero-fabrication',
     },
   };
 }
@@ -93,11 +90,17 @@ export default function ZeroFabricationPage() {
     headline: 'Zero-Fabrication AI Job Application: No Invented Experience',
     description:
       "Karko AI's anti-hallucination system ensures every CV claim is verified against your source documents. No fabricated skills, metrics, or roles, ever.",
-    author: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
-    publisher: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
+    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+    publisher: {
+      '@type': 'Organization',
+      name: 'KarKo AI',
+      url: SITE_URL,
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/karko-ai.png` },
+    },
+    image: `${SITE_URL}/opengraph-image`,
     url: `${SITE_URL}/ai-job-application/zero-fabrication`,
     datePublished: '2026-02-24',
-    dateModified: '2026-02-24',
+    dateModified: '2026-03-29',
   };
 
   return (

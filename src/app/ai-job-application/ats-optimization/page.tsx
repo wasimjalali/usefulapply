@@ -9,23 +9,20 @@ const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'ATS-Optimized Job Application with AI: Keywords, Formatting & Systems | Karko AI',
+    title: 'ATS-Optimized AI Job Applications',
     description:
-      'Learn how Karko AI generates ATS-optimized CVs and cover letters. Keyword alignment, single-column formatting, and compatibility with Workday, Greenhouse, Lever, and more.',
+      'KarKo AI generates ATS-optimized CVs with keyword alignment, single-column formatting, and compatibility with Workday, Greenhouse, and Lever.',
     openGraph: {
-      title: 'ATS-Optimized Job Application with AI: Keywords, Formatting & Systems | Karko AI',
+      title: 'ATS-Optimized AI Job Applications | KarKo AI',
       description:
-        'Learn how Karko AI generates ATS-optimized CVs and cover letters. Keyword alignment, single-column formatting, and compatibility with Workday, Greenhouse, Lever, and more.',
-      url: `${SITE_URL}/ai-job-application/ats-optimization`,
-      siteName: 'Karko AI',
+        'ATS-optimized CVs with keyword alignment, clean formatting, and compatibility with Workday, Greenhouse, and Lever.',
+      url: '/ai-job-application/ats-optimization',
+      siteName: 'KarKo AI',
       type: 'website',
+      locale: 'en_US',
     },
     alternates: {
-      canonical: `${SITE_URL}/ai-job-application/ats-optimization`,
-      languages: {
-        en: `${SITE_URL}/ai-job-application/ats-optimization`,
-        de: `${SITE_URL}/de/bewerbung-ki/ats-optimierung`,
-      },
+      canonical: '/ai-job-application/ats-optimization',
     },
   };
 }
@@ -93,11 +90,17 @@ export default function ATSOptimizationPage() {
     headline: 'ATS-Optimized Job Application with AI: Keywords, Format & Systems',
     description:
       'Learn how Karko AI generates ATS-optimized CVs and cover letters. Keyword alignment, single-column formatting, and compatibility with Workday, Greenhouse, Lever, and more.',
-    author: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
-    publisher: { '@type': 'Organization', name: 'Karko AI', url: SITE_URL },
+    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+    publisher: {
+      '@type': 'Organization',
+      name: 'KarKo AI',
+      url: SITE_URL,
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/karko-ai.png` },
+    },
+    image: `${SITE_URL}/opengraph-image`,
     url: `${SITE_URL}/ai-job-application/ats-optimization`,
     datePublished: '2026-02-24',
-    dateModified: '2026-02-24',
+    dateModified: '2026-03-29',
   };
 
   return (
