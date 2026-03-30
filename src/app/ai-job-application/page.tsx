@@ -67,6 +67,27 @@ const pillars = [
     href: '/master-cv-template',
     linkText: 'Build your Master CV →',
   },
+  {
+    title: 'AI Cover Letter Generator',
+    description:
+      'Generate personalized, ATS-optimized cover letters in 90 seconds. No templates, no fabrication. Customized cover letters get 50% more callbacks.',
+    href: '/ai-job-application/cover-letter-generator',
+    linkText: 'AI cover letter generator →',
+  },
+  {
+    title: 'Follow-Up Email Generator',
+    description:
+      'Follow-ups increase response rates by 40%. Generate professional follow-up emails as part of your application package.',
+    href: '/ai-job-application/follow-up-email-generator',
+    linkText: 'Follow-up email generator →',
+  },
+  {
+    title: 'Application Tracker',
+    description:
+      'Track 100+ applications with status, match scores, and deadlines. Automatically saves every application you generate.',
+    href: '/ai-job-application/application-tracker',
+    linkText: 'Application tracker →',
+  },
 ];
 
 const faqs = [
@@ -281,7 +302,7 @@ export default function AIJobApplicationHub() {
               <div className="text-center mb-10">
                 <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Explore</p>
                 <h2 className="text-3xl md:text-4xl font-bold text-navy-600">
-                  The 7 Topics This Hub Covers
+                  The 10 Topics This Hub Covers
                 </h2>
               </div>
             </ScrollReveal>
