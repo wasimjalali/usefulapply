@@ -5,6 +5,10 @@ export const metadata: Metadata = {
   description:
     'Upload your CV and certifications to get started with KarKo AI. Supports PDF and DOCX formats for instant AI-powered job application optimization.',
   alternates: { canonical: '/documents' },
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function DocumentsLayout({ children }: { children: React.ReactNode }) {

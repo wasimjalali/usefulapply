@@ -344,7 +344,7 @@ export default function PricingCreditsPage() {
                 plans.
               </p>
               <a
-                href="https://www.karkoai.com"
+                href="/dashboard"
                 className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg"
               >
                 Get Started Free

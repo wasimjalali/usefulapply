@@ -1,3 +1,4 @@
+
 # SEO & GEO Technical Status — Karko AI
 
 > Last updated: 2026-03-30
@@ -95,7 +96,7 @@
 - Removed SoftwareApplication from root layout, moved to homepage with corrected pricing (Plus $39.99, Max $79.99) and removed invalid `billingIncrement`
 - Removed FAQPage from root layout entirely (GEO pages have their own per-page FAQ schemas)
 - Cleaned Organization schema (removed `sameAs: []`)
-**Files:** `src/app/layout.tsx`, `src/app/page.tsx`
+  **Files:** `src/app/layout.tsx`, `src/app/page.tsx`
 
 ### Issue: 8x double-branded titles (70-93 chars)
 **Root cause:** GEO pages included `| Karko AI` in title strings + root template added `| KarKo AI`.
