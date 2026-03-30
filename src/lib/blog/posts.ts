@@ -169,6 +169,12 @@ If you're in a job search right now, you already know how much time you're spend
     ],
     featured: false,
     ogImage: '/blog/follow-up-response-rate.jpg',
+    cta: {
+      heading: 'Generate Your Follow-Up Email in 90 Seconds',
+      description: 'Get a professional follow-up email as part of your complete application package. Free for 5 applications.',
+      text: 'Generate Follow-Up Email Free',
+      href: '/dashboard',
+    },
   },
   {
     slug: 'how-to-tailor-resume-to-job-description',
@@ -345,6 +351,12 @@ If you're in a job search, you already know how long tailoring takes. The questi
     ],
     featured: false,
     ogImage: '/blog/generic-vs-tailored-response.jpg',
+    cta: {
+      heading: 'Tailor Your Resume in 90 Seconds',
+      description: 'Generate a tailored, ATS-optimized resume for any job description. Free for 5 applications.',
+      text: 'Tailor Your Resume Free',
+      href: '/dashboard',
+    },
   },
   {
     slug: 'ats-resume-format-guide-2026',
@@ -586,6 +598,12 @@ Paste a job description and see what comes back.
     ],
     featured: false,
     ogImage: '/blog/ats-format-checklist.jpg',
+    cta: {
+      heading: 'Generate ATS-Optimized Resume in 90 Seconds',
+      description: 'All our templates pass ATS parsers by default. Free for 5 applications.',
+      text: 'Generate ATS-Safe Resume Free',
+      href: '/dashboard',
+    },
   },
   {
     slug: 'ai-cover-letter-generator-how-it-works',
@@ -783,6 +801,12 @@ No credit card. No sign-up wall. Paste a job description and see what comes back
     ],
     featured: false,
     ogImage: '/blog/ai-cover-letter-callback-rate.jpg',
+    cta: {
+      heading: 'Generate Personalized Cover Letter in 90 Seconds',
+      description: 'AI-written cover letters with company research. Free for 5 applications.',
+      text: 'Generate Cover Letter Free',
+      href: '/dashboard',
+    },
   },
   {
     slug: 'best-ai-job-application-tools-2026',
@@ -999,6 +1023,10 @@ Karko AI is free for your first 5 applications. Generate a complete, tailored ap
     ],
     featured: false,
     ogImage: '/blog/ai-tools-comparison-matrix.jpg',
+    cta: {
+      text: 'Try Karko AI Free - 5 Complete Applications',
+      href: '/dashboard',
+    },
   },
   {
     slug: 'how-long-to-apply-for-job-2026',
@@ -1130,6 +1158,10 @@ If you're currently in a job search, you already know how much time you're spend
     ],
     featured: true,
     ogImage: '/blog/time-comparison-chart.jpg',
+    cta: {
+      text: 'Try Karko AI Free - 5 Applications, No Credit Card',
+      href: '/dashboard',
+    },
   },
 ];
 

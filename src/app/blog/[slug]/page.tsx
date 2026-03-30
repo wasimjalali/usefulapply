@@ -185,15 +185,17 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
           {/* CTA */}
           <div className="mt-12 bg-gradient-to-br from-navy-600 to-navy-800 rounded-2xl p-8 text-white text-center">
-            <h3 className="text-xl font-bold mb-2">Ready to Apply Smarter?</h3>
+            <h3 className="text-xl font-bold mb-2">
+              {post.cta?.heading || 'Ready to Apply Smarter?'}
+            </h3>
             <p className="text-navy-200 mb-5 text-sm">
-              Generate a complete job application (optimized CV + cover letter + email) in under 90 seconds.
+              {post.cta?.description || 'Generate a complete job application (optimized CV + cover letter + email) in under 90 seconds.'}
             </p>
             <Link
-              href="/dashboard"
+              href={post.cta?.href || '/dashboard'}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-md text-sm"
             >
-              Try It Free
+              {post.cta?.text || 'Try It Free'}
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>

@@ -14,6 +14,12 @@ export interface BlogPost {
   tags: string[];
   featured?: boolean;
   ogImage?: string;
+  cta?: {
+    heading?: string;
+    description?: string;
+    text: string;
+    href?: string;
+  };
 }
 
 export type BlogCategory =
