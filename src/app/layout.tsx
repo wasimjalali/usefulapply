@@ -59,6 +59,9 @@ export const metadata: Metadata = {
   publisher: 'KarKo AI',
   alternates: {
     canonical: '/',
+    types: {
+      'application/rss+xml': `${SITE_URL}/feed.xml`,
+    },
   },
   openGraph: {
     type: 'website',

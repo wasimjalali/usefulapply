@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, Clock, Calendar, BookOpen, Sparkles } from 'lucide-react';
+import { ArrowRight, Clock, Calendar, BookOpen, Sparkles, Rss } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { getAllPosts, getAllCategories, CATEGORY_COLORS } from '@/lib/blog';
@@ -37,9 +37,18 @@ export default function BlogPage() {
               Job Search Strategies
             </span>
           </h1>
-          <p className="text-lg text-warm-gray max-w-2xl mx-auto">
+          <p className="text-lg text-warm-gray max-w-2xl mx-auto mb-4">
             Practical advice to help you land your dream job faster. From CV optimization to interview prep, powered by real-world insights.
           </p>
+          <a
+            href="/feed.xml"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm text-gold-600 hover:text-gold-700 font-medium transition-colors"
+          >
+            <Rss className="w-4 h-4" />
+            Subscribe via RSS
+          </a>
         </div>
       </section>
 
