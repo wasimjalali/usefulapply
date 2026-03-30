@@ -7,7 +7,7 @@ export default function Footer() {
     <footer className="bg-gradient-to-b from-navy-600 to-navy-800 text-white relative">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-gold-400/40 via-gold-500/60 to-gold-400/40" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid md:grid-cols-4 gap-8 md:gap-6">
+        <div className="grid md:grid-cols-5 gap-8 md:gap-6">
           {/* Brand */}
           <div className="md:col-span-1">
             <Link href="/" className="flex items-center mb-3">
@@ -62,6 +62,33 @@ export default function Footer() {
               <li>
                 <Link href="/contact" className="text-navy-200 hover:text-white text-sm transition-colors">
                   Contact
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Resources */}
+          <div>
+            <h4 className="font-semibold text-gold-400 text-xs uppercase tracking-widest mb-4">Resources</h4>
+            <ul className="space-y-3">
+              <li>
+                <Link href="/ai-job-application" className="text-navy-200 hover:text-white text-sm transition-colors">
+                  AI Application Guide
+                </Link>
+              </li>
+              <li>
+                <Link href="/ai-job-application/ats-optimization" className="text-navy-200 hover:text-white text-sm transition-colors">
+                  ATS Optimization
+                </Link>
+              </li>
+              <li>
+                <Link href="/ai-job-application/zero-fabrication" className="text-navy-200 hover:text-white text-sm transition-colors">
+                  Zero Fabrication
+                </Link>
+              </li>
+              <li>
+                <Link href="/master-cv-template" className="text-navy-200 hover:text-white text-sm transition-colors">
+                  Master CV Template
                 </Link>
               </li>
             </ul>

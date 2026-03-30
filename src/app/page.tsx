@@ -9,7 +9,9 @@ import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { TimeSavingsCalculator } from '@/components/marketing/TimeSavingsCalculator';
 
 export const metadata: Metadata = {
-  title: 'KarKo AI | AI-Powered Job Application Assistant',
+  title: {
+    absolute: 'KarKo AI | AI-Powered Job Application Assistant',
+  },
   description:
     'Apply to jobs 10x faster. KarKo AI generates a tailored CV, cover letter, and application email from any job description in under 90 seconds.',
   alternates: { canonical: '/' },
@@ -77,7 +79,7 @@ export default function Home() {
         }}
       />
       <Navbar />
-
+      <main>
       {/* Hero Section */}
       <section className="pt-20 pb-28 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         <div className="absolute inset-0 dot-grid opacity-50" />
@@ -672,7 +674,7 @@ export default function Home() {
               Every plan includes the full AI agent. Upgrade for more volume and automation.
             </p>
             <div className="mt-6 inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-cream-50 border border-gold-300/60 shadow-sm">
-              <img src="/anthropic-icon.jpg" alt="Anthropic" className="w-7 h-7 rounded-md" />
+              <Image src="/anthropic-icon.jpg" alt="Anthropic" width={28} height={28} className="rounded-md" />
               <span className="text-navy-600 text-sm font-semibold">Claude Sonnet 4.6 by Anthropic</span>
               <span className="w-px h-4 bg-cream-300" />
               <span className="text-warm-gray text-sm">Specialized for job applications</span>
@@ -976,7 +978,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-
+      </main>
       <Footer />
     </div>
   );

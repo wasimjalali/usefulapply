@@ -1,26 +1,20 @@
 import type { Metadata } from 'next';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
+import { buildPageMetadata } from '@/lib/seo/metadata';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: 'Privacy Policy',
   description:
     'KarKo AI Privacy Policy. Learn how we handle your data, protect your CV information, and ensure GDPR compliance.',
-  alternates: { canonical: '/privacy' },
-  openGraph: {
-    title: 'Privacy Policy',
-    description: 'How KarKo AI handles your data, protects your CV information, and ensures GDPR compliance.',
-    url: '/privacy',
-    siteName: 'KarKo AI',
-    type: 'website',
-  },
-};
+  canonical: '/privacy',
+});
 
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-cream-100">
       <Navbar />
-
+      <main>
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-4xl font-bold text-navy-600 mb-4">Privacy Policy</h1>
@@ -157,7 +151,7 @@ export default function PrivacyPage() {
           </div>
         </div>
       </section>
-
+      </main>
       <Footer />
     </div>
   );

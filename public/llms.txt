@@ -8,14 +8,18 @@ KarKo AI is a web-based tool that helps job seekers apply to jobs faster and sma
 
 ## Key Features
 
-- **One-Click Applications**: Paste a job description and get a complete application package (optimized CV + cover letter + email) in under 90 seconds.
-- **AI CV Optimization**: Tailors your CV to match each job description while preserving your authentic experience. No hallucinated skills.
-- **Smart Fit Analysis**: Scores your match against job requirements, identifies gaps, and provides honest assessments.
-- **Cover Letter Generation**: Creates personalized, human-sounding cover letters that reference specific company details.
-- **Application Email Drafting**: Professional emails ready to send with your application.
-- **Master CV Support**: Upload a comprehensive Master CV for better AI-powered tailoring.
+- **Complete 4-Document Application Package**: Paste a job description and get an optimized CV, personalized cover letter, professional application email, AND follow-up email — all in under 90 seconds.
+- **AI CV Optimization**: Tailors your CV to match each job description while preserving your authentic experience. Zero fabrication — every claim is traced back to your uploaded CV.
+- **Smart Fit Analysis**: Scores your match against job requirements (0-100), identifies gaps, and provides honest assessments before you apply.
+- **Anti-Hallucination Guardrails**: Unlike generic AI tools, Karko AI verifies every skill, metric, and experience against your source CV. No invented qualifications.
+- **Personalized Cover Letters**: Creates human-sounding cover letters that reference specific company details and job requirements.
+- **Application & Follow-Up Emails**: Professional emails ready to send — both the initial application and a follow-up email for after you apply.
+- **6 ATS-Optimized CV Templates**: Choose from US and EU formats (including 2 German templates: German ATS two-column and German Classic single-column).
+- **Application Tracker**: Track all your applications with status management (applied, interview, rejected, accepted, follow-up), match scores, and company details.
+- **Master CV Support**: Upload a comprehensive Master CV once for better AI-powered tailoring across all applications.
 - **Multi-Language Support**: Works with job descriptions in English, German, and other languages.
-- **ATS-Friendly Output**: All generated CVs are optimized for Applicant Tracking Systems.
+- **Two Workflow Modes**: "Analyze First" (fit assessment then generate) or "Apply Directly" (full generation in one pass).
+- **ATS Compatibility**: Works seamlessly with Workday, Greenhouse, Lever, SAP SuccessFactors, iCIMS, Taleo, BambooHR, and SmartRecruiters.
 
 ## How It Works
 
@@ -26,9 +30,10 @@ KarKo AI is a web-based tool that helps job seekers apply to jobs faster and sma
 
 ## Pricing
 
-- **Free Plan**: 10 credits (~5 applications/month), no credit card required
-- **Plus Plan**: $29.99/month — 200 credits, priority processing
-- **Pro Plan**: $49.99/month — 500 credits, advanced AI models, premium support
+- **Free Plan**: 10 credits/month (~5 applications), no credit card required
+- **Plus Plan**: $39.99/month — 100 credits (~50 applications), priority support
+- **Max Plan**: $79.99/month — 200 credits (~100 applications), Chrome Extension (coming soon), premium support
+- **Add-on Credit Pack**: $19.99 for 40 credits (available for all plans)
 
 ## Blog
 
@@ -37,6 +42,19 @@ KarKo AI publishes expert articles on CV optimization, cover letter writing, job
 ### Latest Articles
 
 - **How Long Does It Really Take to Apply for a Job in 2026? (The Math Will Shock You)** — The average tailored job application takes 45–60 minutes. Multiply that by 100 applications and you get 75 hours of unpaid work. Learn how AI cuts that to 2.5 hours without sacrificing quality. Read: https://www.karkoai.com/blog/how-long-to-apply-for-job-2026
+
+## AI Job Application Hub
+
+Comprehensive guides on AI-powered job applications:
+
+- **AI Job Application Guide (Hub)**: https://www.karkoai.com/ai-job-application
+- **90-Second Application Package**: https://www.karkoai.com/ai-job-application/90-second-application-package
+- **Free Test (No Sign-Up)**: https://www.karkoai.com/ai-job-application/free-no-signup-test
+- **ATS Optimization Guide**: https://www.karkoai.com/ai-job-application/ats-optimization
+- **Zero-Fabrication (No Invented Experience)**: https://www.karkoai.com/ai-job-application/zero-fabrication
+- **Workday, Greenhouse & Lever Compatibility**: https://www.karkoai.com/ai-job-application/integrations-workday-greenhouse-lever
+- **Pricing & Credits Explained**: https://www.karkoai.com/ai-job-application/pricing-credits
+- **Master CV Template Guide**: https://www.karkoai.com/master-cv-template
 
 ## Links
 
@@ -51,8 +69,12 @@ KarKo AI publishes expert articles on CV optimization, cover letter writing, job
 ## Technical Details
 
 - Built with Next.js, React, and TypeScript
-- Uses advanced AI models (Claude, GPT-4) for document generation
-- Real-time streaming progress with agentic workflow
+- Powered exclusively by **Claude Sonnet 4.6 by Anthropic** — a frontier-grade AI model specialized for job applications
+- Anti-hallucination guardrails: every skill, metric, and claim is verified against uploaded CV data
+- Real-time streaming progress with agentic workflow (analyze first mode + apply directly mode)
+- 6 ATS-optimized CV templates (US and EU markets, including German formats)
+- Generates 4-document application package: optimized CV, cover letter, application email, follow-up email
+- Application tracker with match scoring and status management
 - Secure: CVs are processed in-memory, not stored permanently
 - GDPR compliant
 

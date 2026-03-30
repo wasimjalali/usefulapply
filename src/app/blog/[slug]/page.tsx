@@ -78,7 +78,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   return (
     <div className="min-h-screen bg-cream-100">
       <Navbar />
-
+      <main>
       {/* Article JSON-LD */}
       <script
         type="application/ld+json"
@@ -218,7 +218,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           )}
         </div>
       </article>
-
+      </main>
       <Footer />
     </div>
   );

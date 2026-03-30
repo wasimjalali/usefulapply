@@ -18,7 +18,7 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-cream-100">
       <Navbar />
-
+      <main>
       {/* Hero Section */}
       <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
@@ -190,7 +190,7 @@ export default function AboutPage() {
         </div>
         </ScrollReveal>
       </section>
-
+      </main>
       <Footer />
     </div>
   );

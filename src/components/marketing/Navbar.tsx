@@ -24,6 +24,7 @@ export default function Navbar() {
 
   const navLinks = [
     { href: '/', label: 'Home' },
+    { href: '/ai-job-application', label: 'AI Applications' },
     { href: '/master-cv', label: 'Master CV' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/blog', label: 'Blog' },

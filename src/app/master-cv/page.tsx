@@ -255,10 +255,100 @@ export default function MasterCVPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const SITE_URL = 'https://www.karkoai.com';
+
+  // Breadcrumb JSON-LD
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Master CV',
+        item: `${SITE_URL}/master-cv`,
+      },
+    ],
+  };
+
+  // HowTo JSON-LD
+  const howToJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: 'How to Create Your Master CV in 30 Minutes',
+    step: [
+      {
+        '@type': 'HowToStep',
+        position: 1,
+        name: 'Copy the Master CV creation prompt',
+        text: 'Copy the provided structured prompt designed to guide you through creating a comprehensive Master CV.',
+      },
+      {
+        '@type': 'HowToStep',
+        position: 2,
+        name: 'Paste into an AI chatbot',
+        text: 'Paste the prompt into Claude, ChatGPT, Gemini, or another AI assistant.',
+      },
+      {
+        '@type': 'HowToStep',
+        position: 3,
+        name: 'Answer questions section by section',
+        text: 'The AI will guide you through your professional history one section at a time: personal information, mindset, work history, skills, education, certifications, and languages.',
+      },
+      {
+        '@type': 'HowToStep',
+        position: 4,
+        name: 'Compile into structured format',
+        text: 'The AI will compile all information into a complete, ATS-compatible Master CV document.',
+      },
+      {
+        '@type': 'HowToStep',
+        position: 5,
+        name: 'Upload to Karko AI',
+        text: 'Upload your completed Master CV to Karko AI to generate tailored job applications.',
+      },
+    ],
+  };
+
+  // Article JSON-LD
+  const articleJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: 'Create Your Master CV',
+    description:
+      'A Master CV is a comprehensive skills inventory (5-10 pages) that powers hyper-personalized job applications. Build it once, use it for every application.',
+    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+    publisher: {
+      '@type': 'Organization',
+      name: 'KarKo AI',
+      url: SITE_URL,
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/karko-ai.png` },
+    },
+    image: `${SITE_URL}/opengraph-image`,
+    url: `${SITE_URL}/master-cv`,
+    datePublished: '2026-02-20',
+    dateModified: '2026-03-30',
+  };
+
   return (
     <div className="min-h-screen bg-cream-100">
       <Navbar />
 
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
+
+      <main>
       {/* Hero Section */}
       <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
@@ -419,7 +509,7 @@ export default function MasterCVPage() {
         </div>
         </ScrollReveal>
       </section>
-
+      </main>
       <Footer />
     </div>
   );

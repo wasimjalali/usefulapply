@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Check, Sparkles, Zap, Crown, ArrowRight, ChevronDown, FileText, MessageSquare, BarChart3, Clock, Plus as PlusIcon, Loader2 } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
@@ -165,7 +166,7 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-cream-100">
       <Navbar />
-
+      <main>
       {/* Hero Section */}
       <section className="pt-16 pb-8 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         <div className="absolute inset-0 dot-grid opacity-30" />
@@ -187,7 +188,7 @@ export default function PricingPage() {
           </ScrollReveal>
           <ScrollReveal delay={450}>
           <div className="mt-6 inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/80 backdrop-blur-sm border border-gold-300/60 shadow-sm">
-            <img src="/anthropic-icon.jpg" alt="Anthropic" className="w-7 h-7 rounded-md" />
+            <Image src="/anthropic-icon.jpg" alt="Anthropic" width={28} height={28} className="rounded-md" />
             <span className="text-navy-600 text-sm font-semibold">Claude Sonnet 4.6 by Anthropic</span>
             <span className="w-px h-4 bg-cream-300" />
             <span className="text-warm-gray text-sm">Specialized for job applications · All plans</span>
@@ -626,7 +627,7 @@ export default function PricingPage() {
         </div>
         </ScrollReveal>
       </section>
-
+      </main>
       <Footer />
     </div>
   );

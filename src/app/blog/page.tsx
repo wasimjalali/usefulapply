@@ -23,7 +23,7 @@ export default function BlogPage() {
   return (
     <div className="min-h-screen bg-cream-100">
       <Navbar />
-
+      <main>
       {/* Hero */}
       <section className="pt-20 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto text-center">
@@ -178,7 +178,7 @@ export default function BlogPage() {
           </Link>
         </div>
       </section>
-
+      </main>
       <Footer />
     </div>
   );
