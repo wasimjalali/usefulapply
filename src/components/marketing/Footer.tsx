@@ -8,14 +8,12 @@ interface FooterLink {
   label: string;
 }
 
-const toolsAndFeaturesLinks: FooterLink[] = [
+const productLinks: FooterLink[] = [
   { href: '/features', label: 'All Features' },
+  { href: '/ai-job-application', label: 'AI Applications' },
+  { href: '/master-cv', label: 'Master CV' },
+  { href: '/ai-job-application/application-tracker', label: 'Application Tracker' },
   { href: '/pricing', label: 'Pricing' },
-  { href: '/master-cv', label: 'CV Builder (Master CV)' },
-  { href: '/ai-job-application/ats-optimization', label: 'ATS Optimization' },
-  { href: '/ai-job-application/cover-letter-generator', label: 'Cover Letter Generation' },
-  { href: '/ai-job-application/90-second-application-package', label: 'Application Email Generation' },
-  { href: '/ai-job-application/follow-up-email-generator', label: 'Follow-Up Email Generation' },
 ];
 
 const companyLinks: FooterLink[] = [
@@ -36,9 +34,10 @@ export default function Footer() {
     label: `Karko AI vs ${comparison.competitorName}`,
   }));
 
-  const compareAndBlogLinks: FooterLink[] = [
-    ...comparisonLinks,
+  const resourcesLinks: FooterLink[] = [
     { href: '/blog', label: 'Blog' },
+    ...comparisonLinks,
+    { href: '/ai-job-application/free-no-signup-test', label: 'Try Free, No Sign-Up' },
   ];
 
   return (
@@ -62,11 +61,11 @@ export default function Footer() {
             </Link>
           </div>
 
-          {/* Tools & Features */}
+          {/* Product */}
           <div className="lg:col-span-2">
-            <h4 className="font-semibold text-gold-400 text-xs uppercase tracking-widest mb-4">Tools & Features</h4>
+            <h4 className="font-semibold text-gold-400 text-xs uppercase tracking-widest mb-4">Product</h4>
             <ul className="space-y-3">
-              {toolsAndFeaturesLinks.map((link) => (
+              {productLinks.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-navy-200 hover:text-white text-sm transition-colors">
                     {link.label}
@@ -76,11 +75,11 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Compare + Blog */}
+          {/* Resources */}
           <div className="lg:col-span-2">
-            <h4 className="font-semibold text-gold-400 text-xs uppercase tracking-widest mb-4">Compare + Blog</h4>
+            <h4 className="font-semibold text-gold-400 text-xs uppercase tracking-widest mb-4">Resources</h4>
             <ul className="space-y-3">
-              {compareAndBlogLinks.map((link) => (
+              {resourcesLinks.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-navy-200 hover:text-white text-sm transition-colors">
                     {link.label}
