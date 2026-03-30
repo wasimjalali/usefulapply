@@ -4,27 +4,17 @@ import { ArrowRight } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
+import { buildPageMetadata } from '@/lib/seo/metadata';
 
 const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
-  return {
+  return buildPageMetadata({
     title: 'AI Job Application Guide',
     description:
       'AI job applications in one place: 90-second workflow, ATS optimization, zero-fabrication, integrations, pricing, and Master CV templates.',
-    openGraph: {
-      title: 'AI Job Application Guide | KarKo AI',
-      description:
-        'AI job applications in one place: 90-second workflow, ATS optimization, zero-fabrication, integrations, pricing, and Master CV templates.',
-      url: '/ai-job-application',
-      siteName: 'KarKo AI',
-      type: 'website',
-      locale: 'en_US',
-    },
-    alternates: {
-      canonical: '/ai-job-application',
-    },
-  };
+    canonical: '/ai-job-application',
+  });
 }
 
 const pillars = [

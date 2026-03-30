@@ -4,27 +4,17 @@ import { ArrowRight, ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
+import { buildPageMetadata } from '@/lib/seo/metadata';
 
 const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
-  return {
+  return buildPageMetadata({
     title: 'AI Application Pricing & Credits',
     description:
       'KarKo AI pricing: Free (5 apps/month), Plus $39.99/month (50 apps), Max $79.99/month (100 apps). Transparent credit-based pricing.',
-    openGraph: {
-      title: 'AI Application Pricing & Credits | KarKo AI',
-      description:
-        'Free (5 apps/month), Plus $39.99/month (50 apps), Max $79.99/month (100 apps). Transparent credit-based pricing.',
-      url: '/ai-job-application/pricing-credits',
-      siteName: 'KarKo AI',
-      type: 'website',
-      locale: 'en_US',
-    },
-    alternates: {
-      canonical: '/ai-job-application/pricing-credits',
-    },
-  };
+    canonical: '/ai-job-application/pricing-credits',
+  });
 }
 
 const faqs = [

@@ -3,11 +3,12 @@ import { MetadataRoute } from 'next';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
 
 export default function robots(): MetadataRoute.Robots {
-  const appRoutes = ['/api/', '/dashboard/', '/documents/', '/settings/', '/auth/'];
+  const appRoutes = ['/api/', '/dashboard/', '/documents/', '/settings/'];
 
   return {
     rules: [
       // Default: allow public pages, block app routes
+      // Auth pages are public utilities (noindex set at page level)
       {
         userAgent: '*',
         allow: '/',

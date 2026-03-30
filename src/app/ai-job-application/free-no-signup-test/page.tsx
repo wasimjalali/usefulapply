@@ -4,27 +4,17 @@ import { ArrowRight, ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
+import { buildPageMetadata } from '@/lib/seo/metadata';
 
 const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
-  return {
+  return buildPageMetadata({
     title: 'Try AI Job Applications Free',
     description:
       "Test KarKo AI's job application generator without signing up. Free plan includes 5 applications/month. See output quality before committing.",
-    openGraph: {
-      title: 'Try AI Job Applications Free | KarKo AI',
-      description:
-        "Test KarKo AI's job application generator free. 5 applications/month included, no sign-up required.",
-      url: '/ai-job-application/free-no-signup-test',
-      siteName: 'KarKo AI',
-      type: 'website',
-      locale: 'en_US',
-    },
-    alternates: {
-      canonical: '/ai-job-application/free-no-signup-test',
-    },
-  };
+    canonical: '/ai-job-application/free-no-signup-test',
+  });
 }
 
 const faqs = [

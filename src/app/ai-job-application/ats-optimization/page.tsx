@@ -4,27 +4,17 @@ import { ArrowRight, ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
+import { buildPageMetadata } from '@/lib/seo/metadata';
 
 const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
-  return {
+  return buildPageMetadata({
     title: 'ATS-Optimized AI Job Applications',
     description:
       'KarKo AI generates ATS-optimized CVs with keyword alignment, single-column formatting, and compatibility with Workday, Greenhouse, and Lever.',
-    openGraph: {
-      title: 'ATS-Optimized AI Job Applications | KarKo AI',
-      description:
-        'ATS-optimized CVs with keyword alignment, clean formatting, and compatibility with Workday, Greenhouse, and Lever.',
-      url: '/ai-job-application/ats-optimization',
-      siteName: 'KarKo AI',
-      type: 'website',
-      locale: 'en_US',
-    },
-    alternates: {
-      canonical: '/ai-job-application/ats-optimization',
-    },
-  };
+    canonical: '/ai-job-application/ats-optimization',
+  });
 }
 
 const faqs = [

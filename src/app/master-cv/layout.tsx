@@ -1,19 +1,12 @@
 import type { Metadata } from 'next';
+import { buildPageMetadata } from '@/lib/seo/metadata';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: 'Master CV — Build Your Career Profile',
   description:
     'Create a comprehensive Master CV with AI. Capture your entire professional history so KarKo AI can generate tailored applications for every job.',
-  alternates: { canonical: '/master-cv' },
-  openGraph: {
-    title: 'Master CV — Build Your Career Profile | KarKo AI',
-    description:
-      'Create a comprehensive Master CV with AI. Capture your full professional history for tailored job applications.',
-    url: '/master-cv',
-    siteName: 'KarKo AI',
-    type: 'website',
-  },
-};
+  canonical: '/master-cv',
+});
 
 export default function MasterCVLayout({ children }: { children: React.ReactNode }) {
   return children;

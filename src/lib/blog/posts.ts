@@ -13,9 +13,9 @@ import { BlogPost } from './types';
 export const blogPosts: BlogPost[] = [
   {
     slug: 'how-long-to-apply-for-job-2026',
-    title: 'How Long Does It Really Take to Apply for a Job in 2026? (The Math Will Shock You)',
+    title: 'How Long Does It Take to Apply for a Job in 2026?',
     description:
-      'The average tailored job application takes 45–60 minutes. Multiply that by 100 applications and you get 75 hours of unpaid work. Here is how AI cuts that to 2.5 hours without sacrificing quality.',
+      'The average application takes 45–60 minutes. Multiply by 100 and you get 75 hours of unpaid work. Here\'s how AI cuts that to 2.5 hours.',
     content: `You already know the job market is brutal right now. What you probably haven't done is the actual math on how much time you're burning through just to apply.
 
 I did. And the numbers made me build a product.

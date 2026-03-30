@@ -4,27 +4,17 @@ import { ArrowRight, ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
+import { buildPageMetadata } from '@/lib/seo/metadata';
 
 const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
-  return {
+  return buildPageMetadata({
     title: 'Master CV Template',
     description:
       'Build a complete Master CV once, use it for every AI-generated application. Template, structure, and workflow in 45 to 90 minutes.',
-    openGraph: {
-      title: 'Master CV Template | KarKo AI',
-      description:
-        'Build a complete Master CV once, use it for every AI-generated job application. Template, structure, and workflow guide.',
-      url: '/master-cv-template',
-      siteName: 'KarKo AI',
-      type: 'website',
-      locale: 'en_US',
-    },
-    alternates: {
-      canonical: '/master-cv-template',
-    },
-  };
+    canonical: '/master-cv-template',
+  });
 }
 
 const faqs = [

@@ -5,21 +5,14 @@ import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { CountUp } from '@/components/marketing/CountUp';
+import { buildPageMetadata } from '@/lib/seo/metadata';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: 'About KarKo AI',
   description:
     'KarKo AI is an AI-powered job application assistant built by a job seeker, for job seekers. Apply smarter and land interviews faster.',
-  alternates: { canonical: '/about' },
-  openGraph: {
-    title: 'About KarKo AI',
-    description:
-      'AI-powered job application assistant built by a job seeker, for job seekers.',
-    url: '/about',
-    siteName: 'KarKo AI',
-    type: 'website',
-  },
-};
+  canonical: '/about',
+});
 
 export default function AboutPage() {
   return (

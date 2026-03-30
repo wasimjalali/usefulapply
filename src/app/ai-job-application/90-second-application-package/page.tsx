@@ -4,27 +4,17 @@ import { ArrowRight, ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
+import { buildPageMetadata } from '@/lib/seo/metadata';
 
 const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
-  return {
+  return buildPageMetadata({
     title: '90-Second AI Application Package',
     description:
       'Generate a tailored CV, cover letter, application email, and follow-up email from one job description in under 90 seconds with KarKo AI.',
-    openGraph: {
-      title: '90-Second AI Application Package | KarKo AI',
-      description:
-        'Generate a tailored CV, cover letter, application email, and follow-up email from one job description in under 90 seconds.',
-      url: '/ai-job-application/90-second-application-package',
-      siteName: 'KarKo AI',
-      type: 'website',
-      locale: 'en_US',
-    },
-    alternates: {
-      canonical: '/ai-job-application/90-second-application-package',
-    },
-  };
+    canonical: '/ai-job-application/90-second-application-package',
+  });
 }
 
 const faqs = [
@@ -194,11 +184,16 @@ export default function NinetySecondApplicationPackagePage() {
               </h1>
             </ScrollReveal>
             <ScrollReveal delay={300}>
-              <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed">
+              <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed mb-4">
                 Karko AI generates a complete, tailored job application package (tailored CV, cover
                 letter, application email, and follow-up email) from a single job description in
                 under 90 seconds. You paste the job posting, the AI analyzes your fit, and four
                 ready-to-send documents are produced from your verified CV data.
+              </p>
+              <p className="text-base text-navy-600 max-w-3xl mx-auto">
+                <Link href="/blog/how-long-to-apply-for-job-2026" className="hover:text-gold-600 font-medium underline">
+                  Learn how this saves 75+ hours on 100 applications →
+                </Link>
               </p>
             </ScrollReveal>
           </div>

@@ -4,27 +4,17 @@ import { ArrowRight, ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
+import { buildPageMetadata } from '@/lib/seo/metadata';
 
 const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
-  return {
+  return buildPageMetadata({
     title: 'Zero-Fabrication AI Applications',
     description:
       "KarKo AI's anti-hallucination system verifies every CV claim against your source documents. No fabricated skills, metrics, or roles.",
-    openGraph: {
-      title: 'Zero-Fabrication AI Applications | KarKo AI',
-      description:
-        'Every CV claim verified against your source documents. No fabricated skills, metrics, or roles.',
-      url: '/ai-job-application/zero-fabrication',
-      siteName: 'KarKo AI',
-      type: 'website',
-      locale: 'en_US',
-    },
-    alternates: {
-      canonical: '/ai-job-application/zero-fabrication',
-    },
-  };
+    canonical: '/ai-job-application/zero-fabrication',
+  });
 }
 
 const faqs = [

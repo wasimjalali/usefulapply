@@ -5,21 +5,14 @@ import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { getAllPosts, getAllCategories, CATEGORY_COLORS } from '@/lib/blog';
 import type { BlogCategory } from '@/lib/blog';
+import { buildPageMetadata } from '@/lib/seo/metadata';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: 'Blog: Career Tips & AI Job Search',
   description:
     'Expert advice on CV optimization, cover letter writing, job search strategies, and how AI is transforming hiring. Tips from the KarKo AI team.',
-  alternates: { canonical: '/blog' },
-  openGraph: {
-    title: 'Blog: Career Tips & AI Job Search | KarKo AI',
-    description:
-      'Expert advice on CV optimization, cover letter writing, and how AI is transforming job applications.',
-    url: '/blog',
-    siteName: 'KarKo AI',
-    type: 'website',
-  },
-};
+  canonical: '/blog',
+});
 
 export default function BlogPage() {
   const posts = getAllPosts();
