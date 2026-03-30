@@ -272,6 +272,17 @@ export default function FeaturesPage() {
                 Everything you need to apply smarter: fit analysis, AI-generated application materials, personalized emails, and ATS optimization. All powered by Claude Sonnet 4.6.
               </p>
             </ScrollReveal>
+            <ScrollReveal delay={450}>
+              <div className="mt-8">
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-md"
+                >
+                  Try It Free - 5 Applications, No Credit Card
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </ScrollReveal>
           </div>
         </section>
 
