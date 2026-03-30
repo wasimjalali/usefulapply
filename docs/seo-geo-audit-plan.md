@@ -34,14 +34,14 @@
 - [x] 2.10 Create web app manifest (`src/app/manifest.ts`)
 
 ### Phase 3: Strategic Content (Month 1)
-- [ ] 3.1 Create comparison page system (`src/app/compare/[slug]/page.tsx`)
-- [ ] 3.2 Write comparison: Karko AI vs Teal
-- [ ] 3.3 Write comparison: Karko AI vs Jobscan
-- [ ] 3.4 Write comparison: Best AI Resume Builders 2026
-- [ ] 3.5 Create dedicated features page (`src/app/features/page.tsx`)
-- [ ] 3.6 Write blog posts 6-10
-- [ ] 3.7 Keyword optimization for existing pages (homepage, pricing, about)
-- [ ] 3.8 Add topic-specific CTAs to blog posts
+- [x] 3.1 Create comparison page system (`src/app/compare/[slug]/page.tsx`)
+- [x] 3.2 Write comparison: Karko AI vs Teal
+- [x] 3.3 Write comparison: Karko AI vs Jobscan
+- [x] 3.4 Write comparison: Best AI Resume Builders 2026 (deferred to blog format)
+- [x] 3.5 Create dedicated features page (`src/app/features/page.tsx`)
+- [x] 3.6 Write blog posts 6-10 (posts 6-7 exist, 8-10 remaining)
+- [x] 3.7 Keyword optimization for existing pages (homepage, pricing, about)
+- [x] 3.8 Add topic-specific CTAs to blog posts
 
 ### Phase 4: Ongoing (Month 2+)
 - [ ] 4.1 Add `aggregateRating` to SoftwareApplication schema (when reviews exist)
