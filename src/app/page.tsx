@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     absolute: 'KarKo AI | AI-Powered Job Application Assistant',
   },
   description:
-    'Apply to jobs 10x faster. KarKo AI generates a tailored CV, cover letter, and application email from any job description in under 90 seconds.',
+    'AI-powered job application assistant: Generate ATS-optimized CV, cover letter, and application emails in 90 seconds. Free for 5 applications. Try now.',
   alternates: { canonical: '/' },
 };
 

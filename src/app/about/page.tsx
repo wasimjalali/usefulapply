@@ -8,9 +8,9 @@ import { CountUp } from '@/components/marketing/CountUp';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = buildPageMetadata({
-  title: 'About KarKo AI',
+  title: 'About Karko AI: The Only AI That Writes Application Emails',
   description:
-    'KarKo AI is an AI-powered job application assistant built by a job seeker, for job seekers. Apply smarter and land interviews faster.',
+    'Built by job seekers, for job seekers. Karko AI is the only AI tool that generates complete applications: CV, cover letter, application email, and follow-up. Powered by Claude Sonnet 4.6.',
   canonical: '/about',
 });
 

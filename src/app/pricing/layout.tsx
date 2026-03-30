@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = buildPageMetadata({
-  title: 'Pricing | Plans & Credits',
+  title: 'Pricing: AI Job Application Plans from $39.99/month',
   description:
-    'KarKo AI plans: Free (5 apps/month), Plus $39.99/month (50 apps), Max $79.99/month (100 apps). AI CV optimization, cover letters, and emails.',
+    'Transparent pricing for AI job applications: Free (5 apps), Plus $39.99/mo (50 apps), Max $79.99/mo (100 apps). No hidden fees. Compare plans.',
   canonical: '/pricing',
 });
 

@@ -1,14 +1,23 @@
 import { MetadataRoute } from 'next';
 import { getAllPosts } from '@/lib/blog';
+import { getComparisons } from '@/lib/comparisons';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const blogPosts = getAllPosts();
+  const comparisons = getComparisons();
 
   const blogEntries: MetadataRoute.Sitemap = blogPosts.map((post) => ({
     url: `${SITE_URL}/blog/${post.slug}`,
     lastModified: new Date(post.updatedAt || post.publishedAt),
+    changeFrequency: 'monthly' as const,
+    priority: 0.7,
+  }));
+
+  const comparisonEntries: MetadataRoute.Sitemap = comparisons.map((comparison) => ({
+    url: `${SITE_URL}/compare/${comparison.slug}`,
+    lastModified: new Date(comparison.updatedAt || comparison.publishedAt),
     changeFrequency: 'monthly' as const,
     priority: 0.7,
   }));
@@ -113,6 +122,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     ...blogEntries,
+    ...comparisonEntries,
     {
       url: `${SITE_URL}/contact`,
       lastModified: new Date(),
