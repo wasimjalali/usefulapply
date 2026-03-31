@@ -2,6 +2,7 @@ import Link from 'next/link';
 import KarkoLogo from '@/components/KarkoLogo';
 import TrustpilotLogo from '@/components/marketing/TrustpilotLogo';
 import { getComparisons } from '@/lib/comparisons';
+import { getAllPosts } from '@/lib/blog';
 
 interface FooterLink {
   href: string;
@@ -35,10 +36,11 @@ export default function Footer() {
   }));
 
   const resourcesLinks: FooterLink[] = [
-    { href: '/blog', label: 'Blog' },
     ...comparisonLinks,
     { href: '/ai-job-application/free-no-signup-test', label: 'Try Free, No Sign-Up' },
   ];
+
+  const recentBlogPosts = getAllPosts().slice(0, 5);
 
   return (
     <footer className="bg-gradient-to-b from-navy-600 to-navy-800 text-white relative">
@@ -89,32 +91,69 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Company */}
+          {/* Blog */}
           <div className="lg:col-span-2">
-            <h4 className="font-semibold text-gold-400 text-xs uppercase tracking-widest mb-4">Company</h4>
+            <h4 className="font-semibold text-gold-400 text-xs uppercase tracking-widest mb-4">Blog</h4>
             <ul className="space-y-3">
-              {companyLinks.map((link) => (
-                <li key={link.href}>
-                  <Link href={link.href} className="text-navy-200 hover:text-white text-sm transition-colors">
-                    {link.label}
+              {recentBlogPosts.map((post) => (
+                <li key={post.slug}>
+                  <Link href={`/blog/${post.slug}`} className="text-navy-200 hover:text-white text-sm transition-colors line-clamp-1">
+                    {post.title.length > 50 ? `${post.title.slice(0, 50)}...` : post.title}
                   </Link>
                 </li>
               ))}
+              <li>
+                <Link
+                  href="/blog"
+                  className="text-teal-400 hover:text-teal-300 text-sm transition-colors inline-flex items-center gap-1"
+                >
+                  View All Posts
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </Link>
+              </li>
             </ul>
           </div>
 
-          {/* Legal */}
+          {/* Company & Legal */}
           <div className="lg:col-span-2">
-            <h4 className="font-semibold text-gold-400 text-xs uppercase tracking-widest mb-4">Legal</h4>
-            <ul className="space-y-3">
-              {legalLinks.map((link) => (
-                <li key={link.href}>
-                  <Link href={link.href} className="text-navy-200 hover:text-white text-sm transition-colors">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            {/* Company Section */}
+            <div className="mb-8">
+              <h4 className="font-semibold text-gold-400 text-xs uppercase tracking-widest mb-4">Company</h4>
+              <ul className="space-y-3">
+                {companyLinks.map((link) => (
+                  <li key={link.href}>
+                    <Link href={link.href} className="text-navy-200 hover:text-white text-sm transition-colors">
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Legal Section */}
+            <div>
+              <h4 className="font-semibold text-gold-400 text-xs uppercase tracking-widest mb-4">Legal</h4>
+              <ul className="space-y-3">
+                {legalLinks.map((link) => (
+                  <li key={link.href}>
+                    <Link href={link.href} className="text-navy-200 hover:text-white text-sm transition-colors">
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
 
