@@ -1,14 +1,17 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Edit3, Check, X, Sparkles, Plus, Trash2, GripVertical } from 'lucide-react';
-import { Button } from './ui/Button';
 import { CVData } from '@/lib/cv-templates/types';
 
 interface EditableCVCanvasProps {
   cvData: CVData;
   onSave: (updatedData: CVData) => void;
   onAIImprove?: (section: string, content: string) => Promise<string>;
+}
+
+export interface EditableCVCanvasRef {
+  save: () => void;
 }
 
 interface EditableFieldProps {
@@ -83,41 +86,42 @@ function EditableField({ value, onChange, placeholder, multiline, className = ''
   );
 }
 
-export function EditableCVCanvas({ cvData, onSave, onAIImprove }: EditableCVCanvasProps) {
-  const [data, setData] = useState<CVData>(cvData);
-  const [hasChanges, setHasChanges] = useState(false);
-  const [isAIProcessing, setIsAIProcessing] = useState<string | null>(null);
+export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvasProps>(
+  ({ cvData, onSave, onAIImprove }, ref) => {
+    const [data, setData] = useState<CVData>(cvData);
+    const [hasChanges, setHasChanges] = useState(false);
+    const [isAIProcessing, setIsAIProcessing] = useState<string | null>(null);
 
-  // Sync internal state when cvData prop changes externally (e.g., tab switch, regeneration)
-  useEffect(() => {
-    if (!hasChanges) {
-      setData(cvData);
-    }
-  }, [cvData, hasChanges]);
-
-  const updateField = useCallback((path: string, value: string | string[]) => {
-    setData(prev => {
-      const newData = JSON.parse(JSON.stringify(prev));
-      const keys = path.split('.');
-      let obj = newData;
-      for (let i = 0; i < keys.length - 1; i++) {
-        obj = obj[keys[i]];
+    // Sync internal state when cvData prop changes externally (e.g., tab switch, regeneration)
+    useEffect(() => {
+      if (!hasChanges) {
+        setData(cvData);
       }
-      obj[keys[keys.length - 1]] = value;
-      return newData;
-    });
-    setHasChanges(true);
-  }, []);
+    }, [cvData, hasChanges]);
 
-  const handleSave = () => {
-    onSave(data);
-    setHasChanges(false);
-  };
+    const updateField = useCallback((path: string, value: string | string[]) => {
+      setData(prev => {
+        const newData = JSON.parse(JSON.stringify(prev));
+        const keys = path.split('.');
+        let obj = newData;
+        for (let i = 0; i < keys.length - 1; i++) {
+          obj = obj[keys[i]];
+        }
+        obj[keys[keys.length - 1]] = value;
+        return newData;
+      });
+      setHasChanges(true);
+    }, []);
 
-  const handleReset = () => {
-    setData(cvData);
-    setHasChanges(false);
-  };
+    const handleSave = useCallback(() => {
+      onSave(data);
+      setHasChanges(false);
+    }, [data, onSave]);
+
+    // Expose save method to parent via ref
+    useImperativeHandle(ref, () => ({
+      save: handleSave,
+    }), [handleSave]);
 
   const handleAIImprove = async (section: string, content: string) => {
     if (!onAIImprove) return;
@@ -186,30 +190,15 @@ export function EditableCVCanvas({ cvData, onSave, onAIImprove }: EditableCVCanv
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 max-w-4xl mx-auto">
-      {/* Header with Save/Reset */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-cream-300">
-        <div className="flex items-center gap-2">
-          <Edit3 className="w-5 h-5 text-navy-600" />
-          <h2 className="text-lg font-semibold text-charcoal">Edit Your CV</h2>
-          {hasChanges && (
-            <span className="px-2 py-0.5 text-xs bg-gold-100 text-gold-700 rounded-full">
-              Unsaved changes
-            </span>
-          )}
-        </div>
-        <div className="flex gap-2">
-          {hasChanges && (
-            <>
-              <Button variant="ghost" size="sm" onClick={handleReset}>
-                Reset
-              </Button>
-              <Button variant="primary" size="sm" onClick={handleSave}>
-                <Check className="w-4 h-4 mr-1" />
-                Save Changes
-              </Button>
-            </>
-          )}
-        </div>
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-6 pb-4 border-b border-cream-300">
+        <Edit3 className="w-5 h-5 text-navy-600" />
+        <h2 className="text-lg font-semibold text-charcoal">Edit Your CV</h2>
+        {hasChanges && (
+          <span className="px-2 py-0.5 text-xs bg-gold-100 text-gold-700 rounded-full">
+            Unsaved changes
+          </span>
+        )}
       </div>
 
       {/* Personal Information */}
@@ -1096,4 +1085,6 @@ export function EditableCVCanvas({ cvData, onSave, onAIImprove }: EditableCVCanv
       </section>
     </div>
   );
-}
+});
+
+EditableCVCanvas.displayName = 'EditableCVCanvas';

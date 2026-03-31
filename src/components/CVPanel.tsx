@@ -29,7 +29,7 @@ import {
   Loader2,
   Edit3
 } from 'lucide-react';
-import { EditableCVCanvas } from './EditableCVCanvas';
+import { EditableCVCanvas, EditableCVCanvasRef } from './EditableCVCanvas';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import { useAuth } from '@/contexts/AuthContext';
 import { SignUpWallModal } from '@/components/SignUpWallModal';
@@ -176,6 +176,7 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
   const [editedCVData, setEditedCVData] = useState<CVData | null>(null);
   const [pageBreaks, setPageBreaks] = useState<number[]>([]);
   const cvTemplateRef = useRef<HTMLDivElement>(null);
+  const editableCVRef = useRef<EditableCVCanvasRef>(null);
 
   // Responsive CV scaling — JS-based because CSS transform: scale can't dynamically
   // compensate for the CV template's fixed width (8.5in / 210mm).
@@ -927,10 +928,15 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
             Cancel
           </button>
           <button
-            onClick={() => setIsEditMode(false)}
-            className="px-2.5 py-1.5 text-xs font-medium text-charcoal bg-cream-100 hover:bg-cream-200 border border-cream-300 rounded-md transition-all cursor-pointer flex-shrink-0"
+            onClick={() => {
+              // Save changes via ref, then exit edit mode
+              editableCVRef.current?.save();
+              setIsEditMode(false);
+            }}
+            className="px-2.5 py-1.5 text-xs font-semibold text-white bg-navy-600 hover:bg-navy-700 rounded-md transition-all cursor-pointer flex-shrink-0"
           >
-            Done Editing
+            <Check className="w-3 h-3 inline mr-1" />
+            Save Changes
           </button>
         </>
       )}
@@ -1022,6 +1028,7 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
                 /* Edit Mode - Editable Canvas */
                 <div className="flex flex-col h-full">
                   <EditableCVCanvas
+                    ref={editableCVRef}
                     cvData={editedCVData || cvData}
                     onSave={(updatedData) => {
                       setEditedCVData(updatedData);
