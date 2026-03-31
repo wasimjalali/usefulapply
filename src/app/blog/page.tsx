@@ -78,12 +78,12 @@ export default function BlogPage() {
             </div>
           ) : (
             <div className="space-y-12">
-              {/* Featured post */}
+              {/* Featured post - 2x size of regular cards */}
               {featuredPost && (
                 <Link href={`/blog/${featuredPost.slug}`} className="block group">
-                  <article className="bg-white rounded-2xl border border-cream-200 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group-hover:border-gold-300">
-                    {/* Image container - full width on top */}
-                    <div className="relative w-full h-80 bg-cream-100">
+                  <article className="bg-white rounded-2xl border-2 border-cream-200 overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 group-hover:border-gold-400">
+                    {/* Image container - wider aspect ratio for full image visibility */}
+                    <div className="relative w-full aspect-[21/9] bg-cream-100">
                       {featuredPost.ogImage ? (
                         <Image
                           src={featuredPost.ogImage}
@@ -92,7 +92,7 @@ export default function BlogPage() {
                           priority
                           placeholder="blur"
                           blurDataURL={getBlurDataUrl(featuredPost.ogImage)}
-                          className="object-contain group-hover:scale-105 transition-transform duration-300"
+                          className="object-cover group-hover:scale-[1.02] transition-transform duration-500"
                           sizes="(max-width: 768px) 100vw, 1200px"
                         />
                       ) : (
@@ -102,7 +102,7 @@ export default function BlogPage() {
                       )}
                     </div>
                     {/* Content container */}
-                    <div className="p-8 sm:p-10">
+                    <div className="p-10 sm:p-12">
                       <div className="flex items-center gap-3 mb-4">
                         <span className="px-3 py-1 text-xs font-semibold bg-gold-50 text-gold-700 border border-gold-200 rounded-full">
                           Featured
@@ -123,7 +123,20 @@ export default function BlogPage() {
                         {featuredPost.description}
                       </p>
                       <div className="flex items-center gap-4 text-sm text-warm-gray">
-                        <span className="font-medium text-charcoal">{featuredPost.author.name}</span>
+                        <div className="flex items-center gap-2">
+                          {featuredPost.author.name === 'Wasim Jalali' ? (
+                            <div className="relative w-6 h-6 rounded-full overflow-hidden ring-1 ring-gold-200">
+                              <Image
+                                src="/wasim-avatar.jpg"
+                                alt="Wasim Jalali"
+                                fill
+                                className="object-cover"
+                                sizes="24px"
+                              />
+                            </div>
+                          ) : null}
+                          <span className="font-medium text-charcoal">{featuredPost.author.name}</span>
+                        </div>
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5" />
                           {new Date(featuredPost.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
@@ -178,7 +191,20 @@ export default function BlogPage() {
                               {post.description}
                             </p>
                             <div className="flex items-center gap-3 text-xs text-warm-gray pt-4 border-t border-cream-100">
-                              <span className="font-medium text-charcoal">{post.author.name}</span>
+                              <div className="flex items-center gap-2">
+                                {post.author.name === 'Wasim Jalali' ? (
+                                  <div className="relative w-5 h-5 rounded-full overflow-hidden ring-1 ring-gold-200">
+                                    <Image
+                                      src="/wasim-avatar.jpg"
+                                      alt="Wasim Jalali"
+                                      fill
+                                      className="object-cover"
+                                      sizes="20px"
+                                    />
+                                  </div>
+                                ) : null}
+                                <span className="font-medium text-charcoal">{post.author.name}</span>
+                              </div>
                               <span className="flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
                                 {post.readingTime} min

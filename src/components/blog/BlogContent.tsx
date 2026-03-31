@@ -1,9 +1,11 @@
 'use client';
 
 import { useMemo } from 'react';
+import ComparisonTable from './ComparisonTable';
 
 interface BlogContentProps {
   content: string;
+  slug?: string;
 }
 
 interface TocItem {
@@ -19,12 +21,126 @@ interface TocItem {
  * inline code (`code`), code blocks (```), images (![alt](src)), paragraphs,
  * and auto-generated Table of Contents.
  */
-export function BlogContent({ content }: BlogContentProps) {
-  const { toc, html } = useMemo(() => {
+export function BlogContent({ content, slug }: BlogContentProps) {
+  const { toc, html, hasComparisonTable } = useMemo(() => {
     const tocItems = extractToc(content);
-    const rendered = renderMarkdown(content);
-    return { toc: tocItems, html: rendered };
+    const hasTable = content.includes('## Feature Comparison Table');
+    const rendered = renderMarkdown(content, hasTable);
+    return { toc: tocItems, html: rendered, hasComparisonTable: hasTable };
   }, [content]);
+
+  // Comparison table data for AI tools post
+  const comparisonTableData = slug === 'best-ai-job-application-tools-2026' ? {
+    tools: [
+      { name: 'Karko AI', color: 'gold' },
+      { name: 'Teal', color: 'teal' },
+      { name: 'Jobscan', color: 'blue' },
+      { name: 'Rezi', color: 'purple' },
+      { name: 'Kickresume', color: 'pink' },
+    ],
+    features: [
+      {
+        name: 'Resume generation',
+        values: [
+          { status: 'yes' as const, text: 'Auto' },
+          { status: 'yes' as const, text: 'Manual' },
+          { status: 'no' as const },
+          { status: 'yes' as const, text: 'Manual' },
+          { status: 'yes' as const, text: 'Manual' },
+        ],
+      },
+      {
+        name: 'Cover letter generation',
+        values: [
+          { status: 'yes' as const, text: 'Auto' },
+          { status: 'no' as const },
+          { status: 'no' as const },
+          { status: 'no' as const },
+          { status: 'yes' as const, text: 'Template' },
+        ],
+      },
+      {
+        name: 'Email generation',
+        values: [
+          { status: 'yes' as const, text: 'Auto' },
+          { status: 'no' as const },
+          { status: 'no' as const },
+          { status: 'no' as const },
+          { status: 'no' as const },
+        ],
+      },
+      {
+        name: 'Follow-up email',
+        values: [
+          { status: 'yes' as const, text: 'Auto' },
+          { status: 'no' as const },
+          { status: 'no' as const },
+          { status: 'no' as const },
+          { status: 'no' as const },
+        ],
+      },
+      {
+        name: 'ATS optimization',
+        values: [
+          { status: 'yes' as const, text: 'All templates' },
+          { status: 'warning' as const, text: 'Some' },
+          { status: 'yes' as const },
+          { status: 'yes' as const },
+          { status: 'warning' as const, text: 'Some' },
+        ],
+      },
+      {
+        name: 'Anti-hallucination',
+        values: [
+          { status: 'yes' as const, text: 'Enforced' },
+          { status: 'warning' as const, text: 'Manual check' },
+          { status: 'text' as const, text: 'N/A' },
+          { status: 'warning' as const, text: 'Manual check' },
+          { status: 'warning' as const, text: 'Manual check' },
+        ],
+      },
+      {
+        name: 'Application tracker',
+        values: [
+          { status: 'no' as const },
+          { status: 'yes' as const },
+          { status: 'no' as const },
+          { status: 'no' as const },
+          { status: 'no' as const },
+        ],
+      },
+      {
+        name: 'Free tier',
+        values: [
+          { status: 'yes' as const, text: '5/month' },
+          { status: 'yes' as const, text: 'Limited' },
+          { status: 'yes' as const, text: '5 scans' },
+          { status: 'yes' as const, text: 'Limited' },
+          { status: 'yes' as const, text: 'Limited' },
+        ],
+      },
+      {
+        name: 'Speed (per application)',
+        values: [
+          { status: 'text' as const, text: '90 sec' },
+          { status: 'text' as const, text: '15+ min' },
+          { status: 'text' as const, text: '10 min' },
+          { status: 'text' as const, text: '20+ min' },
+          { status: 'text' as const, text: '20+ min' },
+        ],
+      },
+      {
+        name: 'Regional support',
+        values: [
+          { status: 'text' as const, text: 'US/UK/CA/DE' },
+          { status: 'text' as const, text: 'US/UK' },
+          { status: 'text' as const, text: 'US/UK' },
+          { status: 'text' as const, text: 'US/UK' },
+          { status: 'text' as const, text: 'US/UK/EU' },
+        ],
+      },
+    ],
+  } : null;
 
   return (
     <div>
@@ -51,7 +167,19 @@ export function BlogContent({ content }: BlogContentProps) {
       )}
 
       {/* Article content */}
-      <div dangerouslySetInnerHTML={{ __html: html }} />
+      <div>
+        {html.split('<!-- COMPARISON_TABLE -->').map((part, index, arr) => (
+          <div key={index}>
+            <div dangerouslySetInnerHTML={{ __html: part }} />
+            {index < arr.length - 1 && comparisonTableData && (
+              <ComparisonTable
+                tools={comparisonTableData.tools}
+                features={comparisonTableData.features}
+              />
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -78,16 +206,42 @@ function extractToc(md: string): TocItem[] {
   return items;
 }
 
-function renderMarkdown(md: string): string {
+function renderMarkdown(md: string, hasComparisonTable: boolean): string {
   const lines = md.split('\n');
   const result: string[] = [];
   let inCodeBlock = false;
   let codeBlockContent: string[] = [];
   let inList = false;
   let listType: 'ul' | 'ol' = 'ul';
+  let inTable = false;
+  let tableLines: string[] = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+
+    // Handle comparison table replacement
+    if (hasComparisonTable && line.trim() === '## Feature Comparison Table') {
+      if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
+      const id = slugify('Feature Comparison Table');
+      result.push(`<h2 id="${id}" class="text-2xl sm:text-3xl font-bold text-navy-700 mt-12 mb-4 leading-tight">Feature Comparison Table</h2>`);
+      result.push('<!-- COMPARISON_TABLE -->');
+      inTable = true;
+      continue;
+    }
+
+    // Skip markdown table lines when we have comparison table
+    if (inTable) {
+      if (line.trim().startsWith('|') || line.trim().startsWith('##') || line.trim() === '') {
+        if (line.trim().startsWith('##') && line.trim() !== '## Feature Comparison Table') {
+          inTable = false;
+          // Continue processing this line as a regular heading
+        } else {
+          continue;
+        }
+      } else {
+        inTable = false;
+      }
+    }
 
     // Code blocks
     if (line.trim().startsWith('```')) {

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Clock, Calendar, User, Tag, ArrowRight } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
@@ -137,12 +138,24 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             <p className="text-lg text-warm-gray mb-6">{post.description}</p>
 
             <div className="flex flex-wrap items-center gap-4 text-sm text-warm-gray pb-6 border-b border-cream-200">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-navy-100 rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-navy-600" />
-                </div>
+              <div className="flex items-center gap-3">
+                {post.author.name === 'Wasim Jalali' ? (
+                  <div className="relative w-10 h-10 rounded-full overflow-hidden ring-2 ring-gold-200">
+                    <Image
+                      src="/wasim-avatar.jpg"
+                      alt="Wasim Jalali"
+                      fill
+                      className="object-cover"
+                      sizes="40px"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-10 h-10 bg-navy-100 rounded-full flex items-center justify-center">
+                    <User className="w-5 h-5 text-navy-600" />
+                  </div>
+                )}
                 <div>
-                  <span className="font-medium text-charcoal">{post.author.name}</span>
+                  <span className="font-semibold text-charcoal">{post.author.name}</span>
                   <span className="text-warm-gray"> · {post.author.role}</span>
                 </div>
               </div>
@@ -163,7 +176,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
           {/* Content */}
           <div className="prose prose-lg max-w-none prose-headings:text-navy-700 prose-headings:font-bold prose-p:text-charcoal prose-p:leading-relaxed prose-a:text-navy-600 prose-a:underline hover:prose-a:text-gold-600 prose-strong:text-navy-700 prose-li:text-charcoal prose-blockquote:border-gold-400 prose-blockquote:text-warm-gray prose-code:text-navy-600 prose-code:bg-cream-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded">
-            <BlogContent content={post.content} />
+            <BlogContent content={post.content} slug={post.slug} />
           </div>
 
           {/* Tags */}
