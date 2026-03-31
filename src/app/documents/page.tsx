@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { FileUpload } from '@/components/FileUpload';
 import { useAppStore, ProfilePhoto } from '@/store/useAppStore';
+import { useCVStore } from '@/store/useCVStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   getDocumentByType,
@@ -287,6 +288,9 @@ export default function DocumentsPage() {
       if (result.structuredCV) {
         setStructuredCV(result.structuredCV);
       }
+
+      // Clear stale edited CV data when uploading new CV
+      useCVStore.getState().setEditedOriginalCVData(null);
 
       // Save document metadata to Supabase
       if (user) {

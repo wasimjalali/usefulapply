@@ -9,6 +9,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { ParsedCV, MasterCV } from '@/lib/types';
 import type { StructuredCV } from '@/lib/types/cv-schema';
+import type { CVData } from '@/lib/cv-templates/types';
 
 export interface PDFReference {
   id: string;
@@ -37,11 +38,14 @@ interface CVState {
   // Legacy CV format
   currentCV: ParsedCV | null;
   masterCV: MasterCV | null;
-  
+
   // New structured CV format (Solution B)
   structuredCV: StructuredCV | null;
   optimizedCV: StructuredCV | null;
-  
+
+  // Edited CV data (persists user edits from EditableCVCanvas)
+  editedOriginalCVData: CVData | null;
+
   // Supporting documents
   certifications: Certification[];
   profilePhoto: ProfilePhoto | null;
@@ -55,15 +59,16 @@ interface CVActions {
   setStructuredCV: (cv: StructuredCV | null) => void;
   setOptimizedCV: (cv: StructuredCV | null) => void;
   setOriginalPdfRef: (ref: PDFReference | null) => void;
-  
+  setEditedOriginalCVData: (data: CVData | null) => void;
+
   // Certification actions
   addCertification: (cert: Certification) => void;
   removeCertification: (id: string) => void;
   clearCertifications: () => void;
-  
+
   // Profile photo actions
   setProfilePhoto: (photo: ProfilePhoto | null) => void;
-  
+
   // Reset
   resetCVData: () => void;
 }
@@ -73,6 +78,7 @@ const initialState: CVState = {
   masterCV: null,
   structuredCV: null,
   optimizedCV: null,
+  editedOriginalCVData: null,
   certifications: [],
   profilePhoto: null,
   originalPdfRef: null,
@@ -89,6 +95,7 @@ export const useCVStore = create<CVState & CVActions>()(
       setStructuredCV: (cv) => set({ structuredCV: cv }),
       setOptimizedCV: (cv) => set({ optimizedCV: cv }),
       setOriginalPdfRef: (ref) => set({ originalPdfRef: ref }),
+      setEditedOriginalCVData: (data) => set({ editedOriginalCVData: data }),
 
       // Certification actions
       addCertification: (cert) => set((state) => ({
@@ -115,6 +122,7 @@ export const useCVStore = create<CVState & CVActions>()(
         masterCV: state.masterCV,
         structuredCV: state.structuredCV,
         optimizedCV: state.optimizedCV,
+        editedOriginalCVData: state.editedOriginalCVData,
         certifications: state.certifications,
         originalPdfRef: state.originalPdfRef,
         // profilePhoto excluded — base64 dataUrl can be 6+ MB, exceeding

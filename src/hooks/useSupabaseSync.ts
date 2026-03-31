@@ -129,6 +129,10 @@ export function useSupabaseSync() {
           });
           if (primaryDoc.structured_data) {
             setStructuredCV(primaryDoc.structured_data);
+            // Load edited CV data if exists
+            if (primaryDoc.structured_data._editedCVData) {
+              useCVStore.getState().setEditedOriginalCVData(primaryDoc.structured_data._editedCVData);
+            }
           }
         }
         
@@ -630,6 +634,43 @@ export function useSupabaseSync() {
     const timeoutId = setTimeout(syncChatMessages, 1000);
     return () => clearTimeout(timeoutId);
   }, [user, currentSession?.chatMessages]);
+
+  // Sync editedOriginalCVData to Supabase documents table
+  const editedOriginalCVData = useCVStore(state => state.editedOriginalCVData);
+  useEffect(() => {
+    if (!user || !editedOriginalCVData || !initialLoadCompleteRef.current) return;
+
+    const syncEditedCVData = async () => {
+      try {
+        // Get the primary CV document
+        const primaryDoc = await getDocumentByType(user.id, 'primary_cv');
+        if (!primaryDoc) return;
+
+        // Merge _editedCVData into structured_data
+        const updatedStructuredData = {
+          ...(primaryDoc.structured_data || {}),
+          _editedCVData: editedOriginalCVData,
+        };
+
+        // Update in Supabase (cast to any to bypass generated types)
+        await (supabase as any)
+          .from('documents')
+          .update({
+            structured_data: updatedStructuredData,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', primaryDoc.id);
+
+        console.log('[SupabaseSync] Synced editedOriginalCVData to documents table');
+      } catch (err) {
+        console.error('[SupabaseSync] Failed to sync editedOriginalCVData:', err);
+      }
+    };
+
+    // Debounce sync (2 seconds)
+    const timeoutId = setTimeout(syncEditedCVData, 2000);
+    return () => clearTimeout(timeoutId);
+  }, [user, editedOriginalCVData]);
 
   return null;
 }

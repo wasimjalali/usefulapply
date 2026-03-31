@@ -5,6 +5,8 @@ import { createPortal } from 'react-dom';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useAppStore } from '@/store/useAppStore';
+import { useCVStore } from '@/store/useCVStore';
+import { useSessionStore } from '@/store/useSessionStore';
 import { CVTemplateRenderer, CV_TEMPLATE_DEFINITIONS } from './cv-templates';
 import { TemplateSelector } from './cv-templates/TemplateSelector';
 import { parsedCVToCVData, structuredCVToCVData } from '@/lib/cv-templates/parser';
@@ -141,6 +143,7 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
     profilePhoto,
     setProfilePhoto,
   } = useAppStore();
+  const editedOriginalCVData = useCVStore(state => state.editedOriginalCVData);
   const { user, profile, updateProfile } = useAuth();
   const { toast } = useToast();
   const [showSignUpWall, setShowSignUpWall] = useState(false);
@@ -362,9 +365,27 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
       
       return optimizedData;
     }
-    
+
+    // Prefer edited original CV data if available (when viewing original tab)
+    if (!showOptimized && editedOriginalCVData) {
+      const merged = { ...editedOriginalCVData };
+      // Merge photo + profile links
+      if (photoDataUrl) {
+        merged.personal.photoUrl = photoDataUrl;
+      }
+      if (profile) {
+        merged.personal.linkedIn = merged.personal.linkedIn || (profile as any).linkedin_url || '';
+        merged.personal.github = merged.personal.github || (profile as any).github_url || '';
+        merged.personal.portfolio = merged.personal.portfolio || (profile as any).portfolio_url || '';
+        merged.personal.website = merged.personal.website || (profile as any).website_url || '';
+        merged.personal.dateOfBirth = merged.personal.dateOfBirth || (profile as any).date_of_birth || '';
+        merged.personal.nationality = merged.personal.nationality || (profile as any).nationality || '';
+      }
+      return merged;
+    }
+
     return parsed;
-  }, [currentCV, structuredCV, optimizedContent, optimizedTagline, showOptimized, photoDataUrl, optimizedCVData, profile]);
+  }, [currentCV, structuredCV, optimizedContent, optimizedTagline, showOptimized, photoDataUrl, optimizedCVData, profile, editedOriginalCVData]);
 
   const handleCopy = async (text: string) => {
     try {
@@ -907,10 +928,9 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
           </button>
           <button
             onClick={() => setIsEditMode(false)}
-            className="px-2.5 py-1.5 text-xs font-semibold text-white bg-gold-500 hover:bg-gold-600 rounded-md transition-all cursor-pointer flex-shrink-0"
+            className="px-2.5 py-1.5 text-xs font-medium text-charcoal bg-cream-100 hover:bg-cream-200 border border-cream-300 rounded-md transition-all cursor-pointer flex-shrink-0"
           >
-            <Check className="w-3 h-3 inline mr-1" />
-            Save
+            Done Editing
           </button>
         </>
       )}
@@ -1005,6 +1025,19 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
                     cvData={editedCVData || cvData}
                     onSave={(updatedData) => {
                       setEditedCVData(updatedData);
+
+                      // Persist edits to store and Supabase
+                      if (showOptimized && generatedCV) {
+                        // For optimized CV, update session store (auto-syncs to Supabase)
+                        useSessionStore.getState().updateCurrentSession({
+                          optimizedCVData: updatedData as any
+                        });
+                      } else {
+                        // For original CV, persist to CV store (syncs to Supabase via useSupabaseSync)
+                        useCVStore.getState().setEditedOriginalCVData(updatedData);
+                      }
+
+                      // Save personal links to profiles table
                       const p = updatedData.personal;
                       const linkUpdates: Record<string, string | null> = {};
                       if (p.linkedIn !== undefined) linkUpdates.linkedin_url = p.linkedIn || null;

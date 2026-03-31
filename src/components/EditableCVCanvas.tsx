@@ -401,7 +401,7 @@ export function EditableCVCanvas({ cvData, onSave, onAIImprove }: EditableCVCanv
         </h3>
         {data.experience.map((exp, expIndex) => (
           <div key={exp.id} className="mb-4 p-4 bg-cream-50 rounded-lg border border-cream-200">
-            <div className="flex items-start gap-2 mb-2">
+            <div className="flex items-start gap-2">
               <GripVertical className="w-4 h-4 text-warm-gray mt-1 cursor-grab" />
               <div className="flex-1">
                 <div className="grid grid-cols-2 gap-2 mb-2">
@@ -498,9 +498,39 @@ export function EditableCVCanvas({ cvData, onSave, onAIImprove }: EditableCVCanv
                   </button>
                 </div>
               </div>
+              <button
+                onClick={() => {
+                  const newExp = data.experience.filter((_, i) => i !== expIndex);
+                  setData(prev => ({ ...prev, experience: newExp }));
+                  setHasChanges(true);
+                }}
+                className="p-1 text-red-400 hover:text-red-600 transition-colors cursor-pointer"
+                title="Remove experience"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             </div>
           </div>
         ))}
+        <button
+          onClick={() => {
+            const newExperience = {
+              id: `exp-${Date.now()}`,
+              company: '',
+              position: '',
+              startDate: '',
+              endDate: '',
+              bullets: [''],
+              location: '',
+            };
+            setData(prev => ({ ...prev, experience: [...prev.experience, newExperience] }));
+            setHasChanges(true);
+          }}
+          className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 px-2 py-1 border border-dashed border-navy-300 rounded cursor-pointer"
+        >
+          <Plus className="w-3 h-3" />
+          Add experience
+        </button>
       </section>
 
       {/* Skills */}
@@ -510,17 +540,30 @@ export function EditableCVCanvas({ cvData, onSave, onAIImprove }: EditableCVCanv
         </h3>
         {data.skills.map((skillGroup, catIndex) => (
           <div key={`skill-cat-${catIndex}`} className="mb-3">
-            <EditableField
-              label="Category"
-              value={skillGroup.category}
-              onChange={(v) => {
-                const newSkills = [...data.skills];
-                newSkills[catIndex] = { ...newSkills[catIndex], category: v };
-                setData(prev => ({ ...prev, skills: newSkills }));
-                setHasChanges(true);
-              }}
-              className="font-medium text-sm mb-2"
-            />
+            <div className="flex items-center gap-2 mb-2">
+              <EditableField
+                label="Category"
+                value={skillGroup.category}
+                onChange={(v) => {
+                  const newSkills = [...data.skills];
+                  newSkills[catIndex] = { ...newSkills[catIndex], category: v };
+                  setData(prev => ({ ...prev, skills: newSkills }));
+                  setHasChanges(true);
+                }}
+                className="font-medium text-sm flex-1"
+              />
+              <button
+                onClick={() => {
+                  const newSkills = data.skills.filter((_, i) => i !== catIndex);
+                  setData(prev => ({ ...prev, skills: newSkills }));
+                  setHasChanges(true);
+                }}
+                className="p-1 text-red-400 hover:text-red-600 transition-colors cursor-pointer"
+                title="Remove skill category"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
             <div className="flex flex-wrap gap-2">
               {skillGroup.items.map((skill, skillIndex) => (
                 <div key={skillIndex} className="flex items-center gap-1 bg-cream-100 rounded px-2 py-1 group">
@@ -549,6 +592,20 @@ export function EditableCVCanvas({ cvData, onSave, onAIImprove }: EditableCVCanv
             </div>
           </div>
         ))}
+        <button
+          onClick={() => {
+            const newCategory = {
+              category: '',
+              items: [''],
+            };
+            setData(prev => ({ ...prev, skills: [...prev.skills, newCategory] }));
+            setHasChanges(true);
+          }}
+          className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 px-2 py-1 border border-dashed border-navy-300 rounded cursor-pointer"
+        >
+          <Plus className="w-3 h-3" />
+          Add skill category
+        </button>
       </section>
 
       {/* Projects */}
@@ -685,7 +742,9 @@ export function EditableCVCanvas({ cvData, onSave, onAIImprove }: EditableCVCanv
         </h3>
         {data.education.map((edu, eduIndex) => (
           <div key={edu.id} className="mb-3 p-3 bg-cream-50 rounded-lg border border-cream-200">
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-start gap-2">
+              <div className="flex-1">
+                <div className="grid grid-cols-2 gap-2">
               <EditableField
                 label="Institution"
                 value={edu.institution}
@@ -731,9 +790,39 @@ export function EditableCVCanvas({ cvData, onSave, onAIImprove }: EditableCVCanv
                 }}
                 placeholder="2020"
               />
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  const newEdu = data.education.filter((_, i) => i !== eduIndex);
+                  setData(prev => ({ ...prev, education: newEdu }));
+                  setHasChanges(true);
+                }}
+                className="p-1 text-red-400 hover:text-red-600 transition-colors cursor-pointer"
+                title="Remove education"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             </div>
           </div>
         ))}
+        <button
+          onClick={() => {
+            const newEducation = {
+              id: `edu-${Date.now()}`,
+              institution: '',
+              degree: '',
+              field: '',
+              endDate: '',
+            };
+            setData(prev => ({ ...prev, education: [...prev.education, newEducation] }));
+            setHasChanges(true);
+          }}
+          className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 px-2 py-1 border border-dashed border-navy-300 rounded cursor-pointer"
+        >
+          <Plus className="w-3 h-3" />
+          Add education
+        </button>
       </section>
 
       {/* Certifications */}
