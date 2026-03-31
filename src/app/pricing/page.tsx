@@ -65,11 +65,19 @@ const faqs = [
   },
   {
     question: 'How is KarKo different from other resume builders?',
-    answer: 'Most tools just help you format a resume. KarKo AI is an agentic system that analyzes the job description, extracts company insights, runs a fit analysis, generates a tailored CV, writes a personalized cover letter, and drafts a professional email, all automatically in one workflow. The entire process takes under 90 seconds.',
+    answer: 'Most tools just help you format a resume. KarKo AI is an agentic system that analyzes the job description, extracts company insights, runs a fit analysis, generates a tailored CV, writes a personalized cover letter, and drafts professional application emails and follow-up emails — a feature no other tool offers. The entire process takes under 90 seconds.',
   },
   {
     question: 'What AI model does KarKo use?',
     answer: 'KarKo AI runs on Claude Sonnet 4.6 by Anthropic, one of the most capable AI models available for writing and agentic tasks. Unlike competitors who use cheaper open-source models, we use the same US-based, frontier-grade AI trusted by leading enterprises. On top of that, we have built a specialized system and agentic workflow designed specifically for job applications, so the model is not just powerful, it is precisely tuned to produce professional, ATS-optimized, role-specific documents.',
+  },
+  {
+    question: 'How does Karko AI pricing compare to Teal?',
+    answer: 'Teal offers a free tier but hides its paid pricing. Karko AI is fully transparent: Free (5 apps), Plus $39.99/mo (50 apps), Max $79.99/mo (100 apps). Unlike Teal, Karko generates complete application packages with emails. See our full comparison at /compare/karko-ai-vs-teal.',
+  },
+  {
+    question: 'How does Karko AI pricing compare to Jobscan?',
+    answer: 'Jobscan offers a free tier for resume scanning, but does not generate application content. Karko AI creates complete, ATS-optimized application packages (CV, cover letter, application email, follow-up email) from scratch. Different tools for different needs. See our full comparison at /compare/karko-ai-vs-jobscan.',
   },
 ];
 

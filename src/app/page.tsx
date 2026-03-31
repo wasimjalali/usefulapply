@@ -294,7 +294,7 @@ export default function Home() {
               </div>
               <h3 className="text-2xl font-bold text-navy-600 mb-3">Tailored CV</h3>
               <p className="text-warm-gray max-w-xl mx-auto">
-                Your skills reordered to match the job. Keywords optimized for ATS screening. Professional formatting for US and EU markets.
+                Our AI resume builder reorders your skills to match the job. Keywords optimized for ATS screening. Professional formatting for US and EU markets.
               </p>
             </div>
             </ScrollReveal>
@@ -411,7 +411,7 @@ export default function Home() {
               </div>
               <h3 className="text-2xl font-bold text-navy-600 mb-3">US & EU CV Templates</h3>
               <p className="text-warm-gray max-w-xl mx-auto">
-                6 professional templates including German ATS with photo support. Choose between single-column and two-column layouts, with formatting for both US (Letter) and EU (A4) markets.
+                6 ATS-optimized professional templates including German ATS with photo support. Choose between single-column and two-column layouts, with formatting for both US (Letter) and EU (A4) markets.
               </p>
             </div>
             </ScrollReveal>
@@ -528,7 +528,7 @@ export default function Home() {
               Built Different. Built Better.
             </h2>
             <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-              We don&apos;t cut corners on AI. Every application is powered by one of the world&apos;s most capable models, specialized for job applications.
+              We don&apos;t cut corners on AI. Every application is powered by one of the world&apos;s most capable models, making Karko AI the best AI job application tool for quality-focused job seekers.
             </p>
           </div>
           </ScrollReveal>
