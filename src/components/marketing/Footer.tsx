@@ -11,7 +11,7 @@ interface FooterLink {
 
 const productLinks: FooterLink[] = [
   { href: '/features', label: 'Features' },
-  { href: '/ai-job-application', label: 'How It Works' },
+  { href: '/#how-it-works', label: 'How It Works' },
   { href: '/master-cv', label: 'Master CV' },
   { href: '/ai-job-application/application-tracker', label: 'Application Tracker' },
   { href: '/pricing', label: 'Pricing' },
