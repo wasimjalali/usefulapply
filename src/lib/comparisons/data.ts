@@ -561,6 +561,1055 @@ export const comparisons: ComparisonData[] = [
       'application emails',
     ],
   },
+
+  // Karko AI vs Rezi
+  {
+    slug: 'karko-ai-vs-rezi',
+    title: 'Karko AI vs Rezi: Which AI Resume Builder Wins in 2026?',
+    description:
+      'Rezi offers AI resume building with 23-criteria scoring. Karko AI generates complete application packages with emails. Compare features, pricing, and AI capabilities.',
+    h1: 'Karko AI vs Rezi: Complete Packages vs Resume Scoring (2026)',
+    publishedAt: '2026-03-31',
+    competitorName: 'Rezi',
+    competitorSlug: 'rezi',
+
+    summaryTable: [
+      { feature: 'CV Generation', karkoValue: 'AI-tailored (90 sec)', competitorValue: 'AI-assisted' },
+      { feature: 'Cover Letter', karkoValue: 'Personalized', competitorValue: 'Yes' },
+      { feature: 'Application Email', karkoValue: true, competitorValue: false, karkoWins: true },
+      { feature: 'Follow-Up Email', karkoValue: true, competitorValue: false, karkoWins: true },
+      { feature: 'Fit Analysis', karkoValue: true, competitorValue: false, karkoWins: true },
+      { feature: 'ATS Scoring', karkoValue: 'Built-in', competitorValue: '23-criteria' },
+      { feature: 'Pricing', karkoValue: '$39.99-79.99/mo', competitorValue: '$29/mo or $149 lifetime' },
+      { feature: 'AI Model', karkoValue: 'Claude Sonnet 4.6', competitorValue: 'Undisclosed' },
+      { feature: 'Best For', karkoValue: 'Complete applications', competitorValue: 'Resume optimization' },
+    ],
+
+    karkoOverview: {
+      name: 'Karko AI',
+      slug: 'karko-ai',
+      description:
+        'AI-powered job application assistant that generates complete application packages: CV, cover letter, application email, and follow-up email in under 90 seconds.',
+      pricing: 'Free (5 apps), Plus $39.99/mo (50 apps), Max $79.99/mo (100 apps)',
+      keyFeatures: [
+        'Fit analysis before generating materials',
+        'AI-tailored CV using Claude Sonnet 4.6',
+        'Personalized cover letters with company research',
+        'Application email generation (unique)',
+        'Follow-up email generation (unique)',
+        'ATS-optimized templates (6 professional designs)',
+        'Master CV system',
+        'German market specialization',
+      ],
+      pros: [
+        'Only tool that generates application + follow-up emails',
+        'Fit analysis helps focus on good matches',
+        'Latest AI (Claude Sonnet 4.6) for highest quality',
+        'Complete application package in one workflow',
+        'Transparent credit-based pricing',
+        'German templates for EU market',
+      ],
+      cons: [
+        'No 23-criteria scoring like Rezi',
+        'No interview practice features',
+        'No lifetime plan option',
+      ],
+      bestFor:
+        'Job seekers who need complete application packages with personalized emails and fit analysis. Best for strategic, quality-focused job searches.',
+      rating: 4.8,
+      url: 'https://www.karkoai.com',
+    },
+
+    competitorOverview: {
+      name: 'Rezi',
+      slug: 'rezi',
+      description:
+        'AI resume builder with 23-criteria ATS scoring system. Focuses on resume optimization and interview preparation.',
+      pricing: 'Free (1 resume, 3 PDFs), Pro $29/mo (unlimited), Lifetime $149',
+      keyFeatures: [
+        'AI Keyword Targeting',
+        'AI Content Writer',
+        '23-criteria Rezi Score',
+        'AI Resume Agent',
+        'Job Search & Tracking',
+        'AI Interview Practice',
+        'AI Cover Letter Generator',
+        '900+ Resume Examples',
+      ],
+      pros: [
+        '23-criteria scoring more granular than typical ATS checkers',
+        'Lifetime plan option ($149 one-time)',
+        'Interview practice features',
+        'Large template library (900+ examples)',
+        'Conversational AI agent',
+        '4M+ users, Forbes-featured',
+      ],
+      cons: [
+        'No application email generation',
+        'No follow-up email generation',
+        'No fit analysis before creating materials',
+        'Limited free tier (1 resume, 3 downloads)',
+        'AI model not specified (not using latest)',
+        'Monthly subscription vs flexible credits',
+      ],
+      bestFor:
+        'Job seekers who want detailed ATS scoring and interview practice. Best if you need resume optimization and don\'t need email generation.',
+      rating: 4.0,
+      url: 'https://www.rezi.ai',
+    },
+
+    features: [
+      {
+        title: 'Content Generation Quality',
+        description:
+          'The quality of AI-generated application materials determines whether your application stands out or gets ignored.',
+        karkoDetails:
+          'Uses Claude Sonnet 4.6, the latest AI model from Anthropic. Generates highly personalized content with company research, role-specific tailoring, and professional tone. Anti-hallucination rules ensure every claim traces to your Master CV. Complete package (CV, cover letter, emails) in 90 seconds.',
+        competitorDetails:
+          'AI-assisted content generation with keyword targeting and content writer. Provides bullet point suggestions based on job title and industry. Resume import available. AI model not disclosed. Generation time ~20 minutes per application.',
+        winner: 'karko',
+        reasoning:
+          'Karko\'s Claude Sonnet 4.6 produces significantly higher-quality, more personalized content. Rezi\'s AI suggestions are helpful but more generic. Karko is 13x faster (90 sec vs 20 min).',
+      },
+      {
+        title: 'Application Emails',
+        description:
+          'Professional application emails can increase callback rates by up to 40%. Most candidates don\'t send them.',
+        karkoDetails:
+          'Generates both application emails (to send with your CV/cover letter) and follow-up emails (to send 7-10 days later). Both reference the specific role, company, and your relevant experience. Includes subject lines.',
+        competitorDetails:
+          'Does not generate application emails or follow-up emails. This feature is not offered.',
+        winner: 'karko',
+        reasoning:
+          'Karko is the only tool in the market that generates application emails. This is a massive differentiator. Rezi doesn\'t attempt this feature.',
+      },
+      {
+        title: 'ATS Scoring',
+        description:
+          '76% of resumes are rejected by ATS before humans see them. Scoring helps identify gaps.',
+        karkoDetails:
+          'All 6 templates are ATS-optimized by default. Keywords from job descriptions automatically extracted and applied. Every output passes Workday, Greenhouse, and Lever parsers without needing separate scoring.',
+        competitorDetails:
+          'Rezi Score rates resumes across 23 criteria including: formatting, word choice, keywords, length, metrics, section order, action verbs, and more. Provides detailed feedback and recommendations.',
+        winner: 'competitor',
+        reasoning:
+          'Rezi\'s 23-criteria scoring is more granular and provides actionable feedback. Karko builds ATS-safe resumes by default, but Rezi gives detailed analysis.',
+      },
+      {
+        title: 'Fit Analysis',
+        description:
+          'Not every job is worth applying to. Assessing fit before spending time or money saves resources.',
+        karkoDetails:
+          'Offers fit analysis mode: analyzes job description against your Master CV and provides match percentage, skill gaps, and recommendations before generating materials. Costs 0.5 credits.',
+        competitorDetails:
+          'No fit analysis feature. You create resume materials first, then use Rezi Score to check compatibility after generation. No pre-assessment workflow.',
+        winner: 'karko',
+        reasoning:
+          'Karko\'s fit-first workflow helps you decide whether to apply before generating materials. Rezi only checks quality after creation.',
+      },
+      {
+        title: 'Interview Preparation',
+        description:
+          'Preparation increases confidence and performance. AI interview practice is increasingly common.',
+        karkoDetails:
+          'Does not offer interview preparation features. Focused on application materials only.',
+        competitorDetails:
+          'AI Interview Practice with role-specific questions. Conversational AI Resume Agent provides interactive assistance. Goes beyond application materials.',
+        winner: 'competitor',
+        reasoning:
+          'Rezi offers interview practice and conversational AI agent. Karko focuses on application materials only.',
+      },
+      {
+        title: 'Pricing Model',
+        description:
+          'Subscription fatigue is real. Some users prefer one-time payments or flexible credits.',
+        karkoDetails:
+          'Credit-based system: Free (5 apps), Plus $39.99/mo (50 apps), Max $79.99/mo (100 apps). Add-on credit packs available ($19.99/40 credits). Pay for what you use.',
+        competitorDetails:
+          'Free (1 resume, 3 PDFs), Pro $29/mo (unlimited), Lifetime $149 (permanent Pro access). Monthly subscription or one-time payment options.',
+        winner: 'tie',
+        reasoning:
+          'Different needs. Rezi\'s $29/mo is cheaper than Karko\'s $39.99/mo Plus, and lifetime plan appeals to budget users. Karko\'s credits offer flexibility. Both work.',
+      },
+    ],
+
+    useCases: [
+      {
+        title: 'Choose Karko AI if you need:',
+        description:
+          'Complete application packages with personalized emails and fit analysis. Best for strategic job searches.',
+        recommendedTool: 'Karko AI',
+        reasoning:
+          'Karko excels at generating complete, email-included packages in 90 seconds. The fit analysis helps focus efforts. If you want emails and speed, Karko wins.',
+      },
+      {
+        title: 'Choose Rezi if you need:',
+        description:
+          'Detailed ATS scoring and interview preparation. Best if you want granular feedback and practice features.',
+        recommendedTool: 'Rezi',
+        reasoning:
+          'Rezi\'s 23-criteria scoring provides detailed optimization guidance. Interview practice is valuable. If you don\'t need emails, Rezi is solid.',
+      },
+      {
+        title: 'Use both if:',
+        description:
+          'Your budget allows and you want Karko\'s email generation + Rezi\'s detailed scoring and interview practice.',
+        recommendedTool: 'Karko AI + Rezi',
+        reasoning:
+          'Generate complete packages with Karko, then run CV through Rezi for detailed scoring and use interview practice. Complementary tools.',
+      },
+      {
+        title: 'Choose Karko AI if applying internationally:',
+        description:
+          'You\'re applying to jobs in Germany or other EU markets and need proper Lebenslauf formatting.',
+        recommendedTool: 'Karko AI',
+        reasoning:
+          'Karko\'s German templates follow EU conventions. Rezi is primarily US-focused.',
+      },
+    ],
+
+    faq: [
+      {
+        question: 'Which has better AI?',
+        answer:
+          'Karko AI uses Claude Sonnet 4.6 by Anthropic, the latest and most capable AI model for writing tasks. Rezi uses AI but does not disclose the model. In testing, Karko produces more personalized, professional content. Rezi\'s AI is helpful but more generic.',
+      },
+      {
+        question: 'Does Rezi generate application emails?',
+        answer:
+          'No. Rezi generates resumes and cover letters but not application emails or follow-up emails. This is a unique feature of Karko AI.',
+      },
+      {
+        question: 'Which is more affordable?',
+        answer:
+          'Rezi\'s Pro plan ($29/mo) is cheaper than Karko\'s Plus ($39.99/mo). However, Karko includes email generation (Rezi doesn\'t). Rezi also offers a lifetime plan ($149 one-time) which is attractive for long-term users. Per-application cost: Karko ~$0.80, Rezi ~$0 if using lifetime plan.',
+      },
+      {
+        question: 'Can Karko do fit analysis before generating materials?',
+        answer:
+          'Yes. Fit analysis (assessing job match before creating documents) is unique to Karko AI. Costs 0.5 credits. Rezi generates materials first, then scores them.',
+      },
+      {
+        question: 'Which has better ATS scoring?',
+        answer:
+          'Rezi\'s 23-criteria scoring is more detailed than most ATS checkers. Karko\'s templates are ATS-safe by default, so you don\'t need separate scoring. If you want granular feedback, Rezi wins. If you want ATS-safe output without manual checking, Karko wins.',
+      },
+      {
+        question: 'Does Karko offer interview practice?',
+        answer:
+          'No. Karko focuses on application materials (CV, cover letter, emails). Rezi offers AI Interview Practice with role-specific questions. If you need interview prep, Rezi has it.',
+      },
+      {
+        question: 'Which is faster?',
+        answer:
+          'Karko AI generates complete application packages in 90 seconds. Rezi takes ~20 minutes per application. Karko is 13x faster.',
+      },
+    ],
+
+    verdict:
+      'Karko AI and Rezi solve different problems. Rezi excels at detailed ATS scoring and interview preparation—perfect if you want granular feedback and practice features. Karko AI excels at generating complete application packages with personalized emails in 90 seconds—perfect if you need speed, emails, and fit analysis. If you can only choose one: pick Karko if you prioritize emails and speed, pick Rezi if you prioritize detailed scoring and interview practice. For power users: use both—Karko for content, Rezi for scoring and practice.',
+
+    ctaText: 'Try Karko AI Free - 5 Complete Applications with Emails',
+    ctaHref: '/dashboard',
+
+    tags: [
+      'Karko AI',
+      'Rezi',
+      'AI resume builder',
+      'ATS optimization',
+      'resume scoring',
+      'application emails',
+    ],
+  },
+
+  // Karko AI vs Kickresume
+  {
+    slug: 'karko-ai-vs-kickresume',
+    title: 'Karko AI vs Kickresume: Which Resume Builder Wins in 2026?',
+    description:
+      'Kickresume offers design-focused templates with unlimited free builds. Karko AI generates complete application packages with AI emails. Compare features and pricing.',
+    h1: 'Karko AI vs Kickresume: AI Applications vs Design Templates (2026)',
+    publishedAt: '2026-03-31',
+    competitorName: 'Kickresume',
+    competitorSlug: 'kickresume',
+
+    summaryTable: [
+      { feature: 'CV Generation', karkoValue: 'AI-tailored (90 sec)', competitorValue: 'Template-based' },
+      { feature: 'Cover Letter', karkoValue: 'Personalized', competitorValue: 'Template-based' },
+      { feature: 'Application Email', karkoValue: true, competitorValue: false, karkoWins: true },
+      { feature: 'Follow-Up Email', karkoValue: true, competitorValue: false, karkoWins: true },
+      { feature: 'Fit Analysis', karkoValue: true, competitorValue: false, karkoWins: true },
+      { feature: 'Design Templates', karkoValue: '6 ATS-optimized', competitorValue: 'Many (not all ATS-safe)' },
+      { feature: 'Free Builds', karkoValue: '5/month', competitorValue: 'Unlimited' },
+      { feature: 'AI Model', karkoValue: 'Claude Sonnet 4.6', competitorValue: 'Basic AI' },
+      { feature: 'Best For', karkoValue: 'Complete applications', competitorValue: 'Design portfolios' },
+    ],
+
+    karkoOverview: {
+      name: 'Karko AI',
+      slug: 'karko-ai',
+      description:
+        'AI-powered job application assistant that generates complete application packages: CV, cover letter, application email, and follow-up email in under 90 seconds.',
+      pricing: 'Free (5 apps), Plus $39.99/mo (50 apps), Max $79.99/mo (100 apps)',
+      keyFeatures: [
+        'Fit analysis before generating materials',
+        'AI-tailored CV using Claude Sonnet 4.6',
+        'Personalized cover letters with company research',
+        'Application email generation (unique)',
+        'Follow-up email generation (unique)',
+        'ATS-optimized templates (all 6 designs)',
+        'Master CV system',
+        'German market specialization',
+      ],
+      pros: [
+        'Only tool that generates application + follow-up emails',
+        'Fit analysis helps focus on good matches',
+        'Latest AI (Claude Sonnet 4.6) for highest quality',
+        'All templates ATS-optimized by default',
+        'Complete application package in one workflow',
+        'German templates for EU market',
+      ],
+      cons: [
+        'Fewer design options than Kickresume',
+        'No unlimited free builds',
+        'No portfolio website feature',
+      ],
+      bestFor:
+        'Job seekers who need complete, ATS-optimized application packages with personalized emails. Best for strategic, quality-focused job searches.',
+      rating: 4.8,
+      url: 'https://www.karkoai.com',
+    },
+
+    competitorOverview: {
+      name: 'Kickresume',
+      slug: 'kickresume',
+      description:
+        'Template-based resume and cover letter builder with AI writing assistance. Strong design focus with portfolio website generation.',
+      pricing: 'Free (unlimited builds, limited templates), Premium (~$19/mo)',
+      keyFeatures: [
+        'AI Resume Builder',
+        'LinkedIn Import',
+        'Professional Proofreading (paid)',
+        'Multiple Export Formats (PDF, DOCX, TXT)',
+        'Unlimited Builds (free tier)',
+        'Cover Letter Builder',
+        'Advanced Design Customization',
+        'Portfolio Website Generator',
+      ],
+      pros: [
+        'Unlimited free builds (very generous)',
+        'Design-forward templates (visually appealing)',
+        'LinkedIn integration (quick setup)',
+        'Professional proofreading available',
+        'Portfolio website generator',
+        'Multiple export formats',
+      ],
+      cons: [
+        'Many templates not ATS-optimized (multi-column, tables)',
+        'No application email generation',
+        'No follow-up email generation',
+        'No fit analysis',
+        'AI writing is basic (fill-in-the-blank)',
+        'No job tracking',
+      ],
+      bestFor:
+        'Job seekers in creative fields (design, marketing) who want visually appealing portfolios. Best if design > ATS compatibility.',
+      rating: 3.5,
+      url: 'https://www.kickresume.com',
+    },
+
+    features: [
+      {
+        title: 'ATS Optimization',
+        description:
+          '76% of resumes are rejected by ATS before humans see them. ATS-safe formatting is non-negotiable for most industries.',
+        karkoDetails:
+          'All 6 templates are ATS-optimized by default: single-column layout, standard section headings, system fonts, consistent date formats. Every output passes Workday, Greenhouse, and Lever parsers.',
+        competitorDetails:
+          'Many templates prioritize visual appeal over ATS compatibility. Multi-column layouts, tables, and graphic elements can break ATS parsing. Beautiful, but risky for automated screening.',
+        winner: 'karko',
+        reasoning:
+          'Karko\'s ATS-first approach ensures your resume gets seen by humans. Kickresume\'s beautiful templates may fail ATS parsing in corporate environments.',
+      },
+      {
+        title: 'Application Emails',
+        description:
+          'Professional application emails can increase callback rates by up to 40%. Most candidates skip this step.',
+        karkoDetails:
+          'Generates both application emails (to send with your CV/cover letter) and follow-up emails (to send 7-10 days later). Both reference the specific role, company, and your relevant experience.',
+        competitorDetails:
+          'Does not generate application emails or follow-up emails. This feature is not offered.',
+        winner: 'karko',
+        reasoning:
+          'Karko is the only tool in the market that generates application emails. Kickresume doesn\'t attempt this feature.',
+      },
+      {
+        title: 'Design & Visual Appeal',
+        description:
+          'Visual design matters, especially in creative industries. But it must balance ATS compatibility with aesthetics.',
+        karkoDetails:
+          '6 professional templates with clean, modern design. All single-column, ATS-safe. Limited visual variety compared to design-focused builders.',
+        competitorDetails:
+          'Wide variety of visually striking templates. Advanced customization options. Portfolio website generator. Many creative options prioritize design over ATS compatibility.',
+        winner: 'competitor',
+        reasoning:
+          'Kickresume offers more design variety and customization. If you\'re in a creative field and applying directly to humans (not ATS), Kickresume\'s templates shine.',
+      },
+      {
+        title: 'Fit Analysis',
+        description:
+          'Not every job is worth applying to. Assessing fit before spending time or credits saves resources.',
+        karkoDetails:
+          'Offers fit analysis mode: analyzes job description against your Master CV and provides match percentage, skill gaps, and recommendations before generating materials. Costs 0.5 credits.',
+        competitorDetails:
+          'No fit analysis feature. You build resume materials without pre-assessing job compatibility. Self-service model assumes you\'ve already decided to apply.',
+        winner: 'karko',
+        reasoning:
+          'Karko\'s fit-first workflow helps you decide whether to apply before generating materials. Kickresume skips this strategic step.',
+      },
+      {
+        title: 'Free Tier Generosity',
+        description:
+          'Free tiers help users evaluate quality before paying. Unlimited builds vs monthly credit caps.',
+        karkoDetails:
+          'Free plan: 5 complete application packages per month. Includes CV, cover letter, application email, follow-up email. No credit card required.',
+        competitorDetails:
+          'Free plan: unlimited resume builds (limited templates). Very generous compared to competitors. No credit card required for free tier.',
+        winner: 'competitor',
+        reasoning:
+          'Kickresume\'s unlimited free builds are more generous than Karko\'s 5/month. If you\'re building many versions to test, Kickresume wins on free tier.',
+      },
+      {
+        title: 'Portfolio Website',
+        description:
+          'Some job seekers want an online portfolio to complement their resume. Especially valuable in creative and tech fields.',
+        karkoDetails:
+          'Does not offer portfolio website generation. Focused on application materials only.',
+        competitorDetails:
+          'Generates a personal portfolio website from your resume. Good for creative professionals who want an online presence. Shareable URL.',
+        winner: 'competitor',
+        reasoning:
+          'Kickresume\'s portfolio website feature is valuable for creative and tech professionals. Karko doesn\'t offer this.',
+      },
+    ],
+
+    useCases: [
+      {
+        title: 'Choose Karko AI if you need:',
+        description:
+          'Complete, ATS-optimized application packages with personalized emails and fit analysis. Best for corporate job searches.',
+        recommendedTool: 'Karko AI',
+        reasoning:
+          'Karko excels at generating complete, ATS-safe packages with emails in 90 seconds. If you\'re applying to corporate roles through ATS systems, Karko wins.',
+      },
+      {
+        title: 'Choose Kickresume if you need:',
+        description:
+          'Visually striking portfolios and unlimited free builds. Best for creative fields where aesthetics matter more than ATS.',
+        recommendedTool: 'Kickresume',
+        reasoning:
+          'Kickresume\'s design-forward templates and portfolio website shine in creative fields. If you\'re applying directly to humans, Kickresume\'s visual appeal wins.',
+      },
+      {
+        title: 'Use both if:',
+        description:
+          'You\'re applying to both corporate (ATS) and creative (human-reviewed) roles. Use Karko for corporate, Kickresume for creative.',
+        recommendedTool: 'Karko AI + Kickresume',
+        reasoning:
+          'Different roles need different approaches. Use Karko for ATS-heavy corporate applications, Kickresume for design-focused creative applications.',
+      },
+      {
+        title: 'Choose Karko AI if applying in Germany:',
+        description:
+          'You\'re applying to jobs in Germany and need proper Lebenslauf formatting with photo support.',
+        recommendedTool: 'Karko AI',
+        reasoning:
+          'Karko\'s German templates follow EU conventions with proper photo placement. Kickresume is more US/UK-focused.',
+      },
+    ],
+
+    faq: [
+      {
+        question: 'Which has better templates?',
+        answer:
+          'Depends on your goal. Kickresume has more design variety and visual appeal—great for creative fields. Karko has fewer templates but all are ATS-optimized—better for corporate roles. If aesthetics > ATS, choose Kickresume. If ATS compatibility is critical, choose Karko.',
+      },
+      {
+        question: 'Does Kickresume generate application emails?',
+        answer:
+          'No. Kickresume generates resumes and cover letters but not application emails or follow-up emails. This is unique to Karko AI.',
+      },
+      {
+        question: 'Which has a better free tier?',
+        answer:
+          'Kickresume offers unlimited resume builds on free tier (limited templates). Karko offers 5 complete application packages per month (CV + cover letter + emails). If you need many builds to test, Kickresume wins. If you need complete packages with emails, Karko wins.',
+      },
+      {
+        question: 'Can Karko generate portfolio websites?',
+        answer:
+          'No. Karko focuses on application materials (CV, cover letter, emails). Kickresume offers portfolio website generation from your resume. If you need an online portfolio, Kickresume has it.',
+      },
+      {
+        question: 'Which has better AI?',
+        answer:
+          'Karko AI uses Claude Sonnet 4.6 by Anthropic, the latest AI model for writing tasks. Kickresume uses basic AI with fill-in-the-blank assistance. Karko produces more personalized, professional content.',
+      },
+      {
+        question: 'Are Kickresume templates ATS-safe?',
+        answer:
+          'Some are, many are not. Kickresume prioritizes visual design, and many templates use multi-column layouts, tables, and graphic elements that break ATS parsing. Karko\'s templates are all ATS-safe by default.',
+      },
+      {
+        question: 'Which is faster?',
+        answer:
+          'Karko AI generates complete application packages in 90 seconds. Kickresume is self-service and depends on how fast you work—typically 15-30 minutes per application. Karko is significantly faster.',
+      },
+    ],
+
+    verdict:
+      'Karko AI and Kickresume serve different markets. Kickresume excels at design-forward templates and portfolio websites—perfect for creative professionals applying directly to hiring managers. Karko AI excels at generating complete, ATS-optimized application packages with personalized emails in 90 seconds—perfect for corporate job searches through ATS systems. If you can only choose one: pick Karko if you\'re applying to corporate roles through ATS, pick Kickresume if you\'re in a creative field and want visual appeal. For power users: use both—Karko for corporate ATS applications, Kickresume for creative portfolio applications.',
+
+    ctaText: 'Try Karko AI Free - 5 ATS-Optimized Applications',
+    ctaHref: '/dashboard',
+
+    tags: [
+      'Karko AI',
+      'Kickresume',
+      'resume builder',
+      'ATS optimization',
+      'application emails',
+      'portfolio website',
+    ],
+  },
+
+  // Karko AI vs Enhancv
+  {
+    slug: 'karko-ai-vs-enhancv',
+    title: 'Karko AI vs Enhancv: Which Resume Builder Wins in 2026?',
+    description:
+      'Enhancv offers multi-language resume building with job tracking. Karko AI generates complete application packages with AI emails. Compare features and pricing.',
+    h1: 'Karko AI vs Enhancv: AI Applications vs Multi-Language Builder (2026)',
+    publishedAt: '2026-03-31',
+    competitorName: 'Enhancv',
+    competitorSlug: 'enhancv',
+
+    summaryTable: [
+      { feature: 'CV Generation', karkoValue: 'AI-tailored (90 sec)', competitorValue: 'One-click tailoring' },
+      { feature: 'Cover Letter', karkoValue: 'Personalized', competitorValue: 'Yes' },
+      { feature: 'Application Email', karkoValue: true, competitorValue: false, karkoWins: true },
+      { feature: 'Follow-Up Email', karkoValue: true, competitorValue: false, karkoWins: true },
+      { feature: 'Fit Analysis', karkoValue: true, competitorValue: false, karkoWins: true },
+      { feature: 'Multi-Language', karkoValue: 'English/German', competitorValue: '30+ languages' },
+      { feature: 'Job Tracking', karkoValue: 'Roadmap', competitorValue: 'Yes' },
+      { feature: 'Pricing', karkoValue: '$39.99-79.99/mo', competitorValue: '$24.99/mo' },
+      { feature: 'Best For', karkoValue: 'Complete applications', competitorValue: 'International job seekers' },
+    ],
+
+    karkoOverview: {
+      name: 'Karko AI',
+      slug: 'karko-ai',
+      description:
+        'AI-powered job application assistant that generates complete application packages: CV, cover letter, application email, and follow-up email in under 90 seconds.',
+      pricing: 'Free (5 apps), Plus $39.99/mo (50 apps), Max $79.99/mo (100 apps)',
+      keyFeatures: [
+        'Fit analysis before generating materials',
+        'AI-tailored CV using Claude Sonnet 4.6',
+        'Personalized cover letters with company research',
+        'Application email generation (unique)',
+        'Follow-up email generation (unique)',
+        'ATS-optimized templates (6 designs)',
+        'Master CV system',
+        'English and German support',
+      ],
+      pros: [
+        'Only tool that generates application + follow-up emails',
+        'Fit analysis helps focus on good matches',
+        'Latest AI (Claude Sonnet 4.6) for highest quality',
+        'Complete application package in one workflow',
+        'Transparent credit-based pricing',
+        'Agent-driven workflow (guided)',
+      ],
+      cons: [
+        'Limited to English and German (vs 30+ languages)',
+        'No job tracking (yet - on roadmap)',
+        'No cloud document storage',
+      ],
+      bestFor:
+        'Job seekers who need complete, high-quality application packages with personalized emails. Best for strategic job searches in English/German markets.',
+      rating: 4.8,
+      url: 'https://www.karkoai.com',
+    },
+
+    competitorOverview: {
+      name: 'Enhancv',
+      slug: 'enhancv',
+      description:
+        'Resume builder with multi-language support, job tracking, and one-click tailoring. Strong focus on balancing ATS optimization with human appeal.',
+      pricing: '7-day free trial, Pro $24.99/mo',
+      keyFeatures: [
+        'ATS-Friendly Templates (20+ sections)',
+        'One-Click Job Tailoring',
+        'AI Resume Parsing',
+        'AI Skills Finder',
+        'Multi-Language Translation (30+ languages)',
+        'Cover Letter Builder',
+        'Job Application Tracker',
+        'Resume Checker (ATS scanner)',
+        'Cloud Storage (300 documents)',
+        'Drag-and-Drop Customization',
+      ],
+      pros: [
+        'Multi-language support (30+ languages)',
+        'One-click tailoring (fast customization)',
+        'Large document storage (300 docs)',
+        'Job tracker included',
+        'Lower monthly price ($24.99 vs $39.99)',
+        'Strong social proof (10M resumes, 28K interviews)',
+        '1,400+ guides by certified writers',
+      ],
+      cons: [
+        'No application email generation',
+        'No follow-up email generation',
+        'No fit analysis before creating',
+        'Trial-then-paywall (downloads locked after 7 days)',
+        'Generic AI approach (not using latest models)',
+        'Self-service vs agent-driven',
+      ],
+      bestFor:
+        'Multi-national job seekers who need resumes in multiple languages. Best if you need job tracking and affordable pricing.',
+      rating: 4.1,
+      url: 'https://enhancv.com',
+    },
+
+    features: [
+      {
+        title: 'Application Emails',
+        description:
+          'Professional application emails can increase callback rates by up to 40%. Most candidates skip this step.',
+        karkoDetails:
+          'Generates both application emails (to send with your CV/cover letter) and follow-up emails (to send 7-10 days later). Both reference the specific role, company, and your relevant experience. Includes subject lines.',
+        competitorDetails:
+          'Does not generate application emails or follow-up emails. This feature is not offered.',
+        winner: 'karko',
+        reasoning:
+          'Karko is the only tool in the market that generates application emails. Enhancv doesn\'t attempt this feature.',
+      },
+      {
+        title: 'Multi-Language Support',
+        description:
+          'International job seekers need resumes in multiple languages. Translation quality matters.',
+        karkoDetails:
+          'Supports English and German with proper formatting conventions for each market. German Lebenslauf templates with photo support. Limited to 2 languages.',
+        competitorDetails:
+          'Supports 30+ languages with translation across all resume sections. Very broad language coverage for international applications. Market leader in multi-language support.',
+        winner: 'competitor',
+        reasoning:
+          'Enhancv\'s 30+ language support far exceeds Karko\'s 2 languages. If you\'re applying to roles in Asia, South America, or Eastern Europe, Enhancv wins.',
+      },
+      {
+        title: 'One-Click Job Tailoring',
+        description:
+          'Tailoring resumes to job descriptions quickly is critical for high-volume applications.',
+        karkoDetails:
+          'Analyzes job description and tailors CV in 90 seconds. Fully automated with AI. Includes fit analysis (0.5 credits) to assess match before generating.',
+        competitorDetails:
+          'One-click job tailoring automatically customizes resume to job descriptions. Fast workflow. No fit analysis—goes straight to customization.',
+        winner: 'tie',
+        reasoning:
+          'Both tools tailor quickly. Enhancv is one-click, Karko is fully automated in 90 seconds with fit analysis. Different approaches, both effective.',
+      },
+      {
+        title: 'Fit Analysis',
+        description:
+          'Not every job is worth applying to. Assessing fit before spending time saves resources.',
+        karkoDetails:
+          'Offers fit analysis mode: analyzes job description against your Master CV and provides match percentage, skill gaps, and recommendations before generating materials. Costs 0.5 credits.',
+        competitorDetails:
+          'No fit analysis feature. You create resume materials without pre-assessing job compatibility. One-click tailoring assumes you\'ve already decided to apply.',
+        winner: 'karko',
+        reasoning:
+          'Karko\'s fit-first workflow helps you decide whether to apply before generating materials. Enhancv skips this strategic step.',
+      },
+      {
+        title: 'Job Tracking',
+        description:
+          'Tracking applications helps you follow up at the right time and avoid applying twice.',
+        karkoDetails:
+          'Job tracking is on the roadmap but not yet available. Currently focuses on application content generation.',
+        competitorDetails:
+          'Job application tracker included. Pipeline management with status tracking. Helps organize multi-role job searches.',
+        winner: 'competitor',
+        reasoning:
+          'Enhancv\'s built-in job tracker is valuable for organization. Karko doesn\'t offer this yet.',
+      },
+      {
+        title: 'Pricing & Value',
+        description:
+          'Transparent pricing helps budget planning. Free trials vs free tiers, monthly costs, and value per application.',
+        karkoDetails:
+          'Transparent credit-based pricing: Free (5 apps), Plus $39.99/mo (50 apps), Max $79.99/mo (100 apps). Per-application cost: ~$0.80. No trial-then-paywall.',
+        competitorDetails:
+          '7-day free trial (full features, then downloads locked), Pro $24.99/mo (unlimited). Lower monthly cost than Karko. Trial-then-paywall model.',
+        winner: 'tie',
+        reasoning:
+          'Enhancv is cheaper monthly ($24.99 vs $39.99). Karko includes emails (Enhancv doesn\'t). Depends on what you need. Different value propositions.',
+      },
+    ],
+
+    useCases: [
+      {
+        title: 'Choose Karko AI if you need:',
+        description:
+          'Complete application packages with personalized emails and fit analysis. Best for strategic English/German job searches.',
+        recommendedTool: 'Karko AI',
+        reasoning:
+          'Karko excels at generating complete packages with emails in 90 seconds. The fit analysis helps focus efforts. If you need emails and latest AI, Karko wins.',
+      },
+      {
+        title: 'Choose Enhancv if you need:',
+        description:
+          'Multi-language resumes and job tracking. Best for international job seekers applying across many countries.',
+        recommendedTool: 'Enhancv',
+        reasoning:
+          'Enhancv\'s 30+ language support is unmatched. Job tracker helps organize applications. If you\'re applying globally, Enhancv wins.',
+      },
+      {
+        title: 'Use both if:',
+        description:
+          'You\'re applying to roles in multiple regions. Use Karko for English/German markets with emails, Enhancv for other languages.',
+        recommendedTool: 'Karko AI + Enhancv',
+        reasoning:
+          'Different tools for different markets. Use Karko for high-quality English/German applications with emails. Use Enhancv for applications in other languages.',
+      },
+      {
+        title: 'Choose Karko AI if you want agent-driven workflow:',
+        description:
+          'You prefer guided, automated workflows over self-service tools. Karko handles everything in one flow.',
+        recommendedTool: 'Karko AI',
+        reasoning:
+          'Karko\'s agent-driven approach handles fit analysis + generation + emails in one unified workflow. Enhancv is self-service (more manual).',
+      },
+    ],
+
+    faq: [
+      {
+        question: 'Which has better multi-language support?',
+        answer:
+          'Enhancv wins. It supports 30+ languages with translation across all sections. Karko supports English and German. If you need resumes in French, Spanish, Italian, Chinese, Japanese, or other languages, Enhancv is the clear choice.',
+      },
+      {
+        question: 'Does Enhancv generate application emails?',
+        answer:
+          'No. Enhancv generates resumes and cover letters but not application emails or follow-up emails. This is unique to Karko AI.',
+      },
+      {
+        question: 'Which is more affordable?',
+        answer:
+          'Enhancv\'s Pro plan ($24.99/mo) is cheaper than Karko\'s Plus ($39.99/mo). However, Karko includes email generation (Enhancv doesn\'t). Per-application cost: Karko ~$0.80, Enhancv unlimited for $24.99/mo. If you need many applications without emails, Enhancv is cheaper.',
+      },
+      {
+        question: 'Can Karko do fit analysis?',
+        answer:
+          'Yes. Fit analysis (assessing job match before creating documents) is unique to Karko AI. Costs 0.5 credits. Enhancv tailors resumes but doesn\'t assess fit first.',
+      },
+      {
+        question: 'Which has job tracking?',
+        answer:
+          'Enhancv has built-in job application tracking. Karko doesn\'t offer tracking yet (on roadmap). If you need to track applications across multiple roles, Enhancv has it.',
+      },
+      {
+        question: 'Which has better AI?',
+        answer:
+          'Karko AI uses Claude Sonnet 4.6 by Anthropic, the latest AI model for writing tasks. Enhancv uses AI but doesn\'t specify the model. Karko produces more personalized, professional content.',
+      },
+      {
+        question: 'Which is faster?',
+        answer:
+          'Karko AI generates complete application packages in 90 seconds (fully automated). Enhancv offers one-click tailoring but still requires manual input. Karko is faster for complete automation.',
+      },
+    ],
+
+    verdict:
+      'Karko AI and Enhancv serve different needs. Enhancv excels at multi-language support (30+ languages) and job tracking—perfect for international job seekers applying across many countries. Karko AI excels at generating complete application packages with personalized emails in 90 seconds—perfect for strategic English/German job searches. If you can only choose one: pick Karko if you need emails and latest AI in English/German markets, pick Enhancv if you need multi-language support and job tracking. For power users: use both—Karko for English/German applications with emails, Enhancv for other languages and tracking.',
+
+    ctaText: 'Try Karko AI Free - 5 Complete Applications',
+    ctaHref: '/dashboard',
+
+    tags: [
+      'Karko AI',
+      'Enhancv',
+      'resume builder',
+      'multi-language',
+      'application emails',
+      'job tracking',
+    ],
+  },
+
+  // Karko AI vs Resume.io
+  {
+    slug: 'karko-ai-vs-resume-io',
+    title: 'Karko AI vs Resume.io: Which Resume Builder Wins in 2026?',
+    description:
+      'Resume.io offers full ecosystem with recruiter matching and auto-apply. Karko AI generates complete application packages with AI emails. Compare features and pricing.',
+    h1: 'Karko AI vs Resume.io: Focused Quality vs Full Ecosystem (2026)',
+    publishedAt: '2026-03-31',
+    competitorName: 'Resume.io',
+    competitorSlug: 'resume-io',
+
+    summaryTable: [
+      { feature: 'CV Generation', karkoValue: 'AI-tailored (90 sec)', competitorValue: 'AI-assisted (~20 min)' },
+      { feature: 'Cover Letter', karkoValue: 'Personalized', competitorValue: 'Yes' },
+      { feature: 'Application Email', karkoValue: true, competitorValue: false, karkoWins: true },
+      { feature: 'Follow-Up Email', karkoValue: true, competitorValue: false, karkoWins: true },
+      { feature: 'Fit Analysis', karkoValue: true, competitorValue: false, karkoWins: true },
+      { feature: 'Recruiter Matching', karkoValue: false, competitorValue: '50/week' },
+      { feature: 'Auto-Apply Service', karkoValue: false, competitorValue: 'Yes' },
+      { feature: 'Pricing', karkoValue: '$39.99-79.99/mo', competitorValue: '€24.95/mo' },
+      { feature: 'Best For', karkoValue: 'Quality applications', competitorValue: 'Volume + ecosystem' },
+    ],
+
+    karkoOverview: {
+      name: 'Karko AI',
+      slug: 'karko-ai',
+      description:
+        'AI-powered job application assistant that generates complete application packages: CV, cover letter, application email, and follow-up email in under 90 seconds.',
+      pricing: 'Free (5 apps), Plus $39.99/mo (50 apps), Max $79.99/mo (100 apps)',
+      keyFeatures: [
+        'Fit analysis before generating materials',
+        'AI-tailored CV using Claude Sonnet 4.6',
+        'Personalized cover letters with company research',
+        'Application email generation (unique)',
+        'Follow-up email generation (unique)',
+        'ATS-optimized templates (6 designs)',
+        'Master CV system',
+        'German market specialization',
+      ],
+      pros: [
+        'Only tool that generates application + follow-up emails',
+        'Fit analysis helps focus on good matches',
+        'Latest AI (Claude Sonnet 4.6) for highest quality',
+        'Complete application package in one workflow',
+        'Focused solution (no ecosystem bloat)',
+        'No vendor lock-in (use materials anywhere)',
+      ],
+      cons: [
+        'No recruiter matching',
+        'No auto-apply service',
+        'No career coaching or salary negotiation tools',
+      ],
+      bestFor:
+        'Job seekers who want complete, high-quality application packages with fit analysis. Best for strategic, quality-focused job searches.',
+      rating: 4.8,
+      url: 'https://www.karkoai.com',
+    },
+
+    competitorOverview: {
+      name: 'Resume.io',
+      slug: 'resume-io',
+      description:
+        'Full-ecosystem job search platform with resume builder, recruiter matching, auto-apply service, career coaching, and salary negotiation tools.',
+      pricing: 'Free (1 CV+CL, TXT only), €2.95 trial (7 days, auto-renews €24.95/4 weeks)',
+      keyFeatures: [
+        'AI Resume Builder (~20 minutes)',
+        'Recruiter Match (50 recruiters weekly)',
+        'Job Board',
+        'Auto Apply (expert team applies for you)',
+        'Interview Prep',
+        'Salary Analyzer',
+        'Career Coaching (1-on-1)',
+        'Future Learn (courses)',
+        'Cover Letter Builder',
+        'ATS Scoring/Checker',
+        '40+ Templates',
+        '500+ Examples',
+      ],
+      pros: [
+        'Full ecosystem (recruiter matching, auto-apply, coaching)',
+        'Recruiter network (50 connections/week)',
+        'Auto-apply service (human team applies for you)',
+        'Salary negotiation tools',
+        'Integrated learning',
+        '10+ years refinement',
+        'Strong social proof (4.4/5, 37K+ reviews)',
+      ],
+      cons: [
+        'Free tier very limited (TXT downloads only, no PDFs)',
+        'No application email generation',
+        'No follow-up email generation',
+        'No fit analysis',
+        'Aggressive pricing (trial auto-renews)',
+        'Ecosystem lock-in (tries to own entire job search)',
+        'Generic AI (not using latest models)',
+      ],
+      bestFor:
+        'Job seekers who want a full-service ecosystem and are willing to let a platform manage their entire job search. Best for volume-focused searches.',
+      rating: 4.4,
+      url: 'https://resume.io',
+    },
+
+    features: [
+      {
+        title: 'Application Emails',
+        description:
+          'Professional application emails can increase callback rates by up to 40%. Most candidates skip this step.',
+        karkoDetails:
+          'Generates both application emails (to send with your CV/cover letter) and follow-up emails (to send 7-10 days later). Both reference the specific role, company, and your relevant experience. Includes subject lines.',
+        competitorDetails:
+          'Does not generate application emails or follow-up emails. This feature is not offered.',
+        winner: 'karko',
+        reasoning:
+          'Karko is the only tool in the market that generates application emails. Resume.io doesn\'t attempt this feature.',
+      },
+      {
+        title: 'Recruiter Matching',
+        description:
+          'Direct connections to recruiters can bypass ATS systems and accelerate job search.',
+        karkoDetails:
+          'Does not offer recruiter matching. Focused on application materials only.',
+        competitorDetails:
+          'Connects users with 50 recruiters per week. Direct access to hiring professionals. Bypasses ATS systems for some roles.',
+        winner: 'competitor',
+        reasoning:
+          'Resume.io\'s recruiter network is a major advantage. Karko doesn\'t offer this ecosystem feature.',
+      },
+      {
+        title: 'Auto-Apply Service',
+        description:
+          'Having experts apply to jobs on your behalf can save time, but raises quality control concerns.',
+        karkoDetails:
+          'Does not offer auto-apply. You control when and where you apply after reviewing materials.',
+        competitorDetails:
+          'Expert team applies to jobs on your behalf. Saves time but reduces control. Volume-focused approach.',
+        winner: 'tie',
+        reasoning:
+          'Different philosophies. Resume.io auto-applies for volume. Karko gives you control for quality. Depends on your strategy: volume vs strategic.',
+      },
+      {
+        title: 'Fit Analysis',
+        description:
+          'Not every job is worth applying to. Assessing fit before spending time saves resources and improves match quality.',
+        karkoDetails:
+          'Offers fit analysis mode: analyzes job description against your Master CV and provides match percentage, skill gaps, and recommendations before generating materials. Strategic approach.',
+        competitorDetails:
+          'No fit analysis feature. Auto-applies to many jobs without pre-assessing compatibility. Volume approach assumes some will stick.',
+        winner: 'karko',
+        reasoning:
+          'Karko\'s fit-first workflow helps you focus on good matches. Resume.io auto-applies to everything, which can lead to weak matches.',
+      },
+      {
+        title: 'Quality vs Volume Philosophy',
+        description:
+          'Strategic quality (10-20 carefully selected roles) vs high volume (100+ spray-and-pray) are fundamentally different approaches.',
+        karkoDetails:
+          'Quality-focused: fit analysis before applying, personalized emails, company research, strategic workflow. Aims for high match quality, not high application count.',
+        competitorDetails:
+          'Volume-focused: auto-apply to many roles, recruiter matching for broad exposure, 20-minute promise for speed. Aims for high application count, assumes some will convert.',
+        winner: 'tie',
+        reasoning:
+          'Different strategies for different job markets. Karko is quality-focused (strategic), Resume.io is volume-focused (spray-and-pray). Neither is wrong—depends on your situation.',
+      },
+      {
+        title: 'AI Model & Content Quality',
+        description:
+          'Latest AI models produce more natural, personalized content. Generic AI produces templated, detectable output.',
+        karkoDetails:
+          'Uses Claude Sonnet 4.6 by Anthropic, the latest AI model for writing tasks. Produces highly personalized, professional content with company research and role-specific tailoring.',
+        competitorDetails:
+          'AI model not disclosed. ~20-minute generation time suggests less advanced AI. Content quality is serviceable but more generic.',
+        winner: 'karko',
+        reasoning:
+          'Karko\'s Claude Sonnet 4.6 produces significantly higher-quality, more personalized content. Resume.io\'s AI is adequate but not cutting-edge.',
+      },
+    ],
+
+    useCases: [
+      {
+        title: 'Choose Karko AI if you want:',
+        description:
+          'Strategic, quality-focused job search with complete application packages, fit analysis, and personalized emails.',
+        recommendedTool: 'Karko AI',
+        reasoning:
+          'Karko excels at quality over quantity. Fit analysis + emails + latest AI = highest match quality. If you\'re applying to 10-20 carefully selected roles, Karko wins.',
+      },
+      {
+        title: 'Choose Resume.io if you want:',
+        description:
+          'Full-service ecosystem with recruiter matching, auto-apply, career coaching, and salary negotiation. Volume-focused.',
+        recommendedTool: 'Resume.io',
+        reasoning:
+          'Resume.io\'s ecosystem is comprehensive. Recruiter matching + auto-apply = high volume exposure. If you want a platform to manage your entire job search, Resume.io wins.',
+      },
+      {
+        title: 'Use both if:',
+        description:
+          'You want Karko\'s quality materials for strategic applications + Resume.io\'s recruiter network for additional exposure.',
+        recommendedTool: 'Karko AI + Resume.io',
+        reasoning:
+          'Use Karko for high-quality applications to carefully selected roles. Use Resume.io\'s recruiter matching for additional exposure. Complementary strategies.',
+      },
+      {
+        title: 'Choose Karko AI if you value control:',
+        description:
+          'You want to review and approve every application before it\'s sent. No auto-apply, no vendor lock-in.',
+        recommendedTool: 'Karko AI',
+        reasoning:
+          'Karko gives you full control. You review fit analysis, approve materials, decide where to apply. Resume.io\'s auto-apply reduces control for speed.',
+      },
+    ],
+
+    faq: [
+      {
+        question: 'Which has better AI?',
+        answer:
+          'Karko AI uses Claude Sonnet 4.6 by Anthropic, the latest AI model for writing tasks. Resume.io uses AI but doesn\'t disclose the model. Karko produces more personalized, professional content.',
+      },
+      {
+        question: 'Does Resume.io generate application emails?',
+        answer:
+          'No. Resume.io generates resumes and cover letters but not application emails or follow-up emails. This is unique to Karko AI.',
+      },
+      {
+        question: 'Which is more affordable?',
+        answer:
+          'Resume.io\'s paid plan is €24.95/month (auto-renews from €2.95 trial). Karko is $39.99-79.99/month. Resume.io is cheaper. However, Karko includes email generation (Resume.io doesn\'t) and uses latest AI. Depends on what you value.',
+      },
+      {
+        question: 'Can Karko match me with recruiters?',
+        answer:
+          'No. Karko focuses on application materials (CV, cover letter, emails). Resume.io offers recruiter matching (50/week). If you need recruiter connections, Resume.io has it.',
+      },
+      {
+        question: 'Does Resume.io do fit analysis?',
+        answer:
+          'No. Fit analysis (assessing job match before creating documents) is unique to Karko AI. Resume.io\'s auto-apply service applies to many roles without pre-assessing fit.',
+      },
+      {
+        question: 'Which is better for strategic job searches?',
+        answer:
+          'Karko AI. Strategic searches (10-20 carefully selected roles) benefit from fit analysis, personalized emails, and quality over quantity. Resume.io is better for volume approaches.',
+      },
+      {
+        question: 'Which is faster?',
+        answer:
+          'Karko AI generates complete application packages in 90 seconds (fully automated). Resume.io takes ~20 minutes per application. Karko is 13x faster.',
+      },
+    ],
+
+    verdict:
+      'Karko AI and Resume.io represent opposite philosophies. Resume.io offers a full ecosystem (recruiter matching, auto-apply, career coaching, salary negotiation)—perfect for job seekers who want a platform to manage their entire search with a volume-focused approach. Karko AI offers focused excellence in application materials with fit analysis and personalized emails—perfect for strategic job seekers who want quality over quantity. If you can only choose one: pick Karko if you value strategic quality, control, and latest AI with emails; pick Resume.io if you want a full-service ecosystem with recruiter matching and auto-apply. For power users: use both—Karko for high-quality applications to strategic roles, Resume.io for recruiter network exposure.',
+
+    ctaText: 'Try Karko AI Free - 5 Strategic Applications',
+    ctaHref: '/dashboard',
+
+    tags: [
+      'Karko AI',
+      'Resume.io',
+      'resume builder',
+      'recruiter matching',
+      'application emails',
+      'auto-apply',
+    ],
+  },
 ];
 
 export function getComparisons(): ComparisonData[] {
