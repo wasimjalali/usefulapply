@@ -10,8 +10,8 @@ interface FooterLink {
 }
 
 const productLinks: FooterLink[] = [
-  { href: '/features', label: 'All Features' },
-  { href: '/ai-job-application', label: 'AI Applications' },
+  { href: '/features', label: 'Features' },
+  { href: '/ai-job-application', label: 'How It Works' },
   { href: '/master-cv', label: 'Master CV' },
   { href: '/ai-job-application/application-tracker', label: 'Application Tracker' },
   { href: '/pricing', label: 'Pricing' },
