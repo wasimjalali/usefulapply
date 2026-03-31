@@ -43,10 +43,10 @@ export default function TrustpilotReviews() {
         <ScrollReveal>
           <div className="text-center mb-14">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Testimonials</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
               What Job Seekers Are Saying
             </h2>
-            <div className="flex justify-center mb-6">
+            <div className="flex justify-center">
               <button
                 onClick={handleReviewClick}
                 className="hover:opacity-80 transition-opacity"
@@ -55,19 +55,19 @@ export default function TrustpilotReviews() {
                 <img
                   src="/trustpilot-logo.png"
                   alt="Trustpilot"
-                  className="h-8 w-auto"
+                  className="h-14 w-auto"
                 />
               </button>
             </div>
           </div>
         </ScrollReveal>
 
-        <div className="grid md:grid-cols-2 gap-6 mb-10">
+        <div className="grid md:grid-cols-2 gap-6 mb-10 md:items-stretch">
           {reviews.map((review, index) => (
-            <ScrollReveal key={index} delay={index * 150}>
+            <ScrollReveal key={index} delay={index * 150} className="h-full">
               <button
                 onClick={handleReviewClick}
-                className="bg-white rounded-2xl p-8 border border-cream-200 shadow-sm hover:shadow-lg hover:border-gold-300/50 transition-all text-left w-full group"
+                className="bg-white rounded-2xl p-8 border border-cream-200 shadow-sm hover:shadow-lg hover:border-gold-300/50 transition-all text-left w-full h-full group flex flex-col"
               >
                 {/* Stars */}
                 <div className="flex gap-1 mb-4">
@@ -82,12 +82,12 @@ export default function TrustpilotReviews() {
                 </h3>
 
                 {/* Review Text */}
-                <p className="text-warm-gray leading-relaxed mb-6">
+                <p className="text-warm-gray leading-relaxed mb-6 flex-grow">
                   {review.text}
                 </p>
 
                 {/* Reviewer Info */}
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center justify-between text-sm mt-auto">
                   <div>
                     <p className="font-semibold text-navy-600">{review.name}</p>
                     <p className="text-warm-gray">{review.location}</p>
