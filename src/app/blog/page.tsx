@@ -7,6 +7,7 @@ import Footer from '@/components/marketing/Footer';
 import { getAllPosts, getAllCategories, CATEGORY_COLORS } from '@/lib/blog';
 import type { BlogCategory } from '@/lib/blog';
 import { buildPageMetadata } from '@/lib/seo/metadata';
+import { getBlurDataUrl } from '@/lib/blog/blur-data';
 
 export const metadata: Metadata = buildPageMetadata({
   title: 'Blog: Career Tips & AI Job Search',
@@ -108,6 +109,8 @@ export default function BlogPage() {
                             alt={featuredPost.title}
                             fill
                             priority
+                            placeholder="blur"
+                            blurDataURL={getBlurDataUrl(featuredPost.ogImage)}
                             className="object-cover group-hover:scale-105 transition-transform duration-300"
                             sizes="(max-width: 768px) 100vw, 40vw"
                           />
@@ -170,6 +173,8 @@ export default function BlogPage() {
                                 src={post.ogImage}
                                 alt={post.title}
                                 fill
+                                placeholder="blur"
+                                blurDataURL={getBlurDataUrl(post.ogImage)}
                                 className="object-cover group-hover:scale-105 transition-transform duration-300"
                                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                               />
