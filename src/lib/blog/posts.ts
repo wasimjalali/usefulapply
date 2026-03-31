@@ -1201,6 +1201,8 @@ Without a master CV, every new application starts from a partial document. You a
 
 With a master CV, you always start from the full picture.
 
+![Central Master CV document with golden rays, surrounded by tailored CV versions for different roles](/blog/master-cv-concept-diagram.jpg)
+
 ## Why You Need a Master CV
 
 The biggest reason is simple: **you need one source of truth**.
@@ -1303,6 +1305,8 @@ The best master CV structure is not fancy. It is organized, comprehensive, and e
 
 Use this framework:
 
+![8-step vertical flowchart showing how to build a complete Master CV](/blog/master-cv-build-process.jpg)
+
 ### 1. Personal Information
 
 Include your name, email, phone, LinkedIn, portfolio, and location. If you are applying across markets, you can also keep alternative location or work authorization notes here for easy reuse.
@@ -1377,6 +1381,8 @@ The right workflow is:
 4. Send the tailored version
 
 That is the system.
+
+![Side-by-side comparison: thick Master CV (3-5 pages, all experience) vs sleaner Tailored CV (1-2 pages, relevant only)](/blog/master-cv-vs-tailored-cv.jpg)
 
 ## How to Use a Master CV in Practice
 
@@ -1511,6 +1517,8 @@ If you want interviews, you need to adapt.
 ## The Key Differences at a Glance
 
 Let us start with the practical version.
+
+![Split-screen infographic showing 7 key differences between German CV and American Resume with German and American flag colors](/blog/german-american-cv-differences.jpg)
 
 ### Length
 
@@ -1727,6 +1735,8 @@ If your resume sounds stiff and abstract, it will underperform in six-second sca
 
 US resumes live or die on clear outcomes. What changed because of your work?
 
+![Comparison checklist: German CV required vs forbidden items, American Resume required vs forbidden items with green checkmarks and red X marks](/blog/german-american-cv-checklist.jpg)
+
 ## ATS Considerations in Both Markets
 
 This is the point that matters most in 2026: both markets increasingly run through software before a human sees your document.
@@ -1776,6 +1786,8 @@ Karko also includes two German-specific templates:
 These are built for German Lebenslauf conventions, including support for region-appropriate layout and tone.
 
 The real advantage is that you do not need to maintain two completely different career documents by hand. You keep one complete source of truth, then generate the right market-specific output based on where you are applying.
+
+![Decision tree flowchart: Where are you applying? Germany/Austria/Switzerland vs US/UK/Canada vs Hybrid format with navy blue boxes and gold diamonds](/blog/cv-format-decision-tree.jpg)
 
 ## The Practical Rule
 
@@ -1857,6 +1869,8 @@ The real distinction is:
 - **AI as assistant:** ethical
 - **AI as fabricator:** unethical
 
+![Horizontal spectrum from green (Ethical: AI as writing assistant) through yellow (Gray area: unreviewed output) to red (Unethical: AI invents experience)](/blog/ai-resume-ethics-spectrum.jpg)
+
 ## Why This Question Matters
 
 A resume is not a blog post. A cover letter is not creative fiction. A job application is a professional trust document.
@@ -1916,6 +1930,8 @@ Using AI or an AI-powered tool to create a clean, ATS-safe resume is an efficien
 ### 6. Saving time on repetitive work
 
 This point matters more than people admit. Job searching is labor. If AI removes repetitive formatting and rewriting work so you can focus on strategy, interviews, and networking, that is a legitimate use of a tool.
+
+![Balance scale showing Job Search Pressure (applications volume, time constraints, competition) on left vs Ethical AI Use (efficiency without fabrication, strategic focus) on right](/blog/job-search-pressure-balance.jpg)
 
 ## What Is Unethical
 
@@ -2009,6 +2025,8 @@ That shows up in a few ways:
 - It focuses on selecting and reframing documented experience
 - It surfaces fit gaps instead of hiding them
 - It is designed to avoid hallucinated claims
+
+![4-pillar diagram showing Karko AI safeguards: Source-First Generation, No Skill Inflation, Fit Gap Visibility, and Human Review Required](/blog/karko-ai-safeguards.jpg)
 
 If you want the full principle, the best reference point in the product is Karko's [zero-fabrication approach](/ai-job-application/zero-fabrication).
 
