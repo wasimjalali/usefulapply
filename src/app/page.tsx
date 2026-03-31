@@ -7,6 +7,7 @@ import { PlusPlanButton, MaxPlanButton } from '@/components/marketing/HomePricin
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { TimeSavingsCalculator } from '@/components/marketing/TimeSavingsCalculator';
+import TrustpilotReviews from '@/components/marketing/TrustpilotReviews';
 
 export const metadata: Metadata = {
   title: {
@@ -75,6 +76,44 @@ export default function Home() {
               name: 'KarKo AI',
               url: SITE_URL,
             },
+            aggregateRating: {
+              '@type': 'AggregateRating',
+              ratingValue: '5.0',
+              reviewCount: '2',
+              bestRating: '5',
+            },
+            review: [
+              {
+                '@type': 'Review',
+                author: {
+                  '@type': 'Person',
+                  name: 'Mohammad Shafiq',
+                },
+                datePublished: '2026-03-08',
+                reviewBody:
+                  'Karko is a very useful AI tool for job applications. It helps create a professional CV in the European and USA format and also assists with writing strong cover letters. The platform is easy to use and saves a lot of time when preparing job applications. I would definitely recommend it to anyone who wants to improve their CV and apply for jobs more efficiently.',
+                reviewRating: {
+                  '@type': 'Rating',
+                  ratingValue: '5',
+                  bestRating: '5',
+                },
+              },
+              {
+                '@type': 'Review',
+                author: {
+                  '@type': 'Person',
+                  name: 'Zaeem Jalali',
+                },
+                datePublished: '2026-03-04',
+                reviewBody:
+                  'If you are someone whose looking for jobs like me this is the best site for you. It saves so much time and energy for you. You can create targeted CV, Cover Letter and Email + follow up email in a matter of seconds for any Job application you want.',
+                reviewRating: {
+                  '@type': 'Rating',
+                  ratingValue: '5',
+                  bestRating: '5',
+                },
+              },
+            ],
           }),
         }}
       />
@@ -517,6 +556,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Trustpilot Reviews */}
+      <TrustpilotReviews />
 
       {/* Why Trust Karko AI */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white relative">
