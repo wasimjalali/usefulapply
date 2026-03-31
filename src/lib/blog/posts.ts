@@ -168,7 +168,7 @@ If you're in a job search right now, you already know how much time you're spend
       'Karko AI',
     ],
     featured: false,
-    ogImage: '/blog/follow-up-response-rate.jpg',
+    ogImage: '/blog/follow-up-email-cover.jpg',
     cta: {
       heading: 'Generate Your Follow-Up Email in 90 Seconds',
       description: 'Get a professional follow-up email as part of your complete application package. Free for 5 applications.',
@@ -350,7 +350,7 @@ If you're in a job search, you already know how long tailoring takes. The questi
       'job search tips',
     ],
     featured: false,
-    ogImage: '/blog/generic-vs-tailored-response.jpg',
+    ogImage: '/blog/resume-tailoring-cover.jpg',
     cta: {
       heading: 'Tailor Your Resume in 90 Seconds',
       description: 'Generate a tailored, ATS-optimized resume for any job description. Free for 5 applications.',
@@ -597,7 +597,7 @@ Paste a job description and see what comes back.
       'Karko AI',
     ],
     featured: false,
-    ogImage: '/blog/ats-format-checklist.jpg',
+    ogImage: '/blog/ats-resume-cover.jpg',
     cta: {
       heading: 'Generate ATS-Optimized Resume in 90 Seconds',
       description: 'All our templates pass ATS parsers by default. Free for 5 applications.',
@@ -800,7 +800,7 @@ No credit card. No sign-up wall. Paste a job description and see what comes back
       'application tips',
     ],
     featured: false,
-    ogImage: '/blog/ai-cover-letter-callback-rate.jpg',
+    ogImage: '/blog/ai-cover-letter-cover.jpg',
     cta: {
       heading: 'Generate Personalized Cover Letter in 90 Seconds',
       description: 'AI-written cover letters with company research. Free for 5 applications.',
@@ -1022,7 +1022,7 @@ Karko AI is free for your first 5 applications. Generate a complete, tailored ap
       'tool comparison',
     ],
     featured: false,
-    ogImage: '/blog/ai-tools-comparison-matrix.jpg',
+    ogImage: '/blog/ai-tools-comparison-cover.jpg',
     cta: {
       text: 'Try Karko AI Free - 5 Complete Applications',
       href: '/dashboard',
@@ -1485,6 +1485,7 @@ If you are serious about applying efficiently without sacrificing quality, build
       'Karko AI',
     ],
     featured: false,
+    ogImage: '/blog/master-cv-cover.jpg',
     cta: {
       heading: 'Turn Your Master CV Into Tailored Applications',
       description: 'Upload your full career history once, then generate tailored CVs, cover letters, and emails in 90 seconds.',
@@ -1813,6 +1814,7 @@ That means less manual reformatting, fewer cultural mistakes, and a better chanc
       'Karko AI',
     ],
     featured: false,
+    ogImage: '/blog/german-vs-american-cv-cover.jpg',
     cta: {
       heading: 'Create a German or US CV in 90 Seconds',
       description: 'Use the same career history to generate region-appropriate CVs with the right format, tone, and conventions.',
@@ -2091,6 +2093,7 @@ That means you can move faster, improve your presentation, and still know the do
       'Karko AI',
     ],
     featured: false,
+    ogImage: '/blog/ai-ethics-cover.jpg',
     cta: {
       heading: 'Use AI Without Crossing the Line',
       description: 'Karko AI helps you phrase real experience better without inventing skills, achievements, or history.',
