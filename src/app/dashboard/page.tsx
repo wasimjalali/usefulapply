@@ -420,7 +420,7 @@ export default function Dashboard() {
 
           {/* Content Area */}
           <div className="flex-1 overflow-auto">
-            {user && !currentCV ? (
+            {!currentCV ? (
               /* ═══ Onboarding: Upload CV to get started ═══ */
               <div className="flex items-center justify-center h-full p-8">
                 <div className="max-w-md w-full">
@@ -509,7 +509,7 @@ export default function Dashboard() {
       <div className="md:hidden flex-1 flex flex-col overflow-hidden">
         {/* Mobile Content — full screen per tab */}
         <div className="flex-1 overflow-auto">
-          {user && !currentCV && mobileTab !== 'chat' ? (
+          {!currentCV && mobileTab !== 'chat' ? (
             /* Mobile onboarding */
             <div className="flex items-center justify-center h-full p-6">
               <div className="max-w-sm w-full">
