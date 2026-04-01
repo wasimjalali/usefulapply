@@ -29,7 +29,7 @@ import { InsufficientCreditsModal } from '@/components/InsufficientCreditsModal'
 import { usePostHog } from 'posthog-js/react';
 
 interface ChatPanelProps {
-  onTabChange?: (tab: 'cv' | 'cover-letter' | 'email') => void;
+  onTabChange?: (tab: 'cv' | 'cover-letter' | 'email' | 'documents') => void;
   isMobileDrawer?: boolean;
   /** When provided, History + New Application buttons are portalled into this DOM node (desktop nav bar). Header is hidden. */
   navBarPortal?: HTMLDivElement | null;
@@ -161,7 +161,11 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
   const handleAction = async (action: string) => {
     switch (action) {
       case 'navigate-documents':
-        router.push('/documents');
+        if (onTabChange) {
+          onTabChange('documents');
+        } else {
+          router.push('/documents');
+        }
         break;
       case 'view-cv':
         onTabChange?.('cv');

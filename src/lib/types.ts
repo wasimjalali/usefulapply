@@ -202,7 +202,7 @@ export interface AppState {
   // UI State
   isAnalyzing: boolean;
   isGenerating: boolean;
-  activeTab: 'cv' | 'cover-letter' | 'email';
+  activeTab: 'cv' | 'cover-letter' | 'email' | 'documents';
   error: string | null;
 }
 

@@ -29,7 +29,7 @@ import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import { useAuth } from '@/contexts/AuthContext';
 import { SignUpWallModal } from '@/components/SignUpWallModal';
 import { useToast } from './ui/Toast';
-import Link from 'next/link';
+import { useUIStore } from '@/store/useUIStore';
 import { downloadBlob, getCaptureScale, getIsMobileOrTablet } from '@/lib/utils/download-pdf';
 
 // White margin added at the top and bottom of every PDF page (~10mm).
@@ -818,12 +818,10 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
           <p className="text-sm text-warm-gray mb-6 leading-relaxed">
             Upload your CV in the Documents section to get started with AI-powered optimization.
           </p>
-          <Link href="/documents">
-            <Button variant="gold">
-              Go to Documents
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </Link>
+          <Button variant="gold" onClick={() => useUIStore.getState().setActiveTab('documents')}>
+            Go to Documents
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
         </div>
       </div>
     );
