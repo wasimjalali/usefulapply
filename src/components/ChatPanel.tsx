@@ -68,6 +68,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     runAgentWorkflow,
     setFitAnalysisContextId,
     setFitAnalysisJD,
+    setFitAnalysisContextData,
     setAgentSteps,
   } = useAgentWorkflow({
     onInsufficientCredits: (required, available) => {
@@ -171,18 +172,33 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
       case 'view-email':
         onTabChange?.('email');
         break;
-      case 'generate-full-application':
+      case 'generate-full-application': {
         posthog?.capture('apply_clicked', { mode: 'analyze_first' });
         addChatMessage({
           role: 'assistant',
           content: '🚀 Generating your full application package...',
         });
-        // runAgentWorkflow sets isAgentWorking and v2Progress internally
-        runAgentWorkflow(fitAnalysisJD, fitAnalysisContextId || undefined);
+        // Restore from session if React state was lost (e.g., after session switch)
+        const pending = currentSession?.pendingFitAnalysis;
+        const ctxId = fitAnalysisContextId || pending?.contextId;
+        const jd = fitAnalysisJD || pending?.jobDescription || currentSession?.jobDescription || '';
+        const ctxData = pending?.contextData ?? undefined;
+        if (!fitAnalysisContextId && pending) {
+          setFitAnalysisContextId(pending.contextId);
+          setFitAnalysisJD(pending.jobDescription);
+          setFitAnalysisContextData(ctxData ?? null);
+        }
+        // Clear pending state from session
+        useAppStore.getState().updateCurrentSession({ pendingFitAnalysis: null });
+        // Pass context data directly to avoid stale closure
+        runAgentWorkflow(jd, ctxId || undefined, ctxData);
         break;
+      }
       case 'skip-job':
         setFitAnalysisContextId(null);
         setFitAnalysisJD('');
+        // Clear pending state from session
+        useAppStore.getState().updateCurrentSession({ pendingFitAnalysis: null });
         useAppStore.getState().clearCurrentSession();
         useAppStore.getState().setJobDescription('');
         setJobDescription('');
@@ -449,7 +465,14 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
           applicationMode={applicationMode}
           onModeChange={setApplicationMode}
           showModeSelector={!!currentCV}
-          pendingFitAnalysis={!!fitAnalysisContextId && !isAgentWorking}
+          pendingFitAnalysis={
+            !isAgentWorking &&
+            !currentSession?.generatedCV &&
+            !!(fitAnalysisContextId || (
+              currentSession?.pendingFitAnalysis &&
+              (Date.now() - new Date(currentSession.pendingFitAnalysis.createdAt).getTime()) < 30 * 60 * 1000
+            ))
+          }
           onFitAnalysisAction={(action) => {
             if (action === 'apply') {
               handleAction('generate-full-application');

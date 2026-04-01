@@ -167,6 +167,21 @@ export interface ApplicationSession {
   fitAssessment?: string | null;
   companyResearch: CompanyResearch | null;
   
+  /** Persisted fit analysis state — survives session switches, expires after 30 min */
+  pendingFitAnalysis?: {
+    contextId: string;
+    jobDescription: string;
+    contextData: {
+      applicant: Record<string, unknown>;
+      job: Record<string, unknown>;
+      match: Record<string, unknown>;
+      verifiedMetrics?: string[];
+      detectedLanguage?: string;
+      fitAnalysis?: Record<string, unknown>;
+    };
+    createdAt: string;
+  } | null;
+
   cvEdits: CVEdit[];
   optimizedPdfRef?: {
     id: string;

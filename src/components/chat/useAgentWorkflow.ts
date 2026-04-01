@@ -300,6 +300,15 @@ export function useAgentWorkflow(options?: {
                     missingSkills: match.missingSkills || [],
                   });
                 }
+                // Persist fit analysis state to session so it survives session switches
+                useAppStore.getState().updateCurrentSession({
+                  pendingFitAnalysis: {
+                    contextId,
+                    jobDescription: jobDescription,
+                    contextData: { applicant, job, match, verifiedMetrics, detectedLanguage, fitAnalysis },
+                    createdAt: new Date().toISOString(),
+                  },
+                });
                 posthog?.capture('fit_analysis_viewed', {
                   fit_score: fitAnalysis?.score,
                   fit_level: fitAnalysis?.fitLevel,
@@ -377,7 +386,7 @@ export function useAgentWorkflow(options?: {
     }
   };
 
-  const runAgentWorkflow = async (jobDescription: string, contextId?: string) => {
+  const runAgentWorkflow = async (jobDescription: string, contextId?: string, overrideContextData?: FitAnalysisContextData) => {
     if (!currentCV) return;
 
     setIsAgentWorking(true);
@@ -386,12 +395,13 @@ export function useAgentWorkflow(options?: {
     setV2Reflection(null);
     setV2Models(null);
     setV2TokenUsage(null);
-    
+
     try {
       const { masterCV } = useAppStore.getState();
 
       abortControllerRef.current = new AbortController();
 
+      const contextData = overrideContextData || fitAnalysisContextData;
       const response = await fetch('/api/agent-v2', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -401,7 +411,7 @@ export function useAgentWorkflow(options?: {
           masterCV: masterCV?.rawText,
           action: contextId ? 'generate_with_context' : 'full_optimization',
           contextId,
-          cachedContextData: contextId ? fitAnalysisContextData : undefined,
+          cachedContextData: contextId ? contextData : undefined,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -758,6 +768,7 @@ export function useAgentWorkflow(options?: {
     // Setters needed by handleAction
     setFitAnalysisContextId,
     setFitAnalysisJD,
+    setFitAnalysisContextData,
     setAgentSteps,
   };
 }
