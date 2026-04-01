@@ -6,25 +6,128 @@ import { CoverLetterPanel } from '@/components/CoverLetterPanel';
 import { EmailPanel } from '@/components/EmailPanel';
 import { ATSScorePanel } from '@/components/ATSScorePanel';
 import { ChatPanel } from '@/components/ChatPanel';
-import { useAppStore } from '@/store/useAppStore';
+import { FileUpload } from '@/components/FileUpload';
+import { useAppStore, useCVStore } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
-import { FileText, Mail, Send, FolderOpen, ClipboardList, Settings, Target, User, Loader2, MessageCircle, MoreHorizontal } from 'lucide-react';
+import { uploadCVFile, saveDocument } from '@/lib/supabase';
+import { FileText, Mail, Send, FolderOpen, ClipboardList, Settings, Target, User, Loader2, MessageCircle, MoreHorizontal, Sparkles, AlertCircle, ArrowRight } from 'lucide-react';
 import KarkoLogo from '@/components/KarkoLogo';
 import Link from 'next/link';
 import { CreditIndicator } from '@/components/ui/CreditIndicator';
+import type { ParsedCV } from '@/lib/types';
 
 export default function Dashboard() {
   const {
     activeTab,
     setActiveTab,
     isAgentWorking,
+    currentCV,
+    setCurrentCV,
+    setStructuredCV,
   } = useAppStore();
 
   const { user, profile, isLoading } = useAuth();
 
   // Sync sessions with Supabase in background
   useSupabaseSync();
+
+  // Onboarding CV upload state
+  const [isUploadingCV, setIsUploadingCV] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handleOnboardingCVUpload = useCallback(async (file: File) => {
+    setIsUploadingCV(true);
+    setUploadError(null);
+    try {
+      const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
+      if (file.size > MAX_UPLOAD_SIZE) {
+        throw new Error(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum: 10 MB.`);
+      }
+
+      // Upload to Supabase Storage first if authenticated
+      let storagePath: string | undefined;
+      if (user) {
+        const uploadResult = await uploadCVFile(user.id, 'primary_cv', file);
+        storagePath = uploadResult.path || undefined;
+      }
+
+      // Parse the CV
+      let response: Response;
+      if (storagePath) {
+        response = await fetch('/api/parse-cv', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storagePath, fileName: file.name }),
+        });
+      } else {
+        const formData = new FormData();
+        formData.append('file', file);
+        response = await fetch('/api/parse-cv', { method: 'POST', body: formData });
+      }
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to parse CV';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          if (response.status === 413) errorMessage = 'File is too large. Please try a smaller file.';
+          else if (response.status === 429) errorMessage = 'Too many requests. Please wait a moment and try again.';
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+      if (result.success && result.rawText) {
+        const parsedCV: ParsedCV = {
+          rawText: result.rawText,
+          sections: {
+            contactInfo: result.structuredCV?.personal
+              ? `${result.structuredCV.personal.fullName || ''}\n${result.structuredCV.personal.email || ''}\n${result.structuredCV.personal.phone || ''}` : '',
+            summary: result.structuredCV?.summary || '',
+            experience: result.structuredCV?.experience?.map((e: any) =>
+              `${e.position} at ${e.company}\n${e.bullets?.join('\n') || ''}`
+            ).join('\n\n') || '',
+            education: result.structuredCV?.education?.map((e: any) =>
+              `${e.degree} - ${e.institution}`
+            ).join('\n') || '',
+            skills: result.structuredCV?.skills?.map((s: any) =>
+              `${s.category}: ${s.skills?.join(', ') || ''}`
+            ).join('\n') || '',
+          },
+          fileName: file.name,
+          fileType: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : file.name.toLowerCase().endsWith('.docx') ? 'docx' : 'txt',
+        };
+
+        setCurrentCV(parsedCV);
+        if (result.structuredCV) {
+          setStructuredCV(result.structuredCV);
+        }
+        useCVStore.getState().setEditedOriginalCVData(null);
+
+        // Save to Supabase
+        if (user) {
+          await saveDocument(user.id, 'primary_cv', {
+            file_name: file.name,
+            file_type: parsedCV.fileType,
+            file_size: file.size,
+            storage_path: storagePath,
+            raw_text: parsedCV.rawText,
+            sections: parsedCV.sections,
+            structured_data: result.structuredCV,
+          });
+        }
+      } else {
+        throw new Error('CV was parsed but no content was extracted. The file may be empty or image-based.');
+      }
+    } catch (error) {
+      console.error('CV upload error:', error);
+      setUploadError(error instanceof Error ? error.message : 'Upload failed');
+    } finally {
+      setIsUploadingCV(false);
+    }
+  }, [user, setCurrentCV, setStructuredCV]);
 
   // Toolbar portal: panels render their controls into this slot in the tab bar
   const [toolbarNode, setToolbarNode] = useState<HTMLDivElement | null>(null);
@@ -179,15 +282,18 @@ export default function Dashboard() {
 
         <div className="flex-1" />
 
-        {/* Chat nav portal slot — ChatPanel portals History + New Application buttons here */}
-        <div ref={setChatNavNode} className="flex items-center" />
-
         {/* Credit Indicator */}
         {user && (
-          <div className="flex items-center mr-1">
+          <div className="flex items-center">
             <CreditIndicator />
           </div>
         )}
+
+        {/* Divider between credits and action buttons */}
+        {user && <div className="w-px h-5 bg-cream-300 mx-1.5" />}
+
+        {/* Chat nav portal slot — ChatPanel portals History + New Application buttons here */}
+        <div ref={setChatNavNode} className="flex items-center" />
 
         {/* Avatar with tier badge (also links to settings) */}
         {user ? (
@@ -314,10 +420,64 @@ export default function Dashboard() {
 
           {/* Content Area */}
           <div className="flex-1 overflow-auto">
-            {activeTab === 'cv' && <CVPanel toolbarPortal={toolbarNode} />}
-            {activeTab === 'ats-score' && <ATSScorePanel />}
-            {activeTab === 'cover-letter' && <CoverLetterPanel toolbarPortal={toolbarNode} />}
-            {activeTab === 'email' && <EmailPanel toolbarPortal={toolbarNode} />}
+            {user && !currentCV ? (
+              /* ═══ Onboarding: Upload CV to get started ═══ */
+              <div className="flex items-center justify-center h-full p-8">
+                <div className="max-w-md w-full">
+                  <div className="text-center mb-8">
+                    <div className="inline-flex p-4 bg-gradient-to-br from-navy-600 to-navy-700 rounded-2xl shadow-lg mb-5">
+                      <Sparkles className="w-8 h-8 text-gold-300" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-charcoal mb-2">Welcome to Karko AI</h2>
+                    <p className="text-warm-gray">
+                      Upload your CV to get started. We&apos;ll optimize it for every job you apply to.
+                    </p>
+                  </div>
+
+                  {uploadError && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                      <p className="text-sm text-red-600">{uploadError}</p>
+                    </div>
+                  )}
+
+                  {isUploadingCV ? (
+                    <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-navy-300 rounded-2xl bg-navy-50/50">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Loader2 className="w-5 h-5 animate-spin text-navy-600" />
+                        <p className="text-sm text-navy-600 font-medium">Parsing your CV...</p>
+                      </div>
+                      <p className="text-xs text-navy-500">This may take 30–60 seconds</p>
+                    </div>
+                  ) : (
+                    <FileUpload
+                      onFileSelect={handleOnboardingCVUpload}
+                      onError={(msg) => setUploadError(msg)}
+                      label="Upload your CV"
+                      description="PDF, DOCX, TXT, or MD (max 10 MB)"
+                    />
+                  )}
+
+                  <div className="mt-6 flex items-center justify-center">
+                    <Link
+                      href="/documents"
+                      className="inline-flex items-center gap-1.5 text-sm text-warm-gray hover:text-navy-600 transition-colors"
+                    >
+                      <FolderOpen className="w-3.5 h-3.5" />
+                      Go to Documents for more options
+                      <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                {activeTab === 'cv' && <CVPanel toolbarPortal={toolbarNode} />}
+                {activeTab === 'ats-score' && <ATSScorePanel />}
+                {activeTab === 'cover-letter' && <CoverLetterPanel toolbarPortal={toolbarNode} />}
+                {activeTab === 'email' && <EmailPanel toolbarPortal={toolbarNode} />}
+              </>
+            )}
           </div>
         </div>
 
@@ -349,16 +509,70 @@ export default function Dashboard() {
       <div className="md:hidden flex-1 flex flex-col overflow-hidden">
         {/* Mobile Content — full screen per tab */}
         <div className="flex-1 overflow-auto">
-          {mobileTab === 'chat' && (
-            <ChatPanel
-              onTabChange={(tab) => handleMobileTabChange(tab)}
-              isMobileDrawer={false}
-            />
+          {user && !currentCV && mobileTab !== 'chat' ? (
+            /* Mobile onboarding */
+            <div className="flex items-center justify-center h-full p-6">
+              <div className="max-w-sm w-full">
+                <div className="text-center mb-6">
+                  <div className="inline-flex p-3 bg-gradient-to-br from-navy-600 to-navy-700 rounded-xl shadow-lg mb-4">
+                    <Sparkles className="w-6 h-6 text-gold-300" />
+                  </div>
+                  <h2 className="text-xl font-bold text-charcoal mb-1.5">Upload your CV</h2>
+                  <p className="text-sm text-warm-gray">
+                    Get started by uploading your CV. We&apos;ll optimize it for every job.
+                  </p>
+                </div>
+
+                {uploadError && (
+                  <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                    <p className="text-sm text-red-600">{uploadError}</p>
+                  </div>
+                )}
+
+                {isUploadingCV ? (
+                  <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-navy-300 rounded-2xl bg-navy-50/50">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Loader2 className="w-5 h-5 animate-spin text-navy-600" />
+                      <p className="text-sm text-navy-600 font-medium">Parsing your CV...</p>
+                    </div>
+                    <p className="text-xs text-navy-500">This may take 30–60 seconds</p>
+                  </div>
+                ) : (
+                  <FileUpload
+                    onFileSelect={handleOnboardingCVUpload}
+                    onError={(msg) => setUploadError(msg)}
+                    label="Upload your CV"
+                    description="PDF, DOCX, TXT, or MD (max 10 MB)"
+                  />
+                )}
+
+                <div className="mt-4 flex items-center justify-center">
+                  <Link
+                    href="/documents"
+                    className="inline-flex items-center gap-1.5 text-sm text-warm-gray hover:text-navy-600 transition-colors"
+                  >
+                    <FolderOpen className="w-3.5 h-3.5" />
+                    More options
+                    <ArrowRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {mobileTab === 'chat' && (
+                <ChatPanel
+                  onTabChange={(tab) => handleMobileTabChange(tab)}
+                  isMobileDrawer={false}
+                />
+              )}
+              {mobileTab === 'cv' && <CVPanel />}
+              {mobileTab === 'ats-score' && <ATSScorePanel />}
+              {mobileTab === 'cover-letter' && <CoverLetterPanel />}
+              {mobileTab === 'email' && <EmailPanel />}
+            </>
           )}
-          {mobileTab === 'cv' && <CVPanel />}
-          {mobileTab === 'ats-score' && <ATSScorePanel />}
-          {mobileTab === 'cover-letter' && <CoverLetterPanel />}
-          {mobileTab === 'email' && <EmailPanel />}
         </div>
 
         {/* Mobile Bottom Tab Bar */}

@@ -532,7 +532,7 @@ export default function DocumentsPage() {
                   <FileText className="w-5 h-5 text-gold-300" />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-base font-semibold text-charcoal">Primary CV</h2>
+                  <h2 className="text-base font-semibold text-charcoal">CV</h2>
                   <p className="text-sm text-warm-gray mt-0.5">
                     Your main CV that will be optimized for each job application.
                   </p>
@@ -620,6 +620,77 @@ export default function DocumentsPage() {
             </div>
           </div>
 
+          {/* Profile Photo (for EU Templates) */}
+          <div className="bg-white rounded-2xl border border-cream-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
+            <div className="p-5">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-gradient-to-br from-navy-500 to-navy-600 rounded-xl shadow-sm">
+                  <Camera className="w-5 h-5 text-gold-300" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-base font-semibold text-charcoal">Profile Photo</h2>
+                  <p className="text-sm text-warm-gray mt-0.5">
+                    Upload a professional photo for European CV templates.
+                    <span className="text-navy-600 font-medium"> Required for EU/German templates.</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 ml-14">
+                {profilePhoto ? (
+                  <div className="flex items-center justify-between p-3 bg-navy-50 rounded-xl border border-navy-200">
+                    <div className="flex items-center gap-3">
+                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 ring-2 ring-gold-200">
+                        <img
+                          src={profilePhoto.dataUrl}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-charcoal">{profilePhoto.fileName}</p>
+                        <p className="text-xs text-navy-600">Photo uploaded</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        setProfilePhoto(null);
+                        // Also delete from Supabase
+                        if (user) {
+                          await deleteProfilePhoto(user.id);
+                        }
+                      }}
+                      className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                      title="Remove photo"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="block">
+                    <div className="border-2 border-dashed border-navy-200 rounded-xl p-6 text-center cursor-pointer hover:border-gold-300 hover:bg-cream-50 transition-all">
+                      <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-navy-50 flex items-center justify-center">
+                        <User className="w-6 h-6 text-navy-500" />
+                      </div>
+                      <p className="text-sm font-medium text-charcoal">
+                        Click to upload photo
+                      </p>
+                      <p className="text-xs text-warm-gray mt-1">
+                        JPG, PNG • Max 5MB • Professional headshot recommended
+                      </p>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handlePhotoUpload}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Master CV */}
           <div className="bg-white rounded-2xl border border-cream-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
             <div className="p-5">
@@ -634,7 +705,7 @@ export default function DocumentsPage() {
                   </p>
                 </div>
               </div>
-              
+
               <div className="mt-4 ml-14">
                 {masterCVUploadError && (
                   <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2">
@@ -642,7 +713,7 @@ export default function DocumentsPage() {
                     <p className="text-sm text-red-600">{masterCVUploadError}</p>
                   </div>
                 )}
-                
+
                 {isUploadingMasterCV ? (
                   <div className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-gold-300 rounded-xl bg-gold-50/50">
                     <div className="flex items-center gap-3 mb-2">
@@ -712,77 +783,6 @@ export default function DocumentsPage() {
                     label="Upload master CV"
                     description="PDF, DOCX, TXT, or MD (max 10 MB)"
                   />
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Profile Photo (for EU Templates) */}
-          <div className="bg-white rounded-2xl border border-cream-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
-            <div className="p-5">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-gradient-to-br from-navy-500 to-navy-600 rounded-xl shadow-sm">
-                  <Camera className="w-5 h-5 text-gold-300" />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-base font-semibold text-charcoal">Profile Photo</h2>
-                  <p className="text-sm text-warm-gray mt-0.5">
-                    Upload a professional photo for European CV templates.
-                    <span className="text-navy-600 font-medium"> Required for EU/German templates.</span>
-                  </p>
-                </div>
-              </div>
-              
-              <div className="mt-4 ml-14">
-                {profilePhoto ? (
-                  <div className="flex items-center justify-between p-3 bg-navy-50 rounded-xl border border-navy-200">
-                    <div className="flex items-center gap-3">
-                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 ring-2 ring-gold-200">
-                        <img 
-                          src={profilePhoto.dataUrl} 
-                          alt="Profile" 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-charcoal">{profilePhoto.fileName}</p>
-                        <p className="text-xs text-navy-600">Photo uploaded</p>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={async () => {
-                        setProfilePhoto(null);
-                        // Also delete from Supabase
-                        if (user) {
-                          await deleteProfilePhoto(user.id);
-                        }
-                      }}
-                      className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                      title="Remove photo"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="block">
-                    <div className="border-2 border-dashed border-navy-200 rounded-xl p-6 text-center cursor-pointer hover:border-gold-300 hover:bg-cream-50 transition-all">
-                      <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-navy-50 flex items-center justify-center">
-                        <User className="w-6 h-6 text-navy-500" />
-                      </div>
-                      <p className="text-sm font-medium text-charcoal">
-                        Click to upload photo
-                      </p>
-                      <p className="text-xs text-warm-gray mt-1">
-                        JPG, PNG • Max 5MB • Professional headshot recommended
-                      </p>
-                    </div>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      className="hidden" 
-                      onChange={handlePhotoUpload}
-                    />
-                  </label>
                 )}
               </div>
             </div>
