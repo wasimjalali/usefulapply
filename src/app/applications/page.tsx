@@ -64,7 +64,7 @@ function StatusDropdown({
     if (!isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       setMenuStyle({
-        top: rect.bottom + 6,
+        top: rect.bottom + 8,
         right: window.innerWidth - rect.right,
       });
     }
@@ -76,18 +76,18 @@ function StatusDropdown({
       <button
         ref={buttonRef}
         onClick={openMenu}
-        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer transition-all hover:ring-2 hover:ring-gold-200 ${config.bg} ${config.text}`}
+        className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all hover:opacity-80 ${config.bg} ${config.text}`}
       >
-        <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
+        <span className={`w-2 h-2 rounded-full ${config.dot}`} />
         {config.label}
-        <ChevronDown className="w-3 h-3" />
+        <ChevronDown className="w-3.5 h-3.5 ml-0.5" />
       </button>
 
       {isOpen && menuStyle && (
         <>
           <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setIsOpen(false); }} />
           <div
-            className="fixed z-50 w-44 bg-white rounded-xl shadow-xl border border-cream-200 py-1"
+            className="fixed z-50 w-48 bg-white rounded-xl shadow-xl border border-cream-200 py-1.5"
             style={{ top: menuStyle.top, right: menuStyle.right }}
           >
             {ALL_STATUSES.map((s) => {
@@ -100,11 +100,11 @@ function StatusDropdown({
                     onStatusChange(s);
                     setIsOpen(false);
                   }}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium cursor-pointer transition-colors ${
+                  className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium cursor-pointer transition-colors ${
                     s === status ? 'bg-cream-100' : 'hover:bg-cream-50'
                   } ${sc.text}`}
                 >
-                  <span className={`w-2 h-2 rounded-full ${sc.dot}`} />
+                  <span className={`w-2.5 h-2.5 rounded-full ${sc.dot}`} />
                   {sc.label}
                 </button>
               );
@@ -116,32 +116,37 @@ function StatusDropdown({
   );
 }
 
-function StatPill({
+/** Teal-style pipeline stage — each stage is a wide block with count + label */
+function PipelineStage({
   label,
   count,
   active,
   onClick,
+  isFirst,
 }: {
   label: string;
   count: number;
   active: boolean;
   onClick: () => void;
+  isFirst?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
+      className={`relative flex-1 min-w-[100px] flex flex-col items-center justify-center py-3.5 px-3 cursor-pointer transition-all ${
         active
-          ? 'bg-navy-600 text-white shadow-sm'
-          : 'bg-white text-warm-gray hover:bg-cream-100 border border-cream-200'
-      }`}
+          ? 'bg-navy-600 text-white'
+          : 'bg-white text-charcoal hover:bg-cream-50'
+      } ${isFirst ? 'rounded-l-xl' : ''}`}
     >
-      {label}
-      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-        active ? 'bg-white/20 text-white' : 'bg-cream-100 text-charcoal'
-      }`}>
-        {count}
+      <span className={`text-xl font-bold leading-none ${active ? 'text-white' : 'text-navy-700'}`}>
+        {count || '--'}
       </span>
+      <span className={`text-xs font-semibold mt-1 uppercase tracking-wide ${active ? 'text-white/80' : 'text-warm-gray'}`}>
+        {label}
+      </span>
+      {/* Arrow connector */}
+      <div className="absolute right-0 top-0 bottom-0 w-px bg-cream-200" />
     </button>
   );
 }
@@ -557,8 +562,8 @@ export default function ApplicationsPage() {
   return (
     <div className="min-h-screen bg-cream-100">
       {/* Header */}
-      <div className="bg-white border-b border-cream-200 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+      <div className="bg-white border-b border-cream-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link
@@ -569,38 +574,31 @@ export default function ApplicationsPage() {
                 <span className="hidden sm:inline">Dashboard</span>
               </Link>
               <div className="h-5 w-px bg-cream-300" />
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-gradient-to-br from-navy-600 to-navy-700 rounded-xl shadow-sm">
-                  <ClipboardList className="w-4 h-4 text-gold-400" />
-                </div>
-                <div>
-                  <h1 className="text-lg sm:text-xl font-bold text-navy-700">Application Tracker</h1>
-                  <p className="text-xs text-warm-gray hidden sm:block">Track and manage your job applications</p>
-                </div>
-              </div>
+              <h1 className="text-xl sm:text-2xl font-bold text-navy-700">Job Tracker</h1>
             </div>
             <Link
               href="/dashboard"
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-gold-400 to-gold-500 rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm cursor-pointer"
+              className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-gold-400 to-gold-500 rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">New Application</span>
+              <span className="hidden sm:inline">Add a New Job</span>
             </Link>
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Stats Bar */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          <StatPill
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Pipeline Status Bar — Teal-style funnel */}
+        <div className="flex rounded-xl border border-cream-200 overflow-hidden shadow-sm">
+          <PipelineStage
             label="All"
             count={totalCount}
             active={statusFilter === 'all'}
             onClick={() => setStatusFilter('all')}
+            isFirst
           />
           {ALL_STATUSES.map((s) => (
-            <StatPill
+            <PipelineStage
               key={s}
               label={STATUS_CONFIG[s].label}
               count={stats[s] || 0}
@@ -610,67 +608,83 @@ export default function ApplicationsPage() {
           ))}
         </div>
 
-        {/* Search + Filter Bar */}
-        <div className="mt-4 flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-warm-gray" />
+        {/* Toolbar Row — selection count, search, filter */}
+        <div className="mt-5 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="flex items-center gap-3 flex-shrink-0">
             <input
-              type="text"
-              placeholder="Search by company or job title..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-cream-300 rounded-xl text-sm text-charcoal placeholder:text-warm-gray/60 focus:outline-none focus:border-gold-400 focus:ring-0 transition-all"
-              style={{ boxShadow: 'none' }}
+              type="checkbox"
+              checked={filteredApplications.length > 0 && selectedIds.size === filteredApplications.length}
+              onChange={toggleSelectAll}
+              className="w-4 h-4 rounded border-cream-300 text-navy-600 focus:ring-navy-500 cursor-pointer"
+              title="Select all"
             />
+            <span className="text-sm text-warm-gray">
+              {selectedIds.size > 0 ? `${selectedIds.size} selected` : `${filteredApplications.length} job${filteredApplications.length !== 1 ? 's' : ''}`}
+            </span>
           </div>
-          <div className="relative sm:w-48">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-warm-gray" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as ApplicationStatus | 'all')}
-              aria-label="Filter by status"
-              className="w-full pl-10 pr-8 py-2.5 bg-white border border-cream-300 rounded-xl text-sm text-charcoal appearance-none cursor-pointer focus:outline-none focus:border-gold-400 focus:ring-0 transition-all"
-              style={{ boxShadow: 'none' }}
-            >
-              <option value="all">All Statuses</option>
-              {ALL_STATUSES.map((s) => (
-                <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-warm-gray pointer-events-none" />
+          <div className="flex-1" />
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-72">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-warm-gray" />
+              <input
+                type="text"
+                placeholder="Search by company or job title..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-11 pr-4 py-2.5 bg-white border border-cream-200 rounded-lg text-sm text-charcoal placeholder:text-warm-gray/50 focus:outline-none focus:border-gold-400 focus:ring-0 transition-all"
+                style={{ boxShadow: 'none' }}
+              />
+            </div>
+            <div className="relative sm:w-44">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-warm-gray" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as ApplicationStatus | 'all')}
+                aria-label="Filter by status"
+                className="w-full pl-10 pr-8 py-2.5 bg-white border border-cream-200 rounded-lg text-sm text-charcoal appearance-none cursor-pointer focus:outline-none focus:border-gold-400 focus:ring-0 transition-all"
+                style={{ boxShadow: 'none' }}
+              >
+                <option value="all">All Statuses</option>
+                {ALL_STATUSES.map((s) => (
+                  <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-warm-gray pointer-events-none" />
+            </div>
           </div>
         </div>
 
         {/* Applications List */}
         {applications.length === 0 ? (
-          <div className="mt-12 text-center">
-            <div className="inline-flex p-4 bg-cream-200/60 rounded-2xl mb-4">
-              <Briefcase className="w-8 h-8 text-warm-gray" />
+          <div className="mt-16 text-center">
+            <div className="inline-flex p-6 bg-cream-100 rounded-3xl mb-6">
+              <Briefcase className="w-12 h-12 text-warm-gray/60" />
             </div>
-            <h3 className="text-lg font-semibold text-navy-700 mb-1">No applications yet</h3>
-            <p className="text-sm text-warm-gray mb-6 max-w-sm mx-auto">
-              Start your first job application in the dashboard and track it here.
+            <h3 className="text-xl font-bold text-navy-700 mb-2">No jobs tracked yet</h3>
+            <p className="text-base text-warm-gray mb-8 max-w-sm mx-auto leading-relaxed">
+              Start your first job application in the dashboard and it will appear here automatically.
             </p>
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-gold-400 to-gold-500 rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm cursor-pointer"
+              className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-gold-400 to-gold-500 rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              Start First Application
+              Add a New Job
             </Link>
           </div>
         ) : filteredApplications.length === 0 ? (
-          <div className="mt-12 text-center">
-            <div className="inline-flex p-4 bg-cream-200/60 rounded-2xl mb-4">
-              <Search className="w-8 h-8 text-warm-gray" />
+          <div className="mt-16 text-center">
+            <div className="inline-flex p-6 bg-cream-100 rounded-3xl mb-6">
+              <Search className="w-12 h-12 text-warm-gray/60" />
             </div>
-            <h3 className="text-lg font-semibold text-navy-700 mb-1">No matching applications</h3>
-            <p className="text-sm text-warm-gray mb-4 max-w-sm mx-auto">
+            <h3 className="text-xl font-bold text-navy-700 mb-2">No jobs match your search</h3>
+            <p className="text-base text-warm-gray mb-6 max-w-sm mx-auto">
               Try adjusting your search or filter criteria.
             </p>
             <button
+              type="button"
               onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}
-              className="text-sm font-medium text-gold-600 hover:text-gold-700 transition-colors cursor-pointer"
+              className="text-sm font-semibold text-gold-600 hover:text-gold-700 transition-colors cursor-pointer"
             >
               Clear filters
             </button>
@@ -679,25 +693,25 @@ export default function ApplicationsPage() {
           <>
             {/* Bulk Action Bar */}
             {selectedIds.size > 0 && (
-              <div className="mt-4 flex items-center justify-between px-4 py-2.5 bg-navy-50 border border-navy-200 rounded-xl">
-                <span className="text-sm font-medium text-navy-700">
-                  {selectedIds.size} application{selectedIds.size !== 1 ? 's' : ''} selected
+              <div className="mt-4 flex items-center justify-between px-5 py-3 bg-navy-50 border border-navy-200 rounded-xl">
+                <span className="text-sm font-semibold text-navy-700">
+                  {selectedIds.size} job{selectedIds.size !== 1 ? 's' : ''} selected
                 </span>
                 {confirmBulkDelete ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-red-600 font-medium">Delete {selectedIds.size} application{selectedIds.size !== 1 ? 's' : ''}?</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-red-600 font-medium">Delete {selectedIds.size} job{selectedIds.size !== 1 ? 's' : ''}?</span>
                     <button
                       onClick={handleBulkDelete}
                       disabled={isBulkDeleting}
-                      className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors cursor-pointer disabled:opacity-60"
+                      className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors cursor-pointer disabled:opacity-60"
                     >
-                      {isBulkDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                      {isBulkDeleting ? 'Deleting...' : 'Confirm'}
+                      {isBulkDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                      {isBulkDeleting ? 'Deleting...' : 'Confirm Delete'}
                     </button>
                     <button
                       onClick={() => setConfirmBulkDelete(false)}
                       disabled={isBulkDeleting}
-                      className="px-3 py-1.5 text-xs font-semibold text-warm-gray bg-white border border-cream-300 rounded-lg hover:bg-cream-50 transition-colors cursor-pointer disabled:opacity-60"
+                      className="px-4 py-2 text-sm font-semibold text-warm-gray bg-white border border-cream-300 rounded-lg hover:bg-cream-50 transition-colors cursor-pointer disabled:opacity-60"
                     >
                       Cancel
                     </button>
@@ -706,14 +720,14 @@ export default function ApplicationsPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setConfirmBulkDelete(true)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors cursor-pointer"
+                      className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors cursor-pointer"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-4 h-4" />
                       Delete Selected
                     </button>
                     <button
                       onClick={() => setSelectedIds(new Set())}
-                      className="px-3 py-1.5 text-xs font-semibold text-warm-gray bg-white border border-cream-300 rounded-lg hover:bg-cream-50 transition-colors cursor-pointer"
+                      className="px-4 py-2 text-sm font-semibold text-warm-gray bg-white border border-cream-200 rounded-lg hover:bg-cream-50 transition-colors cursor-pointer"
                     >
                       Clear
                     </button>
@@ -727,22 +741,14 @@ export default function ApplicationsPage() {
               <div className="bg-white rounded-2xl border border-cream-200 shadow-sm overflow-hidden">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-cream-200 bg-cream-50/60">
-                      <th className="w-10 px-3 py-3">
-                        <input
-                          type="checkbox"
-                          checked={filteredApplications.length > 0 && selectedIds.size === filteredApplications.length}
-                          onChange={toggleSelectAll}
-                          className="w-3.5 h-3.5 rounded border-cream-300 text-navy-600 focus:ring-navy-500 cursor-pointer"
-                          title="Select all"
-                        />
-                      </th>
-                      <th className="text-left px-5 py-3 text-xs font-semibold text-warm-gray uppercase tracking-wider">Company</th>
-                      <th className="text-left px-5 py-3 text-xs font-semibold text-warm-gray uppercase tracking-wider">Job Title</th>
-                      <th className="text-left px-5 py-3 text-xs font-semibold text-warm-gray uppercase tracking-wider">Date</th>
-                      <th className="text-center px-5 py-3 text-xs font-semibold text-warm-gray uppercase tracking-wider">Match</th>
-                      <th className="text-right px-5 py-3 text-xs font-semibold text-warm-gray uppercase tracking-wider">Status</th>
-                      <th className="px-3 py-3" />
+                    <tr className="border-b border-cream-200 bg-cream-50">
+                      <th className="w-12 px-4 py-4" />
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-warm-gray uppercase tracking-wider">Job Position</th>
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-warm-gray uppercase tracking-wider">Company</th>
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-warm-gray uppercase tracking-wider">Date Saved</th>
+                      <th className="text-center px-6 py-4 text-xs font-semibold text-warm-gray uppercase tracking-wider">Match Score</th>
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-warm-gray uppercase tracking-wider">Status</th>
+                      <th className="w-12 px-4 py-4" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cream-100">
@@ -751,46 +757,47 @@ export default function ApplicationsPage() {
                       return (
                         <tr
                           key={app.id}
-                          className={`transition-colors group ${navigatingSessionId === app.id ? 'bg-cream-50/80 opacity-70' : 'hover:bg-cream-50/60'}`}
+                          className={`group transition-colors ${navigatingSessionId === app.id ? 'bg-cream-50 opacity-70' : 'hover:bg-cream-50/50'}`}
                         >
-                          <td className="w-10 px-3 py-3.5">
+                          <td className="w-12 px-4 py-5">
                             <input
                               type="checkbox"
+                              title="Select row"
                               checked={selectedIds.has(app.id)}
                               onChange={() => toggleSelection(app.id)}
                               onClick={(e) => e.stopPropagation()}
-                              className="w-3.5 h-3.5 rounded border-cream-300 text-navy-600 focus:ring-navy-500 cursor-pointer"
+                              className="w-4 h-4 rounded border-cream-300 text-navy-600 focus:ring-navy-500 cursor-pointer"
                             />
                           </td>
                           <td
-                            className="px-5 py-3.5 cursor-pointer"
+                            className="px-6 py-5 cursor-pointer"
                             onClick={() => navigatingSessionId ? undefined : handleRowClick(app.id)}
                           >
-                            <div className="flex items-center gap-3">
-                              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-navy-100 to-navy-200 flex items-center justify-center">
-                                <Briefcase className="w-3.5 h-3.5 text-navy-600" />
-                              </div>
-                              <InlineEditableCompany
-                                value={app.company || ''}
-                                onSave={(newName) => handleRenameCompany(app.id, newName)}
-                                className="text-sm font-semibold text-navy-700 group-hover:text-navy-800"
-                              />
-                            </div>
-                          </td>
-                          <td
-                            className="px-5 py-3.5 cursor-pointer"
-                            onClick={() => navigatingSessionId ? undefined : handleRowClick(app.id)}
-                          >
-                            <span className="text-sm text-charcoal truncate block max-w-[220px]">
+                            <span className="text-base font-semibold text-navy-700 truncate block max-w-[260px] group-hover:text-navy-800">
                               {app.job_title || 'Untitled Position'}
                             </span>
                           </td>
                           <td
-                            className="px-5 py-3.5 cursor-pointer"
+                            className="px-6 py-5 cursor-pointer"
                             onClick={() => navigatingSessionId ? undefined : handleRowClick(app.id)}
                           >
-                            <div className="flex items-center gap-1.5 text-xs text-warm-gray">
-                              <CalendarDays className="w-3.5 h-3.5" />
+                            <div className="flex items-center gap-3">
+                              <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br from-navy-100 to-navy-200 flex items-center justify-center">
+                                <Briefcase className="w-4 h-4 text-navy-600" />
+                              </div>
+                              <InlineEditableCompany
+                                value={app.company || ''}
+                                onSave={(newName) => handleRenameCompany(app.id, newName)}
+                                className="text-base font-medium text-charcoal"
+                              />
+                            </div>
+                          </td>
+                          <td
+                            className="px-6 py-5 cursor-pointer"
+                            onClick={() => navigatingSessionId ? undefined : handleRowClick(app.id)}
+                          >
+                            <div className="flex items-center gap-2 text-sm text-warm-gray">
+                              <CalendarDays className="w-4 h-4 flex-shrink-0" />
                               {new Date(app.created_at).toLocaleDateString('en-US', {
                                 month: 'short',
                                 day: 'numeric',
@@ -799,14 +806,13 @@ export default function ApplicationsPage() {
                             </div>
                           </td>
                           <td
-                            className="px-5 py-3.5 text-center cursor-pointer"
+                            className="px-6 py-5 text-center cursor-pointer"
                             onClick={() => navigatingSessionId ? undefined : handleRowClick(app.id)}
                           >
                             {app.match_score ? (
-                              <div className="inline-flex items-center gap-1">
-                                <Target className="w-3.5 h-3.5 text-gold-500" />
-                                <span className={`text-xs font-bold ${
-                                  app.match_score >= 85 ? 'text-gold-600' :
+                              <div className="inline-flex items-center gap-1.5">
+                                <Target className="w-4 h-4 text-gold-500" />
+                                <span className={`text-base font-bold ${
                                   app.match_score >= 70 ? 'text-gold-600' :
                                   app.match_score >= 55 ? 'text-warm-gray' :
                                   'text-red-500'
@@ -815,17 +821,17 @@ export default function ApplicationsPage() {
                                 </span>
                               </div>
                             ) : (
-                              <span className="text-xs text-cream-400">—</span>
+                              <span className="text-sm text-cream-400">N/A</span>
                             )}
                           </td>
-                          <td className="px-5 py-3.5 text-right">
+                          <td className="px-6 py-5">
                             {navigatingSessionId === app.id ? (
-                              <div className="flex items-center justify-end gap-1.5">
-                                <Loader2 className="w-3.5 h-3.5 animate-spin text-navy-500" />
-                                <span className="text-xs text-warm-gray">Opening...</span>
+                              <div className="flex items-center gap-2">
+                                <Loader2 className="w-4 h-4 animate-spin text-navy-500" />
+                                <span className="text-sm text-warm-gray">Opening...</span>
                               </div>
                             ) : updatingSessionId === app.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin text-gold-500 ml-auto" />
+                              <Loader2 className="w-5 h-5 animate-spin text-gold-500" />
                             ) : (
                               <StatusDropdown
                                 status={appStatus}
@@ -833,20 +839,20 @@ export default function ApplicationsPage() {
                               />
                             )}
                           </td>
-                          <td className="px-3 py-3.5 text-right">
+                          <td className="w-12 px-4 py-5 text-right">
                             {deletingSessionId === app.id ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin text-red-400" />
+                              <Loader2 className="w-4 h-4 animate-spin text-red-400" />
                             ) : confirmDeleteId === app.id ? (
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleDelete(app.id); }}
-                                  className="px-2 py-0.5 text-[10px] font-semibold text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors cursor-pointer"
+                                  className="px-2.5 py-1 text-xs font-semibold text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors cursor-pointer"
                                 >
                                   Yes
                                 </button>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
-                                  className="px-2 py-0.5 text-[10px] font-semibold text-warm-gray bg-cream-100 rounded-md hover:bg-cream-200 transition-colors cursor-pointer"
+                                  className="px-2.5 py-1 text-xs font-semibold text-warm-gray bg-cream-100 rounded-md hover:bg-cream-200 transition-colors cursor-pointer"
                                 >
                                   No
                                 </button>
@@ -854,10 +860,10 @@ export default function ApplicationsPage() {
                             ) : (
                               <button
                                 onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(app.id); }}
-                                className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-warm-gray hover:text-red-500 hover:bg-red-50 transition-all cursor-pointer"
+                                className="opacity-0 group-hover:opacity-100 p-2 rounded-lg text-warm-gray hover:text-red-500 hover:bg-red-50 transition-all cursor-pointer"
                                 title="Delete application"
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Trash2 className="w-4 h-4" />
                               </button>
                             )}
                           </td>
@@ -876,7 +882,7 @@ export default function ApplicationsPage() {
                 return (
                   <div
                     key={app.id}
-                    className={`bg-white rounded-xl border border-cream-200 shadow-sm p-4 transition-all ${navigatingSessionId === app.id ? 'opacity-70' : 'hover:border-cream-300'}`}
+                    className={`bg-white rounded-2xl border border-cream-200 shadow-sm p-5 transition-all ${navigatingSessionId === app.id ? 'opacity-70' : 'hover:border-cream-300 hover:shadow-md'}`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <input
@@ -884,28 +890,29 @@ export default function ApplicationsPage() {
                         checked={selectedIds.has(app.id)}
                         onChange={() => toggleSelection(app.id)}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-3.5 h-3.5 mt-1 rounded border-cream-300 text-navy-600 focus:ring-navy-500 cursor-pointer flex-shrink-0"
+                        title="Select row"
+                        className="w-4 h-4 mt-1 rounded border-cream-300 text-navy-600 focus:ring-navy-500 cursor-pointer flex-shrink-0"
                       />
                       <div
                         className={`flex-1 min-w-0 ${navigatingSessionId ? '' : 'cursor-pointer'}`}
                         onClick={() => navigatingSessionId ? undefined : handleRowClick(app.id)}
                       >
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-gradient-to-br from-navy-100 to-navy-200 flex items-center justify-center">
+                        <p className="text-base font-bold text-navy-700 truncate mb-1">
+                          {app.job_title || 'Untitled Position'}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-md bg-gradient-to-br from-navy-100 to-navy-200 flex items-center justify-center">
                             <Briefcase className="w-3 h-3 text-navy-600" />
                           </div>
                           <InlineEditableCompany
                             value={app.company || ''}
                             onSave={(newName) => handleRenameCompany(app.id, newName)}
-                            className="text-sm font-semibold text-navy-700"
+                            className="text-sm text-warm-gray"
                           />
                         </div>
-                        <p className="text-xs text-charcoal ml-9 truncate">
-                          {app.job_title || 'Untitled Position'}
-                        </p>
                       </div>
                       {updatingSessionId === app.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin text-gold-500 flex-shrink-0" />
+                        <Loader2 className="w-5 h-5 animate-spin text-gold-500 flex-shrink-0" />
                       ) : (
                         <StatusDropdown
                           status={appStatus}
@@ -913,20 +920,20 @@ export default function ApplicationsPage() {
                         />
                       )}
                     </div>
-                    <div className="flex items-center justify-between mt-3 ml-9">
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-cream-100">
                       <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-1 text-xs text-warm-gray">
-                          <CalendarDays className="w-3 h-3" />
+                        <div className="flex items-center gap-1.5 text-sm text-warm-gray">
+                          <CalendarDays className="w-4 h-4" />
                           {new Date(app.created_at).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
+                            year: 'numeric',
                           })}
                         </div>
                         {app.match_score && (
-                          <div className="flex items-center gap-1">
-                            <Target className="w-3 h-3 text-gold-500" />
-                            <span className={`text-xs font-bold ${
-                              app.match_score >= 85 ? 'text-gold-600' :
+                          <div className="flex items-center gap-1.5">
+                            <Target className="w-4 h-4 text-gold-500" />
+                            <span className={`text-sm font-bold ${
                               app.match_score >= 70 ? 'text-gold-600' :
                               app.match_score >= 55 ? 'text-warm-gray' :
                               'text-red-500'
@@ -937,18 +944,18 @@ export default function ApplicationsPage() {
                         )}
                       </div>
                       {deletingSessionId === app.id ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-red-400" />
+                        <Loader2 className="w-4 h-4 animate-spin text-red-400" />
                       ) : confirmDeleteId === app.id ? (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-2">
                           <button
                             onClick={(e) => { e.stopPropagation(); handleDelete(app.id); }}
-                            className="px-2 py-0.5 text-[10px] font-semibold text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors cursor-pointer"
+                            className="px-3 py-1.5 text-xs font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors cursor-pointer"
                           >
                             Delete
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
-                            className="px-2 py-0.5 text-[10px] font-semibold text-warm-gray bg-cream-100 rounded-md hover:bg-cream-200 transition-colors cursor-pointer"
+                            className="px-3 py-1.5 text-xs font-semibold text-warm-gray bg-cream-100 rounded-lg hover:bg-cream-200 transition-colors cursor-pointer"
                           >
                             Cancel
                           </button>
@@ -956,10 +963,10 @@ export default function ApplicationsPage() {
                       ) : (
                         <button
                           onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(app.id); }}
-                          className="p-1.5 rounded-lg text-warm-gray hover:text-red-500 hover:bg-red-50 transition-all cursor-pointer"
+                          className="p-2 rounded-xl text-warm-gray hover:text-red-500 hover:bg-red-50 transition-all cursor-pointer"
                           title="Delete application"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       )}
                     </div>
@@ -969,12 +976,12 @@ export default function ApplicationsPage() {
             </div>
 
             {/* Load More + Count */}
-            <div className="mt-6 flex flex-col items-center gap-3">
+            <div className="mt-8 flex flex-col items-center gap-3">
               {hasMore && (
                 <button
                   onClick={handleLoadMore}
                   disabled={isLoadingMore}
-                  className="flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-navy-700 bg-white border border-cream-300 rounded-xl hover:bg-cream-50 hover:border-gold-300 transition-all shadow-sm cursor-pointer disabled:opacity-60"
+                  className="flex items-center gap-2 px-6 py-3 text-sm font-semibold text-navy-700 bg-white border border-cream-200 rounded-xl hover:bg-cream-50 hover:border-gold-300 transition-all shadow-sm cursor-pointer disabled:opacity-60"
                 >
                   {isLoadingMore ? (
                     <>
@@ -983,7 +990,7 @@ export default function ApplicationsPage() {
                     </>
                   ) : (
                     <>
-                      Load More Applications
+                      Load More
                       <span className="text-xs text-warm-gray">
                         ({applications.length} of {totalCount})
                       </span>
@@ -991,7 +998,7 @@ export default function ApplicationsPage() {
                   )}
                 </button>
               )}
-              <p className="text-xs text-warm-gray">
+              <p className="text-sm text-warm-gray">
                 Showing {filteredApplications.length} of {totalCount} application{totalCount !== 1 ? 's' : ''}
               </p>
             </div>

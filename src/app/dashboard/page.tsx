@@ -4,11 +4,12 @@ import { useState, useCallback, useEffect } from 'react';
 import { CVPanel } from '@/components/CVPanel';
 import { CoverLetterPanel } from '@/components/CoverLetterPanel';
 import { EmailPanel } from '@/components/EmailPanel';
+import { ATSScorePanel } from '@/components/ATSScorePanel';
 import { ChatPanel } from '@/components/ChatPanel';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
-import { FileText, Mail, Send, FolderOpen, ClipboardList, Settings, User, Loader2, MessageCircle, MoreHorizontal } from 'lucide-react';
+import { FileText, Mail, Send, FolderOpen, ClipboardList, Settings, Target, User, Loader2, MessageCircle, MoreHorizontal } from 'lucide-react';
 import KarkoLogo from '@/components/KarkoLogo';
 import Link from 'next/link';
 import { CreditIndicator } from '@/components/ui/CreditIndicator';
@@ -21,7 +22,7 @@ export default function Dashboard() {
   } = useAppStore();
 
   const { user, profile, isLoading } = useAuth();
-  
+
   // Sync sessions with Supabase in background
   useSupabaseSync();
 
@@ -44,7 +45,7 @@ export default function Dashboard() {
   }, [setActiveTab]);
 
   // Mobile tab state — must be before any early returns (Rules of Hooks)
-  const [mobileTab, setMobileTab] = useState<'chat' | 'cv' | 'cover-letter' | 'email'>('chat');
+  const [mobileTab, setMobileTab] = useState<'chat' | 'cv' | 'ats-score' | 'cover-letter' | 'email'>('chat');
   const [showMobileMore, setShowMobileMore] = useState(false);
 
   // Resize effect (desktop only)
@@ -84,7 +85,7 @@ export default function Dashboard() {
   }
 
   // Sync mobile tab with active tab on desktop
-  const handleMobileTabChange = (tab: 'chat' | 'cv' | 'cover-letter' | 'email') => {
+  const handleMobileTabChange = (tab: 'chat' | 'cv' | 'ats-score' | 'cover-letter' | 'email') => {
     setMobileTab(tab);
     if (tab !== 'chat') {
       setActiveTab(tab);
@@ -100,9 +101,10 @@ export default function Dashboard() {
           <KarkoLogo variant="full" size="xs" theme="light" />
         </Link>
 
-        {/* Document Tabs — inline in nav bar */}
+        {/* Document Tabs — CV, ATS Score, Cover Letter, Email */}
         <div className="flex items-center bg-cream-100/80 rounded-xl p-0.5 ml-4">
           <button
+            type="button"
             onClick={() => setActiveTab('cv')}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'cv'
@@ -114,6 +116,19 @@ export default function Dashboard() {
             CV
           </button>
           <button
+            type="button"
+            onClick={() => setActiveTab('ats-score')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'ats-score'
+                ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
+                : 'text-warm-gray hover:text-navy-600'
+            }`}
+          >
+            <Target className={`w-3.5 h-3.5 ${activeTab === 'ats-score' ? 'text-gold-500' : ''}`} />
+            ATS Score
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab('cover-letter')}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'cover-letter'
@@ -125,6 +140,7 @@ export default function Dashboard() {
             Cover Letter
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('email')}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'email'
@@ -135,6 +151,27 @@ export default function Dashboard() {
             <Send className={`w-3.5 h-3.5 ${activeTab === 'email' ? 'text-gold-500' : ''}`} />
             Email
           </button>
+
+          {/* Divider */}
+          <div className="w-px h-5 bg-cream-300 mx-1" />
+
+          {/* Tracker — navigates to /applications */}
+          <Link
+            href="/applications"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap text-warm-gray hover:text-navy-600 hover:bg-white/60"
+          >
+            <ClipboardList className="w-3.5 h-3.5" />
+            Tracker
+          </Link>
+
+          {/* Documents — navigates to /documents */}
+          <Link
+            href="/documents"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap text-warm-gray hover:text-navy-600 hover:bg-white/60"
+          >
+            <FolderOpen className="w-3.5 h-3.5" />
+            Documents
+          </Link>
         </div>
 
         <div className="flex-1" />
@@ -144,30 +181,6 @@ export default function Dashboard() {
           <div className="flex items-center mr-1">
             <CreditIndicator />
           </div>
-        )}
-
-        {/* Applications */}
-        {user && (
-          <Link
-            href="/applications"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-warm-gray hover:text-navy-600 hover:bg-cream-100/60 rounded-lg transition-all cursor-pointer"
-            title="Applications"
-          >
-            <ClipboardList className="w-3.5 h-3.5" />
-            Tracker
-          </Link>
-        )}
-
-        {/* Documents */}
-        {user && (
-          <Link
-            href="/documents"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-warm-gray hover:text-navy-600 hover:bg-cream-100/60 rounded-lg transition-all cursor-pointer"
-            title="Documents"
-          >
-            <FolderOpen className="w-3.5 h-3.5" />
-            Docs
-          </Link>
         )}
 
         {/* Avatar with tier badge (also links to settings) */}
@@ -296,6 +309,7 @@ export default function Dashboard() {
           {/* Content Area */}
           <div className="flex-1 overflow-auto">
             {activeTab === 'cv' && <CVPanel toolbarPortal={toolbarNode} />}
+            {activeTab === 'ats-score' && <ATSScorePanel />}
             {activeTab === 'cover-letter' && <CoverLetterPanel toolbarPortal={toolbarNode} />}
             {activeTab === 'email' && <EmailPanel toolbarPortal={toolbarNode} />}
           </div>
@@ -335,6 +349,7 @@ export default function Dashboard() {
             />
           )}
           {mobileTab === 'cv' && <CVPanel />}
+          {mobileTab === 'ats-score' && <ATSScorePanel />}
           {mobileTab === 'cover-letter' && <CoverLetterPanel />}
           {mobileTab === 'email' && <EmailPanel />}
         </div>
@@ -343,6 +358,7 @@ export default function Dashboard() {
         <div className="flex-shrink-0 bg-white border-t border-cream-200 px-2 pb-[env(safe-area-inset-bottom)] z-50">
           <div className="flex items-center justify-around py-1.5">
             <button
+              type="button"
               onClick={() => handleMobileTabChange('chat')}
               className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer min-w-[52px] ${
                 mobileTab === 'chat' ? 'text-gold-600' : 'text-warm-gray'
@@ -355,6 +371,7 @@ export default function Dashboard() {
               )}
             </button>
             <button
+              type="button"
               onClick={() => handleMobileTabChange('cv')}
               className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer min-w-[52px] ${
                 mobileTab === 'cv' ? 'text-gold-600' : 'text-warm-gray'
@@ -364,6 +381,7 @@ export default function Dashboard() {
               <span className="text-[10px] font-medium">CV</span>
             </button>
             <button
+              type="button"
               onClick={() => handleMobileTabChange('cover-letter')}
               className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer min-w-[52px] ${
                 mobileTab === 'cover-letter' ? 'text-gold-600' : 'text-warm-gray'
@@ -373,6 +391,7 @@ export default function Dashboard() {
               <span className="text-[10px] font-medium">Letter</span>
             </button>
             <button
+              type="button"
               onClick={() => handleMobileTabChange('email')}
               className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer min-w-[52px] ${
                 mobileTab === 'email' ? 'text-gold-600' : 'text-warm-gray'
@@ -383,6 +402,7 @@ export default function Dashboard() {
             </button>
             <div className="relative">
               <button
+                type="button"
                 onClick={() => setShowMobileMore(!showMobileMore)}
                 className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer min-w-[52px] ${
                   showMobileMore ? 'text-gold-600' : 'text-warm-gray'
@@ -395,7 +415,15 @@ export default function Dashboard() {
               {showMobileMore && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowMobileMore(false)} />
-                  <div className="absolute bottom-full right-0 mb-2 w-48 bg-white rounded-xl shadow-lg border border-cream-200 py-1.5 z-50">
+                  <div className="absolute bottom-full right-0 mb-2 w-52 bg-white rounded-xl shadow-lg border border-cream-200 py-1.5 z-50">
+                    <button
+                      type="button"
+                      onClick={() => handleMobileTabChange('ats-score')}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${mobileTab === 'ats-score' ? 'text-gold-600 bg-gold-50' : 'text-charcoal hover:bg-cream-50'}`}
+                    >
+                      <Target className="w-4 h-4 text-navy-500" />
+                      ATS Score
+                    </button>
                     {user && (
                       <>
                         <Link
@@ -404,7 +432,7 @@ export default function Dashboard() {
                           onClick={() => setShowMobileMore(false)}
                         >
                           <ClipboardList className="w-4 h-4 text-navy-500" />
-                          Applications
+                          Tracker
                         </Link>
                         <Link
                           href="/documents"

@@ -15,13 +15,8 @@ import type { CVData } from '@/lib/cv-templates/types';
 import {
   FileText,
   Download,
-  CheckCircle,
-  TrendingUp,
-  Eye,
-  FileOutput,
   Copy,
   Check,
-  Sparkles,
   ArrowRight,
   Layout,
   ChevronDown,
@@ -150,10 +145,7 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
   
   const generatedCV = currentSession?.generatedCV;
   const optimizedCVData = currentSession?.optimizedCVData;  // Solution B: Structured JSON from AI
-  const gaps = currentSession?.gaps;
-  const changes = generatedCV?.changes || [];
   
-  const [activeTab, setActiveTab] = useState<'content' | 'changes'>('content');
   const [showOptimized, setShowOptimized] = useState(true);
   const [selectedTemplateId, setSelectedTemplateId] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -814,7 +806,6 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
     }
   };
 
-  const selectedTemplate = CV_TEMPLATE_DEFINITIONS.find(t => t.id === selectedTemplateId);
 
   if (!currentCV) {
     return (
@@ -866,45 +857,21 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
         </div>
       )}
 
-      {/* Content/Changes Toggle — only when Optimized is selected */}
-      {showOptimized && generatedCV && (
-        <div className="flex items-center bg-cream-100/80 rounded-lg p-0.5 flex-shrink-0">
-          <button
-            onClick={() => setActiveTab('content')}
-            className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-              activeTab === 'content' ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-            }`}
-          >
-            <Eye className="w-3 h-3" />
-            Content
-          </button>
-          <button
-            onClick={() => setActiveTab('changes')}
-            className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-              activeTab === 'changes' ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
-            }`}
-          >
-            <Sparkles className={`w-3 h-3 ${activeTab === 'changes' ? 'text-gold-500' : ''}`} />
-            Changes {changes.length > 0 && `(${changes.length})`}
-          </button>
-        </div>
-      )}
-
       {/* Template selector button */}
-      {activeTab === 'content' && !isEditMode && (
+      {!isEditMode && (
         <button
           ref={templateSelectorBtnRef}
           onClick={() => setShowTemplateSelector(!showTemplateSelector)}
           className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-white border border-cream-200 rounded-lg hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0"
         >
           <Layout className="w-3 h-3 text-navy-500" />
-          <span className="hidden sm:inline">{selectedTemplate?.name || 'Template'}</span>
+          <span className="hidden sm:inline">Templates</span>
           {showTemplateSelector ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         </button>
       )}
 
       {/* Edit button */}
-      {activeTab === 'content' && !isEditMode && cvData && (
+      {!isEditMode && cvData && (
         <button
           onClick={() => {
             setIsEditMode(true);
@@ -941,8 +908,8 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
         </>
       )}
 
-      {/* Action buttons — visible when content tab is active and not editing */}
-      {activeTab === 'content' && !isEditMode && (
+      {/* Action buttons — visible when not editing */}
+      {!isEditMode && (
         <>
           <Button
             variant="ghost"
@@ -1002,7 +969,7 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
             }
             statusLabel={agentWorkflowPhase === 'fit_analysis' ? 'Analyzing...' : undefined}
           />
-        ) : activeTab === 'content' ? (
+        ) : (
           <div className="h-full flex flex-col">
             {/* Template Selector Dropdown - Scrollable */}
             {showTemplateSelector && !isEditMode && (
@@ -1135,114 +1102,6 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
                 </Card>
               )}
             </div>
-          </div>
-        ) : (
-          <div className="h-full overflow-auto p-6">
-            {/* NEW: Use analysis from optimizedCVData (Solution B) */}
-            {optimizedCVData?.analysis ? (
-              <div className="space-y-6">
-                {/* 1. Strategy Summary */}
-                <div className="bg-gradient-to-r from-navy-50 to-navy-100 p-4 rounded-lg border border-navy-200">
-                  <h3 className="font-bold text-navy-800 mb-2 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-gold-600" />
-                    Optimization Strategy
-                  </h3>
-                  <p className="text-navy-700 text-sm">{optimizedCVData.analysis.summary}</p>
-                </div>
-
-                {/* 2. ATS Compatibility Score */}
-                <div className="bg-cream-50 p-4 rounded-lg border border-cream-200">
-                  <h3 className="font-bold text-navy-800 mb-2">ATS Compatibility</h3>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 bg-cream-200 rounded-full h-3">
-                      <div 
-                        className="bg-gradient-to-r from-gold-400 to-gold-500 h-3 rounded-full transition-all duration-500"
-                        style={{ width: `${optimizedCVData.analysis.ats_compatibility}%` }}
-                      />
-                    </div>
-                    <span className="font-bold text-navy-700 text-lg">
-                      {optimizedCVData.analysis.ats_compatibility}%
-                    </span>
-                  </div>
-                </div>
-
-                {/* 3. Key Changes List */}
-                <div>
-                  <h3 className="font-bold mb-3 flex items-center gap-2 text-navy-800">
-                    <Sparkles className="w-4 h-4 text-gold-500" />
-                    Key Improvements Made
-                  </h3>
-                  <ul className="space-y-2">
-                    {optimizedCVData.analysis.key_changes.map((change, i) => (
-                      <li key={i} className="flex items-start gap-2 p-3 bg-white rounded-lg border border-cream-200 shadow-sm">
-                        <CheckCircle className="w-4 h-4 text-gold-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-charcoal">{change}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* 4. Missing Keywords Added */}
-                {optimizedCVData.analysis.missing_keywords_added.length > 0 && (
-                  <div>
-                    <h3 className="font-bold mb-3 text-navy-800">Keywords Added for ATS</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {optimizedCVData.analysis.missing_keywords_added.map((keyword, i) => (
-                        <span 
-                          key={i} 
-                          className="px-3 py-1.5 bg-gold-50 text-gold-700 rounded-full text-sm font-medium border border-gold-200"
-                        >
-                          + {keyword}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : changes.length > 0 ? (
-              /* Fallback: Legacy changes format */
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Sparkles className="w-5 h-5 text-navy-600" />
-                  <h3 className="font-medium text-charcoal">
-                    {changes.length} strategic changes made
-                  </h3>
-                </div>
-                {changes.map((change, index) => (
-                  <Card key={index} padding="sm" className="border-l-4 border-l-navy-500">
-                    <div className="flex items-start gap-3">
-                      <div className="p-1.5 bg-navy-100 rounded">
-                        <FileOutput className="w-3.5 h-3.5 text-navy-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-charcoal">{change.section}</p>
-                        <p className="text-xs text-warm-gray mb-2">{change.reason}</p>
-                        {change.original && (
-                          <div className="space-y-2">
-                            <div className="p-2 bg-red-50 rounded text-xs text-red-700 border border-red-100">
-                              <span className="font-medium">Before: </span>
-                              {change.original}
-                            </div>
-                            <div className="p-2 bg-gold-50 rounded text-xs text-gold-700 border border-gold-100">
-                              <span className="font-medium">After: </span>
-                              {change.updated}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center">
-                <Sparkles className="w-12 h-12 text-cream-400 mb-4" />
-                <h3 className="font-medium text-charcoal">No changes yet</h3>
-                <p className="text-sm text-warm-gray mt-1">
-                  Paste a job description in the chat to optimize your CV
-                </p>
-              </div>
-            )}
           </div>
         )}
       </div>
