@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState } from 'react';
-import { Send, Square, AlertTriangle, Search, Zap } from 'lucide-react';
+import { Send, Square, AlertTriangle, Search, Zap, FileText, RotateCcw } from 'lucide-react';
 
 interface ChatInputProps {
   value: string;
@@ -14,6 +14,9 @@ interface ChatInputProps {
   applicationMode?: 'analyze_first' | 'apply_directly';
   onModeChange?: (mode: 'analyze_first' | 'apply_directly') => void;
   showModeSelector?: boolean;
+  /** Show prominent CTA buttons after fit analysis completes */
+  pendingFitAnalysis?: boolean;
+  onFitAnalysisAction?: (action: 'apply' | 'skip') => void;
 }
 
 export function ChatInput({
@@ -24,9 +27,11 @@ export function ChatInput({
   disabled = false,
   isWorking = false,
   placeholder = "Type a message...",
-  applicationMode = 'analyze_first',
+  applicationMode = 'apply_directly',
   onModeChange,
   showModeSelector = false,
+  pendingFitAnalysis = false,
+  onFitAnalysisAction,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
@@ -50,17 +55,8 @@ export function ChatInput({
     <div className="p-4 bg-gradient-to-t from-cream-100/80 to-transparent backdrop-blur-sm">
       <div className="relative">
         {/* Hover tooltips - rendered OUTSIDE the overflow-hidden container */}
-        {hoveredMode === 'analyze_first' && showModeSelector && !value.trim() && !isWorking && (
+        {hoveredMode === 'apply_directly' && showModeSelector && !pendingFitAnalysis && !value.trim() && !isWorking && (
           <div className="absolute bottom-full left-3 mb-1 w-60 bg-navy-700 text-white text-xs rounded-xl p-3.5 shadow-xl z-50">
-            <div className="font-semibold mb-1">Analyze First</div>
-            <p className="text-navy-200 leading-relaxed">Runs a fit analysis to show your match score and skill gaps before generating the full application.</p>
-            <p className="text-navy-300 mt-1.5 italic">Best when you haven&apos;t read the job description yet and want AI to evaluate the fit for you first.</p>
-            <div className="mt-2 text-gold-400 font-medium">0.5 credits (analysis) + 2 credits (application)</div>
-            <div className="absolute top-full left-6 w-2.5 h-2.5 bg-navy-700 rotate-45 -mt-1.5" />
-          </div>
-        )}
-        {hoveredMode === 'apply_directly' && showModeSelector && !value.trim() && !isWorking && (
-          <div className="absolute bottom-full left-24 mb-1 w-60 bg-navy-700 text-white text-xs rounded-xl p-3.5 shadow-xl z-50">
             <div className="font-semibold mb-1">Apply Directly</div>
             <p className="text-navy-200 leading-relaxed">Skips fit analysis and generates your optimized CV, cover letter, and email immediately.</p>
             <p className="text-navy-300 mt-1.5 italic">Best when you&apos;ve already read the job description and it matches your qualifications.</p>
@@ -68,31 +64,47 @@ export function ChatInput({
             <div className="absolute top-full left-6 w-2.5 h-2.5 bg-navy-700 rotate-45 -mt-1.5" />
           </div>
         )}
+        {hoveredMode === 'analyze_first' && showModeSelector && !pendingFitAnalysis && !value.trim() && !isWorking && (
+          <div className="absolute bottom-full left-24 mb-1 w-60 bg-navy-700 text-white text-xs rounded-xl p-3.5 shadow-xl z-50">
+            <div className="font-semibold mb-1">Analyze First</div>
+            <p className="text-navy-200 leading-relaxed">Runs a fit analysis to show your match score and skill gaps before generating the full application.</p>
+            <p className="text-navy-300 mt-1.5 italic">Best when you haven&apos;t read the job description yet and want AI to evaluate the fit for you first.</p>
+            <div className="mt-2 text-gold-400 font-medium">0.5 credits (analysis) + 2 credits (application)</div>
+            <div className="absolute top-full left-6 w-2.5 h-2.5 bg-navy-700 rotate-45 -mt-1.5" />
+          </div>
+        )}
+
+        {/* Post-analysis suggested actions — replaces mode selector when fit analysis is complete */}
+        {pendingFitAnalysis && !isWorking && (
+          <div className="flex items-center gap-2 mb-3">
+            <button
+              onClick={() => onFitAnalysisAction?.('apply')}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold bg-gradient-to-r from-navy-600 to-navy-700 text-white rounded-xl hover:from-navy-700 hover:to-navy-800 transition-all shadow-md hover:shadow-lg cursor-pointer"
+            >
+              <FileText className="w-4 h-4" />
+              Apply for This Job
+            </button>
+            <button
+              onClick={() => onFitAnalysisAction?.('skip')}
+              className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium bg-white text-charcoal border border-cream-300 rounded-xl hover:bg-cream-50 hover:border-gold-300 hover:shadow-sm transition-all cursor-pointer"
+            >
+              <RotateCcw className="w-4 h-4 text-warm-gray" />
+              New Search
+            </button>
+          </div>
+        )}
 
         {/* Main input container with gold border */}
         <div className={`relative glass-input rounded-3xl border-2 shadow-lg overflow-hidden transition-all duration-200 ${
-          isWorking 
-            ? 'border-gold-400 shadow-gold-200/50' 
+          isWorking
+            ? 'border-gold-400 shadow-gold-200/50'
             : 'border-gold-300/60 shadow-gold-100/40 focus-within:border-gold-400 focus-within:shadow-gold-200/50'
         }`}>
-          
+
           <div className="relative flex flex-col">
-            {/* Mode selector - inside input, hidden when typing */}
-            {showModeSelector && !value.trim() && !isWorking && (
+            {/* Mode selector - inside input, hidden when typing or when fit analysis is pending */}
+            {showModeSelector && !pendingFitAnalysis && !value.trim() && !isWorking && (
               <div className="flex items-center gap-1.5 px-3 pt-2.5 pb-0">
-                <button
-                  onClick={() => onModeChange?.('analyze_first')}
-                  onMouseEnter={() => setHoveredMode('analyze_first')}
-                  onMouseLeave={() => setHoveredMode(null)}
-                  className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                    applicationMode === 'analyze_first'
-                      ? 'bg-navy-600 text-white'
-                      : 'bg-cream-100 text-warm-gray hover:bg-cream-200'
-                  }`}
-                >
-                  <Search className="w-3 h-3" />
-                  Analyze First
-                </button>
                 <button
                   onClick={() => onModeChange?.('apply_directly')}
                   onMouseEnter={() => setHoveredMode('apply_directly')}
@@ -105,6 +117,19 @@ export function ChatInput({
                 >
                   <Zap className="w-3 h-3" />
                   Apply Directly
+                </button>
+                <button
+                  onClick={() => onModeChange?.('analyze_first')}
+                  onMouseEnter={() => setHoveredMode('analyze_first')}
+                  onMouseLeave={() => setHoveredMode(null)}
+                  className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                    applicationMode === 'analyze_first'
+                      ? 'bg-navy-600 text-white'
+                      : 'bg-cream-100 text-warm-gray hover:bg-cream-200'
+                  }`}
+                >
+                  <Search className="w-3 h-3" />
+                  Analyze First
                 </button>
               </div>
             )}
@@ -123,7 +148,7 @@ export function ChatInput({
                   rows={1}
                 />
               </div>
-              
+
               {/* Send/Stop button - circular with gradient */}
               {isWorking ? (
                 <button
@@ -148,7 +173,7 @@ export function ChatInput({
             </div>
           </div>
         </div>
-        
+
         {/* Bottom info bar - AI warning */}
         <div className="flex items-center justify-center mt-3 gap-1.5">
           <AlertTriangle className="w-3 h-3 text-warm-gray" />

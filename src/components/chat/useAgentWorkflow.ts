@@ -63,7 +63,7 @@ export function useAgentWorkflow(options?: {
   const [fitAnalysisContextId, setFitAnalysisContextId] = useState<string | null>(null);
   const [fitAnalysisJD, setFitAnalysisJD] = useState<string>('');
   const [fitAnalysisContextData, setFitAnalysisContextData] = useState<FitAnalysisContextData | null>(null);
-  const [applicationMode, setApplicationMode] = useState<'analyze_first' | 'apply_directly'>('analyze_first');
+  const [applicationMode, setApplicationMode] = useState<'analyze_first' | 'apply_directly'>('apply_directly');
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -337,10 +337,6 @@ export function useAgentWorkflow(options?: {
                 addChatMessage({
                   role: 'assistant',
                   content: `${fitEmoji} **${fitLabel}** for **${job?.title || 'this position'}** at **${job?.companyName || 'this company'}** (${fitAnalysis.score}% match)\n\n${fitAnalysis.assessment}${matchInfo}${missingInfo}`,
-                  actions: [
-                    { label: 'Apply for This Job', action: 'generate-full-application', icon: 'cv' },
-                    { label: 'Start New Application', action: 'skip-job', icon: 'new' },
-                  ],
                 });
                 break;
               }

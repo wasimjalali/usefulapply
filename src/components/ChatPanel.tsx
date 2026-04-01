@@ -442,13 +442,21 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
           onStop={handleStopGeneration}
           disabled={!currentCV || isAnalyzing || isGenerating || isTyping}
           isWorking={isAgentWorking || isTyping}
-          placeholder={currentCV 
-            ? "Paste a job description or ask me anything..." 
+          placeholder={currentCV
+            ? "Paste a job description or ask me anything..."
             : "Upload your CV first to get started..."
           }
           applicationMode={applicationMode}
           onModeChange={setApplicationMode}
           showModeSelector={!!currentCV}
+          pendingFitAnalysis={!!fitAnalysisContextId && !isAgentWorking}
+          onFitAnalysisAction={(action) => {
+            if (action === 'apply') {
+              handleAction('generate-full-application');
+            } else {
+              handleAction('skip-job');
+            }
+          }}
         />
       </div>
 
