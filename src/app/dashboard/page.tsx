@@ -5,6 +5,7 @@ import { CVPanel } from '@/components/CVPanel';
 import { CoverLetterPanel } from '@/components/CoverLetterPanel';
 import { EmailPanel } from '@/components/EmailPanel';
 import { ATSScorePanel } from '@/components/ATSScorePanel';
+import { DocumentsPanel } from '@/components/DocumentsPanel';
 import { ChatPanel } from '@/components/ChatPanel';
 import { FileUpload } from '@/components/FileUpload';
 import { useAppStore, useCVStore } from '@/store/useAppStore';
@@ -146,12 +147,12 @@ export default function Dashboard() {
     setIsResizing(true);
   }, []);
 
-  const handleTabChange = useCallback((tab: 'cv' | 'cover-letter' | 'email') => {
+  const handleTabChange = useCallback((tab: 'cv' | 'cover-letter' | 'email' | 'documents') => {
     setActiveTab(tab);
   }, [setActiveTab]);
 
   // Mobile tab state — must be before any early returns (Rules of Hooks)
-  const [mobileTab, setMobileTab] = useState<'chat' | 'cv' | 'ats-score' | 'cover-letter' | 'email'>('chat');
+  const [mobileTab, setMobileTab] = useState<'chat' | 'cv' | 'ats-score' | 'cover-letter' | 'email' | 'documents'>('chat');
   const [showMobileMore, setShowMobileMore] = useState(false);
 
   // Resize effect (desktop only)
@@ -191,7 +192,7 @@ export default function Dashboard() {
   }
 
   // Sync mobile tab with active tab on desktop
-  const handleMobileTabChange = (tab: 'chat' | 'cv' | 'ats-score' | 'cover-letter' | 'email') => {
+  const handleMobileTabChange = (tab: 'chat' | 'cv' | 'ats-score' | 'cover-letter' | 'email' | 'documents') => {
     setMobileTab(tab);
     if (tab !== 'chat') {
       setActiveTab(tab);
@@ -270,14 +271,19 @@ export default function Dashboard() {
             Tracker
           </Link>
 
-          {/* Documents — navigates to /documents */}
-          <Link
-            href="/documents"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap text-warm-gray hover:text-navy-600 hover:bg-white/60"
+          {/* Documents — tab panel */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('documents')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'documents'
+                ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
+                : 'text-warm-gray hover:text-navy-600'
+            }`}
           >
-            <FolderOpen className="w-3.5 h-3.5" />
+            <FolderOpen className={`w-3.5 h-3.5 ${activeTab === 'documents' ? 'text-gold-500' : ''}`} />
             Documents
-          </Link>
+          </button>
         </div>
 
         <div className="flex-1" />
@@ -420,7 +426,9 @@ export default function Dashboard() {
 
           {/* Content Area */}
           <div className="flex-1 overflow-auto">
-            {!currentCV ? (
+            {activeTab === 'documents' ? (
+              <DocumentsPanel />
+            ) : !currentCV ? (
               /* ═══ Onboarding: Upload CV to get started ═══ */
               <div className="flex items-center justify-center h-full p-8">
                 <div className="max-w-md w-full">
@@ -459,14 +467,14 @@ export default function Dashboard() {
                   )}
 
                   <div className="mt-6 flex items-center justify-center">
-                    <Link
-                      href="/documents"
-                      className="inline-flex items-center gap-1.5 text-sm text-warm-gray hover:text-navy-600 transition-colors"
+                    <button
+                      onClick={() => setActiveTab('documents')}
+                      className="inline-flex items-center gap-1.5 text-sm text-warm-gray hover:text-navy-600 transition-colors cursor-pointer"
                     >
                       <FolderOpen className="w-3.5 h-3.5" />
                       Go to Documents for more options
                       <ArrowRight className="w-3 h-3" />
-                    </Link>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -509,7 +517,9 @@ export default function Dashboard() {
       <div className="md:hidden flex-1 flex flex-col overflow-hidden">
         {/* Mobile Content — full screen per tab */}
         <div className="flex-1 overflow-auto">
-          {!currentCV && mobileTab !== 'chat' ? (
+          {mobileTab === 'documents' ? (
+            <DocumentsPanel />
+          ) : !currentCV && mobileTab !== 'chat' ? (
             /* Mobile onboarding */
             <div className="flex items-center justify-center h-full p-6">
               <div className="max-w-sm w-full">
@@ -548,14 +558,14 @@ export default function Dashboard() {
                 )}
 
                 <div className="mt-4 flex items-center justify-center">
-                  <Link
-                    href="/documents"
-                    className="inline-flex items-center gap-1.5 text-sm text-warm-gray hover:text-navy-600 transition-colors"
+                  <button
+                    onClick={() => handleMobileTabChange('documents')}
+                    className="inline-flex items-center gap-1.5 text-sm text-warm-gray hover:text-navy-600 transition-colors cursor-pointer"
                   >
                     <FolderOpen className="w-3.5 h-3.5" />
                     More options
                     <ArrowRight className="w-3 h-3" />
-                  </Link>
+                  </button>
                 </div>
               </div>
             </div>
@@ -655,14 +665,14 @@ export default function Dashboard() {
                           <ClipboardList className="w-4 h-4 text-navy-500" />
                           Tracker
                         </Link>
-                        <Link
-                          href="/documents"
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-charcoal hover:bg-cream-50 transition-colors"
-                          onClick={() => setShowMobileMore(false)}
+                        <button
+                          type="button"
+                          onClick={() => handleMobileTabChange('documents')}
+                          className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${mobileTab === 'documents' ? 'text-gold-600 bg-gold-50' : 'text-charcoal hover:bg-cream-50'}`}
                         >
                           <FolderOpen className="w-4 h-4 text-navy-500" />
                           Documents
-                        </Link>
+                        </button>
                         <Link
                           href="/settings"
                           className="flex items-center gap-3 px-4 py-2.5 text-sm text-charcoal hover:bg-cream-50 transition-colors"
