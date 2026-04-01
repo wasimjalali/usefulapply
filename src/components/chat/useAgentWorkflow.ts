@@ -608,6 +608,12 @@ export function useAgentWorkflow(options?: {
                   });
                 }
                 
+                // Clear fit analysis pending state — application is done
+                setFitAnalysisContextId(null);
+                setFitAnalysisJD('');
+                setFitAnalysisContextData(null);
+                useAppStore.getState().updateCurrentSession({ pendingFitAnalysis: null });
+
                 // Mark free generation as used for anonymous users
                 if (!user) {
                   markFreeGenerationUsed();
@@ -713,6 +719,10 @@ export function useAgentWorkflow(options?: {
       const isNewJobDescription = isLikelyJobDescription || isShortJobPost;
       
       if (isNewJobDescription) {
+        // Clear previous fit analysis state for the new JD
+        setFitAnalysisContextId(null);
+        setFitAnalysisJD('');
+        setFitAnalysisContextData(null);
         useAppStore.getState().updateCurrentSession({
           requirements: null,
           gaps: null,
@@ -721,6 +731,7 @@ export function useAgentWorkflow(options?: {
           matchingSkills: [],
           missingSkills: [],
           suggestions: [],
+          pendingFitAnalysis: null,
         });
         
         setJobDescription(messageContent);
