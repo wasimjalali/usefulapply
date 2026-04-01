@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Card } from './ui/Card';
 import { MarkdownText } from './MarkdownText';
 import { ChatMessage, type ChatMessageData } from './chat/ChatMessage';
@@ -13,7 +14,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { submitMessageFeedback, getChatMessages } from '@/lib/supabase';
-import { 
+import {
   Loader2,
   ChevronRight,
   FileText,
@@ -30,9 +31,11 @@ import { usePostHog } from 'posthog-js/react';
 interface ChatPanelProps {
   onTabChange?: (tab: 'cv' | 'cover-letter' | 'email') => void;
   isMobileDrawer?: boolean;
+  /** When provided, History + New Application buttons are portalled into this DOM node (desktop nav bar). Header is hidden. */
+  navBarPortal?: HTMLDivElement | null;
 }
 
-export function ChatPanel({ onTabChange, isMobileDrawer = false }: ChatPanelProps) {
+export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }: ChatPanelProps) {
   const router = useRouter();
   const { user } = useAuth();
   const posthog = usePostHog();
@@ -219,6 +222,28 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false }: ChatPanelProp
     setShowHistory(false);
   };
 
+  // History + New Application buttons — rendered in mobile header OR portalled into nav bar on desktop
+  const chatNavButtons = (
+    <div className="flex items-center gap-1">
+      <button
+        onClick={() => setShowHistory(!showHistory)}
+        className={`p-2 rounded-lg transition-all cursor-pointer ${
+          showHistory ? 'bg-navy-50 text-navy-600 shadow-sm' : 'text-warm-gray hover:bg-cream-100 hover:text-navy-600'
+        }`}
+        title="Application History"
+      >
+        <History className="w-4 h-4" />
+      </button>
+      <button
+        onClick={handleNewApplication}
+        className="p-2 rounded-lg text-warm-gray hover:bg-cream-100 hover:text-navy-600 transition-all cursor-pointer"
+        title="New Application"
+      >
+        <Plus className="w-4 h-4" />
+      </button>
+    </div>
+  );
+
   return (
     <>
       {feedbackModal && (
@@ -229,35 +254,23 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false }: ChatPanelProp
           isSuccess={feedbackSuccess}
         />
       )}
-    
+
+      {/* Portal nav buttons into main nav bar when on desktop (navBarPortal provided) */}
+      {navBarPortal && createPortal(chatNavButtons, navBarPortal)}
+
       <div className={`h-full flex flex-col bg-cream-50 ${isMobileDrawer ? '' : 'border-l border-cream-200'}`}>
-        {/* Chat Header — simplified: "Chat" label + action icons */}
-        <div className="relative px-4 py-2.5 glass-header">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-gold-500" />
-              <span className="text-sm font-semibold text-navy-700">Chat</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setShowHistory(!showHistory)}
-                className={`p-2 rounded-lg transition-all cursor-pointer ${
-                  showHistory ? 'bg-navy-50 text-navy-600 shadow-sm' : 'text-warm-gray hover:bg-cream-100 hover:text-navy-600'
-                }`}
-                title="Application History"
-              >
-                <History className="w-4 h-4" />
-              </button>
-              <button
-                onClick={handleNewApplication}
-                className="p-2 rounded-lg text-warm-gray hover:bg-cream-100 hover:text-navy-600 transition-all cursor-pointer"
-                title="New Application"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
+        {/* Chat Header — only shown when navBarPortal is not provided (mobile layout) */}
+        {navBarPortal === undefined && (
+          <div className="relative px-4 py-2.5 glass-header">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-gold-500" />
+                <span className="text-sm font-semibold text-navy-700">Chat</span>
+              </div>
+              {chatNavButtons}
             </div>
           </div>
-        </div>
+        )}
 
         {/* History Sidebar */}
         {showHistory && (

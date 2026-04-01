@@ -29,6 +29,9 @@ export default function Dashboard() {
   // Toolbar portal: panels render their controls into this slot in the tab bar
   const [toolbarNode, setToolbarNode] = useState<HTMLDivElement | null>(null);
 
+  // Chat nav portal: ChatPanel renders History + New Application buttons into this slot in the nav bar
+  const [chatNavNode, setChatNavNode] = useState<HTMLDivElement | null>(null);
+
   // Resizable chat panel state - ALL HOOKS MUST BE BEFORE EARLY RETURNS
   const [chatPanelWidth, setChatPanelWidth] = useState(440);
   const [isResizing, setIsResizing] = useState(false);
@@ -175,6 +178,9 @@ export default function Dashboard() {
         </div>
 
         <div className="flex-1" />
+
+        {/* Chat nav portal slot — ChatPanel portals History + New Application buttons here */}
+        <div ref={setChatNavNode} className="flex items-center" />
 
         {/* Credit Indicator */}
         {user && (
@@ -333,6 +339,7 @@ export default function Dashboard() {
           <div className="flex-1 h-full overflow-hidden">
             <ChatPanel
               onTabChange={handleTabChange}
+              navBarPortal={chatNavNode}
             />
           </div>
         </div>

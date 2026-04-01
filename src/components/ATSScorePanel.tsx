@@ -38,7 +38,7 @@ export function ATSScorePanel() {
   return (
     <div className="h-full overflow-auto p-6">
       {optimizedCVData?.analysis ? (
-        <div className="space-y-6 max-w-2xl">
+        <div className="space-y-6">
           {/* ATS Compatibility Score */}
           <div className="bg-white rounded-2xl border border-cream-200 shadow-sm p-6">
             <h3 className="font-bold text-navy-800 mb-4 text-lg">ATS Compatibility Score</h3>
@@ -99,7 +99,7 @@ export function ATSScorePanel() {
         </div>
       ) : changes.length > 0 ? (
         /* Fallback: legacy changes format */
-        <div className="space-y-4 max-w-2xl">
+        <div className="space-y-4">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-5 h-5 text-navy-600" />
             <h3 className="font-semibold text-charcoal text-base">
