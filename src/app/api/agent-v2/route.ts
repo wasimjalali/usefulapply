@@ -546,7 +546,6 @@ export async function POST(request: NextRequest) {
                     coverLetter: ctx.coverLetter,
                     applicationEmail: ctx.applicationEmail,
                     followUpEmail: ctx.followUpEmail || null,
-                    context: ctx,
                   },
                 })}\n\n`));
               } else {
@@ -609,7 +608,6 @@ export async function POST(request: NextRequest) {
                 coverLetter: ctx.coverLetter,
                 applicationEmail: ctx.applicationEmail,
                 followUpEmail: ctx.followUpEmail || null,
-                context: ctx,
               },
             })}\n\n`));
           } else {
@@ -683,7 +681,6 @@ export async function POST(request: NextRequest) {
               coverLetter: ctx.coverLetter,
               applicationEmail: ctx.applicationEmail,
               followUpEmail: ctx.followUpEmail || null,
-              context: ctx,
             };
           } else {
             throw new Error(result.error || 'Optimization failed');
@@ -695,9 +692,19 @@ export async function POST(request: NextRequest) {
             primaryCV: currentCV,
             masterCV,
           }, eventHandler);
-          
+
           if (result.success && result.data) {
-            results = { context: result.data.context };
+            const ctx = result.data.context;
+            results = {
+              job: ctx.job,
+              companyResearch: ctx.companyResearch,
+              match: ctx.match,
+              optimizedCV: ctx.optimizedCV,
+              optimizedCVData: ctx.optimizedCVData,
+              coverLetter: ctx.coverLetter,
+              applicationEmail: ctx.applicationEmail,
+              followUpEmail: ctx.followUpEmail || null,
+            };
           } else {
             throw new Error(result.error || 'Workflow failed');
           }

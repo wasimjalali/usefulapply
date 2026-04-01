@@ -1003,8 +1003,15 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
                       // Persist edits to store and Supabase
                       if (showOptimized && generatedCV) {
                         // For optimized CV, update session store (auto-syncs to Supabase)
+                        // Preserve analysis, sectionHeaders, localizedStrings from original optimizedCVData
+                        const existing = useSessionStore.getState().currentSession?.optimizedCVData;
                         useSessionStore.getState().updateCurrentSession({
-                          optimizedCVData: updatedData as any
+                          optimizedCVData: {
+                            ...updatedData,
+                            analysis: existing?.analysis,
+                            sectionHeaders: existing?.sectionHeaders,
+                            localizedStrings: existing?.localizedStrings,
+                          } as any
                         });
                       } else {
                         // For original CV, persist to CV store (syncs to Supabase via useSupabaseSync)

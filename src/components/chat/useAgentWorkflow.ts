@@ -491,15 +491,14 @@ export function useAgentWorkflow(options?: {
                 break;
                 
               case 'workflow_complete':
-                const { results } = data;
-                const ctx = results.context;
+                const ctx = data.results;
                 posthog?.capture('application_generated', {
                   mode: contextId ? 'analyze_first' : 'apply_directly',
                   job_title: ctx?.job?.title,
                   company: ctx?.job?.companyName,
                   match_score: ctx?.match?.score,
                 });
-                
+
                 if (ctx?.job) {
                   useAppStore.getState().updateCurrentSession({
                     requirements: {

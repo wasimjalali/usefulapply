@@ -349,6 +349,12 @@ Return ONLY this JSON structure - no markdown, no preamble, no explanation:
     "github": "string (optional)",
     "driverLicense": "string (optional) - e.g., 'Class B' or 'Klasse B'. Include if present in Primary CV or Master CV. Omit if not applicable."
   },
+  "analysis": {
+    "summary": "2-sentence strategy summary of your optimization approach",
+    "key_changes": ["Change 1", "Change 2", "Change 3", "Change 4"],
+    "ats_compatibility": 85,
+    "missing_keywords_added": ["keyword1", "keyword2"]
+  },
   "summary": "string - 3-4 sentences",
   "experience": [
     {
@@ -436,12 +442,6 @@ Return ONLY this JSON structure - no markdown, no preamble, no explanation:
     "cityLabel": "'City' in the output language (e.g., 'City', 'Ort')",
     "dateLabel": "'Date' in the output language (e.g., 'Date', 'Datum')"
   },
-  "analysis": {
-    "summary": "2-sentence strategy summary",
-    "key_changes": ["Change 1", "Change 2", "Change 3", "Change 4"],
-    "ats_compatibility": 85,
-    "missing_keywords_added": ["keyword1", "keyword2"]
-  }
 }
 
 === ATS OPTIMIZATION (2026 STANDARDS) ===
