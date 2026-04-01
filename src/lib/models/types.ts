@@ -103,7 +103,7 @@ export const MODEL_CONFIGS: Record<TaskType, ModelConfig> = {
     model: 'claude-sonnet-4-6',
     provider: 'anthropic',
     temperature: 0.5,  // Variety for natural-sounding bullet points
-    maxTokens: 8192,
+    maxTokens: 10000,  // Covers 3-page CV (~5K tokens) + analysis + headroom
   },
   write_cover_letter: {
     model: 'claude-sonnet-4-6',
