@@ -497,6 +497,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
           applicationMode={applicationMode}
           onModeChange={setApplicationMode}
           showModeSelector={!!currentCV}
+          compact={messages.length > 0}
           pendingFitAnalysis={
             !isAgentWorking &&
             !currentSession?.generatedCV &&
