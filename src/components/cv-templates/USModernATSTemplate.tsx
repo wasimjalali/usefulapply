@@ -184,7 +184,6 @@ export function USModernATSTemplate({ data, template }: Props) {
         style={{
           width: '30%',
           padding: '8px 12px 8px 10px',
-          backgroundColor: modernColors.sidebar,
           borderRight: `2px solid ${modernColors.primary}`,
           overflow: 'visible',
           wordWrap: 'break-word',
