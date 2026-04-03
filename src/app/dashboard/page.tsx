@@ -13,7 +13,7 @@ import { useAppStore, useCVStore } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import { uploadCVFile, saveDocument } from '@/lib/supabase';
-import { FileText, Mail, Send, FolderOpen, ClipboardList, Settings, Target, User, Loader2, MessageCircle, MoreHorizontal, AlertCircle, ArrowRight, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { FileText, Mail, Send, FolderOpen, ClipboardList, Settings, Target, User, Loader2, MessageCircle, MoreHorizontal, AlertCircle, ArrowRight, PanelRightClose, PanelRightOpen, ArrowUpRight } from 'lucide-react';
 import KarkoLogo, { KarkoIcon } from '@/components/KarkoLogo';
 import Link from 'next/link';
 import { CreditIndicator } from '@/components/ui/CreditIndicator';
@@ -344,6 +344,26 @@ export default function Dashboard() {
 
         <div className="flex-1" />
 
+        {/* Upgrade CTA — shown for free and plus plans */}
+        {user && profile && (profile.subscription_tier === 'free' || profile.subscription_tier === 'starter') && (
+          <Link
+            href="/pricing"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 rounded-lg transition-all shadow-sm hover:shadow-md mr-2"
+          >
+            Upgrade to Plus
+            <ArrowUpRight className="w-3 h-3" />
+          </Link>
+        )}
+        {user && profile?.subscription_tier === 'plus' && (
+          <Link
+            href="/pricing"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-navy-600 to-navy-700 hover:from-navy-700 hover:to-navy-800 rounded-lg transition-all shadow-sm hover:shadow-md mr-2"
+          >
+            Upgrade to Max
+            <ArrowUpRight className="w-3 h-3" />
+          </Link>
+        )}
+
         {/* Credit Indicator */}
         {user && (
           <div className="flex items-center">
@@ -433,6 +453,25 @@ export default function Dashboard() {
           <KarkoLogo variant="full" size="xs" theme="light" />
         </Link>
         <div className="flex-1" />
+        {/* Mobile Upgrade CTA */}
+        {user && profile && (profile.subscription_tier === 'free' || profile.subscription_tier === 'starter') && (
+          <Link
+            href="/pricing"
+            className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-white bg-gradient-to-r from-gold-400 to-gold-500 rounded-md mr-1.5"
+          >
+            Upgrade
+            <ArrowUpRight className="w-2.5 h-2.5" />
+          </Link>
+        )}
+        {user && profile?.subscription_tier === 'plus' && (
+          <Link
+            href="/pricing"
+            className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-white bg-gradient-to-r from-navy-600 to-navy-700 rounded-md mr-1.5"
+          >
+            Go Max
+            <ArrowUpRight className="w-2.5 h-2.5" />
+          </Link>
+        )}
         {user && (
           <div className="flex items-center mr-1">
             <CreditIndicator compact />

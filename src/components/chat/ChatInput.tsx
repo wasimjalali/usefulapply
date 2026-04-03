@@ -17,6 +17,8 @@ interface ChatInputProps {
   /** Show prominent CTA buttons after fit analysis completes */
   pendingFitAnalysis?: boolean;
   onFitAnalysisAction?: (action: 'apply' | 'skip') => void;
+  /** When true, renders a compact input (less padding, no mode selector) — used when chat has messages */
+  compact?: boolean;
 }
 
 export function ChatInput({
@@ -32,6 +34,7 @@ export function ChatInput({
   showModeSelector = false,
   pendingFitAnalysis = false,
   onFitAnalysisAction,
+  compact = false,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
@@ -52,10 +55,10 @@ export function ChatInput({
   };
 
   return (
-    <div className="p-4 bg-gradient-to-t from-cream-100/80 to-transparent backdrop-blur-sm">
+    <div className={`${compact ? 'p-2' : 'p-4'} bg-gradient-to-t from-cream-100/80 to-transparent backdrop-blur-sm`}>
       <div className="relative">
         {/* Hover tooltips - rendered OUTSIDE the overflow-hidden container */}
-        {hoveredMode === 'apply_directly' && showModeSelector && !pendingFitAnalysis && !value.trim() && !isWorking && (
+        {hoveredMode === 'apply_directly' && showModeSelector && !compact && !pendingFitAnalysis && !value.trim() && !isWorking && (
           <div className="absolute bottom-full left-3 mb-1 w-60 bg-navy-700 text-white text-xs rounded-xl p-3.5 shadow-xl z-50">
             <div className="font-semibold mb-1">Apply Directly</div>
             <p className="text-navy-200 leading-relaxed">Skips fit analysis and generates your optimized CV, cover letter, and email immediately.</p>
@@ -64,7 +67,7 @@ export function ChatInput({
             <div className="absolute top-full left-6 w-2.5 h-2.5 bg-navy-700 rotate-45 -mt-1.5" />
           </div>
         )}
-        {hoveredMode === 'analyze_first' && showModeSelector && !pendingFitAnalysis && !value.trim() && !isWorking && (
+        {hoveredMode === 'analyze_first' && showModeSelector && !compact && !pendingFitAnalysis && !value.trim() && !isWorking && (
           <div className="absolute bottom-full left-24 mb-1 w-60 bg-navy-700 text-white text-xs rounded-xl p-3.5 shadow-xl z-50">
             <div className="font-semibold mb-1">Analyze First</div>
             <p className="text-navy-200 leading-relaxed">Runs a fit analysis to show your match score and skill gaps before generating the full application.</p>
@@ -95,7 +98,7 @@ export function ChatInput({
         )}
 
         {/* Main input container with gold border */}
-        <div className={`relative glass-input rounded-3xl border-2 shadow-lg overflow-hidden transition-all duration-200 ${
+        <div className={`relative glass-input ${compact ? 'rounded-2xl' : 'rounded-3xl'} border-2 shadow-lg overflow-hidden transition-all duration-200 ${
           isWorking
             ? 'border-gold-400 shadow-gold-200/50'
             : 'border-gold-300/60 shadow-gold-100/40 focus-within:border-gold-400 focus-within:shadow-gold-200/50'
@@ -103,7 +106,7 @@ export function ChatInput({
 
           <div className="relative flex flex-col">
             {/* Mode selector - inside input, hidden when typing or when fit analysis is pending */}
-            {showModeSelector && !pendingFitAnalysis && !value.trim() && !isWorking && (
+            {showModeSelector && !compact && !pendingFitAnalysis && !value.trim() && !isWorking && (
               <div className="flex items-center gap-1.5 px-3 pt-2.5 pb-0">
                 <button
                   onClick={() => onModeChange?.('apply_directly')}
@@ -135,7 +138,7 @@ export function ChatInput({
             )}
 
             {/* Input row */}
-            <div className="flex items-end gap-2 p-3">
+            <div className={`flex items-end gap-2 ${compact ? 'p-2' : 'p-3'}`}>
               <div className="flex-1 relative">
                 <textarea
                   ref={textareaRef}
@@ -175,9 +178,11 @@ export function ChatInput({
         </div>
 
         {/* Keyboard hint */}
-        <p className="text-[10px] text-warm-gray/60 text-center mt-2">
-          Shift + Enter for new line
-        </p>
+        {!compact && (
+          <p className="text-[10px] text-warm-gray/60 text-center mt-2">
+            Shift + Enter for new line
+          </p>
+        )}
       </div>
     </div>
   );
