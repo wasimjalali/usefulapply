@@ -17,7 +17,7 @@ interface UIState {
   agentWorkflowPhase: 'fit_analysis' | 'full_generation' | null;  // Current agent phase for panel messages
 
   // UI state
-  activeTab: 'cv' | 'ats-score' | 'cover-letter' | 'email' | 'documents';
+  activeTab: 'cv' | 'ats-score' | 'cover-letter' | 'email' | 'documents' | 'tracker';
   error: string | null;
 }
 
@@ -30,7 +30,7 @@ interface UIActions {
   setAgentWorkflowPhase: (phase: 'fit_analysis' | 'full_generation' | null) => void;
 
   // UI state setters
-  setActiveTab: (tab: 'cv' | 'ats-score' | 'cover-letter' | 'email' | 'documents') => void;
+  setActiveTab: (tab: 'cv' | 'ats-score' | 'cover-letter' | 'email' | 'documents' | 'tracker') => void;
   setError: (error: string | null) => void;
   
   // Reset

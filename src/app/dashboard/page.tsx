@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { CVPanel } from '@/components/CVPanel';
 import { CoverLetterPanel } from '@/components/CoverLetterPanel';
 import { EmailPanel } from '@/components/EmailPanel';
 import { ATSScorePanel } from '@/components/ATSScorePanel';
 import { DocumentsPanel } from '@/components/DocumentsPanel';
+import { TrackerPanel } from '@/components/TrackerPanel';
 import { ChatPanel } from '@/components/ChatPanel';
 import { FileUpload } from '@/components/FileUpload';
 import { useAppStore, useCVStore } from '@/store/useAppStore';
@@ -168,8 +169,27 @@ export default function Dashboard() {
     setActiveTab(tab);
   }, [setActiveTab]);
 
+  // Track the previous chat-collapsed state so we can restore it when leaving tracker
+  const chatCollapsedBeforeTrackerRef = useRef(false);
+
+  // Auto-collapse chat when entering tracker, restore when leaving
+  const prevActiveTabRef = useRef(activeTab);
+  useEffect(() => {
+    const prevTab = prevActiveTabRef.current;
+    prevActiveTabRef.current = activeTab;
+
+    if (activeTab === 'tracker' && prevTab !== 'tracker') {
+      // Entering tracker — remember current collapsed state and collapse chat
+      chatCollapsedBeforeTrackerRef.current = isChatCollapsed;
+      setIsChatCollapsed(true);
+    } else if (activeTab !== 'tracker' && prevTab === 'tracker') {
+      // Leaving tracker — restore previous collapsed state
+      setIsChatCollapsed(chatCollapsedBeforeTrackerRef.current);
+    }
+  }, [activeTab, isChatCollapsed]);
+
   // Mobile tab state — must be before any early returns (Rules of Hooks)
-  const [mobileTab, setMobileTab] = useState<'chat' | 'cv' | 'ats-score' | 'cover-letter' | 'email' | 'documents'>('chat');
+  const [mobileTab, setMobileTab] = useState<'chat' | 'cv' | 'ats-score' | 'cover-letter' | 'email' | 'documents' | 'tracker'>('chat');
   const [showMobileMore, setShowMobileMore] = useState(false);
 
   // Resize effect (desktop only)
@@ -223,7 +243,7 @@ export default function Dashboard() {
   }
 
   // Sync mobile tab with active tab on desktop
-  const handleMobileTabChange = (tab: 'chat' | 'cv' | 'ats-score' | 'cover-letter' | 'email' | 'documents') => {
+  const handleMobileTabChange = (tab: 'chat' | 'cv' | 'ats-score' | 'cover-letter' | 'email' | 'documents' | 'tracker') => {
     setMobileTab(tab);
     if (tab !== 'chat') {
       setActiveTab(tab);
@@ -293,14 +313,19 @@ export default function Dashboard() {
           {/* Divider */}
           <div className="w-px h-5 bg-cream-300 mx-1" />
 
-          {/* Tracker — navigates to /applications */}
-          <Link
-            href="/applications"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap text-warm-gray hover:text-navy-600 hover:bg-white/60"
+          {/* Tracker — inline panel */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('tracker')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'tracker'
+                ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
+                : 'text-warm-gray hover:text-navy-600'
+            }`}
           >
-            <ClipboardList className="w-3.5 h-3.5" />
+            <ClipboardList className={`w-3.5 h-3.5 ${activeTab === 'tracker' ? 'text-gold-500' : ''}`} />
             Tracker
-          </Link>
+          </button>
 
           {/* Documents — tab panel */}
           <button
@@ -468,7 +493,9 @@ export default function Dashboard() {
 
           {/* Content Area */}
           <div className="flex-1 overflow-auto">
-            {activeTab === 'documents' ? (
+            {activeTab === 'tracker' ? (
+              <TrackerPanel />
+            ) : activeTab === 'documents' ? (
               <DocumentsPanel />
             ) : !currentCV ? (
               /* ═══ Onboarding: Upload CV to get started ═══ */
@@ -607,7 +634,9 @@ export default function Dashboard() {
       <div className="md:hidden flex-1 flex flex-col overflow-hidden">
         {/* Mobile Content — full screen per tab */}
         <div className="flex-1 overflow-auto">
-          {mobileTab === 'documents' ? (
+          {mobileTab === 'tracker' ? (
+            <TrackerPanel />
+          ) : mobileTab === 'documents' ? (
             <DocumentsPanel />
           ) : !currentCV && mobileTab !== 'chat' ? (
             /* Mobile onboarding */
@@ -747,14 +776,14 @@ export default function Dashboard() {
                     </button>
                     {user && (
                       <>
-                        <Link
-                          href="/applications"
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-charcoal hover:bg-cream-50 transition-colors"
-                          onClick={() => setShowMobileMore(false)}
+                        <button
+                          type="button"
+                          onClick={() => handleMobileTabChange('tracker')}
+                          className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${mobileTab === 'tracker' ? 'text-gold-600 bg-gold-50' : 'text-charcoal hover:bg-cream-50'}`}
                         >
                           <ClipboardList className="w-4 h-4 text-navy-500" />
                           Tracker
-                        </Link>
+                        </button>
                         <button
                           type="button"
                           onClick={() => handleMobileTabChange('documents')}
