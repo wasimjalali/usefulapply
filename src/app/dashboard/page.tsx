@@ -12,8 +12,8 @@ import { useAppStore, useCVStore } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import { uploadCVFile, saveDocument } from '@/lib/supabase';
-import { FileText, Mail, Send, FolderOpen, ClipboardList, Settings, Target, User, Loader2, MessageCircle, MoreHorizontal, Sparkles, AlertCircle, ArrowRight, PanelRightClose, PanelRightOpen } from 'lucide-react';
-import KarkoLogo from '@/components/KarkoLogo';
+import { FileText, Mail, Send, FolderOpen, ClipboardList, Settings, Target, User, Loader2, MessageCircle, MoreHorizontal, AlertCircle, ArrowRight, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import KarkoLogo, { KarkoIcon } from '@/components/KarkoLogo';
 import Link from 'next/link';
 import { CreditIndicator } from '@/components/ui/CreditIndicator';
 import type { ParsedCV } from '@/lib/types';
@@ -475,8 +475,8 @@ export default function Dashboard() {
               <div className="flex items-center justify-center h-full p-8">
                 <div className="max-w-lg w-full">
                   <div className="text-center mb-8">
-                    <div className="inline-flex p-4 bg-gradient-to-br from-navy-600 to-navy-700 rounded-2xl shadow-lg mb-5">
-                      <Sparkles className="w-8 h-8 text-gold-300" />
+                    <div className="inline-flex mb-5">
+                      <KarkoIcon size="lg" theme="light" />
                     </div>
                     <h2 className="text-2xl font-bold text-charcoal mb-2">Welcome to Karko AI</h2>
                     <p className="text-warm-gray max-w-sm mx-auto">
@@ -589,7 +589,7 @@ export default function Dashboard() {
                 <PanelRightOpen className="w-4 h-4" />
               </button>
               <div className="mt-3 flex flex-col items-center">
-                <Sparkles className="w-4 h-4 text-gold-400" />
+                <KarkoIcon size="xs" theme="light" />
               </div>
             </div>
           ) : (
@@ -614,8 +614,8 @@ export default function Dashboard() {
             <div className="flex items-center justify-center h-full p-6">
               <div className="max-w-sm w-full">
                 <div className="text-center mb-6">
-                  <div className="inline-flex p-3 bg-gradient-to-br from-navy-600 to-navy-700 rounded-xl shadow-lg mb-4">
-                    <Sparkles className="w-6 h-6 text-gold-300" />
+                  <div className="inline-flex mb-4">
+                    <KarkoIcon size="md" theme="light" />
                   </div>
                   <h2 className="text-xl font-bold text-charcoal mb-1.5">Upload your CV</h2>
                   <p className="text-sm text-warm-gray">
