@@ -473,14 +473,14 @@ export default function Dashboard() {
             ) : !currentCV ? (
               /* ═══ Onboarding: Upload CV to get started ═══ */
               <div className="flex items-center justify-center h-full p-8">
-                <div className="max-w-md w-full">
+                <div className="max-w-lg w-full">
                   <div className="text-center mb-8">
                     <div className="inline-flex p-4 bg-gradient-to-br from-navy-600 to-navy-700 rounded-2xl shadow-lg mb-5">
                       <Sparkles className="w-8 h-8 text-gold-300" />
                     </div>
                     <h2 className="text-2xl font-bold text-charcoal mb-2">Welcome to Karko AI</h2>
-                    <p className="text-warm-gray">
-                      Upload your CV to get started. We&apos;ll optimize it for every job you apply to.
+                    <p className="text-warm-gray max-w-sm mx-auto">
+                      Upload your CV to get started. We&apos;ll tailor it for every job you apply to.
                     </p>
                   </div>
 
@@ -508,10 +508,35 @@ export default function Dashboard() {
                     />
                   )}
 
+                  {/* Feature highlights */}
+                  <div className="mt-8 grid grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <div className="inline-flex p-2 bg-navy-50 rounded-xl mb-2">
+                        <FileText className="w-4 h-4 text-navy-600" />
+                      </div>
+                      <p className="text-xs font-medium text-charcoal">ATS-Optimized CV</p>
+                      <p className="text-[10px] text-warm-gray mt-0.5">Tailored to each job description</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="inline-flex p-2 bg-navy-50 rounded-xl mb-2">
+                        <Mail className="w-4 h-4 text-navy-600" />
+                      </div>
+                      <p className="text-xs font-medium text-charcoal">Cover Letter</p>
+                      <p className="text-[10px] text-warm-gray mt-0.5">Professional, role-specific</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="inline-flex p-2 bg-navy-50 rounded-xl mb-2">
+                        <Send className="w-4 h-4 text-navy-600" />
+                      </div>
+                      <p className="text-xs font-medium text-charcoal">Application Email</p>
+                      <p className="text-[10px] text-warm-gray mt-0.5">Ready to send in seconds</p>
+                    </div>
+                  </div>
+
                   <div className="mt-6 flex items-center justify-center">
                     <button
                       onClick={() => setActiveTab('documents')}
-                      className="inline-flex items-center gap-1.5 text-sm text-warm-gray hover:text-navy-600 transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1.5 text-xs text-warm-gray hover:text-navy-600 transition-colors cursor-pointer"
                     >
                       <FolderOpen className="w-3.5 h-3.5" />
                       Go to Documents for more options

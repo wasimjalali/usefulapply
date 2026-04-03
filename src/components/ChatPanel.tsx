@@ -16,8 +16,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { submitMessageFeedback, getChatMessages } from '@/lib/supabase';
 import {
   Loader2,
-  ChevronRight,
-  FileText,
   Plus,
   History,
   Sparkles,
@@ -374,19 +372,9 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                       className="text-sm text-charcoal"
                     />
                   ) : (
-                    <div>
-                      <p className="text-sm text-charcoal mb-3">
-                        Upload your CV to get started — I'll tailor it for every job you apply to.
-                      </p>
-                      <button
-                        onClick={() => handleAction('navigate-documents')}
-                        className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm cursor-pointer"
-                      >
-                        <FileText className="w-4 h-4" />
-                        Upload CV
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </div>
+                    <p className="text-sm text-charcoal">
+                      Upload your CV using the panel on the left, then paste a job description here to get started.
+                    </p>
                   )}
                 </Card>
                 <p className="text-xs text-warm-gray mt-1.5 ml-1">Just now</p>
