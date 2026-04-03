@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState } from 'react';
-import { Send, Square, AlertTriangle, Search, Zap, FileText, RotateCcw } from 'lucide-react';
+import { Send, Square, Search, Zap, FileText, RotateCcw } from 'lucide-react';
 
 interface ChatInputProps {
   value: string;
@@ -174,13 +174,10 @@ export function ChatInput({
           </div>
         </div>
 
-        {/* Bottom info bar - AI warning */}
-        <div className="flex items-center justify-center mt-3 gap-1.5">
-          <AlertTriangle className="w-3 h-3 text-warm-gray" />
-          <p className="text-xs text-warm-gray">
-            AI can make mistakes. Please verify important information.
-          </p>
-        </div>
+        {/* Keyboard hint */}
+        <p className="text-[10px] text-warm-gray/60 text-center mt-2">
+          Shift + Enter for new line
+        </p>
       </div>
     </div>
   );
