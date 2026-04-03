@@ -232,7 +232,6 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
         style={{
           width: '70mm',
           padding: '0 12px 0 0',
-          backgroundColor: germanColors.headerBg,
           borderRight: `2px solid ${germanColors.primary}`,
           overflow: 'visible',
           wordWrap: 'break-word',

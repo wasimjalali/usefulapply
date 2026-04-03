@@ -11,12 +11,12 @@ import {
   Copy,
   Check,
   User,
-  Sparkles,
   FileText,
   Mail,
   Send,
   Plus,
 } from 'lucide-react';
+import { KarkoIcon } from '../KarkoLogo';
 
 export interface ChatAction {
   label: string;
@@ -79,14 +79,15 @@ export function ChatMessage({
 
   return (
     <div className="group/msg flex gap-3">
-      <div className={`rounded-xl h-fit flex-shrink-0 ${
-        message.role === 'user' ? 'p-2 bg-cream-200' : 'p-2 bg-gradient-to-br from-navy-600 to-navy-700 shadow-sm'
-      }`}>
-        {message.role === 'user'
-          ? <User className="w-4 h-4 text-charcoal" />
-          : <Sparkles className="w-4 h-4 text-gold-400" />
-        }
-      </div>
+      {message.role === 'user' ? (
+        <div className="p-2 rounded-xl h-fit flex-shrink-0 bg-cream-200">
+          <User className="w-4 h-4 text-charcoal" />
+        </div>
+      ) : (
+        <div className="flex-shrink-0 h-fit">
+          <KarkoIcon size="xs" theme="light" />
+        </div>
+      )}
 
       <div className="flex-1 min-w-0">
         <Card 

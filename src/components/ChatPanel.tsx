@@ -21,7 +21,7 @@ import {
   Sparkles,
   ArrowDown,
 } from 'lucide-react';
-// KarkoLogo removed — logo is now in Tier 1 global nav bar
+import { KarkoIcon } from './KarkoLogo';
 import { useRouter } from 'next/navigation';
 import { SignUpWallModal, hasUsedFreeGeneration } from '@/components/SignUpWallModal';
 import { InsufficientCreditsModal } from '@/components/InsufficientCreditsModal';
@@ -361,8 +361,8 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
           {/* Welcome message */}
           {!currentSession && messages.length === 0 && (
             <div className="flex gap-3">
-              <div className="p-2 bg-gradient-to-br from-navy-600 to-navy-700 rounded-xl h-fit shadow-sm">
-                <Sparkles className="w-4 h-4 text-gold-400" />
+              <div className="flex-shrink-0 h-fit">
+                <KarkoIcon size="xs" theme="light" />
               </div>
               <div className="flex-1">
                 <Card padding="sm" className="bg-white border-cream-200 shadow-sm">
@@ -396,8 +396,8 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
           {/* Immediate loading indicator */}
           {isAgentWorking && agentSteps.length === 0 && v2Progress && (
             <div className="flex gap-3">
-              <div className="p-2 bg-gradient-to-br from-navy-600 to-navy-700 rounded-xl h-fit flex-shrink-0 shadow-sm">
-                <Sparkles className="w-4 h-4 text-gold-400" />
+              <div className="flex-shrink-0 h-fit">
+                <KarkoIcon size="xs" theme="light" />
               </div>
               <div className="flex-1">
                 <div className="bg-white rounded-lg border border-cream-200 p-4">
@@ -424,8 +424,8 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
           {/* Agent Steps Progress V2 */}
           {isAgentWorking && agentSteps.length > 0 && (
             <div className="flex gap-3">
-              <div className="p-2 bg-gradient-to-br from-navy-600 to-navy-700 rounded-xl h-fit flex-shrink-0 shadow-sm">
-                <Sparkles className="w-4 h-4 text-gold-400" />
+              <div className="flex-shrink-0 h-fit">
+                <KarkoIcon size="xs" theme="light" />
               </div>
               <div className="flex-1">
                 <AgentProgressV2 
@@ -450,8 +450,8 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
           {/* Typing indicator */}
           {(isTyping || isAnalyzing || isGenerating) && !isAgentWorking && (
             <div className="flex gap-3">
-              <div className="p-2 bg-gradient-to-br from-navy-600 to-navy-700 rounded-xl h-fit flex-shrink-0 shadow-sm">
-                <Sparkles className="w-4 h-4 text-gold-400" />
+              <div className="flex-shrink-0 h-fit">
+                <KarkoIcon size="xs" theme="light" />
               </div>
               <div className="flex items-center gap-2 px-4 py-3 bg-white rounded-xl border border-cream-200 shadow-sm">
                 <div className="flex gap-1">
