@@ -46,7 +46,7 @@ export interface ChatMessage {
 export interface ChatAction {
   label: string;
   action: string;
-  icon?: 'cv' | 'cover-letter' | 'email' | 'new';
+  icon?: 'cv' | 'cover-letter' | 'email' | 'new' | 'screening';
 }
 
 export interface ApplicationSession {

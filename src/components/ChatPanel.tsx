@@ -36,7 +36,7 @@ interface ChatPanelProps {
 
 export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }: ChatPanelProps) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const posthog = usePostHog();
   const {
     currentCV,
@@ -62,6 +62,8 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     fitAnalysisJD,
     applicationMode,
     setApplicationMode,
+    isScreeningMode,
+    setIsScreeningMode,
     handleSend: workflowHandleSend,
     handleStopGeneration,
     runAgentWorkflow,
@@ -240,6 +242,27 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
         useAppStore.getState().setJobDescription('');
         setJobDescription('');
         setAgentSteps([]);
+        break;
+      case 'screening-questions':
+        posthog?.capture('screening_questions_started');
+        setIsScreeningMode(true);
+        addChatMessage({
+          role: 'assistant',
+          content: '📋 **Screening Question Mode**\n\nPaste your screening questions below and I\'ll draft personalized answers based on your CV and this job description.\n\nI\'ll format each answer separately so you can copy and paste them individually.',
+        });
+        break;
+      case 'upgrade-for-screening':
+        posthog?.capture('screening_upgrade_prompt_shown');
+        addChatMessage({
+          role: 'assistant',
+          content: '🔒 **Screening Question Answers** is available on the **Max plan**.\n\nWith Max, I can draft personalized answers to screening questions using the context from your CV and job description — formatted for easy copy & paste.',
+          actions: [
+            { label: 'View Plans', action: 'navigate-pricing', icon: 'new' },
+          ],
+        });
+        break;
+      case 'navigate-pricing':
+        router.push('/pricing');
         break;
     }
   };

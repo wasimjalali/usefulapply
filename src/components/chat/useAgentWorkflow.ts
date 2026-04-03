@@ -39,7 +39,7 @@ export function useAgentWorkflow(options?: {
   onInsufficientCredits?: (required: number, available: number) => void;
   onAnonymousLimitReached?: () => void;
 }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const posthog = usePostHog();
   const {
     currentCV,
@@ -64,6 +64,7 @@ export function useAgentWorkflow(options?: {
   const [fitAnalysisJD, setFitAnalysisJD] = useState<string>('');
   const [fitAnalysisContextData, setFitAnalysisContextData] = useState<FitAnalysisContextData | null>(null);
   const [applicationMode, setApplicationMode] = useState<'analyze_first' | 'apply_directly'>('apply_directly');
+  const [isScreeningMode, setIsScreeningMode] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -121,17 +122,35 @@ export function useAgentWorkflow(options?: {
 
   const handleGeneralChat = async (message: string) => {
     setIsTyping(true);
-    
+
     const controller = new AbortController();
     abortControllerRef.current = controller;
-    
+
     try {
       const { masterCV, certifications } = useAppStore.getState();
       const recentMessages = messages.slice(-10).map(msg => ({
         role: msg.role,
         content: msg.content,
       }));
-      
+
+      // Build screening-specific context when in screening mode
+      const screeningContext = isScreeningMode ? {
+        mode: 'screening_answers' as const,
+        jobDescription: currentSession?.jobDescription?.substring(0, 3000),
+        matchingSkills: currentSession?.matchingSkills,
+        missingSkills: currentSession?.missingSkills,
+        generatedCVSummary: typeof currentSession?.generatedCV?.content === 'string'
+          ? currentSession.generatedCV.content.substring(0, 2000)
+          : undefined,
+        companyResearchSummary: currentSession?.companyResearch
+          ? [
+              currentSession.companyResearch.description,
+              currentSession.companyResearch.culture?.join(', '),
+              currentSession.companyResearch.recentNews?.join(', '),
+            ].filter(Boolean).join(' | ').substring(0, 500)
+          : undefined,
+      } : {};
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -152,6 +171,7 @@ export function useAgentWorkflow(options?: {
             hasGeneratedCV: !!currentSession?.generatedCV,
             hasGeneratedCoverLetter: !!currentSession?.coverLetter,
             hasGeneratedEmail: !!currentSession?.email,
+            ...screeningContext,
           },
         }),
         signal: controller.signal,
@@ -191,6 +211,7 @@ export function useAgentWorkflow(options?: {
       });
     } finally {
       setIsTyping(false);
+      setIsScreeningMode(false);
       abortControllerRef.current = null;
     }
   };
@@ -618,6 +639,10 @@ export function useAgentWorkflow(options?: {
                   markFreeGenerationUsed();
                 }
 
+                const screeningAction = (profile?.subscription_tier === 'max' || profile?.subscription_tier === 'pro')
+                  ? { label: 'Answer Screening Questions', action: 'screening-questions', icon: 'screening' as const }
+                  : { label: 'Screening Q&A (Max Plan)', action: 'upgrade-for-screening', icon: 'screening' as const };
+
                 addChatMessage({
                   role: 'assistant',
                   content: `✅ **Analysis Complete!**\n\nYour CV has been optimized for this role.\n\nCheck the **CV tab** to review the changes.`,
@@ -625,6 +650,7 @@ export function useAgentWorkflow(options?: {
                     { label: 'View Optimized CV', action: 'view-cv', icon: 'cv' },
                     { label: 'View Cover Letter', action: 'view-cover-letter', icon: 'cover-letter' },
                     { label: 'View Email', action: 'view-email', icon: 'email' },
+                    screeningAction,
                     { label: 'To start a new application, begin a new chat', action: 'none' },
                     { label: 'Start New Application', action: 'start-new-application', icon: 'new' },
                   ],
@@ -771,6 +797,8 @@ export function useAgentWorkflow(options?: {
     fitAnalysisContextData,
     applicationMode,
     setApplicationMode,
+    isScreeningMode,
+    setIsScreeningMode,
     // Actions
     handleSend,
     handleStopGeneration,
