@@ -21,6 +21,7 @@ import {
   Plus,
   History,
   Sparkles,
+  ArrowDown,
 } from 'lucide-react';
 // KarkoLogo removed — logo is now in Tier 1 global nav bar
 import { useRouter } from 'next/navigation';
@@ -92,16 +93,31 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
   const [creditsModalData, setCreditsModalData] = useState<{ required: number; available: number } | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const isNearBottom = () => {
+    const container = messagesContainerRef.current;
+    if (!container) return true;
+    return container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+  };
+
+  const scrollToBottom = (force = false) => {
+    if (force || isNearBottom()) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Track scroll position to show/hide scroll-to-bottom button
+  const handleScroll = () => {
+    setShowScrollButton(!isNearBottom());
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [currentSession?.chatMessages, isTyping]);
 
-  // Auto-scroll when agent starts working
+  // Auto-scroll when agent starts working (only if near bottom)
   useEffect(() => {
     if (isAgentWorking && agentSteps.length > 0) {
       scrollToBottom();
@@ -292,11 +308,20 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
           </div>
         )}
 
-        {/* History Sidebar */}
+        {/* History Overlay */}
+        <div className="relative">
         {showHistory && (
           <ChatHistory
-            sessions={sessions.map(s => ({ id: s.id, company: s.company, jobTitle: s.jobTitle, updatedAt: s.updatedAt }))}
+            sessions={sessions.map(s => ({
+              id: s.id,
+              company: s.company,
+              jobTitle: s.jobTitle,
+              updatedAt: s.updatedAt,
+              hasGeneratedCV: !!s.generatedCV,
+              hasFitAnalysis: !!s.pendingFitAnalysis,
+            }))}
             currentSessionId={currentSession?.id}
+            onClose={() => setShowHistory(false)}
             onSelectSession={async (sessionId) => {
               loadSession(sessionId);
               setShowHistory(false);
@@ -331,9 +356,10 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
             }}
           />
         )}
+        </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-auto p-4 space-y-4">
+        <div ref={messagesContainerRef} onScroll={handleScroll} className="flex-1 overflow-auto p-4 space-y-4 relative">
           {/* Welcome message */}
           {!currentSession && messages.length === 0 && (
             <div className="flex gap-3">
@@ -342,15 +368,16 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
               </div>
               <div className="flex-1">
                 <Card padding="sm" className="bg-white border-cream-200 shadow-sm">
-                  <MarkdownText 
-                    content={currentCV 
-                      ? "👋 Great, your CV is uploaded! **Paste a job description** below and I'll:\n\n1. Analyze the requirements\n2. Optimize your CV for the role\n3. Generate a tailored cover letter\n\nJust paste the job posting to get started!"
-                      : "👋 Welcome to Karko AI! I'm your AI-powered application assistant.\n\nTo get started:\n1. **Upload your CV** in the Documents section\n2. Paste a job description here\n3. I'll optimize everything for you!"
-                    }
-                    className="text-sm text-charcoal"
-                  />
-                  {!currentCV && (
-                    <div className="mt-3">
+                  {currentCV ? (
+                    <MarkdownText
+                      content="Your CV is ready! **Paste a job description** below and I'll optimize your CV, write a cover letter, and draft an application email."
+                      className="text-sm text-charcoal"
+                    />
+                  ) : (
+                    <div>
+                      <p className="text-sm text-charcoal mb-3">
+                        Upload your CV to get started — I'll tailor it for every job you apply to.
+                      </p>
                       <button
                         onClick={() => handleAction('navigate-documents')}
                         className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm cursor-pointer"
@@ -453,6 +480,19 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
           
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Scroll to bottom button */}
+        {showScrollButton && (
+          <div className="flex justify-center -mt-12 relative z-10 pointer-events-none">
+            <button
+              onClick={() => scrollToBottom(true)}
+              className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white text-navy-600 rounded-full shadow-lg border border-cream-200 hover:bg-cream-50 hover:shadow-xl transition-all cursor-pointer"
+            >
+              <ArrowDown className="w-3 h-3" />
+              New messages
+            </button>
+          </div>
+        )}
 
         {/* Input Area with integrated mode selector */}
         <ChatInput

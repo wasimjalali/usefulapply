@@ -78,16 +78,16 @@ export function ChatMessage({
   const isLongMessage = message.role === 'user' && message.content.length > collapseLength;
 
   return (
-    <div className="flex gap-3">
+    <div className="group/msg flex gap-3">
       <div className={`rounded-xl h-fit flex-shrink-0 ${
         message.role === 'user' ? 'p-2 bg-cream-200' : 'p-2 bg-gradient-to-br from-navy-600 to-navy-700 shadow-sm'
       }`}>
-        {message.role === 'user' 
+        {message.role === 'user'
           ? <User className="w-4 h-4 text-charcoal" />
           : <Sparkles className="w-4 h-4 text-gold-400" />
         }
       </div>
-      
+
       <div className="flex-1 min-w-0">
         <Card 
           padding="sm" 
@@ -171,9 +171,11 @@ export function ChatMessage({
           })()}
         </Card>
         
-        {/* Feedback icons for assistant messages */}
+        {/* Feedback icons for assistant messages — visible on hover or when feedback given */}
         {message.role === 'assistant' && (
-          <div className="flex items-center gap-1 mt-2 ml-1">
+          <div className={`flex items-center gap-1 mt-2 ml-1 transition-opacity duration-200 ${
+            feedback ? 'opacity-100' : 'opacity-0 group-hover/msg:opacity-100'
+          }`}>
             <button
               onClick={() => onFeedback(message.id, message.content, 'positive')}
               className={`p-1.5 rounded transition-colors cursor-pointer ${
@@ -212,8 +214,9 @@ export function ChatMessage({
             </button>
           </div>
         )}
-        
-        <p className="text-xs text-warm-gray mt-1.5 ml-1">
+
+        {/* Timestamp — visible on hover */}
+        <p className="text-xs text-warm-gray mt-1.5 ml-1 opacity-0 group-hover/msg:opacity-100 transition-opacity duration-200">
           {formatTime(message.timestamp)}
         </p>
       </div>

@@ -12,7 +12,7 @@ import { useAppStore, useCVStore } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import { uploadCVFile, saveDocument } from '@/lib/supabase';
-import { FileText, Mail, Send, FolderOpen, ClipboardList, Settings, Target, User, Loader2, MessageCircle, MoreHorizontal, Sparkles, AlertCircle, ArrowRight } from 'lucide-react';
+import { FileText, Mail, Send, FolderOpen, ClipboardList, Settings, Target, User, Loader2, MessageCircle, MoreHorizontal, Sparkles, AlertCircle, ArrowRight, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import KarkoLogo from '@/components/KarkoLogo';
 import Link from 'next/link';
 import { CreditIndicator } from '@/components/ui/CreditIndicator';
@@ -137,12 +137,29 @@ export default function Dashboard() {
   const [chatNavNode, setChatNavNode] = useState<HTMLDivElement | null>(null);
 
   // Resizable chat panel state - ALL HOOKS MUST BE BEFORE EARLY RETURNS
-  const [chatPanelWidth, setChatPanelWidth] = useState(440);
+  const [chatPanelWidth, setChatPanelWidth] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('karko_chat_width');
+      return saved ? Math.max(360, Math.min(650, Number(saved))) : 440;
+    }
+    return 440;
+  });
   const [isResizing, setIsResizing] = useState(false);
+  const [isChatCollapsed, setIsChatCollapsed] = useState(false);
+  const lastResizeClickRef = { current: 0 };
   const MIN_CHAT_WIDTH = 360;
   const MAX_CHAT_WIDTH = 650;
+  const COLLAPSED_WIDTH = 48;
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // Double-click to toggle collapse
+    const now = Date.now();
+    if (now - lastResizeClickRef.current < 300) {
+      setIsChatCollapsed(prev => !prev);
+      lastResizeClickRef.current = 0;
+      return;
+    }
+    lastResizeClickRef.current = now;
     e.preventDefault();
     setIsResizing(true);
   }, []);
@@ -160,7 +177,9 @@ export default function Dashboard() {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
       const newWidth = window.innerWidth - e.clientX;
-      setChatPanelWidth(Math.min(MAX_CHAT_WIDTH, Math.max(MIN_CHAT_WIDTH, newWidth)));
+      const clamped = Math.min(MAX_CHAT_WIDTH, Math.max(MIN_CHAT_WIDTH, newWidth));
+      setChatPanelWidth(clamped);
+      localStorage.setItem('karko_chat_width', String(clamped));
     };
 
     const handleMouseUp = () => {
@@ -181,6 +200,18 @@ export default function Dashboard() {
       document.body.style.userSelect = '';
     };
   }, [isResizing]);
+
+  // Keyboard shortcut: Cmd+Shift+C to toggle chat collapse
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'c') {
+        e.preventDefault();
+        setIsChatCollapsed(prev => !prev);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Show loading state while checking auth (brief — just to resolve user state)
   if (isLoading) {
@@ -300,6 +331,17 @@ export default function Dashboard() {
 
         {/* Chat nav portal slot — ChatPanel portals History + New Application buttons here */}
         <div ref={setChatNavNode} className="flex items-center" />
+
+        {/* Chat collapse toggle */}
+        {!isChatCollapsed && (
+          <button
+            onClick={() => setIsChatCollapsed(true)}
+            className="p-2 rounded-lg text-warm-gray hover:bg-cream-100 hover:text-navy-600 transition-all cursor-pointer"
+            title="Collapse chat (⌘⇧C)"
+          >
+            <PanelRightClose className="w-4 h-4" />
+          </button>
+        )}
 
         {/* Avatar with tier badge (also links to settings) */}
         {user ? (
@@ -490,26 +532,49 @@ export default function Dashboard() {
         </div>
 
         {/* Right Panel - Chat (Desktop: resizable side panel) */}
-        <div className="relative" style={{ width: chatPanelWidth }}>
-          {/* Resize Handle */}
-          <div
-            onMouseDown={handleMouseDown}
-            className={`absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize z-10 transition-colors ${
-              isResizing ? 'bg-gold-400' : 'bg-cream-200 hover:bg-gold-300'
-            }`}
-            title="Drag to resize"
-          >
-            <div className={`absolute left-0.5 top-1/2 -translate-y-1/2 w-0.5 h-16 rounded-full transition-opacity ${
-              isResizing ? 'bg-gold-500 opacity-100' : 'bg-cream-400 opacity-0 hover:opacity-100'
-            }`} />
-          </div>
+        <div className="relative flex-shrink-0 transition-[width] duration-200" style={{ width: isChatCollapsed ? COLLAPSED_WIDTH : chatPanelWidth }}>
+          {/* Resize Handle — wider hit target (10px) with always-visible grip */}
+          {!isChatCollapsed && (
+            <div
+              onMouseDown={handleMouseDown}
+              className="absolute left-0 top-0 bottom-0 w-2.5 -ml-1 cursor-col-resize z-10 group/resize"
+              title="Drag to resize · Double-click to collapse"
+            >
+              {/* Visible track */}
+              <div className={`absolute left-1 top-0 bottom-0 w-px transition-colors ${
+                isResizing ? 'bg-gold-400' : 'bg-cream-200 group-hover/resize:bg-gold-300'
+              }`} />
+              {/* Grip dots — always visible */}
+              <div className="absolute left-0.5 top-1/2 -translate-y-1/2 flex flex-col gap-1">
+                <div className={`w-1 h-1 rounded-full transition-colors ${isResizing ? 'bg-gold-500' : 'bg-cream-400 group-hover/resize:bg-gold-400'}`} />
+                <div className={`w-1 h-1 rounded-full transition-colors ${isResizing ? 'bg-gold-500' : 'bg-cream-400 group-hover/resize:bg-gold-400'}`} />
+                <div className={`w-1 h-1 rounded-full transition-colors ${isResizing ? 'bg-gold-500' : 'bg-cream-400 group-hover/resize:bg-gold-400'}`} />
+              </div>
+            </div>
+          )}
 
-          <div className="flex-1 h-full overflow-hidden">
-            <ChatPanel
-              onTabChange={handleTabChange}
-              navBarPortal={chatNavNode}
-            />
-          </div>
+          {isChatCollapsed ? (
+            /* Collapsed state — thin icon strip */
+            <div className="h-full flex flex-col items-center py-3 bg-cream-50 border-l border-cream-200">
+              <button
+                onClick={() => setIsChatCollapsed(false)}
+                className="p-2 rounded-lg text-warm-gray hover:text-navy-600 hover:bg-cream-100 transition-colors cursor-pointer"
+                title="Expand chat (⌘⇧C)"
+              >
+                <PanelRightOpen className="w-4 h-4" />
+              </button>
+              <div className="mt-3 flex flex-col items-center">
+                <Sparkles className="w-4 h-4 text-gold-400" />
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 h-full overflow-hidden">
+              <ChatPanel
+                onTabChange={handleTabChange}
+                navBarPortal={chatNavNode}
+              />
+            </div>
+          )}
         </div>
       </div>
 
