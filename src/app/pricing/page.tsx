@@ -420,7 +420,7 @@ export default function PricingPage() {
                     { text: '100 complete applications/month', bold: true },
                     { text: 'Everything in Plus, plus:' },
                     { text: 'Chrome Extension: auto-fill ATS forms', bold: true, comingSoon: true },
-                    { text: 'Chrome Extension: AI screening answers', bold: true, comingSoon: true },
+                    { text: 'AI Screening Question Answers', bold: true },
                     { text: 'Premium dedicated support' },
                     { text: 'Powered by Claude Sonnet 4.6' },
                   ].map((f: { text: string; bold?: boolean; comingSoon?: boolean }, i: number) => (

@@ -51,7 +51,7 @@ const PLANS = [
       '100 complete applications/month',
       'Everything in Plus, plus:',
       'Chrome Extension: auto-fill ATS forms (Coming Soon)',
-      'Chrome Extension: AI screening answers (Coming Soon)',
+      'AI Screening Question Answers',
       'Premium dedicated support',
       'Powered by Claude Sonnet 4.6',
     ],

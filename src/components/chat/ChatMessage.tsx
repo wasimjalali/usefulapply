@@ -15,13 +15,48 @@ import {
   Mail,
   Send,
   Plus,
+  ClipboardList,
 } from 'lucide-react';
+
+interface ScreeningAnswer {
+  question: string;
+  answer: string;
+  raw: string;
+}
+
+function parseScreeningAnswers(content: string): ScreeningAnswer[] | null {
+  if (!content.includes('---ANSWER_START---')) return null;
+
+  const blocks = content.split('---ANSWER_START---').filter(Boolean);
+  const answers: ScreeningAnswer[] = [];
+
+  for (const block of blocks) {
+    const cleaned = block.split('---ANSWER_END---')[0]?.trim();
+    if (!cleaned) continue;
+
+    // Extract question from **Q: ...** line
+    const questionMatch = cleaned.match(/\*\*Q:\s*(.+?)\*\*/);
+    const question = questionMatch ? questionMatch[1].trim() : '';
+
+    // Answer is everything after the Q line
+    const answerStart = cleaned.indexOf('**\n');
+    const answer = answerStart !== -1
+      ? cleaned.substring(answerStart + 3).trim()
+      : cleaned.replace(/\*\*Q:.*?\*\*/, '').trim();
+
+    if (answer) {
+      answers.push({ question, answer, raw: cleaned });
+    }
+  }
+
+  return answers.length > 0 ? answers : null;
+}
 import { KarkoIcon } from '../KarkoLogo';
 
 export interface ChatAction {
   label: string;
   action: string;
-  icon?: 'cv' | 'cover-letter' | 'email' | 'new';
+  icon?: 'cv' | 'cover-letter' | 'email' | 'new' | 'screening';
 }
 
 export interface ChatMessageData {
@@ -49,12 +84,42 @@ export function ChatMessage({
 }: ChatMessageProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedAnswerIdx, setCopiedAnswerIdx] = useState<number | null>(null);
+  const [copiedAll, setCopiedAll] = useState(false);
+
+  const screeningAnswers = message.role === 'assistant'
+    ? parseScreeningAnswers(message.content)
+    : null;
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(message.content);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Clipboard write failed:', err);
+    }
+  };
+
+  const handleCopyAnswer = async (idx: number, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedAnswerIdx(idx);
+      setTimeout(() => setCopiedAnswerIdx(null), 2000);
+    } catch (err) {
+      console.error('Clipboard write failed:', err);
+    }
+  };
+
+  const handleCopyAll = async () => {
+    if (!screeningAnswers) return;
+    const allText = screeningAnswers
+      .map((a, i) => `${i + 1}. ${a.question}\n${a.answer}`)
+      .join('\n\n');
+    try {
+      await navigator.clipboard.writeText(allText);
+      setCopiedAll(true);
+      setTimeout(() => setCopiedAll(false), 2000);
     } catch (err) {
       console.error('Clipboard write failed:', err);
     }
@@ -97,13 +162,53 @@ export function ChatMessage({
             : 'bg-white border-cream-200 shadow-sm'
           }`}
         >
-          {/* Collapsible content for long user messages */}
-          {isLongMessage ? (
+          {/* Screening answers — per-answer copy blocks */}
+          {screeningAnswers ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ClipboardList className="w-4 h-4 text-navy-600" />
+                  <span className="text-sm font-semibold text-navy-700">Screening Question Answers</span>
+                </div>
+                <button
+                  onClick={handleCopyAll}
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-navy-600 bg-cream-100 hover:bg-cream-200 rounded-lg transition-colors cursor-pointer"
+                >
+                  {copiedAll ? <Check className="w-3 h-3 text-gold-600" /> : <Copy className="w-3 h-3" />}
+                  {copiedAll ? 'Copied!' : 'Copy All'}
+                </button>
+              </div>
+              {screeningAnswers.map((qa, idx) => (
+                <div key={idx} className="bg-cream-50 border border-cream-200 rounded-xl p-3 space-y-2">
+                  {qa.question && (
+                    <p className="text-xs font-medium text-warm-gray">{qa.question}</p>
+                  )}
+                  <MarkdownText
+                    content={qa.answer}
+                    className="text-sm text-charcoal"
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => handleCopyAnswer(idx, qa.answer)}
+                      className="flex items-center gap-1 px-2 py-1 text-xs text-warm-gray hover:text-navy-600 hover:bg-cream-100 rounded-md transition-colors cursor-pointer"
+                    >
+                      {copiedAnswerIdx === idx ? (
+                        <><Check className="w-3 h-3 text-gold-600" /> Copied!</>
+                      ) : (
+                        <><Copy className="w-3 h-3" /> Copy</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : isLongMessage ? (
+            /* Collapsible content for long user messages */
             <div className="relative">
               <div className={`text-sm text-charcoal overflow-hidden transition-all duration-300 ${
                 isExpanded ? '' : 'max-h-24'
               }`}>
-                <MarkdownText 
+                <MarkdownText
                   content={message.content}
                   className="text-sm text-charcoal"
                 />
@@ -129,7 +234,7 @@ export function ChatMessage({
               </button>
             </div>
           ) : (
-            <MarkdownText 
+            <MarkdownText
               content={message.content}
               className="text-sm text-charcoal"
             />
@@ -157,6 +262,7 @@ export function ChatMessage({
                       {action.icon === 'cover-letter' && <Mail className="w-4 h-4 text-gold-600" />}
                       {action.icon === 'email' && <Send className="w-4 h-4 text-gold-600" />}
                       {action.icon === 'new' && <Plus className="w-4 h-4 text-gold-500" />}
+                      {action.icon === 'screening' && <ClipboardList className="w-4 h-4 text-navy-600" />}
                       {action.label}
                     </button>
                   </div>
