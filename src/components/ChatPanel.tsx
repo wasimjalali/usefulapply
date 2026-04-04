@@ -91,6 +91,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
   const [signUpWallTrigger, setSignUpWallTrigger] = useState<'download' | 'new-application' | 'general'>('new-application');
   const [showCreditsModal, setShowCreditsModal] = useState(false);
   const [creditsModalData, setCreditsModalData] = useState<{ required: number; available: number } | null>(null);
+  const [screeningPromptDismissed, setScreeningPromptDismissed] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -238,6 +239,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
         posthog?.capture('new_application_started');
         setFitAnalysisContextId(null);
         setFitAnalysisJD('');
+        setScreeningPromptDismissed(false);
         useAppStore.getState().clearCurrentSession();
         useAppStore.getState().setJobDescription('');
         setJobDescription('');
@@ -276,6 +278,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     }
     useAppStore.getState().clearCurrentSession();
     useAppStore.getState().resetGenerated();
+    setScreeningPromptDismissed(false);
     setShowHistory(false);
   };
 
@@ -534,6 +537,24 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
               handleAction('generate-full-application');
             } else {
               handleAction('skip-job');
+            }
+          }}
+          pendingScreeningPrompt={
+            !isAgentWorking &&
+            !isScreeningMode &&
+            !screeningPromptDismissed &&
+            !!currentSession?.generatedCV
+          }
+          onScreeningAction={(action) => {
+            if (action === 'screening') {
+              handleAction(
+                (profile?.subscription_tier === 'max' || profile?.subscription_tier === 'pro')
+                  ? 'screening-questions'
+                  : 'upgrade-for-screening'
+              );
+              setScreeningPromptDismissed(true);
+            } else {
+              setScreeningPromptDismissed(true);
             }
           }}
         />

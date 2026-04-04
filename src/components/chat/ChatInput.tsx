@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState } from 'react';
-import { Send, Square, Search, Zap, FileText, RotateCcw } from 'lucide-react';
+import { Send, Square, Search, Zap, FileText, RotateCcw, ClipboardList, X } from 'lucide-react';
 
 interface ChatInputProps {
   value: string;
@@ -19,6 +19,9 @@ interface ChatInputProps {
   onFitAnalysisAction?: (action: 'apply' | 'skip') => void;
   /** When true, renders a compact input (less padding, no mode selector) — used when chat has messages */
   compact?: boolean;
+  /** Show screening question CTA buttons after application generation */
+  pendingScreeningPrompt?: boolean;
+  onScreeningAction?: (action: 'screening' | 'skip') => void;
 }
 
 export function ChatInput({
@@ -35,6 +38,8 @@ export function ChatInput({
   pendingFitAnalysis = false,
   onFitAnalysisAction,
   compact = false,
+  pendingScreeningPrompt = false,
+  onScreeningAction,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
@@ -93,6 +98,26 @@ export function ChatInput({
             >
               <RotateCcw className="w-4 h-4 text-warm-gray" />
               New Search
+            </button>
+          </div>
+        )}
+
+        {/* Screening question CTA — shown after application generation */}
+        {pendingScreeningPrompt && !isWorking && !pendingFitAnalysis && (
+          <div className="flex items-center gap-2 mb-3">
+            <button
+              onClick={() => onScreeningAction?.('screening')}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold bg-gradient-to-r from-navy-600 to-navy-700 text-white rounded-xl hover:from-navy-700 hover:to-navy-800 transition-all shadow-md hover:shadow-lg cursor-pointer"
+            >
+              <ClipboardList className="w-4 h-4" />
+              Screening Questions
+            </button>
+            <button
+              onClick={() => onScreeningAction?.('skip')}
+              className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium bg-white text-charcoal border border-cream-300 rounded-xl hover:bg-cream-50 hover:border-gold-300 hover:shadow-sm transition-all cursor-pointer"
+            >
+              <X className="w-4 h-4 text-warm-gray" />
+              No, Thanks
             </button>
           </div>
         )}
