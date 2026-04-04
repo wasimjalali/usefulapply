@@ -114,9 +114,21 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     setShowScrollButton(!isNearBottom());
   };
 
+  // Force-scroll to bottom when new messages arrive (user sent or AI responded)
+  const prevMessageCount = useRef(0);
   useEffect(() => {
-    scrollToBottom();
-  }, [currentSession?.chatMessages, isTyping]);
+    const count = currentSession?.chatMessages?.length ?? 0;
+    if (count > prevMessageCount.current) {
+      // New message added — force scroll so user sees it
+      scrollToBottom(true);
+    }
+    prevMessageCount.current = count;
+  }, [currentSession?.chatMessages]);
+
+  // Scroll when typing indicator appears (if near bottom)
+  useEffect(() => {
+    if (isTyping) scrollToBottom();
+  }, [isTyping]);
 
   // Auto-scroll when agent starts working (only if near bottom)
   useEffect(() => {
@@ -544,16 +556,16 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
             (currentSession?.screeningUsageCount ?? 0) < 2
           }
           onScreeningAction={(action) => {
+            const isMaxPlan = profile?.subscription_tier === 'max' || profile?.subscription_tier === 'pro';
             if (action === 'screening') {
-              handleAction(
-                (profile?.subscription_tier === 'max' || profile?.subscription_tier === 'pro')
-                  ? 'screening-questions'
-                  : 'upgrade-for-screening'
-              );
+              handleAction(isMaxPlan ? 'screening-questions' : 'upgrade-for-screening');
             }
-            // Increment usage count — hides buttons after 2 uses (persists across refresh)
+            // Max plan: increment by 1 (allows 2 uses for questions + follow-up)
+            // Non-Max plan: set to 2 immediately (dismiss after showing upgrade once)
+            // "No, Thanks": set to 2 immediately (dismiss permanently)
+            const dismissNow = !isMaxPlan || action === 'skip';
             useAppStore.getState().updateCurrentSession({
-              screeningUsageCount: (currentSession?.screeningUsageCount ?? 0) + 1,
+              screeningUsageCount: dismissNow ? 2 : (currentSession?.screeningUsageCount ?? 0) + 1,
             });
           }}
         />
