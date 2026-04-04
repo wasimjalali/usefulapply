@@ -639,10 +639,6 @@ export function useAgentWorkflow(options?: {
                   markFreeGenerationUsed();
                 }
 
-                const screeningAction = (profile?.subscription_tier === 'max' || profile?.subscription_tier === 'pro')
-                  ? { label: 'Answer Screening Questions', action: 'screening-questions', icon: 'screening' as const }
-                  : { label: 'Screening Q&A (Max Plan)', action: 'upgrade-for-screening', icon: 'screening' as const };
-
                 addChatMessage({
                   role: 'assistant',
                   content: `✅ **Analysis Complete!**\n\nYour CV has been optimized for this role.\n\nCheck the **CV tab** to review the changes.`,
@@ -650,7 +646,6 @@ export function useAgentWorkflow(options?: {
                     { label: 'View Optimized CV', action: 'view-cv', icon: 'cv' },
                     { label: 'View Cover Letter', action: 'view-cover-letter', icon: 'cover-letter' },
                     { label: 'View Email', action: 'view-email', icon: 'email' },
-                    screeningAction,
                     { label: 'To start a new application, begin a new chat', action: 'none' },
                     { label: 'Start New Application', action: 'start-new-application', icon: 'new' },
                   ],
@@ -738,11 +733,12 @@ export function useAgentWorkflow(options?: {
         content: messageContent,
       });
       
+      // When in screening mode, always route to chat (never re-detect as JD)
       const jobKeywords = /\b(responsibilities|requirements|qualifications|experience required|skills required|about the role|job description|we are looking for|you will|must have|nice to have|salary|benefits|apply|candidate|position|vacancy)\b/i;
-      const isLikelyJobDescription = messageContent.length > 200 && jobKeywords.test(messageContent);
-      const isShortJobPost = messageContent.length > 100 && (messageContent.match(jobKeywords) || []).length >= 2;
+      const isLikelyJobDescription = !isScreeningMode && messageContent.length > 200 && jobKeywords.test(messageContent);
+      const isShortJobPost = !isScreeningMode && messageContent.length > 100 && (messageContent.match(jobKeywords) || []).length >= 2;
       const isNewJobDescription = isLikelyJobDescription || isShortJobPost;
-      
+
       if (isNewJobDescription) {
         // Clear previous fit analysis state for the new JD
         setFitAnalysisContextId(null);
