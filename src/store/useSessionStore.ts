@@ -182,6 +182,9 @@ export interface ApplicationSession {
     createdAt: string;
   } | null;
 
+  /** Number of times the user has used screening question mode (max 2) */
+  screeningUsageCount: number;
+
   cvEdits: CVEdit[];
   optimizedPdfRef?: {
     id: string;
@@ -276,6 +279,7 @@ export const useSessionStore = create<SessionState & SessionActions>()(
           email: null,
           followUpEmail: null,
           companyResearch: null,
+          screeningUsageCount: 0,
           cvEdits: [],
           chatMessages: [],
         };
