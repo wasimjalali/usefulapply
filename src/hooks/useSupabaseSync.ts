@@ -262,6 +262,7 @@ export function useSupabaseSync() {
               createdAt: row.created_at,
               url: row.optimized_pdf_path 
             } : undefined,
+            screeningUsageCount: 0,
             chatMessages: [],
           }));
           

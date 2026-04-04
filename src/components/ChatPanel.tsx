@@ -91,7 +91,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
   const [signUpWallTrigger, setSignUpWallTrigger] = useState<'download' | 'new-application' | 'general'>('new-application');
   const [showCreditsModal, setShowCreditsModal] = useState(false);
   const [creditsModalData, setCreditsModalData] = useState<{ required: number; available: number } | null>(null);
-  const [screeningPromptDismissed, setScreeningPromptDismissed] = useState(false);
+  // screeningUsageCount is persisted in the session store (survives refresh)
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -239,7 +239,6 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
         posthog?.capture('new_application_started');
         setFitAnalysisContextId(null);
         setFitAnalysisJD('');
-        setScreeningPromptDismissed(false);
         useAppStore.getState().clearCurrentSession();
         useAppStore.getState().setJobDescription('');
         setJobDescription('');
@@ -278,7 +277,6 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     }
     useAppStore.getState().clearCurrentSession();
     useAppStore.getState().resetGenerated();
-    setScreeningPromptDismissed(false);
     setShowHistory(false);
   };
 
@@ -542,8 +540,8 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
           pendingScreeningPrompt={
             !isAgentWorking &&
             !isScreeningMode &&
-            !screeningPromptDismissed &&
-            !!currentSession?.generatedCV
+            !!currentSession?.generatedCV &&
+            (currentSession?.screeningUsageCount ?? 0) < 2
           }
           onScreeningAction={(action) => {
             if (action === 'screening') {
@@ -552,10 +550,11 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                   ? 'screening-questions'
                   : 'upgrade-for-screening'
               );
-              setScreeningPromptDismissed(true);
-            } else {
-              setScreeningPromptDismissed(true);
             }
+            // Increment usage count — hides buttons after 2 uses (persists across refresh)
+            useAppStore.getState().updateCurrentSession({
+              screeningUsageCount: (currentSession?.screeningUsageCount ?? 0) + 1,
+            });
           }}
         />
       </div>
