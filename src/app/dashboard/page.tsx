@@ -17,6 +17,7 @@ import { FileText, Mail, Send, FolderOpen, ClipboardList, Settings, Target, User
 import KarkoLogo, { KarkoIcon } from '@/components/KarkoLogo';
 import Link from 'next/link';
 import { CreditIndicator } from '@/components/ui/CreditIndicator';
+import { useDashboardTour } from '@/hooks/useDashboardTour';
 import type { ParsedCV } from '@/lib/types';
 
 export default function Dashboard() {
@@ -33,6 +34,9 @@ export default function Dashboard() {
 
   // Sync sessions with Supabase in background
   useSupabaseSync();
+
+  // First-time onboarding tour
+  useDashboardTour();
 
   // Onboarding CV upload state
   const [isUploadingCV, setIsUploadingCV] = useState(false);
@@ -260,7 +264,7 @@ export default function Dashboard() {
         </Link>
 
         {/* Document Tabs — CV, ATS Score, Cover Letter, Email */}
-        <div className="flex items-center bg-cream-100/80 rounded-xl p-0.5 ml-4">
+        <div id="tour-doc-tabs" className="flex items-center bg-cream-100/80 rounded-xl p-0.5 ml-4">
           <button
             type="button"
             onClick={() => setActiveTab('cv')}
@@ -539,7 +543,7 @@ export default function Dashboard() {
             ) : !currentCV ? (
               /* ═══ Onboarding: Upload CV to get started ═══ */
               <div className="flex items-center justify-center h-full p-8">
-                <div className="max-w-lg w-full">
+                <div id="tour-cv-upload" className="max-w-lg w-full">
                   <div className="text-center mb-8">
                     <div className="inline-flex mb-5">
                       <KarkoIcon size="lg" theme="light" />
@@ -659,7 +663,7 @@ export default function Dashboard() {
               </div>
             </div>
           ) : (
-            <div className="flex-1 h-full overflow-hidden">
+            <div id="tour-chat-panel" className="flex-1 h-full overflow-hidden">
               <ChatPanel
                 onTabChange={handleTabChange}
                 navBarPortal={chatNavNode}

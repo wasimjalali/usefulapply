@@ -123,7 +123,7 @@ export function ChatInput({
         )}
 
         {/* Main input container with gold border */}
-        <div className={`relative glass-input ${compact ? 'rounded-2xl' : 'rounded-3xl'} border-2 shadow-lg overflow-hidden transition-all duration-200 ${
+        <div id="tour-mode-selector" className={`relative glass-input ${compact ? 'rounded-2xl' : 'rounded-3xl'} border-2 shadow-lg overflow-hidden transition-all duration-200 ${
           isWorking
             ? 'border-gold-400 shadow-gold-200/50'
             : 'border-gold-300/60 shadow-gold-100/40 focus-within:border-gold-400 focus-within:shadow-gold-200/50'

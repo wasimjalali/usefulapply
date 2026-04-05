@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "driver.js/dist/driver.css";
 
 @theme {
   /* Primary - Deep Navy */
@@ -507,4 +508,108 @@ body {
   color: rgba(212, 168, 83, 0.2);
   line-height: 1;
   pointer-events: none;
+}
+
+/* ─── Driver.js Tour — Karko Design Override ─── */
+.karko-tour-popover.driver-popover {
+  background: #FEFDFB;
+  border: 1px solid #EBE4D8;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(15, 48, 87, 0.18), 0 4px 16px rgba(15, 48, 87, 0.08);
+  padding: 20px 22px 18px;
+  max-width: 320px;
+  font-family: Arial, sans-serif;
+}
+
+.karko-tour-popover .driver-popover-title {
+  color: #1E3A5F;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+.karko-tour-popover .driver-popover-description {
+  color: #5A5A72;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.karko-tour-popover .driver-popover-description strong {
+  color: #1E3A5F;
+  font-weight: 600;
+}
+
+.karko-tour-popover .driver-popover-footer {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.karko-tour-popover .driver-popover-progress-text {
+  color: #9A9AA8;
+  font-size: 11px;
+}
+
+.karko-tour-popover .driver-popover-prev-btn {
+  background: transparent;
+  border: 1px solid #EBE4D8;
+  color: #5A5A72;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.karko-tour-popover .driver-popover-prev-btn:hover {
+  background: #F5F0E8;
+  color: #1E3A5F;
+}
+
+.karko-tour-popover .driver-popover-next-btn,
+.karko-tour-popover .driver-popover-done-btn {
+  background: linear-gradient(135deg, #D4A853, #C4932E);
+  border: none;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 2px 6px rgba(196, 147, 46, 0.35);
+}
+
+.karko-tour-popover .driver-popover-next-btn:hover,
+.karko-tour-popover .driver-popover-done-btn:hover {
+  background: linear-gradient(135deg, #C4932E, #A37824);
+  box-shadow: 0 4px 10px rgba(196, 147, 46, 0.45);
+}
+
+.karko-tour-popover .driver-popover-close-btn {
+  color: #9A9AA8;
+  font-size: 18px;
+  top: 14px;
+  right: 14px;
+}
+
+.karko-tour-popover .driver-popover-close-btn:hover {
+  color: #1E3A5F;
+}
+
+.karko-tour-popover .driver-popover-arrow-side-left.driver-popover-arrow {
+  border-left-color: #FEFDFB;
+}
+.karko-tour-popover .driver-popover-arrow-side-right.driver-popover-arrow {
+  border-right-color: #FEFDFB;
+}
+.karko-tour-popover .driver-popover-arrow-side-top.driver-popover-arrow {
+  border-top-color: #FEFDFB;
+}
+.karko-tour-popover .driver-popover-arrow-side-bottom.driver-popover-arrow {
+  border-bottom-color: #FEFDFB;
 }
