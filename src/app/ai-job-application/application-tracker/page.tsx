@@ -10,9 +10,9 @@ const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
-    title: 'Job Application Tracker — Track 100+ Applications Effortlessly',
+    title: 'Job Application Tracker: Track 100+ Applications',
     description:
-      'Track job applications with status, match scores, and deadlines. Karko AI automatically saves every application you generate. Stay organized through your entire job search.',
+      'Track job applications with status, match scores, and deadlines. Karko AI automatically saves every application you generate. Stay organized throughout your job search.',
     canonical: '/ai-job-application/application-tracker',
   });
 }

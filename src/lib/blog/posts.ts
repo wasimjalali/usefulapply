@@ -13,7 +13,7 @@ import { BlogPost } from './types';
 export const blogPosts: BlogPost[] = [
   {
     slug: 'follow-up-email-after-job-application',
-    title: 'Follow-Up Email After Job Application: When, How, and What to Say',
+    title: 'Follow-Up Email After Job Application: When & What to Say',
     description:
       'Sending a follow-up email increases your chances by 40%. Learn when to send it, what to write, and how AI can generate a professional follow-up in seconds.',
     content: `You submitted your application three weeks ago. You've refreshed your inbox 47 times. You've checked your spam folder twice. Still nothing.
@@ -178,7 +178,7 @@ If you're in a job search right now, you already know how much time you're spend
   },
   {
     slug: 'how-to-tailor-resume-to-job-description',
-    title: 'How to Tailor Your Resume to a Job Description (And Why It Matters)',
+    title: 'How to Tailor Your Resume to a Job Description',
     description:
       'Tailored resumes get 1.6x more interviews than generic ones. Learn the exact process for matching your CV to any job description in minutes, not hours.',
     content: `Generic resumes don't work anymore.
@@ -360,7 +360,7 @@ If you're in a job search, you already know how long tailoring takes. The questi
   },
   {
     slug: 'ats-resume-format-guide-2026',
-    title: 'ATS Resume Format Guide 2026: What Works, What Breaks, and Why',
+    title: 'ATS Resume Format Guide 2026: What Works and What Breaks',
     description:
       '76% of resumes are rejected by ATS before a human sees them. Learn the exact formatting rules for Workday, Greenhouse, Lever, and other major ATS platforms.',
     content: `Your resume is perfect. Clean design. Strong achievements. Quantified results.
@@ -607,7 +607,7 @@ Paste a job description and see what comes back.
   },
   {
     slug: 'ai-cover-letter-generator-how-it-works',
-    title: 'AI Cover Letter Generator: How It Works and Why It Beats Templates',
+    title: 'AI Cover Letter Generator: How It Works',
     description:
       'AI cover letters get 50% more callbacks than generic templates. Learn how AI generates personalized cover letters in seconds without fabricating experience.',
     content: `Generic cover letter templates don't work.
@@ -810,7 +810,7 @@ No credit card. No sign-up wall. Paste a job description and see what comes back
   },
   {
     slug: 'best-ai-job-application-tools-2026',
-    title: 'Best AI Job Application Tools 2026: Features, Pricing, and Comparisons',
+    title: 'Best AI Job Application Tools 2026: Features & Pricing',
     description:
       'Compare the top AI job application tools in 2026. From resume builders to full application packages, find the right tool for your job search strategy.',
     content: `The AI job application tool market exploded in 2025. Now there are dozens of options, all claiming to be "the best."
@@ -1165,9 +1165,9 @@ If you're currently in a job search, you already know how much time you're spend
   },
   {
     slug: 'what-is-a-master-cv',
-    title: 'What Is a Master CV and Why You Need One (Template Included)',
+    title: 'What Is a Master CV and Why You Need One',
     description:
-      'A master CV is the source document behind every strong application. Learn what to include, how to structure it, and how it makes tailoring faster, more consistent, and better for AI.',
+      'A master CV is the source document behind every strong application. Learn what to include, how to structure it, and how it makes tailoring faster and better for AI.',
     content: `Most people tailor their CV the hard way.
 
 They open last week's version, start deleting bullets that do not fit the new role, rewrite a few lines, move sections around, save it as "final-v7-actually-final," and send it off.
@@ -1503,7 +1503,7 @@ If you are serious about applying efficiently without sacrificing quality, build
     slug: 'german-cv-vs-american-resume',
     title: 'German CV vs American Resume: What\'s Actually Different?',
     description:
-      'Applying across Germany and the US with the same document is a mistake. Here are the real differences in format, personal details, tone, ATS expectations, and what employers in each market actually expect.',
+      'Applying with the same document in Germany and the US is a mistake. Here are the real differences in format, personal details, tone, and ATS expectations in each market.',
     content: `If you apply for jobs in Germany with a standard American resume, you will often look underprepared before anyone even reads your experience.
 
 And if you apply in the US with a traditional German Lebenslauf, you can trigger the opposite problem: too much personal information, too much formality, and in some cases an immediate rejection.
@@ -1836,9 +1836,9 @@ That means less manual reformatting, fewer cultural mistakes, and a better chanc
   },
   {
     slug: 'is-it-ethical-to-use-ai-for-job-applications',
-    title: 'Is It Ethical to Use AI for Job Applications? The Honest Answer',
+    title: 'Is It Ethical to Use AI for Job Applications?',
     description:
-      'Using AI for resumes and cover letters is ethical if it helps you present real experience clearly. It becomes unethical the moment it starts inventing skills, achievements, or work you did not do.',
+      'Using AI for job applications is ethical if it presents your real experience clearly. It becomes unethical the moment it invents skills or achievements you do not have.',
     content: `You used AI to improve your resume.
 
 Now you are wondering if you crossed a line.
