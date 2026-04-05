@@ -567,7 +567,7 @@ export const comparisons: ComparisonData[] = [
     slug: 'karko-ai-vs-rezi',
     title: 'Karko AI vs Rezi: Which AI Resume Builder Wins in 2026?',
     description:
-      'Rezi offers AI resume building with 23-criteria scoring. Karko AI generates complete application packages with emails. Compare features, pricing, and AI capabilities.',
+      'Rezi scores resumes across 23 criteria. Karko AI generates full application packages: CV, cover letter, and email. Compare features, pricing, and AI capabilities.',
     h1: 'Karko AI vs Rezi: Complete Packages vs Resume Scoring (2026)',
     publishedAt: '2026-03-31',
     competitorName: 'Rezi',
@@ -827,7 +827,7 @@ export const comparisons: ComparisonData[] = [
     slug: 'karko-ai-vs-kickresume',
     title: 'Karko AI vs Kickresume: Which Resume Builder Wins in 2026?',
     description:
-      'Kickresume offers design-focused templates with unlimited free builds. Karko AI generates complete application packages with AI emails. Compare features and pricing.',
+      'Kickresume offers design-first templates with unlimited free builds. Karko AI generates CV, cover letter, and email as one package. Compare features and pricing.',
     h1: 'Karko AI vs Kickresume: AI Applications vs Design Templates (2026)',
     publishedAt: '2026-03-31',
     competitorName: 'Kickresume',
@@ -1350,7 +1350,7 @@ export const comparisons: ComparisonData[] = [
     slug: 'karko-ai-vs-resume-io',
     title: 'Karko AI vs Resume.io: Which Resume Builder Wins in 2026?',
     description:
-      'Resume.io offers full ecosystem with recruiter matching and auto-apply. Karko AI generates complete application packages with AI emails. Compare features and pricing.',
+      'Resume.io offers recruiter matching and auto-apply. Karko AI generates complete application packages with AI emails. Compare features and pricing.',
     h1: 'Karko AI vs Resume.io: Focused Quality vs Full Ecosystem (2026)',
     publishedAt: '2026-03-31',
     competitorName: 'Resume.io',
