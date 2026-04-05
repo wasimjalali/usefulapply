@@ -319,6 +319,7 @@ export default function Dashboard() {
 
           {/* Tracker — inline panel */}
           <button
+            id="tour-tracker"
             type="button"
             onClick={() => setActiveTab('tracker')}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${

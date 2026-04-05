@@ -36,9 +36,9 @@ export function useDashboardTour() {
           {
             element: '#tour-cv-upload',
             popover: {
-              title: '1 — Upload Your CV',
+              title: 'Upload Your CV',
               description:
-                'This is where you start. Upload your existing CV (PDF, DOCX, or TXT — up to 10 MB). Karko AI parses it and uses it as the source of truth for every application it generates.',
+                'This is where everything begins. Upload your existing CV (PDF, DOCX, or TXT — up to 10 MB) and Karko AI will use it as the source of truth for every application.',
               side: 'right',
               align: 'center',
             },
@@ -46,9 +46,9 @@ export function useDashboardTour() {
           {
             element: '#tour-doc-tabs',
             popover: {
-              title: '2 — Your Output Panels',
+              title: 'Your Output Panels',
               description:
-                'Once your application is generated, your tailored <strong>CV</strong>, <strong>ATS Score</strong>, <strong>Cover Letter</strong>, and <strong>Application Email</strong> all appear here as separate tabs. Inside the CV panel you can switch between 6 ATS-friendly templates.',
+                'After generating, your tailored <strong>CV</strong>, <strong>ATS Score</strong>, <strong>Cover Letter</strong>, and <strong>Application Email</strong> each get their own tab. Switch between <strong>6 ATS-friendly templates</strong> inside the CV panel.',
               side: 'bottom',
               align: 'start',
             },
@@ -56,9 +56,9 @@ export function useDashboardTour() {
           {
             element: '#tour-chat-panel',
             popover: {
-              title: '3 — Paste a Job Description',
+              title: 'Paste a Job Description',
               description:
-                'Drop any job posting here and Karko AI will tailor your entire application to it.',
+                'Drop any job posting here and Karko AI will tailor your entire application to match it — CV, cover letter, and email in one go.',
               side: 'left',
               align: 'center',
             },
@@ -66,21 +66,31 @@ export function useDashboardTour() {
           {
             element: '#tour-mode-selector',
             popover: {
-              title: '4 — Two Application Modes',
+              title: 'Two Application Modes',
               description:
-                '<strong>Apply Directly</strong> — skips analysis and generates your CV, cover letter, and email in one shot (2 credits).<br><br><strong>Analyze First</strong> — runs a fit assessment showing your match score and skill gaps before generating (0.5 + 2 credits). Best when you want to evaluate the role first.',
+                '<strong>Apply Directly</strong> — generates your full application in one shot (2 credits).<br><br><strong>Analyze First</strong> — shows your match score and skill gaps before generating (0.5 + 2 credits).',
               side: 'top',
               align: 'center',
             },
           },
           {
-            element: '#tour-doc-tabs',
+            element: '#tour-tracker',
             popover: {
-              title: "You're all set!",
+              title: 'Application Tracker',
               description:
-                "Upload your CV to get started. Your first tailored application — CV, cover letter, and email — is ready in 90 seconds.",
+                'Every application you generate is automatically saved here — company, role, match score, and all your documents. Track status from applied to offer, all in one place.',
               side: 'bottom',
-              align: 'start',
+              align: 'center',
+            },
+          },
+          {
+            element: '#tour-cv-upload',
+            popover: {
+              title: "You're ready!",
+              description:
+                "Start by uploading your CV right here. Your first tailored application is 90 seconds away.",
+              side: 'right',
+              align: 'center',
             },
           },
         ],
