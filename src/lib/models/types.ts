@@ -4,7 +4,7 @@
  * Primary: Claude Sonnet 4.6 | Fallback: Claude Haiku 4.5 (toggle via USE_FALLBACK_MODEL env var)
  */
 
-export type ModelProvider = 'anthropic' | 'bedrock';
+export type ModelProvider = 'anthropic' | 'bedrock' | 'digitalocean';
 
 export type TaskType =
   // Extraction & analysis

@@ -136,6 +136,89 @@ To:
 
 ---
 
+## Priority 1: Set Up DigitalOcean AI Provider (When DO Account Access Restored)
+
+**When to do this:** When you regain access to your DigitalOcean account (estimated ~April 8-9, 2026).
+
+**Why:** DigitalOcean Gradient AI provides Claude Sonnet 4.6 via an OpenAI-compatible endpoint. You have $5,000 in DO credits. The code is already implemented — you just need to create the agent and set env vars.
+
+**Estimated time:** 10–15 minutes
+
+---
+
+### Step 1: Create an Agent in DigitalOcean
+
+1. Log in to [DigitalOcean Control Panel](https://cloud.digitalocean.com)
+2. Navigate to **Gradient AI** (or **GenAI Platform**) in the left sidebar
+3. Click **Create Agent**
+4. Select model: **`anthropic-claude-4.6-sonnet`** (Claude Sonnet 4.6)
+5. Give it a name like `karko-ai-agent`
+6. Click **Create**
+
+### Step 2: Generate an Endpoint Access Key
+
+1. In the agent's page, go to **Settings**
+2. Under **Endpoint Access Keys**, click **Create Key**
+3. Copy and save:
+   - **Agent Endpoint URL** — looks like `https://agent-xxxxx.ondigitalocean.app`
+   - **Access Key** — the generated bearer token
+
+### Step 3: Add Environment Variables
+
+Add these to your `.env.local` file:
+
+```env
+# DigitalOcean Gradient AI
+AI_PROVIDER=digitalocean
+DIGITALOCEAN_AGENT_ENDPOINT=https://agent-xxxxx.ondigitalocean.app
+DIGITALOCEAN_ACCESS_KEY=your-access-key-here
+```
+
+### Step 4: Test Locally
+
+1. Restart your dev server: `npm run dev`
+2. You should see in the console: `[Anthropic] Using DigitalOcean Gradient AI provider (model: anthropic-claude-4.6-sonnet)`
+3. Try a fit analysis or application generation to verify it works
+
+### Step 5: Deploy to Vercel (Production)
+
+1. Go to Vercel Dashboard → karko-ai → Settings → Environment Variables
+2. Add the same 3 env vars:
+   - `AI_PROVIDER` = `digitalocean`
+   - `DIGITALOCEAN_AGENT_ENDPOINT` = your agent endpoint
+   - `DIGITALOCEAN_ACCESS_KEY` = your access key
+3. Redeploy
+
+### Switching Between Providers
+
+To switch back to Bedrock, just change one env var:
+
+| Provider | `AI_PROVIDER` value | Other env vars needed |
+|----------|--------------------|-----------------------|
+| DigitalOcean | `digitalocean` | `DIGITALOCEAN_AGENT_ENDPOINT`, `DIGITALOCEAN_ACCESS_KEY` |
+| Bedrock (Bearer) | `bedrock` | `AWS_BEARER_TOKEN_BEDROCK`, `AWS_REGION` |
+| Bedrock (Keys) | `bedrock` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` |
+| Direct Anthropic | `anthropic` | `ANTHROPIC_API_KEY` |
+
+If `AI_PROVIDER` is **not set**, the system auto-detects from available credentials (Bedrock first, then Anthropic direct — same as before this change).
+
+### Important Notes
+
+- **PDF extraction caveat:** DigitalOcean's OpenAI-compatible API does not support native document content blocks. PDF extraction (for broken-font PDFs) works but with reduced quality compared to Bedrock's native document understanding. If PDF parsing is critical, keep Bedrock credentials available as a fallback.
+- **Rate limits:** DigitalOcean allows 5,000 requests/hour, 250 requests/minute.
+- **Pricing:** $3/M input tokens, $15/M output tokens (same as Bedrock/Anthropic). Your $5,000 credits cover hundreds of thousands of applications.
+
+### Checklist
+
+- [ ] Regain access to DigitalOcean account
+- [ ] Create agent with Claude Sonnet 4.6 model
+- [ ] Generate endpoint access key
+- [ ] Add env vars to `.env.local` and test locally
+- [ ] Add env vars to Vercel and redeploy
+- [ ] Verify a full application generation works end-to-end
+
+---
+
 ## Future Tasks (Add Below)
 
 <!-- Add new tasks here as they come up -->

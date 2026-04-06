@@ -9,10 +9,18 @@ import Anthropic from '@anthropic-ai/sdk';
 import { AnthropicBedrock } from '@anthropic-ai/bedrock-sdk';
 import type { ModelResponse, ConversationMessage, CacheableContentBlock } from './types';
 
-// Determine whether to use Bedrock or direct Anthropic API
+// Provider selection: AI_PROVIDER env var overrides auto-detect
+// Values: 'digitalocean' | 'bedrock' | 'anthropic'
+// If unset, auto-detects from available credentials (backwards-compatible)
+const AI_PROVIDER = process.env.AI_PROVIDER as 'digitalocean' | 'bedrock' | 'anthropic' | undefined;
+
 const HAS_BEARER_TOKEN = !!process.env.AWS_BEARER_TOKEN_BEDROCK;
 const HAS_TRADITIONAL_KEYS = !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY);
-const USE_BEDROCK = HAS_BEARER_TOKEN || HAS_TRADITIONAL_KEYS;
+const HAS_DIGITALOCEAN = !!(process.env.DIGITALOCEAN_AGENT_ENDPOINT && process.env.DIGITALOCEAN_ACCESS_KEY);
+
+// Resolve active provider
+const USE_DIGITALOCEAN = AI_PROVIDER === 'digitalocean' || (!AI_PROVIDER && HAS_DIGITALOCEAN && !HAS_BEARER_TOKEN && !HAS_TRADITIONAL_KEYS);
+const USE_BEDROCK = AI_PROVIDER === 'bedrock' || (!AI_PROVIDER && !USE_DIGITALOCEAN && (HAS_BEARER_TOKEN || HAS_TRADITIONAL_KEYS));
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 
 // Primary model: Claude Sonnet 4.6 — frontier performance, improved coding, agents, instruction following
@@ -26,6 +34,11 @@ const DIRECT_PREVIOUS_MODEL_ID = 'claude-sonnet-4-5-20250929';
 // Cost fallback: Claude Haiku 4.5 — faster, cheaper, toggle via USE_FALLBACK_MODEL=true
 const BEDROCK_FALLBACK_MODEL_ID = `${AWS_REGION === 'us-east-1' ? 'us' : AWS_REGION.startsWith('eu') ? 'eu' : 'us'}.anthropic.claude-haiku-4-5-20251001-v1:0`;
 const DIRECT_FALLBACK_MODEL_ID = 'claude-haiku-4-5';
+
+// DigitalOcean Gradient AI model IDs (OpenAI-compatible endpoint)
+const DO_MODEL_ID = 'anthropic-claude-4.6-sonnet';
+const DO_PREVIOUS_MODEL_ID = 'anthropic-claude-4.5-sonnet';
+const DO_FALLBACK_MODEL_ID = 'anthropic-claude-haiku-4.5';
 
 // Toggle: Set USE_PREVIOUS_MODEL=true to roll back to Sonnet 4.5
 const USE_PREVIOUS = process.env.USE_PREVIOUS_MODEL === 'true';
@@ -139,6 +152,193 @@ class BedrockBearerTokenClient {
   }
 }
 
+// DigitalOcean Gradient AI client — OpenAI-compatible chat/completions endpoint
+class DigitalOceanClient {
+  private endpoint: string;
+  private accessKey: string;
+
+  constructor(endpoint: string, accessKey: string) {
+    // Strip trailing slash if present
+    this.endpoint = endpoint.replace(/\/$/, '');
+    this.accessKey = accessKey;
+  }
+
+  // Convert Anthropic-style system + messages to OpenAI chat/completions format
+  private buildOpenAIMessages(
+    system: string | Array<{ type: 'text'; text: string; cache_control?: { type: 'ephemeral' } }> | undefined,
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>
+  ) {
+    const openaiMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
+
+    if (system) {
+      const systemText = typeof system === 'string'
+        ? system
+        : system.map(b => b.text).join('\n\n');
+      openaiMessages.push({ role: 'system', content: systemText });
+    }
+
+    for (const msg of messages) {
+      openaiMessages.push({ role: msg.role, content: msg.content });
+    }
+
+    return openaiMessages;
+  }
+
+  async create(params: {
+    model: string;
+    max_tokens: number;
+    temperature?: number;
+    system?: string | Array<{ type: 'text'; text: string; cache_control?: { type: 'ephemeral' } }>;
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+  }) {
+    const url = `${this.endpoint}/api/v1/chat/completions`;
+    const openaiMessages = this.buildOpenAIMessages(params.system, params.messages);
+
+    const MAX_RETRIES = 2;
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      if (attempt > 0) {
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 4000);
+        console.log(`[DigitalOcean] Retry attempt ${attempt}/${MAX_RETRIES} after ${delay}ms`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.accessKey}`,
+        },
+        body: JSON.stringify({
+          model: params.model,
+          messages: openaiMessages,
+          max_tokens: params.max_tokens,
+          temperature: params.temperature,
+          stream: false,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const choice = data.choices?.[0];
+
+        // Convert OpenAI response to Anthropic format
+        return {
+          content: [{ type: 'text' as const, text: choice?.message?.content || '' }],
+          usage: {
+            input_tokens: data.usage?.prompt_tokens || 0,
+            output_tokens: data.usage?.completion_tokens || 0,
+          },
+        };
+      }
+
+      const errorText = await response.text();
+      lastError = new Error(`DigitalOcean API error: ${response.status} ${errorText}`);
+
+      if (![500, 503, 429].includes(response.status)) {
+        throw lastError;
+      }
+      console.warn(`[DigitalOcean] Transient error ${response.status}, will retry...`);
+    }
+
+    throw lastError!;
+  }
+
+  async createStream(params: {
+    model: string;
+    max_tokens: number;
+    temperature?: number;
+    system?: string | Array<{ type: 'text'; text: string; cache_control?: { type: 'ephemeral' } }>;
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+  }, onChunk: (chunk: string) => void): Promise<{
+    content: string;
+    usage: { input_tokens: number; output_tokens: number };
+  }> {
+    const url = `${this.endpoint}/api/v1/chat/completions`;
+    const openaiMessages = this.buildOpenAIMessages(params.system, params.messages);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.accessKey}`,
+      },
+      body: JSON.stringify({
+        model: params.model,
+        messages: openaiMessages,
+        max_tokens: params.max_tokens,
+        temperature: params.temperature,
+        stream: true,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`DigitalOcean streaming error: ${response.status} ${errorText}`);
+    }
+
+    let fullContent = '';
+    let inputTokens = 0;
+    let outputTokens = 0;
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('DigitalOcean: No response body for streaming');
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith('data: ')) continue;
+        const data = trimmed.slice(6);
+        if (data === '[DONE]') continue;
+
+        try {
+          const parsed = JSON.parse(data);
+          const delta = parsed.choices?.[0]?.delta;
+          if (delta?.content) {
+            fullContent += delta.content;
+            onChunk(delta.content);
+          }
+          // Capture usage from the final chunk if present
+          if (parsed.usage) {
+            inputTokens = parsed.usage.prompt_tokens || 0;
+            outputTokens = parsed.usage.completion_tokens || 0;
+          }
+        } catch {
+          // Skip malformed SSE lines
+        }
+      }
+    }
+
+    return {
+      content: fullContent,
+      usage: { input_tokens: inputTokens, output_tokens: outputTokens },
+    };
+  }
+}
+
+// Cached DigitalOcean client
+let cachedDOClient: DigitalOceanClient | null = null;
+function getDigitalOceanClient(): DigitalOceanClient {
+  if (!cachedDOClient) {
+    cachedDOClient = new DigitalOceanClient(
+      process.env.DIGITALOCEAN_AGENT_ENDPOINT!,
+      process.env.DIGITALOCEAN_ACCESS_KEY!,
+    );
+  }
+  return cachedDOClient;
+}
+
 // Cached bearer token client — reused across calls to avoid recreating per invocation
 let cachedBearerClient: BedrockBearerTokenClient | null = null;
 function getBearerTokenClient(): BedrockBearerTokenClient {
@@ -155,10 +355,13 @@ function getBearerTokenClient(): BedrockBearerTokenClient {
 // Priority: USE_FALLBACK_MODEL (Haiku) > USE_PREVIOUS_MODEL (Sonnet 4.5) > default (Sonnet 4.6)
 const ACTIVE_BEDROCK_MODEL_ID = USE_FALLBACK ? BEDROCK_FALLBACK_MODEL_ID : USE_PREVIOUS ? BEDROCK_PREVIOUS_MODEL_ID : BEDROCK_MODEL_ID;
 const ACTIVE_DIRECT_MODEL_ID = USE_FALLBACK ? DIRECT_FALLBACK_MODEL_ID : USE_PREVIOUS ? DIRECT_PREVIOUS_MODEL_ID : DIRECT_MODEL_ID;
+const ACTIVE_DO_MODEL_ID = USE_FALLBACK ? DO_FALLBACK_MODEL_ID : USE_PREVIOUS ? DO_PREVIOUS_MODEL_ID : DO_MODEL_ID;
 
-const MODEL_ID = USE_BEDROCK ? ACTIVE_BEDROCK_MODEL_ID : ACTIVE_DIRECT_MODEL_ID;
+const MODEL_ID = USE_DIGITALOCEAN ? ACTIVE_DO_MODEL_ID : USE_BEDROCK ? ACTIVE_BEDROCK_MODEL_ID : ACTIVE_DIRECT_MODEL_ID;
 
-if (USE_BEDROCK) {
+if (USE_DIGITALOCEAN) {
+  console.log(`[Anthropic] Using DigitalOcean Gradient AI provider (model: ${MODEL_ID})`);
+} else if (USE_BEDROCK) {
   if (HAS_BEARER_TOKEN) {
     console.log(`[Anthropic] Using Amazon Bedrock provider with Bearer Token (region: ${AWS_REGION}, model: ${MODEL_ID})`);
   } else {
@@ -221,8 +424,18 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
   
   try {
     let response;
-    
-    if (HAS_BEARER_TOKEN) {
+
+    if (USE_DIGITALOCEAN) {
+      // Use DigitalOcean Gradient AI (OpenAI-compatible endpoint)
+      const doClient = getDigitalOceanClient();
+      response = await doClient.create({
+        model: MODEL_ID,
+        max_tokens: maxTokens,
+        temperature,
+        ...(systemParam && { system: systemParam }),
+        messages,
+      });
+    } else if (HAS_BEARER_TOKEN) {
       // Use cached bearer token client
       const bearerClient = getBearerTokenClient();
       response = await bearerClient.create({
@@ -243,20 +456,22 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
         messages,
       });
     }
-    
+
     // Extract text content
     const textContent = response.content.find(block => block.type === 'text');
     const content = textContent?.type === 'text' ? textContent.text : '';
-    
+
     // Extract cache metrics from usage (if available)
     const usage = response.usage as unknown as Record<string, number>;
-    
+
     const cacheCreation = usage.cache_creation_input_tokens || 0;
     const cacheRead = usage.cache_read_input_tokens || 0;
     if (cacheCreation > 0 || cacheRead > 0) {
       console.log(`[Anthropic Cache] write=${cacheCreation} read=${cacheRead} input=${usage.input_tokens} output=${usage.output_tokens}`);
     }
-    
+
+    const activeProvider = USE_DIGITALOCEAN ? 'digitalocean' : USE_BEDROCK ? 'bedrock' : 'anthropic';
+
     return {
       content,
       usage: {
@@ -266,7 +481,7 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
         cacheReadInputTokens: cacheRead || undefined,
       },
       model: MODEL_ID,
-      provider: USE_BEDROCK ? 'bedrock' : 'anthropic',
+      provider: activeProvider,
       latencyMs: Date.now() - startTime,
     };
   } catch (error) {
@@ -307,6 +522,31 @@ export async function callAnthropicStream(
   }
 
   try {
+    const activeProvider = USE_DIGITALOCEAN ? 'digitalocean' : USE_BEDROCK ? 'bedrock' : 'anthropic';
+
+    if (USE_DIGITALOCEAN) {
+      // DigitalOcean supports true SSE streaming via OpenAI-compatible endpoint
+      const doClient = getDigitalOceanClient();
+      const result = await doClient.createStream({
+        model: MODEL_ID,
+        max_tokens: maxTokens,
+        temperature,
+        ...(systemParam && { system: systemParam }),
+        messages: [{ role: 'user', content: prompt }],
+      }, onChunk);
+
+      return {
+        content: result.content,
+        usage: {
+          inputTokens: result.usage.input_tokens,
+          outputTokens: result.usage.output_tokens,
+        },
+        model: MODEL_ID,
+        provider: activeProvider,
+        latencyMs: Date.now() - startTime,
+      };
+    }
+
     let stream;
 
     if (HAS_BEARER_TOKEN) {
@@ -332,7 +572,7 @@ export async function callAnthropicStream(
           outputTokens,
         },
         model: MODEL_ID,
-        provider: USE_BEDROCK ? 'bedrock' : 'anthropic',
+        provider: activeProvider,
         latencyMs: Date.now() - startTime,
       };
     } else {
@@ -346,18 +586,18 @@ export async function callAnthropicStream(
         messages: [{ role: 'user', content: prompt }],
       });
     }
-    
+
     for await (const event of stream) {
       if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
         const text = event.delta.text;
         fullContent += text;
         onChunk(text);
       }
-      
+
       if (event.type === 'message_delta' && event.usage) {
         outputTokens = event.usage.output_tokens;
       }
-      
+
       if (event.type === 'message_start' && event.message.usage) {
         inputTokens = event.message.usage.input_tokens;
         const usage = event.message.usage as unknown as Record<string, number>;
@@ -368,7 +608,7 @@ export async function callAnthropicStream(
         }
       }
     }
-    
+
     return {
       content: fullContent,
       usage: {
@@ -378,7 +618,7 @@ export async function callAnthropicStream(
         cacheReadInputTokens: cacheReadTokens || undefined,
       },
       model: MODEL_ID,
-      provider: USE_BEDROCK ? 'bedrock' : 'anthropic',
+      provider: activeProvider,
       latencyMs: Date.now() - startTime,
     };
   } catch (error) {
@@ -400,6 +640,26 @@ export async function extractDocumentText(pdfBuffer: Buffer): Promise<string> {
   const userText = 'Extract ALL text content from this CV/resume document. Preserve the original structure including section headers, dates, company names, job titles, bullet points, skills, education, and languages. Return ONLY the extracted text with proper formatting.';
 
   try {
+    if (USE_DIGITALOCEAN) {
+      // DigitalOcean: OpenAI-compatible API doesn't support document content blocks
+      // Send base64 PDF data as text with extraction instructions
+      const doClient = getDigitalOceanClient();
+      const response = await doClient.create({
+        model: MODEL_ID,
+        max_tokens: 8192,
+        temperature: 0,
+        system: systemPrompt,
+        messages: [{
+          role: 'user',
+          content: `${userText}\n\n[PDF document provided as base64 — decode and extract text]\n\nBase64 PDF data:\n${base64Data.substring(0, 20000)}`,
+        }],
+      });
+
+      const text = response.content[0]?.text || '';
+      console.log(`[Anthropic] PDF document extraction via DigitalOcean: ${text.length} chars in ${Date.now() - startTime}ms`);
+      return text;
+    }
+
     if (HAS_BEARER_TOKEN) {
       // Bedrock Converse API with document content block
       const bearerToken = process.env.AWS_BEARER_TOKEN_BEDROCK!;

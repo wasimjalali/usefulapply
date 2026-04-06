@@ -71,7 +71,7 @@ export function parseModelJSON<T>(content: string): T {
 
 /**
  * Get estimated cost for a model call (in USD)
- * Sonnet 4.6 pricing: $3/M input, $15/M output (same as Sonnet 4.5)
+ * Sonnet 4.6 pricing: $3/M input, $15/M output (same across Bedrock, DigitalOcean, and direct Anthropic)
  * Haiku 4.5 pricing: $1/M input, $5/M output
  */
 export function estimateCost(task: TaskType, inputTokens: number, outputTokens: number): number {
