@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useLayoutEffect, useState } from 'react';
 import { Send, Square, Search, Zap, FileText, RotateCcw, ClipboardList, X } from 'lucide-react';
 
 interface ChatInputProps {
@@ -44,13 +44,17 @@ export function ChatInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
 
-  // Auto-resize textarea
-  useEffect(() => {
+  // Auto-resize textarea — useLayoutEffect ensures the height is corrected before
+  // the browser paints, preventing a flash of oversized textarea when the chat
+  // panel remounts (e.g. after returning from the Tracker tab). compact is
+  // included so a re-calculation runs whenever the compact/non-compact mode
+  // switches without a value change.
+  useLayoutEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 150) + 'px';
     }
-  }, [value]);
+  }, [value, compact]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
