@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useLayoutEffect, useState } from 'react';
+import { useRef, useLayoutEffect, useEffect, useState } from 'react';
 import { Send, Square, Search, Zap, FileText, RotateCcw, ClipboardList, X } from 'lucide-react';
 
 interface ChatInputProps {
@@ -44,17 +44,34 @@ export function ChatInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
 
-  // Auto-resize textarea — useLayoutEffect ensures the height is corrected before
-  // the browser paints, preventing a flash of oversized textarea when the chat
-  // panel remounts (e.g. after returning from the Tracker tab). compact is
-  // included so a re-calculation runs whenever the compact/non-compact mode
-  // switches without a value change.
+  // Auto-resize textarea on value / compact changes
   useLayoutEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 150) + 'px';
     }
   }, [value, compact]);
+
+  // Recalculate height when the textarea width changes (parent panel expand transition).
+  // The chat container uses transition-[width] duration-200, so when expanding from
+  // collapsed the width animates from 48px → 440px. Without this, scrollHeight is
+  // measured at the narrow width on mount and never corrected.
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    let prevWidth = textarea.getBoundingClientRect().width;
+    const ro = new ResizeObserver(() => {
+      const w = textarea.getBoundingClientRect().width;
+      if (w !== prevWidth) {
+        prevWidth = w;
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+      }
+    });
+    ro.observe(textarea);
+    return () => ro.disconnect();
+  }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
