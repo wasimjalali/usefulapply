@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
     let fileExt: string;
     let region = 'EU';
 
+    let documentType: 'primary_cv' | 'master_cv' = 'primary_cv';
     const contentType = request.headers.get('content-type') || '';
 
     if (contentType.includes('application/json')) {
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
       const body = await request.json();
       const { storagePath, fileName } = body;
       region = body.region || 'EU';
+      if (body.documentType === 'master_cv') documentType = 'master_cv';
 
       if (!storagePath || !fileName) {
         return NextResponse.json({ error: 'Missing storagePath or fileName.' }, { status: 400 });
@@ -109,6 +111,7 @@ export async function POST(request: NextRequest) {
 
       const file = formData.get('file') as File;
       region = (formData.get('region') as string) || 'EU';
+      if ((formData.get('documentType') as string) === 'master_cv') documentType = 'master_cv';
 
       if (!file || !(file instanceof File) || file.size === 0) {
         console.error('[Parser] No valid file in form data. Keys:', [...formData.keys()]);
@@ -186,12 +189,14 @@ export async function POST(request: NextRequest) {
     const parserUsed = 'ai';
     const parseStartTime = Date.now();
 
-    console.log(`[Parser] Starting: file=${originalFileName}, ext=${fileExt}, size=${buffer.length}, mode=${contentType.includes('application/json') ? 'storage' : 'direct'}`);
+    console.log(`[Parser] Starting: file=${originalFileName}, ext=${fileExt}, size=${buffer.length}, mode=${contentType.includes('application/json') ? 'storage' : 'direct'}, documentType=${documentType}`);
 
     if (fileExt === '.pdf') {
       // One-step: send PDF directly to Claude as a document block — no local text extraction needed.
       // Claude reads the PDF natively, producing accurate structured data even for broken-font PDFs.
       try {
+        // visual mode = primary CV (1-2 pages) → full page-as-image rendering via citations: enabled
+        // text mode   = master CV (3-8 pages) → text-extraction-only (cheaper)
         const jsonContent = await parseDocumentAsCV({
           buffer,
           docFormat: 'pdf',
@@ -199,6 +204,7 @@ export async function POST(request: NextRequest) {
           systemPrompt: 'You are a precise CV parser. Extract factual information only. Return valid JSON. Do not infer or fabricate any information not explicitly present in the source document.',
           maxTokens: 8192,
           temperature: 0.3,
+          visualMode: documentType !== 'master_cv',
         });
         structuredCV = parseAIResponse(jsonContent, region as 'US' | 'EU');
         rawText = reconstructRawText(structuredCV);

@@ -70,7 +70,7 @@ function resizeImage(file: File, maxSize: number, quality = 0.9): Promise<string
   });
 }
 
-function parseDocumentFile(file: File, storagePath?: string): Promise<{ parsedCV: ParsedCV; structuredCV: any }> {
+function parseDocumentFile(file: File, storagePath?: string, documentType: 'primary_cv' | 'master_cv' = 'primary_cv'): Promise<{ parsedCV: ParsedCV; structuredCV: any }> {
   const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
   if (file.size > MAX_UPLOAD_SIZE) {
     return Promise.reject(new Error(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum: 10 MB.`));
@@ -83,11 +83,12 @@ function parseDocumentFile(file: File, storagePath?: string): Promise<{ parsedCV
       response = await fetch('/api/parse-cv', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storagePath, fileName: file.name }),
+        body: JSON.stringify({ storagePath, fileName: file.name, documentType }),
       });
     } else {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('documentType', documentType);
       response = await fetch('/api/parse-cv', {
         method: 'POST',
         body: formData,
@@ -275,7 +276,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
         storagePath = uploadResult.path || undefined;
       }
 
-      const result = await parseDocumentFile(file, storagePath);
+      const result = await parseDocumentFile(file, storagePath, 'primary_cv');
       setCurrentCV(result.parsedCV);
       if (result.structuredCV) {
         setStructuredCV(result.structuredCV);
@@ -322,7 +323,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
         storagePath = uploadResult.path || undefined;
       }
 
-      const result = await parseDocumentFile(file, storagePath);
+      const result = await parseDocumentFile(file, storagePath, 'master_cv');
       const { parsedCV } = result;
 
       const allSkills = parsedCV.sections.skills

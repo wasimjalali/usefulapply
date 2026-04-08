@@ -64,11 +64,12 @@ export default function Dashboard() {
         response = await fetch('/api/parse-cv', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ storagePath, fileName: file.name }),
+          body: JSON.stringify({ storagePath, fileName: file.name, documentType: 'primary_cv' }),
         });
       } else {
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('documentType', 'primary_cv');
         response = await fetch('/api/parse-cv', { method: 'POST', body: formData });
       }
 

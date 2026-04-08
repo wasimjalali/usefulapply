@@ -762,8 +762,15 @@ export async function parseDocumentAsCV(options: {
   systemPrompt: string;
   maxTokens?: number;
   temperature?: number;
+  /**
+   * Enable Claude PDF Chat (visual mode) for primary CV parsing.
+   * Adds citations: { enabled: true } inside the document block, which activates
+   * full page-as-image rendering instead of text-extraction-only mode.
+   * Use for primary CVs (1-2 pages). Keep false for Master CVs (3-8 pages, cost saving).
+   */
+  visualMode?: boolean;
 }): Promise<string> {
-  const { buffer, docFormat, prompt, systemPrompt, maxTokens = 8192, temperature = 0.3 } = options;
+  const { buffer, docFormat, prompt, systemPrompt, maxTokens = 8192, temperature = 0.3, visualMode = false } = options;
   const base64Data = buffer.toString('base64');
   const startTime = Date.now();
 
@@ -777,6 +784,16 @@ export async function parseDocumentAsCV(options: {
     const region = process.env.AWS_BEDROCK_ENDPOINT_URL || AWS_REGION;
     const url = `https://bedrock-runtime.${region}.amazonaws.com/model/${MODEL_ID}/converse`;
 
+    // Build document block: add citations: { enabled: true } for visual mode (PDF Chat)
+    const documentBlock: Record<string, unknown> = {
+      name: 'cv',
+      format: docFormat,
+      source: { bytes: base64Data },
+    };
+    if (visualMode && docFormat === 'pdf') {
+      documentBlock.citations = { enabled: true };
+    }
+
     const res = await fetch(url, {
       method: 'POST',
       headers: {
@@ -787,13 +804,7 @@ export async function parseDocumentAsCV(options: {
         messages: [{
           role: 'user',
           content: [
-            {
-              document: {
-                name: 'cv',
-                format: docFormat,
-                source: { bytes: base64Data },
-              },
-            },
+            { document: documentBlock },
             { text: prompt },
           ],
         }],
@@ -808,13 +819,30 @@ export async function parseDocumentAsCV(options: {
     }
 
     const data = await res.json();
-    const text = data.output?.message?.content?.[0]?.text || '';
-    console.log(`[Anthropic] CV document parse via Bedrock: ${text.length} chars, ${data.usage?.outputTokens || 0} output tokens in ${Date.now() - startTime}ms`);
+    // When citations are enabled, response may include citation content blocks alongside the text block.
+    // Find the text block explicitly rather than assuming content[0] is text.
+    const contentBlocks: Array<Record<string, unknown>> = data.output?.message?.content || [];
+    const textBlock = contentBlocks.find(b => typeof b.text === 'string');
+    const text = (textBlock?.text as string) || '';
+    console.log(`[Anthropic] CV document parse via Bedrock (visualMode=${visualMode}): ${text.length} chars, ${data.usage?.outputTokens || 0} output tokens in ${Date.now() - startTime}ms`);
     return text;
   }
 
   // Anthropic SDK (Bedrock traditional keys or direct Anthropic API) — PDF only
   if (!anthropic) throw new Error('Anthropic client not initialized');
+
+  // Build document block with optional citations for visual mode
+  const sdkDocumentBlock: Record<string, unknown> = {
+    type: 'document',
+    source: {
+      type: 'base64',
+      media_type: 'application/pdf',
+      data: base64Data,
+    },
+  };
+  if (visualMode && docFormat === 'pdf') {
+    sdkDocumentBlock.citations = { enabled: true };
+  }
 
   const response = await (anthropic as any).messages.create({
     model: MODEL_ID,
@@ -824,14 +852,7 @@ export async function parseDocumentAsCV(options: {
     messages: [{
       role: 'user',
       content: [
-        {
-          type: 'document',
-          source: {
-            type: 'base64',
-            media_type: 'application/pdf',
-            data: base64Data,
-          },
-        },
+        sdkDocumentBlock,
         { type: 'text', text: prompt },
       ],
     }],
@@ -839,7 +860,7 @@ export async function parseDocumentAsCV(options: {
 
   const textContent = response.content.find((b: any) => b.type === 'text');
   const text = textContent?.text || '';
-  console.log(`[Anthropic] CV document parse: ${text.length} chars in ${Date.now() - startTime}ms`);
+  console.log(`[Anthropic] CV document parse (visualMode=${visualMode}): ${text.length} chars in ${Date.now() - startTime}ms`);
   return text;
 }
 
