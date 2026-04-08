@@ -9,8 +9,7 @@ import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { CVTemplateRenderer, CV_TEMPLATE_DEFINITIONS } from './cv-templates';
 import { TemplateSelector } from './cv-templates/TemplateSelector';
-import { parsedCVToCVData, structuredCVToCVData } from '@/lib/cv-templates/parser';
-import { parseOptimizedCVToData } from '@/lib/cv-parser/parse-optimized-cv';
+import { structuredCVToCVData } from '@/lib/cv-templates/parser';
 import type { CVData } from '@/lib/cv-templates/types';
 import {
   FileText,
@@ -263,22 +262,11 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
   const optimizedTagline = generatedCV?.optimizedTagline;
   const photoDataUrl = profilePhoto?.dataUrl;
 
-  // Parse CV data for template rendering
-  // PRIORITY: Use structuredCV (from AI parsing) when available - it has proper skills/languages arrays
-  // FALLBACK: Use parsedCVToCVData (re-parses raw text) if structuredCV not available
+  // Parse CV data for template rendering using structuredCV from AI parsing
   const cvData: CVData | null = useMemo(() => {
-    if (!currentCV && !structuredCV) return null;
-    
-    // Use structuredCV if available (properly parsed with arrays for skills, languages, etc.)
-    // Otherwise fall back to re-parsing the raw text
-    let parsed: CVData;
-    if (structuredCV) {
-      parsed = structuredCVToCVData(structuredCV);
-    } else if (currentCV) {
-      parsed = parsedCVToCVData(currentCV);
-    } else {
-      return null;
-    }
+    if (!structuredCV) return null;
+
+    let parsed: CVData = structuredCVToCVData(structuredCV);
     
     // Add profile photo if available
     if (photoDataUrl) {
@@ -336,29 +324,6 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
       return directData;
     }
     
-    // FALLBACK: If no optimizedCVData, use legacy text parsing
-    if (showOptimized && optimizedContent) {
-      const optimizedData = parseOptimizedCVToData(optimizedContent, parsed);
-      
-      if (optimizedTagline) {
-        optimizedData.personal.currentTitle = optimizedTagline;
-      }
-      
-      if (photoDataUrl) {
-        optimizedData.personal.photoUrl = photoDataUrl;
-      }
-      
-      // Preserve personal links from original CV if not in optimized
-      if (parsed) {
-        optimizedData.personal.linkedIn = optimizedData.personal.linkedIn || parsed.personal.linkedIn;
-        optimizedData.personal.github = optimizedData.personal.github || parsed.personal.github;
-        optimizedData.personal.website = optimizedData.personal.website || parsed.personal.website;
-        optimizedData.personal.portfolio = optimizedData.personal.portfolio || parsed.personal.portfolio;
-      }
-      
-      return optimizedData;
-    }
-
     // Prefer edited original CV data if available (when viewing original tab)
     if (!showOptimized && editedOriginalCVData) {
       const merged = { ...editedOriginalCVData };
@@ -378,7 +343,7 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
     }
 
     return parsed;
-  }, [currentCV, structuredCV, optimizedContent, optimizedTagline, showOptimized, photoDataUrl, optimizedCVData, profile, editedOriginalCVData]);
+  }, [structuredCV, optimizedContent, optimizedTagline, showOptimized, photoDataUrl, optimizedCVData, profile, editedOriginalCVData]);
 
   const handleCopy = async (text: string) => {
     try {
