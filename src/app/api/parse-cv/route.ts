@@ -335,9 +335,14 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
             // Different line — add newline
             pageText += '\n';
           } else if (lastX !== undefined && textItem.str.length > 0 && pageText.length > 0) {
-            // Same line — add space if there's a gap between items
+            // Same line — detect gap type between text items
             const gap = currentX - lastX;
-            if (gap > 2 && !pageText.endsWith(' ') && !textItem.str.startsWith(' ')) {
+            if (gap > 50) {
+              // Large gap indicates table column boundary (e.g., LaTeX tabular* layout
+              // where name and email are in separate columns on the same line).
+              // Use tab as column separator so downstream parsers can split cells.
+              pageText += '\t';
+            } else if (gap > 2 && !pageText.endsWith(' ') && !pageText.endsWith('\t') && !textItem.str.startsWith(' ')) {
               pageText += ' ';
             }
           }
@@ -605,21 +610,45 @@ function parseLocally(rawText: string, region: 'US' | 'EU', fileName: string): S
   const phoneMatch = rawText.match(/[\+]?[(]?[0-9]{1,3}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,9}/);
   if (phoneMatch) cv.personal.phone = phoneMatch[0];
 
-  // Extract name from first few lines (skip common headers)
-  const nameExclusions = ['resume', 'cv', 'curriculum', 'vitae', 'contact', 'email', 'phone', 'address', 'lebenslauf', 'bewerbung'];
+  // Extract name from first few lines (skip common headers).
+  // For table-layout PDFs (e.g., LaTeX tabular*), name and contact info may share
+  // a line. We split on tab characters (column boundaries from pdfjs-dist) and strip
+  // inline contact info before checking for a name pattern.
+  const nameExclusions = ['resume', 'cv', 'curriculum', 'vitae', 'contact', 'address', 'lebenslauf', 'bewerbung'];
   for (const line of lines.slice(0, 10)) {
-    const lower = line.toLowerCase();
-    if (nameExclusions.some(exc => lower.includes(exc))) continue;
-    if (line.includes('@') || line.match(/\d{5,}/) || line.match(/http/i)) continue;
-    // Skip lines that are clearly section headers
-    if (/^(PROFILE|SUMMARY|EXPERIENCE|EDUCATION|SKILLS|PROFIL|BERUF)/i.test(line)) continue;
+    // Split on tab (column boundary) and take the first cell (leftmost, usually the name)
+    const cells = line.split(/\t/);
+    let candidate = cells[0];
 
-    const words = line.split(/\s+/);
+    // Strip inline contact info (handles cases without tab separation)
+    candidate = candidate
+      .replace(/[\w.-]+@[\w.-]+\.\w+/g, '')           // strip emails
+      .replace(/https?:\/\/\S+/g, '')                  // strip URLs
+      .replace(/\+?\(?\d{1,3}\)?[-\s.]?\(?\d{1,4}\)?[-\s.]?\d{1,4}[-\s.]?\d{1,9}/g, '') // strip phones
+      .replace(/\b(email|e-mail|phone|tel|mobile|fax|telephone|cell)\b\s*:?\s*/gi, '')    // strip contact labels
+      .replace(/[|•·]/g, ' ')                          // normalize separators
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!candidate || candidate.length < 3) continue;
+
+    const lower = candidate.toLowerCase();
+    if (nameExclusions.some(exc => lower.includes(exc))) continue;
+    // Skip lines that are clearly section headers
+    if (/^(PROFILE|SUMMARY|EXPERIENCE|EDUCATION|SKILLS|PROFIL|BERUF)/i.test(candidate)) continue;
+
+    const words = candidate.split(/\s+/);
     if (words.length >= 2 && words.length <= 5) {
-      // Accept names with accented characters (À-ÿ) and ALL CAPS names
-      const nameWords = words.filter(w => /^[A-ZÀ-Ý][a-zà-ÿ]+$/.test(w) || /^[A-ZÀ-Ý]{2,}$/.test(w));
+      // Accept capitalized names (any script), ALL CAPS, hyphenated names, and name particles.
+      // Uses Unicode property escapes for international name support.
+      const nameParticles = /^(van|von|de|di|del|el|al|la|le|bin|ibn|dos|das|den|der|het|ter|ten)$/i;
+      const nameWords = words.filter(w =>
+        /^[\p{Lu}][\p{L}'\u2019\-]+$/u.test(w) ||   // Capitalized: Patrick, O'Brien, Jean-Pierre, Müller
+        /^[\p{Lu}]{2,}$/u.test(w) ||                  // ALL CAPS: SANDERS, MÜLLER
+        nameParticles.test(w)                          // particles: van, von, de, di
+      );
       if (nameWords.length >= 2) {
-        cv.personal.fullName = line;
+        cv.personal.fullName = candidate;
         break;
       }
     }
