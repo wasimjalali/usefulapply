@@ -101,7 +101,17 @@ class BedrockBearerTokenClient {
       if (typeof params.system === 'string') {
         payload.system = [{ text: params.system }];
       } else {
-        payload.system = params.system.map(block => ({ text: block.text }));
+        // Convert Anthropic cache_control markers to Bedrock cachePoint markers.
+        // Bedrock Converse API format: insert { cachePoint: { type: 'default' } }
+        // as a SEPARATE element after each block that has cache_control set.
+        const systemBlocks: Array<{ text?: string; cachePoint?: { type: string } }> = [];
+        for (const block of params.system) {
+          systemBlocks.push({ text: block.text });
+          if (block.cache_control) {
+            systemBlocks.push({ cachePoint: { type: 'default' } });
+          }
+        }
+        payload.system = systemBlocks;
       }
     }
 
@@ -128,12 +138,16 @@ class BedrockBearerTokenClient {
       if (response.ok) {
         const data = await response.json();
 
-        // Convert Bedrock response back to Anthropic format
+        // Convert Bedrock response back to Anthropic format.
+        // Bedrock uses camelCase (inputTokens, cacheReadInputTokens, cacheWriteInputTokens).
+        // Anthropic uses snake_case (input_tokens, cache_read_input_tokens, cache_creation_input_tokens).
         return {
           content: [{ type: 'text' as const, text: data.output?.message?.content?.[0]?.text || '' }],
           usage: {
             input_tokens: data.usage?.inputTokens || 0,
             output_tokens: data.usage?.outputTokens || 0,
+            cache_read_input_tokens: data.usage?.cacheReadInputTokens || 0,
+            cache_creation_input_tokens: data.usage?.cacheWriteInputTokens || 0,
           }
         };
       }

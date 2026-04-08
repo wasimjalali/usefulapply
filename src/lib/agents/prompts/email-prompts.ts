@@ -108,16 +108,7 @@ NEVER send an email without a signature. The signature must be on separate lines
 Return ONLY valid JSON: {"subject": "...", "body": "..."}`;
 }
 
-/**
- * Build the primary application email system prompt
- */
-export function buildApplicationEmailSystemPrompt(context: MasterContext): string {
-  const { applicant, job } = context;
-
-  const outputLang = context.userLanguageOverride || context.detectedLanguage || 'en';
-  const isGerman = outputLang === 'de';
-
-  return `You are an expert at professional email communication for job applications.
+const APPLICATION_EMAIL_SYSTEM_TEXT = `You are an expert at professional email communication for job applications.
 
 <anti_hallucination_rules>
 WHY THIS MATTERS: Application emails are often the first impression. A single fabricated skill or inflated claim destroys credibility when verified in interviews. These rules protect the candidate.
@@ -189,11 +180,32 @@ Body: Greeting + One sentence hook with metric + one sentence value + attachment
 
 SIGNATURE REQUIREMENT:
 - EVERY email MUST end with a signature
-- Format: "${isGerman ? 'Mit freundlichen Grüßen' : 'Best regards'},\\n${applicant?.name || 'Applicant Name'}"
+- Language-matched closing: "Best regards," (English) or "Mit freundlichen Grüßen," (German), followed by the applicant's full name on a new line
 - The signature must be on separate lines from the body text
 - NEVER omit the signature
 
 Return ONLY valid JSON: {"subject": "...", "body": "..."}`;
+
+/**
+ * Build the primary application email system prompt as cacheable blocks.
+ * Fully static — no dynamic content. Language and name come from the user prompt.
+ */
+export function buildApplicationEmailSystemBlocks(): Array<{ type: 'text'; text: string; cache_control: { type: 'ephemeral' } }> {
+  return [
+    {
+      type: 'text',
+      text: APPLICATION_EMAIL_SYSTEM_TEXT,
+      cache_control: { type: 'ephemeral' as const },
+    },
+  ];
+}
+
+/**
+ * Build the primary application email system prompt (plain string — kept for backward compat)
+ * @deprecated Use buildApplicationEmailSystemBlocks() for prompt caching
+ */
+export function buildApplicationEmailSystemPrompt(_context: MasterContext): string {
+  return APPLICATION_EMAIL_SYSTEM_TEXT;
 }
 
 // =====================================================

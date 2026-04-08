@@ -35,8 +35,8 @@ import {
 } from './context-builder';
 import { buildCVOptimizationSystemBlocks, buildCVOptimizationUserPrompt, buildVerifiedSkillList, buildVerifiedMetricsList } from './prompts/cv-prompt';
 import { buildCoverLetterSystemBlocks, buildCoverLetterUserPrompt } from './prompts/cover-letter-prompt';
-import { buildApplicationEmailUserPrompt, buildApplicationEmailSystemPrompt, buildFollowUpEmailUserPrompt, buildFollowUpEmailSystemPrompt } from './prompts/email-prompts';
-import { buildFitAssessmentPrompt, buildFitAssessmentSystemPrompt, computeFitLevel } from './prompts/fit-assessment-prompt';
+import { buildApplicationEmailUserPrompt, buildApplicationEmailSystemBlocks, buildFollowUpEmailUserPrompt, buildFollowUpEmailSystemPrompt } from './prompts/email-prompts';
+import { buildFitAssessmentPrompt, buildFitAssessmentSystemBlocks, computeFitLevel } from './prompts/fit-assessment-prompt';
 
 // Re-export for backward compatibility
 export { COVER_LETTER_BLACKLIST };
@@ -389,7 +389,7 @@ export const unifiedWriterAgent = {
     const response = await callModel({
       task: 'fit_assessment',
       prompt: buildFitAssessmentPrompt({ applicant, job, match, masterCV: context.masterCV }),
-      systemPrompt: buildFitAssessmentSystemPrompt(),
+      systemBlocks: buildFitAssessmentSystemBlocks(),
     });
 
     const tokens: TokenUsage = {
@@ -795,7 +795,7 @@ export const unifiedWriterAgent = {
     const response = await callModel({
       task: 'write_email',
       prompt: buildApplicationEmailUserPrompt(context),
-      systemPrompt: buildApplicationEmailSystemPrompt(context),
+      systemBlocks: buildApplicationEmailSystemBlocks(),
       jsonMode: true,
     });
 

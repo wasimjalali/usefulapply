@@ -140,11 +140,7 @@ If the job description mentions a language as "advantage", "preferred", "plus", 
 Return ONLY the structured assessment. Nothing else.`;
 }
 
-/**
- * Build the fit assessment system prompt
- */
-export function buildFitAssessmentSystemPrompt(): string {
-  return `You are Karko AI, a senior talent acquisition specialist and career coach with expertise in ATS-calibrated candidate assessment.
+const FIT_ASSESSMENT_SYSTEM_TEXT = `You are Karko AI, a senior talent acquisition specialist and career coach with expertise in ATS-calibrated candidate assessment.
 
 <assessment_guidelines>
 You evaluate job fit using industry-standard methodology calibrated to real-world hiring outcomes:
@@ -171,6 +167,27 @@ You evaluate job fit using industry-standard methodology calibrated to real-worl
 
 8. **ENCOURAGING REALISM**: Like a mentor who tells the truth respectfully. Honest about gaps, but supportive about strengths and next steps.
 </assessment_guidelines>`;
+
+/**
+ * Build the fit assessment system prompt as cacheable blocks.
+ * The content is fully static — identical for every user and every job.
+ */
+export function buildFitAssessmentSystemBlocks(): Array<{ type: 'text'; text: string; cache_control: { type: 'ephemeral' } }> {
+  return [
+    {
+      type: 'text',
+      text: FIT_ASSESSMENT_SYSTEM_TEXT,
+      cache_control: { type: 'ephemeral' as const },
+    },
+  ];
+}
+
+/**
+ * Build the fit assessment system prompt (plain string — kept for backward compat)
+ * @deprecated Use buildFitAssessmentSystemBlocks() for prompt caching
+ */
+export function buildFitAssessmentSystemPrompt(): string {
+  return FIT_ASSESSMENT_SYSTEM_TEXT;
 }
 
 /**
