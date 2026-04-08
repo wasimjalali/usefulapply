@@ -5,7 +5,7 @@ import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { createClient } from '@/lib/supabase/server';
 import { detectCVLanguage, extractOriginalHeaders, generateLocalizedHeaders } from '@/lib/cv-parser/section-splitter';
-import { callAnthropic, extractDocumentText } from '@/lib/models/anthropic';
+import { callAnthropic, parseDocumentAsCV } from '@/lib/models/anthropic';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 export const runtime = 'nodejs';
@@ -22,22 +22,6 @@ const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.txt', '.md'];
 const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
 const hasBedrockKeys = !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) || !!process.env.AWS_BEARER_TOKEN_BEDROCK;
 const hasAICapability = hasAnthropicKey || hasBedrockKeys;
-
-/**
- * Check if extracted text is actually readable (not garbage from broken font encoding).
- * PDFs with custom fonts can produce 200+ chars of symbols like §!Ýû that pass length checks.
- */
-function isReadableText(text: string): boolean {
-  const trimmed = text.trim();
-  if (trimmed.length < 50) return false;
-  // Sample the first 500 chars to check quality
-  const sample = trimmed.substring(0, 500);
-  // Count alphanumeric + common accented Latin characters
-  const readable = sample.match(/[a-zA-Z0-9À-ÿ]/g)?.length || 0;
-  const ratio = readable / sample.length;
-  // Readable CV text should be at least 30% alphanumeric
-  return ratio >= 0.3;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -163,52 +147,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File appears to be empty. Please try uploading again.' }, { status: 400 });
     }
 
-    // Original PDFs are already stored securely in Supabase Storage (storage-first path).
-    // No public blob upload — CVs contain sensitive personal data.
-
-    // Extract text based on file type
-    console.log(`[Parser] Starting extraction: file=${originalFileName}, ext=${fileExt}, bufferSize=${buffer.length}, mode=${contentType.includes('application/json') ? 'storage' : 'direct'}`);
-    let rawText = '';
-    if (fileExt === '.pdf') {
-      rawText = await extractTextFromPDF(buffer);
-    } else if (fileExt === '.docx') {
-      rawText = extractTextFromDOCX(buffer);
-    } else {
-      rawText = buffer.toString('utf-8');
-    }
-
-    // If local extraction got insufficient or unreadable text, try AI document understanding for PDFs
-    if ((!rawText || !isReadableText(rawText)) && fileExt === '.pdf') {
-      const reason = !rawText || rawText.trim().length < 50 ? 'insufficient text' : 'unreadable text (broken font encoding)';
-      console.log(`[Parser] ${reason} from local extraction (${rawText?.trim().length || 0} chars), trying AI document understanding...`);
-
-      if (hasAICapability) {
-        try {
-          rawText = await extractDocumentText(buffer);
-          console.log(`[Parser] AI document extraction: ${rawText.length} chars`);
-        } catch (e) {
-          console.error('[Parser] AI document extraction failed:', e);
-        }
-      }
-    }
-
-    if (!rawText || !isReadableText(rawText)) {
-      console.error(`[Parser] All text extraction methods failed. Final length: ${rawText?.trim().length || 0} chars, readable: ${rawText ? isReadableText(rawText) : false}`);
-      return NextResponse.json(
-        { error: 'Could not extract text from file. The file may be image-based (scanned), use custom fonts, or be empty. Please try uploading a text-based PDF, or use TXT/MD format instead.' },
-        { status: 400 }
-      );
-    }
-
-    // Cap text length to avoid AI timeout — 20K chars ≈ 6K tokens, keeps parsing under 40s
-    const MAX_AI_TEXT_LENGTH = 20000;
-    const textForAI = rawText.length > MAX_AI_TEXT_LENGTH
-      ? rawText.substring(0, MAX_AI_TEXT_LENGTH) + '\n\n[... truncated for parsing efficiency ...]'
-      : rawText;
-    if (rawText.length > MAX_AI_TEXT_LENGTH) {
-      console.log(`[Parser] Text truncated for AI: ${rawText.length} → ${MAX_AI_TEXT_LENGTH} chars`);
-    }
-
     // IP-based rate limiting for anonymous users (5 parses per 24h rolling window)
     if (!isAuthenticated) {
       try {
@@ -235,11 +173,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Parse CV using AI for all users (anonymous and authenticated)
-    let structuredCV: StructuredCV;
-    const parserUsed = 'ai';
-    const parseStartTime = Date.now();
-
     if (!hasAICapability) {
       return NextResponse.json(
         { error: 'CV parsing is temporarily unavailable. Please try again later.' },
@@ -247,15 +180,71 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    try {
-      structuredCV = await parseWithAI(textForAI, region as 'US' | 'EU');
-    } catch (e) {
-      const errMsg = e instanceof Error ? e.message : String(e);
-      console.error('[Parser] AI parsing failed:', errMsg);
-      return NextResponse.json(
-        { error: 'Failed to parse CV. Please try again or use a different file format.' },
-        { status: 500 }
-      );
+    // Parse CV using AI
+    let rawText = '';
+    let structuredCV: StructuredCV;
+    const parserUsed = 'ai';
+    const parseStartTime = Date.now();
+
+    console.log(`[Parser] Starting: file=${originalFileName}, ext=${fileExt}, size=${buffer.length}, mode=${contentType.includes('application/json') ? 'storage' : 'direct'}`);
+
+    if (fileExt === '.pdf') {
+      // One-step: send PDF directly to Claude as a document block — no local text extraction needed.
+      // Claude reads the PDF natively, producing accurate structured data even for broken-font PDFs.
+      try {
+        const jsonContent = await parseDocumentAsCV({
+          buffer,
+          docFormat: 'pdf',
+          prompt: getDocumentParsingPrompt(),
+          systemPrompt: 'You are a precise CV parser. Extract factual information only. Return valid JSON. Do not infer or fabricate any information not explicitly present in the source document.',
+          maxTokens: 8192,
+          temperature: 0.3,
+        });
+        structuredCV = parseAIResponse(jsonContent, region as 'US' | 'EU');
+        rawText = reconstructRawText(structuredCV);
+        console.log(`[Parser] PDF direct parse complete: ${rawText.length} chars reconstructed`);
+      } catch (e) {
+        const errMsg = e instanceof Error ? e.message : String(e);
+        console.error('[Parser] PDF direct parse failed:', errMsg);
+        return NextResponse.json(
+          { error: 'Failed to parse CV. Please try again or use a different file format.' },
+          { status: 500 }
+        );
+      }
+    } else {
+      // DOCX/TXT/MD: extract text first, then parse with AI
+      if (fileExt === '.docx') {
+        rawText = extractTextFromDOCX(buffer);
+      } else {
+        rawText = buffer.toString('utf-8');
+      }
+
+      if (!rawText || rawText.trim().length < 50) {
+        return NextResponse.json(
+          { error: 'Could not extract text from file. The file may be empty or corrupted.' },
+          { status: 400 }
+        );
+      }
+
+      // Cap text length to avoid AI timeout — 20K chars ≈ 6K tokens, keeps parsing under 40s
+      const MAX_AI_TEXT_LENGTH = 20000;
+      const textForAI = rawText.length > MAX_AI_TEXT_LENGTH
+        ? rawText.substring(0, MAX_AI_TEXT_LENGTH) + '\n\n[... truncated for parsing efficiency ...]'
+        : rawText;
+      if (rawText.length > MAX_AI_TEXT_LENGTH) {
+        console.log(`[Parser] Text truncated for AI: ${rawText.length} → ${MAX_AI_TEXT_LENGTH} chars`);
+      }
+
+      try {
+        structuredCV = await parseWithAI(textForAI, region as 'US' | 'EU');
+      } catch (e) {
+        const errMsg = e instanceof Error ? e.message : String(e);
+        console.error('[Parser] AI parsing failed:', errMsg);
+        return NextResponse.json(
+          { error: 'Failed to parse CV. Please try again or use a different file format.' },
+          { status: 500 }
+        );
+      }
     }
 
     // Track anonymous AI parse usage separately for cost monitoring
@@ -323,276 +312,6 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Extract text from PDF using pdfjs-dist (Mozilla's official PDF.js).
- * Falls back to binary PDF text extraction if pdfjs-dist fails.
- */
-async function extractTextFromPDF(buffer: Buffer): Promise<string> {
-  // Approach 1: pdfjs-dist (full parser — handles all PDF features)
-  try {
-    // Polyfill browser APIs that pdfjs-dist v5.x requires at module load time.
-    // Only needed for rendering (not text extraction), but the module won't load without them.
-    installPDFJSPolyfills();
-
-    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
-    console.log('[Parser] pdfjs-dist loaded successfully');
-
-    // Explicitly set workerSrc so Vercel's lambda can resolve pdf.worker.mjs from node_modules.
-    // Without this, pdfjs-dist defaults to "./pdf.worker.mjs" which NFT doesn't trace and
-    // the file isn't present in the lambda bundle.
-    if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-      try {
-        const workerPath = require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `file://${workerPath}`;
-      } catch {
-        // If resolve fails, leave workerSrc unset — pdfjs will error below and we fall back
-      }
-    }
-
-    // pdfjs-dist requires Uint8Array, not Node.js Buffer
-    const data = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
-
-    const doc = await pdfjsLib.getDocument({
-      data,
-      useSystemFonts: true,
-      isEvalSupported: false,
-      disableFontFace: true,
-    }).promise;
-
-    let fullText = '';
-    for (let i = 1; i <= doc.numPages; i++) {
-      const page = await doc.getPage(i);
-      const content = await page.getTextContent();
-      let lastY: number | undefined;
-      let lastX: number | undefined;
-      let pageText = '';
-      for (const item of content.items) {
-        if ('str' in item) {
-          const textItem = item as { str: string; transform: number[]; width?: number; hasEOL?: boolean };
-          const currentY = textItem.transform[5];
-          const currentX = textItem.transform[4];
-
-          if (lastY !== undefined && Math.abs(lastY - currentY) > 1) {
-            // Different line — add newline
-            pageText += '\n';
-          } else if (lastX !== undefined && textItem.str.length > 0 && pageText.length > 0) {
-            // Same line — detect gap type between text items
-            const gap = currentX - lastX;
-            if (gap > 50) {
-              // Large gap indicates table column boundary (e.g., LaTeX tabular* layout
-              // where name and email are in separate columns on the same line).
-              // Use tab as column separator so downstream parsers can split cells.
-              pageText += '\t';
-            } else if (gap > 2 && !pageText.endsWith(' ') && !pageText.endsWith('\t') && !textItem.str.startsWith(' ')) {
-              pageText += ' ';
-            }
-          }
-
-          pageText += textItem.str;
-
-          if (textItem.hasEOL) {
-            pageText += '\n';
-          }
-
-          lastY = currentY;
-          // Track end X position for space detection
-          lastX = currentX + (textItem.width || textItem.str.length * 5);
-        }
-      }
-      fullText += (i > 1 ? '\n\n' : '') + pageText;
-    }
-
-    doc.destroy();
-    console.log(`[Parser] pdfjs-dist extracted: ${fullText.length} chars from ${doc.numPages} pages`);
-    if (fullText.trim().length >= 50 && isReadableText(fullText)) {
-      return fullText;
-    }
-    console.log(`[Parser] pdfjs-dist text ${fullText.trim().length < 50 ? 'insufficient' : 'unreadable (broken font encoding)'}, trying binary fallback...`);
-  } catch (e) {
-    console.error('[Parser] pdfjs-dist failed:', (e as Error).message);
-    console.error('[Parser] Stack:', (e as Error).stack?.split('\n').slice(0, 3).join('\n'));
-  }
-
-  // Approach 2: Binary PDF text extraction (no dependencies — works everywhere)
-  // Decompresses FlateDecode streams and extracts text from PDF operators
-  try {
-    const text = extractTextFromPDFBinary(buffer);
-    if (text.trim().length >= 50 && isReadableText(text)) {
-      console.log(`[Parser] Binary fallback extracted: ${text.length} chars`);
-      return text;
-    }
-    console.log(`[Parser] Binary fallback ${text.trim().length < 50 ? `got only ${text.trim().length} chars` : 'text unreadable (broken font encoding)'}`);
-  } catch (e) {
-    console.error('[Parser] Binary fallback failed:', (e as Error).message);
-  }
-
-  return '';
-}
-
-/**
- * Extract text from PDF binary data without any external library.
- * Decompresses FlateDecode streams and extracts text from Tj/TJ operators.
- * Handles both parenthesized strings (text) and hex strings <hex>.
- */
-/** Install minimal polyfills for pdfjs-dist v5.x in Node.js serverless */
-function installPDFJSPolyfills() {
-  if (typeof globalThis.DOMMatrix === 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-extraneous-class
-    const DM = function DOMMatrix(this: Record<string, number>, init?: string | number[]) {
-      // 4x4 identity matrix defaults
-      this.m11 = 1; this.m12 = 0; this.m13 = 0; this.m14 = 0;
-      this.m21 = 0; this.m22 = 1; this.m23 = 0; this.m24 = 0;
-      this.m31 = 0; this.m32 = 0; this.m33 = 1; this.m34 = 0;
-      this.m41 = 0; this.m42 = 0; this.m43 = 0; this.m44 = 1;
-      // Alias properties (a-f for 2D transforms)
-      this.a = 1; this.b = 0; this.c = 0; this.d = 1; this.e = 0; this.f = 0;
-      this.is2D = 1;
-      if (Array.isArray(init) && init.length === 6) {
-        this.a = this.m11 = init[0]; this.b = this.m12 = init[1];
-        this.c = this.m21 = init[2]; this.d = this.m22 = init[3];
-        this.e = this.m41 = init[4]; this.f = this.m42 = init[5];
-      }
-    } as unknown as typeof globalThis.DOMMatrix;
-    // Static methods
-    (DM as any).fromMatrix = () => new (DM as any)();
-    (DM as any).fromFloat64Array = (a: Float64Array) => new (DM as any)(Array.from(a));
-    (DM as any).fromFloat32Array = (a: Float32Array) => new (DM as any)(Array.from(a));
-    // Instance methods — pdfjs-dist calls these during text extraction for glyph positioning
-    const proto = (DM as any).prototype;
-    proto.multiply = function (other: any) { return new (DM as any)(); };
-    proto.inverse = function () { return new (DM as any)(); };
-    proto.translate = function () { return new (DM as any)(); };
-    proto.scale = function () { return new (DM as any)(); };
-    proto.rotate = function () { return new (DM as any)(); };
-    proto.rotateAxisAngle = function () { return new (DM as any)(); };
-    proto.transformPoint = function (p: any) { return p || { x: 0, y: 0, z: 0, w: 1 }; };
-    proto.toFloat64Array = function () { return new Float64Array(16); };
-    proto.toString = function () { return 'matrix(1, 0, 0, 1, 0, 0)'; };
-    globalThis.DOMMatrix = DM;
-  }
-  if (typeof globalThis.Path2D === 'undefined') {
-    globalThis.Path2D = function Path2D() {} as unknown as typeof globalThis.Path2D;
-    const p = globalThis.Path2D.prototype as unknown as Record<string, () => void>;
-    p.addPath = p.closePath = p.moveTo = p.lineTo = p.bezierCurveTo = p.rect = p.arc = p.ellipse = function () {};
-  }
-  if (typeof globalThis.ImageData === 'undefined') {
-    globalThis.ImageData = function ImageData(this: { width: number; height: number; data: Uint8ClampedArray }, w: number, h: number) {
-      this.width = w; this.height = h; this.data = new Uint8ClampedArray(w * h * 4);
-    } as unknown as typeof globalThis.ImageData;
-  }
-}
-
-function extractTextFromPDFBinary(buffer: Buffer): string {
-  const zlib = require('zlib') as typeof import('zlib');
-  const texts: string[] = [];
-
-  // Find and decompress all streams
-  let pos = 0;
-  while (pos < buffer.length) {
-    // Find "stream\n" or "stream\r\n"
-    let streamStart = buffer.indexOf('stream\n', pos);
-    let headerLen = 7;
-    if (streamStart === -1) {
-      streamStart = buffer.indexOf('stream\r\n', pos);
-      headerLen = 8;
-      if (streamStart === -1) break;
-    }
-    pos = streamStart + headerLen;
-
-    const endStream = buffer.indexOf('endstream', pos);
-    if (endStream === -1) break;
-
-    // Trim trailing whitespace from stream data
-    let endPos = endStream;
-    while (endPos > pos && (buffer[endPos - 1] === 0x0a || buffer[endPos - 1] === 0x0d)) endPos--;
-    const streamData = buffer.subarray(pos, endPos);
-
-    let decoded: string;
-    try {
-      const inflated = zlib.inflateSync(streamData);
-      decoded = inflated.toString('latin1');
-    } catch {
-      decoded = streamData.toString('latin1');
-    }
-
-    // Extract text between BT...ET blocks (text objects)
-    const btBlocks = decoded.matchAll(/BT\s*([\s\S]*?)\s*ET/g);
-    for (const block of btBlocks) {
-      const content = block[1];
-
-      // Hex strings: <4A6F686E...> Tj
-      const hexTj = content.matchAll(/<([0-9A-Fa-f\s]+)>\s*Tj/g);
-      for (const m of hexTj) {
-        texts.push(decodeHexString(m[1]));
-      }
-
-      // Parenthesized strings: (text) Tj
-      const parenTj = content.matchAll(/\(([^)]*)\)\s*Tj/g);
-      for (const m of parenTj) {
-        texts.push(decodePDFString(m[1]));
-      }
-
-      // TJ arrays: [<hex> num <hex> ...] TJ or [(text) num ...] TJ
-      const tjArrays = content.matchAll(/\[([\s\S]*?)\]\s*TJ/g);
-      for (const m of tjArrays) {
-        const parts: string[] = [];
-        // Match both hex and paren strings in the array
-        const items = m[1].matchAll(/<([0-9A-Fa-f\s]+)>|\(([^)]*)\)/g);
-        for (const item of items) {
-          if (item[1]) parts.push(decodeHexString(item[1]));
-          else if (item[2]) parts.push(decodePDFString(item[2]));
-        }
-        if (parts.length > 0) texts.push(parts.join(''));
-      }
-    }
-
-    pos = endStream + 9;
-  }
-
-  // Deduplicate: binary extraction processes ALL streams (page content + form XObjects)
-  // which can contain the same text twice. Remove consecutive duplicate lines.
-  const rawResult = texts.join('\n').replace(/\r/g, '\n');
-  const lines = rawResult.split('\n');
-  const deduped: string[] = [];
-  const seen = new Set<string>();
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) {
-      // Preserve blank lines for structure but collapse multiples
-      if (deduped.length > 0 && deduped[deduped.length - 1] !== '') {
-        deduped.push('');
-      }
-      continue;
-    }
-    // Skip exact duplicate lines (handles doubled streams)
-    if (seen.has(trimmed)) continue;
-    seen.add(trimmed);
-    deduped.push(line);
-  }
-  return deduped.join('\n').replace(/\n{3,}/g, '\n\n').trim();
-}
-
-/** Decode hex-encoded PDF string: "4A6F686E" → "John" */
-function decodeHexString(hex: string): string {
-  const clean = hex.replace(/\s/g, '');
-  let result = '';
-  for (let i = 0; i < clean.length; i += 2) {
-    result += String.fromCharCode(parseInt(clean.substring(i, i + 2), 16));
-  }
-  return result;
-}
-
-/** Decode PDF escape sequences in parenthesized strings */
-function decodePDFString(s: string): string {
-  return s
-    .replace(/\\n/g, '\n')
-    .replace(/\\r/g, '\r')
-    .replace(/\\t/g, '\t')
-    .replace(/\\\\/g, '\\')
-    .replace(/\\([()])/g, '$1')
-    .replace(/\\(\d{1,3})/g, (_, oct) => String.fromCharCode(parseInt(oct, 8)));
-}
-
-/**
  * Extract text from DOCX — parses XML from ZIP archive
  */
 function extractTextFromDOCX(buffer: Buffer): string {
@@ -616,7 +335,7 @@ function extractTextFromDOCX(buffer: Buffer): string {
 }
 
 /**
- * Parse CV using AI (supports both Bedrock and direct Anthropic API)
+ * Parse CV using AI with text input (for DOCX/TXT/MD)
  */
 async function parseWithAI(rawText: string, region: 'US' | 'EU'): Promise<StructuredCV> {
   const prompt = getParsingPrompt(rawText);
@@ -634,7 +353,7 @@ async function parseWithAI(rawText: string, region: 'US' | 'EU'): Promise<Struct
 }
 
 /**
- * Get the parsing prompt for AI
+ * Get the parsing prompt for text-based CV input (DOCX/TXT/MD)
  */
 function getParsingPrompt(rawText: string): string {
   return `
@@ -713,6 +432,189 @@ Return ONLY valid JSON with this structure:
   ]
 }
 `;
+}
+
+/**
+ * Get the parsing prompt for document-based CV input (PDF sent as a document content block).
+ * Same JSON schema as getParsingPrompt but without the embedded CV text — Claude reads the PDF directly.
+ */
+function getDocumentParsingPrompt(): string {
+  return `
+Parse the attached CV/resume document and extract structured data. Be precise and don't invent information.
+
+RULES:
+1. Extract EXACTLY what's written - no assumptions or invented data
+2. For dates, preserve the original format in "raw" and try to normalize to "YYYY-MM"
+3. If a date is ambiguous (just "2022"), mark confidence as "medium"
+4. If something is missing, use null or empty arrays - do NOT invent
+5. PROJECTS: Only extract projects if the CV has a DEDICATED "Projects" section header (e.g., "Projects", "Projekte", "Projets", "Key Projects"). Do NOT extract projects from experience bullets or other sections. If no explicit Projects section exists, return an empty array for "projects".
+6. ADDITIONAL SECTIONS: Extract any remaining sections like "Additional Information", "Volunteer Experience", "Awards", "Interests", "Hobbies", "References", "Publications", etc. Group each under its original section title with bullet items. If none exist, return an empty array for "additionalSections".
+7. Split skills into logical categories (e.g., "Programming", "Marketing", "Tools", etc.)
+8. SKILL PROFICIENCY LEVELS: If a skill has a proficiency level, qualifier, or descriptor attached (e.g., "Python (Proficient)", "Excel - Advanced", "SQL: Fundamentals", "Photoshop, Basic"), you MUST preserve it in the output as "SkillName (Level)". If a skill has NO level attached, output just the skill name. NEVER invent or guess proficiency levels — only preserve what is explicitly written.
+9. For German CVs, look for "Berufserfahrung", "Ausbildung", "Kenntnisse", "Sprachen", etc.
+10. Extract ALL sections present in the CV - do not skip any information
+11. For "currentTitle": extract the job title/tagline shown prominently (e.g., "Senior Software Engineer")
+
+Return ONLY valid JSON with this structure:
+{
+  "personal": {
+    "fullName": "string",
+    "email": "string",
+    "phone": "string",
+    "currentTitle": "string|null (job title/tagline shown on CV, e.g., 'Marketing Manager')",
+    "address": "string|null",
+    "city": "string|null",
+    "country": "string|null",
+    "postalCode": "string|null",
+    "dateOfBirth": "string|null (format as found, e.g., '15.03.1990')",
+    "nationality": "string|null",
+    "linkedIn": "string|null",
+    "website": "string|null",
+    "github": "string|null"
+  },
+  "summary": "string|null (professional summary/profile/objective section)",
+  "experience": [
+    {
+      "company": "string",
+      "position": "string",
+      "location": "string|null",
+      "startDate": { "raw": "string", "normalized": "YYYY-MM|null", "confidence": "high|medium|low" },
+      "endDate": { "raw": "string|present", "normalized": "YYYY-MM|present|null", "confidence": "high|medium|low" },
+      "current": true/false,
+      "bullets": ["string (each achievement/responsibility as separate item)"]
+    }
+  ],
+  "education": [
+    {
+      "institution": "string",
+      "degree": "string",
+      "field": "string|null (field of study)",
+      "location": "string|null",
+      "startDate": { "raw": "string", "normalized": "YYYY|null", "confidence": "high|medium|low" },
+      "endDate": { "raw": "string", "normalized": "YYYY|null", "confidence": "high|medium|low" },
+      "grade": "string|null (GPA, honors, etc.)"
+    }
+  ],
+  "skills": [
+    { "category": "string (e.g., 'Technical', 'Marketing', 'Languages')", "skills": ["string - preserve proficiency levels as 'SkillName (Level)' if present in source"] }
+  ],
+  "certifications": [
+    { "name": "string", "issuer": "string", "date": { "raw": "string", "normalized": "string|null", "confidence": "string" } | null }
+  ],
+  "languages": [
+    { "language": "string", "proficiency": "Native|Fluent|Professional|Intermediate|Basic", "certification": "string|null" }
+  ],
+  "projects": [
+    { "name": "string", "description": "string", "technologies": ["string"], "url": "string|null" }
+  ],
+  "additionalSections": [
+    { "title": "string (section header, e.g., 'Volunteer Experience', 'Awards', 'Interests', 'References')", "items": ["string (each item/bullet as separate entry)"] }
+  ]
+}
+`;
+}
+
+/**
+ * Reconstruct raw text from StructuredCV for backward compatibility with the agent context-builder.
+ * The agent uses rawText as a source of facts — this serializes all CV sections into a readable format.
+ */
+function reconstructRawText(cv: StructuredCV): string {
+  const lines: string[] = [];
+  const { personal, summary, experience, education, skills, languages, certifications, projects, additionalSections } = cv;
+
+  // Personal info
+  if (personal.fullName) lines.push(personal.fullName);
+  if (personal.currentTitle) lines.push(personal.currentTitle);
+  const contactParts = [personal.email, personal.phone, personal.linkedIn, personal.website, personal.github].filter(Boolean);
+  if (contactParts.length) lines.push(contactParts.join(' | '));
+  const locationParts = [personal.address, personal.city, personal.country, personal.postalCode].filter(Boolean);
+  if (locationParts.length) lines.push(locationParts.join(', '));
+  if (personal.dateOfBirth) lines.push(`Date of Birth: ${personal.dateOfBirth}`);
+  if (personal.nationality) lines.push(`Nationality: ${personal.nationality}`);
+
+  // Summary
+  if (summary) {
+    lines.push('');
+    lines.push('SUMMARY');
+    lines.push(summary);
+  }
+
+  // Experience
+  if (experience.length) {
+    lines.push('');
+    lines.push('EXPERIENCE');
+    for (const exp of experience) {
+      const dateRange = [exp.startDate?.raw, exp.current ? 'Present' : exp.endDate?.raw].filter(Boolean).join(' – ');
+      lines.push(`${exp.position} at ${exp.company}${exp.location ? ` – ${exp.location}` : ''} (${dateRange})`);
+      for (const bullet of exp.bullets || []) {
+        lines.push(`- ${bullet}`);
+      }
+    }
+  }
+
+  // Education
+  if (education.length) {
+    lines.push('');
+    lines.push('EDUCATION');
+    for (const edu of education) {
+      const dateRange = [edu.startDate?.raw, edu.endDate?.raw].filter(Boolean).join(' – ');
+      const degree = [edu.degree, edu.field].filter(Boolean).join(' in ');
+      lines.push(`${degree}, ${edu.institution}${edu.location ? ` – ${edu.location}` : ''} (${dateRange})`);
+      if (edu.grade) lines.push(`Grade: ${edu.grade}`);
+    }
+  }
+
+  // Skills
+  if (skills.length) {
+    lines.push('');
+    lines.push('SKILLS');
+    for (const cat of skills) {
+      lines.push(`${cat.category}: ${cat.skills.join(', ')}`);
+    }
+  }
+
+  // Languages
+  if (languages.length) {
+    lines.push('');
+    lines.push('LANGUAGES');
+    for (const lang of languages) {
+      lines.push(`${lang.language}: ${lang.proficiency}${lang.certification ? ` (${lang.certification})` : ''}`);
+    }
+  }
+
+  // Certifications
+  if (certifications.length) {
+    lines.push('');
+    lines.push('CERTIFICATIONS');
+    for (const cert of certifications) {
+      lines.push(`${cert.name} – ${cert.issuer}${cert.date ? ` (${cert.date.raw})` : ''}`);
+    }
+  }
+
+  // Projects
+  if (projects && projects.length) {
+    lines.push('');
+    lines.push('PROJECTS');
+    for (const proj of projects) {
+      lines.push(proj.name);
+      if (proj.description) lines.push(proj.description);
+      if (proj.technologies?.length) lines.push(`Technologies: ${proj.technologies.join(', ')}`);
+      if (proj.url) lines.push(`URL: ${proj.url}`);
+    }
+  }
+
+  // Additional sections
+  if (additionalSections && additionalSections.length) {
+    for (const section of additionalSections) {
+      lines.push('');
+      lines.push(section.title.toUpperCase());
+      for (const item of section.items || []) {
+        lines.push(`- ${item}`);
+      }
+    }
+  }
+
+  return lines.join('\n').trim();
 }
 
 /**

@@ -737,6 +737,99 @@ export async function extractDocumentText(pdfBuffer: Buffer): Promise<string> {
 }
 
 /**
+ * Parse a CV document (PDF or DOCX) directly using Claude's native document understanding.
+ * One-step: sends the document as a content block and returns Claude's raw JSON response string.
+ * Eliminates local text extraction (pdfjs-dist, binary fallback, etc.) for PDF files.
+ */
+export async function parseDocumentAsCV(options: {
+  buffer: Buffer;
+  docFormat: 'pdf' | 'docx';
+  prompt: string;
+  systemPrompt: string;
+  maxTokens?: number;
+  temperature?: number;
+}): Promise<string> {
+  const { buffer, docFormat, prompt, systemPrompt, maxTokens = 8192, temperature = 0.3 } = options;
+  const base64Data = buffer.toString('base64');
+  const startTime = Date.now();
+
+  if (USE_DIGITALOCEAN) {
+    throw new Error('DigitalOcean provider does not support document content blocks. Switch to Bedrock or direct Anthropic.');
+  }
+
+  if (HAS_BEARER_TOKEN) {
+    // Bedrock Converse API — native document block support (pdf, docx, txt, md, csv, etc.)
+    const bearerToken = process.env.AWS_BEARER_TOKEN_BEDROCK!;
+    const region = process.env.AWS_BEDROCK_ENDPOINT_URL || AWS_REGION;
+    const url = `https://bedrock-runtime.${region}.amazonaws.com/model/${MODEL_ID}/converse`;
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${bearerToken}`,
+      },
+      body: JSON.stringify({
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              document: {
+                name: 'cv',
+                format: docFormat,
+                source: { bytes: base64Data },
+              },
+            },
+            { text: prompt },
+          ],
+        }],
+        system: [{ text: systemPrompt }],
+        inferenceConfig: { maxTokens, temperature },
+      }),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Bedrock document parse error: ${res.status} ${errorText}`);
+    }
+
+    const data = await res.json();
+    const text = data.output?.message?.content?.[0]?.text || '';
+    console.log(`[Anthropic] CV document parse via Bedrock: ${text.length} chars, ${data.usage?.outputTokens || 0} output tokens in ${Date.now() - startTime}ms`);
+    return text;
+  }
+
+  // Anthropic SDK (Bedrock traditional keys or direct Anthropic API) — PDF only
+  if (!anthropic) throw new Error('Anthropic client not initialized');
+
+  const response = await (anthropic as any).messages.create({
+    model: MODEL_ID,
+    max_tokens: maxTokens,
+    temperature,
+    system: systemPrompt,
+    messages: [{
+      role: 'user',
+      content: [
+        {
+          type: 'document',
+          source: {
+            type: 'base64',
+            media_type: 'application/pdf',
+            data: base64Data,
+          },
+        },
+        { type: 'text', text: prompt },
+      ],
+    }],
+  });
+
+  const textContent = response.content.find((b: any) => b.type === 'text');
+  const text = textContent?.text || '';
+  console.log(`[Anthropic] CV document parse: ${text.length} chars in ${Date.now() - startTime}ms`);
+  return text;
+}
+
+/**
  * Parse JSON response from Claude (handles markdown code blocks)
  */
 export function parseAnthropicJSON<T>(content: string): T {
