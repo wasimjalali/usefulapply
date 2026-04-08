@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "src/app/api/parse-cv/route.ts": {
+      "includeFiles": "node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs"
+    }
+  }
+}

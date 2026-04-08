@@ -336,6 +336,18 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
     const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
     console.log('[Parser] pdfjs-dist loaded successfully');
 
+    // Explicitly set workerSrc so Vercel's lambda can resolve pdf.worker.mjs from node_modules.
+    // Without this, pdfjs-dist defaults to "./pdf.worker.mjs" which NFT doesn't trace and
+    // the file isn't present in the lambda bundle.
+    if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+      try {
+        const workerPath = require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `file://${workerPath}`;
+      } catch {
+        // If resolve fails, leave workerSrc unset — pdfjs will error below and we fall back
+      }
+    }
+
     // pdfjs-dist requires Uint8Array, not Node.js Buffer
     const data = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
 
