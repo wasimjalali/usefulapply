@@ -617,101 +617,103 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
               </div>
             </div>
 
-            {/* Master CV */}
-            <div className="bg-white rounded-2xl border border-cream-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
-              <div className="p-5">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-gradient-to-br from-gold-400 to-gold-500 rounded-xl shadow-sm">
-                    <FileText className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-base font-semibold text-charcoal">Master CV <span className="text-sm font-normal text-warm-gray">(Optional)</span></h2>
-                    <p className="text-sm text-warm-gray mt-0.5">
-                      A comprehensive document with ALL your skills, experiences, and achievements.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-4 ml-14">
-                  {masterCVUploadError && (
-                    <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-red-500" />
-                      <p className="text-sm text-red-600">{masterCVUploadError}</p>
+            {/* Master CV — authenticated users only */}
+            {user && (
+              <div className="bg-white rounded-2xl border border-cream-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
+                <div className="p-5">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-gradient-to-br from-gold-400 to-gold-500 rounded-xl shadow-sm">
+                      <FileText className="w-5 h-5 text-white" />
                     </div>
-                  )}
+                    <div className="flex-1">
+                      <h2 className="text-base font-semibold text-charcoal">Master CV <span className="text-sm font-normal text-warm-gray">(Optional)</span></h2>
+                      <p className="text-sm text-warm-gray mt-0.5">
+                        A comprehensive document with ALL your skills, experiences, and achievements.
+                      </p>
+                    </div>
+                  </div>
 
-                  {isUploadingMasterCV ? (
-                    <div className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-gold-300 rounded-xl bg-gold-50/50">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-gold-600 border-t-transparent"></div>
-                        <p className="text-sm text-gold-700 font-medium">Parsing your Master CV...</p>
+                  <div className="mt-4 ml-14">
+                    {masterCVUploadError && (
+                      <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-red-500" />
+                        <p className="text-sm text-red-600">{masterCVUploadError}</p>
                       </div>
-                      <p className="text-xs text-gold-600">This may take 1-2 minutes for larger documents</p>
-                    </div>
-                  ) : masterCV ? (
-                    <div>
-                      <div className="flex items-center justify-between p-3 bg-gold-50 rounded-xl border border-gold-200">
-                        <div className="flex items-center gap-3">
-                          <div className="p-1.5 bg-gold-100 rounded-lg">
-                            <CheckCircle2 className="w-4 h-4 text-gold-600" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-charcoal">{masterCV.fileName}</p>
-                            <p className="text-xs text-gold-600">Uploaded successfully</p>
-                          </div>
+                    )}
+
+                    {isUploadingMasterCV ? (
+                      <div className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-gold-300 rounded-xl bg-gold-50/50">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-gold-600 border-t-transparent"></div>
+                          <p className="text-sm text-gold-700 font-medium">Parsing your Master CV...</p>
                         </div>
-                        <button
-                          onClick={async () => {
-                            setMasterCV(null);
-                            if (supabaseDocs.master) {
-                              await deleteSupabaseDocument(supabaseDocs.master.id);
-                              setSupabaseDocs(prev => ({ ...prev, master: undefined }));
-                            }
-                          }}
-                          className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                          title="Remove Master CV"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <p className="text-xs text-gold-600">This may take 1-2 minutes for larger documents</p>
                       </div>
-                      {(() => {
-                        const charCount = masterCV.rawText?.length || 0;
-                        const maxChars = 20_000;
-                        const pct = Math.min(100, (charCount / maxChars) * 100);
-                        const colorClass = charCount > maxChars ? 'text-red-500' : charCount > 16_000 ? 'text-amber-600' : 'text-gold-600';
-                        const barColor = charCount > maxChars ? 'bg-red-400' : charCount > 16_000 ? 'bg-amber-400' : 'bg-gold-400';
-                        return (
-                          <div className="mt-2 px-1">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className={`text-xs font-medium ${colorClass}`}>
-                                {charCount.toLocaleString()} / {maxChars.toLocaleString()} characters
-                              </span>
-                              {charCount > maxChars && (
-                                <span className="text-xs text-red-500 font-medium flex items-center gap-1">
-                                  <AlertCircle className="w-3 h-3" />
-                                  Exceeds limit
-                                </span>
-                              )}
+                    ) : masterCV ? (
+                      <div>
+                        <div className="flex items-center justify-between p-3 bg-gold-50 rounded-xl border border-gold-200">
+                          <div className="flex items-center gap-3">
+                            <div className="p-1.5 bg-gold-100 rounded-lg">
+                              <CheckCircle2 className="w-4 h-4 text-gold-600" />
                             </div>
-                            <div className="h-1 bg-cream-200 rounded-full overflow-hidden">
-                              <div className={`h-full ${barColor} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                            <div>
+                              <p className="text-sm font-medium text-charcoal">{masterCV.fileName}</p>
+                              <p className="text-xs text-gold-600">Uploaded successfully</p>
                             </div>
                           </div>
-                        );
-                      })()}
-                    </div>
-                  ) : (
-                    <CVInputZone
-                      onFileSelect={handleMasterCVUpload}
-                      onError={(msg) => setMasterCVUploadError(msg)}
-                      label="Upload master CV"
-                      description="PDF, DOCX, TXT, or MD (max 10 MB)"
-                      compact
-                    />
-                  )}
+                          <button
+                            onClick={async () => {
+                              setMasterCV(null);
+                              if (supabaseDocs.master) {
+                                await deleteSupabaseDocument(supabaseDocs.master.id);
+                                setSupabaseDocs(prev => ({ ...prev, master: undefined }));
+                              }
+                            }}
+                            className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                            title="Remove Master CV"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        {(() => {
+                          const charCount = masterCV.rawText?.length || 0;
+                          const maxChars = 20_000;
+                          const pct = Math.min(100, (charCount / maxChars) * 100);
+                          const colorClass = charCount > maxChars ? 'text-red-500' : charCount > 16_000 ? 'text-amber-600' : 'text-gold-600';
+                          const barColor = charCount > maxChars ? 'bg-red-400' : charCount > 16_000 ? 'bg-amber-400' : 'bg-gold-400';
+                          return (
+                            <div className="mt-2 px-1">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className={`text-xs font-medium ${colorClass}`}>
+                                  {charCount.toLocaleString()} / {maxChars.toLocaleString()} characters
+                                </span>
+                                {charCount > maxChars && (
+                                  <span className="text-xs text-red-500 font-medium flex items-center gap-1">
+                                    <AlertCircle className="w-3 h-3" />
+                                    Exceeds limit
+                                  </span>
+                                )}
+                              </div>
+                              <div className="h-1 bg-cream-200 rounded-full overflow-hidden">
+                                <div className={`h-full ${barColor} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    ) : (
+                      <CVInputZone
+                        onFileSelect={handleMasterCVUpload}
+                        onError={(msg) => setMasterCVUploadError(msg)}
+                        label="Upload master CV"
+                        description="PDF, DOCX, TXT, or MD (max 10 MB)"
+                        compact
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -949,100 +951,102 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
           </div>
         </div>
 
-        {/* Master CV */}
-        <div className="bg-white rounded-2xl border border-cream-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
-          <div className="p-5">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-gradient-to-br from-gold-400 to-gold-500 rounded-xl shadow-sm">
-                <FileText className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1">
-                <h2 className="text-base font-semibold text-charcoal">Master CV <span className="text-sm font-normal text-warm-gray">(Optional)</span></h2>
-                <p className="text-sm text-warm-gray mt-0.5">
-                  A comprehensive document with ALL your skills, experiences, and achievements.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 ml-14">
-              {masterCVUploadError && (
-                <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-red-500" />
-                  <p className="text-sm text-red-600">{masterCVUploadError}</p>
+        {/* Master CV — authenticated users only */}
+        {user && (
+          <div className="bg-white rounded-2xl border border-cream-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
+            <div className="p-5">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-gradient-to-br from-gold-400 to-gold-500 rounded-xl shadow-sm">
+                  <FileText className="w-5 h-5 text-white" />
                 </div>
-              )}
+                <div className="flex-1">
+                  <h2 className="text-base font-semibold text-charcoal">Master CV <span className="text-sm font-normal text-warm-gray">(Optional)</span></h2>
+                  <p className="text-sm text-warm-gray mt-0.5">
+                    A comprehensive document with ALL your skills, experiences, and achievements.
+                  </p>
+                </div>
+              </div>
 
-              {isUploadingMasterCV ? (
-                <div className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-gold-300 rounded-xl bg-gold-50/50">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-gold-600 border-t-transparent"></div>
-                    <p className="text-sm text-gold-700 font-medium">Parsing your Master CV...</p>
+              <div className="mt-4 ml-14">
+                {masterCVUploadError && (
+                  <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-500" />
+                    <p className="text-sm text-red-600">{masterCVUploadError}</p>
                   </div>
-                  <p className="text-xs text-gold-600">This may take 1-2 minutes for larger documents</p>
-                </div>
-              ) : masterCV ? (
-                <div>
-                  <div className="flex items-center justify-between p-3 bg-gold-50 rounded-xl border border-gold-200">
-                    <div className="flex items-center gap-3">
-                      <div className="p-1.5 bg-gold-100 rounded-lg">
-                        <CheckCircle2 className="w-4 h-4 text-gold-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-charcoal">{masterCV.fileName}</p>
-                        <p className="text-xs text-gold-600">Uploaded successfully</p>
-                      </div>
+                )}
+
+                {isUploadingMasterCV ? (
+                  <div className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-gold-300 rounded-xl bg-gold-50/50">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-gold-600 border-t-transparent"></div>
+                      <p className="text-sm text-gold-700 font-medium">Parsing your Master CV...</p>
                     </div>
-                    <button
-                      onClick={async () => {
-                        setMasterCV(null);
-                        if (supabaseDocs.master) {
-                          await deleteSupabaseDocument(supabaseDocs.master.id);
-                          setSupabaseDocs(prev => ({ ...prev, master: undefined }));
-                        }
-                      }}
-                      className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                      title="Remove Master CV"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <p className="text-xs text-gold-600">This may take 1-2 minutes for larger documents</p>
                   </div>
-                  {(() => {
-                    const charCount = masterCV.rawText?.length || 0;
-                    const maxChars = 20_000;
-                    const pct = Math.min(100, (charCount / maxChars) * 100);
-                    const colorClass = charCount > maxChars ? 'text-red-500' : charCount > 16_000 ? 'text-amber-600' : 'text-gold-600';
-                    const barColor = charCount > maxChars ? 'bg-red-400' : charCount > 16_000 ? 'bg-amber-400' : 'bg-gold-400';
-                    return (
-                      <div className="mt-2 px-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className={`text-xs font-medium ${colorClass}`}>
-                            {charCount.toLocaleString()} / {maxChars.toLocaleString()} characters
-                          </span>
-                          {charCount > maxChars && (
-                            <span className="text-xs text-red-500 font-medium flex items-center gap-1">
-                              <AlertCircle className="w-3 h-3" />
-                              Exceeds limit
-                            </span>
-                          )}
+                ) : masterCV ? (
+                  <div>
+                    <div className="flex items-center justify-between p-3 bg-gold-50 rounded-xl border border-gold-200">
+                      <div className="flex items-center gap-3">
+                        <div className="p-1.5 bg-gold-100 rounded-lg">
+                          <CheckCircle2 className="w-4 h-4 text-gold-600" />
                         </div>
-                        <div className="h-1 bg-cream-200 rounded-full overflow-hidden">
-                          <div className={`h-full ${barColor} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                        <div>
+                          <p className="text-sm font-medium text-charcoal">{masterCV.fileName}</p>
+                          <p className="text-xs text-gold-600">Uploaded successfully</p>
                         </div>
                       </div>
-                    );
-                  })()}
-                </div>
-              ) : (
-                <CVInputZone
-                  onFileSelect={handleMasterCVUpload}
-                  onError={(msg) => setMasterCVUploadError(msg)}
-                  label="Upload master CV"
-                  description="PDF, DOCX, TXT, or MD (max 10 MB)"
-                />
-              )}
+                      <button
+                        onClick={async () => {
+                          setMasterCV(null);
+                          if (supabaseDocs.master) {
+                            await deleteSupabaseDocument(supabaseDocs.master.id);
+                            setSupabaseDocs(prev => ({ ...prev, master: undefined }));
+                          }
+                        }}
+                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                        title="Remove Master CV"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {(() => {
+                      const charCount = masterCV.rawText?.length || 0;
+                      const maxChars = 20_000;
+                      const pct = Math.min(100, (charCount / maxChars) * 100);
+                      const colorClass = charCount > maxChars ? 'text-red-500' : charCount > 16_000 ? 'text-amber-600' : 'text-gold-600';
+                      const barColor = charCount > maxChars ? 'bg-red-400' : charCount > 16_000 ? 'bg-amber-400' : 'bg-gold-400';
+                      return (
+                        <div className="mt-2 px-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={`text-xs font-medium ${colorClass}`}>
+                              {charCount.toLocaleString()} / {maxChars.toLocaleString()} characters
+                            </span>
+                            {charCount > maxChars && (
+                              <span className="text-xs text-red-500 font-medium flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3" />
+                                Exceeds limit
+                              </span>
+                            )}
+                          </div>
+                          <div className="h-1 bg-cream-200 rounded-full overflow-hidden">
+                            <div className={`h-full ${barColor} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  <CVInputZone
+                    onFileSelect={handleMasterCVUpload}
+                    onError={(msg) => setMasterCVUploadError(msg)}
+                    label="Upload master CV"
+                    description="PDF, DOCX, TXT, or MD (max 10 MB)"
+                  />
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Continue Button */}
