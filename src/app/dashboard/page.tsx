@@ -8,7 +8,7 @@ import { ATSScorePanel } from '@/components/ATSScorePanel';
 import { DocumentsPanel } from '@/components/DocumentsPanel';
 import { TrackerPanel } from '@/components/TrackerPanel';
 import { ChatPanel } from '@/components/ChatPanel';
-import { FileUpload } from '@/components/FileUpload';
+import { CVInputZone } from '@/components/CVInputZone';
 import { useAppStore, useCVStore } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
@@ -571,7 +571,7 @@ export default function Dashboard() {
                       <p className="text-xs text-navy-500">This may take 30–60 seconds</p>
                     </div>
                   ) : (
-                    <FileUpload
+                    <CVInputZone
                       onFileSelect={handleOnboardingCVUpload}
                       onError={(msg) => setUploadError(msg)}
                       label="Upload your CV"
@@ -712,11 +712,12 @@ export default function Dashboard() {
                     <p className="text-xs text-navy-500">This may take 30–60 seconds</p>
                   </div>
                 ) : (
-                  <FileUpload
+                  <CVInputZone
                     onFileSelect={handleOnboardingCVUpload}
                     onError={(msg) => setUploadError(msg)}
                     label="Upload your CV"
                     description="PDF, DOCX, TXT, or MD (max 10 MB)"
+                    compact
                   />
                 )}
 

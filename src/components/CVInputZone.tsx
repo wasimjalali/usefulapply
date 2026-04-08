@@ -1,0 +1,153 @@
+'use client';
+
+import { useState, useRef } from 'react';
+import { FileUpload } from '@/components/FileUpload';
+import { Upload, Type, ArrowRight } from 'lucide-react';
+
+interface CVInputZoneProps {
+  onFileSelect: (file: File) => void;
+  selectedFile?: { name: string } | null;
+  onClear?: () => void;
+  onError?: (message: string) => void;
+  label?: string;
+  description?: string;
+  isLoading?: boolean;
+  /** Use compact textarea height for embedded panels */
+  compact?: boolean;
+}
+
+export function CVInputZone({
+  onFileSelect,
+  selectedFile,
+  onClear,
+  onError,
+  label = 'Upload your CV',
+  description = 'PDF, DOCX, TXT, or MD (max 10 MB)',
+  isLoading = false,
+  compact = false,
+}: CVInputZoneProps) {
+  const [mode, setMode] = useState<'file' | 'text'>('file');
+  const [pastedText, setPastedText] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleTextSubmit = () => {
+    const trimmed = pastedText.trim();
+    if (!trimmed) {
+      onError?.('Please paste your CV content first.');
+      return;
+    }
+    if (trimmed.length < 50) {
+      onError?.('The pasted text seems too short. Please paste your full CV content.');
+      return;
+    }
+    // Create a File from the pasted text so the existing parse pipeline works unchanged
+    const blob = new Blob([trimmed], { type: 'text/plain' });
+    const file = new File([blob], 'pasted-cv.txt', { type: 'text/plain' });
+    onFileSelect(file);
+    setPastedText('');
+  };
+
+  // If a file is already selected, delegate to FileUpload's selected state
+  if (selectedFile) {
+    return (
+      <FileUpload
+        onFileSelect={onFileSelect}
+        selectedFile={selectedFile}
+        onClear={onClear}
+        onError={onError}
+        label={label}
+        description={description}
+        isLoading={isLoading}
+      />
+    );
+  }
+
+  return (
+    <div>
+      {/* Mode tabs */}
+      <div className="flex gap-1 p-1 bg-cream-100 rounded-xl mb-3">
+        <button
+          type="button"
+          onClick={() => setMode('file')}
+          disabled={isLoading}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+            mode === 'file'
+              ? 'bg-white text-charcoal shadow-sm'
+              : 'text-warm-gray hover:text-charcoal'
+          } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          <Upload className="w-3.5 h-3.5" />
+          Upload File
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setMode('text');
+            setTimeout(() => textareaRef.current?.focus(), 100);
+          }}
+          disabled={isLoading}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+            mode === 'text'
+              ? 'bg-white text-charcoal shadow-sm'
+              : 'text-warm-gray hover:text-charcoal'
+          } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          <Type className="w-3.5 h-3.5" />
+          Paste Text
+        </button>
+      </div>
+
+      {/* File upload mode */}
+      {mode === 'file' && (
+        <FileUpload
+          onFileSelect={onFileSelect}
+          onError={onError}
+          label={label}
+          description={description}
+          isLoading={isLoading}
+        />
+      )}
+
+      {/* Text paste mode */}
+      {mode === 'text' && (
+        <div
+          className={`border-2 border-dashed rounded-xl overflow-hidden transition-colors ${
+            isLoading
+              ? 'border-cream-300 opacity-50'
+              : 'border-cream-400 focus-within:border-navy-300'
+          }`}
+        >
+          <textarea
+            ref={textareaRef}
+            value={pastedText}
+            onChange={(e) => setPastedText(e.target.value)}
+            placeholder={
+              'Paste your CV / resume content here...\n\n' +
+              'Include your name, contact info, experience, education, skills \u2014 everything from your CV. Plain text or Markdown.'
+            }
+            className={`w-full bg-transparent text-sm text-charcoal placeholder:text-warm-gray/50 resize-none p-4 focus:outline-none ${
+              compact ? 'h-40' : 'h-52'
+            }`}
+            disabled={isLoading}
+          />
+          <div className="flex items-center justify-between px-4 py-2.5 bg-cream-50 border-t border-cream-200">
+            <span className="text-xs text-warm-gray">
+              {pastedText.length > 0
+                ? `${pastedText.length.toLocaleString()} characters`
+                : 'Plain text or Markdown'}
+            </span>
+            <button
+              type="button"
+              onClick={handleTextSubmit}
+              disabled={!pastedText.trim() || isLoading}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-navy-600 text-white text-sm font-medium rounded-lg hover:bg-navy-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            >
+              Parse CV
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

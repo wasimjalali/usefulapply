@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
-import { FileUpload } from '@/components/FileUpload';
+import { CVInputZone } from '@/components/CVInputZone';
 import { useAppStore, ProfilePhoto } from '@/store/useAppStore';
 import { useCVStore } from '@/store/useCVStore';
 import { useAuth } from '@/contexts/AuthContext';
@@ -535,11 +535,12 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                       })()}
                     </div>
                   ) : (
-                    <FileUpload
+                    <CVInputZone
                       onFileSelect={handleCVUpload}
                       onError={(msg) => setUploadError(msg)}
                       label="Upload your CV"
                       description="PDF, DOCX, TXT, or MD (max 10 MB)"
+                      compact
                     />
                   )}
                 </div>
@@ -700,11 +701,12 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                       })()}
                     </div>
                   ) : (
-                    <FileUpload
+                    <CVInputZone
                       onFileSelect={handleMasterCVUpload}
                       onError={(msg) => setMasterCVUploadError(msg)}
                       label="Upload master CV"
                       description="PDF, DOCX, TXT, or MD (max 10 MB)"
+                      compact
                     />
                   )}
                 </div>
@@ -866,7 +868,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                   })()}
                 </div>
               ) : (
-                <FileUpload
+                <CVInputZone
                   onFileSelect={handleCVUpload}
                   onError={(msg) => setUploadError(msg)}
                   label="Upload your CV"
@@ -1031,7 +1033,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                   })()}
                 </div>
               ) : (
-                <FileUpload
+                <CVInputZone
                   onFileSelect={handleMasterCVUpload}
                   onError={(msg) => setMasterCVUploadError(msg)}
                   label="Upload master CV"
