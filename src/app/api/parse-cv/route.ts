@@ -250,7 +250,8 @@ export async function POST(request: NextRequest) {
     try {
       structuredCV = await parseWithAI(textForAI, region as 'US' | 'EU');
     } catch (e) {
-      console.error('[Parser] AI parsing failed:', e);
+      const errMsg = e instanceof Error ? e.message : String(e);
+      console.error('[Parser] AI parsing failed:', errMsg);
       return NextResponse.json(
         { error: 'Failed to parse CV. Please try again or use a different file format.' },
         { status: 500 }
@@ -612,10 +613,11 @@ async function parseWithAI(rawText: string, region: 'US' | 'EU'): Promise<Struct
     prompt,
     systemPrompt: 'You are a precise CV parser. Extract factual information only. Return valid JSON. Do not infer or fabricate any information not explicitly present in the source document.',
     temperature: 0.3,
-    maxTokens: 4096,
+    maxTokens: 8192,  // Master CVs with 10+ years of experience can exceed 4096 tokens of JSON output
     jsonMode: true,
   });
 
+  console.log(`[Parser] AI response: ${response.usage.outputTokens} output tokens, ${response.content.length} chars`);
   return parseAIResponse(response.content, region);
 }
 
