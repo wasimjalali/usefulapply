@@ -4,8 +4,9 @@ import { StructuredCV, createEmptyCV, withId } from '@/lib/types/cv-schema';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { createClient } from '@/lib/supabase/server';
-import { detectCVLanguage, extractOriginalHeaders, generateLocalizedHeaders, splitIntoSections } from '@/lib/cv-parser/section-splitter';
+import { detectCVLanguage, extractOriginalHeaders, generateLocalizedHeaders } from '@/lib/cv-parser/section-splitter';
 import { callAnthropic, extractDocumentText } from '@/lib/models/anthropic';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Auth check: anonymous users get local-only parsing (no AI cost); authenticated users get AI parsing
+    // Auth check: determines rate limiting (anonymous = 5/24h IP limit, authenticated = unlimited)
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     const isAuthenticated = !!user;
@@ -181,7 +182,7 @@ export async function POST(request: NextRequest) {
       const reason = !rawText || rawText.trim().length < 50 ? 'insufficient text' : 'unreadable text (broken font encoding)';
       console.log(`[Parser] ${reason} from local extraction (${rawText?.trim().length || 0} chars), trying AI document understanding...`);
 
-      if (hasAICapability && isAuthenticated) {
+      if (hasAICapability) {
         try {
           rawText = await extractDocumentText(buffer);
           console.log(`[Parser] AI document extraction: ${rawText.length} chars`);
@@ -208,23 +209,66 @@ export async function POST(request: NextRequest) {
       console.log(`[Parser] Text truncated for AI: ${rawText.length} → ${MAX_AI_TEXT_LENGTH} chars`);
     }
 
-    // Parse CV - AI parsing for authenticated users only (prevents API cost abuse)
+    // IP-based rate limiting for anonymous users (5 parses per 24h rolling window)
+    if (!isAuthenticated) {
+      try {
+        const admin = createAdminClient();
+        const { data, error: rpcError } = await admin.rpc(
+          'check_anon_parse_limit' as never,
+          { p_ip: clientIP } as never
+        ) as unknown as {
+          data: { allowed: boolean; current_count: number }[] | null;
+          error: { message: string } | null;
+        };
+        if (rpcError) {
+          console.error('[Parser] Rate limit RPC error:', rpcError.message);
+          // Fail open — don't block users if the rate limit check itself fails
+        } else if (data && data.length > 0 && !data[0].allowed) {
+          return NextResponse.json(
+            { error: "You've reached the free parse limit. Sign up free to get unlimited CV uploads." },
+            { status: 429 }
+          );
+        }
+      } catch (e) {
+        console.error('[Parser] Rate limit check failed:', e);
+        // Fail open
+      }
+    }
+
+    // Parse CV using AI for all users (anonymous and authenticated)
     let structuredCV: StructuredCV;
-    let parserUsed: 'ai' | 'local' = 'local';
+    const parserUsed = 'ai';
     const parseStartTime = Date.now();
 
-    if (hasAICapability && isAuthenticated) {
-      try {
-        structuredCV = await parseWithAI(textForAI, region as 'US' | 'EU');
-        parserUsed = 'ai';
-      } catch (e) {
-        console.warn('[Parser] AI parsing failed, using local parser:', e);
-        structuredCV = parseLocally(rawText, region as 'US' | 'EU', originalFileName);
-        parserUsed = 'local';
-      }
-    } else {
-      structuredCV = parseLocally(rawText, region as 'US' | 'EU', originalFileName);
-      parserUsed = 'local';
+    if (!hasAICapability) {
+      return NextResponse.json(
+        { error: 'CV parsing is temporarily unavailable. Please try again later.' },
+        { status: 503 }
+      );
+    }
+
+    try {
+      structuredCV = await parseWithAI(textForAI, region as 'US' | 'EU');
+    } catch (e) {
+      console.error('[Parser] AI parsing failed:', e);
+      return NextResponse.json(
+        { error: 'Failed to parse CV. Please try again or use a different file format.' },
+        { status: 500 }
+      );
+    }
+
+    // Track anonymous AI parse usage separately for cost monitoring
+    if (!isAuthenticated) {
+      const posthog = getPostHogServer();
+      posthog.capture({
+        distinctId: `anon-ip:${clientIP}`,
+        event: 'anonymous_cv_parse',
+        properties: {
+          file_type: fileExt,
+          text_length: rawText.length,
+          parse_time_ms: Date.now() - parseStartTime,
+        },
+      });
     }
 
     const parseTime = Date.now() - parseStartTime;
@@ -243,23 +287,6 @@ export async function POST(request: NextRequest) {
     structuredCV.sectionHeaders = originalHeaders;
     structuredCV.localizedStrings = localizedStrings;
     structuredCV.settings.language = detectedLang;
-
-    // Guard sections: only keep data for sections that actually exist in the CV text.
-    // Only apply to local parser — the AI parser is reliable and the AI-extracted rawText
-    // may format section headers differently than what splitIntoSections expects.
-    const detectedSections = splitIntoSections(rawText);
-    if (parserUsed === 'local') {
-      // Local parser can fabricate languages from scattered mentions (e.g., "Python" as a language)
-      if (!detectedSections.has('LANGUAGES')) {
-        structuredCV.languages = [];
-      }
-      if (!detectedSections.has('CERTIFICATIONS')) {
-        structuredCV.certifications = [];
-      }
-      if (!detectedSections.has('PROJECTS')) {
-        structuredCV.projects = undefined;
-      }
-    }
 
     return NextResponse.json({
       success: true,
@@ -590,232 +617,6 @@ async function parseWithAI(rawText: string, region: 'US' | 'EU'): Promise<Struct
   });
 
   return parseAIResponse(response.content, region);
-}
-
-/**
- * Local CV parser - works without any external API
- */
-function parseLocally(rawText: string, region: 'US' | 'EU', fileName: string): StructuredCV {
-  const cv = createEmptyCV(region);
-  const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
-
-  // Use section splitter for projects and additional info
-  const sections = splitIntoSections(rawText);
-
-  // Extract email
-  const emailMatch = rawText.match(/[\w.-]+@[\w.-]+\.\w+/);
-  if (emailMatch) cv.personal.email = emailMatch[0];
-
-  // Extract phone
-  const phoneMatch = rawText.match(/[\+]?[(]?[0-9]{1,3}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,9}/);
-  if (phoneMatch) cv.personal.phone = phoneMatch[0];
-
-  // Extract name from first few lines (skip common headers).
-  // For table-layout PDFs (e.g., LaTeX tabular*), name and contact info may share
-  // a line. We split on tab characters (column boundaries from pdfjs-dist) and strip
-  // inline contact info before checking for a name pattern.
-  const nameExclusions = ['resume', 'cv', 'curriculum', 'vitae', 'contact', 'address', 'lebenslauf', 'bewerbung'];
-  for (const line of lines.slice(0, 10)) {
-    // Split on tab (column boundary) and take the first cell (leftmost, usually the name)
-    const cells = line.split(/\t/);
-    let candidate = cells[0];
-
-    // Strip inline contact info (handles cases without tab separation)
-    candidate = candidate
-      .replace(/[\w.-]+@[\w.-]+\.\w+/g, '')           // strip emails
-      .replace(/https?:\/\/\S+/g, '')                  // strip URLs
-      .replace(/\+?\(?\d{1,3}\)?[-\s.]?\(?\d{1,4}\)?[-\s.]?\d{1,4}[-\s.]?\d{1,9}/g, '') // strip phones
-      .replace(/\b(email|e-mail|phone|tel|mobile|fax|telephone|cell)\b\s*:?\s*/gi, '')    // strip contact labels
-      .replace(/[|•·]/g, ' ')                          // normalize separators
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    if (!candidate || candidate.length < 3) continue;
-
-    const lower = candidate.toLowerCase();
-    if (nameExclusions.some(exc => lower.includes(exc))) continue;
-    // Skip lines that are clearly section headers
-    if (/^(PROFILE|SUMMARY|EXPERIENCE|EDUCATION|SKILLS|PROFIL|BERUF)/i.test(candidate)) continue;
-
-    const words = candidate.split(/\s+/);
-    if (words.length >= 2 && words.length <= 5) {
-      // Accept capitalized names (any script), ALL CAPS, hyphenated names, and name particles.
-      // Uses Unicode property escapes for international name support.
-      const nameParticles = /^(van|von|de|di|del|el|al|la|le|bin|ibn|dos|das|den|der|het|ter|ten)$/i;
-      const nameWords = words.filter(w =>
-        /^[\p{Lu}][\p{L}'\u2019\-]+$/u.test(w) ||   // Capitalized: Patrick, O'Brien, Jean-Pierre, Müller
-        /^[\p{Lu}]{2,}$/u.test(w) ||                  // ALL CAPS: SANDERS, MÜLLER
-        nameParticles.test(w)                          // particles: van, von, de, di
-      );
-      if (nameWords.length >= 2) {
-        cv.personal.fullName = candidate;
-        break;
-      }
-    }
-  }
-  // No email-based name fallback — better to leave blank than guess wrong
-
-  // Extract summary (look for profile/summary section)
-  const summaryMatch = rawText.match(/(?:profile|summary|objective|about)[:\s]*\n?([\s\S]*?)(?=\n\s*(?:experience|education|skills|work)|$)/i);
-  if (summaryMatch && summaryMatch[1]) {
-    cv.summary = summaryMatch[1].trim().split('\n').slice(0, 5).join(' ').substring(0, 500);
-  }
-
-  // Extract skills — preserve proficiency levels like "Python (Proficient)" or "Excel - Advanced"
-  const skillsMatch = rawText.match(/(?:skills|competencies|expertise)[:\s]*\n?([\s\S]*?)(?=\n\s*(?:experience|education|languages|certifications)|$)/i);
-  if (skillsMatch && skillsMatch[1]) {
-    // Split on commas, semicolons, newlines, and bullets — but NOT dashes (which separate "Skill - Level")
-    const rawItems = skillsMatch[1]
-      .split(/[,;\n•·]/)
-      .map(s => s.trim())
-      .filter(s => s.length > 1 && s.length < 80);
-
-    // Normalize "Skill - Level" and "Skill: Level" to "Skill (Level)" format
-    const proficiencyKeywords = /^(native|fluent|proficient|professional|intermediate|basic|beginner|advanced|fundamental|fundamentals|expert|good|excellent|working knowledge|verhandlungssicher|fließend|grundkenntnisse|gute kenntnisse|sehr gute kenntnisse|fortgeschritten)$/i;
-    const skillItems = rawItems.map(item => {
-      // Pattern: "Skill - Level" or "Skill – Level"
-      const dashMatch = item.match(/^(.+?)\s*[-–—]\s*(.+)$/);
-      if (dashMatch) {
-        const [, skillPart, levelPart] = dashMatch;
-        if (proficiencyKeywords.test(levelPart.trim())) {
-          return `${skillPart.trim()} (${levelPart.trim()})`;
-        }
-      }
-      // Pattern: "Skill: Level" (where Level is a known proficiency term)
-      const colonMatch = item.match(/^(.+?):\s*(.+)$/);
-      if (colonMatch) {
-        const [, skillPart, levelPart] = colonMatch;
-        if (proficiencyKeywords.test(levelPart.trim())) {
-          return `${skillPart.trim()} (${levelPart.trim()})`;
-        }
-      }
-      return item;
-    }).filter(s => s.length > 1 && s.length < 80);
-
-    if (skillItems.length > 0) {
-      cv.skills = [withId({ category: 'Skills', skills: [...new Set(skillItems)].slice(0, 20) })];
-    }
-  }
-
-  // Extract languages — includes both English and native-language names
-  const knownLanguages = [
-    'english', 'englisch', 'german', 'deutsch', 'french', 'français',
-    'spanish', 'español', 'italian', 'italiano', 'portuguese', 'português',
-    'dutch', 'niederländisch', 'russian', 'russisch', 'chinese', 'chinesisch',
-    'mandarin', 'japanese', 'japanisch', 'korean', 'koreanisch', 'arabic', 'arabisch',
-    'hindi', 'persian', 'persisch', 'farsi', 'dari', 'turkish', 'türkisch',
-    'polish', 'polnisch', 'urdu', 'swedish', 'schwedisch', 'norwegian', 'norwegisch',
-    'danish', 'dänisch', 'finnish', 'finnisch', 'greek', 'griechisch',
-    'hebrew', 'hebräisch', 'czech', 'tschechisch', 'hungarian', 'ungarisch',
-    'romanian', 'rumänisch', 'croatian', 'serbian', 'bulgarian', 'ukrainian',
-    'vietnamese', 'thai', 'indonesian', 'malay', 'catalan', 'slovak',
-  ];
-  const proficiencyMap: Record<string, string> = {
-    'native': 'Native', 'fluent': 'Fluent', 'professional': 'Professional',
-    'intermediate': 'Intermediate', 'basic': 'Basic', 'b1': 'Intermediate',
-    'b2': 'Professional', 'c1': 'Fluent', 'c2': 'Native', 'a1': 'Basic', 'a2': 'Basic',
-    // German proficiency terms
-    'muttersprache': 'Native', 'verhandlungssicher': 'Fluent',
-    'fließend': 'Fluent', 'grundkenntnisse': 'Basic',
-    'gute kenntnisse': 'Intermediate', 'sehr gute kenntnisse': 'Professional',
-    // French proficiency terms
-    'langue maternelle': 'Native', 'courant': 'Fluent', 'bilingue': 'Native',
-    'notions': 'Basic', 'débutant': 'Basic', 'intermédiaire': 'Intermediate', 'avancé': 'Fluent',
-  };
-  // Deduplicate: map native-language names to English to avoid duplicates
-  const langNameToEnglish: Record<string, string> = {
-    'englisch': 'English', 'deutsch': 'German', 'français': 'French',
-    'español': 'Spanish', 'italiano': 'Italian', 'português': 'Portuguese',
-    'niederländisch': 'Dutch', 'russisch': 'Russian', 'chinesisch': 'Chinese',
-    'japanisch': 'Japanese', 'koreanisch': 'Korean', 'arabisch': 'Arabic',
-    'persisch': 'Persian', 'türkisch': 'Turkish', 'polnisch': 'Polish',
-    'schwedisch': 'Swedish', 'norwegisch': 'Norwegian', 'dänisch': 'Danish',
-    'finnisch': 'Finnish', 'griechisch': 'Greek', 'hebräisch': 'Hebrew',
-    'tschechisch': 'Czech', 'ungarisch': 'Hungarian', 'rumänisch': 'Romanian',
-  };
-  const foundLangs = new Set<string>();
-
-  for (const lang of knownLanguages) {
-    const profTerms = 'native|fluent|professional|intermediate|basic|b1|b2|c1|c2|a1|a2|muttersprache|verhandlungssicher|fließend|grundkenntnisse|courant|bilingue';
-    const pattern = new RegExp(`\\b(${lang})\\b[\\s\\-:()]*(?:(${profTerms}))?`, 'gi');
-    const match = rawText.match(pattern);
-    if (match) {
-      // Normalize to English name and deduplicate
-      const englishName = langNameToEnglish[lang.toLowerCase()] || (lang.charAt(0).toUpperCase() + lang.slice(1));
-      if (foundLangs.has(englishName.toLowerCase())) continue;
-      foundLangs.add(englishName.toLowerCase());
-
-      const profMatch = match[0].match(new RegExp(`(${profTerms})`, 'i'));
-      const profValue = profMatch ? (proficiencyMap[profMatch[1].toLowerCase()] || 'Professional') : 'Professional';
-      cv.languages.push(withId({
-        language: englishName,
-        proficiency: profValue as 'Native' | 'Fluent' | 'Professional' | 'Intermediate' | 'Basic',
-      }));
-    }
-  }
-
-  // Extract projects from dedicated section
-  const projectsContent = sections.get('PROJECTS');
-  if (projectsContent) {
-    const projLines = projectsContent.split('\n').map((l: string) => l.trim()).filter(Boolean);
-    let currentProj: { name: string; bullets: string[] } | null = null;
-    const projects: typeof cv.projects = [];
-    for (const line of projLines) {
-      if (line.startsWith('•') || line.startsWith('-') || line.startsWith('*')) {
-        if (currentProj) currentProj.bullets.push(line.replace(/^[•\-\*]\s*/, '').trim());
-      } else if (line.length > 0 && line.length < 150) {
-        if (currentProj && currentProj.name) {
-          projects!.push(withId({ name: currentProj.name, description: currentProj.bullets.join(' '), technologies: [] as string[] }));
-        }
-        currentProj = { name: line, bullets: [] };
-      }
-    }
-    if (currentProj && currentProj.name) {
-      projects!.push(withId({ name: currentProj.name, description: currentProj.bullets.join(' '), technologies: [] as string[] }));
-    }
-    if (projects!.length > 0) cv.projects = projects;
-  }
-
-  // Extract additional info and custom sections
-  const allAdditionalSections: typeof cv.additionalSections = [];
-
-  // True "Additional Information" catch-all
-  const additionalContent = sections.get('ADDITIONAL INFORMATION');
-  if (additionalContent) {
-    const items = additionalContent
-      .split(/[•\n]/)
-      .map((i: string) => i.trim())
-      .filter((i: string) => i.length > 2 && i.length < 200)
-      .filter((i: string) => !i.match(/^additional\s+information$/i));
-    const unique = [...new Set(items)];
-    if (unique.length > 0) {
-      allAdditionalSections.push(withId({ title: 'Additional Information', items: unique }));
-    }
-  }
-
-  // Extract other non-canonical sections (achievements, volunteer, publications, etc.)
-  const canonicalKeys = new Set(['SUMMARY', 'EXPERIENCE', 'EDUCATION', 'SKILLS', 'LANGUAGES', 'CERTIFICATIONS', 'PROJECTS', 'ADDITIONAL INFORMATION']);
-  const customTitles: Record<string, string> = {
-    'ACHIEVEMENTS': 'Selected Achievements', 'VOLUNTEER': 'Volunteer Experience',
-    'PUBLICATIONS': 'Publications', 'REFERENCES': 'References',
-    'INTERESTS': 'Interests', 'TEACHING': 'Teaching Experience',
-    'RESEARCH': 'Research', 'COURSEWORK': 'Relevant Coursework',
-    'PORTFOLIO': 'Portfolio',
-  };
-  for (const [key, content] of sections) {
-    if (canonicalKeys.has(key) || !content || content.trim().length < 3) continue;
-    const title = customTitles[key] || key.charAt(0) + key.slice(1).toLowerCase();
-    const items = content.split(/[•\n]/).map((i: string) => i.trim()).filter((i: string) => i.length > 2 && i.length < 500);
-    if (items.length > 0) {
-      allAdditionalSections.push(withId({ title, items: [...new Set(items)] }));
-    }
-  }
-
-  if (allAdditionalSections.length > 0) {
-    cv.additionalSections = allAdditionalSections;
-  }
-
-  return cv;
 }
 
 /**
