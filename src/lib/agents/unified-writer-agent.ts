@@ -147,34 +147,36 @@ export const unifiedWriterAgent = {
       emit({ type: 'step_completed', step: { id: 'matching', description: 'Skills matched' }, tokens: jobResult.tokens });
 
       // ============================================
-      // PHASE 2: DOCUMENT GENERATION
+      // PHASE 2: DOCUMENT GENERATION (parallelized)
+      // CV, cover letter, and application email are independent — none reference each other's output.
+      // Only follow-up email depends on application email content.
       // ============================================
-      
-      // Step 5: Generate optimized CV
+
       emit({ type: 'step_started', step: { id: 'cv_generation', description: 'Karko AI: Optimizing CV for the position' } });
-      emit({ type: 'progress', percent: 45, message: 'Generating optimized CV...' });
-      const { cvData, legacyCV, tokens: cvTokens } = await this.generateOptimizedCVData(context);
+      emit({ type: 'step_started', step: { id: 'cover_letter', description: 'Karko AI: Composing tailored cover letter' } });
+      emit({ type: 'step_started', step: { id: 'email', description: 'Karko AI: Generating application and follow-up emails' } });
+      emit({ type: 'progress', percent: 45, message: 'Generating CV, cover letter, and email...' });
+
+      const [cvResult, coverLetterResult, emailResult] = await Promise.all([
+        this.generateOptimizedCVData(context),
+        this.generateCoverLetter(context),
+        this.generateApplicationEmail(context),
+      ]);
+
+      const { cvData, legacyCV, tokens: cvTokens } = cvResult;
       context.optimizedCVData = cvData;
       context.optimizedCV = legacyCV;
       emit({ type: 'step_completed', step: { id: 'cv_generation', description: 'CV optimized' }, tokens: cvTokens });
 
-      // Step 6: Generate cover letter
-      emit({ type: 'step_started', step: { id: 'cover_letter', description: 'Karko AI: Composing tailored cover letter' } });
-      emit({ type: 'progress', percent: 70, message: 'Writing cover letter...' });
-      const coverLetterResult = await this.generateCoverLetter(context);
       context.coverLetter = coverLetterResult.result;
       emit({ type: 'step_completed', step: { id: 'cover_letter', description: 'Cover letter ready' }, tokens: coverLetterResult.tokens });
 
-      // Step 7: Generate application email + follow-up (combined as one visible step)
-      emit({ type: 'step_started', step: { id: 'email', description: 'Karko AI: Generating application and follow-up emails' } });
-      emit({ type: 'progress', percent: 85, message: 'Composing application email...' });
-      const emailResult = await this.generateApplicationEmail(context);
       context.applicationEmail = emailResult.result;
 
-      emit({ type: 'progress', percent: 93, message: 'Composing follow-up email...' });
+      // Follow-up email depends on application email content
+      emit({ type: 'progress', percent: 85, message: 'Composing follow-up email...' });
       const followUpResult = await this.generateFollowUpEmail(context);
       context.followUpEmail = followUpResult.result;
-      // Combine token counts from primary email + follow-up email for accurate cost tracking
       const emailStepTokens: TokenUsage = {
         input: emailResult.tokens.input + followUpResult.tokens.input,
         output: emailResult.tokens.output + followUpResult.tokens.output,
@@ -321,35 +323,38 @@ export const unifiedWriterAgent = {
     const startTime = Date.now();
 
     try {
-      // Phase 2 only: Document Generation (context already has applicant, job, match)
-      
-      // Step 1: Generate optimized CV
+      // Phase 2 only: Document Generation (parallelized)
+      // CV, cover letter, and application email are independent — run in parallel.
+      // Only follow-up email depends on application email content.
+
       emit({ type: 'step_started', step: { id: 'cv_generation', description: 'Karko AI: Optimizing CV for the position' } });
-      emit({ type: 'progress', percent: 15, message: 'Generating optimized CV...' });
-      const { cvData, legacyCV, tokens: cvTokens } = await this.generateOptimizedCVData(context);
-      context.optimizedCVData = cvData;
-      context.optimizedCV = legacyCV;
-      emit({ type: 'step_completed', step: { id: 'cv_generation', description: 'CV optimized' }, tokens: cvTokens });
-
-      // Step 2: Generate cover letter
       emit({ type: 'step_started', step: { id: 'cover_letter', description: 'Karko AI: Composing tailored cover letter' } });
-      emit({ type: 'progress', percent: 50, message: 'Writing cover letter...' });
-      const coverLetterResult = await this.generateCoverLetter(context);
-      context.coverLetter = coverLetterResult.result;
-      emit({ type: 'step_completed', step: { id: 'cover_letter', description: 'Cover letter ready' }, tokens: coverLetterResult.tokens });
-
-      // Step 3: Generate application email + follow-up (combined as one visible step)
       emit({ type: 'step_started', step: { id: 'email', description: 'Karko AI: Generating application and follow-up emails' } });
-      emit({ type: 'progress', percent: 75, message: 'Composing application email...' });
-      const emailResult = await this.generateApplicationEmail(context);
-      context.applicationEmail = emailResult.result;
+      emit({ type: 'progress', percent: 15, message: 'Generating CV, cover letter, and email...' });
 
-      emit({ type: 'progress', percent: 90, message: 'Composing follow-up email...' });
-      const followUpResult = await this.generateFollowUpEmail(context);
-      context.followUpEmail = followUpResult.result;
+      const [cvResult2, coverLetterResult2, emailResult2] = await Promise.all([
+        this.generateOptimizedCVData(context),
+        this.generateCoverLetter(context),
+        this.generateApplicationEmail(context),
+      ]);
+
+      const { cvData: cvData2, legacyCV: legacyCV2, tokens: cvTokens2 } = cvResult2;
+      context.optimizedCVData = cvData2;
+      context.optimizedCV = legacyCV2;
+      emit({ type: 'step_completed', step: { id: 'cv_generation', description: 'CV optimized' }, tokens: cvTokens2 });
+
+      context.coverLetter = coverLetterResult2.result;
+      emit({ type: 'step_completed', step: { id: 'cover_letter', description: 'Cover letter ready' }, tokens: coverLetterResult2.tokens });
+
+      context.applicationEmail = emailResult2.result;
+
+      // Follow-up email depends on application email content
+      emit({ type: 'progress', percent: 85, message: 'Composing follow-up email...' });
+      const followUpResult2 = await this.generateFollowUpEmail(context);
+      context.followUpEmail = followUpResult2.result;
       const emailStepTokens2: TokenUsage = {
-        input: emailResult.tokens.input + followUpResult.tokens.input,
-        output: emailResult.tokens.output + followUpResult.tokens.output,
+        input: emailResult2.tokens.input + followUpResult2.tokens.input,
+        output: emailResult2.tokens.output + followUpResult2.tokens.output,
       };
       emit({ type: 'step_completed', step: { id: 'email', description: 'Email + follow-up ready' }, tokens: emailStepTokens2 });
 
