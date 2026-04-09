@@ -577,13 +577,24 @@ Return ONLY the JSON array. No explanation.`,
 
     const parsed = JSON.parse(jsonContent);
 
-    if (Array.isArray(parsed)) {
-      const metrics = parsed.map((m: unknown) => String(m).trim()).filter(Boolean);
+    // LLM sometimes wraps the array in an object like { "metrics": [...] }
+    const arr = Array.isArray(parsed)
+      ? parsed
+      : Array.isArray(parsed.metrics)
+        ? parsed.metrics
+        : Array.isArray(parsed.verified_metrics)
+          ? parsed.verified_metrics
+          : Array.isArray(parsed.data)
+            ? parsed.data
+            : null;
+
+    if (arr) {
+      const metrics = arr.map((m: unknown) => String(m).trim()).filter(Boolean);
       console.log(`[KarkoAI] Extracted ${metrics.length} verified metrics from source CVs`);
       return { result: metrics, tokens };
     }
 
-    console.warn('[KarkoAI] Metric extraction returned non-array, defaulting to empty');
+    console.warn('[KarkoAI] Metric extraction returned unexpected format:', typeof parsed, JSON.stringify(parsed).slice(0, 200));
     return { result: [], tokens };
   } catch (error) {
     console.error('[KarkoAI] Failed to parse verified metrics:', error);
