@@ -8,7 +8,7 @@
 
 ### Autonomy & Speed
 - Work autonomously — do NOT ask permission for bug fixes, UI changes, refactors, or small features
-- Read relevant files first, then act — never ask "should I read the file first?"
+- Read only the specific files you need, then act — use Grep/Glob/Read directly, not subagents, for known targets
 - Only pause and confirm before:
   - **Deleting files** — Grep for all imports/references first; if dead code, delete without asking
   - **Adding new npm packages** — state what and why, confirm before installing
@@ -50,6 +50,36 @@
 - Grep for all imports/references before deleting any file or function
 - Zero references → delete without asking
 - Uncertain or many files affected → state findings, then proceed
+
+### Token Efficiency & Subagent Rules
+
+**DO NOT audit, investigate, or explore the codebase on every task.** Only read files directly relevant to the specific change. Never do broad codebase audits unless explicitly asked.
+
+**Direct tools first, subagents last:**
+- Use Grep, Glob, Read directly for known files, symbols, or patterns
+- Only spawn subagents when the task genuinely requires multi-file exploration across unknown locations
+- A single Grep is always better than an Explore agent for finding a function or string
+
+**Subagent model selection (mandatory):**
+| Task Type | Model | When |
+|-----------|-------|------|
+| File search, quick lookup, verification | `haiku` | Explore agents for simple searches |
+| Code analysis, multi-file investigation, planning | `sonnet` | Default for most subagents |
+| Complex architecture, large refactors | `opus` | Only when user explicitly requests Opus or task truly requires it |
+
+Always pass the `model` parameter when spawning an Agent. Never let subagents default to the parent model for expensive tasks.
+
+**Web search limits:**
+- Maximum **3 WebFetch calls** per subagent task unless explicitly told to do more
+- Maximum **5 WebFetch calls** across all subagents for a single user request
+- Always prefer documentation sites (docs.anthropic.com, docs.vercel.com) over blog posts or articles
+- Do NOT search multiple websites for the same answer — if the first source answers it, stop
+
+**What NOT to do on every task:**
+- Do NOT read CLAUDE.md, MEMORY.md, or rules files — they are already in context
+- Do NOT audit the full codebase structure before making a change
+- Do NOT spawn Explore agents to "understand the codebase" when you can just read the 1-2 files involved
+- Do NOT re-read files you've already read in this conversation
 
 ---
 

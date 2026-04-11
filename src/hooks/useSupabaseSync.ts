@@ -253,6 +253,7 @@ export function useSupabaseSync() {
               contactPerson: row.company_contact_person || row.company_research?.contactPerson,
             } : null,
             status: row.status ?? 'applied',
+            fitAssessment: row.fit_assessment ?? null,
             cvEdits: row.cv_edits || [],
             optimizedPdfRef: row.optimized_pdf_path ? { 
               id: row.id, 
@@ -474,6 +475,8 @@ export function useSupabaseSync() {
                   email: currentSession.email,
                   follow_up_email: currentSession.followUpEmail,
                   company_research: currentSession.companyResearch,
+                  fit_assessment: currentSession.fitAssessment ?? null,
+                  generation_completed: currentSession.generatedCV ? true : false,
                 }, user.id);
                 if (updateErr) {
                   console.error('[SupabaseSync] Error updating new session with full data:', updateErr);
@@ -541,6 +544,8 @@ export function useSupabaseSync() {
             cover_letter_language: (currentSession as any).coverLetterLanguage,
             company_address: currentSession.companyResearch?.address,
             company_contact_person: currentSession.companyResearch?.contactPerson,
+            fit_assessment: currentSession.fitAssessment ?? null,
+            generation_completed: currentSession.generatedCV ? true : false,
           }, user.id);
           
           if (error) {

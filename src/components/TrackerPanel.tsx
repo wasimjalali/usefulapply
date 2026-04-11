@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
-import { updateSession, getSession, deleteSession } from '@/lib/supabase/sessions';
+import { updateSession, getSession, deleteSession, getChatMessages } from '@/lib/supabase/sessions';
 import { getSupabase } from '@/lib/supabase/client';
 import {
   Search,
@@ -473,9 +473,19 @@ export function TrackerPanel() {
   const handleRowClick = async (sessionId: string) => {
     setNavigatingSessionId(sessionId);
     try {
-      const fullSession = await getSession(sessionId, user?.id);
+      const [fullSession, chatMessages] = await Promise.all([
+        getSession(sessionId, user?.id),
+        getChatMessages(sessionId),
+      ]);
       if (fullSession) {
         const store = useSessionStore.getState();
+        const mappedMessages = (chatMessages || []).map((msg: any) => ({
+          id: msg.id,
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.created_at,
+          actions: msg.actions || [],
+        }));
         const mapped = {
           id: fullSession.id,
           jobTitle: fullSession.job_title || '',
@@ -497,7 +507,8 @@ export function TrackerPanel() {
           companyResearch: fullSession.company_research ?? null,
           cvEdits: fullSession.cv_edits || [],
           status: fullSession.status ?? 'applied',
-          chatMessages: [],
+          fitAssessment: fullSession.fit_assessment ?? null,
+          chatMessages: mappedMessages,
         } as any;
 
         const existingSessions = store.sessions;

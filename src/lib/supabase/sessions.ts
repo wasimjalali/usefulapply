@@ -31,6 +31,8 @@ export interface ApplicationSession {
   selected_template?: string;
   status?: 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up';
   cover_letter_language?: string;
+  fit_assessment?: any;
+  generation_completed?: boolean;
   created_at: string;
   updated_at: string;
 }
