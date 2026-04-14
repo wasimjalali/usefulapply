@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React from 'react';
 import {
   CheckCircle2,
   Loader2,
@@ -45,16 +45,17 @@ export interface ActionDetail {
 const STEP_CONFIG: Record<string, {
   icon: React.ElementType;
   label: string;
+  runningSubtitle: string;
 }> = {
-  analysis: { icon: Brain, label: 'Parsing CV & Requirements' },
-  matching: { icon: Search, label: 'Skill Matching' },
-  cv_generation: { icon: FileText, label: 'Optimizing CV' },
-  cover_letter: { icon: Pencil, label: 'Composing Cover Letter' },
-  fit_assessment: { icon: Zap, label: 'Assessing Job Fit' },
-  email: { icon: Award, label: 'Generating Emails' },
+  analysis: { icon: Brain, label: 'Parsing CV & Requirements', runningSubtitle: 'Extracting your profile and reading the job description...' },
+  matching: { icon: Search, label: 'Skill Matching', runningSubtitle: 'Comparing your skills against the role requirements...' },
+  cv_generation: { icon: FileText, label: 'Optimizing CV', runningSubtitle: 'Tailoring your experience and skills to the role...' },
+  cover_letter: { icon: Pencil, label: 'Composing Cover Letter', runningSubtitle: 'Writing a personalized cover letter for this position...' },
+  fit_assessment: { icon: Zap, label: 'Assessing Job Fit', runningSubtitle: 'Scoring your fit and identifying strengths and gaps...' },
+  email: { icon: Award, label: 'Generating Emails', runningSubtitle: 'Drafting your application and follow-up emails...' },
   // Legacy step IDs
-  context: { icon: Brain, label: 'Analyzing Documents' },
-  writing: { icon: Pencil, label: 'Generating Documents' },
+  context: { icon: Brain, label: 'Analyzing Documents', runningSubtitle: 'Reading and understanding your documents...' },
+  writing: { icon: Pencil, label: 'Generating Documents', runningSubtitle: 'Generating your application materials...' },
 };
 
 export function AgentProgressV2({ 
@@ -67,17 +68,6 @@ export function AgentProgressV2({
   tokenUsage,
   actions = [],
 }: AgentProgressV2Props) {
-  // Track the previous progress message to trigger fade animation on change
-  const [displayMessage, setDisplayMessage] = useState<string>('');
-  const [messageKey, setMessageKey] = useState(0);
-
-  useEffect(() => {
-    if (progress?.message && progress.message !== displayMessage && progress.message !== 'Complete!') {
-      setDisplayMessage(progress.message);
-      setMessageKey(prev => prev + 1);
-    }
-  }, [progress?.message, displayMessage]);
-
   if (steps.length === 0 && !isWorking) return null;
 
   return (
@@ -159,11 +149,11 @@ export function AgentProgressV2({
                 )}
               </div>
 
-              {/* Live progress message — only for running step */}
-              {step.status === 'running' && displayMessage && (
+              {/* Per-step subtitle shown while running */}
+              {step.status === 'running' && config.runningSubtitle && (
                 <div className="px-3 pb-2.5 pl-[52px]">
-                  <p key={messageKey} className="text-[12px] text-warm-gray action-text-cycle">
-                    {displayMessage}
+                  <p className="text-[12px] text-warm-gray">
+                    {config.runningSubtitle}
                   </p>
                 </div>
               )}
