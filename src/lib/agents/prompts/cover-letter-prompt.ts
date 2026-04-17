@@ -226,8 +226,7 @@ ABSOLUTE PROHIBITIONS:
 - "References available upon request"
 - "I look forward to hearing from you"
 - ANY claim about tools, metrics, or experience not in EITHER the Primary CV or Master CV
-- For ENGLISH cover letters: NEVER include a company address line. No bracketed placeholders.
-- For GERMAN cover letters: NEVER invent a street address for the company - use "[Firmenadresse]" as placeholder if not available from the JD
+- NEVER include a company address line in ANY language. No bracketed placeholders like "[Firmenadresse]", "[PLZ Stadt]", "[Company Address]", or "[Abteilung]". If the company address is not explicitly in the JD, omit it entirely — do NOT use placeholders.
 - Paragraphs longer than 3 sentences
 - Generic filler phrases that add no value
 
@@ -392,11 +391,8 @@ ${applicant?.phone || 'Telefon'}
 ${today}
 
 ${job?.companyName || 'Unternehmen'}
-[Abteilung / z.Hd. Hiring Manager]
-[Firmenadresse]
-[PLZ Stadt]
 
-IMPORTANT: Include the full company address block. If the exact company address is not in the JD, use bracketed placeholders like "[Firmenadresse]" and "[PLZ Stadt]". This is standard for German formal letters (Anschreiben).` : `The cover letter MUST start with this exact header structure (EN market format):
+IMPORTANT: After the company name, go directly to the greeting (e.g., "Sehr geehrte Damen und Herren,"). Do NOT include any company address lines. Do NOT use bracketed placeholders like "[Firmenadresse]", "[PLZ Stadt]", or "[Abteilung]". If the JD contains a specific company address, you may include it — otherwise omit it entirely and keep the header clean.` : `The cover letter MUST start with this exact header structure (EN market format):
 
 ${applicant?.name || 'Applicant Name'}
 ${applicant?.address || 'City, Country'}
