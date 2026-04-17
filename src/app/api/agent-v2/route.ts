@@ -78,9 +78,9 @@ function removeCachedContext(contextId: string): void {
 }
 
 // Input length limits
-const MAX_JOB_DESCRIPTION_LENGTH = 20_000;
-const MAX_CV_LENGTH = 10_000;
-const MAX_MASTER_CV_LENGTH = 20_000;
+const MAX_JOB_DESCRIPTION_LENGTH = 30_000;
+const MAX_CV_LENGTH = 20_000;
+const MAX_MASTER_CV_LENGTH = 30_000;
 
 // Anonymous generation tracking helpers
 function hashIP(ip: string): string {

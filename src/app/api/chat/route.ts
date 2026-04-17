@@ -224,7 +224,7 @@ Company: ${context.company || 'Unknown company'}`;
   if (context.jobDescription) {
     prompt += `
 Job Description:
-${context.jobDescription.substring(0, 3000)}`;
+${context.jobDescription.substring(0, 8000)}`;
   }
 
   if (context.matchingSkills && context.matchingSkills.length > 0) {

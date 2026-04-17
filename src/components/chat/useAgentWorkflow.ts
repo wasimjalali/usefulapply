@@ -136,11 +136,11 @@ export function useAgentWorkflow(options?: {
       // Build screening-specific context when in screening mode
       const screeningContext = isScreeningMode ? {
         mode: 'screening_answers' as const,
-        jobDescription: currentSession?.jobDescription?.substring(0, 3000),
+        jobDescription: currentSession?.jobDescription?.substring(0, 8000),
         matchingSkills: currentSession?.matchingSkills,
         missingSkills: currentSession?.missingSkills,
         generatedCVSummary: typeof currentSession?.generatedCV?.content === 'string'
-          ? currentSession.generatedCV.content.substring(0, 2000)
+          ? currentSession.generatedCV.content.substring(0, 5000)
           : undefined,
         companyResearchSummary: currentSession?.companyResearch
           ? [
@@ -163,7 +163,7 @@ export function useAgentWorkflow(options?: {
             jobTitle: currentSession?.jobTitle,
             company: currentSession?.company,
             hasMasterCV: !!masterCV,
-            masterCVSummary: masterCV?.rawText?.substring(0, 1000),
+            masterCVSummary: masterCV?.rawText?.substring(0, 3000),
             hasCertifications: certifications.length > 0,
             certificationsCount: certifications.length,
             certificationsList: certifications.map(c => c.fileName).join(', '),

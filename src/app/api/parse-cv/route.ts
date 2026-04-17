@@ -232,8 +232,8 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Cap text length to avoid AI timeout — 20K chars ≈ 6K tokens, keeps parsing under 40s
-      const MAX_AI_TEXT_LENGTH = 20000;
+      // Cap text length to avoid AI timeout — 30K chars ≈ 9K tokens, keeps parsing under 60s
+      const MAX_AI_TEXT_LENGTH = 30000;
       const textForAI = rawText.length > MAX_AI_TEXT_LENGTH
         ? rawText.substring(0, MAX_AI_TEXT_LENGTH) + '\n\n[... truncated for parsing efficiency ...]'
         : rawText;
