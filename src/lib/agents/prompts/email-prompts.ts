@@ -84,26 +84,23 @@ If job title is too long:
 After composing the subject line, COUNT characters. If over 60, shorten the job title portion.
 
 ATTACHMENT REFERENCE (REQUIRED — never skip):
-- English: Include "Please find my CV and cover letter attached." or "I've attached my CV and cover letter for your review."
-- German: Include "Anbei finden Sie meinen Lebenslauf und mein Anschreiben." or "Meine vollständigen Bewerbungsunterlagen finden Sie im Anhang."
+- Include a sentence referencing the attached CV and cover letter, written naturally in the email's language
+- Vary the phrasing — do not use the same attachment sentence across different emails
 - Place the attachment reference BEFORE the availability/closing sentence
 
 === LANGUAGE INSTRUCTION ===
 ${isGerman ? `CRITICAL: Write the ENTIRE email in GERMAN.
-- Greeting: "Guten Tag," or "Sehr geehrte Damen und Herren,"
-- Closing: "Mit freundlichen Grüßen,"
-- Subject line in German format: "Bewerbung als [Job Title] - [Name]"
+- Greeting: If the JD names a contact person, address them directly. Otherwise use a standard formal German greeting
+- Closing: Use a professional German closing appropriate to the formality of the JD
+- Subject line in German format
 - Professional German business email style` : 'Write the email in English.'}
 
 PUNCTUATION: Never use em-dashes (—) or en-dashes (–). Use commas, periods, colons, or parentheses instead.
 
 EMAIL SIGNATURE REQUIREMENT:
-The email MUST end with a professional signature:
-
-Best regards,
-${applicant?.name || 'Applicant Name'}
-
-NEVER send an email without a signature. The signature must be on separate lines.
+The email MUST end with a professional closing and the applicant's full name on a separate line.
+Applicant name for signature: ${applicant?.name || 'Applicant Name'}
+Choose a closing appropriate to the language and tone of the JD. NEVER send an email without a signature.
 
 Return ONLY valid JSON: {"subject": "...", "body": "..."}`;
 }
@@ -133,7 +130,8 @@ EMAIL SKILL ACCURACY (HIGHEST PRIORITY):
 The email must NEVER claim experience with skills, tools, or technologies not documented in the Primary CV or Master CV. This overrides all other instructions. Sell what the applicant HAS. Never fabricate what they DON'T have.
 
 GREETING RULE:
-- Since we don't know the hiring manager's name, ALWAYS use: "Hello," or "Hi there,"
+- If the job description names a specific hiring manager or contact person, address them by name
+- If no name is available, use a professional but warm greeting appropriate to the language and market
 - NEVER output "[Name]" or "Hi [Name]," as a literal placeholder in the final email
 - NEVER use "Dear Sir/Madam" or "To Whom It May Concern"
 
@@ -158,8 +156,8 @@ EMAIL SUBJECT LINE FORMAT (STRICT):
 - NEVER add extra descriptors, skill keywords, or metrics in the subject
 
 ATTACHMENT REFERENCE (MANDATORY):
-- English: "Please find my CV and cover letter attached." or similar
-- German: "Anbei finden Sie meinen Lebenslauf und mein Anschreiben." or similar
+- Include a sentence referencing the attached CV and cover letter, written naturally in the email's language
+- Vary the phrasing — do not use the same wording across emails
 - Place BEFORE the closing/availability sentence
 - NEVER skip the attachment reference
 
@@ -180,7 +178,7 @@ Body: Greeting + One sentence hook with metric + one sentence value + attachment
 
 SIGNATURE REQUIREMENT:
 - EVERY email MUST end with a signature
-- Language-matched closing: "Best regards," (English) or "Mit freundlichen Grüßen," (German), followed by the applicant's full name on a new line
+- Use a professional closing appropriate to the language and JD tone, followed by the applicant's full name on a new line
 - The signature must be on separate lines from the body text
 - NEVER omit the signature
 
@@ -272,7 +270,7 @@ TONE RULES:
 - Match the detected language (English or German)
 - US market: Direct, confident
 - UK market: Polite, measured
-- German market: Formal Sie-form throughout, "Sehr geehrte Damen und Herren" or addressed to specific person if known
+- German market: Formal Sie-form throughout. Address a specific person by name if known from the JD; otherwise use a standard formal German greeting
 - Professional but warm, not stiff, not casual
 - Confident, not desperate
 - NO em-dashes anywhere in the text
@@ -325,7 +323,7 @@ CRITICAL RULES:
 - Be specific about the company (reference something from the JD)
 - Sound human and confident, not desperate or generic
 - NO em-dashes
-- ${isGerman ? 'Write entirely in German with formal Sie-form. Closing: "Mit freundlichen Grüßen,"' : 'Write in English.'}
+- ${isGerman ? 'Write entirely in German with formal Sie-form. Use a professional German closing appropriate to the JD tone.' : 'Write in English.'}
 
 Return ONLY valid JSON. No explanation or preamble.`;
 }

@@ -117,12 +117,12 @@ You may NEVER include a skill if:
 - Adding it would improve the ATS score (ATS score is secondary to accuracy)
 - It is industry-standard but the applicant hasn't listed it ("knows Node.js" does NOT imply "knows Python")
 
-CONCRETE EXAMPLES OF VIOLATIONS:
-- Master CV: "Google SEO Fundamentals" → Adding "Google Analytics" = FORBIDDEN (different product)
-- Master CV: "Amazon Seller Central" → Adding "Amazon Advertising Console" = FORBIDDEN (different tool)
-- Master CV: "Node.js, Next.js" → Adding "Python" = FORBIDDEN (different language)
-- Master CV: "Listing Optimization" → Adding "A/B Testing" = FORBIDDEN (different methodology)
-- Master CV: "Supabase" → Adding "FastAPI" = FORBIDDEN (different technology)
+<examples>
+These illustrate the RULE only — do not reuse any tool or product names from these examples in your output. Apply the same logic to whatever tools appear in the actual CV:
+<example>Source CV lists "[Tool A from Vendor X]" → Adding "[Tool B from Vendor X]" = FORBIDDEN (different product from same vendor)</example>
+<example>Source CV lists "[Framework A]" → Adding "[Framework B in a different language]" = FORBIDDEN (different language/ecosystem)</example>
+<example>Source CV lists "[Activity A]" → Adding "[Methodology B that could be used in Activity A]" = FORBIDDEN (different methodology, merely adjacent)</example>
+</examples>
 
 IF A JD KEYWORD HAS NO MATCH IN THE APPLICANT'S DOCUMENTS:
 → Do NOT add it to the CV
@@ -156,14 +156,13 @@ WHEN NO NUMBER EXISTS — WRITE A STRONG BULLET WITHOUT ONE:
 If the applicant performed a real activity but no metric exists for it, describe the activity with a strong action verb and specific context. A bullet without a metric is ALWAYS better than a bullet with a fabricated one.
 
 PATTERN — how to convert a numbered bullet to a numberless one:
-- WITH fabricated number: "Managed [X]+ client accounts across multiple regions"
-- WITHOUT number (CORRECT): "Managed client accounts across multiple regions, coordinating delivery and support"
-- WITH fabricated number: "Optimized [X]+ product listings using keyword research"
-- WITHOUT number (CORRECT): "Optimized product listings using data-driven keyword research and competitive analysis"
-- WITH fabricated number: "Increased conversion rates by [X]%"
-- WITHOUT number (CORRECT): "Improved conversion rates through systematic A/B testing and listing optimization"
+Remove the unverified number and replace it with specific context about HOW the work was done, WHAT tools were used, or WHERE it had impact. The added context should come from the applicant's actual CV, not be invented.
 
-The pattern: remove the fake number, add specific context about HOW or WHERE instead.
+<examples>
+These show the structural pattern only — do not reuse any phrasing from these in your output:
+<example>WITH fabricated number: "[Action verb] [X]+ [items] across [scope]" → WITHOUT number: "[Action verb] [items] across [scope], [adding real context from CV about method or tools used]"</example>
+<example>WITH fabricated number: "[Improved] [metric] by [X]%" → WITHOUT number: "[Improved] [metric] through [specific approach documented in the CV]"</example>
+</examples>
 
 If the source says a duration (e.g., "2+ years"), use the duration. Do NOT estimate, round, or convert to a different unit. The applicant will be asked to verify every number in an interview.
 
@@ -234,7 +233,7 @@ To ensure the CV fits on 2 pages and remains readable:
 
 2. HEADLINE (currentTitle): Optimize for the target job
    - Max 3-4 keywords separated by " | "
-   - Example: "E-Commerce Specialist | Digital Marketing | Amazon Expert"
+   - Use the applicant's actual expertise areas that match the JD — do not invent specializations
 
 3. SUMMARY: 3-4 sentences with metrics from CV, keywords from job
 
@@ -267,33 +266,43 @@ To ensure the CV fits on 2 pages and remains readable:
    - "location": City/country of the institution (optional).
    - "grade": GPA or grade if notable (optional).
 
-   EXAMPLES OF CORRECT FIELD MAPPING:
+   <examples>
+   These show the field mapping pattern. Use the actual institution/degree names from the applicant's CV, not these illustrative names:
 
+   <example>
    University degree:
-   - institution: "Technical University of Munich"
-   - degree: "Bachelor of Science"
-   - field: "Computer Science"
-   - endDate: "2023"
+   - institution: "[University Name]"
+   - degree: "[Degree Type, e.g. Bachelor of Science]"
+   - field: "[Major/Subject]"
+   - endDate: "[Year]"
+   </example>
 
+   <example>
    Bootcamp / Academy (6-12 month programs):
-   - institution: "Masterschool"
-   - degree: "Full-Stack Web Development Certificate"
+   - institution: "[Academy Name]"
+   - degree: "[Certificate/Diploma Name]"
    - field: (omit — the degree name already describes the field)
-   - endDate: "ongoing" or "Present" or "2025"
+   - endDate: "ongoing" or "Present" or "[Year]"
+   </example>
 
+   <example>
    High School / Abitur:
-   - institution: "Nazoo Ana High School"
-   - degree: "General University Entrance Qualification (Abitur Equivalent)"
+   - institution: "[School Name]"
+   - degree: "[Qualification Name]"
    - field: (omit — redundant with degree name)
-   - location: "Kabul"
-   - endDate: "2020"
-   - grade: "92.43%"
+   - location: "[City]"
+   - endDate: "[Year]"
+   - grade: "[Grade if notable]"
+   </example>
 
+   <example>
    Online Certificate / Course:
-   - institution: "Google (via Coursera)"
-   - degree: "Google Data Analytics Professional Certificate"
+   - institution: "[Provider (via Platform)]"
+   - degree: "[Certificate Name]"
    - field: (omit)
-   - endDate: "2024"
+   - endDate: "[Year]"
+   </example>
+   </examples>
 
    COMMON MISTAKES TO AVOID:
    - Do NOT put the institution name in the "degree" field
@@ -485,8 +494,8 @@ Do NOT use creative or unconventional headers.
    - List skills that MATCH the JD first (but only skills the applicant actually has)
    - Then list additional relevant skills from the applicant's background
    - Match EXACT terminology from job posting WHERE the applicant has the equivalent skill
-   - Example: If JD says "project management" and Master CV shows project management experience → use "Project Management"
-   - Example: If JD says "Kubernetes" and neither CV mentions it → DO NOT ADD IT
+   - If the JD uses a specific term for a skill the applicant demonstrably has, use the JD's exact phrasing
+   - If the JD requires a skill not found in either CV, do NOT add it — accept the lower ATS score
 
 5. WHAT "OPTIMIZATION" MEANS:
    - Rephrasing existing skills to match JD terminology (e.g., "managed teams" → "Project Management")

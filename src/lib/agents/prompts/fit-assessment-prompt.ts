@@ -124,7 +124,7 @@ Each section MUST be separated by a blank line for clear visual readability.
 </section_limits>
 
 <competitive_advantage_rule>
-If the job description mentions a language as "advantage", "preferred", "plus", or "beneficial", AND the applicant has that language at B2 level or higher, highlight it as a KEY STRENGTH in the Strengths section (not just in matching skills). This is a competitive differentiator that should be called out explicitly, e.g., "German B2 is a competitive edge for this role."
+If the job description mentions a language as "advantage", "preferred", "plus", or "beneficial", AND the applicant has that language at B2 level or higher, highlight it as a KEY STRENGTH in the Strengths section (not just in matching skills). Name the specific language and level from the CV and call it out as a competitive differentiator for this role.
 </competitive_advantage_rule>
 
 <strict_rules>

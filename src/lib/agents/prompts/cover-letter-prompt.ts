@@ -93,7 +93,7 @@ ANTI-HALLUCINATION BOUNDARY:
 </jd_contextual_detail_rule>
 
 COMPETITIVE ADVANTAGE — LANGUAGE SKILLS:
-If the job description mentions a language as "advantage", "preferred", "plus", or "beneficial", AND the applicant has that language at B2 level or higher (documented in their CV), the cover letter SHOULD mention this language advantage explicitly. This is a competitive differentiator worth highlighting, e.g., "My German language skills (B2) align well with your preference for candidates with German proficiency."
+If the job description mentions a language as "advantage", "preferred", "plus", or "beneficial", AND the applicant has that language at B2 level or higher (documented in their CV), the cover letter SHOULD mention this language advantage explicitly. Name the specific language and level from the CV and connect it to the JD's stated preference. Weave it naturally into the letter rather than using a standalone sentence.
 
 COVER LETTER SKILL ACCURACY (HIGHEST PRIORITY):
 
@@ -115,7 +115,7 @@ WRITING STYLE:
 === WRITING TONE — MARKET-SPECIFIC RULES ===
 
 PRIMARY MARKET (US/UK/CANADA — English JDs):
-- Confident but not arrogant. "I bring X" not "I believe I could possibly contribute X"
+- Confident but not arrogant. Use direct statements of capability, not hedging language
 - Direct and concise. American/British recruiters value brevity
 - Achievement-led. Open with your strongest quantified result
 - No filler phrases: "I am writing to express my interest" — BANNED
@@ -125,10 +125,10 @@ PRIMARY MARKET (US/UK/CANADA — English JDs):
 - Problem-Solution format: What challenge did you face → What did you do → What was the result
 
 SECONDARY MARKET (EU/GERMAN — German JDs):
-- More formal than US/UK — "Sehr geehrte Damen und Herren" is appropriate
+- More formal than US/UK — use formal Sie-form throughout
+- If the JD names a specific contact person or hiring manager, address them directly (e.g., "Sehr geehrter Herr/Frau [Name]"). If no name is available, use the standard formal greeting
 - Still achievement-led — German recruiters also value quantified results
 - Use professional German business vocabulary — avoid colloquialisms
-- Include "Bewerbungsunterlagen" (application documents) references
 - Address company-specific details from the Stellenanzeige (job posting)
 - Structure: Opening with achievement → Skills match → Company connection → Closing with availability
 - Maintain the Sie-form throughout (formal address)
@@ -146,15 +146,14 @@ LANGUAGE DETECTION:
    - 66% of recruiters prefer half a page or less - respect their time
 
 2. COMPANY CHALLENGE DETECTION: Mine the job description for pain points.
-   - Look for verbs: "improve", "develop", "build", "scale", "optimize", "transform", "grow", "lead"
-   - These reveal problems the company is trying to solve
+   - Look for action verbs that reveal problems the company is trying to solve
    - Reference the inferred challenge in your opening paragraph
-   - Example: JD says "scale our e-commerce operations" → opening addresses scaling challenges
+   - Connect the challenge to the applicant's relevant experience
 
 3. KEYWORD MIRRORING: Include 3-5 EXACT phrases from the job description in the cover letter body.
    - This helps ATS matching AND shows the recruiter you read the posting
    - Integrate naturally, never stuff keywords awkwardly
-   - Example: JD says "cross-functional collaboration" → use that exact phrase
+   - Pull the phrases directly from the JD text each time — do not reuse phrases from prior letters
 
 4. TONE MATCHING:
    - JD uses "you'll", "we're", casual language → write conversationally
@@ -171,7 +170,7 @@ STRUCTURE (Problem-Solution Format):
 1. Opening hook (1-2 sentences): Lead with a REAL achievement from the CV + reference a company challenge inferred from the JD
 2. Value paragraph (2-3 sentences): Connect ACTUAL experience to their needs with REAL metrics from EITHER CV
 3. Confident close (1-2 sentences): Clear, specific call to action
-4. Signature: "Best regards," followed by applicant's full name
+4. Signature: A professional closing appropriate to the JD tone, followed by applicant's full name
 
 === LOCATION INTELLIGENCE ===
 
@@ -181,17 +180,13 @@ Before generating the cover letter, check:
 3. Master CV relocation preferences - read the EXACT text
 
 RELOCATION RULES:
-- If Master CV specifies relocation to specific cities/regions → ONLY mention relocation to those places
-- Example: "Ready to relocate to major German cities" → can mention Munich, Berlin, Hamburg - CANNOT mention New York, Toronto, London
+- If Master CV specifies relocation to specific cities/regions → ONLY mention relocation to those exact places
+- If the Master CV says a general area, only reference cities/countries within that area — never extrapolate to other regions
 - If job is fully remote → Do NOT mention relocation
 - If Master CV has no relocation statement → Do NOT mention relocation
 
 INTERNATIONAL RELOCATION RULE:
-If the job is on-site or hybrid AND in a different country from the applicant's current location, AND the Master CV contains a relocation statement that covers the job's country or region, the cover letter MUST include a brief, confident statement about relocation readiness. Do not ignore the geographic gap — address it proactively.
-
-Examples:
-- US role, applicant in Germany, Master CV says "open to international relocation": "I'm currently based in Germany and ready to relocate to [city] to join your team."
-- UK role, applicant in Germany, Master CV covers UK: "I'm prepared to relocate to the UK and can start within [timeframe]."
+If the job is on-site or hybrid AND in a different country from the applicant's current location, AND the Master CV contains a relocation statement that covers the job's country or region, the cover letter MUST include a brief, confident statement about relocation readiness. State the applicant's current location and their willingness to relocate to the job's location. Do not ignore the geographic gap — address it proactively.
 
 Do NOT mention relocation for:
 - Fully remote roles
@@ -251,25 +246,31 @@ You MUST use these specific replacements instead:
 Hyphens (-) are allowed ONLY in compound words (e.g., "full-time"), job titles, and date ranges.
 
 <examples>
+These show ONLY the punctuation fix pattern. Do not reuse any names, phrases, or content from these examples in your output.
 <example>
-WRONG: "meiner Plattformen — Kursfind AI und Karko AI — habe ich"
-RIGHT: "meiner Plattformen (Kursfind AI und Karko AI) habe ich"
+WRONG: "[phrase A] — [phrase B] — [phrase C]"
+RIGHT: "[phrase A] ([phrase B]) [phrase C]"
+Replacement used: parentheses for parenthetical aside
 </example>
 <example>
-WRONG: "Listing-Optimierung — was mir tiefe Kenntnisse vermittelt hat"
-RIGHT: "Listing-Optimierung, was mir tiefe Kenntnisse vermittelt hat"
+WRONG: "[activity] — [subordinate clause]"
+RIGHT: "[activity], [subordinate clause]"
+Replacement used: comma for continuation
 </example>
 <example>
-WRONG: "I built two AI products — and both are in production"
-RIGHT: "I built two AI products. Both are in production."
+WRONG: "[statement A] — [statement B]"
+RIGHT: "[statement A]. [Statement B]."
+Replacement used: period for two separate statements
 </example>
 <example>
-WRONG: "My experience spans three domains — fintech, healthtech, and e-commerce"
-RIGHT: "My experience spans three domains: fintech, healthtech, and e-commerce."
+WRONG: "[intro] — [list item 1], [list item 2], and [list item 3]"
+RIGHT: "[intro]: [list item 1], [list item 2], and [list item 3]."
+Replacement used: colon to introduce a list
 </example>
 <example>
-WRONG: "I led a cross-functional team — including engineers and designers — to deliver on time"
-RIGHT: "I led a cross-functional team (including engineers and designers) to deliver on time."
+WRONG: "[main clause] — [qualifier] — [continuation]"
+RIGHT: "[main clause] ([qualifier]) [continuation]."
+Replacement used: parentheses for inline qualifier
 </example>
 </examples>
 
@@ -286,21 +287,23 @@ OUTPUT FORMAT:
 
 === COVER LETTER STRUCTURE (Problem-Solution Format) ===
 
-[Opening - hooks with achievement from CV, shows understanding of company challenge]
-"After [INSERT EXACT METRIC FROM PRIMARY CV OR MASTER CV], I've developed [SKILL RELEVANT TO JOB]. When I saw your [JOB TITLE] role, I recognized the exact challenge I've been solving: [INFER CHALLENGE FROM JD VERBS]."
+The cover letter body has exactly 3 paragraphs. Each paragraph has a specific purpose — write original prose for each, do not follow any sentence template:
 
-[Value paragraph - specific experience matched to their needs using ONLY CV facts]
-"In my role as [EXACT TITLE FROM CV], I [EXACT ACHIEVEMENT WITH EXACT METRIC FROM EITHER CV]. My experience with [TOOLS ACTUALLY LISTED IN EITHER CV] positions me to [BENEFIT TO COMPANY]."
+PARAGRAPH 1 — OPENING HOOK (1-2 sentences):
+Purpose: Grab attention immediately. Lead with a real, verified achievement from the CV (with a metric if one exists) and connect it to a challenge you infer from the JD's action verbs.
 
-[Confident close - specific and action-oriented]
-"I'd welcome the opportunity to discuss how my [SKILL FROM CV] experience can [BENEFIT]. I'm available for a call this week or next."
+PARAGRAPH 2 — VALUE MATCH (2-3 sentences):
+Purpose: Demonstrate fit. Reference your actual job title and real accomplishments from either CV. Name tools and skills you genuinely have that match JD requirements. Include at least one verified metric.
+
+PARAGRAPH 3 — CONFIDENT CLOSE (1-2 sentences):
+Purpose: End with a clear, specific call to action about next steps and availability.
 
 INSTRUCTIONS:
-1. Use the Problem-Solution format shown in the structure
+1. Write each paragraph as original prose — vary sentence structure, length, and vocabulary across letters
 2. Include at least TWO specific metrics from the candidate's background (from EITHER Primary CV or Master CV)
-3. Keep UNDER 250 words in the body (excluding header and signature) - brevity is critical
+3. Keep UNDER 250 words in the body (excluding header and signature) — brevity is critical
 4. CRITICAL: Every claim, skill, tool, platform, and metric MUST exist in EITHER the Primary CV or Master CV
-5. If the job requires skills not in either CV, show TRANSFERABLE skills instead - NEVER claim missing skills
+5. If the job requires skills not in either CV, show TRANSFERABLE skills instead — NEVER claim missing skills
 6. Include 3-5 exact keyword phrases from the job description
 7. NEVER omit the signature. A cover letter without a signature is incomplete.
 
@@ -360,14 +363,10 @@ SKILLS YOU MUST NOT CLAIM:
 ${match.missingSkills.join(', ')}
 
 Instead of claiming missing skills, emphasize:
-- Transferable skills from the applicant's actual background
+- Transferable skills from the applicant's actual background — name the tools and technologies the applicant DOES have and explain how they transfer
 - Builder mindset and learning ability
 - Relevant projects that demonstrate adjacent competency
 - Concrete achievements with real metrics
-
-EXAMPLE (for a role where Python is MISSING):
-WRONG: "I've built applications using Python and LangChain"
-RIGHT: "I've built two production AI applications using Node.js, Next.js, and LLM APIs — demonstrating the engineering fundamentals that transfer directly to Python-based AI development"
 ` : ''}
 === RELOCATION CONSTRAINT (BINDING) ===
 Job location: ${job?.location || 'Not specified'}
@@ -392,7 +391,7 @@ ${today}
 
 ${job?.companyName || 'Unternehmen'}
 
-IMPORTANT: After the company name, go directly to the greeting (e.g., "Sehr geehrte Damen und Herren,"). Do NOT include any company address lines. Do NOT use bracketed placeholders like "[Firmenadresse]", "[PLZ Stadt]", or "[Abteilung]". If the JD contains a specific company address, you may include it — otherwise omit it entirely and keep the header clean.` : `The cover letter MUST start with this exact header structure (EN market format):
+IMPORTANT: After the company name, go directly to the greeting. If the JD names a specific hiring manager or contact person, address them by name. Otherwise use a standard formal German greeting. Do NOT include any company address lines. Do NOT use bracketed placeholders. If the JD contains a specific company address, you may include it — otherwise omit it entirely and keep the header clean.` : `The cover letter MUST start with this exact header structure (EN market format):
 
 ${applicant?.name || 'Applicant Name'}
 ${applicant?.address || 'City, Country'}
@@ -410,18 +409,16 @@ IMPORTANT: Do NOT include a company address line. Do NOT include any bracketed p
 ${isGerman ? `CRITICAL: Write the ENTIRE cover letter in GERMAN.
 - Use formal German "Sie" form
 - German business letter format
-- Closing: "Mit freundlichen Grüßen," instead of "Best regards,"
-- German date format: "3. Februar 2026"
+- Use a professional German closing appropriate to the JD tone
+- German date format (e.g., day. month year)
 - Keep name and contact details as-is` : 'Write the cover letter in English.'}
 
 REQUIRED SIGNATURE FORMAT:
-The cover letter MUST end with exactly this format:
+The cover letter MUST end with a closing sentence about availability/next steps, followed by a professional sign-off and the applicant's full name on a separate line.
 
-[Your closing sentence about availability/next steps]
+Choose a sign-off appropriate to the JD tone and language. For English, vary between options like "Best regards," / "Kind regards," / "Sincerely," based on formality. For German, use "Mit freundlichen Grüßen," for formal JDs or "Mit besten Grüßen," for more casual ones.
 
-Best regards,
-
-${applicant?.name || 'Applicant Name'}
+Applicant name for signature: ${applicant?.name || 'Applicant Name'}
 
 Write the complete cover letter now (including signature):`;
 }
