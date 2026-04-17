@@ -9,14 +9,11 @@ export function useDashboardTour() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    // Desktop only — mobile layout is completely different
     if (window.innerWidth < 768) return;
-    // Only once per browser — persists across refreshes
     if (localStorage.getItem(TOUR_KEY) === 'done') return;
     if (hasTriggered.current) return;
     hasTriggered.current = true;
 
-    // Wait for the page to fully render before starting
     const timer = setTimeout(async () => {
       const { driver } = await import('driver.js');
 
@@ -25,7 +22,7 @@ export function useDashboardTour() {
         progressText: '{{current}} of {{total}}',
         nextBtnText: 'Next →',
         prevBtnText: '← Back',
-        doneBtnText: 'Got it!',
+        doneBtnText: 'Done ✓',
         overlayColor: 'rgba(15, 48, 87, 0.72)',
         popoverClass: 'karko-tour-popover',
         onDestroyStarted: () => {
@@ -38,7 +35,7 @@ export function useDashboardTour() {
             popover: {
               title: 'Upload Your CV',
               description:
-                'This is where everything begins. Upload your existing CV (PDF, DOCX, or TXT — up to 10 MB) and Karko AI will use it as the source of truth for every application.',
+                'Start here. PDF, DOCX, or TXT up to 10 MB. Everything Karko generates is built from your CV.',
               side: 'right',
               align: 'center',
             },
@@ -46,9 +43,9 @@ export function useDashboardTour() {
           {
             element: '#tour-doc-tabs',
             popover: {
-              title: 'Your Output Panels',
+              title: 'Your Output Tabs',
               description:
-                'After generating, your tailored <strong>CV</strong>, <strong>ATS Score</strong>, <strong>Cover Letter</strong>, and <strong>Application Email</strong> each get their own tab. Switch between <strong>6 ATS-friendly templates</strong> inside the CV panel.',
+                'Your tailored <strong>CV</strong>, <strong>Cover Letter</strong>, and <strong>Email</strong> each get their own tab. Switch between <strong>6 ATS-friendly templates</strong> inside the CV tab.',
               side: 'bottom',
               align: 'start',
             },
@@ -58,7 +55,7 @@ export function useDashboardTour() {
             popover: {
               title: 'Paste a Job Description',
               description:
-                'Drop any job posting here and Karko AI will tailor your entire application to match it — CV, cover letter, and email in one go.',
+                'Drop any job posting here. Karko tailors your full application to match it — CV, cover letter, and email in one go.',
               side: 'left',
               align: 'center',
             },
@@ -68,7 +65,7 @@ export function useDashboardTour() {
             popover: {
               title: 'Two Application Modes',
               description:
-                '<strong>Apply Directly</strong> — generates your full application in one shot (2 credits).<br><br><strong>Analyze First</strong> — shows your match score and skill gaps before generating (0.5 + 2 credits).',
+                '<strong>Apply Directly</strong> — full application in one shot (2 credits).<br><strong>Analyze First</strong> — see your match score before generating (0.5 + 2 credits).',
               side: 'top',
               align: 'center',
             },
@@ -78,7 +75,7 @@ export function useDashboardTour() {
             popover: {
               title: 'Application Tracker',
               description:
-                'Every application you generate is automatically saved here — company, role, match score, and all your documents. Track status from applied to offer, all in one place.',
+                'Every application saves here automatically. Track status from applied to offer, and access all your documents in one place.',
               side: 'bottom',
               align: 'center',
             },
@@ -86,9 +83,9 @@ export function useDashboardTour() {
           {
             element: '#tour-cv-upload',
             popover: {
-              title: "You're ready!",
+              title: "You're all set!",
               description:
-                "Start by uploading your CV right here. Your first tailored application is 90 seconds away.",
+                'Upload your CV right here to get started. Your first tailored application is about 90 seconds away.',
               side: 'right',
               align: 'center',
             },
@@ -96,7 +93,31 @@ export function useDashboardTour() {
         ],
       });
 
-      driverObj.drive();
+      // Show opt-in welcome modal before starting the tour
+      const overlay = document.createElement('div');
+      overlay.className = 'karko-tour-welcome-overlay';
+      overlay.innerHTML = `
+        <div class="karko-tour-welcome-card">
+          <div class="karko-tour-welcome-icon">✦</div>
+          <h2 class="karko-tour-welcome-title">Want a quick tour?</h2>
+          <p class="karko-tour-welcome-desc">See the key features in about 30 seconds.</p>
+          <div class="karko-tour-welcome-actions">
+            <button class="karko-tour-skip-btn">Skip</button>
+            <button class="karko-tour-start-btn">Show me →</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      overlay.querySelector('.karko-tour-start-btn')?.addEventListener('click', () => {
+        overlay.remove();
+        driverObj.drive();
+      });
+
+      overlay.querySelector('.karko-tour-skip-btn')?.addEventListener('click', () => {
+        localStorage.setItem(TOUR_KEY, 'done');
+        overlay.remove();
+      });
     }, 900);
 
     return () => clearTimeout(timer);

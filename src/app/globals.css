@@ -512,147 +512,253 @@ body {
 
 /* ─── Driver.js Tour — Karko Premium Design ─── */
 .karko-tour-popover.driver-popover {
-  background: linear-gradient(160deg, #FFFFFF 0%, #FEFDFB 40%, #FAF7F2 100%);
+  background: #FFFFFF;
   border: none;
-  border-radius: 20px;
+  border-radius: 16px;
   box-shadow:
-    0 0 0 1px rgba(30, 58, 95, 0.06),
-    0 4px 12px rgba(30, 58, 95, 0.06),
-    0 16px 48px rgba(30, 58, 95, 0.12),
-    0 32px 80px rgba(30, 58, 95, 0.08);
-  padding: 28px 26px 22px;
-  max-width: 340px;
+    0 0 0 1px rgba(30, 58, 95, 0.07),
+    0 8px 24px rgba(30, 58, 95, 0.10),
+    0 24px 56px rgba(30, 58, 95, 0.10);
+  padding: 0;
+  max-width: 320px;
   font-family: Arial, -apple-system, BlinkMacSystemFont, sans-serif;
-  backdrop-filter: blur(8px);
+  overflow: hidden;
+}
+
+/* Gold accent line at the top of every step */
+.karko-tour-popover.driver-popover::before {
+  content: '';
+  display: block;
+  height: 3px;
+  background: linear-gradient(90deg, #D4A853 0%, #E8C27A 50%, #D4A853 100%);
+  border-radius: 16px 16px 0 0;
 }
 
 .karko-tour-popover .driver-popover-title {
-  color: #1E3A5F;
-  font-size: 16px;
+  color: #0F3057;
+  font-size: 15px;
   font-weight: 800;
   letter-spacing: -0.02em;
-  margin-bottom: 10px;
+  margin: 20px 22px 6px;
   line-height: 1.25;
   font-family: Georgia, 'Times New Roman', serif;
 }
 
 .karko-tour-popover .driver-popover-description {
-  color: #5A6577;
-  font-size: 13.5px;
-  line-height: 1.65;
-  letter-spacing: 0.005em;
+  color: #64748B;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0 22px;
 }
 
 .karko-tour-popover .driver-popover-description strong {
-  color: #1E3A5F;
+  color: #0F3057;
   font-weight: 700;
 }
 
 .karko-tour-popover .driver-popover-footer {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(235, 228, 216, 0.6);
+  margin: 16px 22px 18px;
+  padding-top: 14px;
+  border-top: 1px solid #F1EDE6;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
 
 .karko-tour-popover .driver-popover-progress-text {
-  color: #B0A99A;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
+  color: #C4B9AA;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .karko-tour-popover .driver-popover-prev-btn {
   background: transparent;
-  border: 1.5px solid #E5DDD0;
-  color: #7A7A8C;
-  font-size: 12.5px;
+  border: 1.5px solid #E8E0D5;
+  color: #94A3B8;
+  font-size: 12px;
   font-weight: 600;
-  padding: 8px 16px;
-  border-radius: 10px;
+  padding: 7px 14px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
 }
 
 .karko-tour-popover .driver-popover-prev-btn:hover {
-  background: #F5F0E8;
+  background: #F8F4EE;
   border-color: #D4CFC4;
-  color: #1E3A5F;
-  transform: translateY(-1px);
+  color: #0F3057;
 }
 
 .karko-tour-popover .driver-popover-next-btn,
 .karko-tour-popover .driver-popover-done-btn {
-  background: linear-gradient(145deg, #1E3A5F 0%, #152D4A 100%);
+  background: #0F3057;
   border: none;
   color: #fff;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
-  padding: 8px 18px;
-  border-radius: 10px;
+  padding: 7px 16px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow:
-    0 2px 8px rgba(30, 58, 95, 0.3),
-    0 0 0 1px rgba(30, 58, 95, 0.1) inset;
+  transition: all 0.18s ease;
   letter-spacing: 0.01em;
 }
 
-.karko-tour-popover .driver-popover-next-btn:hover,
-.karko-tour-popover .driver-popover-done-btn:hover {
-  background: linear-gradient(145deg, #253F65 0%, #1E3A5F 100%);
-  box-shadow:
-    0 4px 16px rgba(30, 58, 95, 0.35),
-    0 0 0 1px rgba(30, 58, 95, 0.15) inset;
+.karko-tour-popover .driver-popover-next-btn:hover {
+  background: #1A4070;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 48, 87, 0.25);
 }
 
 .karko-tour-popover .driver-popover-done-btn {
-  background: linear-gradient(145deg, #D4A853 0%, #C4932E 100%);
-  box-shadow:
-    0 2px 8px rgba(196, 147, 46, 0.35),
-    0 0 0 1px rgba(212, 168, 83, 0.2) inset;
+  background: linear-gradient(135deg, #D4A853 0%, #C4932E 100%);
+  box-shadow: 0 2px 8px rgba(196, 147, 46, 0.3);
 }
 
 .karko-tour-popover .driver-popover-done-btn:hover {
-  background: linear-gradient(145deg, #C4932E 0%, #A37824 100%);
-  box-shadow:
-    0 4px 16px rgba(196, 147, 46, 0.4),
-    0 0 0 1px rgba(212, 168, 83, 0.3) inset;
+  background: linear-gradient(135deg, #C4932E 0%, #A37824 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(196, 147, 46, 0.4);
 }
 
 .karko-tour-popover .driver-popover-close-btn {
-  color: #C4BFB3;
-  font-size: 20px;
-  top: 16px;
-  right: 16px;
-  width: 28px;
-  height: 28px;
+  color: #CBD5E1;
+  font-size: 18px;
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 6px;
   transition: all 0.15s ease;
+  line-height: 1;
 }
 
 .karko-tour-popover .driver-popover-close-btn:hover {
-  color: #1E3A5F;
-  background: rgba(235, 228, 216, 0.5);
+  color: #0F3057;
+  background: #F1EDE6;
 }
 
 .karko-tour-popover .driver-popover-arrow-side-left.driver-popover-arrow {
-  border-left-color: #FEFDFB;
+  border-left-color: #FFFFFF;
 }
 .karko-tour-popover .driver-popover-arrow-side-right.driver-popover-arrow {
-  border-right-color: #FEFDFB;
+  border-right-color: #FFFFFF;
 }
 .karko-tour-popover .driver-popover-arrow-side-top.driver-popover-arrow {
-  border-top-color: #FEFDFB;
+  border-top-color: #FFFFFF;
 }
 .karko-tour-popover .driver-popover-arrow-side-bottom.driver-popover-arrow {
-  border-bottom-color: #FEFDFB;
+  border-bottom-color: #FFFFFF;
+}
+
+/* ─── Tour Welcome Modal ─── */
+.karko-tour-welcome-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 48, 87, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: karko-fade-in 0.25s ease;
+}
+
+@keyframes karko-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.karko-tour-welcome-card {
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 40px 36px 32px;
+  max-width: 360px;
+  width: 90%;
+  text-align: center;
+  box-shadow:
+    0 0 0 1px rgba(30, 58, 95, 0.07),
+    0 16px 48px rgba(15, 48, 87, 0.16),
+    0 40px 80px rgba(15, 48, 87, 0.10);
+  animation: karko-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes karko-slide-up {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.karko-tour-welcome-icon {
+  font-size: 28px;
+  color: #D4A853;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.karko-tour-welcome-title {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0F3057;
+  letter-spacing: -0.03em;
+  margin: 0 0 10px;
+  line-height: 1.2;
+}
+
+.karko-tour-welcome-desc {
+  font-size: 14px;
+  color: #64748B;
+  margin: 0 0 28px;
+  line-height: 1.55;
+}
+
+.karko-tour-welcome-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.karko-tour-skip-btn {
+  background: transparent;
+  border: 1.5px solid #E8E0D5;
+  color: #94A3B8;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 22px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-family: Arial, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.karko-tour-skip-btn:hover {
+  background: #F8F4EE;
+  border-color: #D4CFC4;
+  color: #0F3057;
+}
+
+.karko-tour-start-btn {
+  background: #0F3057;
+  border: none;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 24px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  letter-spacing: 0.01em;
+  font-family: Arial, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.karko-tour-start-btn:hover {
+  background: #1A4070;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(15, 48, 87, 0.25);
 }
