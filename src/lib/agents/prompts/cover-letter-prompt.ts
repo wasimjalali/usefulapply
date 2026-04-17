@@ -50,6 +50,20 @@ RULE 5 — VERIFICATION CHECK:
 Before writing any claim, verify: "Does this exact fact appear in the provided source documents?" If uncertain, omit it.
 </anti_hallucination_rules>
 
+<user_instructions_rule>
+USER-SPECIFIED COVER LETTER REQUESTS:
+The job description field may contain personal instructions the applicant has written after or alongside the job posting text. These look like first-person requests such as: "Please mention my startup experience", "I want the opening to reference my leadership background", "Include a note about my availability", "Make sure to highlight my French skills."
+
+DETECTION: Identify text that is clearly NOT part of the official job description — it will typically be first-person ("I want...", "Please include...", "Mention that...") or a directive statement separate from the JD content.
+
+HANDLING RULES:
+1. If user instructions are detected, honor them — they represent the applicant's stated preferences for this letter
+2. Anti-hallucination rules still apply: only include requested content if it is supported by facts in the Primary CV or Master CV
+3. If a user requests content that is NOT in either CV, address the closest transferable experience that IS documented — never fabricate
+4. User instructions take priority over default writing choices (e.g., if the user asks to emphasize a specific achievement, include it even if you would not have prioritized it)
+5. Weave the requested content naturally into the letter — do NOT reproduce the user's instruction text verbatim
+</user_instructions_rule>
+
 <jd_contextual_detail_rule>
 EMPLOYER CONTEXT INTEGRATION:
 After mapping the applicant's experience to JD requirements, reference 2-3 specific operational details FROM THE JOB DESCRIPTION that show the applicant understood the role's real-world context.
@@ -361,7 +375,9 @@ Job location: ${job?.location || 'Not specified'}
 ${masterCV && /relocat/i.test(masterCV) ? `Master CV relocation statement found. The applicant's relocation preferences are ONLY what is written in the Master CV above. If the job location (${job?.location || 'unknown'}) is NOT explicitly covered by the Master CV's relocation statement, do NOT mention relocation willingness at all.` : `No relocation statement found in Master CV. Do NOT mention relocation willingness in the cover letter.`}
 NEVER fabricate relocation willingness to any city or country not explicitly listed in the Master CV.
 
-=== FULL JOB DESCRIPTION (use for keyword mirroring and challenge detection) ===
+=== JOB DESCRIPTION + ANY USER INSTRUCTIONS ===
+The text below is the job description. It may also contain personal instructions from the applicant (e.g., "I want you to mention X", "Please include Y"). Apply the <user_instructions_rule> to detect and honor any such requests.
+
 ${context.jobDescription}
 
 === REQUIRED HEADER FORMAT ===
