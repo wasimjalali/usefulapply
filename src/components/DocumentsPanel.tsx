@@ -511,10 +511,10 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                       </div>
                       {(() => {
                         const charCount = currentCV.rawText?.length || 0;
-                        const maxChars = 10_000;
+                        const maxChars = 20_000;
                         const pct = Math.min(100, (charCount / maxChars) * 100);
-                        const colorClass = charCount > maxChars ? 'text-red-500' : charCount > 8_000 ? 'text-amber-600' : 'text-gold-600';
-                        const barColor = charCount > maxChars ? 'bg-red-400' : charCount > 8_000 ? 'bg-amber-400' : 'bg-gold-400';
+                        const colorClass = charCount > maxChars ? 'text-red-500' : charCount > 16_000 ? 'text-amber-600' : 'text-gold-600';
+                        const barColor = charCount > maxChars ? 'bg-red-400' : charCount > 16_000 ? 'bg-amber-400' : 'bg-gold-400';
                         return (
                           <div className="mt-2 px-1">
                             <div className="flex items-center justify-between mb-1">
@@ -678,10 +678,10 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                         </div>
                         {(() => {
                           const charCount = masterCV.rawText?.length || 0;
-                          const maxChars = 20_000;
+                          const maxChars = 30_000;
                           const pct = Math.min(100, (charCount / maxChars) * 100);
-                          const colorClass = charCount > maxChars ? 'text-red-500' : charCount > 16_000 ? 'text-amber-600' : 'text-gold-600';
-                          const barColor = charCount > maxChars ? 'bg-red-400' : charCount > 16_000 ? 'bg-amber-400' : 'bg-gold-400';
+                          const colorClass = charCount > maxChars ? 'text-red-500' : charCount > 24_000 ? 'text-amber-600' : 'text-gold-600';
+                          const barColor = charCount > maxChars ? 'bg-red-400' : charCount > 24_000 ? 'bg-amber-400' : 'bg-gold-400';
                           return (
                             <div className="mt-2 px-1">
                               <div className="flex items-center justify-between mb-1">
@@ -846,10 +846,10 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                   </div>
                   {(() => {
                     const charCount = currentCV.rawText?.length || 0;
-                    const maxChars = 10_000;
+                    const maxChars = 20_000;
                     const pct = Math.min(100, (charCount / maxChars) * 100);
-                    const colorClass = charCount > maxChars ? 'text-red-500' : charCount > 8_000 ? 'text-amber-600' : 'text-gold-600';
-                    const barColor = charCount > maxChars ? 'bg-red-400' : charCount > 8_000 ? 'bg-amber-400' : 'bg-gold-400';
+                    const colorClass = charCount > maxChars ? 'text-red-500' : charCount > 16_000 ? 'text-amber-600' : 'text-gold-600';
+                    const barColor = charCount > maxChars ? 'bg-red-400' : charCount > 16_000 ? 'bg-amber-400' : 'bg-gold-400';
                     return (
                       <div className="mt-2 px-1">
                         <div className="flex items-center justify-between mb-1">
