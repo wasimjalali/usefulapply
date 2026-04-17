@@ -264,7 +264,7 @@ export default function Dashboard() {
           <KarkoLogo variant="full" size="xs" theme="light" />
         </Link>
 
-        {/* Document Tabs — CV, ATS Score, Cover Letter, Email */}
+        {/* Document Tabs — CV, Cover Letter, Email, ATS Score */}
         <div id="tour-doc-tabs" className="flex items-center bg-cream-100/80 rounded-xl p-0.5 ml-4">
           <button
             type="button"
@@ -277,18 +277,6 @@ export default function Dashboard() {
           >
             <FileText className={`w-3.5 h-3.5 ${activeTab === 'cv' ? 'text-gold-500' : ''}`} />
             CV
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('ats-score')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'ats-score'
-                ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
-                : 'text-warm-gray hover:text-navy-600'
-            }`}
-          >
-            <Target className={`w-3.5 h-3.5 ${activeTab === 'ats-score' ? 'text-gold-500' : ''}`} />
-            ATS Score
           </button>
           <button
             type="button"
@@ -313,6 +301,18 @@ export default function Dashboard() {
           >
             <Send className={`w-3.5 h-3.5 ${activeTab === 'email' ? 'text-gold-500' : ''}`} />
             Email
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('ats-score')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'ats-score'
+                ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
+                : 'text-warm-gray hover:text-navy-600'
+            }`}
+          >
+            <Target className={`w-3.5 h-3.5 ${activeTab === 'ats-score' ? 'text-gold-500' : ''}`} />
+            ATS Score
           </button>
 
           {/* Divider */}
