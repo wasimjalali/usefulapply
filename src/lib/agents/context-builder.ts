@@ -404,9 +404,17 @@ A 70% score should mean the candidate is genuinely competitive for the role. Our
 
 If the job description mentions a language as "advantage", "preferred", "plus", "beneficial", or "significant advantage", AND the applicant has that language at B2 level or higher, classify it as a MATCHING skill and flag it prominently in the matching list. This is a competitive differentiator that many candidates will lack. Similarly, if a nice-to-have skill is something the applicant demonstrably has, include it in matching to reflect the competitive edge.
 
+=== UNIVERSAL SOFT SKILLS (IMPLICIT MATCH) ===
+
+The following soft skills are considered universally held by working professionals. If any of these appear in the JD requirements, classify them as MATCHING — do NOT list them as missing. They inflate the gap list without providing useful signal:
+
+teamwork, team player, communication skills, problem-solving, critical thinking, analytical thinking, time management, attention to detail, organizational skills, adaptability, flexibility, self-motivated, self-starter, work ethic, reliability, interpersonal skills, multitasking, collaboration, proactive, initiative, positive attitude, willingness to learn, fast learner, quick learner, ability to work under pressure, deadline-oriented, results-oriented, goal-oriented, detail-oriented, customer-oriented, service-oriented, strong work ethic, ability to work independently, ability to work in a team, team-oriented, hands-on mentality, Teamfähigkeit, Kommunikationsfähigkeit, Eigeninitiative, Flexibilität, Belastbarkeit, Selbstständigkeit, Zuverlässigkeit, analytisches Denken, strukturierte Arbeitsweise, Hands-on-Mentalität, lösungsorientiert, Organisationstalent, Lernbereitschaft, Einsatzbereitschaft
+
+This list covers both English and German variants. Match case-insensitively. If a JD requirement is essentially one of these soft skills (even phrased differently), treat it as an implicit match.
+
 === GAP DETECTION RULES ===
 
-1. List EVERY specific tool, technology, framework, methodology, or qualification from the JD that is NOT explicitly documented in the applicant's source CVs.
+1. List EVERY specific tool, technology, framework, methodology, or qualification from the JD that is NOT explicitly documented in the applicant's source CVs. Do NOT list universal soft skills from the list above as gaps.
 
 2. Do NOT collapse multiple items into categories. Each tool is its own gap:
    WRONG: "CMS-Systeme (WordPress, Shopify oder ähnliche)" — this is ONE entry hiding THREE gaps
@@ -476,6 +484,30 @@ Return ONLY valid JSON, no explanation.`,
   }
 }
 
+const UNIVERSAL_SOFT_SKILLS = new Set([
+  'teamwork', 'team player', 'communication skills', 'problem-solving', 'problem solving',
+  'critical thinking', 'analytical thinking', 'time management', 'attention to detail',
+  'organizational skills', 'adaptability', 'flexibility', 'self-motivated', 'self-starter',
+  'work ethic', 'reliability', 'interpersonal skills', 'multitasking', 'collaboration',
+  'proactive', 'initiative', 'positive attitude', 'willingness to learn', 'fast learner',
+  'quick learner', 'ability to work under pressure', 'deadline-oriented', 'results-oriented',
+  'goal-oriented', 'detail-oriented', 'customer-oriented', 'service-oriented',
+  'strong work ethic', 'ability to work independently', 'ability to work in a team',
+  'team-oriented', 'hands-on mentality', 'teamfähigkeit', 'kommunikationsfähigkeit',
+  'eigeninitiative', 'flexibilität', 'belastbarkeit', 'selbstständigkeit', 'zuverlässigkeit',
+  'analytisches denken', 'strukturierte arbeitsweise', 'hands-on-mentalität',
+  'lösungsorientiert', 'organisationstalent', 'lernbereitschaft', 'einsatzbereitschaft',
+]);
+
+function isUniversalSoftSkill(skill: string): boolean {
+  const lower = skill.toLowerCase().trim();
+  if (UNIVERSAL_SOFT_SKILLS.has(lower)) return true;
+  for (const s of UNIVERSAL_SOFT_SKILLS) {
+    if (lower.includes(s) || s.includes(lower)) return true;
+  }
+  return false;
+}
+
 /**
  * Fallback string-based skill matching (used if LLM matching fails)
  */
@@ -506,6 +538,10 @@ export function computeSkillMatchFallback(
 
   for (const skill of requiredSkills) {
     const skillLower = skill.toLowerCase();
+    if (isUniversalSoftSkill(skill)) {
+      matchingSkills.push(skill);
+      continue;
+    }
     const hasSkill = [...applicantSkills].some(
       s => s.includes(skillLower) || skillLower.includes(s)
     );

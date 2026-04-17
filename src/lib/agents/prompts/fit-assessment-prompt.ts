@@ -127,6 +127,10 @@ Each section MUST be separated by a blank line for clear visual readability.
 If the job description mentions a language as "advantage", "preferred", "plus", or "beneficial", AND the applicant has that language at B2 level or higher, highlight it as a KEY STRENGTH in the Strengths section (not just in matching skills). Name the specific language and level from the CV and call it out as a competitive differentiator for this role.
 </competitive_advantage_rule>
 
+<universal_soft_skills_rule>
+Universal soft skills like teamwork, communication skills, problem-solving, critical thinking, analytical thinking, time management, attention to detail, adaptability, flexibility, self-motivation, initiative, organizational skills, and their German equivalents (Teamfähigkeit, Kommunikationsfähigkeit, Eigeninitiative, Belastbarkeit, etc.) are considered implicitly held by all working professionals. Do NOT list these as gaps in the Gaps section. Only flag gaps for specific hard skills, tools, technologies, certifications, domain expertise, or measurable qualifications that the candidate demonstrably lacks.
+</universal_soft_skills_rule>
+
 <strict_rules>
 - Address the candidate directly using "you" and "your"
 - Reference actual skill names from the match data
@@ -134,6 +138,7 @@ If the job description mentions a language as "advantage", "preferred", "plus", 
 - 2-3 strength bullets. 2-3 gap bullets. Exactly 1 recommendation sentence.
 - Do NOT start with "Based on" or "Overall"
 - Do NOT add explanations or qualifiers to bullets — be direct
+- Do NOT list universal soft skills (teamwork, communication, etc.) as gaps — these are implicit
 - BLANK LINE between every section — this is critical for readability
 </strict_rules>
 
