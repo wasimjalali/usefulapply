@@ -229,6 +229,8 @@ export default function Home() {
       {/* How It Works */}
       <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
         <div className="absolute inset-0 dot-grid opacity-20" />
+        <div className="absolute top-[-5%] left-[-8%] w-[400px] h-[400px] bg-gradient-to-br from-gold-200/20 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-1" />
+        <div className="absolute bottom-[-5%] right-[-8%] w-[350px] h-[350px] bg-gradient-to-tl from-navy-200/10 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-2" />
         <div className="max-w-6xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-14">
@@ -313,11 +315,12 @@ export default function Home() {
 
       {/* Product Showcase */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-100/30 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-navy-100/20 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl pointer-events-none" />
-        <div className="max-w-6xl mx-auto relative">
+        <div className="absolute top-[10%] right-[-5%] w-[500px] h-[500px] bg-gradient-to-bl from-gold-200/25 via-gold-100/15 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-2" />
+        <div className="absolute top-[50%] left-[-5%] w-[400px] h-[400px] bg-gradient-to-tr from-navy-200/10 via-navy-100/5 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-1" />
+        <div className="absolute bottom-[10%] right-[10%] w-[300px] h-[300px] bg-gradient-to-bl from-gold-100/20 to-transparent rounded-full blur-2xl pointer-events-none animate-hero-orb-3" />
+        <div className="max-w-5xl mx-auto relative">
           <ScrollReveal>
-          <div className="text-center mb-12">
+          <div className="text-center mb-14">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">See It in Action</p>
             <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
               Everything You Get, In One Place
@@ -327,9 +330,7 @@ export default function Home() {
             </p>
           </div>
           </ScrollReveal>
-          <ScrollReveal delay={150}>
-            <ProductShowcase />
-          </ScrollReveal>
+          <ProductShowcase />
         </div>
       </section>
 
@@ -337,8 +338,11 @@ export default function Home() {
       <TrustpilotReviews />
 
       {/* Why Trust Karko AI */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white relative">
-        <div className="max-w-6xl mx-auto">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white relative overflow-hidden">
+        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] bg-gradient-to-bl from-gold-100/25 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-3" />
+        <div className="absolute bottom-[10%] left-[-5%] w-[300px] h-[300px] bg-gradient-to-tr from-navy-100/15 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-1" />
+        <div className="absolute top-[60%] left-[50%] w-12 h-12 border border-gold-200/20 rounded-lg rotate-12 animate-float-slow pointer-events-none" />
+        <div className="max-w-6xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-14">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Why Trust Karko AI</p>
@@ -428,6 +432,8 @@ export default function Home() {
       {/* Founder Story */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
         <div className="absolute inset-0 dot-grid opacity-20" />
+        <div className="absolute top-[10%] right-[-3%] w-[350px] h-[350px] bg-gradient-to-bl from-gold-200/20 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-2" />
+        <div className="absolute bottom-[5%] left-[-3%] w-[250px] h-[250px] bg-gradient-to-tr from-navy-200/10 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-3" />
         <div className="max-w-5xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-14">
@@ -480,8 +486,12 @@ export default function Home() {
       </section>
 
       {/* Pricing */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white relative">
-        <div className="max-w-6xl mx-auto">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white relative overflow-hidden">
+        <div className="absolute top-[-5%] left-[-5%] w-[500px] h-[500px] bg-gradient-to-br from-gold-100/20 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-1" />
+        <div className="absolute bottom-[-5%] right-[-5%] w-[400px] h-[400px] bg-gradient-to-tl from-navy-100/15 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-3" />
+        <div className="absolute top-[40%] right-[15%] w-8 h-8 border border-navy-200/15 rounded-full animate-float pointer-events-none" />
+        <div className="absolute bottom-[30%] left-[10%] w-10 h-10 border border-gold-200/15 rounded-md rotate-45 animate-float-delayed pointer-events-none" />
+        <div className="max-w-6xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-12">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Pricing</p>
@@ -743,8 +753,10 @@ export default function Home() {
       </section>
 
       {/* What is a Master CV? */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-5xl mx-auto">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white relative overflow-hidden">
+        <div className="absolute top-[15%] left-[-5%] w-[350px] h-[350px] bg-gradient-to-br from-gold-200/15 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-2" />
+        <div className="absolute bottom-[10%] right-[-3%] w-[300px] h-[300px] bg-gradient-to-tl from-navy-100/10 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-1" />
+        <div className="max-w-5xl mx-auto relative">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <ScrollReveal direction="left">
             <div>
