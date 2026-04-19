@@ -1,45 +1,122 @@
 'use client';
 
+import Image from 'next/image';
+
+/**
+ * Hero section background using the ethereal clouds + gold light streams image.
+ * Full-bleed background with subtle overlay for text readability.
+ */
 export function HeroBackground() {
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      {/* Floating gold rings */}
-      <div className="absolute top-[12%] left-[6%] w-28 h-28 rounded-full border-2 border-gold-400/20 animate-ring-float-1" />
-      <div className="absolute top-[55%] right-[8%] w-20 h-20 rounded-full border-2 border-gold-300/25 animate-ring-float-2" />
-      <div className="absolute bottom-[18%] left-[18%] w-24 h-24 rounded-full border border-gold-400/15 animate-ring-float-3" />
-      <div className="absolute top-[30%] right-[22%] w-14 h-14 rounded-full border border-gold-300/20 animate-ring-float-1" />
-
-      {/* Floating dots */}
-      <div className="absolute top-[18%] right-[18%] w-3 h-3 rounded-full bg-gold-400/30 animate-dot-float-1" />
-      <div className="absolute top-[48%] left-[4%] w-2.5 h-2.5 rounded-full bg-gold-500/25 animate-dot-float-2" />
-      <div className="absolute bottom-[28%] right-[28%] w-2 h-2 rounded-full bg-gold-400/30 animate-dot-float-3" />
-      <div className="absolute top-[32%] left-[22%] w-2 h-2 rounded-full bg-gold-300/35 animate-dot-float-1" />
-      <div className="absolute top-[68%] right-[12%] w-1.5 h-1.5 rounded-full bg-gold-500/20 animate-dot-float-2" />
-      <div className="absolute top-[42%] right-[38%] w-2.5 h-2.5 rounded-full bg-gold-400/20 animate-dot-float-3" />
-      <div className="absolute bottom-[40%] left-[35%] w-2 h-2 rounded-full bg-gold-300/25 animate-dot-float-2" />
-
-      {/* Diagonal light streaks */}
-      <div className="absolute top-0 left-[20%] w-px h-[55%] bg-gradient-to-b from-gold-400/15 via-gold-300/8 to-transparent rotate-[20deg] origin-top animate-streak-1" />
-      <div className="absolute top-0 right-[28%] w-px h-[45%] bg-gradient-to-b from-gold-300/12 via-gold-200/6 to-transparent rotate-[-15deg] origin-top animate-streak-2" />
-
-      {/* Gold accent line */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-400/50 to-transparent" />
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Main background image */}
+      <Image
+        src="/hero-clouds-bg.jpg"
+        alt=""
+        fill
+        priority
+        quality={90}
+        className="object-cover object-center"
+        sizes="100vw"
+      />
+      {/* Subtle gradient overlay for better text contrast at top */}
+      <div className="absolute inset-0 bg-gradient-to-b from-cream-100/30 via-transparent to-cream-100/50" />
     </div>
   );
 }
 
-export function SectionBackground({ intensity = 'normal' }: { intensity?: 'light' | 'normal' }) {
-  const ringOpacity = intensity === 'light' ? 'border-gold-400/12' : 'border-gold-400/18';
-  const dotOpacity = intensity === 'light' ? 'bg-gold-400/15' : 'bg-gold-400/25';
+/**
+ * Section backgrounds with ethereal cloud-inspired CSS animations.
+ * Variants: 'clouds', 'glow', 'minimal', 'default'
+ */
+export function SectionBackground({
+  intensity = 'normal',
+  variant = 'default'
+}: {
+  intensity?: 'light' | 'normal';
+  variant?: 'default' | 'clouds' | 'glow' | 'minimal';
+}) {
+  if (variant === 'minimal') {
+    return (
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Single soft glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] rounded-full bg-gradient-to-r from-gold-400/5 via-gold-400/10 to-gold-400/5 animate-breathe" />
+      </div>
+    );
+  }
+
+  if (variant === 'clouds') {
+    return (
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Floating cloud shapes - soft ellipses with gold tint */}
+        <div className="absolute top-[10%] left-[5%] w-[180px] h-[80px] bg-gradient-to-br from-cream-300/60 to-gold-100/40 rounded-[50%] animate-cloud-float-1" />
+        <div className="absolute top-[15%] right-[10%] w-[220px] h-[100px] bg-gradient-to-bl from-cream-200/50 to-gold-50/30 rounded-[50%] animate-cloud-float-2" />
+        <div className="absolute bottom-[20%] left-[15%] w-[160px] h-[70px] bg-gradient-to-tr from-gold-100/40 to-cream-200/50 rounded-[50%] animate-cloud-float-3" />
+
+        {/* Glowing light streams */}
+        <div className="absolute top-[40%] left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-gold-400/30 to-transparent animate-light-stream" />
+        <div className="absolute top-[60%] left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-gold-300/20 to-transparent animate-light-stream-delayed" />
+
+        {/* Soft particle sparkles */}
+        <div className="absolute top-[30%] left-[20%] w-1 h-1 rounded-full bg-gold-400/50 animate-sparkle" />
+        <div className="absolute top-[50%] right-[25%] w-1.5 h-1.5 rounded-full bg-gold-300/40 animate-sparkle-delayed" />
+        <div className="absolute bottom-[35%] left-[60%] w-1 h-1 rounded-full bg-gold-400/45 animate-sparkle" />
+      </div>
+    );
+  }
+
+  if (variant === 'glow') {
+    return (
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Central radial glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full bg-gradient-to-r from-transparent via-gold-400/12 to-transparent animate-glow-pulse" />
+
+        {/* Floating oval platforms - like the image */}
+        <div className="absolute bottom-[15%] left-[10%] w-[120px] h-[30px] bg-gradient-to-b from-cream-50/80 to-cream-200/60 rounded-[50%] shadow-[0_5px_30px_rgba(212,168,83,0.15)] animate-platform-float-1" />
+        <div className="absolute bottom-[25%] right-[15%] w-[100px] h-[25px] bg-gradient-to-b from-cream-50/70 to-cream-300/50 rounded-[50%] shadow-[0_5px_25px_rgba(212,168,83,0.12)] animate-platform-float-2" />
+        <div className="absolute bottom-[10%] left-[40%] w-[140px] h-[35px] bg-gradient-to-b from-white/60 to-cream-200/50 rounded-[50%] shadow-[0_8px_35px_rgba(212,168,83,0.18)] animate-platform-float-3" />
+
+        {/* Golden light ribbons */}
+        <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="goldRibbon" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#D4A853" stopOpacity="0" />
+              <stop offset="30%" stopColor="#D4A853" stopOpacity="0.25" />
+              <stop offset="50%" stopColor="#E8C27A" stopOpacity="0.35" />
+              <stop offset="70%" stopColor="#D4A853" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#D4A853" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M0,60% Q25%,55% 50%,60% T100%,55%"
+            fill="none"
+            stroke="url(#goldRibbon)"
+            strokeWidth="3"
+            className="animate-ribbon-flow"
+          />
+        </svg>
+      </div>
+    );
+  }
+
+  // Default variant - balanced mix
+  const opacity = intensity === 'light' ? 0.6 : 1;
 
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      {/* Floating ring */}
-      <div className={`absolute top-[25%] right-[6%] w-16 h-16 rounded-full border ${ringOpacity} animate-ring-float-2`} />
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ opacity }}>
+      {/* Soft cloud shapes */}
+      <div className="absolute top-[8%] right-[8%] w-[200px] h-[90px] bg-gradient-to-bl from-cream-200/50 to-gold-100/30 rounded-[50%] animate-cloud-float-1" />
+      <div className="absolute bottom-[15%] left-[5%] w-[150px] h-[65px] bg-gradient-to-tr from-gold-100/35 to-cream-200/45 rounded-[50%] animate-cloud-float-2" />
 
-      {/* Floating dots */}
-      <div className={`absolute top-[20%] left-[8%] w-2 h-2 rounded-full ${dotOpacity} animate-dot-float-1`} />
-      <div className={`absolute bottom-[30%] right-[18%] w-2.5 h-2.5 rounded-full ${dotOpacity} animate-dot-float-3`} />
+      {/* Ambient glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[250px] rounded-full bg-gradient-to-r from-gold-400/5 via-gold-400/10 to-gold-400/5 animate-breathe" />
+
+      {/* Light accents */}
+      <div className="absolute top-[45%] left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-gold-400/20 to-transparent animate-light-stream" />
+
+      {/* Sparkles */}
+      <div className="absolute top-[25%] left-[30%] w-1 h-1 rounded-full bg-gold-400/40 animate-sparkle" />
+      <div className="absolute top-[65%] right-[20%] w-1 h-1 rounded-full bg-gold-300/35 animate-sparkle-delayed" />
     </div>
   );
 }
