@@ -827,3 +827,184 @@ body {
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(15, 48, 87, 0.25);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ETHEREAL CLOUD BACKGROUND ANIMATIONS
+   Soft 3D clouds with golden light streams — inspired by premium SaaS aesthetics
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Radial Gradient Utility ─── */
+.bg-gradient-radial {
+  background: radial-gradient(ellipse at center, var(--tw-gradient-from), var(--tw-gradient-to));
+}
+
+/* ─── Floating Cloud Shapes ─── */
+@keyframes cloud-float-1 {
+  0%, 100% {
+    transform: translateY(0) translateX(0) scale(1);
+  }
+  25% {
+    transform: translateY(-15px) translateX(8px) scale(1.02);
+  }
+  50% {
+    transform: translateY(-25px) translateX(5px) scale(1.05);
+  }
+  75% {
+    transform: translateY(-12px) translateX(-5px) scale(1.02);
+  }
+}
+
+@keyframes cloud-float-2 {
+  0%, 100% {
+    transform: translateY(0) translateX(0) scale(1);
+  }
+  33% {
+    transform: translateY(-20px) translateX(-10px) scale(1.03);
+  }
+  66% {
+    transform: translateY(-10px) translateX(8px) scale(1.01);
+  }
+}
+
+@keyframes cloud-float-3 {
+  0%, 100% {
+    transform: translateY(0) translateX(0) scale(1);
+  }
+  50% {
+    transform: translateY(-18px) translateX(12px) scale(1.04);
+  }
+}
+
+.animate-cloud-float-1 { animation: cloud-float-1 18s ease-in-out infinite; }
+.animate-cloud-float-2 { animation: cloud-float-2 22s ease-in-out infinite 3s; }
+.animate-cloud-float-3 { animation: cloud-float-3 16s ease-in-out infinite 6s; }
+
+/* ─── Floating Platform Shapes (oval discs) ─── */
+@keyframes platform-float-1 {
+  0%, 100% {
+    transform: translateY(0) rotateX(60deg);
+  }
+  50% {
+    transform: translateY(-12px) rotateX(60deg);
+  }
+}
+
+@keyframes platform-float-2 {
+  0%, 100% {
+    transform: translateY(0) rotateX(55deg);
+  }
+  50% {
+    transform: translateY(-8px) rotateX(55deg);
+  }
+}
+
+@keyframes platform-float-3 {
+  0%, 100% {
+    transform: translateY(0) rotateX(65deg);
+  }
+  50% {
+    transform: translateY(-15px) rotateX(65deg);
+  }
+}
+
+.animate-platform-float-1 { animation: platform-float-1 10s ease-in-out infinite; }
+.animate-platform-float-2 { animation: platform-float-2 12s ease-in-out infinite 2s; }
+.animate-platform-float-3 { animation: platform-float-3 14s ease-in-out infinite 4s; }
+
+/* ─── Golden Light Streams ─── */
+@keyframes light-stream {
+  0% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+.animate-light-stream {
+  animation: light-stream 8s ease-in-out infinite;
+}
+
+.animate-light-stream-delayed {
+  animation: light-stream 8s ease-in-out infinite 4s;
+}
+
+/* ─── Sparkle / Particle Effects ─── */
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+.animate-sparkle {
+  animation: sparkle 3s ease-in-out infinite;
+}
+
+.animate-sparkle-delayed {
+  animation: sparkle 3s ease-in-out infinite 1.5s;
+}
+
+/* ─── Ambient Glow Pulse ─── */
+@keyframes glow-pulse {
+  0%, 100% {
+    opacity: 0.8;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 6s ease-in-out infinite;
+}
+
+/* ─── Gentle Breathing Effect ─── */
+@keyframes breathe {
+  0%, 100% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+}
+
+.animate-breathe {
+  animation: breathe 8s ease-in-out infinite;
+}
+
+/* ─── Ribbon Flow (SVG path) ─── */
+@keyframes ribbon-flow {
+  0% {
+    stroke-dasharray: 0, 1000;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 500, 1000;
+  }
+  100% {
+    stroke-dasharray: 0, 1000;
+    stroke-dashoffset: -1000;
+  }
+}
+
+.animate-ribbon-flow {
+  stroke-dasharray: 0, 1000;
+  animation: ribbon-flow 12s ease-in-out infinite;
+}
