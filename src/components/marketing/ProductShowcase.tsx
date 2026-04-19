@@ -84,7 +84,7 @@ export function ProductShowcase() {
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {FEATURES.map((feature) => {
           const Icon = feature.icon;
           return (
@@ -104,7 +104,7 @@ export function ProductShowcase() {
                   height={feature.height}
                   className="w-full h-auto group-hover:scale-[1.03] transition-transform duration-500"
                   quality={85}
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  sizes="(max-width: 640px) 100vw, 50vw"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
