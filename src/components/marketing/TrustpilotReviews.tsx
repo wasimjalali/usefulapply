@@ -54,28 +54,18 @@ export default function TrustpilotReviews() {
               What Job Seekers Are Saying
             </h2>
 
-            {/* Rating summary */}
-            <div className="inline-flex flex-col items-center gap-3 px-8 py-5 rounded-2xl bg-white border border-cream-200 shadow-sm">
-              <div className="flex gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-6 h-6 text-gold-500 fill-gold-500" />
-                ))}
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-2xl font-bold text-navy-600">5.0</span>
-                <span className="text-warm-gray text-sm">on</span>
-                <button
-                  onClick={handleReviewClick}
-                  className="hover:opacity-80 transition-opacity cursor-pointer"
-                  aria-label="View Karko AI reviews on Trustpilot"
-                >
-                  <img
-                    src="/trustpilot-logo.png"
-                    alt="Trustpilot"
-                    className="h-7 w-auto"
-                  />
-                </button>
-              </div>
+            <div className="flex justify-center">
+              <button
+                onClick={handleReviewClick}
+                className="hover:opacity-80 transition-opacity cursor-pointer"
+                aria-label="View Karko AI reviews on Trustpilot"
+              >
+                <img
+                  src="/trustpilot-logo.png"
+                  alt="Trustpilot"
+                  className="h-16 w-auto"
+                />
+              </button>
             </div>
           </div>
         </ScrollReveal>
