@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, Zap, FileText, Mail, MailPlus, Target, Shield, Sparkles, Check } from 'lucide-react';
+import { ArrowRight, Zap, FileText, Mail, MailPlus, Target, Shield, Sparkles, Check, MessageSquareText } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
@@ -58,6 +58,21 @@ const features = [
     cost: 'Part of 2.0 credit package',
     link: '/blog/ai-cover-letter-generator-how-it-works',
     linkText: 'How AI cover letters work →',
+  },
+  {
+    icon: MessageSquareText,
+    title: 'AI Screening Question Answers',
+    description:
+      'Paste your screening questions from Workday, Greenhouse, Lever, or any ATS portal. Karko AI drafts concise, role-specific answers using your CV and the job description. Supports yes/no, behavioral (STAR format), situational, and free-text questions.',
+    benefits: [
+      'Answers up to 7 questions per session',
+      'Compressed STAR format for behavioral questions',
+      'Stays within ATS character limits (under 750 chars)',
+      'Anti-hallucination: only references your real experience',
+    ],
+    cost: 'Max plan',
+    link: '/ai-job-application/screening-question-answers',
+    linkText: 'Learn about screening answers',
   },
   {
     icon: Mail,
@@ -177,6 +192,12 @@ const planFeatures = [
     feature: 'Master CV Storage',
     free: true,
     plus: true,
+    max: true,
+  },
+  {
+    feature: 'Screening Question Answers',
+    free: false,
+    plus: false,
     max: true,
   },
   {

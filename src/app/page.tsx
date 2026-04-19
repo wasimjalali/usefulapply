@@ -344,11 +344,8 @@ export default function Home() {
                     <h3 className="text-2xl md:text-3xl font-bold text-navy-600">Claude Sonnet 4.6</h3>
                     <span className="text-sm font-medium text-warm-gray bg-cream-100 px-2.5 py-1 rounded-full">by Anthropic</span>
                   </div>
-                  <p className="text-lg text-warm-gray leading-relaxed mb-4">
-                    KarKo AI runs on <span className="font-semibold text-charcoal">Claude Sonnet 4.6</span>, one of the most advanced AI models available today. Unlike competitors who rely on cheaper, open-source models, we use a <span className="font-semibold text-charcoal">US-based, frontier-grade AI</span> trusted by leading enterprises worldwide.
-                  </p>
-                  <p className="text-warm-gray leading-relaxed">
-                    On top of that, we&apos;ve built a <span className="font-semibold text-charcoal">specialized system and an agentic workflow</span> designed specifically for job applications, so the AI is not just powerful, it&apos;s precisely tuned to produce professional, ATS-optimized, role-specific documents.
+                  <p className="text-lg text-warm-gray leading-relaxed">
+                    Powered by <span className="font-semibold text-charcoal">Claude Sonnet 4.6</span>, a frontier AI model by Anthropic. Not a cheap open-source alternative. Combined with our <span className="font-semibold text-charcoal">specialized agentic workflow</span> built specifically for job applications, every document is professional, ATS-optimized, and role-specific.
                   </p>
                 </div>
               </div>
