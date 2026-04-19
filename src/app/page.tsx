@@ -24,7 +24,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
 export default function Home() {
   return (
     <div className="min-h-screen bg-cream-100">
-      {/* SoftwareApplication Schema — homepage only.
+      {/* SoftwareApplication Schema (homepage only).
           Google requires aggregateRating or review for rich results.
           Add real review data here when available (e.g. from Trustpilot). */}
       <script
@@ -226,7 +226,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* How It Works — 4 Premium Cards */}
+      {/* How It Works */}
       <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
         <div className="absolute inset-0 dot-grid opacity-20" />
         <div className="max-w-6xl mx-auto relative">
@@ -266,7 +266,7 @@ export default function Home() {
                 step: '03',
                 icon: Zap,
                 title: 'Get Your Entire Application',
-                description: 'Receive a tailored CV, cover letter, application email, follow-up email, and screening question answers — all in 90 seconds.',
+                description: 'Receive a tailored CV, cover letter, application email, follow-up email, and screening question answers. All in 90 seconds.',
                 gradient: 'from-navy-600 to-navy-700',
                 iconBg: 'from-navy-50 to-navy-100',
                 iconColor: 'text-navy-600',
@@ -311,7 +311,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Product Showcase — real screenshots carousel */}
+      {/* Product Showcase */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-gold-100/30 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-navy-100/20 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl pointer-events-none" />
@@ -323,7 +323,7 @@ export default function Home() {
               Everything You Get, In One Place
             </h2>
             <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-              A tailored CV, cover letter, application email, follow-up email, ATS score, and full application tracker — all from a single job description.
+              A tailored CV, cover letter, application email, follow-up email, ATS score, and full application tracker. All from a single job description.
             </p>
           </div>
           </ScrollReveal>

@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
-import { ChevronLeft, ChevronRight, FileText, Mail, MailCheck, Target, BarChart3, ClipboardList } from 'lucide-react';
+import { FileText, Mail, MailCheck, Target, BarChart3, ClipboardList, X } from 'lucide-react';
 
-const SLIDES = [
+const FEATURES = [
   {
     id: 'cv',
     label: 'Tailored CV',
@@ -13,6 +13,9 @@ const SLIDES = [
     width: 4096,
     height: 2964,
     alt: 'KarKo AI tailored CV panel showing ATS-optimized resume',
+    accent: 'from-navy-600 to-navy-700',
+    accentLight: 'from-navy-50 to-navy-100',
+    iconColor: 'text-navy-600',
   },
   {
     id: 'cover-letter',
@@ -22,6 +25,9 @@ const SLIDES = [
     width: 4096,
     height: 2960,
     alt: 'KarKo AI personalized cover letter tailored to the company',
+    accent: 'from-gold-400 to-gold-500',
+    accentLight: 'from-gold-50 to-gold-100',
+    iconColor: 'text-gold-500',
   },
   {
     id: 'email',
@@ -31,6 +37,9 @@ const SLIDES = [
     width: 4096,
     height: 2948,
     alt: 'KarKo AI professional application email ready to send',
+    accent: 'from-navy-600 to-navy-700',
+    accentLight: 'from-navy-50 to-navy-100',
+    iconColor: 'text-navy-600',
   },
   {
     id: 'follow-up',
@@ -40,6 +49,9 @@ const SLIDES = [
     width: 1888,
     height: 1356,
     alt: 'KarKo AI follow-up email with a different achievement highlighted',
+    accent: 'from-gold-400 to-gold-500',
+    accentLight: 'from-gold-50 to-gold-100',
+    iconColor: 'text-gold-500',
   },
   {
     id: 'tracker',
@@ -49,6 +61,9 @@ const SLIDES = [
     width: 1896,
     height: 1374,
     alt: 'KarKo AI application tracker with match scores and status tracking',
+    accent: 'from-navy-600 to-navy-700',
+    accentLight: 'from-navy-50 to-navy-100',
+    iconColor: 'text-navy-600',
   },
   {
     id: 'ats-score',
@@ -58,136 +73,103 @@ const SLIDES = [
     width: 2854,
     height: 1380,
     alt: 'KarKo AI ATS compatibility score and optimization report',
+    accent: 'from-gold-400 to-gold-500',
+    accentLight: 'from-gold-50 to-gold-100',
+    iconColor: 'text-gold-500',
   },
 ];
 
 export function ProductShowcase() {
-  const [active, setActive] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-
-  const next = useCallback(() => {
-    setActive((prev) => (prev + 1) % SLIDES.length);
-  }, []);
-
-  const prev = useCallback(() => {
-    setActive((prev) => (prev - 1 + SLIDES.length) % SLIDES.length);
-  }, []);
-
-  useEffect(() => {
-    if (isPaused) return;
-    const timer = setInterval(next, 5000);
-    return () => clearInterval(timer);
-  }, [isPaused, next]);
-
-  const slide = SLIDES[active];
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   return (
-    <div
-      className="relative"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-    >
-      {/* Navigation pills */}
-      <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
-        {SLIDES.map((s, i) => {
-          const Icon = s.icon;
-          const isActive = i === active;
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {FEATURES.map((feature) => {
+          const Icon = feature.icon;
           return (
             <button
-              key={s.id}
-              onClick={() => setActive(i)}
-              className={`
-                inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 cursor-pointer
-                ${isActive
-                  ? 'bg-navy-600 text-white shadow-lg shadow-navy-600/20 scale-105'
-                  : 'bg-white text-warm-gray border border-cream-200 hover:border-gold-300 hover:text-navy-600 hover:shadow-sm'
-                }
-              `}
+              key={feature.id}
+              onClick={() => setExpanded(feature.id)}
+              className="group relative bg-white rounded-2xl border border-cream-200 shadow-sm hover:shadow-xl hover:border-gold-300/50 transition-all duration-300 overflow-hidden text-left cursor-pointer"
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-gold-400' : ''}`} />
-              <span className="hidden sm:inline">{s.label}</span>
+              <div className={`h-1 bg-gradient-to-r ${feature.accent}`} />
+
+              {/* Screenshot preview */}
+              <div className="relative overflow-hidden bg-cream-50">
+                <Image
+                  src={feature.src}
+                  alt={feature.alt}
+                  width={feature.width}
+                  height={feature.height}
+                  className="w-full h-auto group-hover:scale-[1.03] transition-transform duration-500"
+                  quality={85}
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              </div>
+
+              {/* Label */}
+              <div className="px-5 py-4 flex items-center gap-3">
+                <div className={`w-9 h-9 bg-gradient-to-br ${feature.accentLight} rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}>
+                  <Icon className={`w-4.5 h-4.5 ${feature.iconColor}`} />
+                </div>
+                <span className="text-sm font-semibold text-navy-600 group-hover:text-gold-600 transition-colors">{feature.label}</span>
+              </div>
             </button>
           );
         })}
       </div>
 
-      {/* Screenshot display */}
-      <div className="relative max-w-5xl mx-auto group">
-        {/* Arrow buttons */}
-        <button
-          onClick={prev}
-          className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/90 backdrop-blur-sm shadow-lg border border-cream-200 flex items-center justify-center text-navy-600 hover:bg-white hover:scale-110 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
-          aria-label="Previous screenshot"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <button
-          onClick={next}
-          className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/90 backdrop-blur-sm shadow-lg border border-cream-200 flex items-center justify-center text-navy-600 hover:bg-white hover:scale-110 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
-          aria-label="Next screenshot"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
+      {/* Lightbox */}
+      {expanded && (() => {
+        const feature = FEATURES.find((f) => f.id === expanded)!;
+        const Icon = feature.icon;
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 bg-navy-900/70 backdrop-blur-sm animate-fade-in"
+            onClick={() => setExpanded(null)}
+          >
+            <div
+              className="relative bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={`h-1 bg-gradient-to-r ${feature.accent}`} />
 
-        {/* Browser frame */}
-        <div className="browser-frame">
-          <div className="browser-frame-bar">
-            <div className="browser-dot bg-[#FF5F57]" />
-            <div className="browser-dot bg-[#FFBD2E]" />
-            <div className="browser-dot bg-[#28C840]" />
-            <div className="flex-1 mx-4">
-              <div className="bg-white/80 rounded-md px-3 py-1 text-xs text-warm-gray text-center max-w-xs mx-auto border border-cream-200">
-                {slide.label}
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-cream-200">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 bg-gradient-to-br ${feature.accentLight} rounded-xl flex items-center justify-center`}>
+                    <Icon className={`w-5 h-5 ${feature.iconColor}`} />
+                  </div>
+                  <span className="text-lg font-bold text-navy-600">{feature.label}</span>
+                </div>
+                <button
+                  onClick={() => setExpanded(null)}
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-warm-gray hover:bg-cream-100 hover:text-navy-600 transition-colors cursor-pointer"
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Full image */}
+              <div className="overflow-auto max-h-[calc(90vh-80px)]">
+                <Image
+                  src={feature.src}
+                  alt={feature.alt}
+                  width={feature.width}
+                  height={feature.height}
+                  className="w-full h-auto"
+                  quality={95}
+                  sizes="(max-width: 1280px) 100vw, 1280px"
+                  priority
+                />
               </div>
             </div>
           </div>
-
-          {/* Image container with crossfade */}
-          <div className="relative overflow-hidden bg-cream-50">
-            {SLIDES.map((s, i) => (
-              <div
-                key={s.id}
-                className={`transition-opacity duration-500 ${
-                  i === active ? 'opacity-100 relative' : 'opacity-0 absolute inset-0'
-                }`}
-              >
-                <Image
-                  src={s.src}
-                  alt={s.alt}
-                  width={s.width}
-                  height={s.height}
-                  className="w-full h-auto"
-                  quality={90}
-                  sizes="(max-width: 1280px) 100vw, 1280px"
-                  priority={i === 0}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Active label on mobile */}
-        <div className="sm:hidden mt-4 text-center">
-          <span className="text-sm font-semibold text-navy-600">{slide.label}</span>
-          <span className="text-sm text-warm-gray ml-2">{active + 1} / {SLIDES.length}</span>
-        </div>
-      </div>
-
-      {/* Progress dots */}
-      <div className="flex items-center justify-center gap-2 mt-6">
-        {SLIDES.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setActive(i)}
-            className={`rounded-full transition-all duration-300 cursor-pointer ${
-              i === active
-                ? 'w-8 h-2 bg-gold-400'
-                : 'w-2 h-2 bg-cream-300 hover:bg-cream-400'
-            }`}
-            aria-label={`Go to slide ${i + 1}`}
-          />
-        ))}
-      </div>
-    </div>
+        );
+      })()}
+    </>
   );
 }
