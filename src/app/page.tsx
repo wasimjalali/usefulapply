@@ -1,13 +1,15 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, FileText, Search, Zap, Clock, Target, Check, CheckCircle, Shield, Sparkles, Crown, TrendingUp, Star } from 'lucide-react';
+import { ArrowRight, FileText, Search, Zap, Clock, Target, Check, CheckCircle, Shield, Sparkles, Crown, TrendingUp } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import { PlusPlanButton, MaxPlanButton } from '@/components/marketing/HomePricingButtons';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { TimeSavingsCalculator } from '@/components/marketing/TimeSavingsCalculator';
 import TrustpilotReviews from '@/components/marketing/TrustpilotReviews';
+import { ProductShowcase } from '@/components/marketing/ProductShowcase';
+import { HeroBackground, SectionBackground } from '@/components/marketing/AnimatedBackground';
 
 export const metadata: Metadata = {
   title: {
@@ -23,7 +25,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
 export default function Home() {
   return (
     <div className="min-h-screen bg-cream-100">
-      {/* SoftwareApplication Schema — homepage only.
+      {/* SoftwareApplication Schema (homepage only).
           Google requires aggregateRating or review for rich results.
           Add real review data here when available (e.g. from Trustpilot). */}
       <script
@@ -120,36 +122,21 @@ export default function Home() {
       <Navbar />
       <main>
       {/* Hero Section */}
-      <section className="pt-20 pb-28 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        <div className="absolute inset-0 dot-grid opacity-50" />
-        <div className="absolute top-[-200px] right-[-100px] w-[700px] h-[700px] bg-gradient-to-bl from-gold-200/50 via-gold-100/30 to-transparent rounded-full blur-3xl pointer-events-none animate-float-slow" />
-        <div className="absolute bottom-[-150px] left-[-100px] w-[500px] h-[500px] bg-gradient-to-tr from-navy-200/20 via-navy-100/10 to-transparent rounded-full blur-3xl pointer-events-none animate-float-delayed" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-400/30 to-transparent" />
+      <section className="pt-24 pb-28 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-cream-100">
+        <HeroBackground />
 
         <div className="max-w-6xl mx-auto relative">
           <div className="text-center max-w-4xl mx-auto">
 
-            <ScrollReveal delay={0}>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm border border-gold-200/60 shadow-sm mb-8 animate-badge-float">
-              <div className="flex -space-x-1">
-                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 flex items-center justify-center">
-                  <Star className="w-3 h-3 text-white fill-white" />
-                </div>
-              </div>
-              <span className="text-sm font-medium text-navy-600">Built for job seekers worldwide</span>
-              <span className="text-xs text-warm-gray">US & EU markets</span>
-            </div>
-            </ScrollReveal>
-
-            <ScrollReveal delay={150}>
+            <ScrollReveal delay={100}>
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-navy-600 mb-6 leading-[1.08] tracking-tight">
-              Get Your Complete Job Application Package{' '}
+              Your Entire Job Application{' '}
               <span className="bg-gradient-to-r from-gold-400 via-gold-500 to-gold-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-shimmer">in 90 Seconds</span>
             </h1>
             </ScrollReveal>
             <ScrollReveal delay={300}>
             <p className="text-xl md:text-2xl text-warm-gray mb-10 max-w-2xl mx-auto leading-relaxed">
-              Paste the job description. Karko AI analyzes your fit and generates a tailored CV, cover letter, application email, and follow-up email, ready to send.
+              Paste any job description. Get a tailored CV, cover letter, emails, screening question answers, and more. All generated from your real experience.
             </p>
             </ScrollReveal>
             <ScrollReveal delay={450}>
@@ -163,7 +150,7 @@ export default function Home() {
               </Link>
               <Link
                 href="#how-it-works"
-                className="w-full sm:w-auto px-10 py-4 bg-white/70 backdrop-blur-sm text-navy-600 font-semibold rounded-xl hover:bg-white hover:shadow-lg hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2 text-lg shadow-sm border border-cream-200"
+                className="w-full sm:w-auto px-10 py-4 bg-cream-50/80 backdrop-blur-sm text-navy-600 font-semibold rounded-xl hover:bg-cream-50 hover:shadow-lg hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2 text-lg shadow-sm border border-cream-300"
               >
                 See How It Works
               </Link>
@@ -214,346 +201,107 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Step 1: Upload Your CV */}
-      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative">
-        <div className="max-w-6xl mx-auto">
-          <ScrollReveal>
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <div className="inline-flex items-center justify-center w-10 h-10 bg-gradient-to-br from-navy-600 to-navy-700 text-white text-lg font-bold rounded-full shadow-md">1</div>
-              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest">Step One</p>
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
-              Upload Your CV Once
-            </h2>
-            <p className="text-lg text-warm-gray max-w-2xl mx-auto leading-relaxed">
-              Upload your master CV or primary CV one time. Karko AI reads through your entire professional history and builds a complete profile of your skills, experience, and achievements.
-            </p>
-          </div>
-          </ScrollReveal>
-          <ScrollReveal delay={150}>
-          <div className="browser-frame max-w-5xl mx-auto">
-            <div className="browser-frame-bar">
-              <div className="browser-dot bg-[#FF5F57]" />
-              <div className="browser-dot bg-[#FFBD2E]" />
-              <div className="browser-dot bg-[#28C840]" />
-              <div className="flex-1 mx-4">
-                <div className="bg-white/80 rounded-md px-3 py-1 text-xs text-warm-gray text-center max-w-xs mx-auto border border-cream-200">
-                  karkoai.com/dashboard
-                </div>
-              </div>
-            </div>
-            <Image
-              src="/screenshots/upload-cv-dashboard.jpg"
-              alt="KarKo AI Dashboard welcome screen showing Upload CV prompt and chat assistant"
-              width={1440}
-              height={698}
-              className="w-full h-auto"
-              quality={80}
-              sizes="(max-width: 1280px) 100vw, 1280px"
-              priority
-            />
-          </div>
-          </ScrollReveal>
-        </div>
-      </section>
-
-      {/* Step 2: Paste the Job Description */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white relative">
-        <div className="max-w-6xl mx-auto">
-          <ScrollReveal>
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <div className="inline-flex items-center justify-center w-10 h-10 bg-gradient-to-br from-gold-400 to-gold-500 text-white text-lg font-bold rounded-full shadow-md">2</div>
-              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest">Step Two</p>
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
-              Paste Any Job Description
-            </h2>
-            <p className="text-lg text-warm-gray max-w-2xl mx-auto leading-relaxed">
-              Copy and paste the job posting you want to apply for. Karko AI instantly analyzes the requirements, matches your skills, and gives you an honest fit score before anything is generated.
-            </p>
-          </div>
-          </ScrollReveal>
-          <ScrollReveal delay={150}>
-          <div className="browser-frame max-w-5xl mx-auto">
-            <div className="browser-frame-bar">
-              <div className="browser-dot bg-[#FF5F57]" />
-              <div className="browser-dot bg-[#FFBD2E]" />
-              <div className="browser-dot bg-[#28C840]" />
-              <div className="flex-1 mx-4">
-                <div className="bg-white/80 rounded-md px-3 py-1 text-xs text-warm-gray text-center max-w-xs mx-auto border border-cream-200">
-                  Optimization in Progress
-                </div>
-              </div>
-            </div>
-            <Image
-              src="/screenshots/optimization-process.jpg"
-              alt="KarKo AI optimization process analyzing job description and generating tailored application materials"
-              width={1440}
-              height={698}
-              className="w-full h-auto"
-              quality={80}
-              sizes="(max-width: 1280px) 100vw, 1280px"
-            />
-          </div>
-          </ScrollReveal>
-        </div>
-      </section>
-
-      {/* Step 3: Your Complete Application Package */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-cream-50 via-cream-100 to-white" />
-        <div className="absolute inset-0 dot-grid opacity-30" />
+      {/* How It Works */}
+      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
+        <SectionBackground />
         <div className="max-w-6xl mx-auto relative">
           <ScrollReveal>
-          <div className="text-center mb-16">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <div className="inline-flex items-center justify-center w-10 h-10 bg-gradient-to-br from-navy-600 to-navy-700 text-white text-lg font-bold rounded-full shadow-md">3</div>
-              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest">Step Three</p>
-            </div>
+          <div className="text-center mb-14">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">How It Works</p>
             <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
-              Get Your Complete Application Package
+              Three Steps. One Complete Application.
             </h2>
             <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-              Every document is personalized to the job, the company, and your real experience. Nothing is fabricated.
+              From CV upload to ready-to-send application in under 90 seconds.
             </p>
           </div>
           </ScrollReveal>
 
-          {/* 01 - Tailored CV */}
-          <div className="mb-20">
-            <ScrollReveal>
-            <div className="text-center mb-6">
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-navy-50 to-navy-100 rounded-xl flex items-center justify-center">
-                  <FileText className="w-7 h-7 text-navy-600" />
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            {[
+              {
+                step: '01',
+                icon: FileText,
+                title: 'Upload Your CV',
+                description: 'Upload your master CV once. Karko AI reads your entire professional history and builds a complete profile of your skills and experience.',
+                gradient: 'from-navy-600 to-navy-700',
+                iconBg: 'from-navy-50 to-navy-100',
+                iconColor: 'text-navy-600',
+              },
+              {
+                step: '02',
+                icon: Target,
+                title: 'Paste the Job Description',
+                description: 'Copy and paste the job posting. Karko AI analyzes the requirements, matches your skills, and gives you an honest fit score.',
+                gradient: 'from-gold-400 to-gold-500',
+                iconBg: 'from-gold-50 to-gold-100',
+                iconColor: 'text-gold-500',
+              },
+              {
+                step: '03',
+                icon: Zap,
+                title: 'Get Your Entire Application',
+                description: 'Receive a tailored CV, cover letter, application email, follow-up email, and screening question answers. All in 90 seconds.',
+                gradient: 'from-navy-600 to-navy-700',
+                iconBg: 'from-navy-50 to-navy-100',
+                iconColor: 'text-navy-600',
+              },
+            ].map((card, i) => {
+              const Icon = card.icon;
+              return (
+                <ScrollReveal key={i} delay={i * 150}>
+                <div className="group relative bg-white rounded-2xl border border-cream-200 shadow-md overflow-hidden card-hover-lift h-full">
+                  <div className={`h-1 bg-gradient-to-r ${card.gradient}`} />
+                  <div className="p-8">
+                    <div className="flex items-center gap-4 mb-5">
+                      <div className={`w-14 h-14 bg-gradient-to-br ${card.iconBg} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                        <Icon className={`w-7 h-7 ${card.iconColor}`} />
+                      </div>
+                      <span className="text-4xl font-bold text-cream-300 group-hover:text-cream-400 transition-colors">{card.step}</span>
+                    </div>
+                    <h3 className="text-xl font-bold text-navy-600 mb-3">{card.title}</h3>
+                    <p className="text-warm-gray leading-relaxed text-[15px]">{card.description}</p>
+                  </div>
                 </div>
-                <span className="text-3xl font-bold text-cream-300">01</span>
-              </div>
-              <h3 className="text-2xl font-bold text-navy-600 mb-3">Tailored CV</h3>
-              <p className="text-warm-gray max-w-xl mx-auto">
-                Our AI resume builder reorders your skills to match the job. Keywords optimized for ATS screening. Professional formatting for US and EU markets.
-              </p>
-            </div>
-            </ScrollReveal>
-            <ScrollReveal delay={150}>
-            <div className="browser-frame max-w-5xl mx-auto">
-              <div className="browser-frame-bar">
-                <div className="browser-dot bg-[#FF5F57]" />
-                <div className="browser-dot bg-[#FFBD2E]" />
-                <div className="browser-dot bg-[#28C840]" />
-                <div className="flex-1 mx-4">
-                  <div className="bg-white/80 rounded-md px-3 py-1 text-xs text-warm-gray text-center max-w-xs mx-auto border border-cream-200">Optimized CV</div>
-                </div>
-              </div>
-              <Image
-                src="/screenshots/cv-panel.jpg"
-                alt="KarKo AI Dashboard showing a tailored, ATS-optimized CV"
-                width={1440}
-                height={819}
-                className="w-full h-auto"
-                quality={80}
-                sizes="(max-width: 1280px) 100vw, 1280px"
-              />
-            </div>
-            </ScrollReveal>
+                </ScrollReveal>
+              );
+            })}
           </div>
 
-          {/* 02 - Personalized Cover Letter */}
-          <div className="mb-20">
-            <ScrollReveal>
-            <div className="text-center mb-6">
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-gold-50 to-gold-100 rounded-xl flex items-center justify-center">
-                  <Target className="w-7 h-7 text-gold-500" />
+          <ScrollReveal delay={500}>
+          <div className="group relative bg-white rounded-2xl border border-cream-200 shadow-md overflow-hidden card-hover-lift max-w-md mx-auto">
+            <div className="h-1 bg-gradient-to-r from-gold-400 to-gold-500" />
+            <div className="p-8 text-center">
+              <div className="flex items-center justify-center gap-4 mb-5">
+                <div className="w-14 h-14 bg-gradient-to-br from-gold-50 to-gold-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <Search className="w-7 h-7 text-gold-500" />
                 </div>
-                <span className="text-3xl font-bold text-cream-300">02</span>
+                <span className="text-4xl font-bold text-cream-300 group-hover:text-cream-400 transition-colors">04</span>
               </div>
-              <h3 className="text-2xl font-bold text-navy-600 mb-3">Personalized Cover Letter</h3>
-              <p className="text-warm-gray max-w-xl mx-auto">
-                Company-specific opening paragraph. Your achievements matched to their requirements. Tone adapted to the company culture. Ready to download as PDF or DOCX.
-              </p>
+              <h3 className="text-xl font-bold text-navy-600 mb-3">Track All Your Applications</h3>
+              <p className="text-warm-gray leading-relaxed text-[15px]">Track every application with match scores, statuses, and company details inside Karko AI. Never lose track of where you applied.</p>
             </div>
-            </ScrollReveal>
-            <ScrollReveal delay={150}>
-            <div className="browser-frame max-w-5xl mx-auto">
-              <div className="browser-frame-bar">
-                <div className="browser-dot bg-[#FF5F57]" />
-                <div className="browser-dot bg-[#FFBD2E]" />
-                <div className="browser-dot bg-[#28C840]" />
-                <div className="flex-1 mx-4">
-                  <div className="bg-white/80 rounded-md px-3 py-1 text-xs text-warm-gray text-center max-w-xs mx-auto border border-cream-200">Cover Letter</div>
-                </div>
-              </div>
-              <Image
-                src="/screenshots/cover-letter-panel.jpg"
-                alt="KarKo AI personalized cover letter tailored to the company"
-                width={1440}
-                height={819}
-                className="w-full h-auto"
-                quality={80}
-                sizes="(max-width: 1280px) 100vw, 1280px"
-              />
-            </div>
-            </ScrollReveal>
           </div>
+          </ScrollReveal>
+        </div>
+      </section>
 
-          {/* 03 - Application & Follow-Up Emails */}
-          <div className="mb-20">
-            <ScrollReveal>
-            <div className="text-center mb-6">
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-navy-50 to-navy-100 rounded-xl flex items-center justify-center">
-                  <Zap className="w-7 h-7 text-navy-600" />
-                </div>
-                <span className="text-3xl font-bold text-cream-300">03</span>
-              </div>
-              <h3 className="text-2xl font-bold text-navy-600 mb-3">Application & Follow-Up Emails</h3>
-              <p className="text-warm-gray max-w-xl mx-auto">
-                Ready to send with the right subject line, professional tone, and your key qualifications highlighted. Plus a timed follow-up email that highlights a different achievement.
-              </p>
-            </div>
-            </ScrollReveal>
-            <ScrollReveal delay={150}>
-            <div className="browser-frame max-w-5xl mx-auto">
-              <div className="browser-frame-bar">
-                <div className="browser-dot bg-[#FF5F57]" />
-                <div className="browser-dot bg-[#FFBD2E]" />
-                <div className="browser-dot bg-[#28C840]" />
-                <div className="flex-1 mx-4">
-                  <div className="bg-white/80 rounded-md px-3 py-1 text-xs text-warm-gray text-center max-w-xs mx-auto border border-cream-200">Email</div>
-                </div>
-              </div>
-              <Image
-                src="/screenshots/email-panel.jpg"
-                alt="KarKo AI application email and follow-up email panel"
-                width={1440}
-                height={819}
-                className="w-full h-auto"
-                quality={80}
-                sizes="(max-width: 1280px) 100vw, 1280px"
-              />
-            </div>
-            </ScrollReveal>
+      {/* Product Showcase */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-100 relative overflow-hidden">
+        <SectionBackground />
+        <div className="max-w-5xl mx-auto relative">
+          <ScrollReveal>
+          <div className="text-center mb-14">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">See It in Action</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
+              Everything You Get, In One Place
+            </h2>
+            <p className="text-lg text-warm-gray max-w-2xl mx-auto">
+              A tailored CV, cover letter, application email, follow-up email, ATS score, and full application tracker. All from a single job description.
+            </p>
           </div>
-
-          {/* 04 - US & EU CV Templates */}
-          <div className="mb-20">
-            <ScrollReveal>
-            <div className="text-center mb-6">
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-gold-50 to-gold-100 rounded-xl flex items-center justify-center">
-                  <Crown className="w-7 h-7 text-gold-500" />
-                </div>
-                <span className="text-3xl font-bold text-cream-300">04</span>
-              </div>
-              <h3 className="text-2xl font-bold text-navy-600 mb-3">US & EU CV Templates</h3>
-              <p className="text-warm-gray max-w-xl mx-auto">
-                6 ATS-optimized professional templates including German ATS with photo support. Choose between single-column and two-column layouts, with formatting for both US (Letter) and EU (A4) markets.
-              </p>
-            </div>
-            </ScrollReveal>
-            <ScrollReveal delay={150}>
-            <div className="browser-frame max-w-5xl mx-auto">
-              <div className="browser-frame-bar">
-                <div className="browser-dot bg-[#FF5F57]" />
-                <div className="browser-dot bg-[#FFBD2E]" />
-                <div className="browser-dot bg-[#28C840]" />
-                <div className="flex-1 mx-4">
-                  <div className="bg-white/80 rounded-md px-3 py-1 text-xs text-warm-gray text-center max-w-xs mx-auto border border-cream-200">Template Selector</div>
-                </div>
-              </div>
-              <Image
-                src="/screenshots/template-selector.jpg"
-                alt="KarKo AI template selector showing 6 CV templates for US and EU markets"
-                width={1440}
-                height={695}
-                className="w-full h-auto"
-                quality={80}
-                sizes="(max-width: 1280px) 100vw, 1280px"
-              />
-            </div>
-            </ScrollReveal>
-          </div>
-
-          {/* 05 - Application Tracker */}
-          <div className="mb-20">
-            <ScrollReveal>
-            <div className="text-center mb-6">
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-navy-50 to-navy-100 rounded-xl flex items-center justify-center">
-                  <Search className="w-7 h-7 text-navy-600" />
-                </div>
-                <span className="text-3xl font-bold text-cream-300">05</span>
-              </div>
-              <h3 className="text-2xl font-bold text-navy-600 mb-3">Application Tracker</h3>
-              <p className="text-warm-gray max-w-xl mx-auto">
-                Track every application with match scores, statuses, and company details in one place. Filter by status, search by company, and never lose track of where you applied.
-              </p>
-            </div>
-            </ScrollReveal>
-            <ScrollReveal delay={150}>
-            <div className="browser-frame max-w-5xl mx-auto">
-              <div className="browser-frame-bar">
-                <div className="browser-dot bg-[#FF5F57]" />
-                <div className="browser-dot bg-[#FFBD2E]" />
-                <div className="browser-dot bg-[#28C840]" />
-                <div className="flex-1 mx-4">
-                  <div className="bg-white/80 rounded-md px-3 py-1 text-xs text-warm-gray text-center max-w-xs mx-auto border border-cream-200">Application Tracker</div>
-                </div>
-              </div>
-              <Image
-                src="/screenshots/tracker-page.jpg"
-                alt="KarKo AI application tracker with status, match score, and company details"
-                width={1440}
-                height={819}
-                className="w-full h-auto"
-                quality={80}
-                sizes="(max-width: 1280px) 100vw, 1280px"
-              />
-            </div>
-            </ScrollReveal>
-          </div>
-
-          {/* 06 - AI Optimization Report */}
-          <div>
-            <ScrollReveal>
-            <div className="text-center mb-6">
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-gold-50 to-gold-100 rounded-xl flex items-center justify-center">
-                  <TrendingUp className="w-7 h-7 text-gold-500" />
-                </div>
-                <span className="text-3xl font-bold text-cream-300">06</span>
-              </div>
-              <h3 className="text-2xl font-bold text-navy-600 mb-3">AI Optimization Report</h3>
-              <p className="text-warm-gray max-w-xl mx-auto">
-                See exactly what was changed and why. Every optimization is transparent with a detailed strategy breakdown, ATS compatibility score, and key improvements summary.
-              </p>
-            </div>
-            </ScrollReveal>
-            <ScrollReveal delay={150}>
-            <div className="browser-frame max-w-5xl mx-auto">
-              <div className="browser-frame-bar">
-                <div className="browser-dot bg-[#FF5F57]" />
-                <div className="browser-dot bg-[#FFBD2E]" />
-                <div className="browser-dot bg-[#28C840]" />
-                <div className="flex-1 mx-4">
-                  <div className="bg-white/80 rounded-md px-3 py-1 text-xs text-warm-gray text-center max-w-xs mx-auto border border-cream-200">Optimization Report</div>
-                </div>
-              </div>
-              <Image
-                src="/screenshots/changes-tab.jpg"
-                alt="KarKo AI optimization report showing ATS compatibility score and detailed change strategy"
-                width={1440}
-                height={819}
-                className="w-full h-auto"
-                quality={80}
-                sizes="(max-width: 1280px) 100vw, 1280px"
-              />
-            </div>
-            </ScrollReveal>
-          </div>
+          </ScrollReveal>
+          <ProductShowcase />
         </div>
       </section>
 
@@ -561,8 +309,9 @@ export default function Home() {
       <TrustpilotReviews />
 
       {/* Why Trust Karko AI */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white relative">
-        <div className="max-w-6xl mx-auto">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
+        <SectionBackground />
+        <div className="max-w-6xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-14">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Why Trust Karko AI</p>
@@ -650,8 +399,8 @@ export default function Home() {
       </section>
 
       {/* Founder Story */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
-        <div className="absolute inset-0 dot-grid opacity-20" />
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-100 relative overflow-hidden">
+        <SectionBackground intensity="light" />
         <div className="max-w-5xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-14">
@@ -704,8 +453,9 @@ export default function Home() {
       </section>
 
       {/* Pricing */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white relative">
-        <div className="max-w-6xl mx-auto">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
+        <SectionBackground />
+        <div className="max-w-6xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-12">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Pricing</p>
@@ -967,8 +717,9 @@ export default function Home() {
       </section>
 
       {/* What is a Master CV? */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-5xl mx-auto">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-100 relative overflow-hidden">
+        <SectionBackground intensity="light" />
+        <div className="max-w-5xl mx-auto relative">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <ScrollReveal direction="left">
             <div>

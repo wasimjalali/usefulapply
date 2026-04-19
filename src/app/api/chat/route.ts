@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
       prompt: message,
       systemPrompt,
       conversationHistory,
-      ...(isScreeningMode && { maxTokens: 3000, temperature: 0.5 }),
+      ...(isScreeningMode && { maxTokens: 2000, temperature: 0.4 }),
     });
     const reply = response.content;
 
@@ -258,38 +258,40 @@ ${context.masterCVSummary}`;
   prompt += `
 </application_context>
 
+<length_constraints>
+ATS platforms (Workday, Greenhouse, Lever, iCIMS) enforce strict character limits on screening answers — typically 500-1000 characters per field. Recruiters spend 6-10 seconds scanning each answer. Every answer you write must fit within these real-world constraints.
+
+Absolute maximum per answer: 150 words (~750 characters). Most answers should be significantly shorter. If an answer exceeds 150 words, it is too long — cut it down.
+</length_constraints>
+
 <answer_guidelines>
-Identify each question's type and match your response length accordingly:
+Classify each question and match your response length to its type:
 
-1. YES/NO or ELIGIBILITY questions (work authorization, willingness to relocate, clearance, etc.):
-   - Answer in 1-5 words. Direct answer only. No elaboration unless the question explicitly asks for it.
+1. YES/NO or ELIGIBILITY (work authorization, willingness to relocate, security clearance):
+   - 1-5 words. Direct answer only. Never elaborate unless explicitly asked.
 
-2. NUMERIC or FACTUAL questions (years of experience, salary expectations, proficiency ratings):
-   - 5-20 words. State the number, then one sentence of context if helpful.
+2. NUMERIC or FACTUAL (years of experience, salary expectations, ratings, start date):
+   - 1 sentence, under 20 words. State the number or fact, add brief context only if it strengthens the answer.
 
-3. SHORT-ANSWER QUALITATIVE questions ("Why are you interested?", "Describe your experience with X"):
-   - 50-150 words. 2-3 focused sentences connecting the applicant's background to the specific role.
-   - Mirror keywords from the job description naturally.
+3. SHORT-ANSWER QUALITATIVE ("Why are you interested?", "Describe your experience with X"):
+   - 50-80 words. 2-3 concise sentences that connect the applicant's specific background to the role. Lead with the strongest qualifier.
 
-4. BEHAVIORAL questions ("Tell me about a time when..."):
-   - 150-250 words using STAR format:
-     - Situation: 1 sentence setting the scene
-     - Task: 1 sentence on the specific responsibility
-     - Action: 2-3 sentences detailing what the applicant did (use "I", not "we")
-     - Result: 1-2 sentences with quantified outcome
-   - Weight ~70% of words on Action and Result.
+4. BEHAVIORAL ("Tell me about a time when..."):
+   - 100-150 words maximum. Use compressed STAR format:
+     - Situation + Task: 1 sentence combined
+     - Action: 2 sentences max — focus on what the applicant specifically did
+     - Result: 1 sentence with a quantified outcome
+   - Prioritize the Result. Recruiters care most about measurable impact.
 
-5. SITUATIONAL or HYPOTHETICAL questions ("How would you handle..."):
-   - 100-200 words. Outline the approach in 2-3 structured steps, tie back to a similar past success from the CV.
+5. SITUATIONAL or HYPOTHETICAL ("How would you handle..."):
+   - 75-120 words. State the approach in 2-3 brief steps. Reference one similar past success from the CV to demonstrate credibility.
 
 Key rules:
-- ONLY reference skills, experience, metrics, and qualifications that exist in the CV. Never fabricate.
-- Mirror keywords from the job description naturally in the answers.
-- Use specific, concrete examples over broad generalities. One detailed example beats three vague ones.
-- Quantify achievements wherever the CV provides numbers (percentages, dollar amounts, time saved).
-- Stay consistent with the optimized CV content — dates, titles, and claims must match.
-- For missing skills: frame as transferable experience or eagerness to learn. Never claim expertise the applicant doesn't have.
-- Maximum ~250 words per individual answer. Recruiters scan screening answers quickly.
+- ONLY reference skills, experience, metrics, and qualifications that exist in the CV. Never fabricate claims or experience.
+- Mirror keywords from the job description naturally — do not force-fit or overload keywords.
+- One specific, quantified example is worth more than three vague claims.
+- Stay consistent with the optimized CV content — dates, titles, and metrics must match exactly.
+- For skills the applicant lacks: briefly acknowledge transferable experience or learning trajectory. Never claim expertise that does not exist in the CV.
 - If there are more than 7 questions, answer the first 7 and add a note: "Please send the remaining questions in a follow-up message."
 </answer_guidelines>
 
@@ -302,7 +304,7 @@ For each question, output exactly this format:
 [your answer]
 ---ANSWER_END---
 
-Do not add any text before the first ---ANSWER_START--- or after the last ---ANSWER_END---.
+Do not add any text before the first ---ANSWER_START--- or after the last ---ANSWER_END---. Do not add preambles, sign-offs, or commentary outside the answer blocks.
 </output_format>
 
 <language>
