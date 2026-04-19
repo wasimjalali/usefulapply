@@ -1008,3 +1008,93 @@ body {
   stroke-dasharray: 0, 1000;
   animation: ribbon-flow 12s ease-in-out infinite;
 }
+
+/* ─── Natural Cloud Drift Animations ─── */
+@keyframes cloud-drift-1 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.45;
+  }
+  30% {
+    transform: translate(40px, -15px) scale(1.05);
+    opacity: 0.55;
+  }
+  60% {
+    transform: translate(20px, -25px) scale(1.08);
+    opacity: 0.5;
+  }
+}
+
+@keyframes cloud-drift-2 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.35;
+  }
+  40% {
+    transform: translate(-35px, -20px) scale(1.06);
+    opacity: 0.5;
+  }
+  70% {
+    transform: translate(-15px, 10px) scale(1.03);
+    opacity: 0.4;
+  }
+}
+
+@keyframes cloud-drift-3 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.4;
+  }
+  35% {
+    transform: translate(25px, 15px) scale(1.04);
+    opacity: 0.5;
+  }
+  65% {
+    transform: translate(-20px, -10px) scale(1.07);
+    opacity: 0.45;
+  }
+}
+
+@keyframes cloud-drift-4 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate(-30px, -18px) scale(1.05);
+    opacity: 0.45;
+  }
+}
+
+@keyframes cloud-drift-5 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.35;
+  }
+  45% {
+    transform: translate(30px, 12px) scale(1.06);
+    opacity: 0.48;
+  }
+  80% {
+    transform: translate(-10px, -8px) scale(1.02);
+    opacity: 0.38;
+  }
+}
+
+@keyframes golden-glow-drift {
+  0%, 100% {
+    opacity: 0.15;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.25;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}
+
+.animate-cloud-drift-1 { animation: cloud-drift-1 25s ease-in-out infinite; }
+.animate-cloud-drift-2 { animation: cloud-drift-2 30s ease-in-out infinite 5s; }
+.animate-cloud-drift-3 { animation: cloud-drift-3 22s ease-in-out infinite 8s; }
+.animate-cloud-drift-4 { animation: cloud-drift-4 28s ease-in-out infinite 3s; }
+.animate-cloud-drift-5 { animation: cloud-drift-5 26s ease-in-out infinite 10s; }
+.animate-golden-glow-drift { animation: golden-glow-drift 10s ease-in-out infinite; }
