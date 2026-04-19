@@ -44,8 +44,9 @@ export default function TrustpilotReviews() {
       <div className="absolute inset-0 dot-grid opacity-15" />
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-300/30 to-transparent" />
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-300/30 to-transparent" />
-      <div className="absolute top-[15%] right-[-5%] w-[350px] h-[350px] bg-gradient-to-bl from-gold-200/20 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-3" />
-      <div className="absolute bottom-[10%] left-[-5%] w-[300px] h-[300px] bg-gradient-to-tr from-navy-100/10 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-1" />
+      <div className="absolute top-[-5%] right-[-8%] w-[450px] h-[450px] bg-gradient-to-bl from-gold-300/30 via-gold-200/15 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-3" />
+      <div className="absolute bottom-[-5%] left-[-8%] w-[400px] h-[400px] bg-gradient-to-tr from-navy-300/15 via-navy-200/8 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-5" />
+      <div className="absolute top-[40%] left-[5%] w-8 h-8 border-2 border-gold-200/20 rounded-md rotate-45 animate-float pointer-events-none" />
 
       <div className="max-w-5xl mx-auto relative">
         <ScrollReveal>
