@@ -8,6 +8,7 @@ import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { TimeSavingsCalculator } from '@/components/marketing/TimeSavingsCalculator';
 import TrustpilotReviews from '@/components/marketing/TrustpilotReviews';
+import { ProductShowcase } from '@/components/marketing/ProductShowcase';
 
 export const metadata: Metadata = {
   title: {
@@ -154,13 +155,13 @@ export default function Home() {
 
             <ScrollReveal delay={150}>
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-navy-600 mb-6 leading-[1.08] tracking-tight">
-              Get Your Complete Job Application Package{' '}
+              Your Entire Job Application{' '}
               <span className="bg-gradient-to-r from-gold-400 via-gold-500 to-gold-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-shimmer">in 90 Seconds</span>
             </h1>
             </ScrollReveal>
             <ScrollReveal delay={300}>
             <p className="text-xl md:text-2xl text-warm-gray mb-10 max-w-2xl mx-auto leading-relaxed">
-              Paste the job description. Karko AI analyzes your fit and generates a tailored CV, cover letter, application email, follow-up email, screening question answers, and more.
+              Paste any job description. Get a tailored CV, cover letter, emails, screening question answers, and more. All generated from your real experience.
             </p>
             </ScrollReveal>
             <ScrollReveal delay={450}>
@@ -306,6 +307,28 @@ export default function Home() {
               <p className="text-warm-gray leading-relaxed text-[15px]">Track every application with match scores, statuses, and company details inside Karko AI. Never lose track of where you applied.</p>
             </div>
           </div>
+          </ScrollReveal>
+        </div>
+      </section>
+
+      {/* Product Showcase — real screenshots carousel */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-100/30 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-navy-100/20 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl pointer-events-none" />
+        <div className="max-w-6xl mx-auto relative">
+          <ScrollReveal>
+          <div className="text-center mb-12">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">See It in Action</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
+              Everything You Get, In One Place
+            </h2>
+            <p className="text-lg text-warm-gray max-w-2xl mx-auto">
+              A tailored CV, cover letter, application email, follow-up email, ATS score, and full application tracker — all from a single job description.
+            </p>
+          </div>
+          </ScrollReveal>
+          <ScrollReveal delay={150}>
+            <ProductShowcase />
           </ScrollReveal>
         </div>
       </section>
