@@ -9,18 +9,25 @@ import Image from 'next/image';
 export function HeroBackground() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Main background image */}
+      {/* Main background image - slightly reduced opacity for text contrast */}
       <Image
         src="/hero-clouds-bg.jpg"
         alt=""
         fill
         priority
         quality={90}
-        className="object-cover object-center"
+        className="object-cover object-center opacity-60"
         sizes="100vw"
       />
-      {/* Subtle gradient overlay for better text contrast at top */}
-      <div className="absolute inset-0 bg-gradient-to-b from-cream-100/30 via-transparent to-cream-100/50" />
+      {/* Radial vignette: fades center for text, keeps edges visible */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'radial-gradient(ellipse 70% 50% at 50% 40%, rgba(250,247,242,0.85) 0%, rgba(250,247,242,0.4) 50%, transparent 80%)'
+        }}
+      />
+      {/* Top gradient for header area */}
+      <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-cream-100/80 to-transparent" />
     </div>
   );
 }
