@@ -42,7 +42,7 @@ export default function TrustpilotReviews() {
 
   return (
     <section className="py-24 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
-      <SectionBackground intensity="light" />
+      <SectionBackground intensity="light" variant={3} sectionColor="#FEFDFB" />
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-400/40 to-transparent" />
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-400/40 to-transparent" />
 

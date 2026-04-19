@@ -203,7 +203,7 @@ export default function Home() {
 
       {/* How It Works */}
       <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
-        <SectionBackground />
+        <SectionBackground variant={0} sectionColor="#FEFDFB" />
         <div className="max-w-6xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-14">
@@ -288,7 +288,7 @@ export default function Home() {
 
       {/* Product Showcase */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-100 relative overflow-hidden">
-        <SectionBackground />
+        <SectionBackground variant={1} sectionColor="#FAF7F2" />
         <div className="max-w-5xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-14">
@@ -310,7 +310,7 @@ export default function Home() {
 
       {/* Why Trust Karko AI */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
-        <SectionBackground />
+        <SectionBackground variant={2} sectionColor="#FEFDFB" />
         <div className="max-w-6xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-14">
@@ -397,7 +397,7 @@ export default function Home() {
 
       {/* Founder Story */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-100 relative overflow-hidden">
-        <SectionBackground intensity="light" />
+        <SectionBackground intensity="light" variant={3} sectionColor="#FAF7F2" />
         <div className="max-w-5xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-14">
@@ -451,7 +451,7 @@ export default function Home() {
 
       {/* Pricing */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
-        <SectionBackground />
+        <SectionBackground variant={4} sectionColor="#FEFDFB" />
         <div className="max-w-6xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-12">
@@ -658,7 +658,7 @@ export default function Home() {
 
       {/* Time Savings Calculator */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
-        <SectionBackground intensity="light" />
+        <SectionBackground intensity="light" variant={0} sectionColor="#FEFDFB" />
         <div className="max-w-4xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-10">
@@ -714,7 +714,7 @@ export default function Home() {
 
       {/* What is a Master CV? */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-100 relative overflow-hidden">
-        <SectionBackground intensity="light" />
+        <SectionBackground intensity="light" variant={1} sectionColor="#FAF7F2" />
         <div className="max-w-5xl mx-auto relative">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <ScrollReveal direction="left">

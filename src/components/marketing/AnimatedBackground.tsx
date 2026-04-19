@@ -33,54 +33,35 @@ export function HeroBackground() {
 }
 
 export function SectionBackground({
-  intensity = 'normal'
+  intensity = 'normal',
+  variant = 0,
+  sectionColor = '#FEFDFB'
 }: {
   intensity?: 'light' | 'normal';
+  variant?: number;
+  sectionColor?: string;
 }) {
-  const opacity = intensity === 'light' ? 0.7 : 1;
+  const imgOpacity = intensity === 'light' ? 'opacity-[0.18]' : 'opacity-[0.28]';
+  const positions = ['object-[50%_30%]', 'object-[30%_60%]', 'object-[70%_40%]', 'object-[40%_70%]', 'object-[60%_50%]'];
+  const drifts = ['animate-cloud-drift-1', 'animate-cloud-drift-2', 'animate-cloud-drift-3', 'animate-cloud-drift-4', 'animate-cloud-drift-5'];
+  const pos = positions[variant % positions.length];
+  const drift = drifts[variant % drifts.length];
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ opacity }}>
-      {/* Large cloud — top-left */}
-      <div
-        className="absolute -top-[10%] -left-[8%] w-[500px] h-[280px] rounded-[50%] blur-[60px] animate-cloud-drift-1"
-        style={{ background: 'radial-gradient(ellipse at 40% 50%, rgba(255,255,255,0.9) 0%, rgba(240,232,215,0.5) 45%, transparent 75%)' }}
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <Image
+        src="/hero-clouds-bg.jpg"
+        alt=""
+        fill
+        quality={60}
+        className={`object-cover ${pos} ${imgOpacity} scale-[1.15] ${drift}`}
+        sizes="100vw"
       />
-
-      {/* Large cloud — top-right */}
-      <div
-        className="absolute -top-[5%] -right-[10%] w-[550px] h-[300px] rounded-[50%] blur-[65px] animate-cloud-drift-2"
-        style={{ background: 'radial-gradient(ellipse at 60% 40%, rgba(255,255,255,0.85) 0%, rgba(245,237,220,0.45) 45%, transparent 75%)' }}
-      />
-
-      {/* Mid cloud — center-left */}
-      <div
-        className="absolute top-[35%] -left-[5%] w-[450px] h-[220px] rounded-[50%] blur-[55px] animate-cloud-drift-3"
-        style={{ background: 'radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.8) 0%, rgba(242,234,218,0.4) 45%, transparent 70%)' }}
-      />
-
-      {/* Mid cloud — center-right */}
-      <div
-        className="absolute top-[40%] -right-[6%] w-[400px] h-[200px] rounded-[50%] blur-[55px] animate-cloud-drift-4"
-        style={{ background: 'radial-gradient(ellipse at 45% 55%, rgba(255,255,255,0.75) 0%, rgba(240,233,218,0.4) 45%, transparent 70%)' }}
-      />
-
-      {/* Bottom cloud — large and wide */}
-      <div
-        className="absolute -bottom-[10%] left-[10%] w-[600px] h-[250px] rounded-[50%] blur-[60px] animate-cloud-drift-5"
-        style={{ background: 'radial-gradient(ellipse at 50% 60%, rgba(255,255,255,0.85) 0%, rgba(242,235,220,0.45) 45%, transparent 75%)' }}
-      />
-
-      {/* Golden glow accent — center */}
+      <div className="absolute inset-x-0 top-0 h-28" style={{ background: `linear-gradient(to bottom, ${sectionColor}, transparent)` }} />
+      <div className="absolute inset-x-0 bottom-0 h-28" style={{ background: `linear-gradient(to top, ${sectionColor}, transparent)` }} />
       <div
         className="absolute top-1/2 left-1/2 w-[500px] h-[250px] rounded-[50%] blur-[80px] animate-golden-glow-drift"
-        style={{ background: 'radial-gradient(ellipse at 50% 50%, rgba(212,168,83,0.25) 0%, rgba(232,194,122,0.12) 40%, transparent 70%)' }}
-      />
-
-      {/* Secondary golden accent — lower-right */}
-      <div
-        className="absolute bottom-[20%] right-[15%] w-[300px] h-[150px] rounded-[50%] blur-[60px] animate-cloud-drift-1"
-        style={{ background: 'radial-gradient(ellipse at 50% 50%, rgba(212,168,83,0.18) 0%, rgba(232,194,122,0.08) 40%, transparent 65%)', animationDelay: '12s' }}
+        style={{ background: 'radial-gradient(ellipse at 50% 50%, rgba(212,168,83,0.18) 0%, rgba(232,194,122,0.08) 40%, transparent 70%)' }}
       />
     </div>
   );
