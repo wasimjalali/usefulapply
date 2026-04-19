@@ -121,46 +121,17 @@ export default function Home() {
       <Navbar />
       <main>
       {/* Hero Section */}
-      <section className="pt-24 pb-28 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        {/* Gradient mesh background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-cream-100 via-cream-50 to-white" />
+      <section className="pt-24 pb-28 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-cream-100">
+        {/* Warm gold gradient wash */}
+        <div className="absolute inset-0 bg-gradient-to-br from-gold-50/80 via-cream-100 to-cream-200/50" />
 
-        {/* Large vivid orbs */}
-        <div className="absolute top-[-15%] right-[-10%] w-[700px] h-[700px] rounded-full bg-gradient-to-bl from-gold-300/60 via-gold-200/40 to-gold-100/20 blur-3xl pointer-events-none animate-hero-orb-1" />
-        <div className="absolute bottom-[-15%] left-[-10%] w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-navy-300/25 via-navy-200/15 to-navy-100/5 blur-3xl pointer-events-none animate-hero-orb-2" />
-        <div className="absolute top-[30%] left-[55%] w-[450px] h-[450px] rounded-full bg-gradient-to-br from-gold-400/30 via-gold-200/15 to-transparent blur-2xl pointer-events-none animate-hero-orb-3" />
-        <div className="absolute top-[60%] left-[10%] w-[350px] h-[350px] rounded-full bg-gradient-to-tr from-gold-200/25 to-transparent blur-2xl pointer-events-none animate-hero-orb-4" />
-        <div className="absolute top-[10%] left-[30%] w-[250px] h-[250px] rounded-full bg-gradient-to-br from-navy-200/20 to-transparent blur-2xl pointer-events-none animate-hero-orb-5" />
+        {/* Large gold aurora blobs */}
+        <div className="absolute top-[-20%] right-[-5%] w-[600px] h-[600px] rounded-full bg-gradient-to-bl from-gold-300/50 via-gold-200/30 to-cream-200/20 blur-[100px] pointer-events-none animate-hero-orb-1" />
+        <div className="absolute bottom-[-20%] left-[-5%] w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-gold-400/30 via-gold-200/20 to-cream-300/15 blur-[100px] pointer-events-none animate-hero-orb-2" />
+        <div className="absolute top-[25%] left-[50%] w-[400px] h-[400px] rounded-full bg-gradient-to-br from-gold-300/35 via-cream-300/20 to-transparent blur-[80px] pointer-events-none animate-hero-orb-3" />
 
-        {/* Dot grid overlay */}
-        <div className="absolute inset-0 dot-grid opacity-30" />
-
-        {/* Gold accent line at top */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-400/50 to-transparent" />
-
-        {/* Geometric floating shapes */}
-        <div className="absolute top-[12%] left-[6%] w-20 h-20 border-2 border-gold-300/30 rounded-xl rotate-12 animate-float-slow pointer-events-none" />
-        <div className="absolute top-[18%] right-[8%] w-14 h-14 border-2 border-navy-300/20 rounded-full animate-float pointer-events-none" />
-        <div className="absolute bottom-[15%] right-[15%] w-16 h-16 border-2 border-gold-300/25 rounded-lg -rotate-12 animate-float-delayed pointer-events-none" />
-        <div className="absolute bottom-[25%] left-[12%] w-10 h-10 border-2 border-navy-200/20 rounded-md rotate-45 animate-hero-orb-3 pointer-events-none" />
-        <div className="absolute top-[45%] right-[5%] w-6 h-6 bg-gold-400/15 rounded-full animate-float pointer-events-none" />
-        <div className="absolute top-[70%] left-[20%] w-4 h-4 bg-gold-300/20 rounded-full animate-float-delayed pointer-events-none" />
-        <div className="absolute top-[30%] left-[3%] w-3 h-3 bg-navy-400/15 rounded-full animate-hero-orb-5 pointer-events-none" />
-        <div className="absolute bottom-[35%] right-[25%] w-5 h-5 bg-gold-400/10 rounded-full animate-hero-orb-4 pointer-events-none" />
-
-        {/* Spinning concentric rings */}
-        <div className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] animate-spin-very-slow pointer-events-none">
-          <div className="absolute inset-0 border border-navy-400/[0.06] rounded-full" />
-          <div className="absolute inset-[15%] border border-gold-400/[0.08] rounded-full" />
-          <div className="absolute inset-[30%] border border-navy-400/[0.05] rounded-full" />
-          <div className="absolute inset-[45%] border border-gold-400/[0.06] rounded-full" />
-        </div>
-
-        {/* Reverse spinning ring */}
-        <div className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] animate-spin-very-slow-reverse pointer-events-none">
-          <div className="absolute inset-0 border border-dashed border-gold-300/[0.07] rounded-full" />
-          <div className="absolute inset-[25%] border border-dashed border-navy-300/[0.05] rounded-full" />
-        </div>
+        {/* Gold accent line */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-400/60 to-transparent" />
 
         <div className="max-w-6xl mx-auto relative">
           <div className="text-center max-w-4xl mx-auto">
@@ -187,7 +158,7 @@ export default function Home() {
               </Link>
               <Link
                 href="#how-it-works"
-                className="w-full sm:w-auto px-10 py-4 bg-white/70 backdrop-blur-sm text-navy-600 font-semibold rounded-xl hover:bg-white hover:shadow-lg hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2 text-lg shadow-sm border border-cream-200"
+                className="w-full sm:w-auto px-10 py-4 bg-cream-50/80 backdrop-blur-sm text-navy-600 font-semibold rounded-xl hover:bg-cream-50 hover:shadow-lg hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2 text-lg shadow-sm border border-cream-300"
               >
                 See How It Works
               </Link>
@@ -240,11 +211,8 @@ export default function Home() {
 
       {/* How It Works */}
       <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
-        <div className="absolute inset-0 dot-grid opacity-25" />
-        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-gradient-to-br from-gold-300/35 via-gold-200/20 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-1" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[450px] h-[450px] bg-gradient-to-tl from-navy-300/20 via-navy-200/10 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-2" />
-        <div className="absolute top-[50%] right-[20%] w-12 h-12 border-2 border-gold-300/20 rounded-lg rotate-12 animate-float-slow pointer-events-none" />
-        <div className="absolute top-[30%] left-[5%] w-4 h-4 bg-gold-400/15 rounded-full animate-float pointer-events-none" />
+        <div className="absolute top-[-10%] left-[-8%] w-[450px] h-[450px] bg-gradient-to-br from-gold-300/30 via-gold-200/15 to-transparent rounded-full blur-[80px] pointer-events-none animate-hero-orb-1" />
+        <div className="absolute bottom-[-10%] right-[-8%] w-[400px] h-[400px] bg-gradient-to-tl from-gold-200/25 via-cream-300/15 to-transparent rounded-full blur-[80px] pointer-events-none animate-hero-orb-2" />
         <div className="max-w-6xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-14">
@@ -328,13 +296,10 @@ export default function Home() {
       </section>
 
       {/* Product Showcase */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white relative overflow-hidden">
-        <div className="absolute top-[5%] right-[-8%] w-[550px] h-[550px] bg-gradient-to-bl from-gold-300/35 via-gold-200/20 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-2" />
-        <div className="absolute top-[40%] left-[-8%] w-[500px] h-[500px] bg-gradient-to-tr from-navy-300/15 via-navy-200/10 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-4" />
-        <div className="absolute bottom-[15%] right-[5%] w-[400px] h-[400px] bg-gradient-to-bl from-gold-200/25 to-transparent rounded-full blur-2xl pointer-events-none animate-hero-orb-3" />
-        <div className="absolute top-[20%] left-[8%] w-14 h-14 border-2 border-gold-200/25 rounded-xl rotate-12 animate-float-slow pointer-events-none" />
-        <div className="absolute bottom-[30%] right-[12%] w-8 h-8 border-2 border-navy-200/15 rounded-full animate-float pointer-events-none" />
-        <div className="absolute top-[65%] left-[20%] w-5 h-5 bg-gold-400/12 rounded-full animate-float-delayed pointer-events-none" />
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-100 relative overflow-hidden">
+        <div className="absolute top-[5%] right-[-8%] w-[500px] h-[500px] bg-gradient-to-bl from-gold-300/30 via-gold-200/15 to-transparent rounded-full blur-[80px] pointer-events-none animate-hero-orb-2" />
+        <div className="absolute top-[45%] left-[-8%] w-[450px] h-[450px] bg-gradient-to-tr from-gold-200/25 via-cream-300/15 to-transparent rounded-full blur-[80px] pointer-events-none animate-hero-orb-1" />
+        <div className="absolute bottom-[10%] right-[10%] w-[350px] h-[350px] bg-gradient-to-bl from-gold-300/20 to-transparent rounded-full blur-[60px] pointer-events-none animate-hero-orb-3" />
         <div className="max-w-5xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-14">
@@ -355,12 +320,9 @@ export default function Home() {
       <TrustpilotReviews />
 
       {/* Why Trust Karko AI */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white relative overflow-hidden">
-        <div className="absolute top-[10%] right-[-8%] w-[500px] h-[500px] bg-gradient-to-bl from-gold-300/30 via-gold-200/15 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-5" />
-        <div className="absolute bottom-[-5%] left-[-8%] w-[450px] h-[450px] bg-gradient-to-tr from-navy-300/15 via-navy-200/10 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-1" />
-        <div className="absolute top-[55%] left-[45%] w-14 h-14 border-2 border-gold-200/20 rounded-xl rotate-12 animate-float-slow pointer-events-none" />
-        <div className="absolute top-[25%] left-[5%] w-6 h-6 bg-gold-400/12 rounded-full animate-float pointer-events-none" />
-        <div className="absolute bottom-[20%] right-[15%] w-4 h-4 bg-navy-400/10 rounded-full animate-hero-orb-4 pointer-events-none" />
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
+        <div className="absolute top-[-5%] right-[-8%] w-[500px] h-[500px] bg-gradient-to-bl from-gold-300/30 via-gold-200/15 to-transparent rounded-full blur-[80px] pointer-events-none animate-hero-orb-3" />
+        <div className="absolute bottom-[-5%] left-[-8%] w-[400px] h-[400px] bg-gradient-to-tr from-gold-200/25 via-cream-300/12 to-transparent rounded-full blur-[80px] pointer-events-none animate-hero-orb-1" />
         <div className="max-w-6xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-14">
@@ -449,11 +411,9 @@ export default function Home() {
       </section>
 
       {/* Founder Story */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
-        <div className="absolute inset-0 dot-grid opacity-20" />
-        <div className="absolute top-[-5%] right-[-8%] w-[450px] h-[450px] bg-gradient-to-bl from-gold-300/30 via-gold-200/15 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-2" />
-        <div className="absolute bottom-[-5%] left-[-8%] w-[400px] h-[400px] bg-gradient-to-tr from-navy-300/15 via-navy-200/8 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-5" />
-        <div className="absolute top-[40%] left-[3%] w-10 h-10 border-2 border-gold-200/20 rounded-md rotate-45 animate-float pointer-events-none" />
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-100 relative overflow-hidden">
+        <div className="absolute top-[-5%] right-[-8%] w-[450px] h-[450px] bg-gradient-to-bl from-gold-300/25 via-gold-200/12 to-transparent rounded-full blur-[80px] pointer-events-none animate-hero-orb-2" />
+        <div className="absolute bottom-[-5%] left-[-8%] w-[350px] h-[350px] bg-gradient-to-tr from-gold-200/20 via-cream-300/10 to-transparent rounded-full blur-[80px] pointer-events-none animate-hero-orb-3" />
         <div className="max-w-5xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-14">
@@ -506,13 +466,9 @@ export default function Home() {
       </section>
 
       {/* Pricing */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white relative overflow-hidden">
-        <div className="absolute top-[-8%] left-[-8%] w-[550px] h-[550px] bg-gradient-to-br from-gold-300/30 via-gold-200/15 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-1" />
-        <div className="absolute bottom-[-8%] right-[-8%] w-[500px] h-[500px] bg-gradient-to-tl from-navy-300/20 via-navy-200/10 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-3" />
-        <div className="absolute top-[20%] right-[5%] w-[300px] h-[300px] bg-gradient-to-bl from-gold-200/20 to-transparent rounded-full blur-2xl pointer-events-none animate-hero-orb-5" />
-        <div className="absolute top-[40%] right-[18%] w-10 h-10 border-2 border-navy-200/15 rounded-full animate-float pointer-events-none" />
-        <div className="absolute bottom-[25%] left-[8%] w-12 h-12 border-2 border-gold-200/20 rounded-lg rotate-45 animate-float-delayed pointer-events-none" />
-        <div className="absolute top-[60%] left-[25%] w-4 h-4 bg-gold-400/12 rounded-full animate-hero-orb-4 pointer-events-none" />
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
+        <div className="absolute top-[-8%] left-[-8%] w-[500px] h-[500px] bg-gradient-to-br from-gold-300/30 via-gold-200/15 to-transparent rounded-full blur-[80px] pointer-events-none animate-hero-orb-1" />
+        <div className="absolute bottom-[-8%] right-[-8%] w-[450px] h-[450px] bg-gradient-to-tl from-gold-200/25 via-cream-300/12 to-transparent rounded-full blur-[80px] pointer-events-none animate-hero-orb-2" />
         <div className="max-w-6xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-12">
@@ -775,10 +731,9 @@ export default function Home() {
       </section>
 
       {/* What is a Master CV? */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white relative overflow-hidden">
-        <div className="absolute top-[5%] left-[-8%] w-[450px] h-[450px] bg-gradient-to-br from-gold-300/25 via-gold-200/12 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-4" />
-        <div className="absolute bottom-[-5%] right-[-5%] w-[400px] h-[400px] bg-gradient-to-tl from-navy-300/15 via-navy-200/8 to-transparent rounded-full blur-3xl pointer-events-none animate-hero-orb-1" />
-        <div className="absolute top-[50%] right-[10%] w-10 h-10 border-2 border-gold-200/20 rounded-lg rotate-12 animate-float-slow pointer-events-none" />
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-100 relative overflow-hidden">
+        <div className="absolute top-[-5%] left-[-8%] w-[400px] h-[400px] bg-gradient-to-br from-gold-300/25 via-gold-200/12 to-transparent rounded-full blur-[80px] pointer-events-none animate-hero-orb-2" />
+        <div className="absolute bottom-[-5%] right-[-5%] w-[350px] h-[350px] bg-gradient-to-tl from-gold-200/20 via-cream-300/10 to-transparent rounded-full blur-[80px] pointer-events-none animate-hero-orb-1" />
         <div className="max-w-5xl mx-auto relative">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <ScrollReveal direction="left">
