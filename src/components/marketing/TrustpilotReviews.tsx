@@ -2,6 +2,7 @@
 
 import { Star, ExternalLink, Quote } from 'lucide-react';
 import { ScrollReveal } from './ScrollReveal';
+import { SectionBackground } from './AnimatedBackground';
 
 interface Review {
   name: string;
@@ -41,10 +42,9 @@ export default function TrustpilotReviews() {
 
   return (
     <section className="py-24 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
+      <SectionBackground intensity="light" />
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-400/40 to-transparent" />
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-400/40 to-transparent" />
-      <div className="absolute top-[-5%] right-[-8%] w-[400px] h-[400px] bg-gradient-to-bl from-gold-300/30 via-gold-200/15 to-transparent rounded-full blur-[80px] pointer-events-none animate-hero-orb-3" />
-      <div className="absolute bottom-[-5%] left-[-8%] w-[350px] h-[350px] bg-gradient-to-tr from-gold-200/25 via-cream-300/10 to-transparent rounded-full blur-[80px] pointer-events-none animate-hero-orb-1" />
 
       <div className="max-w-5xl mx-auto relative">
         <ScrollReveal>
