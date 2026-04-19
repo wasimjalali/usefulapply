@@ -114,6 +114,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'weekly',
       priority: 0.8,
     },
+    {
+      url: `${SITE_URL}/ai-job-application/screening-question-answers`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
     // Master CV Template
     {
       url: `${SITE_URL}/master-cv-template`,
