@@ -829,319 +829,182 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   HERO & SECTION BACKGROUND ANIMATIONS
-   Premium gold/cream animated elements for landing page
+   ETHEREAL CLOUD BACKGROUND ANIMATIONS
+   Soft 3D clouds with golden light streams — inspired by premium SaaS aesthetics
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ─── Floating Document Animations ─── */
-@keyframes float-doc-1 {
+/* ─── Radial Gradient Utility ─── */
+.bg-gradient-radial {
+  background: radial-gradient(ellipse at center, var(--tw-gradient-from), var(--tw-gradient-to));
+}
+
+/* ─── Floating Cloud Shapes ─── */
+@keyframes cloud-float-1 {
   0%, 100% {
-    transform: translateY(0) rotate(-2deg);
-    opacity: 0.4;
-  }
-  50% {
-    transform: translateY(-20px) rotate(2deg);
-    opacity: 0.6;
-  }
-}
-
-@keyframes float-doc-2 {
-  0%, 100% {
-    transform: translateY(0) rotate(3deg);
-    opacity: 0.3;
-  }
-  50% {
-    transform: translateY(-15px) rotate(-1deg);
-    opacity: 0.5;
-  }
-}
-
-@keyframes float-doc-3 {
-  0%, 100% {
-    transform: translateY(0) rotate(1deg);
-    opacity: 0.35;
-  }
-  50% {
-    transform: translateY(-25px) rotate(-3deg);
-    opacity: 0.55;
-  }
-}
-
-@keyframes float-doc-4 {
-  0%, 100% {
-    transform: translateY(0) rotate(-1deg);
-    opacity: 0.25;
-  }
-  50% {
-    transform: translateY(-18px) rotate(2deg);
-    opacity: 0.45;
-  }
-}
-
-@keyframes float-doc-5 {
-  0%, 100% {
-    transform: translateY(0) rotate(0deg);
-    opacity: 0.5;
-  }
-  50% {
-    transform: translateY(-12px) rotate(1deg);
-    opacity: 0.7;
-  }
-}
-
-.animate-float-doc-1 { animation: float-doc-1 8s ease-in-out infinite; }
-.animate-float-doc-2 { animation: float-doc-2 10s ease-in-out infinite 1s; }
-.animate-float-doc-3 { animation: float-doc-3 9s ease-in-out infinite 2s; }
-.animate-float-doc-4 { animation: float-doc-4 11s ease-in-out infinite 0.5s; }
-.animate-float-doc-5 { animation: float-doc-5 7s ease-in-out infinite 1.5s; }
-
-/* ─── Horizontal Scan Line — AI Processing ─── */
-@keyframes scan-line {
-  0% {
-    transform: translateY(0);
-    opacity: 0;
-  }
-  5% {
-    opacity: 0.6;
-  }
-  95% {
-    opacity: 0.6;
-  }
-  100% {
-    transform: translateY(100vh);
-    opacity: 0;
-  }
-}
-
-.animate-scan-line {
-  animation: scan-line 8s linear infinite;
-}
-
-.animate-scan-line-delayed {
-  animation: scan-line 8s linear infinite 4s;
-}
-
-/* ─── Rising Particles — Career Growth ─── */
-@keyframes rise-particle-1 {
-  0% {
-    transform: translateY(0) scale(1);
-    opacity: 0;
-  }
-  10% {
-    opacity: 0.5;
-  }
-  90% {
-    opacity: 0.5;
-  }
-  100% {
-    transform: translateY(-100vh) scale(0.5);
-    opacity: 0;
-  }
-}
-
-@keyframes rise-particle-2 {
-  0% {
     transform: translateY(0) translateX(0) scale(1);
-    opacity: 0;
   }
-  10% {
-    opacity: 0.4;
+  25% {
+    transform: translateY(-15px) translateX(8px) scale(1.02);
   }
-  90% {
-    opacity: 0.4;
+  50% {
+    transform: translateY(-25px) translateX(5px) scale(1.05);
   }
-  100% {
-    transform: translateY(-100vh) translateX(20px) scale(0.6);
-    opacity: 0;
+  75% {
+    transform: translateY(-12px) translateX(-5px) scale(1.02);
   }
 }
 
-@keyframes rise-particle-3 {
-  0% {
+@keyframes cloud-float-2 {
+  0%, 100% {
     transform: translateY(0) translateX(0) scale(1);
+  }
+  33% {
+    transform: translateY(-20px) translateX(-10px) scale(1.03);
+  }
+  66% {
+    transform: translateY(-10px) translateX(8px) scale(1.01);
+  }
+}
+
+@keyframes cloud-float-3 {
+  0%, 100% {
+    transform: translateY(0) translateX(0) scale(1);
+  }
+  50% {
+    transform: translateY(-18px) translateX(12px) scale(1.04);
+  }
+}
+
+.animate-cloud-float-1 { animation: cloud-float-1 18s ease-in-out infinite; }
+.animate-cloud-float-2 { animation: cloud-float-2 22s ease-in-out infinite 3s; }
+.animate-cloud-float-3 { animation: cloud-float-3 16s ease-in-out infinite 6s; }
+
+/* ─── Floating Platform Shapes (oval discs) ─── */
+@keyframes platform-float-1 {
+  0%, 100% {
+    transform: translateY(0) rotateX(60deg);
+  }
+  50% {
+    transform: translateY(-12px) rotateX(60deg);
+  }
+}
+
+@keyframes platform-float-2 {
+  0%, 100% {
+    transform: translateY(0) rotateX(55deg);
+  }
+  50% {
+    transform: translateY(-8px) rotateX(55deg);
+  }
+}
+
+@keyframes platform-float-3 {
+  0%, 100% {
+    transform: translateY(0) rotateX(65deg);
+  }
+  50% {
+    transform: translateY(-15px) rotateX(65deg);
+  }
+}
+
+.animate-platform-float-1 { animation: platform-float-1 10s ease-in-out infinite; }
+.animate-platform-float-2 { animation: platform-float-2 12s ease-in-out infinite 2s; }
+.animate-platform-float-3 { animation: platform-float-3 14s ease-in-out infinite 4s; }
+
+/* ─── Golden Light Streams ─── */
+@keyframes light-stream {
+  0% {
     opacity: 0;
+    transform: translateX(-100%);
   }
   10% {
-    opacity: 0.45;
+    opacity: 1;
   }
   90% {
-    opacity: 0.45;
+    opacity: 1;
   }
   100% {
-    transform: translateY(-100vh) translateX(-15px) scale(0.4);
     opacity: 0;
+    transform: translateX(100%);
   }
 }
 
-.animate-rise-particle-1 { animation: rise-particle-1 12s linear infinite; }
-.animate-rise-particle-2 { animation: rise-particle-2 15s linear infinite 2s; }
-.animate-rise-particle-3 { animation: rise-particle-3 14s linear infinite 4s; }
-.animate-rise-particle-4 { animation: rise-particle-1 16s linear infinite 6s; }
-.animate-rise-particle-5 { animation: rise-particle-2 13s linear infinite 3s; }
-.animate-rise-particle-6 { animation: rise-particle-3 11s linear infinite 7s; }
+.animate-light-stream {
+  animation: light-stream 8s ease-in-out infinite;
+}
 
-/* ─── Rotating Geometric Shapes ─── */
-@keyframes rotate-shape-1 {
+.animate-light-stream-delayed {
+  animation: light-stream 8s ease-in-out infinite 4s;
+}
+
+/* ─── Sparkle / Particle Effects ─── */
+@keyframes sparkle {
   0%, 100% {
-    transform: rotate(45deg) scale(1);
-    opacity: 0.3;
+    opacity: 0;
+    transform: scale(0.8);
   }
   50% {
-    transform: rotate(135deg) scale(1.05);
-    opacity: 0.45;
+    opacity: 1;
+    transform: scale(1.2);
   }
 }
 
-@keyframes rotate-shape-2 {
+.animate-sparkle {
+  animation: sparkle 3s ease-in-out infinite;
+}
+
+.animate-sparkle-delayed {
+  animation: sparkle 3s ease-in-out infinite 1.5s;
+}
+
+/* ─── Ambient Glow Pulse ─── */
+@keyframes glow-pulse {
   0%, 100% {
-    transform: rotate(0deg);
-    opacity: 0.25;
+    opacity: 0.8;
+    transform: translate(-50%, -50%) scale(1);
   }
   50% {
-    transform: rotate(-90deg);
-    opacity: 0.4;
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
   }
 }
 
-@keyframes rotate-shape-slow {
+.animate-glow-pulse {
+  animation: glow-pulse 6s ease-in-out infinite;
+}
+
+/* ─── Gentle Breathing Effect ─── */
+@keyframes breathe {
+  0%, 100% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+}
+
+.animate-breathe {
+  animation: breathe 8s ease-in-out infinite;
+}
+
+/* ─── Ribbon Flow (SVG path) ─── */
+@keyframes ribbon-flow {
   0% {
-    transform: rotate(45deg);
-  }
-  100% {
-    transform: rotate(405deg);
-  }
-}
-
-.animate-rotate-shape-1 { animation: rotate-shape-1 20s ease-in-out infinite; }
-.animate-rotate-shape-2 { animation: rotate-shape-2 25s ease-in-out infinite; }
-.animate-rotate-shape-slow { animation: rotate-shape-slow 40s linear infinite; }
-
-/* ─── Pulsing Rings ─── */
-@keyframes pulse-ring {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.2;
-  }
-  50% {
-    transform: scale(1.1);
-    opacity: 0.35;
-  }
-}
-
-@keyframes pulse-ring-slow {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.4;
-  }
-  50% {
-    transform: scale(1.08);
-    opacity: 0.55;
-  }
-}
-
-.animate-pulse-ring { animation: pulse-ring 6s ease-in-out infinite; }
-.animate-pulse-ring-slow { animation: pulse-ring-slow 8s ease-in-out infinite; }
-
-/* ─── Connection Dots — Network Visualization ─── */
-@keyframes pulse-dot {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.4;
-  }
-  50% {
-    transform: scale(1.3);
-    opacity: 0.7;
-  }
-}
-
-.animate-pulse-dot { animation: pulse-dot 3s ease-in-out infinite; }
-.animate-pulse-dot-delayed { animation: pulse-dot 3s ease-in-out infinite 1.5s; }
-
-/* ─── Flowing Path/Ribbon — Speed & Efficiency ─── */
-@keyframes flow-path {
-  0% {
-    stroke-dasharray: 0, 2000;
+    stroke-dasharray: 0, 1000;
     stroke-dashoffset: 0;
   }
   50% {
-    stroke-dasharray: 1000, 2000;
-    stroke-dashoffset: -500;
+    stroke-dasharray: 500, 1000;
   }
   100% {
-    stroke-dasharray: 0, 2000;
-    stroke-dashoffset: -2000;
+    stroke-dasharray: 0, 1000;
+    stroke-dashoffset: -1000;
   }
 }
 
-.animate-flow-path {
-  stroke-dasharray: 0, 2000;
-  animation: flow-path 10s ease-in-out infinite;
+.animate-ribbon-flow {
+  stroke-dasharray: 0, 1000;
+  animation: ribbon-flow 12s ease-in-out infinite;
 }
-
-.animate-flow-path-delayed {
-  stroke-dasharray: 0, 2000;
-  animation: flow-path 10s ease-in-out infinite 5s;
-}
-
-/* ─── Corner Accents ─── */
-@keyframes corner-accent {
-  0%, 100% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 0.8;
-  }
-}
-
-.animate-corner-accent { animation: corner-accent 4s ease-in-out infinite; }
-.animate-corner-accent-delayed { animation: corner-accent 4s ease-in-out infinite 2s; }
-
-/* ─── Section Background Subtle Floats ─── */
-@keyframes float-subtle-1 {
-  0%, 100% {
-    transform: translateY(0) translateX(0);
-    opacity: 0.25;
-  }
-  50% {
-    transform: translateY(-10px) translateX(5px);
-    opacity: 0.4;
-  }
-}
-
-@keyframes float-subtle-2 {
-  0%, 100% {
-    transform: translateY(0) translateX(0);
-    opacity: 0.2;
-  }
-  50% {
-    transform: translateY(-8px) translateX(-4px);
-    opacity: 0.35;
-  }
-}
-
-@keyframes float-subtle-3 {
-  0%, 100% {
-    transform: translateY(0);
-    opacity: 0.3;
-  }
-  50% {
-    transform: translateY(-6px);
-    opacity: 0.45;
-  }
-}
-
-@keyframes float-doc-subtle {
-  0%, 100% {
-    transform: translateY(0) rotate(-1deg);
-    opacity: 0.25;
-  }
-  50% {
-    transform: translateY(-8px) rotate(1deg);
-    opacity: 0.4;
-  }
-}
-
-.animate-float-subtle-1 { animation: float-subtle-1 10s ease-in-out infinite; }
-.animate-float-subtle-2 { animation: float-subtle-2 12s ease-in-out infinite 2s; }
-.animate-float-subtle-3 { animation: float-subtle-3 9s ease-in-out infinite 4s; }
-.animate-float-doc-subtle { animation: float-doc-subtle 11s ease-in-out infinite 1s; }
