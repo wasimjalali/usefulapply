@@ -67,7 +67,7 @@ export function FeedbackModal({ type, onSubmit, onCancel, isSuccess = false }: F
                   ? "Tell us what was helpful about this response..." 
                   : "Tell us how we can make this better..."
                 }
-                className="w-full h-32 px-4 py-3 text-sm border border-cream-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gold-300 focus:border-gold-400 resize-none placeholder:text-warm-gray"
+                className="w-full h-32 px-4 py-3 text-sm border border-cream-200 rounded-xl focus:outline-none focus:border-gold-400 resize-none placeholder:text-warm-gray transition-colors"
                 autoFocus
               />
             </div>

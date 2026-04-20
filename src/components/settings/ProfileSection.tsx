@@ -102,7 +102,7 @@ export function ProfileSection({
                 value={formData.fullName}
                 onChange={(e) => onChange({ fullName: e.target.value })}
                 placeholder="Enter your full name"
-                className="w-full pl-10 pr-4 py-2.5 border border-cream-200 rounded-xl bg-white focus:border-gold-400 focus:ring-2 focus:ring-gold-100 focus:outline-none transition-all"
+                className="w-full pl-10 pr-4 py-2.5 border border-cream-200 rounded-xl bg-white focus:border-gold-400 focus:outline-none transition-colors"
               />
             </div>
           </div>
@@ -118,7 +118,7 @@ export function ProfileSection({
                 value={formData.email}
                 onChange={(e) => onChange({ email: e.target.value })}
                 placeholder="your@email.com"
-                className="w-full pl-10 pr-4 py-2.5 border border-cream-200 rounded-xl bg-white focus:border-gold-400 focus:ring-2 focus:ring-gold-100 focus:outline-none transition-all"
+                className="w-full pl-10 pr-4 py-2.5 border border-cream-200 rounded-xl bg-white focus:border-gold-400 focus:outline-none transition-colors"
               />
             </div>
           </div>
@@ -134,7 +134,7 @@ export function ProfileSection({
                 value={formData.phone}
                 onChange={(e) => onChange({ phone: e.target.value })}
                 placeholder="+1 (555) 000-0000"
-                className="w-full pl-10 pr-4 py-2.5 border border-cream-200 rounded-xl bg-white focus:border-gold-400 focus:ring-2 focus:ring-gold-100 focus:outline-none transition-all"
+                className="w-full pl-10 pr-4 py-2.5 border border-cream-200 rounded-xl bg-white focus:border-gold-400 focus:outline-none transition-colors"
               />
             </div>
           </div>
@@ -150,7 +150,7 @@ export function ProfileSection({
                 value={formData.location}
                 onChange={(e) => onChange({ location: e.target.value })}
                 placeholder="City, Country"
-                className="w-full pl-10 pr-4 py-2.5 border border-cream-200 rounded-xl bg-white focus:border-gold-400 focus:ring-2 focus:ring-gold-100 focus:outline-none transition-all"
+                className="w-full pl-10 pr-4 py-2.5 border border-cream-200 rounded-xl bg-white focus:border-gold-400 focus:outline-none transition-colors"
               />
             </div>
           </div>

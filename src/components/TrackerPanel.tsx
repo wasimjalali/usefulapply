@@ -200,7 +200,7 @@ function InlineEditableCompany({
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={isSaving}
-          className="px-1.5 py-0.5 text-sm font-semibold text-navy-700 border border-gold-400 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-gold-400 w-[160px]"
+          className="px-1.5 py-0.5 text-sm font-semibold text-navy-700 border border-gold-400 rounded-md bg-white focus:outline-none w-[160px] transition-colors"
         />
         {isSaving ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin text-gold-500" />
