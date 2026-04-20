@@ -93,10 +93,17 @@ body {
   color: #1E3A5F; /* navy-600 */
 }
 
-/* Focus ring customization */
+/* Focus ring customization — only for elements without custom focus styles */
 *:focus-visible {
   outline: 2px solid #1E3A5F;
   outline-offset: 2px;
+}
+
+/* Remove default outline from inputs/textareas/selects that have border-based focus */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
 }
 
 /* Remove focus outline from textareas inside chat input */
