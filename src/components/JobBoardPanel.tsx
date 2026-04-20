@@ -245,7 +245,7 @@ ${job.description ? `\nDescription:\n${job.description}` : ''}`;
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Job title or keywords..."
-                  className="w-full pl-10 pr-4 py-2.5 text-sm border border-cream-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-400/30 focus:border-navy-400 bg-white"
+                  className="w-full pl-10 pr-4 py-2.5 text-sm border border-cream-200 rounded-lg focus:outline-none focus:border-navy-400 bg-white transition-colors"
                 />
               </div>
 
@@ -257,7 +257,7 @@ ${job.description ? `\nDescription:\n${job.description}` : ''}`;
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder="Location..."
-                  className="w-full pl-10 pr-4 py-2.5 text-sm border border-cream-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-400/30 focus:border-navy-400 bg-white"
+                  className="w-full pl-10 pr-4 py-2.5 text-sm border border-cream-200 rounded-lg focus:outline-none focus:border-navy-400 bg-white transition-colors"
                 />
               </div>
 
@@ -295,7 +295,7 @@ ${job.description ? `\nDescription:\n${job.description}` : ''}`;
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     placeholder="Location..."
-                    className="w-full pl-10 pr-4 py-2 text-sm border border-cream-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-400/30 focus:border-navy-400 bg-white"
+                    className="w-full pl-10 pr-4 py-2 text-sm border border-cream-200 rounded-lg focus:outline-none focus:border-navy-400 bg-white transition-colors"
                   />
                 </div>
 
@@ -308,7 +308,7 @@ ${job.description ? `\nDescription:\n${job.description}` : ''}`;
                       if (e.target.value === '') setRemote(undefined);
                       else setRemote(e.target.value === 'true');
                     }}
-                    className="px-3 py-1.5 text-sm border border-cream-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-400/30 bg-white"
+                    className="px-3 py-1.5 text-sm border border-cream-200 rounded-lg focus:outline-none focus:border-navy-400 bg-white transition-colors"
                   >
                     <option value="">Any</option>
                     <option value="true">Remote Only</option>
