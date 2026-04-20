@@ -167,8 +167,8 @@ export default function Footer() {
             {/* Trustpilot Review Link */}
             <TrustpilotLogo />
 
-            <a href="mailto:wasim@karkoai.com" className="text-navy-300 text-sm hover:text-white transition-colors">
-              wasim@karkoai.com
+            <a href="mailto:support@karkoai.com" className="text-navy-300 text-sm hover:text-white transition-colors">
+              support@karkoai.com
             </a>
           </div>
         </div>

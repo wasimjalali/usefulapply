@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 
       await resend.emails.send({
         from: 'KarKo AI <noreply@karkoai.com>',
-        to: 'wasim@karkoai.com',
+        to: 'support@karkoai.com',
         subject: `KarKo AI Contact: ${safeSubject}`,
         html: emailContent,
       });
