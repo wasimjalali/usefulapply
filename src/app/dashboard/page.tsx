@@ -7,13 +7,14 @@ import { EmailPanel } from '@/components/EmailPanel';
 import { ATSScorePanel } from '@/components/ATSScorePanel';
 import { DocumentsPanel } from '@/components/DocumentsPanel';
 import { TrackerPanel } from '@/components/TrackerPanel';
+import { JobBoardPanel } from '@/components/JobBoardPanel';
 import { ChatPanel } from '@/components/ChatPanel';
 import { CVInputZone } from '@/components/CVInputZone';
 import { useAppStore, useCVStore } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import { uploadCVFile, saveDocument } from '@/lib/supabase';
-import { FileText, Mail, Send, FolderOpen, ClipboardList, Settings, Target, User, Loader2, MessageCircle, MoreHorizontal, AlertCircle, ArrowRight, PanelRightClose, PanelRightOpen, ArrowUpRight } from 'lucide-react';
+import { FileText, Mail, Send, FolderOpen, ClipboardList, Settings, Target, User, Loader2, MessageCircle, MoreHorizontal, AlertCircle, ArrowRight, PanelRightClose, PanelRightOpen, ArrowUpRight, Briefcase } from 'lucide-react';
 import KarkoLogo, { KarkoIcon } from '@/components/KarkoLogo';
 import Link from 'next/link';
 import { CreditIndicator } from '@/components/ui/CreditIndicator';
@@ -174,27 +175,31 @@ export default function Dashboard() {
     setActiveTab(tab);
   }, [setActiveTab]);
 
-  // Track the previous chat-collapsed state so we can restore it when leaving tracker
-  const chatCollapsedBeforeTrackerRef = useRef(false);
+  // Track the previous chat-collapsed state so we can restore it when leaving full-width tabs
+  const chatCollapsedBeforeFullWidthRef = useRef(false);
 
-  // Auto-collapse chat when entering tracker, restore when leaving
+  // Auto-collapse chat when entering tracker or jobs, restore when leaving
   const prevActiveTabRef = useRef(activeTab);
+  const fullWidthTabs = ['tracker', 'jobs'];
   useEffect(() => {
     const prevTab = prevActiveTabRef.current;
     prevActiveTabRef.current = activeTab;
 
-    if (activeTab === 'tracker' && prevTab !== 'tracker') {
-      // Entering tracker — remember current collapsed state and collapse chat
-      chatCollapsedBeforeTrackerRef.current = isChatCollapsed;
+    const enteringFullWidth = fullWidthTabs.includes(activeTab) && !fullWidthTabs.includes(prevTab);
+    const leavingFullWidth = !fullWidthTabs.includes(activeTab) && fullWidthTabs.includes(prevTab);
+
+    if (enteringFullWidth) {
+      // Entering full-width tab — remember current collapsed state and collapse chat
+      chatCollapsedBeforeFullWidthRef.current = isChatCollapsed;
       setIsChatCollapsed(true);
-    } else if (activeTab !== 'tracker' && prevTab === 'tracker') {
-      // Leaving tracker — restore previous collapsed state
-      setIsChatCollapsed(chatCollapsedBeforeTrackerRef.current);
+    } else if (leavingFullWidth) {
+      // Leaving full-width tab — restore previous collapsed state
+      setIsChatCollapsed(chatCollapsedBeforeFullWidthRef.current);
     }
   }, [activeTab, isChatCollapsed]);
 
   // Mobile tab state — must be before any early returns (Rules of Hooks)
-  const [mobileTab, setMobileTab] = useState<'chat' | 'cv' | 'ats-score' | 'cover-letter' | 'email' | 'documents' | 'tracker'>('chat');
+  const [mobileTab, setMobileTab] = useState<'chat' | 'cv' | 'ats-score' | 'cover-letter' | 'email' | 'documents' | 'tracker' | 'jobs'>('chat');
   const [showMobileMore, setShowMobileMore] = useState(false);
 
   // Resize effect (desktop only)
@@ -248,7 +253,7 @@ export default function Dashboard() {
   }
 
   // Sync mobile tab with active tab on desktop
-  const handleMobileTabChange = (tab: 'chat' | 'cv' | 'ats-score' | 'cover-letter' | 'email' | 'documents' | 'tracker') => {
+  const handleMobileTabChange = (tab: 'chat' | 'cv' | 'ats-score' | 'cover-letter' | 'email' | 'documents' | 'tracker' | 'jobs') => {
     setMobileTab(tab);
     if (tab !== 'chat') {
       setActiveTab(tab);
@@ -331,6 +336,20 @@ export default function Dashboard() {
           >
             <ClipboardList className={`w-3.5 h-3.5 ${activeTab === 'tracker' ? 'text-gold-500' : ''}`} />
             Tracker
+          </button>
+
+          {/* Jobs — job board panel */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('jobs')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'jobs'
+                ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
+                : 'text-warm-gray hover:text-navy-600'
+            }`}
+          >
+            <Briefcase className={`w-3.5 h-3.5 ${activeTab === 'jobs' ? 'text-gold-500' : ''}`} />
+            Jobs
           </button>
 
           {/* Documents — tab panel */}
@@ -540,6 +559,8 @@ export default function Dashboard() {
           <div className="flex-1 overflow-auto">
             {activeTab === 'tracker' ? (
               <TrackerPanel />
+            ) : activeTab === 'jobs' ? (
+              <JobBoardPanel />
             ) : activeTab === 'documents' ? (
               <DocumentsPanel />
             ) : !currentCV ? (
@@ -684,6 +705,8 @@ export default function Dashboard() {
         <div className="flex-1 overflow-auto">
           {mobileTab === 'tracker' ? (
             <TrackerPanel />
+          ) : mobileTab === 'jobs' ? (
+            <JobBoardPanel />
           ) : mobileTab === 'documents' ? (
             <DocumentsPanel />
           ) : !currentCV && mobileTab !== 'chat' ? (
@@ -832,6 +855,14 @@ export default function Dashboard() {
                         >
                           <ClipboardList className="w-4 h-4 text-navy-500" />
                           Tracker
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMobileTabChange('jobs')}
+                          className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${mobileTab === 'jobs' ? 'text-gold-600 bg-gold-50' : 'text-charcoal hover:bg-cream-50'}`}
+                        >
+                          <Briefcase className="w-4 h-4 text-navy-500" />
+                          Jobs
                         </button>
                         <button
                           type="button"
