@@ -193,30 +193,36 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
   }, [showTemplateSelector]);
 
   useEffect(() => {
+    let rafId: number | null = null;
+
     const updateScale = () => {
-      if (!cvContainerRef.current || !cvWrapperRef.current) return;
-      const containerWidth = cvContainerRef.current.clientWidth;
-      // scrollWidth gives the actual rendered width, unaffected by transform: scale
-      const naturalWidth = cvWrapperRef.current.scrollWidth;
-      const naturalHeight = cvWrapperRef.current.scrollHeight;
-      if (containerWidth > 0 && naturalWidth > 0 && containerWidth < naturalWidth) {
-        const newScale = containerWidth / naturalWidth;
-        setCvScale(newScale);
-        setCvScaledHeight(naturalHeight > 0 ? Math.ceil(naturalHeight * newScale) : null);
-      } else {
-        setCvScale(1);
-        setCvScaledHeight(null);
-      }
-      // Page break indicator positions (in natural pixels, before any CSS transform).
-      // Use contentHeightPx (not full pageHeightPx) so the line matches the PDF cut point.
-      const isGerman = selectedTemplateId.startsWith('german');
-      const pageHeightPx = isGerman ? Math.round((297 / 25.4) * 96) : 1056;
-      const contentHeightPx = pageHeightPx - 2 * CV_PAGE_GUTTER_PX;
-      const breaks: number[] = [];
-      for (let y = contentHeightPx; y < naturalHeight; y += contentHeightPx) {
-        breaks.push(y);
-      }
-      setPageBreaks(breaks);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        if (!cvContainerRef.current || !cvWrapperRef.current) return;
+        const containerWidth = cvContainerRef.current.clientWidth;
+        // scrollWidth gives the actual rendered width, unaffected by transform: scale
+        const naturalWidth = cvWrapperRef.current.scrollWidth;
+        const naturalHeight = cvWrapperRef.current.scrollHeight;
+        if (containerWidth > 0 && naturalWidth > 0 && containerWidth < naturalWidth) {
+          const newScale = containerWidth / naturalWidth;
+          setCvScale(newScale);
+          setCvScaledHeight(naturalHeight > 0 ? Math.ceil(naturalHeight * newScale) : null);
+        } else {
+          setCvScale(1);
+          setCvScaledHeight(null);
+        }
+        // Page break indicator positions (in natural pixels, before any CSS transform).
+        // Use contentHeightPx (not full pageHeightPx) so the line matches the PDF cut point.
+        const isGerman = selectedTemplateId.startsWith('german');
+        const pageHeightPx = isGerman ? Math.round((297 / 25.4) * 96) : 1056;
+        const contentHeightPx = pageHeightPx - 2 * CV_PAGE_GUTTER_PX;
+        const breaks: number[] = [];
+        for (let y = contentHeightPx; y < naturalHeight; y += contentHeightPx) {
+          breaks.push(y);
+        }
+        setPageBreaks(breaks);
+      });
     };
 
     // Delay slightly so the CV template renders at its natural size first
@@ -229,6 +235,7 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
     if (cvWrapperRef.current) roWrapper.observe(cvWrapperRef.current);
     return () => {
       clearTimeout(timer);
+      if (rafId !== null) cancelAnimationFrame(rafId);
       roContainer.disconnect();
       roWrapper.disconnect();
     };

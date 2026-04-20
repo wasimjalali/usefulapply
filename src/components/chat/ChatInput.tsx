@@ -61,16 +61,24 @@ export function ChatInput({
     if (!textarea) return;
 
     let prevWidth = textarea.getBoundingClientRect().width;
+    let rafId: number | null = null;
     const ro = new ResizeObserver(() => {
-      const w = textarea.getBoundingClientRect().width;
-      if (w !== prevWidth) {
-        prevWidth = w;
-        textarea.style.height = 'auto';
-        textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
-      }
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        const w = textarea.getBoundingClientRect().width;
+        if (w !== prevWidth) {
+          prevWidth = w;
+          textarea.style.height = 'auto';
+          textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+        }
+      });
     });
     ro.observe(textarea);
-    return () => ro.disconnect();
+    return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      ro.disconnect();
+    };
   }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
