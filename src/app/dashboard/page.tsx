@@ -629,7 +629,7 @@ export default function Dashboard() {
         </div>
 
         {/* Right Panel - Chat (Desktop: resizable side panel) */}
-        <div className="relative flex-shrink-0 transition-[width] duration-200" style={{ width: isChatCollapsed ? COLLAPSED_WIDTH : chatPanelWidth }}>
+        <div className="relative h-full flex-shrink-0 transition-[width] duration-300 ease-in-out" style={{ width: isChatCollapsed ? COLLAPSED_WIDTH : chatPanelWidth }}>
           {/* Resize Handle — wider hit target (10px) with always-visible grip */}
           {!isChatCollapsed && (
             <div
@@ -650,28 +650,31 @@ export default function Dashboard() {
             </div>
           )}
 
-          {isChatCollapsed ? (
-            /* Collapsed state — thin icon strip */
-            <div className="h-full flex flex-col items-center py-3 bg-cream-50 border-l border-cream-200">
-              <button
-                onClick={() => setIsChatCollapsed(false)}
-                className="p-2 rounded-lg text-warm-gray hover:text-navy-600 hover:bg-cream-100 transition-colors cursor-pointer"
-                title="Expand chat (⌘⇧C)"
-              >
-                <PanelRightOpen className="w-4 h-4" />
-              </button>
-              <div className="mt-3 flex flex-col items-center">
-                <KarkoIcon size="xs" theme="light" />
-              </div>
+          {/* Collapsed state — thin icon strip; fades in/out with width animation */}
+          <div className={`absolute inset-0 flex flex-col items-center py-3 bg-cream-50 border-l border-cream-200 transition-opacity duration-200 ${
+            isChatCollapsed ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}>
+            <button
+              onClick={() => setIsChatCollapsed(false)}
+              className="p-2 rounded-lg text-warm-gray hover:text-navy-600 hover:bg-cream-100 transition-colors cursor-pointer"
+              title="Expand chat (⌘⇧C)"
+            >
+              <PanelRightOpen className="w-4 h-4" />
+            </button>
+            <div className="mt-3 flex flex-col items-center">
+              <KarkoIcon size="xs" theme="light" />
             </div>
-          ) : (
-            <div id="tour-chat-panel" className="flex-1 h-full overflow-hidden">
-              <ChatPanel
-                onTabChange={handleTabChange}
-                navBarPortal={chatNavNode}
-              />
-            </div>
-          )}
+          </div>
+
+          {/* Chat panel — stays mounted, fades in/out so content change is in sync with width */}
+          <div id="tour-chat-panel" className={`absolute inset-0 overflow-hidden transition-opacity duration-200 ${
+            isChatCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
+          }`}>
+            <ChatPanel
+              onTabChange={handleTabChange}
+              navBarPortal={chatNavNode}
+            />
+          </div>
         </div>
       </div>
 
