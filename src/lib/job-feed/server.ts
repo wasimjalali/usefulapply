@@ -3,6 +3,7 @@ import type {
   ApplicationSession as SupabaseApplicationSession,
   JobFeedCanonicalJob,
   JobFeedFeedback,
+  JobFeedRankedItem as SupabaseJobFeedRankedItem,
   JobFeedRun,
   JobFeedSettings,
   Json,
@@ -13,11 +14,15 @@ import type {
   JobFeedFeedItem,
   JobFeedItemFeedbackState,
   JobFeedPrefilterResult,
+  JobFeedRankedItemRecord,
+  JobFeedRankedPreviewItem,
+  JobFeedRankingExecutionResult,
   JobFeedRankingPrepResult,
   JobFeedRunWorkflowResult,
 } from '@/lib/job-feed/types';
 import { ingestJobFeedRunJobs } from '@/lib/job-feed/ingestion';
 import { prepareJobFeedRankingCandidates, prefilterJobFeedJobs } from '@/lib/job-feed/prefilter';
+import { rankJobFeedCandidates } from '@/lib/job-feed/ranking';
 
 type JobFeedRunUpdate = Partial<Pick<JobFeedRun,
   | 'status'
@@ -293,34 +298,33 @@ export async function listLatestJobFeedItemsAdmin(params: {
     };
   }
 
-  const jobIds = extractFeedJobIds(run.metadata);
-  if (jobIds.length === 0) {
+  const rankedRows = await listJobFeedRankedItemsForRunAdmin(run.id);
+  if (rankedRows.length > 0) {
     return {
       run,
-      items: [],
+      items: await buildFeedItemsForSnapshot({
+        userId: params.userId,
+        rankedPreview: rankedRows.map(toRankedPreviewItem),
+      }),
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('job_feed_canonical_jobs')
-    .select('*')
-    .in('id', jobIds);
-
-  if (error) {
-    throw new Error(`Failed to load latest job feed items: ${error.message}`);
+  const rankedPreview = extractRankedPreviewItems(run.metadata);
+  if (hasMetadataKey(run.metadata, 'ranked_preview_jobs')) {
+    return {
+      run,
+      items: await buildFeedItemsForSnapshot({
+        userId: params.userId,
+        rankedPreview,
+      }),
+    };
   }
 
-  const rows = (data ?? []) as JobFeedCanonicalJob[];
-  const rowsById = new Map(rows.map((row) => [row.id, row]));
-  const feedbackByJobId = await getJobFeedFeedbackMapAdmin(params.userId, jobIds);
-
-  const items = jobIds
-    .map((jobId) => rowsById.get(jobId))
-    .filter((job): job is JobFeedCanonicalJob => Boolean(job))
-    .filter((job) => !feedbackByJobId.get(job.id)?.dismissed_at)
-    .map((job) => toFeedItem(job, feedbackByJobId.get(job.id) ?? null));
+  const jobIds = extractFeedJobIds(run.metadata);
+  const items = await buildFeedItemsForSnapshot({
+    userId: params.userId,
+    jobIds,
+  });
 
   return {
     run,
@@ -433,7 +437,7 @@ export async function runJobFeedFoundationWorkflow(params: {
     trigger_source: triggerSource,
     idempotency_key: `${userId}:${localDate}`,
     metadata: {
-      stage: 'phase_4_prefilter',
+      stage: 'phase_4_ranking',
       foundation_mode: true,
       target_market: settings.target_market,
     },
@@ -446,7 +450,7 @@ export async function runJobFeedFoundationWorkflow(params: {
     error_message: null,
     result_summary: null,
     metadata: mergeMetadata(run.metadata, {
-      stage: 'phase_4_prefilter',
+      stage: 'phase_4_ranking',
       foundation_mode: true,
       last_trigger_source: triggerSource,
     }),
@@ -468,18 +472,31 @@ export async function runJobFeedFoundationWorkflow(params: {
       jobs: ingestion.canonicalJobs,
     });
 
-    const rankingPrep = prepareJobFeedRankingCandidates(prefilter.shortlist);
+    const rankingPrep = prepareJobFeedRankingCandidates({
+      settings,
+      jobs: prefilter.shortlist,
+    });
+    const rankingResult = await rankJobFeedCandidates({
+      settings,
+      candidates: rankingPrep.candidates,
+    });
+    const rankedPreviewItems = rankingResult.items.map(toRankedPreviewRecord);
+    const materializedRanking = await persistJobFeedRankedItemsForRunAdmin({
+      runId: run.id,
+      userId,
+      items: rankingResult.items,
+    });
 
     runningRun = await updateJobFeedRun(run.id, {
       status: 'completed',
       completed_at: new Date().toISOString(),
       error_message: null,
-      result_summary: buildWorkflowResultSummary(ingestion, prefilter, rankingPrep),
+      result_summary: buildWorkflowResultSummary(ingestion, prefilter, rankingPrep, rankingResult),
       raw_jobs_fetched: ingestion.rawJobsFetched,
       jobs_after_prefilter: prefilter.survivors.length,
-      ranked_jobs_count: 0,
+      ranked_jobs_count: rankingResult.items.length,
       metadata: mergeMetadata(runningRun.metadata, {
-        stage: 'phase_4_prefilter',
+        stage: 'phase_4_ranking',
         workflow_status: 'completed',
         search_plan: toJson(ingestion.searchPlan),
         raw_fetch_ids: toJson(ingestion.rawFetchIds),
@@ -496,7 +513,19 @@ export async function runJobFeedFoundationWorkflow(params: {
         shortlist_preview_jobs: toJson(prefilter.shortlistPreview),
         ranking_candidate_count: rankingPrep.candidates.length,
         ranking_fit_labels: toJson(rankingPrep.fitLabels),
-        ranking_status: rankingPrep.candidates.length > 0 ? 'pending_llm' : 'no_candidates',
+        ranking_status: rankingResult.status,
+        ranking_error: rankingResult.errorMessage,
+        ranking_model: rankingResult.model
+          ? toJson({
+              provider: rankingResult.model.provider,
+              name: rankingResult.model.name,
+              input_tokens: rankingResult.model.inputTokens,
+              output_tokens: rankingResult.model.outputTokens,
+              latency_ms: rankingResult.model.latencyMs,
+            })
+          : null,
+        ranked_preview_jobs: toJson(rankedPreviewItems),
+        ranked_items_materialized: materializedRanking,
       }),
     });
 
@@ -626,7 +655,63 @@ function mergeMetadata(existing: Json, patch: Record<string, Json>): Json {
   };
 }
 
+async function buildFeedItemsForSnapshot(params: {
+  userId: string;
+  rankedPreview?: JobFeedRankedPreviewItem[];
+  jobIds?: string[];
+}): Promise<JobFeedFeedItem[]> {
+  const rankedPreview = params.rankedPreview ?? [];
+  const orderedJobIds = rankedPreview.length > 0
+    ? rankedPreview.map((item) => item.id)
+    : params.jobIds ?? [];
+
+  if (orderedJobIds.length === 0) {
+    return [];
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+  const { data, error } = await admin
+    .from('job_feed_canonical_jobs')
+    .select('*')
+    .in('id', orderedJobIds);
+
+  if (error) {
+    throw new Error(`Failed to load latest job feed items: ${error.message}`);
+  }
+
+  const rows = (data ?? []) as JobFeedCanonicalJob[];
+  const rowsById = new Map(rows.map((row) => [row.id, row]));
+  const feedbackByJobId = await getJobFeedFeedbackMapAdmin(params.userId, orderedJobIds);
+  const rankedPreviewById = new Map(rankedPreview.map((item) => [item.id, item]));
+
+  return orderedJobIds
+    .map((jobId) => rowsById.get(jobId))
+    .filter((job): job is JobFeedCanonicalJob => Boolean(job))
+    .filter((job) => !feedbackByJobId.get(job.id)?.dismissed_at)
+    .map((job) => {
+      const rankedItem = rankedPreviewById.get(job.id);
+
+      return toFeedItem(
+        job,
+        feedbackByJobId.get(job.id) ?? null,
+        rankedItem
+          ? {
+              fitLabel: rankedItem.fitLabel,
+              pipelineStage: 'ranked',
+              rankingSource: rankedItem.rankingSource,
+            }
+          : undefined
+      );
+    });
+}
+
 function extractFeedJobIds(metadata: Json): string[] {
+  const rankedIds = extractIdsFromPreviewList(readMetadataArray(metadata, 'ranked_preview_jobs'));
+  if (hasMetadataKey(metadata, 'ranked_preview_jobs')) {
+    return rankedIds;
+  }
+
   const shortlistIds = extractIdsFromPreviewList(readMetadataArray(metadata, 'shortlist_preview_jobs'));
   if (shortlistIds.length > 0) {
     return shortlistIds;
@@ -644,6 +729,10 @@ function readMetadataArray(metadata: Json, key: string): Json[] {
   return Array.isArray(value) ? value : [];
 }
 
+function hasMetadataKey(metadata: Json, key: string): boolean {
+  return isJsonRecord(metadata) && key in metadata;
+}
+
 function extractIdsFromPreviewList(items: Json[]): string[] {
   const ids: string[] = [];
 
@@ -656,6 +745,128 @@ function extractIdsFromPreviewList(items: Json[]): string[] {
   }
 
   return ids;
+}
+
+function extractRankedPreviewItems(metadata: Json): JobFeedRankedPreviewItem[] {
+  const items = readMetadataArray(metadata, 'ranked_preview_jobs');
+  const previewItems: JobFeedRankedPreviewItem[] = [];
+
+  for (const item of items) {
+    if (!isJsonRecord(item)) continue;
+
+    const id = typeof item.id === 'string' ? item.id.trim() : '';
+    const fitLabel = item.fitLabel;
+    const rankingSource = item.rankingSource;
+    const rank = typeof item.rank === 'number' && Number.isInteger(item.rank) && item.rank > 0
+      ? item.rank
+      : null;
+
+    if (!id || rank === null) continue;
+    if (fitLabel !== 'strong' && fitLabel !== 'good') continue;
+    if (rankingSource !== 'deterministic' && rankingSource !== 'llm') continue;
+
+    previewItems.push({
+      id,
+      rank,
+      fitLabel,
+      rankingSource,
+      reason: typeof item.reason === 'string' && item.reason.trim().length > 0 ? item.reason.trim() : null,
+    });
+  }
+
+  previewItems.sort((left, right) => left.rank - right.rank);
+  return previewItems;
+}
+
+async function listJobFeedRankedItemsForRunAdmin(runId: string): Promise<SupabaseJobFeedRankedItem[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+  const { data, error } = await admin
+    .from('job_feed_ranked_items')
+    .select('*')
+    .eq('run_id', runId)
+    .order('rank_position', { ascending: true });
+
+  if (error) {
+    if (isMissingRankedItemsRelationError(error)) {
+      return [];
+    }
+
+    throw new Error(`Failed to load ranked job feed items: ${error.message}`);
+  }
+
+  return (data ?? []) as SupabaseJobFeedRankedItem[];
+}
+
+async function persistJobFeedRankedItemsForRunAdmin(params: {
+  runId: string;
+  userId: string;
+  items: JobFeedRankedItemRecord[];
+}): Promise<boolean> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+  const { error: deleteError } = await admin
+    .from('job_feed_ranked_items')
+    .delete()
+    .eq('run_id', params.runId);
+
+  if (deleteError) {
+    if (isMissingRankedItemsRelationError(deleteError)) {
+      return false;
+    }
+
+    throw new Error(`Failed to clear ranked job feed items: ${deleteError.message}`);
+  }
+
+  if (params.items.length === 0) {
+    return true;
+  }
+
+  const insertPayload = params.items.map((item) => ({
+    run_id: params.runId,
+    user_id: params.userId,
+    canonical_job_id: item.canonicalJobId,
+    rank_position: item.rank,
+    fit_label: item.fitLabel,
+    ranking_source: item.rankingSource,
+    reason: item.reason,
+    deterministic_score: item.deterministicScore,
+    metadata: {},
+  }));
+
+  const { error: insertError } = await admin
+    .from('job_feed_ranked_items')
+    .insert(insertPayload);
+
+  if (insertError) {
+    if (isMissingRankedItemsRelationError(insertError)) {
+      return false;
+    }
+
+    throw new Error(`Failed to persist ranked job feed items: ${insertError.message}`);
+  }
+
+  return true;
+}
+
+function toRankedPreviewItem(item: SupabaseJobFeedRankedItem): JobFeedRankedPreviewItem {
+  return {
+    id: item.canonical_job_id,
+    rank: item.rank_position,
+    fitLabel: item.fit_label,
+    rankingSource: item.ranking_source,
+    reason: item.reason,
+  };
+}
+
+function toRankedPreviewRecord(item: JobFeedRankedItemRecord): JobFeedRankedPreviewItem {
+  return {
+    id: item.canonicalJobId,
+    rank: item.rank,
+    fitLabel: item.fitLabel,
+    rankingSource: item.rankingSource,
+    reason: item.reason,
+  };
 }
 
 async function getJobFeedFeedbackMapAdmin(userId: string, jobIds: string[]): Promise<Map<string, JobFeedFeedback>> {
@@ -679,7 +890,15 @@ async function getJobFeedFeedbackMapAdmin(userId: string, jobIds: string[]): Pro
   return new Map(rows.map((row) => [row.canonical_job_id, row]));
 }
 
-function toFeedItem(job: JobFeedCanonicalJob, feedback: JobFeedFeedback | null): JobFeedFeedItem {
+function toFeedItem(
+  job: JobFeedCanonicalJob,
+  feedback: JobFeedFeedback | null,
+  ranking?: {
+    fitLabel: JobFeedFeedItem['fitLabel'];
+    pipelineStage: JobFeedFeedItem['pipelineStage'];
+    rankingSource: JobFeedFeedItem['rankingSource'];
+  }
+): JobFeedFeedItem {
   const sourceIdentifiers = isJsonRecord(job.source_identifiers) ? job.source_identifiers : {};
 
   return {
@@ -696,8 +915,9 @@ function toFeedItem(job: JobFeedCanonicalJob, feedback: JobFeedFeedback | null):
     via: typeof sourceIdentifiers.via === 'string' ? sourceIdentifiers.via : null,
     freshnessDays: job.freshness_days,
     postedAtText: job.posted_at_text,
-    fitLabel: null,
-    pipelineStage: 'shortlisted',
+    fitLabel: ranking?.fitLabel ?? null,
+    pipelineStage: ranking?.pipelineStage ?? 'shortlisted',
+    rankingSource: ranking?.rankingSource ?? null,
     applyOptions: extractApplyOptions(sourceIdentifiers.apply_options),
     feedback: toJobFeedFeedbackState(feedback),
   };
@@ -726,6 +946,12 @@ function isJsonRecord(value: Json): value is Record<string, Json> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function isMissingRankedItemsRelationError(error: { code?: string; message?: string }): boolean {
+  const message = (error.message ?? '').toLowerCase();
+  return error.code === '42P01'
+    || (message.includes('job_feed_ranked_items') && message.includes('does not exist'));
+}
+
 function buildFallbackJobDescription(job: JobFeedCanonicalJob): string {
   const parts = [
     `${job.title} at ${job.company}`,
@@ -749,35 +975,58 @@ function buildWorkflowResultSummary(
     failedFetches: Array<{ error: string }>;
   },
   prefilter: JobFeedPrefilterResult,
-  rankingPrep: JobFeedRankingPrepResult
+  rankingPrep: JobFeedRankingPrepResult,
+  rankingResult: JobFeedRankingExecutionResult
 ): string {
   if (ingestion.rawJobsFetched === 0 && ingestion.failedFetches.length === 0) {
     return 'Phase 4 prefilter completed. The provider queries ran, but no jobs matched the current feed settings yet.';
   }
 
-  const summary = `Phase 4 prefilter completed. ${ingestion.rawJobsFetched} raw jobs fetched across ${ingestion.searchPlan.length} queries, normalized into ${ingestion.canonicalJobs.length} canonical jobs, and ${prefilter.survivors.length} survived deterministic filters.`;
+  const summary = `Phase 4 ranking completed. ${ingestion.rawJobsFetched} raw jobs fetched across ${ingestion.searchPlan.length} queries, normalized into ${ingestion.canonicalJobs.length} canonical jobs, and ${prefilter.survivors.length} survived deterministic filters.`;
+  const operationalTail = buildWorkflowOperationalTail(ingestion);
 
-  if (rankingPrep.candidates.length > 0) {
-    if (ingestion.failedFetches.length > 0) {
-      return `${summary} ${rankingPrep.candidates.length} jobs are queued for Strong/Good ranking, and ${ingestion.failedFetches.length} provider fetches failed but the run completed with partial data.`;
-    }
-
-    if (ingestion.duplicateCount > 0) {
-      return `${summary} ${rankingPrep.candidates.length} jobs are queued for Strong/Good ranking, and ${ingestion.duplicateCount} duplicate observations were collapsed into canonical records.`;
-    }
-
-    return `${summary} ${rankingPrep.candidates.length} jobs are queued for Strong/Good ranking.`;
+  if (rankingPrep.candidates.length === 0) {
+    return `${summary} No jobs survived into the Strong/Good shortlist.${operationalTail}`;
   }
 
+  if (rankingResult.items.length === 0) {
+    return `${summary} ${rankingPrep.candidates.length} shortlisted jobs reached final ranking, but none cleared the Strong/Good bar.${operationalTail}`;
+  }
+
+  const strongCount = rankingResult.items.filter((item) => item.fitLabel === 'strong').length;
+  const goodCount = rankingResult.items.length - strongCount;
+
+  switch (rankingResult.status) {
+    case 'completed_llm':
+      return `${summary} ${rankingResult.items.length} jobs were AI-ranked for the feed (${strongCount} Strong, ${goodCount} Good).${operationalTail}`;
+    case 'completed_deterministic':
+      return `${summary} ${rankingResult.items.length} jobs were ranked with deterministic Strong/Good labels because the LLM step is not configured here.${operationalTail}`;
+    case 'llm_failed_fallback':
+      return `${summary} ${rankingResult.items.length} jobs were ranked with deterministic Strong/Good fallback after the LLM step failed.${operationalTail}`;
+    default:
+      return `${summary} ${rankingResult.items.length} jobs were ranked for the feed (${strongCount} Strong, ${goodCount} Good).${operationalTail}`;
+  }
+}
+
+function buildWorkflowOperationalTail(ingestion: {
+  duplicateCount: number;
+  failedFetches: Array<{ error: string }>;
+}): string {
+  const notes: string[] = [];
+
   if (ingestion.failedFetches.length > 0) {
-    return `${summary} No jobs survived into the Strong/Good shortlist, and ${ingestion.failedFetches.length} provider fetches failed but the run completed with partial data.`;
+    notes.push(`${ingestion.failedFetches.length} provider ${ingestion.failedFetches.length === 1 ? 'fetch failed' : 'fetches failed'} but the run completed with partial data`);
   }
 
   if (ingestion.duplicateCount > 0) {
-    return `${summary} No jobs survived into the Strong/Good shortlist, and ${ingestion.duplicateCount} duplicate observations were collapsed into canonical records.`;
+    notes.push(`${ingestion.duplicateCount} duplicate observations were collapsed into canonical records`);
   }
 
-  return `${summary} No jobs survived into the Strong/Good shortlist yet.`;
+  if (notes.length === 0) {
+    return '';
+  }
+
+  return ` ${notes.join(', and ')}.`;
 }
 
 function toJson(value: unknown): Json {

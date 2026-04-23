@@ -20,6 +20,8 @@ export type JobFeedCanonicalWorkMode = JobFeedCanonicalJob['work_mode'];
 export type JobFeedEmploymentType = NonNullable<JobFeedCanonicalJob['employment_type']>;
 export type JobFeedFitLabel = 'strong' | 'good';
 export type JobFeedFeedbackAction = 'opened' | 'saved' | 'dismissed' | 'applied';
+export type JobFeedPipelineStage = 'shortlisted' | 'ranked';
+export type JobFeedRankingSource = 'deterministic' | 'llm';
 
 export interface JobFeedItemFeedbackState {
   openedAt: string | null;
@@ -99,7 +101,8 @@ export interface JobFeedFeedItem {
   freshnessDays: number | null;
   postedAtText: string | null;
   fitLabel: JobFeedFitLabel | null;
-  pipelineStage: 'shortlisted' | 'ranked';
+  pipelineStage: JobFeedPipelineStage;
+  rankingSource: JobFeedRankingSource | null;
   applyOptions: JobFeedApplyOption[];
   feedback: JobFeedItemFeedbackState;
 }
@@ -160,11 +163,54 @@ export interface JobFeedRankingCandidate {
   description: string | null;
   applyUrl: string | null;
   freshnessDays: number | null;
+  deterministicRank: number;
+  deterministicScore: number;
+  deterministicFitLabel: JobFeedFitLabel;
+  scoreBreakdown: {
+    targetRoleScore: number;
+    adjacentRoleScore: number;
+    freshnessScore: number;
+    salaryScore: number;
+    remoteAlignmentScore: number;
+    preferredLocationMatched: boolean;
+    hasApplyUrl: boolean;
+    hasEmploymentType: boolean;
+  };
 }
 
 export interface JobFeedRankingPrepResult {
   fitLabels: readonly JobFeedFitLabel[];
   candidates: JobFeedRankingCandidate[];
+}
+
+export interface JobFeedRankedPreviewItem {
+  id: string;
+  rank: number;
+  fitLabel: JobFeedFitLabel;
+  rankingSource: JobFeedRankingSource;
+  reason: string | null;
+}
+
+export interface JobFeedRankedItemRecord {
+  canonicalJobId: string;
+  rank: number;
+  fitLabel: JobFeedFitLabel;
+  rankingSource: JobFeedRankingSource;
+  reason: string | null;
+  deterministicScore: number;
+}
+
+export interface JobFeedRankingExecutionResult {
+  status: 'completed_llm' | 'completed_deterministic' | 'llm_failed_fallback' | 'no_candidates';
+  items: JobFeedRankedItemRecord[];
+  errorMessage: string | null;
+  model: {
+    provider: string;
+    name: string;
+    inputTokens: number;
+    outputTokens: number;
+    latencyMs: number;
+  } | null;
 }
 
 export interface JobFeedRunWorkflowResult {

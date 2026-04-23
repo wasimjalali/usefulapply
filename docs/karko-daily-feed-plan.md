@@ -40,21 +40,20 @@ For v1, the product direction is:
 
 ### Implementation checkpoint as of 2026-04-23
 
-The current branch has completed the foundations through Phase 6 MVP:
+The current branch has completed the foundations through Phase 6 MVP, plus the first real ranking/materialization pass:
 
 - Phase 0: feed-first cleanup is in place
 - Phase 1: `job_feed_settings` is implemented and wired
 - Phase 2: `job_feed_runs` plus the scheduler/debug workflow foundation are implemented
 - Phase 3: raw provider fetches plus canonical normalized jobs are implemented
-- Phase 4: code-based prefiltering and deterministic shortlist prep are implemented
-- Phase 5 foundation: the real shortlist is exposed in the feed API/panel with ready, thin-feed, empty, and detail states
+- Phase 4: code-based prefiltering, deterministic Strong/Good fallback labels, and the LLM ranking pass on the capped shortlist are implemented
+- Phase 5 foundation: ranked feed items are exposed in the feed API/panel with ready, thin-feed, empty, and detail states
 - Phase 6 MVP: saved/opened/dismissed/applied feedback plus a real `Apply with Karko AI` session handoff are implemented
 
 Current next sequence:
 
-- Finish the remaining ranking/completion pass for the Strong/Good layer
-- Call the LLM ranking stage on the deterministic shortlist
-- Materialize ranked feed items in the database/UI
+- Apply the new ranked-item migration in the target environment
+- Replace the temporary scheduler shim with real Inngest functions once dependency install is available
 - Then Phase 7 - Cost, Analytics, Retention, Cleanup
 
 ### What exists today
@@ -67,7 +66,6 @@ Current next sequence:
 ### What does not exist yet
 
 - No production Inngest-backed orchestration yet
-- No LLM ranking/materialized feed-item layer yet
 - No advanced seen-job suppression beyond simple dismiss feedback
 - No heavier feedback learning loop yet
 

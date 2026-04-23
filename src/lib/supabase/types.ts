@@ -414,6 +414,47 @@ export interface Database {
           updated_at?: string
         }
       }
+      job_feed_ranked_items: {
+        Row: {
+          id: string
+          run_id: string
+          user_id: string
+          canonical_job_id: string
+          rank_position: number
+          fit_label: 'strong' | 'good'
+          ranking_source: 'deterministic' | 'llm'
+          reason: string | null
+          deterministic_score: number
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          run_id: string
+          user_id: string
+          canonical_job_id: string
+          rank_position: number
+          fit_label: 'strong' | 'good'
+          ranking_source?: 'deterministic' | 'llm'
+          reason?: string | null
+          deterministic_score?: number
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          run_id?: string
+          user_id?: string
+          canonical_job_id?: string
+          rank_position?: number
+          fit_label?: 'strong' | 'good'
+          ranking_source?: 'deterministic' | 'llm'
+          reason?: string | null
+          deterministic_score?: number
+          metadata?: Json
+          created_at?: string
+        }
+      }
       documents: {
         Row: {
           id: string
@@ -996,6 +1037,7 @@ export type JobFeedRun = Tables<'job_feed_runs'>
 export type JobFeedRawFetch = Tables<'job_feed_raw_fetches'>
 export type JobFeedCanonicalJob = Tables<'job_feed_canonical_jobs'>
 export type JobFeedFeedback = Tables<'job_feed_feedback'>
+export type JobFeedRankedItem = Tables<'job_feed_ranked_items'>
 export type Document = Tables<'documents'>
 export type ProfilePhoto = Tables<'profile_photos'>
 export type ApplicationSession = Tables<'application_sessions'>

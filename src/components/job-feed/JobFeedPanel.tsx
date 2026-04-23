@@ -422,14 +422,14 @@ export function JobFeedPanel() {
                 </h1>
                 <p className="max-w-xl text-sm leading-6 text-cream-100/85 sm:text-base">
                   Phase 0 is live here: the old manual-search-first board is hidden so Job Feed can become a prepared, daily, feed-first surface.
-                  Phases 1 through 6 in this branch now add real settings, scheduling, durable ingestion, real shortlist display, and apply-feedback handoff underneath it.
+                  Phases 1 through 6 in this branch now add real settings, scheduling, durable ingestion, Strong/Good ranking, ranked feed items, and apply-feedback handoff underneath it.
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2">
                 <HeroPill icon={ShieldCheck} label="Premium-only daily discovery" />
                 <HeroPill icon={Wand2} label="Canonical job ingestion saved in Supabase" />
-                <HeroPill icon={CalendarClock} label="Prefilter + shortlist foundation wired" />
+                <HeroPill icon={CalendarClock} label="Strong/Good ranking now wired" />
               </div>
             </div>
 
@@ -697,7 +697,7 @@ export function JobFeedPanel() {
 
                   <div className="flex flex-col gap-3 border-t border-cream-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-warm-gray">
-                      This milestone now covers settings, scheduling, ingestion, deterministic shortlist prep, real shortlist display, and a practical apply-feedback loop. LLM ranking still comes next.
+                      This milestone now covers settings, scheduling, ingestion, deterministic shortlist prep, Strong/Good ranking, materialized ranked items, and a practical apply-feedback loop.
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <Button variant="outline" onClick={() => loadOverview({ quiet: true })} disabled={isRefreshing}>
@@ -746,8 +746,8 @@ export function JobFeedPanel() {
                 <MilestoneStep title="Phase 1" body="Persist feed settings with honest consent, timezone, delivery time, role, market, and fit controls." />
                 <MilestoneStep title="Phase 2" body="Track durable per-user daily runs so the scheduler and later Inngest workflow have a real operational foundation." />
                 <MilestoneStep title="Phase 3" body="Persist raw SerpApi fetches and normalize deduped canonical jobs so later feed logic has a durable source of truth." />
-                <MilestoneStep title="Phase 4" body="Reject obvious mismatches in code and prepare a deterministic shortlist before any Strong/Good ranking step." />
-                <MilestoneStep title="Phase 5" body="Expose the real shortlist through feed APIs and render honest ready, thin-feed, and detail states inside Job Feed." />
+                <MilestoneStep title="Phase 4" body="Reject obvious mismatches in code, cap a deterministic shortlist, and finish Strong/Good ranking with an LLM-first pass plus fallback." />
+                <MilestoneStep title="Phase 5" body="Expose ranked feed items through the feed APIs and render honest ready, thin-feed, and detail states inside Job Feed." />
                 <MilestoneStep title="Phase 6" body="Capture simple saved/opened/dismissed/applied signals and hand the user into a real Karko application session from the feed." />
               </div>
             </Card>
@@ -757,7 +757,7 @@ export function JobFeedPanel() {
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-600">Developer Check</p>
                 <h2 className="mt-2 text-lg font-semibold text-charcoal">Run the current feed backend pass for this account</h2>
                 <p className="mt-2 text-sm leading-6 text-warm-gray">
-                  This is a debug-only helper to exercise scheduling, ingestion, canonical dedupe, prefiltering, and the real feed read path end to end while ranking is still pending.
+                  This is a debug-only helper to exercise scheduling, ingestion, canonical dedupe, ranking, and the real feed read path end to end.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button variant="outline" onClick={handleDebugRun} disabled={isRunningDebugFlow}>
@@ -943,6 +943,7 @@ function FeedResultsCard({
   const visibleCount = isShowingAllJobs ? JOB_FEED_VISIBLE_MAX_COUNT : JOB_FEED_VISIBLE_DEFAULT_COUNT;
   const visibleJobs = jobs.slice(0, visibleCount);
   const hasMore = jobs.length > JOB_FEED_VISIBLE_DEFAULT_COUNT;
+  const hasRankedJobs = jobs.some((job) => job.pipelineStage === 'ranked');
 
   return (
     <Card className="rounded-[24px] border-cream-200 bg-white/92 p-6 shadow-sm">
@@ -950,10 +951,18 @@ function FeedResultsCard({
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">Today&apos;s Feed</p>
           <h2 className="mt-2 text-xl font-semibold text-charcoal">
-            {overview.state === 'thin_feed' ? 'A smaller shortlist still made the cut' : 'Karko prepared a shortlist for you'}
+            {overview.state === 'thin_feed'
+              ? hasRankedJobs
+                ? 'A smaller ranked shortlist still made the cut'
+                : 'A smaller shortlist still made the cut'
+              : hasRankedJobs
+                ? 'Karko ranked today&apos;s shortlist for you'
+                : 'Karko prepared a shortlist for you'}
           </h2>
           <p className="mt-1 text-sm leading-6 text-warm-gray">
-            Showing {visibleJobs.length} of {jobs.length} shortlisted jobs from the latest completed run. The real Strong/Good ranking layer lands next.
+            {hasRankedJobs
+              ? `Showing ${visibleJobs.length} of ${jobs.length} ranked jobs from the latest completed run. Strong jobs lead the feed, followed by Good matches.`
+              : `Showing ${visibleJobs.length} of ${jobs.length} shortlisted jobs from the latest completed run while ranking is still catching up.`}
           </p>
         </div>
 

@@ -3,6 +3,7 @@ import {
   JOB_FEED_PREFILTER_HARD_CAP,
 } from '@/lib/job-feed/constants';
 import type {
+  JobFeedFitLabel,
   JobFeedJobPreview,
   JobFeedPrefilterRejectReason,
   JobFeedPrefilterResult,
@@ -48,7 +49,7 @@ export function prefilterJobFeedJobs(params: {
 
     survivorsWithScores.push({
       job,
-      score: computeShortlistScore(job, settings),
+      score: getShortlistScoreBreakdown(job, settings).totalScore,
     });
   }
 
@@ -78,21 +79,43 @@ export function prefilterJobFeedJobs(params: {
   };
 }
 
-export function prepareJobFeedRankingCandidates(jobs: JobFeedCanonicalJob[]): JobFeedRankingPrepResult {
+export function prepareJobFeedRankingCandidates(params: {
+  settings: JobFeedSettings;
+  jobs: JobFeedCanonicalJob[];
+}): JobFeedRankingPrepResult {
+  const { settings, jobs } = params;
+
   return {
     fitLabels: JOB_FEED_ALLOWED_FIT_LABELS,
-    candidates: jobs.map((job) => ({
-      jobId: job.id,
-      title: job.title,
-      company: job.company,
-      location: job.location_text,
-      workMode: job.work_mode,
-      employmentType: job.employment_type,
-      salaryText: job.salary_text,
-      description: job.description,
-      applyUrl: job.apply_url,
-      freshnessDays: job.freshness_days,
-    })),
+    candidates: jobs.map((job, index) => {
+      const scoreBreakdown = getShortlistScoreBreakdown(job, settings);
+
+      return {
+        jobId: job.id,
+        title: job.title,
+        company: job.company,
+        location: job.location_text,
+        workMode: job.work_mode,
+        employmentType: job.employment_type,
+        salaryText: job.salary_text,
+        description: job.description,
+        applyUrl: job.apply_url,
+        freshnessDays: job.freshness_days,
+        deterministicRank: index + 1,
+        deterministicScore: scoreBreakdown.totalScore,
+        deterministicFitLabel: getDeterministicFitLabel(job, scoreBreakdown),
+        scoreBreakdown: {
+          targetRoleScore: scoreBreakdown.targetRoleScore,
+          adjacentRoleScore: scoreBreakdown.adjacentRoleScore,
+          freshnessScore: scoreBreakdown.freshnessScore,
+          salaryScore: scoreBreakdown.salaryScore,
+          remoteAlignmentScore: scoreBreakdown.remoteAlignmentScore,
+          preferredLocationMatched: scoreBreakdown.preferredLocationMatched,
+          hasApplyUrl: scoreBreakdown.hasApplyUrl,
+          hasEmploymentType: scoreBreakdown.hasEmploymentType,
+        },
+      };
+    }),
   };
 }
 
@@ -195,22 +218,55 @@ function hasSeniorityMismatch(job: JobFeedCanonicalJob, settings: JobFeedSetting
   return Math.abs(jobRank - targetRank) > 1;
 }
 
-function computeShortlistScore(job: JobFeedCanonicalJob, settings: JobFeedSettings): number {
-  let score = 0;
+function getShortlistScoreBreakdown(job: JobFeedCanonicalJob, settings: JobFeedSettings) {
+  const targetRoleScore = getRoleAlignmentScore(job.title, settings.target_roles, 28);
+  const adjacentRoleScore = settings.adjacent_roles_enabled
+    ? getRoleAlignmentScore(job.title, settings.adjacent_roles, 14)
+    : 0;
+  const freshnessScore = getFreshnessScore(job.freshness_days);
+  const salaryScore = getSalaryScore(job, settings);
+  const remoteAlignmentScore = getRemoteAlignmentScore(job, settings);
+  const preferredLocationMatched = matchesPreferredLocation(job, settings.preferred_locations);
+  const hasApplyUrl = Boolean(job.apply_url);
+  const hasEmploymentType = Boolean(job.employment_type);
 
-  score += getRoleAlignmentScore(job.title, settings.target_roles, 28);
-  if (settings.adjacent_roles_enabled) {
-    score += getRoleAlignmentScore(job.title, settings.adjacent_roles, 14);
+  return {
+    targetRoleScore,
+    adjacentRoleScore,
+    freshnessScore,
+    salaryScore,
+    remoteAlignmentScore,
+    preferredLocationMatched,
+    hasApplyUrl,
+    hasEmploymentType,
+    totalScore:
+      targetRoleScore
+      + adjacentRoleScore
+      + freshnessScore
+      + salaryScore
+      + remoteAlignmentScore
+      + (preferredLocationMatched ? 4 : 0)
+      + (hasApplyUrl ? 2 : 0)
+      + (hasEmploymentType ? 1 : 0),
+  };
+}
+
+function getDeterministicFitLabel(
+  job: JobFeedCanonicalJob,
+  scoreBreakdown: ReturnType<typeof getShortlistScoreBreakdown>
+): JobFeedFitLabel {
+  const hasHighRoleConfidence = scoreBreakdown.targetRoleScore >= 24 || (scoreBreakdown.targetRoleScore + scoreBreakdown.adjacentRoleScore) >= 30;
+  const hasFreshEnoughSignal = job.freshness_days === null || job.freshness_days <= 14;
+  const hasLocationOrRemoteConfidence = scoreBreakdown.remoteAlignmentScore >= 4 || scoreBreakdown.preferredLocationMatched;
+
+  if (
+    (scoreBreakdown.totalScore >= 46 && hasHighRoleConfidence && hasFreshEnoughSignal)
+    || (scoreBreakdown.totalScore >= 54 && hasLocationOrRemoteConfidence)
+  ) {
+    return 'strong';
   }
 
-  score += getFreshnessScore(job.freshness_days);
-  score += getSalaryScore(job, settings);
-  score += getRemoteAlignmentScore(job, settings);
-  score += matchesPreferredLocation(job, settings.preferred_locations) ? 4 : 0;
-  score += job.apply_url ? 2 : 0;
-  score += job.employment_type ? 1 : 0;
-
-  return score;
+  return 'good';
 }
 
 function getRoleAlignmentScore(title: string, roles: string[], baseScore: number): number {
