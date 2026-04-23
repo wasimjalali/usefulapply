@@ -7,6 +7,8 @@ export const JOB_FEED_PREFILTER_HARD_CAP = 15;
 export const JOB_FEED_VISIBLE_DEFAULT_COUNT = 5;
 export const JOB_FEED_VISIBLE_MAX_COUNT = 10;
 export const JOB_FEED_ALLOWED_FIT_LABELS = ['strong', 'good'] as const;
+export const JOB_FEED_RAW_PAYLOAD_RETENTION_DAYS = 14;
+export const JOB_FEED_RUN_METADATA_RETENTION_DAYS = 30;
 
 export const JOB_FEED_MARKET_OPTIONS = [
   { value: 'us_canada', label: 'United States + Canada' },

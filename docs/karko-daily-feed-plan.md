@@ -40,7 +40,7 @@ For v1, the product direction is:
 
 ### Implementation checkpoint as of 2026-04-23
 
-The current branch has completed the foundations through Phase 6 MVP, plus the first real ranking/materialization pass, the orchestration handoff prep, and a first Phase 7 operational snapshot:
+The current branch has completed the foundations through Phase 6 MVP, plus the first real ranking/materialization pass, the orchestration handoff prep, and the first practical Phase 7 slices:
 
 - Phase 0: feed-first cleanup is in place
 - Phase 1: `job_feed_settings` is implemented and wired
@@ -50,11 +50,13 @@ The current branch has completed the foundations through Phase 6 MVP, plus the f
 - Phase 5 foundation: ranked feed items are exposed in the feed API/panel with ready, thin-feed, empty, and detail states
 - Phase 6 MVP: saved/opened/dismissed/applied feedback plus a real `Apply with Karko AI` session handoff are implemented
 - Phase 7 first slice: latest-run operational diagnostics now surface ranking mode, token usage, estimated cost, fetch failures, duplicates, and ranked-item materialization state
+- Phase 7 second slice: scheduler maintenance now redacts older raw provider payloads and compacts older run metadata after retention windows
+- Phase 7 third slice: debug tooling now supports an explicit same-day force rerun path for operational recovery without creating duplicate run rows
 
 Current next sequence:
 
 - Replace the current direct orchestration adapter with real Inngest functions once dependency install is available
-- Then Phase 7 - Cost, Analytics, Retention, Cleanup
+- Then continue any remaining Phase 7 polish such as additional analytics or debug affordances only if they still feel necessary
 
 ### What exists today
 

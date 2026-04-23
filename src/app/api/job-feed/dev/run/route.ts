@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { isJobFeedDebugModeEnabled } from '@/lib/job-feed/constants';
 import { canAccessJobFeed } from '@/lib/job-feed/helpers';
 import { dispatchJobFeedUserRun } from '@/lib/job-feed/orchestration';
@@ -6,12 +6,14 @@ import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   if (!isJobFeedDebugModeEnabled()) {
     return NextResponse.json({ error: 'Not found.' }, { status: 404 });
   }
 
   try {
+    const payload = await request.json().catch(() => ({}));
+    const force = Boolean(payload?.force);
     const supabase = await createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
     const typedSupabase = supabase as any;
@@ -33,7 +35,8 @@ export async function POST() {
 
     const result = await dispatchJobFeedUserRun({
       userId: user.id,
-      triggerSource: 'manual_debug',
+      triggerSource: force ? 'manual_debug_force' : 'manual_debug',
+      force,
     });
 
     return NextResponse.json(result);

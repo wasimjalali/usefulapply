@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cleanupHistoricalJobFeedData } from '@/lib/job-feed/cleanup';
 import { dispatchScheduledJobFeedSweep } from '@/lib/job-feed/orchestration';
 
 export const runtime = 'nodejs';
@@ -28,8 +29,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await dispatchScheduledJobFeedSweep();
-    return NextResponse.json(result);
+    const sweep = await dispatchScheduledJobFeedSweep();
+    const cleanup = await cleanupHistoricalJobFeedData();
+    return NextResponse.json({
+      sweep,
+      cleanup,
+    });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to run scheduler sweep.' },

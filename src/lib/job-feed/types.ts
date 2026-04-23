@@ -235,5 +235,6 @@ export interface JobFeedRunWorkflowResult {
   run: JobFeedRun;
   created: boolean;
   skipped: boolean;
+  forced?: boolean;
   previewJobs?: JobFeedJobPreview[];
 }

@@ -57,4 +57,6 @@ Deliver the current feed foundations slice:
 - [x] Materialize ranked feed items once the ranking stage is live
 - [x] Extract a shared orchestration boundary so scheduler/debug routes no longer own workflow execution details
 - [x] Add a lightweight latest-run diagnostics snapshot for ranking cost and run health visibility
+- [x] Add lightweight retention cleanup for old raw payloads and old run metadata
+- [x] Add a same-day force rerun path for debug recovery without duplicating run rows
 - [ ] Replace the current direct orchestration adapter with real Inngest functions once dependency install is available

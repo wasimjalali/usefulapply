@@ -401,7 +401,9 @@ export function getJobFeedRunDiagnostics(run: JobFeedRun | null): JobFeedRunDiag
     rankingCandidateCount: readNumericJsonValue(metadata.ranking_candidate_count),
     rankedJobsCount: run.ranked_jobs_count ?? null,
     duplicateCount: readNumericJsonValue(metadata.duplicate_count) ?? 0,
-    failedFetchCount: Array.isArray(metadata.failed_fetches) ? metadata.failed_fetches.length : 0,
+    failedFetchCount: Array.isArray(metadata.failed_fetches)
+      ? metadata.failed_fetches.length
+      : readNumericJsonValue(metadata.failed_fetch_count) ?? 0,
     rankedItemsMaterialized: typeof metadata.ranked_items_materialized === 'boolean'
       ? metadata.ranked_items_materialized
       : null,
@@ -431,8 +433,9 @@ export async function runJobFeedFoundationWorkflow(params: {
   userId: string;
   triggerSource?: string;
   now?: Date;
+  force?: boolean;
 }): Promise<JobFeedRunWorkflowResult> {
-  const { userId, triggerSource = 'scheduled', now = new Date() } = params;
+  const { userId, triggerSource = 'scheduled', now = new Date(), force = false } = params;
   const settings = await getJobFeedSettingsAdmin(userId);
 
   if (!settings) {
@@ -450,12 +453,20 @@ export async function runJobFeedFoundationWorkflow(params: {
   const localDate = getLocalDateKey(now, settings.user_timezone);
   const existingRun = await getJobFeedRunByDate(userId, localDate);
 
-  if (existingRun?.status === 'completed') {
+  if (existingRun?.status === 'completed' && !force) {
     return { run: existingRun, created: false, skipped: true };
   }
 
   if (existingRun?.status === 'running') {
+    if (force) {
+      throw new Error('Cannot force-rerun a job feed run while it is still running.');
+    }
+
     return { run: existingRun, created: false, skipped: true };
+  }
+
+  if (force && existingRun) {
+    await resetJobFeedRunArtifactsForRerun(existingRun.id);
   }
 
   const run = existingRun ?? await createJobFeedRun({
@@ -562,6 +573,7 @@ export async function runJobFeedFoundationWorkflow(params: {
       run: runningRun,
       created: !existingRun,
       skipped: false,
+      forced: force,
       previewJobs: prefilter.shortlistPreview.length > 0 ? prefilter.shortlistPreview : ingestion.previewJobs,
     };
   } catch (error) {
@@ -636,6 +648,28 @@ async function updateJobFeedRun(runId: string, updates: JobFeedRunUpdate): Promi
   }
 
   return data as JobFeedRun;
+}
+
+async function resetJobFeedRunArtifactsForRerun(runId: string): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+  const { error: rawFetchDeleteError } = await admin
+    .from('job_feed_raw_fetches')
+    .delete()
+    .eq('run_id', runId);
+
+  if (rawFetchDeleteError) {
+    throw new Error(`Failed to clear job feed raw fetches for rerun: ${rawFetchDeleteError.message}`);
+  }
+
+  const { error: rankedDeleteError } = await admin
+    .from('job_feed_ranked_items')
+    .delete()
+    .eq('run_id', runId);
+
+  if (rankedDeleteError && !isMissingRankedItemsRelationError(rankedDeleteError)) {
+    throw new Error(`Failed to clear ranked job feed items for rerun: ${rankedDeleteError.message}`);
+  }
 }
 
 function mergeMetadata(existing: Json, patch: Record<string, Json>): Json {

@@ -377,12 +377,17 @@ export function JobFeedPanel() {
     }
   };
 
-  const handleDebugRun = async () => {
+  const handleDebugRun = async (options?: { force?: boolean }) => {
+    const force = options?.force === true;
     setIsRunningDebugFlow(true);
 
     try {
       const response = await fetch('/api/job-feed/dev/run', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ force }),
       });
 
       const payload = await response.json();
@@ -392,13 +397,18 @@ export function JobFeedPanel() {
 
       posthog?.capture('job_feed_foundation_run_requested', {
         foundation_mode: true,
+        forced: force,
       });
 
-      toast.success(
-        payload.execution === 'inline'
-          ? 'Feed backend run completed for this account.'
-          : 'Feed backend run queued for this account.'
-      );
+      const toastMessage = payload.workflow?.skipped
+        ? 'A feed run already exists for today, so no new run was started.'
+        : payload.execution === 'inline'
+          ? force
+            ? 'Feed backend rerun completed for this account.'
+            : 'Feed backend run completed for this account.'
+          : 'Feed backend run queued for this account.';
+
+      toast.success(toastMessage);
       await loadOverview({ quiet: true });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to run the feed backend workflow.');
@@ -769,12 +779,15 @@ export function JobFeedPanel() {
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-600">Developer Check</p>
                 <h2 className="mt-2 text-lg font-semibold text-charcoal">Run the current feed backend pass for this account</h2>
                 <p className="mt-2 text-sm leading-6 text-warm-gray">
-                  This is a debug-only helper to exercise the orchestration entrypoint, ingestion, canonical dedupe, ranking, and the real feed read path end to end.
+                  This is a debug-only helper to exercise the orchestration entrypoint, ingestion, canonical dedupe, ranking, the real feed read path, and an explicit same-day rerun when needed.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={handleDebugRun} disabled={isRunningDebugFlow}>
+                  <Button variant="outline" onClick={() => handleDebugRun()} disabled={isRunningDebugFlow}>
                     {isRunningDebugFlow ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
                     Run backend workflow
+                  </Button>
+                  <Button variant="ghost" onClick={() => handleDebugRun({ force: true })} disabled={isRunningDebugFlow}>
+                    Force rerun today
                   </Button>
                   <Button variant="ghost" onClick={() => loadOverview({ quiet: true })} disabled={isRefreshing}>
                     Refresh status

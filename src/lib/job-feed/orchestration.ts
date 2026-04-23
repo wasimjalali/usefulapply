@@ -33,6 +33,7 @@ export async function dispatchJobFeedUserRun(params: {
   userId: string;
   triggerSource?: string;
   now?: Date;
+  force?: boolean;
 }): Promise<JobFeedUserRunDispatchResult> {
   const workflow = await runJobFeedFoundationWorkflow(params);
 
