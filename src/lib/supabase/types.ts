@@ -370,6 +370,50 @@ export interface Database {
           updated_at?: string
         }
       }
+      job_feed_feedback: {
+        Row: {
+          id: string
+          user_id: string
+          canonical_job_id: string
+          latest_run_id: string | null
+          application_session_id: string | null
+          opened_at: string | null
+          saved_at: string | null
+          dismissed_at: string | null
+          applied_at: string | null
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          canonical_job_id: string
+          latest_run_id?: string | null
+          application_session_id?: string | null
+          opened_at?: string | null
+          saved_at?: string | null
+          dismissed_at?: string | null
+          applied_at?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          canonical_job_id?: string
+          latest_run_id?: string | null
+          application_session_id?: string | null
+          opened_at?: string | null
+          saved_at?: string | null
+          dismissed_at?: string | null
+          applied_at?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
       documents: {
         Row: {
           id: string
@@ -951,6 +995,7 @@ export type JobFeedSettings = Tables<'job_feed_settings'>
 export type JobFeedRun = Tables<'job_feed_runs'>
 export type JobFeedRawFetch = Tables<'job_feed_raw_fetches'>
 export type JobFeedCanonicalJob = Tables<'job_feed_canonical_jobs'>
+export type JobFeedFeedback = Tables<'job_feed_feedback'>
 export type Document = Tables<'documents'>
 export type ProfilePhoto = Tables<'profile_photos'>
 export type ApplicationSession = Tables<'application_sessions'>

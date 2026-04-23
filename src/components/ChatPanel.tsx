@@ -6,7 +6,7 @@ import { Card } from './ui/Card';
 import { MarkdownText } from './MarkdownText';
 import { ChatMessage, type ChatMessageData } from './chat/ChatMessage';
 import { ChatInput } from './chat/ChatInput';
-import { ChatHistory, type SessionSummary } from './chat/ChatHistory';
+import { ChatHistory } from './chat/ChatHistory';
 import { FeedbackModal } from './chat/FeedbackModal';
 import { AgentProgressV2 } from './AgentProgressV2';
 import { useAgentWorkflow } from './chat/useAgentWorkflow';
@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { KarkoIcon } from './KarkoLogo';
 import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { SignUpWallModal, hasUsedFreeGeneration } from '@/components/SignUpWallModal';
 import { InsufficientCreditsModal } from '@/components/InsufficientCreditsModal';
 import { usePostHog } from 'posthog-js/react';
@@ -36,6 +37,7 @@ interface ChatPanelProps {
 
 export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }: ChatPanelProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, profile } = useAuth();
   const posthog = usePostHog();
   const {
@@ -142,6 +144,8 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     sessionId: null,
     hasGeneratedCV: false,
   });
+  const autostartedApplySessionRef = useRef<string | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
     const sessionId = currentSession?.id ?? null;
     const hasGeneratedCV = !!currentSession?.generatedCV;
@@ -155,6 +159,61 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
   }, [currentSession?.id, currentSession?.generatedCV, onTabChange]);
 
   const messages = currentSession?.chatMessages || [];
+  const hasFreshPendingFitAnalysis = Boolean(
+    currentSession?.pendingFitAnalysis?.createdAt
+    && nowMs < new Date(currentSession.pendingFitAnalysis.createdAt).getTime() + 30 * 60 * 1000
+  );
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 60_000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const autostart = searchParams.get('autostart');
+    const requestedSessionId = searchParams.get('session');
+
+    if (autostart !== 'job-feed-apply' || !currentSession || currentSession.id !== requestedSessionId) {
+      return;
+    }
+
+    const clearAutostartParam = () => {
+      const nextParams = new URLSearchParams(searchParams.toString());
+      nextParams.delete('autostart');
+      const nextQuery = nextParams.toString();
+      router.replace(nextQuery ? `/dashboard?${nextQuery}` : '/dashboard');
+    };
+
+    const alreadyInProgress = currentSession.chatMessages.length > 0 || !!currentSession.generatedCV || !!currentSession.pendingFitAnalysis;
+    if (alreadyInProgress) {
+      if (autostartedApplySessionRef.current !== currentSession.id) {
+        autostartedApplySessionRef.current = currentSession.id;
+        clearAutostartParam();
+      }
+      return;
+    }
+
+    if (!currentCV || !currentSession.jobDescription.trim()) {
+      return;
+    }
+
+    if (autostartedApplySessionRef.current === currentSession.id) {
+      return;
+    }
+
+    autostartedApplySessionRef.current = currentSession.id;
+    clearAutostartParam();
+    void workflowHandleSend(currentSession.jobDescription);
+  }, [
+    currentCV,
+    currentSession,
+    router,
+    searchParams,
+    workflowHandleSend,
+  ]);
 
   const handleFeedbackClick = (messageId: string, content: string, type: 'positive' | 'negative') => {
     setFeedbackModal({ messageId, content, type });
@@ -382,7 +441,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                   // Guard: if user switched sessions during async fetch, discard stale messages
                   if (useSessionStore.getState().currentSession?.id !== sessionId) return;
                   if (messages && messages.length > 0) {
-                    const mapped = messages.map((msg: any) => ({
+                    const mapped = messages.map((msg) => ({
                       id: msg.id,
                       role: msg.role,
                       content: msg.content,
@@ -433,6 +492,27 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                       Upload your CV using the panel on the left, then paste a job description here to get started.
                     </p>
                   )}
+                </Card>
+                <p className="text-xs text-warm-gray mt-1.5 ml-1">Just now</p>
+              </div>
+            </div>
+          )}
+
+          {currentSession && messages.length === 0 && (
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 h-fit">
+                <KarkoIcon size="xs" theme="light" />
+              </div>
+              <div className="flex-1">
+                <Card padding="sm" className="bg-white border-cream-200 shadow-sm">
+                  <MarkdownText
+                    content={
+                      currentCV
+                        ? `**${currentSession.jobTitle || 'This application'}** is ready. Karko already has the saved job description, so we can start generating from here.`
+                        : `**${currentSession.jobTitle || 'This application'}** is ready from Job Feed. Upload your CV to continue the application workflow.`
+                    }
+                    className="text-sm text-charcoal"
+                  />
                 </Card>
                 <p className="text-xs text-warm-gray mt-1.5 ml-1">Just now</p>
               </div>
@@ -490,7 +570,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                     id: s.function,
                     description: s.description,
                     status: s.status,
-                    agent: (s as any).agent,
+                    agent: s.agent,
                     result: s.result,
                     error: s.error,
                   }))}
@@ -559,10 +639,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
             pendingFitAnalysis={
               !isAgentWorking &&
               !currentSession?.generatedCV &&
-              !!(fitAnalysisContextId || (
-                currentSession?.pendingFitAnalysis &&
-                (Date.now() - new Date(currentSession.pendingFitAnalysis.createdAt).getTime()) < 30 * 60 * 1000
-              ))
+              !!(fitAnalysisContextId || hasFreshPendingFitAnalysis)
             }
             onFitAnalysisAction={(action) => {
               if (action === 'apply') {

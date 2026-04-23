@@ -1,8 +1,17 @@
 import { createAdminClient } from '@/lib/supabase/admin';
-import type { JobFeedCanonicalJob, JobFeedRun, JobFeedSettings, Json } from '@/lib/supabase/types';
+import type {
+  ApplicationSession as SupabaseApplicationSession,
+  JobFeedCanonicalJob,
+  JobFeedFeedback,
+  JobFeedRun,
+  JobFeedSettings,
+  Json,
+} from '@/lib/supabase/types';
 import { canAccessJobFeed, getLocalDateKey, getTimeZoneParts, isJobFeedConfigured } from '@/lib/job-feed/helpers';
 import type {
+  JobFeedFeedbackAction,
   JobFeedFeedItem,
+  JobFeedItemFeedbackState,
   JobFeedPrefilterResult,
   JobFeedRankingPrepResult,
   JobFeedRunWorkflowResult,
@@ -34,6 +43,11 @@ interface ScheduledJobFeedSweepResult {
   processedRuns: number;
   skippedRuns: number;
   failedRuns: Array<{ userId: string; error: string }>;
+}
+
+interface LatestJobFeedItemsResult {
+  run: JobFeedRun | null;
+  items: JobFeedFeedItem[];
 }
 
 export async function getJobFeedSettingsAdmin(userId: string): Promise<JobFeedSettings | null> {
@@ -70,21 +84,221 @@ export async function getLatestJobFeedRunAdmin(userId: string): Promise<JobFeedR
   return (data ?? null) as JobFeedRun | null;
 }
 
+export async function getJobFeedRunAdmin(userId: string, runId: string): Promise<JobFeedRun | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+  const { data, error } = await admin
+    .from('job_feed_runs')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('id', runId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to load job feed run: ${error.message}`);
+  }
+
+  return (data ?? null) as JobFeedRun | null;
+}
+
+export async function getJobFeedCanonicalJobAdmin(jobId: string): Promise<JobFeedCanonicalJob | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+  const { data, error } = await admin
+    .from('job_feed_canonical_jobs')
+    .select('*')
+    .eq('id', jobId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to load job feed item: ${error.message}`);
+  }
+
+  return (data ?? null) as JobFeedCanonicalJob | null;
+}
+
+export async function getJobFeedFeedbackAdmin(userId: string, jobId: string): Promise<JobFeedFeedback | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+  const { data, error } = await admin
+    .from('job_feed_feedback')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('canonical_job_id', jobId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to load job feed feedback: ${error.message}`);
+  }
+
+  return (data ?? null) as JobFeedFeedback | null;
+}
+
+export async function getJobFeedApplicationSessionAdmin(params: {
+  userId: string;
+  sessionId: string;
+}): Promise<SupabaseApplicationSession | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+  const { data, error } = await admin
+    .from('application_sessions')
+    .select('*')
+    .eq('user_id', params.userId)
+    .eq('id', params.sessionId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to load application session: ${error.message}`);
+  }
+
+  return (data ?? null) as SupabaseApplicationSession | null;
+}
+
+export async function createJobFeedApplicationSessionAdmin(params: {
+  userId: string;
+  job: JobFeedCanonicalJob;
+}): Promise<SupabaseApplicationSession> {
+  const { userId, job } = params;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference is still catching up to some application tables here.
+  const admin = createAdminClient() as any;
+  const { data, error } = await admin
+    .from('application_sessions')
+    .insert({
+      user_id: userId,
+      job_title: job.title,
+      company: job.company,
+      job_description: job.description ?? buildFallbackJobDescription(job),
+      job_url: job.apply_url ?? job.source_url,
+      matching_skills: [],
+      missing_skills: [],
+      suggestions: [],
+      cv_edits: [],
+    })
+    .select('*')
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to create application session from feed item: ${error.message}`);
+  }
+
+  return data as SupabaseApplicationSession;
+}
+
+export async function recordJobFeedFeedbackAdmin(params: {
+  userId: string;
+  jobId: string;
+  action: JobFeedFeedbackAction;
+  latestRunId?: string | null;
+  applicationSessionId?: string | null;
+}): Promise<JobFeedFeedback> {
+  const { userId, jobId, action, latestRunId = null, applicationSessionId = null } = params;
+  const existing = await getJobFeedFeedbackAdmin(userId, jobId);
+  const now = new Date().toISOString();
+  const metadataPatch: Record<string, Json> = {
+    last_action: action,
+    last_action_at: now,
+  };
+
+  const basePatch: Record<string, Json | string | null> = {
+    latest_run_id: latestRunId ?? existing?.latest_run_id ?? null,
+    metadata: mergeMetadata(existing?.metadata ?? null, metadataPatch),
+  };
+
+  switch (action) {
+    case 'opened':
+      basePatch.opened_at = existing?.opened_at ?? now;
+      break;
+    case 'saved':
+      basePatch.saved_at = existing?.saved_at ?? now;
+      basePatch.dismissed_at = null;
+      break;
+    case 'dismissed':
+      basePatch.dismissed_at = existing?.dismissed_at ?? now;
+      break;
+    case 'applied':
+      basePatch.opened_at = existing?.opened_at ?? now;
+      basePatch.applied_at = existing?.applied_at ?? now;
+      basePatch.application_session_id = applicationSessionId ?? existing?.application_session_id ?? null;
+      basePatch.dismissed_at = null;
+      break;
+    default:
+      throw new Error(`Unsupported job feed feedback action: ${String(action)}`);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+
+  if (existing) {
+    const { data, error } = await admin
+      .from('job_feed_feedback')
+      .update(basePatch)
+      .eq('id', existing.id)
+      .select('*')
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update job feed feedback: ${error.message}`);
+    }
+
+    return data as JobFeedFeedback;
+  }
+
+  const insertPayload = {
+    user_id: userId,
+    canonical_job_id: jobId,
+    latest_run_id: latestRunId,
+    application_session_id: action === 'applied' ? applicationSessionId : null,
+    opened_at: action === 'opened' || action === 'applied' ? now : null,
+    saved_at: action === 'saved' ? now : null,
+    dismissed_at: action === 'dismissed' ? now : null,
+    applied_at: action === 'applied' ? now : null,
+    metadata: mergeMetadata(null, metadataPatch),
+  };
+
+  const { data, error } = await admin
+    .from('job_feed_feedback')
+    .insert(insertPayload)
+    .select('*')
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to insert job feed feedback: ${error.message}`);
+  }
+
+  return data as JobFeedFeedback;
+}
+
+export function toJobFeedFeedbackState(feedback: JobFeedFeedback | null): JobFeedItemFeedbackState {
+  return {
+    openedAt: feedback?.opened_at ?? null,
+    savedAt: feedback?.saved_at ?? null,
+    dismissedAt: feedback?.dismissed_at ?? null,
+    appliedAt: feedback?.applied_at ?? null,
+    applicationSessionId: feedback?.application_session_id ?? null,
+  };
+}
+
 export async function listLatestJobFeedItemsAdmin(params: {
   userId: string;
   latestRun?: JobFeedRun | null;
-}): Promise<JobFeedFeedItem[]> {
+}): Promise<LatestJobFeedItemsResult> {
   const candidateRun = params.latestRun ?? await getLatestJobFeedRunAdmin(params.userId);
   const run = candidateRun?.status === 'completed'
     ? candidateRun
     : await getLatestCompletedJobFeedRunAdmin(params.userId);
   if (!run || run.status !== 'completed') {
-    return [];
+    return {
+      run: null,
+      items: [],
+    };
   }
 
   const jobIds = extractFeedJobIds(run.metadata);
   if (jobIds.length === 0) {
-    return [];
+    return {
+      run,
+      items: [],
+    };
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
@@ -100,11 +314,18 @@ export async function listLatestJobFeedItemsAdmin(params: {
 
   const rows = (data ?? []) as JobFeedCanonicalJob[];
   const rowsById = new Map(rows.map((row) => [row.id, row]));
+  const feedbackByJobId = await getJobFeedFeedbackMapAdmin(params.userId, jobIds);
 
-  return jobIds
+  const items = jobIds
     .map((jobId) => rowsById.get(jobId))
     .filter((job): job is JobFeedCanonicalJob => Boolean(job))
-    .map((job) => toFeedItem(job));
+    .filter((job) => !feedbackByJobId.get(job.id)?.dismissed_at)
+    .map((job) => toFeedItem(job, feedbackByJobId.get(job.id) ?? null));
+
+  return {
+    run,
+    items,
+  };
 }
 
 export async function listDueJobFeedUsers(now = new Date()): Promise<DueJobFeedUser[]> {
@@ -437,7 +658,28 @@ function extractIdsFromPreviewList(items: Json[]): string[] {
   return ids;
 }
 
-function toFeedItem(job: JobFeedCanonicalJob): JobFeedFeedItem {
+async function getJobFeedFeedbackMapAdmin(userId: string, jobIds: string[]): Promise<Map<string, JobFeedFeedback>> {
+  if (jobIds.length === 0) {
+    return new Map();
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+  const { data, error } = await admin
+    .from('job_feed_feedback')
+    .select('*')
+    .eq('user_id', userId)
+    .in('canonical_job_id', jobIds);
+
+  if (error) {
+    throw new Error(`Failed to load job feed feedback map: ${error.message}`);
+  }
+
+  const rows = (data ?? []) as JobFeedFeedback[];
+  return new Map(rows.map((row) => [row.canonical_job_id, row]));
+}
+
+function toFeedItem(job: JobFeedCanonicalJob, feedback: JobFeedFeedback | null): JobFeedFeedItem {
   const sourceIdentifiers = isJsonRecord(job.source_identifiers) ? job.source_identifiers : {};
 
   return {
@@ -457,6 +699,7 @@ function toFeedItem(job: JobFeedCanonicalJob): JobFeedFeedItem {
     fitLabel: null,
     pipelineStage: 'shortlisted',
     applyOptions: extractApplyOptions(sourceIdentifiers.apply_options),
+    feedback: toJobFeedFeedbackState(feedback),
   };
 }
 
@@ -481,6 +724,20 @@ function extractApplyOptions(value: Json | undefined): JobFeedFeedItem['applyOpt
 
 function isJsonRecord(value: Json): value is Record<string, Json> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function buildFallbackJobDescription(job: JobFeedCanonicalJob): string {
+  const parts = [
+    `${job.title} at ${job.company}`,
+    job.location_text ? `Location: ${job.location_text}` : null,
+    job.work_mode !== 'unknown' ? `Work mode: ${job.work_mode}` : null,
+    job.employment_type ? `Employment type: ${job.employment_type}` : null,
+    job.salary_text ? `Compensation: ${job.salary_text}` : null,
+    job.posted_at_text ? `Posted: ${job.posted_at_text}` : null,
+    job.apply_url ? `Apply URL: ${job.apply_url}` : job.source_url ? `Source URL: ${job.source_url}` : null,
+  ].filter(Boolean);
+
+  return parts.join('\n');
 }
 
 function buildWorkflowResultSummary(

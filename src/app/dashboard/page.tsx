@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { CVPanel } from '@/components/CVPanel';
 import { CoverLetterPanel } from '@/components/CoverLetterPanel';
 import { EmailPanel } from '@/components/EmailPanel';
@@ -188,12 +188,15 @@ function DashboardUpgradeButton({
 }
 export default function Dashboard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     activeTab,
     setActiveTab,
     isAgentWorking,
     currentCV,
     currentSession,
+    sessions,
+    loadSession,
     setCurrentCV,
     setStructuredCV,
   } = useAppStore();
@@ -466,6 +469,57 @@ export default function Dashboard() {
       setMobileApplicationTab(activeTab);
     }
   }, [activeTab, isApplicationTab]);
+
+  useEffect(() => {
+    const requestedWorkspace = searchParams.get('workspace');
+    const requestedSessionId = searchParams.get('session');
+    const requestedTab = searchParams.get('tab');
+    const autostart = searchParams.get('autostart');
+
+    if (!requestedWorkspace && !requestedSessionId && !requestedTab && !autostart) {
+      return;
+    }
+
+    if (requestedSessionId && currentSession?.id !== requestedSessionId && sessions.some((session) => session.id === requestedSessionId)) {
+      loadSession(requestedSessionId);
+    }
+
+    const resolvedTab: ApplicationTab = requestedTab === 'cover-letter' || requestedTab === 'email'
+      ? requestedTab
+      : 'cv';
+
+    if (requestedWorkspace === 'application-kit') {
+      setActiveTab(resolvedTab);
+      lastApplicationTabRef.current = resolvedTab;
+      setMobileApplicationTab(resolvedTab);
+
+      if (autostart === 'job-feed-apply') {
+        setMobileView('chat');
+        setIsChatCollapsed(false);
+      } else {
+        setMobileView('application-kit');
+      }
+
+      return;
+    }
+
+    if (requestedWorkspace === 'job-feed') {
+      setActiveTab('jobs');
+      setMobileView('job-feed');
+      return;
+    }
+
+    if (requestedWorkspace === 'tracker') {
+      setActiveTab('tracker');
+      setMobileView('tracker');
+    }
+  }, [
+    currentSession?.id,
+    loadSession,
+    searchParams,
+    sessions,
+    setActiveTab,
+  ]);
 
   const handleSignOut = useCallback(async () => {
     await signOut();

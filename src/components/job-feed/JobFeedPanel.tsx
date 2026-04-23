@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { usePostHog } from 'posthog-js/react';
 import {
   AlertCircle,
@@ -46,17 +47,27 @@ import {
   JOB_FEED_WORK_AUTH_OPTIONS,
   formatDeliveryHourLabel,
 } from '@/lib/job-feed/constants';
-import { createDefaultJobFeedInput, toJobFeedInput } from '@/lib/job-feed/helpers';
+import { createDefaultJobFeedInput, getJobFeedOverviewState, toJobFeedInput } from '@/lib/job-feed/helpers';
 import type {
+  JobFeedApplyResponse,
+  JobFeedFeedbackResponse,
   JobFeedFeedItem,
   JobFeedOverviewResponse,
   JobFeedSettingsInput,
 } from '@/lib/job-feed/types';
+import { useCVStore } from '@/store/useCVStore';
+import { useSessionStore, type ApplicationSession as StoreApplicationSession } from '@/store/useSessionStore';
 
 type SaveState = 'idle' | 'saving';
+type PendingJobAction = {
+  jobId: string;
+  action: 'apply' | 'save' | 'dismiss';
+} | null;
 
 export function JobFeedPanel() {
+  const router = useRouter();
   const { user, profile } = useAuth();
+  const currentCV = useCVStore((state) => state.currentCV);
   const { toast } = useToast();
   const posthog = usePostHog();
   const [overview, setOverview] = useState<JobFeedOverviewResponse | null>(null);
@@ -67,6 +78,7 @@ export function JobFeedPanel() {
   const [isRunningDebugFlow, setIsRunningDebugFlow] = useState(false);
   const [isShowingAllJobs, setIsShowingAllJobs] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobFeedFeedItem | null>(null);
+  const [pendingJobAction, setPendingJobAction] = useState<PendingJobAction>(null);
   const [form, setForm] = useState<JobFeedSettingsInput>(() => createDefaultJobFeedInput(getBrowserTimeZone()));
   const lastTrackedState = useRef<string | null>(null);
 
@@ -131,7 +143,204 @@ export function JobFeedPanel() {
 
   useEffect(() => {
     setIsShowingAllJobs(false);
-  }, [overview?.latestRun?.id]);
+  }, [overview?.feedRun?.id]);
+
+  const updateJobFeedbackState = useCallback((jobId: string, feedback: JobFeedFeedbackResponse['feedback']) => {
+    setOverview((prev) => {
+      if (!prev) return prev;
+
+      return {
+        ...prev,
+        jobs: prev.jobs.map((job) => (
+          job.id === jobId
+            ? { ...job, feedback }
+            : job
+        )),
+      };
+    });
+
+    setSelectedJob((prev) => (
+      prev?.id === jobId
+        ? { ...prev, feedback }
+        : prev
+    ));
+  }, []);
+
+  const removeJobFromOverview = useCallback((jobId: string) => {
+    setOverview((prev) => {
+      if (!prev) return prev;
+
+      const jobs = prev.jobs.filter((job) => job.id !== jobId);
+      return {
+        ...prev,
+        jobs,
+        state: getJobFeedOverviewState({
+          canAccess: prev.canAccess,
+          settings: prev.settings,
+          latestRun: prev.latestRun,
+          jobsCount: jobs.length,
+        }),
+      };
+    });
+  }, []);
+
+  const syncApplicationSession = useCallback((session: JobFeedApplyResponse['session']) => {
+    const mappedSession = toStoreApplicationSession(session);
+    const sessionStore = useSessionStore.getState();
+    sessionStore.setSessions([
+      mappedSession,
+      ...sessionStore.sessions.filter((item) => item.id !== mappedSession.id),
+    ]);
+    sessionStore.loadSession(mappedSession.id);
+  }, []);
+
+  const recordJobFeedback = useCallback(async (
+    job: JobFeedFeedItem,
+    action: 'opened' | 'saved' | 'dismissed'
+  ) => {
+    const response = await fetch('/api/job-feed/feedback', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        jobId: job.id,
+        action,
+        runId: overview?.feedRun?.id ?? null,
+      }),
+    });
+
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error || 'Failed to update job feed feedback.');
+    }
+
+    const typedPayload = payload as JobFeedFeedbackResponse;
+    updateJobFeedbackState(job.id, typedPayload.feedback);
+    return typedPayload.feedback;
+  }, [overview?.feedRun?.id, updateJobFeedbackState]);
+
+  const handleOpenDetails = useCallback((job: JobFeedFeedItem) => {
+    setSelectedJob(job);
+
+    posthog?.capture('job_feed_item_opened', {
+      foundation_mode: true,
+      job_id: job.id,
+      job_title: job.title,
+      company: job.company,
+      feed_run_id: overview?.feedRun?.id ?? null,
+    });
+
+    void recordJobFeedback(job, 'opened').catch((error) => {
+      console.error('[JobFeedPanel] Failed to record opened feedback:', error);
+    });
+  }, [overview?.feedRun?.id, posthog, recordJobFeedback]);
+
+  const handleSaveJob = useCallback(async (job: JobFeedFeedItem) => {
+    setPendingJobAction({ jobId: job.id, action: 'save' });
+
+    try {
+      await recordJobFeedback(job, 'saved');
+      posthog?.capture('job_feed_item_saved', {
+        foundation_mode: true,
+        job_id: job.id,
+        job_title: job.title,
+        company: job.company,
+        feed_run_id: overview?.feedRun?.id ?? null,
+      });
+      toast.success('Saved to your feed decisions so you can come back to it.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save this job.');
+    } finally {
+      setPendingJobAction(null);
+    }
+  }, [overview?.feedRun?.id, posthog, recordJobFeedback, toast]);
+
+  const handleDismissJob = useCallback(async (job: JobFeedFeedItem) => {
+    setPendingJobAction({ jobId: job.id, action: 'dismiss' });
+
+    try {
+      await recordJobFeedback(job, 'dismissed');
+      removeJobFromOverview(job.id);
+      if (selectedJob?.id === job.id) {
+        setSelectedJob(null);
+      }
+
+      posthog?.capture('job_feed_item_dismissed', {
+        foundation_mode: true,
+        job_id: job.id,
+        job_title: job.title,
+        company: job.company,
+        feed_run_id: overview?.feedRun?.id ?? null,
+      });
+      toast.success('Dismissed from your current feed.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to dismiss this job.');
+    } finally {
+      setPendingJobAction(null);
+    }
+  }, [overview?.feedRun?.id, posthog, recordJobFeedback, removeJobFromOverview, selectedJob?.id, toast]);
+
+  const handleApplyWithKarko = useCallback(async (job: JobFeedFeedItem) => {
+    setPendingJobAction({ jobId: job.id, action: 'apply' });
+
+    try {
+      const response = await fetch('/api/job-feed/apply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jobId: job.id,
+          runId: overview?.feedRun?.id ?? null,
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to start the application handoff.');
+      }
+
+      const typedPayload = payload as JobFeedApplyResponse;
+      updateJobFeedbackState(job.id, typedPayload.feedback);
+      syncApplicationSession(typedPayload.session);
+      setSelectedJob(null);
+
+      posthog?.capture('job_feed_item_applied', {
+        foundation_mode: true,
+        job_id: job.id,
+        job_title: job.title,
+        company: job.company,
+        feed_run_id: overview?.feedRun?.id ?? null,
+        created_session: typedPayload.created,
+      });
+
+      toast.success(
+        currentCV
+          ? 'Application session ready. Karko is opening the workflow now.'
+          : 'Application session ready. Upload your CV to continue this job.'
+      );
+
+      router.push(buildJobFeedApplyPath({
+        sessionId: typedPayload.session.id,
+        autostart: Boolean(currentCV),
+      }));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to start the Karko AI application handoff.');
+    } finally {
+      setPendingJobAction(null);
+    }
+  }, [currentCV, overview?.feedRun?.id, posthog, router, syncApplicationSession, toast, updateJobFeedbackState]);
+
+  const handleExternalApply = useCallback((job: JobFeedFeedItem) => {
+    posthog?.capture('job_feed_external_apply_clicked', {
+      foundation_mode: true,
+      job_id: job.id,
+      job_title: job.title,
+      company: job.company,
+      feed_run_id: overview?.feedRun?.id ?? null,
+    });
+  }, [overview?.feedRun?.id, posthog]);
 
   const handleSave = async () => {
     setSaveState('saving');
@@ -213,7 +422,7 @@ export function JobFeedPanel() {
                 </h1>
                 <p className="max-w-xl text-sm leading-6 text-cream-100/85 sm:text-base">
                   Phase 0 is live here: the old manual-search-first board is hidden so Job Feed can become a prepared, daily, feed-first surface.
-                  Phases 1 through 4 in this branch now add real settings, scheduling, durable ingestion, and deterministic shortlist prep underneath it.
+                  Phases 1 through 6 in this branch now add real settings, scheduling, durable ingestion, real shortlist display, and apply-feedback handoff underneath it.
                 </p>
               </div>
 
@@ -266,16 +475,12 @@ export function JobFeedPanel() {
                 jobs={overview.jobs}
                 isShowingAllJobs={isShowingAllJobs}
                 onToggleShowAll={() => setIsShowingAllJobs((prev) => !prev)}
-                onOpenDetails={setSelectedJob}
-                onApplyWithKarko={() => {
-                  toast.info('Phase 6 will wire real Apply with Karko AI handoff. For now, open the job details or apply externally.');
-                }}
-                onSave={() => {
-                  toast.info('Save and dismiss feedback actions land in Phase 6. The Phase 5 goal here is to expose the real feed and detail view.');
-                }}
-                onDismiss={() => {
-                  toast.info('Dismiss actions land in Phase 6. The Phase 5 goal here is to expose the real feed and detail view.');
-                }}
+                pendingJobAction={pendingJobAction}
+                onOpenDetails={handleOpenDetails}
+                onApplyWithKarko={handleApplyWithKarko}
+                onSave={handleSaveJob}
+                onDismiss={handleDismissJob}
+                onExternalApply={handleExternalApply}
               />
             )}
 
@@ -492,7 +697,7 @@ export function JobFeedPanel() {
 
                   <div className="flex flex-col gap-3 border-t border-cream-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-warm-gray">
-                      This milestone now covers settings, scheduling, ingestion, deterministic shortlist prep, and a real feed read/display layer. LLM ranking and apply handoff come next.
+                      This milestone now covers settings, scheduling, ingestion, deterministic shortlist prep, real shortlist display, and a practical apply-feedback loop. LLM ranking still comes next.
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <Button variant="outline" onClick={() => loadOverview({ quiet: true })} disabled={isRefreshing}>
@@ -543,6 +748,7 @@ export function JobFeedPanel() {
                 <MilestoneStep title="Phase 3" body="Persist raw SerpApi fetches and normalize deduped canonical jobs so later feed logic has a durable source of truth." />
                 <MilestoneStep title="Phase 4" body="Reject obvious mismatches in code and prepare a deterministic shortlist before any Strong/Good ranking step." />
                 <MilestoneStep title="Phase 5" body="Expose the real shortlist through feed APIs and render honest ready, thin-feed, and detail states inside Job Feed." />
+                <MilestoneStep title="Phase 6" body="Capture simple saved/opened/dismissed/applied signals and hand the user into a real Karko application session from the feed." />
               </div>
             </Card>
 
@@ -551,7 +757,7 @@ export function JobFeedPanel() {
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-600">Developer Check</p>
                 <h2 className="mt-2 text-lg font-semibold text-charcoal">Run the current feed backend pass for this account</h2>
                 <p className="mt-2 text-sm leading-6 text-warm-gray">
-                  This is a debug-only helper to exercise scheduling, ingestion, canonical dedupe, prefiltering, and the real feed read path end to end before ranking and apply handoff are wired in.
+                  This is a debug-only helper to exercise scheduling, ingestion, canonical dedupe, prefiltering, and the real feed read path end to end while ranking is still pending.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button variant="outline" onClick={handleDebugRun} disabled={isRunningDebugFlow}>
@@ -588,9 +794,9 @@ export function JobFeedPanel() {
         <JobFeedDetailModal
           job={selectedJob}
           onClose={() => setSelectedJob(null)}
-          onApplyWithKarko={() => {
-            toast.info('Phase 6 will wire real Apply with Karko AI handoff. For now, use the external apply path here in the detail view.');
-          }}
+          isApplying={pendingJobAction?.jobId === selectedJob.id && pendingJobAction.action === 'apply'}
+          onApplyWithKarko={() => handleApplyWithKarko(selectedJob)}
+          onExternalApply={() => handleExternalApply(selectedJob)}
         />
       )}
     </div>
@@ -715,20 +921,24 @@ function FeedResultsCard({
   overview,
   jobs,
   isShowingAllJobs,
+  pendingJobAction,
   onToggleShowAll,
   onOpenDetails,
   onApplyWithKarko,
   onSave,
   onDismiss,
+  onExternalApply,
 }: {
   overview: JobFeedOverviewResponse;
   jobs: JobFeedFeedItem[];
   isShowingAllJobs: boolean;
+  pendingJobAction: PendingJobAction;
   onToggleShowAll: () => void;
   onOpenDetails: (job: JobFeedFeedItem) => void;
   onApplyWithKarko: (job: JobFeedFeedItem) => void;
   onSave: (job: JobFeedFeedItem) => void;
   onDismiss: (job: JobFeedFeedItem) => void;
+  onExternalApply: (job: JobFeedFeedItem) => void;
 }) {
   const visibleCount = isShowingAllJobs ? JOB_FEED_VISIBLE_MAX_COUNT : JOB_FEED_VISIBLE_DEFAULT_COUNT;
   const visibleJobs = jobs.slice(0, visibleCount);
@@ -761,10 +971,14 @@ function FeedResultsCard({
             key={job.id}
             job={job}
             highlightIndex={index}
+            isApplying={pendingJobAction?.jobId === job.id && pendingJobAction.action === 'apply'}
+            isSaving={pendingJobAction?.jobId === job.id && pendingJobAction.action === 'save'}
+            isDismissing={pendingJobAction?.jobId === job.id && pendingJobAction.action === 'dismiss'}
             onOpenDetails={() => onOpenDetails(job)}
             onApplyWithKarko={() => onApplyWithKarko(job)}
             onSave={() => onSave(job)}
             onDismiss={() => onDismiss(job)}
+            onExternalApply={() => onExternalApply(job)}
           />
         ))}
       </div>
@@ -796,19 +1010,29 @@ function EmptyFeedCard({
 function JobFeedCard({
   job,
   highlightIndex,
+  isApplying,
+  isSaving,
+  isDismissing,
   onOpenDetails,
   onApplyWithKarko,
   onSave,
   onDismiss,
+  onExternalApply,
 }: {
   job: JobFeedFeedItem;
   highlightIndex: number;
+  isApplying: boolean;
+  isSaving: boolean;
+  isDismissing: boolean;
   onOpenDetails: () => void;
   onApplyWithKarko: () => void;
   onSave: () => void;
   onDismiss: () => void;
+  onExternalApply: () => void;
 }) {
   const directApplyLink = job.applyUrl || job.sourceUrl;
+  const isSaved = Boolean(job.feedback.savedAt);
+  const isApplied = Boolean(job.feedback.appliedAt);
 
   return (
     <div className="rounded-[24px] border border-cream-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,244,234,0.82))] p-5 shadow-sm">
@@ -824,6 +1048,16 @@ function JobFeedCard({
             {job.pipelineStage === 'shortlisted' && (
               <span className="inline-flex items-center gap-2 rounded-full border border-cream-300 bg-cream-50 px-3 py-1 text-xs font-medium text-warm-gray">
                 Ranking pending
+              </span>
+            )}
+            {isSaved && !isApplied && (
+              <span className="inline-flex items-center gap-2 rounded-full border border-gold-200 bg-gold-50 px-3 py-1 text-xs font-medium text-gold-700">
+                Saved
+              </span>
+            )}
+            {isApplied && (
+              <span className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-medium text-navy-700">
+                Application started
               </span>
             )}
           </div>
@@ -851,18 +1085,21 @@ function JobFeedCard({
         </div>
 
         <div className="flex flex-col gap-2 lg:w-[220px]">
-          <Button variant="gold" onClick={onApplyWithKarko}>
-            Apply with Karko AI
+          <Button variant="gold" onClick={onApplyWithKarko} disabled={isApplying}>
+            {isApplying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {isApplied ? 'Continue in Karko AI' : 'Apply with Karko AI'}
           </Button>
           <Button variant="outline" onClick={onOpenDetails}>
             See details
           </Button>
           <div className="grid grid-cols-2 gap-2">
-            <Button variant="ghost" size="sm" onClick={onSave}>
-              Save
+            <Button variant="ghost" size="sm" onClick={onSave} disabled={isSaved || isApplying || isDismissing || isApplied}>
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isApplied ? 'Applied' : isSaved ? 'Saved' : 'Save'}
             </Button>
-            <Button variant="ghost" size="sm" onClick={onDismiss}>
-              Dismiss
+            <Button variant="ghost" size="sm" onClick={onDismiss} disabled={isApplying || isDismissing || isApplied}>
+              {isDismissing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isApplied ? 'Applied' : 'Dismiss'}
             </Button>
           </div>
           {directApplyLink && (
@@ -870,6 +1107,7 @@ function JobFeedCard({
               href={directApplyLink}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={onExternalApply}
               className="inline-flex items-center justify-center gap-2 rounded-lg border border-transparent px-4 py-2 text-sm font-medium text-navy-600 transition-colors hover:bg-navy-50"
             >
               External apply
@@ -884,14 +1122,20 @@ function JobFeedCard({
 
 function JobFeedDetailModal({
   job,
+  isApplying,
   onClose,
   onApplyWithKarko,
+  onExternalApply,
 }: {
   job: JobFeedFeedItem;
+  isApplying: boolean;
   onClose: () => void;
   onApplyWithKarko: () => void;
+  onExternalApply: () => void;
 }) {
   const directApplyLink = job.applyUrl || job.sourceUrl;
+  const isSaved = Boolean(job.feedback.savedAt);
+  const isApplied = Boolean(job.feedback.appliedAt);
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -922,6 +1166,16 @@ function JobFeedDetailModal({
               {job.pipelineStage === 'shortlisted' && (
                 <span className="inline-flex items-center gap-2 rounded-full border border-cream-300 bg-white px-3 py-1 text-xs text-warm-gray">
                   Ranking pending
+                </span>
+              )}
+              {isSaved && !isApplied && (
+                <span className="inline-flex items-center gap-2 rounded-full border border-gold-200 bg-gold-50 px-3 py-1 text-xs font-medium text-gold-700">
+                  Saved
+                </span>
+              )}
+              {isApplied && (
+                <span className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-medium text-navy-700">
+                  Application started
                 </span>
               )}
             </div>
@@ -995,14 +1249,16 @@ function JobFeedDetailModal({
                 href={directApplyLink}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={onExternalApply}
                 className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-navy-700 transition-colors hover:bg-navy-100"
               >
                 Direct external apply
                 <ExternalLink className="h-4 w-4" />
               </a>
             )}
-            <Button variant="gold" onClick={onApplyWithKarko}>
-              Apply with Karko AI
+            <Button variant="gold" onClick={onApplyWithKarko} disabled={isApplying}>
+              {isApplying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isApplied ? 'Continue in Karko AI' : 'Apply with Karko AI'}
             </Button>
           </div>
         </div>
@@ -1449,6 +1705,57 @@ function employmentTypeLabel(value: NonNullable<JobFeedFeedItem['employmentType'
 
 function fitLabelText(value: NonNullable<JobFeedFeedItem['fitLabel']>): string {
   return value === 'strong' ? 'Strong' : 'Good';
+}
+
+function toStoreApplicationSession(session: JobFeedApplyResponse['session']): StoreApplicationSession {
+  const companyResearch = session.company_research && typeof session.company_research === 'object' && !Array.isArray(session.company_research)
+    ? {
+        ...(session.company_research as Record<string, unknown>),
+        address: session.company_address ?? (session.company_research as Record<string, unknown>).address as string | undefined,
+        contactPerson: session.company_contact_person ?? (session.company_research as Record<string, unknown>).contactPerson as string | undefined,
+      } as unknown as StoreApplicationSession['companyResearch']
+    : null;
+
+  return {
+    id: session.id,
+    jobTitle: session.job_title ?? '',
+    company: session.company ?? '',
+    createdAt: session.created_at,
+    updatedAt: session.updated_at,
+    jobDescription: session.job_description,
+    matchScore: session.match_score ?? undefined,
+    matchingSkills: session.matching_skills ?? [],
+    missingSkills: session.missing_skills ?? [],
+    suggestions: session.suggestions ?? [],
+    requirements: session.requirements as unknown as StoreApplicationSession['requirements'],
+    gaps: session.gaps as unknown as StoreApplicationSession['gaps'],
+    generatedCV: session.generated_cv as unknown as StoreApplicationSession['generatedCV'],
+    coverLetter: session.cover_letter as unknown as StoreApplicationSession['coverLetter'],
+    email: session.email as unknown as StoreApplicationSession['email'],
+    followUpEmail: session.follow_up_email as unknown as StoreApplicationSession['followUpEmail'],
+    fitAssessment: session.fit_assessment as unknown as StoreApplicationSession['fitAssessment'],
+    companyResearch,
+    screeningUsageCount: 0,
+    cvEdits: Array.isArray(session.cv_edits) ? session.cv_edits as unknown as StoreApplicationSession['cvEdits'] : [],
+    chatMessages: [],
+  };
+}
+
+function buildJobFeedApplyPath(params: {
+  sessionId: string;
+  autostart: boolean;
+}): string {
+  const searchParams = new URLSearchParams({
+    workspace: 'application-kit',
+    tab: 'cv',
+    session: params.sessionId,
+  });
+
+  if (params.autostart) {
+    searchParams.set('autostart', 'job-feed-apply');
+  }
+
+  return `/dashboard?${searchParams.toString()}`;
 }
 
 function getBrowserTimeZone(): string {

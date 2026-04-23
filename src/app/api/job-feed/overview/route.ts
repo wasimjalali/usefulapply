@@ -33,6 +33,7 @@ export async function GET() {
         canAccess: false,
         settings: null,
         latestRun: null,
+        feedRun: null,
         jobs: [],
         state: 'upgrade_required',
         foundationMode: true,
@@ -62,17 +63,23 @@ export async function GET() {
       return NextResponse.json({ error: runError.message }, { status: 500 });
     }
 
-    const jobs = latestRun
+    const feedItems = latestRun
       ? await listLatestJobFeedItemsAdmin({
           userId: user.id,
           latestRun: latestRun ?? null,
         })
-      : [];
+      : {
+          run: null,
+          items: [],
+        };
+
+    const jobs = feedItems.items;
 
     return NextResponse.json({
       canAccess,
       settings: settings ?? null,
       latestRun: latestRun ?? null,
+      feedRun: feedItems.run,
       jobs,
       state: getJobFeedOverviewState({
         canAccess,

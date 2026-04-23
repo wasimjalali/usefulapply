@@ -1,4 +1,9 @@
-import type { JobFeedCanonicalJob, JobFeedRun, JobFeedSettings } from '@/lib/supabase/types';
+import type {
+  ApplicationSession as SupabaseApplicationSession,
+  JobFeedCanonicalJob,
+  JobFeedRun,
+  JobFeedSettings,
+} from '@/lib/supabase/types';
 
 export type JobFeedOverviewState =
   | 'upgrade_required'
@@ -14,11 +19,21 @@ export type JobFeedOverviewState =
 export type JobFeedCanonicalWorkMode = JobFeedCanonicalJob['work_mode'];
 export type JobFeedEmploymentType = NonNullable<JobFeedCanonicalJob['employment_type']>;
 export type JobFeedFitLabel = 'strong' | 'good';
+export type JobFeedFeedbackAction = 'opened' | 'saved' | 'dismissed' | 'applied';
+
+export interface JobFeedItemFeedbackState {
+  openedAt: string | null;
+  savedAt: string | null;
+  dismissedAt: string | null;
+  appliedAt: string | null;
+  applicationSessionId: string | null;
+}
 
 export interface JobFeedOverviewResponse {
   canAccess: boolean;
   settings: JobFeedSettings | null;
   latestRun: JobFeedRun | null;
+  feedRun: JobFeedRun | null;
   jobs: JobFeedFeedItem[];
   state: JobFeedOverviewState;
   foundationMode: boolean;
@@ -86,6 +101,17 @@ export interface JobFeedFeedItem {
   fitLabel: JobFeedFitLabel | null;
   pipelineStage: 'shortlisted' | 'ranked';
   applyOptions: JobFeedApplyOption[];
+  feedback: JobFeedItemFeedbackState;
+}
+
+export interface JobFeedFeedbackResponse {
+  feedback: JobFeedItemFeedbackState;
+}
+
+export interface JobFeedApplyResponse {
+  created: boolean;
+  session: SupabaseApplicationSession;
+  feedback: JobFeedItemFeedbackState;
 }
 
 export interface JobFeedIngestionFailure {

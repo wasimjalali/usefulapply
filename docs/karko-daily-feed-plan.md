@@ -40,19 +40,21 @@ For v1, the product direction is:
 
 ### Implementation checkpoint as of 2026-04-23
 
-The current branch has completed the foundations through Phase 4:
+The current branch has completed the foundations through Phase 6 MVP:
 
 - Phase 0: feed-first cleanup is in place
 - Phase 1: `job_feed_settings` is implemented and wired
 - Phase 2: `job_feed_runs` plus the scheduler/debug workflow foundation are implemented
 - Phase 3: raw provider fetches plus canonical normalized jobs are implemented
 - Phase 4: code-based prefiltering and deterministic shortlist prep are implemented
-- Phase 5 foundation: the real shortlist is now exposed in the feed API/panel with ready, thin-feed, empty, and detail states
+- Phase 5 foundation: the real shortlist is exposed in the feed API/panel with ready, thin-feed, empty, and detail states
+- Phase 6 MVP: saved/opened/dismissed/applied feedback plus a real `Apply with Karko AI` session handoff are implemented
 
 Current next sequence:
 
-- Phase 6 - Apply Handoff & Feedback
-- Then the remaining ranking/completion pass for the Strong/Good layer
+- Finish the remaining ranking/completion pass for the Strong/Good layer
+- Call the LLM ranking stage on the deterministic shortlist
+- Materialize ranked feed items in the database/UI
 - Then Phase 7 - Cost, Analytics, Retention, Cleanup
 
 ### What exists today
@@ -64,15 +66,10 @@ Current next sequence:
 
 ### What does not exist yet
 
-- No autonomous daily feed pipeline
-- No background orchestration stack for per-user feed generation
-- No feed-specific database schema
-- No persistent discovery settings model
-- No seen-job deduplication model for feeds
-- No feed ranking records
-- No feed feedback loop
-- No feed-aware apply handoff
-- No feed-first UI
+- No production Inngest-backed orchestration yet
+- No LLM ranking/materialized feed-item layer yet
+- No advanced seen-job suppression beyond simple dismiss feedback
+- No heavier feedback learning loop yet
 
 ### Important conclusion
 
