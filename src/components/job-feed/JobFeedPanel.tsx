@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { usePostHog } from 'posthog-js/react';
 import {
   AlertCircle,
+  ArrowLeft,
   ArrowRight,
   Building2,
   Briefcase,
@@ -47,12 +48,13 @@ import {
   JOB_FEED_WORK_AUTH_OPTIONS,
   formatDeliveryHourLabel,
 } from '@/lib/job-feed/constants';
-import { createDefaultJobFeedInput, getJobFeedOverviewState, toJobFeedInput } from '@/lib/job-feed/helpers';
+import { createDefaultJobFeedInput, getJobFeedOverviewState, isValidTimeZone, toJobFeedInput } from '@/lib/job-feed/helpers';
 import type {
   JobFeedApplyResponse,
   JobFeedFeedbackResponse,
   JobFeedFeedItem,
   JobFeedOverviewResponse,
+  JobFeedOverviewState,
   JobFeedRunDiagnostics,
   JobFeedSettingsInput,
 } from '@/lib/job-feed/types';
@@ -65,12 +67,87 @@ type PendingJobAction = {
   action: 'apply' | 'save' | 'dismiss';
 } | null;
 
+type JobFeedPreviewMode =
+  | 'off'
+  | 'signed_out'
+  | 'upgrade_required'
+  | JobFeedOverviewState;
+
+type JobFeedWizardStepId =
+  | 'roles'
+  | 'locations'
+  | 'schedule'
+  | 'refinements'
+  | 'review';
+
+type JobFeedWizardStep = {
+  id: JobFeedWizardStepId;
+  eyebrow: string;
+  title: string;
+  description: string;
+  optional?: boolean;
+};
+
+const JOB_FEED_WIZARD_STEPS: JobFeedWizardStep[] = [
+  {
+    id: 'roles',
+    eyebrow: 'Step 1',
+    title: 'Roles and market',
+    description: 'Pick the core roles and launch market Karko should prioritize.',
+  },
+  {
+    id: 'locations',
+    eyebrow: 'Step 2',
+    title: 'Locations and work style',
+    description: 'Tell Karko where you want to work and how flexible the setup should be.',
+  },
+  {
+    id: 'schedule',
+    eyebrow: 'Step 3',
+    title: 'Delivery timing',
+    description: 'Choose when the daily feed should arrive in your local timezone.',
+  },
+  {
+    id: 'refinements',
+    eyebrow: 'Step 4',
+    title: 'Optional refinements',
+    description: 'Tighten the feed only where it meaningfully changes what is worth seeing.',
+    optional: true,
+  },
+  {
+    id: 'review',
+    eyebrow: 'Step 5',
+    title: 'Review and activate',
+    description: 'Double-check the setup, then decide whether to turn the daily feed on immediately.',
+  },
+];
+
+const JOB_FEED_REMOTE_PREFERENCE_DESCRIPTIONS: Record<JobFeedSettingsInput['remote_preference'], string> = {
+  remote_first: 'Remote roles first, with hybrid or on-site roles only if they still fit.',
+  remote_only: 'Only fully remote jobs should make the cut.',
+  hybrid: 'Hybrid roles are welcome alongside remote matches.',
+  onsite: 'On-site roles are still acceptable if the job is strong enough.',
+  flexible: 'Keep work mode broad and let the other filters do most of the work.',
+};
+
+const JOB_FEED_QUICK_DELIVERY_HOURS = [7, 8, 9, 12, 18, 20];
+const JOB_FEED_COMMON_TIMEZONES = [
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/Toronto',
+  'Europe/Berlin',
+  'UTC',
+];
+
 export function JobFeedPanel() {
   const router = useRouter();
   const { user, profile } = useAuth();
   const currentCV = useCVStore((state) => state.currentCV);
   const { toast } = useToast();
   const posthog = usePostHog();
+  const [previewMode] = useState<JobFeedPreviewMode>(() => getJobFeedPreviewMode());
   const [overview, setOverview] = useState<JobFeedOverviewResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>('idle');
@@ -82,10 +159,18 @@ export function JobFeedPanel() {
   const [pendingJobAction, setPendingJobAction] = useState<PendingJobAction>(null);
   const [form, setForm] = useState<JobFeedSettingsInput>(() => createDefaultJobFeedInput(getBrowserTimeZone()));
   const lastTrackedState = useRef<string | null>(null);
+  const isPreviewing = previewMode !== 'off';
+  const isSignedIn = isPreviewing ? previewMode !== 'signed_out' : Boolean(user);
 
-  const showDebugActions = process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_ENABLE_JOB_FEED_DEBUG === 'true';
+  const showDebugActions = !isPreviewing && process.env.NEXT_PUBLIC_ENABLE_JOB_FEED_DEBUG === 'true';
 
   const loadOverview = useCallback(async (options?: { quiet?: boolean }) => {
+    if (isPreviewing) {
+      setIsLoading(false);
+      setIsRefreshing(false);
+      return;
+    }
+
     if (!options?.quiet) {
       setIsLoading(true);
     } else {
@@ -111,27 +196,40 @@ export function JobFeedPanel() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [toast]);
+  }, [isPreviewing, toast]);
 
   useEffect(() => {
+    if (isPreviewing) {
+      const snapshot = buildJobFeedPreviewSnapshot(previewMode, getBrowserTimeZone());
+      setOverview(snapshot.overview);
+      setForm(snapshot.form);
+      setIsEditing(false);
+      setIsShowingAllJobs(false);
+      setSelectedJob(null);
+      setIsLoading(false);
+      return;
+    }
+
     if (!user) {
       setIsLoading(false);
       return;
     }
 
     loadOverview();
-  }, [loadOverview, user]);
+  }, [isPreviewing, loadOverview, previewMode, user]);
 
   useEffect(() => {
+    if (isPreviewing || !isSignedIn) return;
     if (!posthog) return;
 
     posthog.capture('job_feed_opened', {
       foundation_mode: true,
       subscription_tier: profile?.subscription_tier ?? 'unknown',
     });
-  }, [posthog, profile?.subscription_tier]);
+  }, [isPreviewing, isSignedIn, posthog, profile?.subscription_tier]);
 
   useEffect(() => {
+    if (isPreviewing) return;
     if (!posthog || !overview?.state) return;
     if (lastTrackedState.current === overview.state) return;
 
@@ -140,7 +238,7 @@ export function JobFeedPanel() {
       state: overview.state,
       foundation_mode: true,
     });
-  }, [overview?.state, posthog]);
+  }, [isPreviewing, overview?.state, posthog]);
 
   useEffect(() => {
     setIsShowingAllJobs(false);
@@ -163,6 +261,55 @@ export function JobFeedPanel() {
     setSelectedJob((prev) => (
       prev?.id === jobId
         ? { ...prev, feedback }
+        : prev
+    ));
+  }, []);
+
+  const applyPreviewFeedback = useCallback((jobId: string, action: 'opened' | 'saved' | 'dismissed' | 'applied') => {
+    const now = new Date().toISOString();
+
+    const mutateFeedback = (feedback: JobFeedFeedItem['feedback']) => {
+      switch (action) {
+        case 'opened':
+          return {
+            ...feedback,
+            openedAt: feedback.openedAt ?? now,
+          };
+        case 'saved':
+          return {
+            ...feedback,
+            savedAt: feedback.savedAt ?? now,
+          };
+        case 'dismissed':
+          return {
+            ...feedback,
+            dismissedAt: now,
+          };
+        case 'applied':
+          return {
+            ...feedback,
+            appliedAt: feedback.appliedAt ?? now,
+            applicationSessionId: feedback.applicationSessionId ?? 'preview-session',
+          };
+      }
+    };
+
+    setOverview((prev) => {
+      if (!prev) return prev;
+
+      return {
+        ...prev,
+        jobs: prev.jobs.map((job) => (
+          job.id === jobId
+            ? { ...job, feedback: mutateFeedback(job.feedback) }
+            : job
+        )),
+      };
+    });
+
+    setSelectedJob((prev) => (
+      prev?.id === jobId
+        ? { ...prev, feedback: mutateFeedback(prev.feedback) }
         : prev
     ));
   }, []);
@@ -224,6 +371,11 @@ export function JobFeedPanel() {
   const handleOpenDetails = useCallback((job: JobFeedFeedItem) => {
     setSelectedJob(job);
 
+    if (isPreviewing) {
+      applyPreviewFeedback(job.id, 'opened');
+      return;
+    }
+
     posthog?.capture('job_feed_item_opened', {
       foundation_mode: true,
       job_id: job.id,
@@ -235,12 +387,18 @@ export function JobFeedPanel() {
     void recordJobFeedback(job, 'opened').catch((error) => {
       console.error('[JobFeedPanel] Failed to record opened feedback:', error);
     });
-  }, [overview?.feedRun?.id, posthog, recordJobFeedback]);
+  }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback]);
 
   const handleSaveJob = useCallback(async (job: JobFeedFeedItem) => {
     setPendingJobAction({ jobId: job.id, action: 'save' });
 
     try {
+      if (isPreviewing) {
+        applyPreviewFeedback(job.id, 'saved');
+        toast.success('Preview updated locally.');
+        return;
+      }
+
       await recordJobFeedback(job, 'saved');
       posthog?.capture('job_feed_item_saved', {
         foundation_mode: true,
@@ -255,12 +413,22 @@ export function JobFeedPanel() {
     } finally {
       setPendingJobAction(null);
     }
-  }, [overview?.feedRun?.id, posthog, recordJobFeedback, toast]);
+  }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback, toast]);
 
   const handleDismissJob = useCallback(async (job: JobFeedFeedItem) => {
     setPendingJobAction({ jobId: job.id, action: 'dismiss' });
 
     try {
+      if (isPreviewing) {
+        applyPreviewFeedback(job.id, 'dismissed');
+        removeJobFromOverview(job.id);
+        if (selectedJob?.id === job.id) {
+          setSelectedJob(null);
+        }
+        toast.success('Preview updated locally.');
+        return;
+      }
+
       await recordJobFeedback(job, 'dismissed');
       removeJobFromOverview(job.id);
       if (selectedJob?.id === job.id) {
@@ -280,12 +448,18 @@ export function JobFeedPanel() {
     } finally {
       setPendingJobAction(null);
     }
-  }, [overview?.feedRun?.id, posthog, recordJobFeedback, removeJobFromOverview, selectedJob?.id, toast]);
+  }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback, removeJobFromOverview, selectedJob?.id, toast]);
 
   const handleApplyWithKarko = useCallback(async (job: JobFeedFeedItem) => {
     setPendingJobAction({ jobId: job.id, action: 'apply' });
 
     try {
+      if (isPreviewing) {
+        applyPreviewFeedback(job.id, 'applied');
+        toast.success('Preview updated locally. This local preview does not create an application session.');
+        return;
+      }
+
       const response = await fetch('/api/job-feed/apply', {
         method: 'POST',
         headers: {
@@ -331,9 +505,13 @@ export function JobFeedPanel() {
     } finally {
       setPendingJobAction(null);
     }
-  }, [currentCV, overview?.feedRun?.id, posthog, router, syncApplicationSession, toast, updateJobFeedbackState]);
+  }, [applyPreviewFeedback, currentCV, isPreviewing, overview?.feedRun?.id, posthog, router, syncApplicationSession, toast, updateJobFeedbackState]);
 
   const handleExternalApply = useCallback((job: JobFeedFeedItem) => {
+    if (isPreviewing) {
+      return;
+    }
+
     posthog?.capture('job_feed_external_apply_clicked', {
       foundation_mode: true,
       job_id: job.id,
@@ -341,12 +519,39 @@ export function JobFeedPanel() {
       company: job.company,
       feed_run_id: overview?.feedRun?.id ?? null,
     });
-  }, [overview?.feedRun?.id, posthog]);
+  }, [isPreviewing, overview?.feedRun?.id, posthog]);
 
   const handleSave = async () => {
     setSaveState('saving');
 
     try {
+      if (isPreviewing) {
+        const previewSettings = toPreviewJobFeedSettings(form);
+
+        setOverview((prev) => {
+          if (!prev) return prev;
+
+          return {
+            ...prev,
+            settings: previewSettings,
+            state: getJobFeedOverviewState({
+              canAccess: prev.canAccess,
+              settings: previewSettings,
+              latestRun: prev.latestRun,
+              jobsCount: prev.jobs.length,
+            }),
+          };
+        });
+
+        toast.success(
+          form.enabled && form.consent_accepted
+            ? 'Preview updated. The feed would be eligible to run with these settings.'
+            : 'Preview updated. These settings are saved locally for layout verification.'
+        );
+        setIsEditing(false);
+        return;
+      }
+
       const response = await fetch('/api/job-feed/settings', {
         method: 'PUT',
         headers: {
@@ -392,7 +597,7 @@ export function JobFeedPanel() {
 
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error || 'Failed to run the feed backend workflow.');
+        throw new Error(payload.error || 'Failed to run the background workflow.');
       }
 
       posthog?.capture('job_feed_foundation_run_requested', {
@@ -404,23 +609,23 @@ export function JobFeedPanel() {
         ? 'A feed run already exists for today, so no new run was started.'
         : payload.execution === 'inline'
           ? force
-            ? 'Feed backend rerun completed for this account.'
-            : 'Feed backend run completed for this account.'
+            ? 'Background rerun completed for this account.'
+            : 'Background run completed for this account.'
           : force
-            ? 'Feed backend rerun queued for this account.'
-            : 'Feed backend run queued for this account.';
+            ? 'Background rerun queued for this account.'
+            : 'Background run queued for this account.';
 
       toast.success(toastMessage);
       await loadOverview({ quiet: true });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to run the feed backend workflow.');
+      toast.error(error instanceof Error ? error.message : 'Failed to run the background workflow.');
     } finally {
       setIsRunningDebugFlow(false);
     }
   };
 
-  const currentState = overview?.state ?? 'setup_required';
-  const setupOpen = currentState === 'setup_required' || isEditing;
+  const currentState = isSignedIn ? (overview?.state ?? 'setup_required') : 'sign_in_required';
+  const setupOpen = isSignedIn && (currentState === 'setup_required' || isEditing);
 
   return (
     <div className="min-h-full bg-[radial-gradient(circle_at_top_left,rgba(215,180,58,0.12),transparent_32%),linear-gradient(180deg,#fbfaf6_0%,#f5f0e4_100%)]">
@@ -438,15 +643,15 @@ export function JobFeedPanel() {
                   Karko researches your next job in the background.
                 </h1>
                 <p className="max-w-xl text-sm leading-6 text-cream-100/85 sm:text-base">
-                  Phase 0 is live here: the old manual-search-first board is hidden so Job Feed can become a prepared, daily, feed-first surface.
-                  Phases 1 through 6 in this branch now add real settings, scheduling, durable ingestion, Strong/Good ranking, ranked feed items, and apply-feedback handoff underneath it.
+                  Set your preferences once, and Karko will queue a fresh shortlist in the background so you can review the strongest roles,
+                  save the ones worth revisiting, dismiss weak matches, or jump straight into Apply with Karko AI.
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2">
                 <HeroPill icon={ShieldCheck} label="Premium-only daily discovery" />
-                <HeroPill icon={Wand2} label="Canonical job ingestion saved in Supabase" />
-                <HeroPill icon={CalendarClock} label="Strong/Good ranking now wired" />
+                <HeroPill icon={Wand2} label="Curated matches from real job sources" />
+                <HeroPill icon={CalendarClock} label="Strongest roles surfaced first" />
               </div>
             </div>
 
@@ -454,289 +659,82 @@ export function JobFeedPanel() {
               <HeroStat
                 icon={Clock3}
                 label="Delivery window"
-                value={formatDeliveryHourLabel(form.delivery_hour_local)}
-                sublabel={form.user_timezone}
+                value={isSignedIn ? formatDeliveryHourLabel(form.delivery_hour_local) : 'Choose your time'}
+                sublabel={isSignedIn ? form.user_timezone : 'Runs in your local timezone'}
               />
               <HeroStat
                 icon={Globe}
                 label="Target market"
                 value={readableMarket(form.target_market)}
-                sublabel="US + Canada launch shape"
+                sublabel={isSignedIn ? 'Current launch market' : 'First supported market'}
               />
               <HeroStat
                 icon={Zap}
                 label="Current state"
                 value={readableState(currentState)}
-                sublabel="Foundation mode enabled"
+                sublabel={isSignedIn ? 'Based on your latest feed run' : 'Sign in to load your feed'}
               />
             </div>
           </div>
         </section>
 
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.9fr)]">
-          <div className="space-y-5">
-            {isLoading ? (
-              <LoadingState />
-            ) : (
-              <PrimaryStateCard
-                overview={overview}
-                onEditSettings={() => setIsEditing(true)}
-                onRefresh={() => loadOverview({ quiet: true })}
-                isRefreshing={isRefreshing}
-              />
-            )}
+        <div className="space-y-5">
+          {isLoading ? (
+            <LoadingState />
+          ) : !isSignedIn ? (
+            <SignedOutJobFeedCard />
+          ) : (
+            <PrimaryStateCard
+              overview={overview}
+              onEditSettings={() => setIsEditing(true)}
+              onRefresh={() => loadOverview({ quiet: true })}
+              isRefreshing={isRefreshing}
+            />
+          )}
 
-            {!isLoading && overview?.jobs && overview.jobs.length > 0 && (
-              <FeedResultsCard
-                overview={overview}
-                jobs={overview.jobs}
-                isShowingAllJobs={isShowingAllJobs}
-                onToggleShowAll={() => setIsShowingAllJobs((prev) => !prev)}
-                pendingJobAction={pendingJobAction}
-                onOpenDetails={handleOpenDetails}
-                onApplyWithKarko={handleApplyWithKarko}
-                onSave={handleSaveJob}
-                onDismiss={handleDismissJob}
-                onExternalApply={handleExternalApply}
-              />
-            )}
+          {setupOpen && (
+            <JobFeedOnboardingWizard
+              form={form}
+              overview={overview}
+              saveState={saveState}
+              isEditing={isEditing}
+              onFormChange={setForm}
+              onSave={handleSave}
+              onClose={() => {
+                setForm(toJobFeedInput(overview?.settings ?? null, getBrowserTimeZone()));
+                setIsEditing(false);
+              }}
+            />
+          )}
 
-            {!isLoading && overview?.state === 'empty' && (
-              <EmptyFeedCard onEditSettings={() => setIsEditing(true)} />
-            )}
+          {isSignedIn && !overview?.canAccess && !isLoading && (
+            <UpgradePromptCard />
+          )}
 
-            {setupOpen && (
-              <Card className="rounded-[24px] border-cream-200 bg-white/92 p-0 shadow-sm">
-                <div className="border-b border-cream-200 px-6 py-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-navy-500">Phase 1 Setup</p>
-                      <h2 className="mt-2 text-xl font-semibold text-charcoal">Tell Karko what a good daily match looks like</h2>
-                      <p className="mt-1 text-sm text-warm-gray">
-                        Keep it practical for v1: a few strong role, market, location, and fit signals are enough to start.
-                      </p>
-                    </div>
-                    {currentState !== 'setup_required' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setForm(toJobFeedInput(overview?.settings ?? null, getBrowserTimeZone()));
-                          setIsEditing(false);
-                        }}
-                      >
-                        Close
-                      </Button>
-                    )}
-                  </div>
-                </div>
+          {!isLoading && isSignedIn && overview?.jobs && overview.jobs.length > 0 && (
+            <FeedResultsCard
+              overview={overview}
+              jobs={overview.jobs}
+              isShowingAllJobs={isShowingAllJobs}
+              onToggleShowAll={() => setIsShowingAllJobs((prev) => !prev)}
+              pendingJobAction={pendingJobAction}
+              onOpenDetails={handleOpenDetails}
+              onApplyWithKarko={handleApplyWithKarko}
+              onSave={handleSaveJob}
+              onDismiss={handleDismissJob}
+              onExternalApply={handleExternalApply}
+            />
+          )}
 
-                <div className="space-y-6 px-6 py-6">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <FieldGroup label="Target roles" help="Structured suggestions first, then your own write-in roles.">
-                      <ChipField
-                        values={form.target_roles}
-                        suggestions={JOB_FEED_SUGGESTED_ROLES}
-                        placeholder="Type a role and press Enter"
-                        onChange={(target_roles) => setForm((prev) => ({ ...prev, target_roles }))}
-                      />
-                    </FieldGroup>
+          {!isLoading && isSignedIn && overview?.state === 'empty' && (
+            <EmptyFeedCard onEditSettings={() => setIsEditing(true)} />
+          )}
 
-                    <FieldGroup label="Preferred locations" help="Add cities, regions, or remote market hints if they matter.">
-                      <ChipField
-                        values={form.preferred_locations}
-                        suggestions={JOB_FEED_SUGGESTED_LOCATIONS}
-                        placeholder="Add a location"
-                        onChange={(preferred_locations) => setForm((prev) => ({ ...prev, preferred_locations }))}
-                      />
-                    </FieldGroup>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <SelectField
-                      label="Target market"
-                      value={form.target_market}
-                      onChange={(target_market) => setForm((prev) => ({ ...prev, target_market: target_market as JobFeedSettingsInput['target_market'] }))}
-                      options={JOB_FEED_MARKET_OPTIONS}
-                    />
-                    <SelectField
-                      label="Remote preference"
-                      value={form.remote_preference}
-                      onChange={(remote_preference) => setForm((prev) => ({ ...prev, remote_preference: remote_preference as JobFeedSettingsInput['remote_preference'] }))}
-                      options={JOB_FEED_REMOTE_PREFERENCE_OPTIONS}
-                    />
-                    <SelectField
-                      label="Seniority"
-                      value={form.seniority_target ?? ''}
-                      onChange={(seniority_target) => setForm((prev) => ({ ...prev, seniority_target: (seniority_target || null) as JobFeedSettingsInput['seniority_target'] }))}
-                      options={[{ value: '', label: 'Select seniority' }, ...JOB_FEED_SENIORITY_OPTIONS]}
-                    />
-                    <SelectField
-                      label="Aggressiveness"
-                      value={form.aggressiveness}
-                      onChange={(aggressiveness) => setForm((prev) => ({ ...prev, aggressiveness: aggressiveness as JobFeedSettingsInput['aggressiveness'] }))}
-                      options={JOB_FEED_AGGRESSIVENESS_OPTIONS}
-                    />
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <SelectField
-                      label="Delivery hour"
-                      value={String(form.delivery_hour_local)}
-                      onChange={(value) => setForm((prev) => ({ ...prev, delivery_hour_local: Number(value) }))}
-                      options={Array.from({ length: 16 }, (_, index) => {
-                        const hour = index + 6;
-                        return {
-                          value: String(hour),
-                          label: `${formatDeliveryHourLabel(hour)} local`,
-                        };
-                      })}
-                    />
-
-                    <InputField
-                      label="Timezone"
-                      value={form.user_timezone}
-                      onChange={(user_timezone) => setForm((prev) => ({ ...prev, user_timezone }))}
-                      placeholder="Europe/Berlin"
-                    />
-
-                    <InputField
-                      label="Salary floor (optional)"
-                      type="number"
-                      value={form.salary_floor === null ? '' : String(form.salary_floor)}
-                      onChange={(salary_floor) => setForm((prev) => ({
-                        ...prev,
-                        salary_floor: salary_floor ? Number(salary_floor) : null,
-                      }))}
-                      placeholder="120000"
-                    />
-
-                    <SelectField
-                      label="Work authorization"
-                      value={form.work_authorization_status ?? ''}
-                      onChange={(work_authorization_status) => setForm((prev) => ({
-                        ...prev,
-                        work_authorization_status: (work_authorization_status || null) as JobFeedSettingsInput['work_authorization_status'],
-                      }))}
-                      options={[{ value: '', label: 'Select status' }, ...JOB_FEED_WORK_AUTH_OPTIONS]}
-                    />
-                  </div>
-
-                  <div className="grid gap-4 lg:grid-cols-2">
-                    <FieldGroup label="Employment types" help="Keep the first version practical.">
-                      <div className="flex flex-wrap gap-2">
-                        {JOB_FEED_EMPLOYMENT_TYPE_OPTIONS.map((option) => {
-                          const selected = form.employment_types.includes(option.value);
-                          return (
-                            <button
-                              key={option.value}
-                              type="button"
-                              onClick={() => {
-                                const nextValues = selected
-                                  ? form.employment_types.filter((value) => value !== option.value)
-                                  : [...form.employment_types, option.value];
-                                setForm((prev) => ({ ...prev, employment_types: nextValues as JobFeedSettingsInput['employment_types'] }));
-                              }}
-                              className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                                selected
-                                  ? 'border-navy-600 bg-navy-600 text-white'
-                                  : 'border-cream-300 bg-cream-50 text-warm-gray hover:border-navy-300 hover:text-navy-600'
-                              }`}
-                            >
-                              {option.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </FieldGroup>
-
-                    <FieldGroup label="Languages" help="Used for market-fit and future ranking context.">
-                      <ChipField
-                        values={form.languages}
-                        suggestions={JOB_FEED_SUGGESTED_LANGUAGES}
-                        placeholder="Add a language"
-                        onChange={(languages) => setForm((prev) => ({ ...prev, languages }))}
-                      />
-                    </FieldGroup>
-                  </div>
-
-                  <div className="grid gap-4 lg:grid-cols-2">
-                    <FieldGroup label="Adjacent roles" help="Let Karko widen into close neighbours when the market is thin.">
-                      <ToggleRow
-                        title="Include adjacent roles"
-                        description="Helpful for strict markets or when exact titles vary."
-                        checked={form.adjacent_roles_enabled}
-                        onChange={(adjacent_roles_enabled) => setForm((prev) => ({ ...prev, adjacent_roles_enabled }))}
-                      />
-
-                      {form.adjacent_roles_enabled && (
-                        <div className="pt-3">
-                          <ChipField
-                            values={form.adjacent_roles}
-                            suggestions={['Platform Engineer', 'Solutions Engineer', 'Product Analyst']}
-                            placeholder="Add an adjacent role"
-                            onChange={(adjacent_roles) => setForm((prev) => ({ ...prev, adjacent_roles }))}
-                          />
-                        </div>
-                      )}
-                    </FieldGroup>
-
-                    <FieldGroup label="Automation consent" help="Required before the feed can run automatically.">
-                      <div className="rounded-2xl border border-cream-200 bg-cream-50/70 p-4">
-                        <label className="flex items-start gap-3">
-                          <input
-                            type="checkbox"
-                            checked={form.consent_accepted}
-                            onChange={(event) => setForm((prev) => ({ ...prev, consent_accepted: event.target.checked }))}
-                            className="mt-1 h-4 w-4 rounded border-cream-300 text-navy-600 focus:ring-navy-500"
-                          />
-                          <span className="text-sm leading-6 text-charcoal">
-                            I’m happy for Karko to research jobs for me automatically once per day using these settings.
-                            {overview?.settings?.consent_accepted_at && (
-                              <span className="mt-1 block text-xs text-navy-600">
-                                Consent already recorded. Leaving this checked keeps the feed eligible to run.
-                              </span>
-                            )}
-                          </span>
-                        </label>
-
-                        <div className="mt-4 border-t border-cream-200 pt-4">
-                          <ToggleRow
-                            title="Enable daily feed"
-                            description="Turn scheduling on now, or save the settings first and enable it later."
-                            checked={form.enabled}
-                            onChange={(enabled) => setForm((prev) => ({ ...prev, enabled }))}
-                          />
-                        </div>
-                      </div>
-                    </FieldGroup>
-                  </div>
-
-                  <div className="flex flex-col gap-3 border-t border-cream-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm text-warm-gray">
-                      This milestone now covers settings, scheduling, ingestion, deterministic shortlist prep, Strong/Good ranking, materialized ranked items, and a practical apply-feedback loop.
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" onClick={() => loadOverview({ quiet: true })} disabled={isRefreshing}>
-                        {isRefreshing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        Refresh
-                      </Button>
-                      <Button variant="gold" onClick={handleSave} disabled={saveState === 'saving'}>
-                        {saveState === 'saving' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        Save Job Feed settings
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            )}
-          </div>
-
-          <div className="space-y-5">
+          {isSignedIn ? overview?.canAccess ? (
             <Card className="rounded-[24px] border-cream-200 bg-white/92 p-6 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">Current Shape</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">Your preferences</p>
                   <h2 className="mt-2 text-lg font-semibold text-charcoal">Feed summary</h2>
                 </div>
                 {!setupOpen && (
@@ -754,66 +752,67 @@ export function JobFeedPanel() {
                 <SummaryRow icon={Clock3} label="Delivery" value={`${formatDeliveryHourLabel(form.delivery_hour_local)} in ${form.user_timezone}`} />
               </div>
             </Card>
+          ) : (
+            <UpgradePreviewSummaryCard />
+          ) : (
+            <SignedOutPreviewCard />
+          )}
 
-            <Card className="rounded-[24px] border-cream-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(248,244,234,0.9))] p-6 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">Milestone To-Do</p>
-              <h2 className="mt-2 text-lg font-semibold text-charcoal">What this branch is building right now</h2>
-              <div className="mt-5 space-y-3">
-                <MilestoneStep title="Phase 0" body="Hide the legacy manual-search-first board from the visible product and make Job Feed feel prepared, not manual." />
-                <MilestoneStep title="Phase 1" body="Persist feed settings with honest consent, timezone, delivery time, role, market, and fit controls." />
-                <MilestoneStep title="Phase 2" body="Track durable per-user daily runs and route scheduler/debug triggers through one orchestration boundary so the later Inngest swap stays narrow." />
-                <MilestoneStep title="Phase 3" body="Persist raw SerpApi fetches and normalize deduped canonical jobs so later feed logic has a durable source of truth." />
-                <MilestoneStep title="Phase 4" body="Reject obvious mismatches in code, cap a deterministic shortlist, and finish Strong/Good ranking with an LLM-first pass plus fallback." />
-                <MilestoneStep title="Phase 5" body="Expose ranked feed items through the feed APIs and render honest ready, thin-feed, and detail states inside Job Feed." />
-                <MilestoneStep title="Phase 6" body="Capture simple saved/opened/dismissed/applied signals and hand the user into a real Karko application session from the feed." />
+          <Card className="rounded-[24px] border-cream-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(248,244,234,0.9))] p-6 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">How it works</p>
+            <h2 className="mt-2 text-lg font-semibold text-charcoal">What happens after you turn on Job Feed</h2>
+            <div className="mt-5 space-y-3">
+              <ProductStep
+                number="1"
+                title="Karko checks your preferences"
+                body="Roles, market, delivery window, and fit settings shape the daily search before jobs ever reach the feed."
+              />
+              <ProductStep
+                number="2"
+                title="Karko gathers and cleans jobs"
+                body="Provider results are cleaned up and deduplicated before they ever reach your shortlist."
+              />
+              <ProductStep
+                number="3"
+                title="Only the strongest matches survive"
+                body="Fit filters and ranking keep weak matches out so the feed feels curated instead of noisy."
+              />
+              <ProductStep
+                number="4"
+                title="You review, save, dismiss, or apply"
+                body="Each surfaced job can flow directly into Apply with Karko AI while your feedback keeps the current feed cleaner over time."
+              />
+            </div>
+          </Card>
+
+          {showDebugActions && overview?.latestRun && overview.latestRunDiagnostics && (
+            <OperationalSnapshotCard
+              latestRunDate={overview.latestRun.local_date}
+              diagnostics={overview.latestRunDiagnostics}
+            />
+          )}
+
+          {showDebugActions && (
+            <Card className="rounded-[24px] border-dashed border-navy-200 bg-navy-50/60 p-6 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-600">Diagnostics</p>
+              <h2 className="mt-2 text-lg font-semibold text-charcoal">Run feed diagnostics for this account</h2>
+              <p className="mt-2 text-sm leading-6 text-warm-gray">
+                These tools are hidden unless debug mode is explicitly enabled. Use them to queue the background workflow or force a same-day rerun while verifying the feed.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => handleDebugRun()} disabled={isRunningDebugFlow}>
+                  {isRunningDebugFlow ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                  Queue background workflow
+                </Button>
+                <Button variant="ghost" onClick={() => handleDebugRun({ force: true })} disabled={isRunningDebugFlow}>
+                  Force rerun today
+                </Button>
+                <Button variant="ghost" onClick={() => loadOverview({ quiet: true })} disabled={isRefreshing}>
+                  Refresh status
+                </Button>
               </div>
             </Card>
-
-            {showDebugActions && overview?.latestRun && overview.latestRunDiagnostics && (
-              <OperationalSnapshotCard
-                latestRunDate={overview.latestRun.local_date}
-                diagnostics={overview.latestRunDiagnostics}
-              />
-            )}
-
-            {showDebugActions && (
-              <Card className="rounded-[24px] border-dashed border-navy-200 bg-navy-50/60 p-6 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-600">Developer Check</p>
-                <h2 className="mt-2 text-lg font-semibold text-charcoal">Queue the current feed backend pass for this account</h2>
-                <p className="mt-2 text-sm leading-6 text-warm-gray">
-                  This is a debug-only helper to exercise the Inngest-backed orchestration entrypoint, ingestion, canonical dedupe, ranking, the real feed read path, and an explicit same-day rerun when needed.
-                </p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={() => handleDebugRun()} disabled={isRunningDebugFlow}>
-                    {isRunningDebugFlow ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                    Queue backend workflow
-                  </Button>
-                  <Button variant="ghost" onClick={() => handleDebugRun({ force: true })} disabled={isRunningDebugFlow}>
-                    Force rerun today
-                  </Button>
-                  <Button variant="ghost" onClick={() => loadOverview({ quiet: true })} disabled={isRefreshing}>
-                    Refresh status
-                  </Button>
-                </div>
-              </Card>
-            )}
-
-            {!overview?.canAccess && !isLoading && (
-              <Card className="rounded-[24px] border-gold-200 bg-[linear-gradient(135deg,rgba(255,255,255,0.94),rgba(253,247,228,0.95))] p-6 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-700">Premium Access</p>
-                <h2 className="mt-2 text-lg font-semibold text-charcoal">Upgrade to unlock automatic daily discovery</h2>
-                <p className="mt-2 text-sm leading-6 text-warm-gray">
-                  The feed foundation is premium-only, because it relies on background research, personalization, and later ranking costs.
-                </p>
-                <Link href="/pricing" className="mt-4 inline-flex">
-                  <Button variant="gold">
-                    View plans
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-              </Card>
-            )}
-          </div>
+          )}
         </div>
       </div>
 
@@ -830,6 +829,932 @@ export function JobFeedPanel() {
   );
 }
 
+function SignedOutJobFeedCard() {
+  return (
+    <Card className="rounded-[28px] border border-navy-200 bg-[linear-gradient(135deg,rgba(240,246,255,0.96),rgba(255,255,255,0.98)_55%,rgba(253,247,228,0.9)_120%)] p-6 shadow-sm">
+      <div className="space-y-6">
+        <div>
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm">
+              <ShieldCheck className="h-6 w-6 text-navy-600" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">Get started</p>
+              <h2 className="mt-2 text-2xl font-semibold text-charcoal">Sign in to unlock your personal daily shortlist</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-warm-gray">
+                Job Feed is designed as a premium assistant surface, not a manual search board. Sign in once, choose a few fit signals, and let Karko prepare the strongest matches in the background.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            <AccessFeatureCard
+              icon={Sparkles}
+              title="Low-friction setup"
+              body="A short guided wizard gets the first run ready without asking for every detail up front."
+            />
+            <AccessFeatureCard
+              icon={CalendarClock}
+              title="Background delivery"
+              body="Karko searches on your schedule so the shortlist is waiting when you open the app."
+            />
+            <AccessFeatureCard
+              icon={Wand2}
+              title="Direct apply handoff"
+              body="Strong roles can move straight into Apply with Karko AI when you are ready."
+            />
+          </div>
+
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Link href="/auth/login">
+              <Button variant="gold">
+                Sign in to continue
+              </Button>
+            </Link>
+            <Link href="/pricing">
+              <Button variant="outline">
+                View plans
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        <div className="rounded-[24px] border border-white/70 bg-white/85 p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">What happens first</p>
+          <div className="mt-4 space-y-4">
+            <AccessFeatureRow
+              step="1"
+              title="Set the essentials"
+              body="Choose roles, locations, timing, and whether Karko should keep the feed broad or strict."
+            />
+            <AccessFeatureRow
+              step="2"
+              title="Turn on daily delivery"
+              body="Consent lets Karko run the background research automatically instead of waiting for manual searches."
+            />
+            <AccessFeatureRow
+              step="3"
+              title="Review the shortlist"
+              body="Open the strongest matches first, then save, dismiss, or apply with Karko AI."
+            />
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function SignedOutPreviewCard() {
+  return (
+    <Card className="rounded-[24px] border-cream-200 bg-white/92 p-6 shadow-sm">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">Before the first run</p>
+        <h2 className="mt-2 text-lg font-semibold text-charcoal">What you’ll personalize</h2>
+      </div>
+
+      <div className="mt-5 space-y-4">
+        <SummaryRow icon={Briefcase} label="Roles" value="Choose the exact roles Karko should prioritize" />
+        <SummaryRow icon={MapPin} label="Locations" value="Set markets, cities, or remote preferences" />
+        <SummaryRow icon={Globe} label="Market" value="Start with the US and Canada launch scope" />
+        <SummaryRow icon={Clock3} label="Schedule" value="Pick a local delivery time and give consent for automation" />
+      </div>
+
+      <div className="mt-5 rounded-[22px] border border-cream-200 bg-cream-50/70 p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy-500">Best for</p>
+        <p className="mt-2 text-sm leading-6 text-warm-gray">
+          People who want Karko to come back with a prepared shortlist instead of starting from a fresh manual search each day.
+        </p>
+      </div>
+    </Card>
+  );
+}
+
+function UpgradePromptCard() {
+  return (
+    <Card className="rounded-[28px] border-gold-200 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(253,247,228,0.95),rgba(244,248,255,0.9)_140%)] p-6 shadow-sm">
+      <div className="space-y-5">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-700">Premium Access</p>
+          <h2 className="mt-2 text-xl font-semibold text-charcoal">Upgrade to unlock automatic daily discovery</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-warm-gray">
+            Job Feed stays premium because every run relies on background research, ranking, and shortlist curation before the jobs ever reach your dashboard.
+          </p>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Link href="/pricing" className="inline-flex">
+              <Button variant="gold">
+                View plans
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        <div className="rounded-[24px] border border-white/70 bg-white/88 p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy-500">Included with premium</p>
+          <div className="mt-4 space-y-4">
+            <AccessFeatureRow
+              step="A"
+              title="Daily background research"
+              body="Karko checks the market for you on a schedule instead of waiting for a manual search."
+            />
+            <AccessFeatureRow
+              step="B"
+              title="Curated feed ranking"
+              body="The strongest roles are surfaced first so the shortlist feels useful instead of noisy."
+            />
+            <AccessFeatureRow
+              step="C"
+              title="In-app application flow"
+              body="The feed connects directly to Apply with Karko AI when a role is worth pursuing."
+            />
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function UpgradePreviewSummaryCard() {
+  return (
+    <Card className="rounded-[24px] border-cream-200 bg-white/92 p-6 shadow-sm">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">Premium preview</p>
+        <h2 className="mt-2 text-lg font-semibold text-charcoal">What unlocks after upgrade</h2>
+      </div>
+
+      <div className="mt-5 space-y-4">
+        <SummaryRow icon={Briefcase} label="Roles" value="Set the exact titles Karko should treat as top-priority matches" />
+        <SummaryRow icon={MapPin} label="Locations" value="Choose markets, cities, or remote preferences that matter most" />
+        <SummaryRow icon={Globe} label="Market" value="Start broad with the US and Canada launch scope, then narrow if you want" />
+        <SummaryRow icon={Clock3} label="Delivery" value="Pick the daily delivery time that feels right for your local schedule" />
+      </div>
+    </Card>
+  );
+}
+
+function AccessFeatureCard({
+  icon: Icon,
+  title,
+  body,
+}: {
+  icon: typeof Sparkles;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="rounded-[22px] border border-white/70 bg-white/85 p-4 shadow-sm">
+      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-navy-50 text-navy-600">
+        <Icon className="h-5 w-5" />
+      </div>
+      <p className="mt-4 text-sm font-semibold text-charcoal">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-warm-gray">{body}</p>
+    </div>
+  );
+}
+
+function AccessFeatureRow({
+  step,
+  title,
+  body,
+}: {
+  step: string;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="flex gap-3">
+      <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-navy-600 text-xs font-semibold text-white">
+        {step}
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-charcoal">{title}</p>
+        <p className="mt-1 text-sm leading-6 text-warm-gray">{body}</p>
+      </div>
+    </div>
+  );
+}
+
+function JobFeedOnboardingWizard({
+  form,
+  overview,
+  saveState,
+  isEditing,
+  onFormChange,
+  onSave,
+  onClose,
+}: {
+  form: JobFeedSettingsInput;
+  overview: JobFeedOverviewResponse | null;
+  saveState: SaveState;
+  isEditing: boolean;
+  onFormChange: React.Dispatch<React.SetStateAction<JobFeedSettingsInput>>;
+  onSave: () => void;
+  onClose: () => void;
+}) {
+  const [stepIndex, setStepIndex] = useState(0);
+  const browserTimeZone = getBrowserTimeZone();
+  const activeStep = JOB_FEED_WIZARD_STEPS[stepIndex];
+  const canContinue = canAdvanceJobFeedWizardStep(activeStep.id, form);
+  const canSave = canSaveJobFeedSettings(form);
+  const hasRecordedConsent = Boolean(overview?.settings?.consent_accepted_at);
+  const deliveryLabel = `${formatDeliveryHourLabel(form.delivery_hour_local)} in ${form.user_timezone}`;
+  const activationState = form.enabled
+    ? form.consent_accepted
+      ? 'Daily feed will turn on after save.'
+      : 'Settings can save now, but consent is still needed before Karko can run automatically.'
+    : 'The setup will save, and the feed will stay paused until you turn it on.';
+
+  const goToStep = (nextIndex: number) => {
+    setStepIndex(Math.max(0, Math.min(nextIndex, JOB_FEED_WIZARD_STEPS.length - 1)));
+  };
+
+  const advance = () => {
+    if (stepIndex === JOB_FEED_WIZARD_STEPS.length - 1) {
+      void onSave();
+      return;
+    }
+
+    if (!canContinue) {
+      return;
+    }
+
+    goToStep(stepIndex + 1);
+  };
+
+  const skipOptionalStep = () => {
+    if (!activeStep.optional) return;
+    goToStep(stepIndex + 1);
+  };
+
+  return (
+    <Card className="rounded-[28px] border-cream-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,244,234,0.92))] p-0 shadow-[0_24px_70px_-40px_rgba(30,58,95,0.35)]">
+      <div className="border-b border-cream-200 px-6 py-5 sm:px-7">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-navy-500">Feed setup</p>
+            <h2 className="mt-2 text-2xl font-semibold text-charcoal">Tell Karko what a premium daily match looks like</h2>
+            <p className="mt-2 text-sm leading-6 text-warm-gray">
+              Instead of one long form, move through the essentials step by step. Save as soon as the signal feels good enough and tighten the feed later.
+            </p>
+          </div>
+
+          {isEditing && (
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              Close
+            </Button>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          {JOB_FEED_WIZARD_STEPS.map((step, index) => {
+            const complete = index < stepIndex || isJobFeedWizardStepComplete(step.id, form);
+            const active = index === stepIndex;
+
+            return (
+              <button
+                key={step.id}
+                type="button"
+                onClick={() => {
+                  if (index <= stepIndex || complete) {
+                    goToStep(index);
+                  }
+                }}
+                className={`w-full rounded-[22px] border px-4 py-3 text-left transition-colors ${
+                  active
+                    ? 'border-navy-200 bg-navy-50 shadow-sm'
+                    : complete
+                      ? 'border-emerald-200 bg-emerald-50/70'
+                      : 'border-cream-200 bg-white/75'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${
+                    complete
+                      ? 'bg-emerald-500 text-white'
+                      : active
+                        ? 'bg-navy-600 text-white'
+                        : 'bg-cream-100 text-warm-gray'
+                  }`}>
+                    {complete ? '✓' : index + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-warm-gray">{step.eyebrow}</p>
+                    <p className="mt-1 text-sm font-semibold text-charcoal">{step.title}</p>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="space-y-6 px-6 py-6 xl:px-7">
+        <div className="rounded-[26px] border border-cream-200 bg-white/92 p-6 shadow-sm">
+          <div className="space-y-4">
+            <div className="rounded-[24px] border border-navy-100 bg-[linear-gradient(135deg,rgba(241,245,255,0.9),rgba(255,255,255,0.96))] p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">{activeStep.eyebrow}</p>
+              <h3 className="mt-2 text-xl font-semibold text-charcoal">{activeStep.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-warm-gray">{activeStep.description}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <SetupFocusPill icon={Briefcase} label="Target roles" />
+                <SetupFocusPill icon={MapPin} label="Locations" />
+                <SetupFocusPill icon={Clock3} label="Delivery timing" />
+                <SetupFocusPill icon={ShieldCheck} label="Consent when ready" />
+              </div>
+            </div>
+
+            {activeStep.id === 'roles' && (
+              <div className="space-y-5">
+                <SetupSectionHeader
+                  eyebrow="Core fit"
+                  title="Start with the roles you want most"
+                  body="One or two focused titles are enough to seed the feed. Keep the market broad unless you already know you want one country only."
+                />
+
+                <div className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.8fr)]">
+                  <FieldGroup label="Suggested roles" help="Choose the roles Karko should treat as the strongest signal.">
+                    <ChoiceGrid
+                      value={form.target_roles}
+                      multiple
+                      options={JOB_FEED_SUGGESTED_ROLES.map((role) => ({
+                        value: role,
+                        label: role,
+                      }))}
+                      onChange={(target_roles) => onFormChange((prev) => ({ ...prev, target_roles: target_roles as string[] }))}
+                    />
+                  </FieldGroup>
+
+                  <FieldGroup label="Target market" help="Job Feed launches with the United States and Canada first.">
+                    <ChoiceGrid
+                      value={form.target_market}
+                      options={JOB_FEED_MARKET_OPTIONS.map((option) => ({
+                        value: option.value,
+                        label: option.label,
+                        description: option.value === 'us_canada'
+                          ? 'Best default if you want the broadest launch scope.'
+                          : option.value === 'us'
+                            ? 'Keep the search focused on United States roles.'
+                            : 'Keep the search focused on Canada roles.',
+                      }))}
+                      onChange={(target_market) => onFormChange((prev) => ({
+                        ...prev,
+                        target_market: target_market as JobFeedSettingsInput['target_market'],
+                      }))}
+                    />
+                  </FieldGroup>
+                </div>
+
+                <FieldGroup label="Add custom roles" help="Write in anything more specific, like Sales Engineer, Product Designer, or Revenue Operations Manager.">
+                  <ChipField
+                    values={form.target_roles}
+                    suggestions={JOB_FEED_SUGGESTED_ROLES}
+                    placeholder="Type a role and press Enter"
+                    onChange={(target_roles) => onFormChange((prev) => ({ ...prev, target_roles }))}
+                  />
+                </FieldGroup>
+
+                {form.target_roles.length === 0 && (
+                  <InlineNotice tone="warning" title="At least one role is required">
+                    Karko needs a target role before the feed can be saved.
+                  </InlineNotice>
+                )}
+              </div>
+            )}
+
+            {activeStep.id === 'locations' && (
+              <div className="space-y-5">
+                <SetupSectionHeader
+                  eyebrow="Work style"
+                  title="Shape the places and work mode you care about"
+                  body="Keep this flexible unless location or remote rules meaningfully change whether a role is worth seeing."
+                />
+
+                <div className="grid gap-5 lg:grid-cols-[minmax(0,1.05fr)_minmax(280px,0.95fr)]">
+                  <FieldGroup label="Preferred locations" help="Leave this light if you want Karko to stay flexible across the selected market.">
+                    <ChipField
+                      values={form.preferred_locations}
+                      suggestions={JOB_FEED_SUGGESTED_LOCATIONS}
+                      placeholder="Add a city, region, or remote hint"
+                      onChange={(preferred_locations) => onFormChange((prev) => ({ ...prev, preferred_locations }))}
+                    />
+                  </FieldGroup>
+
+                  <FieldGroup label="Remote preference" help="Choose the default bias for what should make the shortlist.">
+                    <ChoiceGrid
+                      value={form.remote_preference}
+                      options={JOB_FEED_REMOTE_PREFERENCE_OPTIONS.map((option) => ({
+                        value: option.value,
+                        label: option.label,
+                        description: JOB_FEED_REMOTE_PREFERENCE_DESCRIPTIONS[option.value],
+                      }))}
+                      onChange={(remote_preference) => onFormChange((prev) => ({
+                        ...prev,
+                        remote_preference: remote_preference as JobFeedSettingsInput['remote_preference'],
+                      }))}
+                    />
+                  </FieldGroup>
+                </div>
+
+                <InlineNotice tone="neutral" title="Low-friction default">
+                  If you are open across the market, leave locations flexible and let the remote preference carry most of the signal.
+                </InlineNotice>
+              </div>
+            )}
+
+            {activeStep.id === 'schedule' && (
+              <div className="space-y-5">
+                <SetupSectionHeader
+                  eyebrow="Timing"
+                  title="Choose when the shortlist should arrive"
+                  body="The browser already gives Karko a good timezone starting point. Adjust it only if you work in a different local time."
+                />
+
+                <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
+                  <FieldGroup label="Quick delivery windows" help="Pick one of the common delivery times below, or use the full select under it.">
+                    <ChoiceGrid
+                      value={String(form.delivery_hour_local)}
+                      options={JOB_FEED_QUICK_DELIVERY_HOURS.map((hour) => ({
+                        value: String(hour),
+                        label: formatDeliveryHourLabel(hour),
+                      }))}
+                      onChange={(value) => onFormChange((prev) => ({ ...prev, delivery_hour_local: Number(value) }))}
+                      columns="three"
+                    />
+
+                    <div className="mt-4">
+                      <SelectField
+                        label="More delivery times"
+                        value={String(form.delivery_hour_local)}
+                        onChange={(value) => onFormChange((prev) => ({ ...prev, delivery_hour_local: Number(value) }))}
+                        options={Array.from({ length: 16 }, (_, index) => {
+                          const hour = index + 6;
+                          return {
+                            value: String(hour),
+                            label: `${formatDeliveryHourLabel(hour)} local`,
+                          };
+                        })}
+                      />
+                    </div>
+                  </FieldGroup>
+
+                  <FieldGroup label="Timezone" help="Search or paste a timezone, or jump straight back to the browser-detected timezone.">
+                    <TimeZoneField
+                      value={form.user_timezone}
+                      browserTimeZone={browserTimeZone}
+                      onChange={(user_timezone) => onFormChange((prev) => ({ ...prev, user_timezone }))}
+                    />
+                  </FieldGroup>
+                </div>
+
+                <InlineNotice tone={isValidTimeZone(form.user_timezone) ? 'success' : 'warning'} title="Daily delivery preview">
+                  {isValidTimeZone(form.user_timezone)
+                    ? `Karko will aim for ${deliveryLabel}.`
+                    : 'Choose a valid timezone before saving the feed.'}
+                </InlineNotice>
+              </div>
+            )}
+
+            {activeStep.id === 'refinements' && (
+              <div className="space-y-5">
+                <SetupSectionHeader
+                  eyebrow="Optional"
+                  title="Add only the filters that really matter"
+                  body="These are great for sharpening the feed later, but most people should keep the first pass light and skip anything that feels uncertain."
+                />
+
+                <div className="grid gap-5 xl:grid-cols-2">
+                  <div className="space-y-4">
+                    <SelectField
+                      label="Seniority"
+                      value={form.seniority_target ?? ''}
+                      onChange={(seniority_target) => onFormChange((prev) => ({
+                        ...prev,
+                        seniority_target: (seniority_target || null) as JobFeedSettingsInput['seniority_target'],
+                      }))}
+                      options={[{ value: '', label: 'Keep flexible' }, ...JOB_FEED_SENIORITY_OPTIONS]}
+                    />
+
+                    <SelectField
+                      label="Aggressiveness"
+                      value={form.aggressiveness}
+                      onChange={(aggressiveness) => onFormChange((prev) => ({
+                        ...prev,
+                        aggressiveness: aggressiveness as JobFeedSettingsInput['aggressiveness'],
+                      }))}
+                      options={JOB_FEED_AGGRESSIVENESS_OPTIONS}
+                    />
+
+                    <FieldGroup label="Employment types" help="Most people should leave this broad until they see the first few runs.">
+                      <ChoiceGrid
+                        value={form.employment_types}
+                        multiple
+                        options={JOB_FEED_EMPLOYMENT_TYPE_OPTIONS.map((option) => ({
+                          value: option.value,
+                          label: option.label,
+                        }))}
+                        onChange={(employment_types) => onFormChange((prev) => ({
+                          ...prev,
+                          employment_types: employment_types as JobFeedSettingsInput['employment_types'],
+                        }))}
+                      />
+                    </FieldGroup>
+                  </div>
+
+                  <div className="space-y-4">
+                    <InputField
+                      label="Salary floor (optional)"
+                      type="number"
+                      value={form.salary_floor === null ? '' : String(form.salary_floor)}
+                      onChange={(salary_floor) => onFormChange((prev) => ({
+                        ...prev,
+                        salary_floor: salary_floor ? Number(salary_floor) : null,
+                      }))}
+                      placeholder="120000"
+                    />
+
+                    <SelectField
+                      label="Work authorization"
+                      value={form.work_authorization_status ?? ''}
+                      onChange={(work_authorization_status) => onFormChange((prev) => ({
+                        ...prev,
+                        work_authorization_status: (work_authorization_status || null) as JobFeedSettingsInput['work_authorization_status'],
+                      }))}
+                      options={[{ value: '', label: 'Keep flexible' }, ...JOB_FEED_WORK_AUTH_OPTIONS]}
+                    />
+
+                    <FieldGroup label="Languages" help="Optional. Useful if you want Karko to prefer roles that fit your working language.">
+                      <ChipField
+                        values={form.languages}
+                        suggestions={JOB_FEED_SUGGESTED_LANGUAGES}
+                        placeholder="Add a language"
+                        onChange={(languages) => onFormChange((prev) => ({ ...prev, languages }))}
+                      />
+                    </FieldGroup>
+
+                    <FieldGroup label="Adjacent roles" help="Helpful if similar titles in your market are often worth seeing.">
+                      <ToggleRow
+                        title="Include adjacent roles"
+                        description="Let Karko widen into close neighbours when exact titles are quiet."
+                        checked={form.adjacent_roles_enabled}
+                        onChange={(adjacent_roles_enabled) => onFormChange((prev) => ({ ...prev, adjacent_roles_enabled }))}
+                      />
+
+                      {form.adjacent_roles_enabled && (
+                        <div className="pt-3">
+                          <ChipField
+                            values={form.adjacent_roles}
+                            suggestions={['Platform Engineer', 'Solutions Engineer', 'Product Analyst']}
+                            placeholder="Add an adjacent role"
+                            onChange={(adjacent_roles) => onFormChange((prev) => ({ ...prev, adjacent_roles }))}
+                          />
+                        </div>
+                      )}
+                    </FieldGroup>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeStep.id === 'review' && (
+              <div className="space-y-5">
+                <SetupSectionHeader
+                  eyebrow="Activation"
+                  title="Review the setup before Karko starts searching"
+                  body="You can still edit any of this later. The goal here is a strong first pass, not a perfect one."
+                />
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <WizardSummaryCard title="Roles" value={form.target_roles.length > 0 ? form.target_roles.join(', ') : 'Choose at least one role'} />
+                  <WizardSummaryCard title="Locations" value={form.preferred_locations.length > 0 ? form.preferred_locations.join(', ') : 'Flexible across your target market'} />
+                  <WizardSummaryCard title="Schedule" value={deliveryLabel} />
+                  <WizardSummaryCard title="Filter style" value={`${readableMarket(form.target_market)} • ${JOB_FEED_REMOTE_PREFERENCE_OPTIONS.find((option) => option.value === form.remote_preference)?.label ?? 'Flexible'}`} />
+                </div>
+
+                <div className="rounded-[24px] border border-cream-200 bg-cream-50/70 p-5">
+                  <ToggleRow
+                    title="Enable daily feed"
+                    description="Turn scheduling on now, or save the setup first and leave the feed paused."
+                    checked={form.enabled}
+                    onChange={(enabled) => onFormChange((prev) => ({ ...prev, enabled }))}
+                  />
+
+                  <div className="mt-5 border-t border-cream-200 pt-5">
+                    <label className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={form.consent_accepted}
+                        onChange={(event) => onFormChange((prev) => ({ ...prev, consent_accepted: event.target.checked }))}
+                        className="mt-1 h-4 w-4 rounded border-cream-300 text-navy-600 focus:ring-navy-500"
+                      />
+                      <span className="text-sm leading-6 text-charcoal">
+                        I’m happy for Karko to research jobs for me automatically once per day using these settings.
+                        {hasRecordedConsent && (
+                          <span className="mt-1 block text-xs text-navy-600">
+                            Consent is already recorded. Leaving this checked keeps the feed eligible to run.
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                <InlineNotice tone={form.enabled && form.consent_accepted ? 'success' : 'neutral'} title="What happens next">
+                  {activationState}
+                </InlineNotice>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <Card className="rounded-[24px] border-cream-200 bg-white/94 p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">Setup progress</p>
+            <div className="mt-4 space-y-3">
+              {JOB_FEED_WIZARD_STEPS.map((step, index) => (
+                <WizardChecklistRow
+                  key={step.id}
+                  title={step.title}
+                  detail={step.description}
+                  status={index === stepIndex ? 'current' : index < stepIndex || isJobFeedWizardStepComplete(step.id, form) ? 'complete' : 'upcoming'}
+                />
+              ))}
+            </div>
+          </Card>
+
+          <Card className="rounded-[24px] border-cream-200 bg-white/94 p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">Current summary</p>
+            <div className="mt-4 space-y-4">
+              <SummaryRow icon={Briefcase} label="Roles" value={form.target_roles.length > 0 ? form.target_roles.join(', ') : 'Choose at least one role'} />
+              <SummaryRow icon={MapPin} label="Locations" value={form.preferred_locations.length > 0 ? form.preferred_locations.join(', ') : 'Flexible'} />
+              <SummaryRow icon={Globe} label="Market" value={readableMarket(form.target_market)} />
+              <SummaryRow icon={Clock3} label="Delivery" value={deliveryLabel} />
+            </div>
+          </Card>
+
+          <Card className="rounded-[24px] border-cream-200 bg-[linear-gradient(180deg,rgba(248,253,255,0.98),rgba(255,255,255,0.95))] p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">Readiness</p>
+            <div className="mt-4 space-y-3">
+              <WizardReadyRow title="Target role added" ready={form.target_roles.length > 0} />
+              <WizardReadyRow title="Valid timezone selected" ready={isValidTimeZone(form.user_timezone)} />
+              <WizardReadyRow title="Consent recorded" ready={form.consent_accepted || hasRecordedConsent} optional />
+              <WizardReadyRow title="Feed enabled" ready={form.enabled} optional />
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-cream-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+        <p className="text-sm text-warm-gray">
+          {activeStep.optional
+            ? 'This step is optional. Skip it if you want to get to the first feed faster.'
+            : activeStep.id === 'review'
+              ? 'Save as soon as the setup feels good enough. You can refine the feed after you see the first results.'
+              : 'Only a few strong signals are needed to get the first version running.'}
+        </p>
+
+        <div className="flex flex-wrap gap-2">
+          {stepIndex > 0 && (
+            <Button variant="ghost" onClick={() => goToStep(stepIndex - 1)}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+          )}
+
+          {activeStep.optional && stepIndex < JOB_FEED_WIZARD_STEPS.length - 1 && (
+            <Button variant="outline" onClick={skipOptionalStep}>
+              Skip for now
+            </Button>
+          )}
+
+          <Button
+            variant="gold"
+            onClick={advance}
+            disabled={(stepIndex === JOB_FEED_WIZARD_STEPS.length - 1 ? !canSave : !canContinue) || saveState === 'saving'}
+          >
+            {saveState === 'saving' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {stepIndex === JOB_FEED_WIZARD_STEPS.length - 1 ? 'Save Job Feed settings' : 'Continue'}
+            {stepIndex < JOB_FEED_WIZARD_STEPS.length - 1 ? <ArrowRight className="ml-2 h-4 w-4" /> : null}
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function ChoiceGrid({
+  value,
+  options,
+  onChange,
+  multiple = false,
+  columns = 'two',
+}: {
+  value: string | string[];
+  options: Array<{ value: string; label: string; description?: string }>;
+  onChange: (value: string | string[]) => void;
+  multiple?: boolean;
+  columns?: 'two' | 'three';
+}) {
+  const selectedValues = Array.isArray(value) ? value : [value];
+  const gridClassName = columns === 'three' ? 'md:grid-cols-3' : 'md:grid-cols-2';
+
+  return (
+    <div className={`grid gap-3 ${gridClassName}`}>
+      {options.map((option) => {
+        const selected = selectedValues.includes(option.value);
+
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => {
+              if (multiple) {
+                const nextValues = selected
+                  ? selectedValues.filter((item) => item !== option.value)
+                  : [...selectedValues, option.value];
+                onChange(nextValues);
+                return;
+              }
+
+              onChange(option.value);
+            }}
+            className={`rounded-[20px] border px-4 py-3 text-left transition-colors ${
+              selected
+                ? 'border-navy-300 bg-navy-50 shadow-sm'
+                : 'border-cream-200 bg-white hover:border-navy-200 hover:bg-navy-50/40'
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-charcoal">{option.label}</p>
+                {option.description && (
+                  <p className="mt-1 text-xs leading-5 text-warm-gray">{option.description}</p>
+                )}
+              </div>
+              <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold ${
+                selected
+                  ? 'border-navy-600 bg-navy-600 text-white'
+                  : 'border-cream-300 bg-white text-transparent'
+              }`}>
+                ✓
+              </span>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function TimeZoneField({
+  value,
+  browserTimeZone,
+  onChange,
+}: {
+  value: string;
+  browserTimeZone: string;
+  onChange: (value: string) => void;
+}) {
+  const timeZoneOptions = getSupportedTimeZones();
+
+  return (
+    <div className="rounded-[24px] border border-cream-200 bg-white p-4 shadow-sm">
+      <input
+        list="job-feed-timezone-options"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="Europe/Berlin"
+        className="w-full rounded-2xl border border-cream-300 bg-white px-3 py-2.5 text-sm text-charcoal outline-none transition-colors focus:border-navy-400"
+      />
+      <datalist id="job-feed-timezone-options">
+        {timeZoneOptions.map((timeZone) => (
+          <option key={timeZone} value={timeZone} />
+        ))}
+      </datalist>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {JOB_FEED_COMMON_TIMEZONES.map((timeZone) => (
+          <button
+            key={timeZone}
+            type="button"
+            onClick={() => onChange(timeZone)}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+              value === timeZone
+                ? 'border-navy-300 bg-navy-50 text-navy-700'
+                : 'border-cream-300 bg-cream-50 text-charcoal hover:border-navy-200 hover:text-navy-600'
+            }`}
+          >
+            {timeZone}
+          </button>
+        ))}
+      </div>
+
+      {browserTimeZone !== value && (
+        <button
+          type="button"
+          onClick={() => onChange(browserTimeZone)}
+          className="mt-3 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-navy-600"
+        >
+          Use browser timezone
+          <span className="normal-case tracking-normal text-warm-gray">{browserTimeZone}</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function WizardSummaryCard({
+  title,
+  value,
+}: {
+  title: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-[20px] border border-cream-200 bg-white px-4 py-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-warm-gray">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-charcoal">{value}</p>
+    </div>
+  );
+}
+
+function WizardChecklistRow({
+  title,
+  detail,
+  status,
+}: {
+  title: string;
+  detail: string;
+  status: 'complete' | 'current' | 'upcoming';
+}) {
+  return (
+    <div className="flex gap-3">
+      <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+        status === 'complete'
+          ? 'bg-emerald-500 text-white'
+          : status === 'current'
+            ? 'bg-navy-600 text-white'
+            : 'bg-cream-100 text-warm-gray'
+      }`}>
+        {status === 'complete' ? '✓' : status === 'current' ? '•' : '○'}
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-charcoal">{title}</p>
+        <p className="mt-1 text-xs leading-5 text-warm-gray">{detail}</p>
+      </div>
+    </div>
+  );
+}
+
+function WizardReadyRow({
+  title,
+  ready,
+  optional = false,
+}: {
+  title: string;
+  ready: boolean;
+  optional?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-[18px] border border-cream-200 bg-white px-4 py-3">
+      <div>
+        <p className="text-sm font-semibold text-charcoal">{title}</p>
+        <p className="mt-1 text-xs text-warm-gray">{optional ? 'Helpful, but not required to finish setup.' : 'Needed for a strong first-pass setup.'}</p>
+      </div>
+      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] ${
+        ready
+          ? 'bg-emerald-50 text-emerald-700'
+          : 'bg-cream-100 text-warm-gray'
+      }`}>
+        {ready ? 'Ready' : optional ? 'Optional' : 'Missing'}
+      </span>
+    </div>
+  );
+}
+
+function InlineNotice({
+  tone,
+  title,
+  children,
+}: {
+  tone: 'neutral' | 'success' | 'warning';
+  title: string;
+  children: React.ReactNode;
+}) {
+  const classes = tone === 'success'
+    ? 'border-emerald-200 bg-emerald-50/80 text-emerald-800'
+    : tone === 'warning'
+      ? 'border-gold-200 bg-gold-50/80 text-charcoal'
+      : 'border-navy-100 bg-navy-50/70 text-charcoal';
+
+  return (
+    <div className={`rounded-[20px] border px-4 py-4 ${classes}`}>
+      <p className="text-sm font-semibold">{title}</p>
+      <p className="mt-1 text-sm leading-6">{children}</p>
+    </div>
+  );
+}
+
 function PrimaryStateCard({
   overview,
   onEditSettings,
@@ -842,102 +1767,192 @@ function PrimaryStateCard({
   isRefreshing: boolean;
 }) {
   const latestRun = overview?.latestRun ?? null;
+  const state = overview?.state ?? 'setup_required';
+  const jobsCount = overview?.jobs.length ?? 0;
 
-  const contentByState: Record<string, {
+  const contentByState: Record<JobFeedOverviewState, {
     icon: typeof Sparkles;
     title: string;
     body: string;
     tone: string;
+    nextStep: string;
+    guidance: string;
   }> = {
     upgrade_required: {
       icon: Sparkles,
-      title: 'Job Feed is waiting on a premium plan',
-      body: 'The daily feed is built for premium users only. Once access is enabled, the rest of this setup can stay in-context right here.',
+      title: 'Upgrade to unlock Job Feed',
+      body: 'Automatic daily discovery is part of the premium plan. Once access is enabled, this space becomes your in-context setup and daily shortlist.',
       tone: 'from-gold-50 to-white border-gold-200 text-charcoal',
+      nextStep: 'Unlock premium access',
+      guidance: 'Premium turns the feed into a background research surface instead of a manual search tab.',
     },
     setup_required: {
       icon: Settings2,
       title: 'Finish setup to activate the feed',
-      body: 'Karko needs your target roles, delivery time, and consent before it can start a background run.',
+      body: 'Start with roles, locations, delivery time, and consent. You can fine-tune the filter after the first runs.',
       tone: 'from-navy-50 to-white border-navy-200 text-charcoal',
+      nextStep: 'Add the essentials',
+      guidance: 'The new guided setup keeps the first pass short so you can get to the first daily run quickly.',
     },
     paused: {
       icon: PauseCircle,
       title: 'The feed is configured but paused',
       body: 'Your preferences are saved. Re-enable the daily feed whenever you want background discovery to resume.',
       tone: 'from-cream-100 to-white border-cream-300 text-charcoal',
+      nextStep: 'Turn scheduling back on',
+      guidance: 'Nothing is lost here. Your saved preferences stay ready until you decide to resume the feed.',
     },
     awaiting_first_run: {
       icon: CalendarClock,
-      title: 'Settings are saved. The first automated run is next.',
-      body: 'Scheduling is ready. Once the scheduler hits your delivery window, the next run will fetch, normalize, and prefilter jobs here.',
+      title: 'Your first shortlist is scheduled',
+      body: 'Karko has everything it needs. When your delivery window arrives, the first daily feed will appear here automatically.',
       tone: 'from-navy-50 to-white border-navy-200 text-charcoal',
+      nextStep: 'Wait for the first delivery',
+      guidance: 'No extra setup is needed now. The next useful moment is when the first shortlist lands here.',
     },
     generating: {
       icon: Loader2,
-      title: 'A feed run is in progress',
-      body: 'The backend workflow is currently fetching and shaping today’s shortlist. Once it finishes, the latest jobs will appear here automatically.',
+      title: 'Karko is preparing today’s feed',
+      body: 'Today’s discovery pass is running now. Refresh in a moment and the latest matches should appear here automatically.',
       tone: 'from-navy-50 to-white border-navy-200 text-charcoal',
+      nextStep: 'Refresh in a moment',
+      guidance: 'This state should feel temporary. The shortlist will replace it as soon as the run finishes.',
     },
     ready: {
       icon: CheckCircle2,
       title: 'Today’s feed is ready',
-      body: latestRun?.result_summary || 'Karko found a solid shortlist for today. Open details, scan the strongest jobs first, and decide what to pursue.',
+      body: jobsCount > 0
+        ? `Karko prepared ${jobsCount} ${jobsCount === 1 ? 'curated match' : 'curated matches'} for today. Strong roles appear first so you can move quickly.`
+        : 'Karko prepared today’s shortlist. Open the strongest roles first and decide what is worth pursuing.',
       tone: 'from-emerald-50 to-white border-emerald-200 text-charcoal',
+      nextStep: 'Review your top matches',
+      guidance: 'Start with the first two cards. They are the fastest path to a meaningful review session.',
     },
     thin_feed: {
       icon: CheckCircle2,
       title: 'Today’s feed is ready, but a bit thin',
-      body: latestRun?.result_summary || 'A smaller shortlist survived the current filters. You can review it here or widen the settings if you want more volume.',
+      body: jobsCount > 0
+        ? `Karko still found ${jobsCount} ${jobsCount === 1 ? 'match' : 'matches'} worth surfacing today. If you want more volume, widen one or two filters.`
+        : 'A smaller shortlist survived the current filters. Review it here or widen the settings if you want more volume.',
       tone: 'from-navy-50 to-white border-navy-200 text-charcoal',
+      nextStep: 'Review or widen the filter',
+      guidance: 'Thin days are normal. It usually only takes one broader role or location signal to recover volume.',
     },
     empty: {
       icon: AlertCircle,
-      title: 'No jobs made today’s shortlist',
-      body: latestRun?.result_summary || 'The feed ran successfully, but nothing survived the current filters closely enough to show here.',
+      title: 'Nothing made today’s feed',
+      body: 'Today’s search finished, but nothing felt strong enough to show. Widening one or two filters usually helps the next run.',
       tone: 'from-cream-100 to-white border-cream-300 text-charcoal',
+      nextStep: 'Loosen a couple of filters',
+      guidance: 'The run still succeeded. This is usually a signal that the filter is too strict for the day, not that the product failed.',
     },
     error: {
       icon: AlertCircle,
-      title: 'The latest backend run failed',
-      body: latestRun?.error_message || 'The feed backend needs attention before the next daily run.',
+      title: 'The latest feed run hit a problem',
+      body: latestRun?.error_message || 'Karko could not finish the latest run. Refresh first, then review your settings if the issue sticks around.',
       tone: 'from-red-50 to-white border-red-200 text-charcoal',
+      nextStep: 'Refresh and try again',
+      guidance: 'If the issue persists after a refresh, reopen the setup and save once to confirm the feed still has a valid configuration.',
     },
   };
 
-  const stateContent = contentByState[overview?.state ?? 'setup_required'];
+  const stateContent = contentByState[state];
   const Icon = stateContent.icon;
+  const matchesValue = jobsCount > 0
+    ? `${jobsCount} ${jobsCount === 1 ? 'match' : 'matches'}`
+    : state === 'awaiting_first_run'
+      ? 'First run pending'
+      : state === 'generating'
+        ? 'On the way'
+        : state === 'setup_required'
+          ? 'Needs setup'
+          : state === 'upgrade_required'
+            ? 'Premium only'
+            : state === 'paused'
+              ? 'Paused'
+              : state === 'empty'
+                ? '0 today'
+                : 'Not ready yet';
+  const latestRunValue = latestRun ? formatFeedDateLabel(latestRun.local_date) : 'Not yet';
+  const latestRunNote = latestRun
+    ? `${formatRunStatusLabel(latestRun.status)}${latestRun.trigger_source ? ` • ${formatTriggerSourceLabel(latestRun.trigger_source)}` : ''}`
+    : 'Waiting for the first completed run';
+  const primaryActionLabel = state === 'setup_required'
+    ? 'Open setup'
+    : state === 'empty'
+      ? 'Adjust settings'
+      : state === 'error'
+        ? 'Review settings'
+        : state === 'paused'
+      ? 'Resume options'
+      : 'Edit settings';
 
   return (
     <Card className={`rounded-[24px] border bg-[linear-gradient(180deg,var(--tw-gradient-stops))] p-6 shadow-sm ${stateContent.tone}`}>
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+      <div className="space-y-6">
         <div className="flex gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm">
-            <Icon className={`h-6 w-6 ${overview?.state === 'generating' ? 'animate-spin text-navy-600' : 'text-navy-600'}`} />
+            <Icon className={`h-6 w-6 ${state === 'generating' ? 'animate-spin text-navy-600' : 'text-navy-600'}`} />
           </div>
+
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">Primary state</p>
-            <h2 className="mt-2 text-2xl font-semibold text-charcoal">{stateContent.title}</h2>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-navy-500">
+              {state === 'ready' || state === 'thin_feed' ? 'Today’s feed' : state === 'upgrade_required' ? 'Premium status' : 'Status'}
+            </div>
+            <h2 className="mt-3 text-2xl font-semibold text-charcoal">{stateContent.title}</h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-warm-gray">{stateContent.body}</p>
-            {latestRun && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                <RunStatPill label="Run status" value={latestRun.status} />
-                <RunStatPill label="Feed date" value={latestRun.local_date} />
-                <RunStatPill label="Triggered by" value={latestRun.trigger_source} />
-              </div>
-            )}
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <StatusMetricCard
+                label="Matches"
+                value={matchesValue}
+                detail={jobsCount > 0 ? 'Ready to review' : 'Will update with the next run'}
+              />
+              <StatusMetricCard
+                label="Latest run"
+                value={latestRunValue}
+                detail={latestRunNote}
+              />
+              <StatusMetricCard
+                label="Next step"
+                value={stateContent.nextStep}
+                detail="The fastest way to move the feed forward from here"
+              />
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 lg:justify-end">
-          <Button variant="outline" onClick={onRefresh} disabled={isRefreshing}>
-            {isRefreshing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-            Refresh
-          </Button>
-          <Button variant="gold" onClick={onEditSettings}>
-            <Settings2 className="mr-2 h-4 w-4" />
-            {overview?.state === 'setup_required' ? 'Open setup' : 'Edit settings'}
-          </Button>
+        <div className="rounded-[22px] border border-white/70 bg-white/80 p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy-500">From here</p>
+          <p className="mt-3 text-lg font-semibold text-charcoal">{stateContent.nextStep}</p>
+          <p className="mt-2 text-sm leading-6 text-warm-gray">{stateContent.guidance}</p>
+
+          <div className="mt-4 rounded-[18px] border border-cream-200 bg-cream-50/80 px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-warm-gray">Run context</p>
+            <p className="mt-2 text-sm font-semibold text-charcoal">{latestRunValue}</p>
+            <p className="mt-1 text-xs leading-5 text-warm-gray">{latestRunNote}</p>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {state !== 'upgrade_required' && (
+              <Button variant="outline" onClick={onRefresh} disabled={isRefreshing}>
+                {isRefreshing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                Refresh
+              </Button>
+            )}
+            {state === 'upgrade_required' ? (
+              <Link href="/pricing" className="inline-flex">
+                <Button variant="gold">
+                  View plans
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            ) : (
+              <Button variant="gold" onClick={onEditSettings}>
+                <Settings2 className="mr-2 h-4 w-4" />
+                {primaryActionLabel}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </Card>
@@ -971,6 +1986,10 @@ function FeedResultsCard({
   const visibleJobs = jobs.slice(0, visibleCount);
   const hasMore = jobs.length > JOB_FEED_VISIBLE_DEFAULT_COUNT;
   const hasRankedJobs = jobs.some((job) => job.pipelineStage === 'ranked');
+  const strongCount = jobs.filter((job) => job.fitLabel === 'strong').length;
+  const goodCount = jobs.filter((job) => job.fitLabel === 'good').length;
+  const freshCount = jobs.filter((job) => job.pipelineStage === 'shortlisted').length;
+  const feedDate = overview.feedRun ? formatFeedDateLabel(overview.feedRun.local_date) : 'Today';
 
   return (
     <Card className="rounded-[24px] border-cream-200 bg-white/92 p-6 shadow-sm">
@@ -980,17 +1999,24 @@ function FeedResultsCard({
           <h2 className="mt-2 text-xl font-semibold text-charcoal">
             {overview.state === 'thin_feed'
               ? hasRankedJobs
-                ? 'A smaller ranked shortlist still made the cut'
-                : 'A smaller shortlist still made the cut'
+                ? `A smaller ranked shortlist still made the cut for ${feedDate}`
+                : `A smaller shortlist still made the cut for ${feedDate}`
               : hasRankedJobs
-                ? 'Karko ranked today&apos;s shortlist for you'
-                : 'Karko prepared a shortlist for you'}
+                ? `Karko ranked ${feedDate}'s shortlist for you`
+                : `Karko prepared ${feedDate}'s shortlist for you`}
           </h2>
           <p className="mt-1 text-sm leading-6 text-warm-gray">
             {hasRankedJobs
-              ? `Showing ${visibleJobs.length} of ${jobs.length} ranked jobs from the latest completed run. Strong jobs lead the feed, followed by Good matches.`
-              : `Showing ${visibleJobs.length} of ${jobs.length} shortlisted jobs from the latest completed run while ranking is still catching up.`}
+              ? `Showing ${visibleJobs.length} of ${jobs.length} jobs from the latest run. Strong matches lead the feed so the first decisions are the easiest ones to make.`
+              : `Showing ${visibleJobs.length} of ${jobs.length} jobs from the latest run. These roles already passed the core filters even when final ranking is still settling.`}
           </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <RunStatPill label="Feed date" value={feedDate} />
+            <RunStatPill label="In feed" value={String(jobs.length)} />
+            {strongCount > 0 && <RunStatPill label="Strong" value={String(strongCount)} />}
+            {goodCount > 0 && <RunStatPill label="Good" value={String(goodCount)} />}
+            {freshCount > 0 && <RunStatPill label="Freshly surfaced" value={String(freshCount)} />}
+          </div>
         </div>
 
         {hasMore && (
@@ -1028,16 +2054,30 @@ function EmptyFeedCard({
   onEditSettings: () => void;
 }) {
   return (
-    <Card className="rounded-[24px] border-cream-200 bg-white/92 p-6 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">No Shortlist Yet</p>
-      <h2 className="mt-2 text-xl font-semibold text-charcoal">Nothing survived today&apos;s filters closely enough to show</h2>
-      <p className="mt-2 text-sm leading-6 text-warm-gray">
-        The run succeeded, but the current role, location, salary, or authorization rules were probably too tight for today&apos;s market. Widening one or two settings usually helps.
-      </p>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Button variant="gold" onClick={onEditSettings}>
-          Adjust settings
-        </Button>
+    <Card className="rounded-[24px] border-cream-200 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,244,234,0.92))] p-6 shadow-sm">
+      <div className="space-y-5">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">No matches today</p>
+          <h2 className="mt-2 text-xl font-semibold text-charcoal">Nothing felt strong enough to make today&apos;s feed</h2>
+          <p className="mt-2 text-sm leading-6 text-warm-gray">
+            The run succeeded, but the current role, location, salary, or authorization rules were probably too tight for today&apos;s market. Widening one or two settings usually helps tomorrow&apos;s feed open up.
+          </p>
+        </div>
+
+        <div className="rounded-[22px] border border-cream-200 bg-white/85 p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy-500">Fastest recovery</p>
+          <div className="mt-4 space-y-3 text-sm leading-6 text-warm-gray">
+            <p><span className="font-semibold text-charcoal">Broaden a role.</span> Add one adjacent title if your current role naming is very specific.</p>
+            <p><span className="font-semibold text-charcoal">Loosen location.</span> Remove one city constraint or let remote stay more flexible.</p>
+            <p><span className="font-semibold text-charcoal">Check hard filters.</span> Salary and authorization limits have the biggest impact on thin days.</p>
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Button variant="gold" onClick={onEditSettings}>
+              Adjust settings
+            </Button>
+          </div>
+        </div>
       </div>
     </Card>
   );
@@ -1079,11 +2119,11 @@ function JobFeedCard({
               #{highlightIndex + 1}
             </span>
             <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
-              {job.fitLabel ? fitLabelText(job.fitLabel) : 'Shortlisted'}
+              {job.fitLabel ? fitLabelText(job.fitLabel) : 'Promising match'}
             </span>
             {job.pipelineStage === 'shortlisted' && (
               <span className="inline-flex items-center gap-2 rounded-full border border-cream-300 bg-cream-50 px-3 py-1 text-xs font-medium text-warm-gray">
-                Ranking pending
+                Freshly surfaced
               </span>
             )}
             {isSaved && !isApplied && (
@@ -1126,7 +2166,7 @@ function JobFeedCard({
             {isApplied ? 'Continue in Karko AI' : 'Apply with Karko AI'}
           </Button>
           <Button variant="outline" onClick={onOpenDetails}>
-            See details
+            Review job
           </Button>
           <div className="grid grid-cols-2 gap-2">
             <Button variant="ghost" size="sm" onClick={onSave} disabled={isSaved || isApplying || isDismissing || isApplied}>
@@ -1146,7 +2186,7 @@ function JobFeedCard({
               onClick={onExternalApply}
               className="inline-flex items-center justify-center gap-2 rounded-lg border border-transparent px-4 py-2 text-sm font-medium text-navy-600 transition-colors hover:bg-navy-50"
             >
-              External apply
+              Employer site
               <ExternalLink className="h-4 w-4" />
             </a>
           )}
@@ -1197,11 +2237,11 @@ function JobFeedDetailModal({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
-                {job.fitLabel ? fitLabelText(job.fitLabel) : 'Shortlisted'}
+                {job.fitLabel ? fitLabelText(job.fitLabel) : 'Promising match'}
               </span>
               {job.pipelineStage === 'shortlisted' && (
                 <span className="inline-flex items-center gap-2 rounded-full border border-cream-300 bg-white px-3 py-1 text-xs text-warm-gray">
-                  Ranking pending
+                  Freshly surfaced
                 </span>
               )}
               {isSaved && !isApplied && (
@@ -1243,7 +2283,7 @@ function JobFeedDetailModal({
 
           {job.description ? (
             <div className="mb-6">
-              <h3 className="mb-3 text-base font-semibold text-charcoal">Job Description</h3>
+              <h3 className="mb-3 text-base font-semibold text-charcoal">Role details</h3>
               <div className="text-sm leading-7 text-charcoal/90">
                 <JobFeedDescription text={job.description} />
               </div>
@@ -1277,7 +2317,7 @@ function JobFeedDetailModal({
 
         <div className="flex flex-col gap-3 border-t border-cream-200 bg-cream-50 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-warm-gray">
-            Use the detail view to verify the role first, then decide whether to continue in Karko or on the external application page.
+            Review the role here first, then decide whether to continue inside Karko or on the employer site.
           </p>
           <div className="flex flex-wrap gap-2">
             {directApplyLink && (
@@ -1288,7 +2328,7 @@ function JobFeedDetailModal({
                 onClick={onExternalApply}
                 className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-navy-700 transition-colors hover:bg-navy-100"
               >
-                Direct external apply
+                Open employer site
                 <ExternalLink className="h-4 w-4" />
               </a>
             )}
@@ -1391,7 +2431,7 @@ function LoadingState() {
     <Card className="rounded-[24px] border-cream-200 bg-white/92 p-6 shadow-sm">
       <div className="flex items-center gap-3 text-navy-600">
         <Loader2 className="h-5 w-5 animate-spin" />
-        <span className="text-sm font-medium">Loading Job Feed backend…</span>
+        <span className="text-sm font-medium">Loading your daily feed…</span>
       </div>
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
         {Array.from({ length: 3 }).map((_, index) => (
@@ -1457,6 +2497,39 @@ function FieldGroup({
       </div>
       {children}
     </div>
+  );
+}
+
+function SetupSectionHeader({
+  eyebrow,
+  title,
+  body,
+}: {
+  eyebrow: string;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy-500">{eyebrow}</p>
+      <h3 className="mt-2 text-lg font-semibold text-charcoal">{title}</h3>
+      <p className="mt-1 text-sm leading-6 text-warm-gray">{body}</p>
+    </div>
+  );
+}
+
+function SetupFocusPill({
+  icon: Icon,
+  label,
+}: {
+  icon: typeof Briefcase;
+  label: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-3 py-1.5 text-xs font-medium text-navy-700 shadow-sm">
+      <Icon className="h-3.5 w-3.5 text-navy-500" />
+      {label}
+    </span>
   );
 }
 
@@ -1653,21 +2726,41 @@ function SummaryRow({
   );
 }
 
-function MilestoneStep({
+function ProductStep({
+  number,
   title,
   body,
 }: {
+  number: string;
   title: string;
   body: string;
 }) {
   return (
     <div className="flex gap-3">
       <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-navy-600 text-xs font-semibold text-white">
-        {title.replace('Phase ', '')}
+        {number}
       </div>
       <p className="text-sm leading-6 text-warm-gray">
         <span className="font-semibold text-charcoal">{title}.</span> {body}
       </p>
+    </div>
+  );
+}
+
+function StatusMetricCard({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <div className="rounded-[20px] border border-white/60 bg-white/70 p-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-warm-gray">{label}</p>
+      <p className="mt-2 text-base font-semibold text-charcoal">{value}</p>
+      <p className="mt-1 text-xs leading-5 text-warm-gray">{detail}</p>
     </div>
   );
 }
@@ -1685,10 +2778,10 @@ function OperationalSnapshotCard({
 
   return (
     <Card className="rounded-[24px] border-dashed border-emerald-200 bg-emerald-50/70 p-6 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Phase 7 Snapshot</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Run snapshot</p>
       <h2 className="mt-2 text-lg font-semibold text-charcoal">Latest run operational summary</h2>
       <p className="mt-2 text-sm leading-6 text-warm-gray">
-        Lightweight run visibility for {latestRunDate}. This keeps ranking cost, fetch health, and materialization status readable without opening raw JSON metadata.
+        Lightweight visibility for {latestRunDate}. This keeps ranking cost, fetch health, and materialization status readable without opening raw JSON metadata.
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         <RunStatPill label="Dispatch" value={diagnostics.orchestrator} />
@@ -1756,6 +2849,499 @@ function formatYesNoUnknown(value: boolean | null): string {
   return 'unknown';
 }
 
+function isJobFeedWizardStepComplete(stepId: JobFeedWizardStepId, form: JobFeedSettingsInput): boolean {
+  const defaultForm = createDefaultJobFeedInput(form.user_timezone);
+
+  switch (stepId) {
+    case 'roles':
+      return form.target_roles.length > 0;
+    case 'locations':
+      return form.preferred_locations.length > 0 || form.remote_preference !== defaultForm.remote_preference;
+    case 'schedule':
+      return isValidTimeZone(form.user_timezone);
+    case 'refinements':
+      return Boolean(
+        form.salary_floor !== defaultForm.salary_floor ||
+        form.languages.join('|') !== defaultForm.languages.join('|') ||
+        form.adjacent_roles.length > 0 ||
+        form.work_authorization_status !== defaultForm.work_authorization_status ||
+        form.seniority_target !== defaultForm.seniority_target ||
+        form.aggressiveness !== defaultForm.aggressiveness ||
+        form.employment_types.join('|') !== defaultForm.employment_types.join('|')
+      );
+    case 'review':
+      return canSaveJobFeedSettings(form);
+  }
+}
+
+function canAdvanceJobFeedWizardStep(stepId: JobFeedWizardStepId, form: JobFeedSettingsInput): boolean {
+  switch (stepId) {
+    case 'roles':
+      return form.target_roles.length > 0;
+    case 'schedule':
+      return isValidTimeZone(form.user_timezone);
+    case 'review':
+      return canSaveJobFeedSettings(form);
+    default:
+      return true;
+  }
+}
+
+function canSaveJobFeedSettings(form: JobFeedSettingsInput): boolean {
+  return form.target_roles.length > 0 && form.employment_types.length > 0 && isValidTimeZone(form.user_timezone);
+}
+
+function getJobFeedPreviewMode(): JobFeedPreviewMode {
+  if (typeof window === 'undefined' || process.env.NODE_ENV === 'production') {
+    return 'off';
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const rawValue = searchParams.get('jobFeedPreview');
+  if (!rawValue) {
+    return 'off';
+  }
+
+  const normalized = rawValue.trim().toLowerCase().replace(/-/g, '_');
+  if (normalized === 'signed_out' || normalized === 'signedout') {
+    return 'signed_out';
+  }
+  if (normalized === 'free' || normalized === 'free_plan' || normalized === 'upgrade_required') {
+    return 'upgrade_required';
+  }
+  if (normalized === 'setup_required') {
+    return 'setup_required';
+  }
+  if (normalized === 'paused') {
+    return 'paused';
+  }
+  if (normalized === 'awaiting_first_run') {
+    return 'awaiting_first_run';
+  }
+  if (normalized === 'generating') {
+    return 'generating';
+  }
+  if (normalized === 'ready') {
+    return 'ready';
+  }
+  if (normalized === 'thin_feed') {
+    return 'thin_feed';
+  }
+  if (normalized === 'empty') {
+    return 'empty';
+  }
+  if (normalized === 'error') {
+    return 'error';
+  }
+
+  return 'off';
+}
+
+function buildJobFeedPreviewSnapshot(
+  mode: Exclude<JobFeedPreviewMode, 'off'>,
+  timeZone: string,
+): {
+  overview: JobFeedOverviewResponse | null;
+  form: JobFeedSettingsInput;
+} {
+  const baseForm = createDefaultJobFeedInput(timeZone);
+  const configuredForm: JobFeedSettingsInput = {
+    ...baseForm,
+    consent_accepted: true,
+    target_roles: ['Senior Product Manager', 'Growth Product Manager'],
+    preferred_locations: ['New York, NY', 'Remote (US)'],
+    user_timezone: timeZone,
+    delivery_hour_local: 8,
+    target_market: 'us_canada',
+    remote_preference: 'remote_first',
+    salary_floor: 145000,
+    seniority_target: 'senior',
+    work_authorization_status: 'authorized',
+    aggressiveness: 'balanced',
+    employment_types: ['full_time'],
+    languages: ['English'],
+    adjacent_roles_enabled: true,
+    adjacent_roles: ['Platform Product Manager'],
+  };
+
+  if (mode === 'signed_out') {
+    return {
+      overview: null,
+      form: baseForm,
+    };
+  }
+
+  if (mode === 'upgrade_required') {
+    return {
+      overview: {
+        canAccess: false,
+        settings: null,
+        latestRun: null,
+        feedRun: null,
+        latestRunDiagnostics: null,
+        jobs: [],
+        state: 'upgrade_required',
+        foundationMode: true,
+      },
+      form: configuredForm,
+    };
+  }
+
+  if (mode === 'setup_required') {
+    const setupForm: JobFeedSettingsInput = {
+      ...baseForm,
+      consent_accepted: false,
+      enabled: true,
+    };
+
+    return {
+      overview: {
+        canAccess: true,
+        settings: toPreviewJobFeedSettings(setupForm),
+        latestRun: null,
+        feedRun: null,
+        latestRunDiagnostics: null,
+        jobs: [],
+        state: 'setup_required',
+        foundationMode: true,
+      },
+      form: setupForm,
+    };
+  }
+
+  const formByMode: JobFeedSettingsInput = {
+    ...configuredForm,
+    enabled: mode === 'paused' ? false : configuredForm.enabled,
+  };
+
+  if (mode === 'awaiting_first_run') {
+    return {
+      overview: {
+        canAccess: true,
+        settings: toPreviewJobFeedSettings(formByMode),
+        latestRun: null,
+        feedRun: null,
+        latestRunDiagnostics: null,
+        jobs: [],
+        state: 'awaiting_first_run',
+        foundationMode: true,
+      },
+      form: formByMode,
+    };
+  }
+
+  if (mode === 'paused') {
+    return {
+      overview: {
+        canAccess: true,
+        settings: toPreviewJobFeedSettings(formByMode),
+        latestRun: null,
+        feedRun: null,
+        latestRunDiagnostics: null,
+        jobs: [],
+        state: 'paused',
+        foundationMode: true,
+      },
+      form: formByMode,
+    };
+  }
+
+  const jobs = buildJobFeedPreviewJobs();
+  const readyJobs = jobs;
+  const thinJobs = jobs.slice(0, 3);
+  const latestRun = buildPreviewJobFeedRun({
+    status: mode === 'error' ? 'failed' : mode === 'generating' ? 'running' : 'completed',
+    timeZone: formByMode.user_timezone,
+    deliveryHourLocal: formByMode.delivery_hour_local,
+    resultSummary: mode === 'ready'
+      ? 'Karko ranked and prepared the strongest roles for today.'
+      : mode === 'thin_feed'
+        ? 'A smaller shortlist survived the current filter.'
+        : mode === 'empty'
+          ? 'No roles were strong enough to show today.'
+          : null,
+    errorMessage: mode === 'error' ? 'Previewing a failed run state for desktop UI validation.' : null,
+  });
+
+  const jobsForMode = mode === 'ready'
+    ? readyJobs
+    : mode === 'thin_feed'
+      ? thinJobs
+      : [];
+
+  return {
+    overview: {
+      canAccess: true,
+      settings: toPreviewJobFeedSettings(formByMode),
+      latestRun,
+      feedRun: latestRun,
+      latestRunDiagnostics: null,
+      jobs: jobsForMode,
+      state: mode,
+      foundationMode: true,
+    },
+    form: formByMode,
+  };
+}
+
+function toPreviewJobFeedSettings(form: JobFeedSettingsInput): NonNullable<JobFeedOverviewResponse['settings']> {
+  const now = new Date().toISOString();
+
+  return {
+    user_id: 'preview-user',
+    enabled: form.enabled,
+    consent_accepted_at: form.consent_accepted ? now : null,
+    user_timezone: form.user_timezone,
+    delivery_hour_local: form.delivery_hour_local,
+    target_market: form.target_market,
+    target_roles: form.target_roles,
+    adjacent_roles_enabled: form.adjacent_roles_enabled,
+    adjacent_roles: form.adjacent_roles,
+    preferred_locations: form.preferred_locations,
+    remote_preference: form.remote_preference,
+    salary_floor: form.salary_floor,
+    languages: form.languages,
+    seniority_target: form.seniority_target,
+    employment_types: form.employment_types,
+    work_authorization_status: form.work_authorization_status,
+    aggressiveness: form.aggressiveness,
+    created_at: now,
+    updated_at: now,
+  };
+}
+
+function buildPreviewJobFeedRun({
+  status,
+  timeZone,
+  deliveryHourLocal,
+  resultSummary,
+  errorMessage,
+}: {
+  status: 'running' | 'completed' | 'failed';
+  timeZone: string;
+  deliveryHourLocal: number;
+  resultSummary: string | null;
+  errorMessage: string | null;
+}): NonNullable<JobFeedOverviewResponse['latestRun']> {
+  const now = new Date().toISOString();
+  const localDate = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+
+  return {
+    id: `preview-run-${status}`,
+    user_id: 'preview-user',
+    local_date: localDate,
+    local_timezone: timeZone,
+    delivery_hour_local: deliveryHourLocal,
+    trigger_source: 'scheduled',
+    status,
+    idempotency_key: `preview-${status}`,
+    started_at: now,
+    completed_at: status === 'running' ? null : now,
+    error_message: errorMessage,
+    result_summary: resultSummary,
+    raw_jobs_fetched: 28,
+    jobs_after_prefilter: 11,
+    ranked_jobs_count: status === 'completed' ? 6 : 0,
+    metadata: {},
+    created_at: now,
+    updated_at: now,
+  };
+}
+
+function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
+  return [
+    {
+      id: 'preview-job-1',
+      title: 'Senior Product Manager, AI Workflows',
+      company: 'Northstar Labs',
+      location: 'Remote (US)',
+      workMode: 'remote',
+      employmentType: 'full_time',
+      salaryText: '$165,000 - $190,000',
+      description: 'Build the roadmap for workflow automation, partner with engineering on agent tooling, and shape how customers discover high-value automation use cases.\n\nResponsibilities:\n• Own roadmap prioritization across search, ranking, and personalization\n• Work closely with design and engineering to validate product bets\n• Translate market feedback into practical release plans',
+      applyUrl: 'https://example.com/jobs/preview-job-1',
+      sourceUrl: 'https://example.com/jobs/preview-job-1',
+      via: 'LinkedIn',
+      freshnessDays: 1,
+      postedAtText: 'Posted 1 day ago',
+      fitLabel: 'strong',
+      pipelineStage: 'ranked',
+      rankingSource: 'llm',
+      applyOptions: [
+        { title: 'Apply on company site', link: 'https://example.com/jobs/preview-job-1' },
+      ],
+      feedback: {
+        openedAt: null,
+        savedAt: null,
+        dismissedAt: null,
+        appliedAt: null,
+        applicationSessionId: null,
+      },
+    },
+    {
+      id: 'preview-job-2',
+      title: 'Growth Product Manager',
+      company: 'SignalPath',
+      location: 'New York, NY',
+      workMode: 'hybrid',
+      employmentType: 'full_time',
+      salaryText: '$150,000 - $175,000',
+      description: 'Drive acquisition and activation experiments for a product-led platform, working across lifecycle, product analytics, and experimentation.',
+      applyUrl: 'https://example.com/jobs/preview-job-2',
+      sourceUrl: 'https://example.com/jobs/preview-job-2',
+      via: 'Greenhouse',
+      freshnessDays: 2,
+      postedAtText: 'Posted 2 days ago',
+      fitLabel: 'strong',
+      pipelineStage: 'ranked',
+      rankingSource: 'llm',
+      applyOptions: [
+        { title: 'Apply on Greenhouse', link: 'https://example.com/jobs/preview-job-2' },
+      ],
+      feedback: {
+        openedAt: null,
+        savedAt: null,
+        dismissedAt: null,
+        appliedAt: null,
+        applicationSessionId: null,
+      },
+    },
+    {
+      id: 'preview-job-3',
+      title: 'Platform Product Manager',
+      company: 'Orbit Systems',
+      location: 'Toronto, ON',
+      workMode: 'hybrid',
+      employmentType: 'full_time',
+      salaryText: '$140,000 - $160,000',
+      description: 'Own internal platform investments that improve developer velocity, reliability, and experimentation across product teams.',
+      applyUrl: 'https://example.com/jobs/preview-job-3',
+      sourceUrl: 'https://example.com/jobs/preview-job-3',
+      via: 'Company site',
+      freshnessDays: 3,
+      postedAtText: 'Posted 3 days ago',
+      fitLabel: 'good',
+      pipelineStage: 'ranked',
+      rankingSource: 'llm',
+      applyOptions: [
+        { title: 'Apply on company site', link: 'https://example.com/jobs/preview-job-3' },
+      ],
+      feedback: {
+        openedAt: null,
+        savedAt: null,
+        dismissedAt: null,
+        appliedAt: null,
+        applicationSessionId: null,
+      },
+    },
+    {
+      id: 'preview-job-4',
+      title: 'Principal Product Manager, Ecosystem',
+      company: 'Meridian Cloud',
+      location: 'Remote (Canada)',
+      workMode: 'remote',
+      employmentType: 'full_time',
+      salaryText: '$175,000 - $205,000',
+      description: 'Lead partner ecosystem product strategy and define the platform roadmap for integrations, developer tooling, and marketplace growth.',
+      applyUrl: 'https://example.com/jobs/preview-job-4',
+      sourceUrl: 'https://example.com/jobs/preview-job-4',
+      via: 'Lever',
+      freshnessDays: 4,
+      postedAtText: 'Posted 4 days ago',
+      fitLabel: 'good',
+      pipelineStage: 'ranked',
+      rankingSource: 'llm',
+      applyOptions: [
+        { title: 'Apply on Lever', link: 'https://example.com/jobs/preview-job-4' },
+      ],
+      feedback: {
+        openedAt: null,
+        savedAt: '2026-04-23T08:15:00.000Z',
+        dismissedAt: null,
+        appliedAt: null,
+        applicationSessionId: null,
+      },
+    },
+    {
+      id: 'preview-job-5',
+      title: 'Senior Product Manager, Search',
+      company: 'Atlas Commerce',
+      location: 'Remote (US)',
+      workMode: 'remote',
+      employmentType: 'full_time',
+      salaryText: '$160,000 - $185,000',
+      description: 'Improve product discovery and ranking quality for a high-volume commerce platform with a mix of marketplace and first-party inventory.',
+      applyUrl: 'https://example.com/jobs/preview-job-5',
+      sourceUrl: 'https://example.com/jobs/preview-job-5',
+      via: 'Ashby',
+      freshnessDays: 1,
+      postedAtText: 'Posted yesterday',
+      fitLabel: 'good',
+      pipelineStage: 'shortlisted',
+      rankingSource: 'deterministic',
+      applyOptions: [
+        { title: 'Apply on Ashby', link: 'https://example.com/jobs/preview-job-5' },
+      ],
+      feedback: {
+        openedAt: null,
+        savedAt: null,
+        dismissedAt: null,
+        appliedAt: null,
+        applicationSessionId: null,
+      },
+    },
+    {
+      id: 'preview-job-6',
+      title: 'Director of Product, Automation',
+      company: 'Copper Ridge',
+      location: 'San Francisco, CA',
+      workMode: 'onsite',
+      employmentType: 'full_time',
+      salaryText: '$185,000 - $220,000',
+      description: 'Lead a team building internal and customer-facing automation workflows, with ownership across prioritization, delivery, and adoption.',
+      applyUrl: 'https://example.com/jobs/preview-job-6',
+      sourceUrl: 'https://example.com/jobs/preview-job-6',
+      via: 'Indeed',
+      freshnessDays: 5,
+      postedAtText: 'Posted 5 days ago',
+      fitLabel: 'good',
+      pipelineStage: 'ranked',
+      rankingSource: 'llm',
+      applyOptions: [
+        { title: 'Apply on employer site', link: 'https://example.com/jobs/preview-job-6' },
+      ],
+      feedback: {
+        openedAt: null,
+        savedAt: null,
+        dismissedAt: null,
+        appliedAt: null,
+        applicationSessionId: null,
+      },
+    },
+  ];
+}
+
+function getSupportedTimeZones(): string[] {
+  try {
+    const intlWithSupportedValues = Intl as typeof Intl & {
+      supportedValuesOf?: (input: string) => string[];
+    };
+    const values = intlWithSupportedValues.supportedValuesOf?.('timeZone');
+    if (values && values.length > 0) {
+      return values;
+    }
+  } catch {
+    // Fall through to the curated fallback below.
+  }
+
+  return JOB_FEED_COMMON_TIMEZONES;
+}
+
 function readableMarket(value: string): string {
   const option = JOB_FEED_MARKET_OPTIONS.find((item) => item.value === value);
   return option?.label ?? value;
@@ -1763,6 +3349,8 @@ function readableMarket(value: string): string {
 
 function readableState(value: string): string {
   switch (value) {
+    case 'sign_in_required':
+      return 'Sign in required';
     case 'setup_required':
       return 'Setup required';
     case 'awaiting_first_run':
@@ -1776,6 +3364,53 @@ function readableState(value: string): string {
     default:
       return value.replace(/_/g, ' ');
   }
+}
+
+function formatRunStatusLabel(value: string): string {
+  switch (value) {
+    case 'queued':
+      return 'Queued';
+    case 'running':
+      return 'Running';
+    case 'completed':
+      return 'Completed';
+    case 'failed':
+      return 'Needs attention';
+    case 'skipped':
+      return 'Skipped';
+    default:
+      return value.replace(/_/g, ' ');
+  }
+}
+
+function formatTriggerSourceLabel(value: string): string {
+  switch (value) {
+    case 'scheduled':
+      return 'Scheduled';
+    case 'manual_debug':
+      return 'Manual run';
+    case 'manual_debug_force':
+      return 'Forced rerun';
+    case 'cron':
+      return 'Cron';
+    case 'internal_scheduler':
+      return 'Scheduler';
+    default:
+      return value.replace(/_/g, ' ');
+  }
+}
+
+function formatFeedDateLabel(value: string): string {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date);
 }
 
 function workModeLabel(value: JobFeedFeedItem['workMode']): string {
