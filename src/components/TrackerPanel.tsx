@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef, useDeferredValue } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -57,24 +58,37 @@ function StatusDropdown({
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.applied;
   const MENU_WIDTH = 192;
   const MENU_HEIGHT = 248;
+  const MENU_OFFSET = 8;
   const VIEWPORT_MARGIN = 12;
+
+  const calculateMenuStyle = useCallback(() => {
+    if (!buttonRef.current) return null;
+
+    const rect = buttonRef.current.getBoundingClientRect();
+    const shouldOpenAbove =
+      rect.bottom + MENU_OFFSET + MENU_HEIGHT > window.innerHeight - VIEWPORT_MARGIN &&
+      rect.top - MENU_OFFSET - MENU_HEIGHT >= VIEWPORT_MARGIN;
+
+    return {
+      top: shouldOpenAbove
+        ? rect.top - MENU_HEIGHT - MENU_OFFSET
+        : rect.bottom + MENU_OFFSET,
+      left: Math.min(
+        Math.max(rect.left, VIEWPORT_MARGIN),
+        window.innerWidth - MENU_WIDTH - VIEWPORT_MARGIN,
+      ),
+    };
+  }, [MENU_HEIGHT, MENU_OFFSET, MENU_WIDTH, VIEWPORT_MARGIN]);
 
   const openMenu = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setMenuStyle({
-        top: Math.max(
-          VIEWPORT_MARGIN,
-          Math.min(rect.bottom + 8, window.innerHeight - MENU_HEIGHT - VIEWPORT_MARGIN),
-        ),
-        left: Math.max(
-          VIEWPORT_MARGIN,
-          Math.min(rect.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - VIEWPORT_MARGIN),
-        ),
-      });
+    if (isOpen) {
+      setIsOpen(false);
+      return;
     }
-    setIsOpen((prev) => !prev);
+
+    setMenuStyle(calculateMenuStyle());
+    setIsOpen(true);
   };
 
   useEffect(() => {
@@ -93,27 +107,33 @@ function StatusDropdown({
   return (
     <div className="relative">
       <button
+        type="button"
         ref={buttonRef}
         onClick={openMenu}
         className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all hover:opacity-80 ${config.bg} ${config.text}`}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
       >
         <span className={`w-2 h-2 rounded-full ${config.dot}`} />
         {config.label}
         <ChevronDown className="w-3.5 h-3.5 ml-0.5" />
       </button>
 
-      {isOpen && menuStyle && (
+      {isOpen && menuStyle && createPortal(
         <>
           <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setIsOpen(false); }} />
           <div
             className="fixed z-50 w-48 bg-white rounded-xl shadow-xl border border-cream-200 py-1.5"
             style={{ top: menuStyle.top, left: menuStyle.left }}
+            onClick={(e) => e.stopPropagation()}
+            role="menu"
           >
             {ALL_STATUSES.map((s) => {
               const sc = STATUS_CONFIG[s];
               return (
                 <button
                   key={s}
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     onStatusChange(s);
@@ -129,7 +149,8 @@ function StatusDropdown({
               );
             })}
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );

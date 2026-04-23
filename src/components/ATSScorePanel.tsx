@@ -36,7 +36,7 @@ export function ATSScorePanel() {
   }
 
   return (
-    <div className="h-full overflow-y-auto px-6 pb-10 pt-6">
+    <div className="h-full px-6 pb-10 pt-6">
       {optimizedCVData?.analysis ? (
         <div className="space-y-6">
           {/* ATS Compatibility Score */}

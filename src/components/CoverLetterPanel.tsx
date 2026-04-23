@@ -5,10 +5,10 @@ import { createPortal } from 'react-dom';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useAppStore } from '@/store/useAppStore';
-import { Mail, Download, Copy, Check, RefreshCw, FileText, Edit3 } from 'lucide-react';
+import { Mail, Download, Copy, Check, RefreshCw, FileText, Edit3, Maximize2, X } from 'lucide-react';
 import type { GeneratedCoverLetter } from '@/lib/types';
 import { jsPDF } from 'jspdf';
-import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
+import { Document, Packer, Paragraph, TextRun } from 'docx';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import { useToast } from './ui/Toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,7 +25,6 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   const { currentSession, isGenerating, isAgentWorking, agentWorkflowPhase, setCoverLetter, currentCV, structuredCV, masterCV } = useAppStore();
   const [showSignUpWall, setShowSignUpWall] = useState(false);
   const coverLetter = currentSession?.coverLetter;
-  const generatedCV = currentSession?.generatedCV;
   const requirements = currentSession?.requirements;
   const jobDescription = currentSession?.jobDescription;
   const companyResearch = currentSession?.companyResearch;
@@ -35,6 +34,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   const [downloadFormat, setDownloadFormat] = useState<'pdf' | 'docx' | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedCoverLetter, setEditedCoverLetter] = useState<GeneratedCoverLetter | null>(null);
+  const [showFullPreview, setShowFullPreview] = useState(false);
   const { toast } = useToast();
 
   // Check if cover letter still contains any address placeholder (old or new format)
@@ -526,6 +526,44 @@ ${letter.signatureName}`;
     }
   };
 
+  const renderCoverLetterContent = (letter: GeneratedCoverLetter) => {
+    if (letter.applicantAddress.name) {
+      return (
+        <>
+          <div className="text-sm text-charcoal mb-6">
+            <p className="font-medium">{letter.applicantAddress.name}</p>
+            {letter.applicantAddress.street && <p>{letter.applicantAddress.street}</p>}
+            {letter.applicantAddress.city && <p>{letter.applicantAddress.city}</p>}
+            {letter.applicantAddress.country && <p>{letter.applicantAddress.country}</p>}
+            {letter.applicantAddress.phone && <p className="mt-2">{letter.applicantAddress.phone}</p>}
+            {letter.applicantAddress.email && <p>{letter.applicantAddress.email}</p>}
+          </div>
+          {letter.date && <p className="text-sm text-charcoal mb-6">{letter.date}</p>}
+          {letter.companyAddress.companyName && (
+            <div className="text-sm text-charcoal mb-6">
+              <p className="font-medium">{letter.companyAddress.companyName}</p>
+              {letter.companyAddress.department && <p>{letter.companyAddress.department}</p>}
+              {letter.companyAddress.street && <p>{letter.companyAddress.street}</p>}
+              {letter.companyAddress.city && <p>{letter.companyAddress.city}</p>}
+            </div>
+          )}
+          {letter.salutation && <p className="text-sm text-charcoal mb-4">{letter.salutation}</p>}
+          <div className="text-sm text-charcoal whitespace-pre-wrap mb-6 leading-relaxed">
+            {letter.body}
+          </div>
+          {letter.closing && <p className="text-sm text-charcoal mb-8">{letter.closing}</p>}
+          {letter.signatureName && <p className="text-sm text-charcoal font-medium">{letter.signatureName}</p>}
+        </>
+      );
+    }
+
+    return (
+      <div className="text-sm text-charcoal whitespace-pre-wrap leading-relaxed">
+        {letter.body}
+      </div>
+    );
+  };
+
   // Toolbar content — rendered via portal (desktop) or inline (mobile)
   const toolbarContent = (
     <>
@@ -636,6 +674,18 @@ ${letter.signatureName}`;
           />
         ) : (
           <>
+            {!isEditMode && activeCoverLetter && (
+              <div className="mx-auto mb-3 flex w-full max-w-2xl justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowFullPreview(true)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-cream-200 bg-white/92 px-3 py-1.5 text-xs font-semibold text-navy-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md cursor-pointer"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                  Full Preview
+                </button>
+              </div>
+            )}
             <Card className="max-w-2xl mx-auto p-8">
               {isEditMode ? (
                 /* Edit Mode */
@@ -653,39 +703,7 @@ ${letter.signatureName}`;
                 </div>
               ) : (
                 /* View Mode */
-                <>
-                  {activeCoverLetter?.applicantAddress.name ? (
-                    <>
-                      <div className="text-sm text-charcoal mb-6">
-                        <p className="font-medium">{activeCoverLetter?.applicantAddress.name}</p>
-                        {activeCoverLetter?.applicantAddress.street && <p>{activeCoverLetter.applicantAddress.street}</p>}
-                        {activeCoverLetter?.applicantAddress.city && <p>{activeCoverLetter.applicantAddress.city}</p>}
-                        {activeCoverLetter?.applicantAddress.country && <p>{activeCoverLetter.applicantAddress.country}</p>}
-                        {activeCoverLetter?.applicantAddress.phone && <p className="mt-2">{activeCoverLetter.applicantAddress.phone}</p>}
-                        {activeCoverLetter?.applicantAddress.email && <p>{activeCoverLetter.applicantAddress.email}</p>}
-                      </div>
-                      {activeCoverLetter?.date && <p className="text-sm text-charcoal mb-6">{activeCoverLetter.date}</p>}
-                      {activeCoverLetter?.companyAddress.companyName && (
-                        <div className="text-sm text-charcoal mb-6">
-                          <p className="font-medium">{activeCoverLetter.companyAddress.companyName}</p>
-                          {activeCoverLetter.companyAddress.department && <p>{activeCoverLetter.companyAddress.department}</p>}
-                          {activeCoverLetter.companyAddress.street && <p>{activeCoverLetter.companyAddress.street}</p>}
-                          {activeCoverLetter.companyAddress.city && <p>{activeCoverLetter.companyAddress.city}</p>}
-                        </div>
-                      )}
-                      {activeCoverLetter?.salutation && <p className="text-sm text-charcoal mb-4">{activeCoverLetter.salutation}</p>}
-                      <div className="text-sm text-charcoal whitespace-pre-wrap mb-6 leading-relaxed">
-                        {activeCoverLetter?.body}
-                      </div>
-                      {activeCoverLetter?.closing && <p className="text-sm text-charcoal mb-8">{activeCoverLetter.closing}</p>}
-                      {activeCoverLetter?.signatureName && <p className="text-sm text-charcoal font-medium">{activeCoverLetter.signatureName}</p>}
-                    </>
-                  ) : (
-                    <div className="text-sm text-charcoal whitespace-pre-wrap leading-relaxed">
-                      {activeCoverLetter?.body}
-                    </div>
-                  )}
-                </>
+                activeCoverLetter ? renderCoverLetterContent(activeCoverLetter) : null
               )}
             </Card>
 
@@ -699,6 +717,33 @@ ${letter.signatureName}`;
         onClose={() => setShowSignUpWall(false)}
         trigger="download"
       />
+
+      {showFullPreview && activeCoverLetter && createPortal(
+        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">
+          <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-[30px] border border-cream-200 bg-gradient-to-b from-cream-100 to-cream-50 shadow-[0_36px_100px_-38px_rgba(30,58,95,0.45)]">
+            <div className="flex items-center justify-between border-b border-cream-200 bg-cream-50/95 px-5 py-3">
+              <div>
+                <p className="text-sm font-semibold text-charcoal">Cover Letter Full Preview</p>
+                <p className="text-xs text-warm-gray">Focused reading mode with the surrounding dashboard hidden.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFullPreview(false)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-cream-200 bg-white text-warm-gray transition-colors hover:border-navy-200 hover:text-navy-700 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-auto bg-gradient-to-b from-cream-100 to-cream-50 p-4 sm:p-6">
+              <Card className="mx-auto w-full max-w-3xl p-8 sm:p-10 shadow-[0_30px_60px_-40px_rgba(30,58,95,0.3)]">
+                {renderCoverLetterContent(activeCoverLetter)}
+              </Card>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
     </>
   );

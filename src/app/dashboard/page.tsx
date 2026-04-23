@@ -987,7 +987,7 @@ export default function Dashboard() {
             onClick={() => setShowATSModal(false)}
             aria-label="Close ATS insights"
           />
-          <div className="relative flex w-full max-w-4xl max-h-[90vh] flex-col overflow-hidden rounded-[32px] border border-cream-200 bg-cream-50 shadow-[0_30px_90px_-30px_rgba(30,58,95,0.45)]">
+          <div className="relative flex h-[90vh] w-full max-w-4xl min-h-0 max-h-[90vh] flex-col overflow-hidden rounded-[32px] border border-cream-200 bg-cream-50 shadow-[0_30px_90px_-30px_rgba(30,58,95,0.45)]">
             <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-cream-200 bg-white/90 backdrop-blur-sm">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-gold-50 px-3 py-1 text-xs font-semibold text-gold-700 border border-gold-100 mb-3">
@@ -1010,7 +1010,7 @@ export default function Dashboard() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-hidden">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <ATSScorePanel />
             </div>
           </div>
