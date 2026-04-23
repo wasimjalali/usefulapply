@@ -595,22 +595,10 @@ export default function Dashboard() {
         </Link>
         <div className="flex-1" />
         {user && profile && (profile.subscription_tier === 'free' || profile.subscription_tier === 'starter') && (
-          <Link
-            href="/pricing"
-            className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-white bg-gradient-to-r from-gold-400 to-gold-500 rounded-md mr-1.5"
-          >
-            Upgrade
-            <ArrowUpRight className="w-2.5 h-2.5" />
-          </Link>
+          <DashboardUpgradeButton tier="plus" mobile />
         )}
         {user && profile?.subscription_tier === 'plus' && (
-          <Link
-            href="/pricing"
-            className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-white bg-gradient-to-r from-navy-600 to-navy-700 rounded-md mr-1.5"
-          >
-            Go Max
-            <ArrowUpRight className="w-2.5 h-2.5" />
-          </Link>
+          <DashboardUpgradeButton tier="max" mobile />
         )}
         {user && (
           <div className="flex items-center mr-1">
