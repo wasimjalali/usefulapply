@@ -186,7 +186,6 @@ function DashboardUpgradeButton({
     </Link>
   );
 }
-
 export default function Dashboard() {
   const router = useRouter();
   const {
