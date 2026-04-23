@@ -96,6 +96,8 @@ export function ChatInput({
   const modeButtonBase = isEmbedded
     ? 'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all cursor-pointer'
     : 'flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg transition-all cursor-pointer';
+  const suggestionButtonBase =
+    'flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium transition-all cursor-pointer';
   const inputShellClassName = isEmbedded
     ? `relative rounded-[22px] border bg-white transition-all duration-200 ${
         isWorking
@@ -114,60 +116,66 @@ export function ChatInput({
         {/* Hover tooltips - rendered OUTSIDE the overflow-hidden container */}
         {hoveredMode === 'apply_directly' && showModeOptions && (
           <div className="absolute bottom-full left-3 mb-1 w-60 bg-navy-700 text-white text-xs rounded-xl p-3.5 shadow-xl z-50">
-            <div className="font-semibold mb-1">Quick Apply</div>
-            <p className="text-navy-200 leading-relaxed">Skips fit analysis and generates your optimized CV, cover letter, and email immediately.</p>
-            <p className="text-navy-300 mt-1.5 italic">Best when you&apos;ve already read the job description and it matches your qualifications.</p>
+            <div className="font-semibold mb-1">Apply Directly</div>
+            <p className="text-navy-200 leading-relaxed">Generates your optimized CV, cover letter, and email immediately.</p>
+            <p className="text-navy-300 mt-1.5 italic">Best when you already know the role is worth applying to.</p>
             <div className="mt-2 text-gold-400 font-medium">2 credits</div>
             <div className="absolute top-full left-6 w-2.5 h-2.5 bg-navy-700 rotate-45 -mt-1.5" />
           </div>
         )}
         {hoveredMode === 'analyze_first' && showModeOptions && (
           <div className="absolute bottom-full left-24 mb-1 w-60 bg-navy-700 text-white text-xs rounded-xl p-3.5 shadow-xl z-50">
-            <div className="font-semibold mb-1">Check Fit First</div>
-            <p className="text-navy-200 leading-relaxed">Runs a fit analysis to show your match score and skill gaps before generating the full application.</p>
-            <p className="text-navy-300 mt-1.5 italic">Best when you haven&apos;t read the job description yet and want AI to evaluate the fit for you first.</p>
+            <div className="font-semibold mb-1">Analyze Fit First</div>
+            <p className="text-navy-200 leading-relaxed">Checks your match score and main gaps before generating the full application package.</p>
+            <p className="text-navy-300 mt-1.5 italic">Best when you want a quick go / no-go signal before spending full credits.</p>
             <div className="mt-2 text-gold-400 font-medium">0.5 credits (analysis) + 2 credits (application)</div>
             <div className="absolute top-full left-6 w-2.5 h-2.5 bg-navy-700 rotate-45 -mt-1.5" />
           </div>
         )}
 
-        {/* Post-analysis suggested actions — replaces mode selector when fit analysis is complete */}
+        {/* Post-analysis suggested actions — kept lightweight so it reads like chat follow-ups */}
         {pendingFitAnalysis && !isWorking && (
-          <div className="flex items-center gap-2 mb-3">
-            <button
-              onClick={() => onFitAnalysisAction?.('apply')}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold bg-gradient-to-r from-navy-600 to-navy-700 text-white rounded-xl hover:from-navy-700 hover:to-navy-800 transition-all shadow-md hover:shadow-lg cursor-pointer"
-            >
-              <FileText className="w-4 h-4" />
-              Apply for This Job
-            </button>
-            <button
-              onClick={() => onFitAnalysisAction?.('skip')}
-              className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium bg-white text-charcoal border border-cream-300 rounded-xl hover:bg-cream-50 hover:border-gold-300 hover:shadow-sm transition-all cursor-pointer"
-            >
-              <RotateCcw className="w-4 h-4 text-warm-gray" />
-              New Search
-            </button>
+          <div className="mb-3 px-1">
+            <p className="mb-2 text-[11px] font-medium text-warm-gray">Suggested next step</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => onFitAnalysisAction?.('apply')}
+                className={`${suggestionButtonBase} bg-navy-700 text-white shadow-sm hover:bg-navy-800`}
+              >
+                <FileText className="w-4 h-4" />
+                Generate Application Package
+              </button>
+              <button
+                onClick={() => onFitAnalysisAction?.('skip')}
+                className={`${suggestionButtonBase} border border-cream-300 bg-white text-charcoal hover:bg-cream-50 hover:border-gold-300`}
+              >
+                <RotateCcw className="w-4 h-4 text-warm-gray" />
+                Try Another Role
+              </button>
+            </div>
           </div>
         )}
 
         {/* Screening question CTA — shown after application generation */}
         {pendingScreeningPrompt && !isWorking && !pendingFitAnalysis && (
-          <div className="flex items-center gap-2 mb-3">
-            <button
-              onClick={() => onScreeningAction?.('screening')}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold bg-gradient-to-r from-navy-600 to-navy-700 text-white rounded-xl hover:from-navy-700 hover:to-navy-800 transition-all shadow-md hover:shadow-lg cursor-pointer"
-            >
-              <ClipboardList className="w-4 h-4" />
-              Screening Questions
-            </button>
-            <button
-              onClick={() => onScreeningAction?.('skip')}
-              className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium bg-white text-charcoal border border-cream-300 rounded-xl hover:bg-cream-50 hover:border-gold-300 hover:shadow-sm transition-all cursor-pointer"
-            >
-              <X className="w-4 h-4 text-warm-gray" />
-              No, Thanks
-            </button>
+          <div className="mb-3 px-1">
+            <p className="mb-2 text-[11px] font-medium text-warm-gray">Suggested follow-up</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => onScreeningAction?.('screening')}
+                className={`${suggestionButtonBase} bg-navy-700 text-white shadow-sm hover:bg-navy-800`}
+              >
+                <ClipboardList className="w-4 h-4" />
+                Answer Screening Questions
+              </button>
+              <button
+                onClick={() => onScreeningAction?.('skip')}
+                className={`${suggestionButtonBase} border border-cream-300 bg-white text-charcoal hover:bg-cream-50 hover:border-gold-300`}
+              >
+                <X className="w-4 h-4 text-warm-gray" />
+                Skip For Now
+              </button>
+            </div>
           </div>
         )}
 
@@ -187,7 +195,7 @@ export function ChatInput({
                     }`}
                   >
                     <Zap className="w-3 h-3" />
-                    Quick Apply
+                    Apply Directly
                   </button>
                   <button
                     onClick={() => onModeChange?.('analyze_first')}
@@ -200,11 +208,11 @@ export function ChatInput({
                     }`}
                   >
                     <Search className="w-3 h-3" />
-                    Check Fit First
+                    Analyze Fit First
                   </button>
                 </div>
                 <p className="px-1 text-[11px] text-warm-gray">
-                  New here? Use <span className="font-medium text-charcoal">Check Fit First</span> to review your match score before generating documents.
+                  Fastest path: <span className="font-medium text-charcoal">Apply Directly</span>. Use <span className="font-medium text-charcoal">Analyze Fit First</span> when you want a match check before generating.
                 </p>
               </>
             )}
@@ -266,7 +274,7 @@ export function ChatInput({
                     }`}
                   >
                     <Zap className="w-3 h-3" />
-                    Quick Apply
+                    Apply Directly
                   </button>
                   <button
                     onClick={() => onModeChange?.('analyze_first')}
@@ -279,7 +287,7 @@ export function ChatInput({
                     }`}
                   >
                     <Search className="w-3 h-3" />
-                    Check Fit First
+                    Analyze Fit First
                   </button>
                 </div>
               )}

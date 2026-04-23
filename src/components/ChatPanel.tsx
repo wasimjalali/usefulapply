@@ -138,6 +138,22 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     }
   }, [isAgentWorking, agentSteps]);
 
+  const previousGeneratedStateRef = useRef<{ sessionId: string | null; hasGeneratedCV: boolean }>({
+    sessionId: null,
+    hasGeneratedCV: false,
+  });
+  useEffect(() => {
+    const sessionId = currentSession?.id ?? null;
+    const hasGeneratedCV = !!currentSession?.generatedCV;
+    const previous = previousGeneratedStateRef.current;
+
+    if (sessionId && previous.sessionId === sessionId && !previous.hasGeneratedCV && hasGeneratedCV) {
+      onTabChange?.('cv');
+    }
+
+    previousGeneratedStateRef.current = { sessionId, hasGeneratedCV };
+  }, [currentSession?.id, currentSession?.generatedCV, onTabChange]);
+
   const messages = currentSession?.chatMessages || [];
 
   const handleFeedbackClick = (messageId: string, content: string, type: 'positive' | 'negative') => {

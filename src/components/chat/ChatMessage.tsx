@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Card } from '../ui/Card';
 import { MarkdownText } from '../MarkdownText';
 import {
   ChevronDown,
@@ -141,6 +140,23 @@ export function ChatMessage({
   }
 
   const isLongMessage = message.role === 'user' && message.content.length > collapseLength;
+  const actionItems = (message.actions || []).filter(a => a.action !== 'none');
+  const hintAction = message.actions?.find(a => a.action === 'none');
+  const isFitAnalysisMessage = message.role === 'assistant'
+    && /\*\*(Strong Fit|Good Fit|Fair Fit|Weak Fit)\*\*/.test(message.content);
+  const isCompletionMessage = message.role === 'assistant'
+    && message.content.includes('**Application package ready**');
+  const useElevatedSurface =
+    message.role === 'user' ||
+    !!screeningAnswers ||
+    isFitAnalysisMessage ||
+    isCompletionMessage ||
+    actionItems.length > 0;
+  const surfaceClassName = message.role === 'user'
+    ? 'rounded-[22px] border border-cream-200 bg-cream-100 px-4 py-3 shadow-[0_12px_24px_-22px_rgba(30,58,95,0.22)]'
+    : useElevatedSurface
+      ? 'rounded-[22px] border border-cream-200 bg-white px-4 py-3 shadow-[0_16px_30px_-24px_rgba(30,58,95,0.18)]'
+      : 'px-1 py-1.5';
 
   return (
     <div className="group/msg flex gap-3">
@@ -155,13 +171,7 @@ export function ChatMessage({
       )}
 
       <div className="flex-1 min-w-0">
-        <Card 
-          padding="sm" 
-          className={`relative ${message.role === 'user' 
-            ? 'bg-cream-100 border-cream-200' 
-            : 'bg-white border-cream-200 shadow-sm'
-          }`}
-        >
+        <div className={`relative ${surfaceClassName}`}>
           {/* Screening answers — per-answer copy blocks */}
           {screeningAnswers ? (
             <div className="space-y-3">
@@ -240,43 +250,43 @@ export function ChatMessage({
             />
           )}
           
-          {/* Action Buttons — vertical stacked with connecting line */}
-          {message.actions && message.actions.length > 0 && (() => {
-            const actionItems = message.actions.filter(a => a.action !== 'none');
-            const hintAction = message.actions.find(a => a.action === 'none');
+          {actionItems.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {actionItems.map((action, index) => {
+                const isPrimaryAction =
+                  action.action === 'generate-full-application' ||
+                  action.action === 'screening-questions' ||
+                  action.action === 'navigate-pricing' ||
+                  (actionItems.length === 1 && action.action !== 'start-new-application');
 
-            return (
-              <div className="mt-4 space-y-2">
-                {actionItems.map((action, index) => (
-                  <div key={index} className="flex items-stretch">
-                    <div className="flex flex-col items-center mr-3">
-                      <div className="w-px bg-cream-300 h-2" />
-                      <div className="w-2 h-2 rounded-full border-2 border-gold-300 bg-white flex-shrink-0" />
-                      <div className={`w-px bg-cream-300 flex-1 ${index === actionItems.length - 1 ? 'opacity-0' : ''}`} />
-                    </div>
-                    <button
-                      onClick={() => onAction(action.action)}
-                      className="flex items-center gap-2 px-4 py-2.5 my-1 text-sm font-medium bg-white text-charcoal border border-cream-200 rounded-xl hover:bg-cream-50 hover:border-gold-300 hover:shadow-sm transition-all cursor-pointer"
-                    >
-                      {action.icon === 'cv' && <FileText className="w-4 h-4 text-navy-600" />}
-                      {action.icon === 'cover-letter' && <Mail className="w-4 h-4 text-gold-600" />}
-                      {action.icon === 'email' && <Send className="w-4 h-4 text-gold-600" />}
-                      {action.icon === 'new' && <Plus className="w-4 h-4 text-gold-500" />}
-                      {action.icon === 'screening' && <ClipboardList className="w-4 h-4 text-navy-600" />}
-                      {action.label}
-                    </button>
-                  </div>
-                ))}
-                {/* Hint text */}
-                {hintAction && (
-                  <p className="text-xs text-warm-gray mt-1 ml-5 italic">
-                    {hintAction.label.replace(/^💡\s*/, '')}
-                  </p>
-                )}
-              </div>
-            );
-          })()}
-        </Card>
+                return (
+                  <button
+                    key={index}
+                    onClick={() => onAction(action.action)}
+                    className={`flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition-all cursor-pointer ${
+                      isPrimaryAction
+                        ? 'border-navy-700 bg-navy-700 text-white shadow-sm hover:bg-navy-800 hover:border-navy-800'
+                        : 'border-cream-200 bg-white text-charcoal hover:bg-cream-50 hover:border-gold-300'
+                    }`}
+                  >
+                    {action.icon === 'cv' && <FileText className={`w-4 h-4 ${isPrimaryAction ? 'text-white' : 'text-navy-600'}`} />}
+                    {action.icon === 'cover-letter' && <Mail className={`w-4 h-4 ${isPrimaryAction ? 'text-white' : 'text-gold-600'}`} />}
+                    {action.icon === 'email' && <Send className={`w-4 h-4 ${isPrimaryAction ? 'text-white' : 'text-gold-600'}`} />}
+                    {action.icon === 'new' && <Plus className={`w-4 h-4 ${isPrimaryAction ? 'text-white' : 'text-gold-500'}`} />}
+                    {action.icon === 'screening' && <ClipboardList className={`w-4 h-4 ${isPrimaryAction ? 'text-white' : 'text-navy-600'}`} />}
+                    {action.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {hintAction && (
+            <p className="mt-3 text-xs italic text-warm-gray">
+              {hintAction.label.replace(/^💡\s*/, '')}
+            </p>
+          )}
+        </div>
         
         {/* Feedback icons for assistant messages — visible on hover or when feedback given */}
         {message.role === 'assistant' && (
