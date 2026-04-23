@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useAppStore } from '@/store/useAppStore';
@@ -28,7 +29,6 @@ import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import { useAuth } from '@/contexts/AuthContext';
 import { SignUpWallModal } from '@/components/SignUpWallModal';
 import { useToast } from './ui/Toast';
-import { useUIStore } from '@/store/useUIStore';
 import { downloadBlob, getCaptureScale, getIsMobileOrTablet } from '@/lib/utils/download-pdf';
 
 // White margin added at the top and bottom of every PDF page (~10mm).
@@ -126,6 +126,7 @@ interface CVPanelProps {
 }
 
 export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
+  const router = useRouter();
   const {
     currentCV,
     structuredCV,
@@ -788,10 +789,10 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
           </div>
           <h3 className="text-lg font-semibold text-charcoal mb-2">No CV uploaded</h3>
           <p className="text-sm text-warm-gray mb-6 leading-relaxed">
-            Upload your CV in the Documents section to get started with AI-powered optimization.
+            Upload your CV from the Documents library to get started with AI-powered optimization.
           </p>
-          <Button variant="gold" onClick={() => useUIStore.getState().setActiveTab('documents')}>
-            Go to Documents
+          <Button variant="gold" onClick={() => router.push('/documents')}>
+            Open Documents
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </div>
@@ -807,19 +808,19 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
     <>
       {/* Original/Optimized Toggle */}
       {generatedCV && (
-        <div className="flex items-center bg-cream-100/80 rounded-lg p-0.5 flex-shrink-0">
+        <div className="flex items-center bg-white/85 border border-cream-200 rounded-2xl p-1 shadow-sm flex-shrink-0">
           <button
             onClick={() => { setShowOptimized(false); setEditedCVData(null); }}
-            className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-              !showOptimized ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
+            className={`px-4 py-2.5 text-sm font-medium rounded-xl transition-all cursor-pointer ${
+              !showOptimized ? 'bg-navy-700 text-white shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
             }`}
           >
             Original
           </button>
           <button
             onClick={() => { setShowOptimized(true); setEditedCVData(null); }}
-            className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-              showOptimized ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
+            className={`px-4 py-2.5 text-sm font-medium rounded-xl transition-all cursor-pointer ${
+              showOptimized ? 'bg-navy-700 text-white shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
             }`}
           >
             Optimized
@@ -832,11 +833,11 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
         <button
           ref={templateSelectorBtnRef}
           onClick={() => setShowTemplateSelector(!showTemplateSelector)}
-          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-white border border-cream-200 rounded-lg hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0"
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-white border border-cream-200 rounded-2xl hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0 shadow-sm"
         >
-          <Layout className="w-3 h-3 text-navy-500" />
-          <span className="hidden sm:inline">Templates</span>
-          {showTemplateSelector ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          <Layout className="w-4 h-4 text-navy-500" />
+          <span>Templates</span>
+          {showTemplateSelector ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
       )}
 
@@ -847,20 +848,20 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
             setIsEditMode(true);
             if (cvData && !editedCVData) setEditedCVData(cvData);
           }}
-          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-white border border-cream-200 rounded-lg hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0"
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-white border border-cream-200 rounded-2xl hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0 shadow-sm"
         >
-          <Edit3 className="w-3 h-3 text-navy-500" />
-          <span className="hidden sm:inline">Edit</span>
+          <Edit3 className="w-4 h-4 text-navy-500" />
+          <span>Edit</span>
         </button>
       )}
 
       {/* Edit mode indicators */}
       {isEditMode && (
         <>
-          <span className="text-xs font-medium text-navy-600 flex-shrink-0">Editing</span>
+          <span className="text-sm font-semibold text-navy-600 flex-shrink-0">Editing</span>
           <button
             onClick={() => { setIsEditMode(false); setEditedCVData(null); }}
-            className="px-2.5 py-1.5 text-xs font-medium text-warm-gray hover:text-charcoal rounded-md hover:bg-cream-100 transition-all cursor-pointer flex-shrink-0"
+            className="px-4 py-2.5 text-sm font-medium text-warm-gray hover:text-charcoal rounded-2xl hover:bg-cream-100 transition-all cursor-pointer flex-shrink-0"
           >
             Cancel
           </button>
@@ -870,9 +871,9 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
               editableCVRef.current?.save();
               setIsEditMode(false);
             }}
-            className="px-2.5 py-1.5 text-xs font-semibold text-white bg-navy-600 hover:bg-navy-700 rounded-md transition-all cursor-pointer flex-shrink-0"
+            className="px-4 py-2.5 text-sm font-semibold text-white bg-navy-600 hover:bg-navy-700 rounded-2xl transition-all cursor-pointer flex-shrink-0 shadow-sm"
           >
-            <Check className="w-3 h-3 inline mr-1" />
+            <Check className="w-4 h-4 inline mr-1.5" />
             Save Changes
           </button>
         </>
@@ -883,27 +884,28 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
         <>
           <Button
             variant="ghost"
-            size="sm"
+            size="md"
             onClick={() => handleCopy(displayContent)}
             title="Copy to clipboard"
-            className="flex-shrink-0"
+            className="flex-shrink-0 rounded-2xl bg-white border border-cream-200 hover:bg-cream-50 shadow-sm"
           >
-            {copied ? <Check className="w-4 h-4 text-gold-600" /> : <Copy className="w-4 h-4" />}
+            {copied ? <Check className="w-4 h-4 text-gold-600 mr-1.5" /> : <Copy className="w-4 h-4 mr-1.5" />}
+            Copy
           </Button>
           <Button
             variant="gold"
-            size="sm"
+            size="md"
             onClick={handleDownloadPDF}
             disabled={isDownloading || !cvData}
             title="Download as PDF"
-            className="flex-shrink-0"
+            className="flex-shrink-0 rounded-2xl shadow-sm"
           >
             {isDownloading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
             ) : (
-              <Download className="w-4 h-4" />
+              <Download className="w-4 h-4 mr-1.5" />
             )}
-            <span className="ml-1 hidden sm:inline">PDF</span>
+            Download PDF
           </Button>
         </>
       )}
@@ -915,8 +917,8 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
       {/* Toolbar: portal to tab bar on desktop, inline on mobile */}
       {toolbarContent && toolbarPortal && createPortal(toolbarContent, toolbarPortal)}
       {toolbarContent && !toolbarPortal && (
-        <div className="px-2.5 sm:px-4 py-1.5 sm:py-2 glass-toolbar flex-shrink-0 relative">
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pr-6">
+        <div className="px-3 sm:px-5 py-3 glass-toolbar flex-shrink-0 relative">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pr-6">
             {toolbarContent}
           </div>
           {/* Right-fade hint that toolbar is scrollable on mobile */}

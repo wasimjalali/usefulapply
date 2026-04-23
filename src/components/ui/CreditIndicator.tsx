@@ -90,6 +90,8 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
     : 0;
   const maxCredits = (credits?.plan_tier === 'starter' || credits?.plan_tier === 'free') ? 10 : credits?.plan_tier === 'plus' ? 100 : 200;
   const percentRemaining = Math.min((totalCredits / maxCredits) * 100, 100);
+  const formattedCredits = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(totalCredits);
+  const planLabel = (credits?.plan_tier || 'free').toUpperCase();
 
   // Color based on remaining credits — brand palette
   const getColor = () => {
@@ -102,11 +104,16 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
     return (
       <Link 
         href="/settings?section=subscription"
-        className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-cream-100 transition-colors"
-        title={`${totalCredits} credits remaining`}
+        className="group flex items-center gap-2 rounded-full border border-cream-200 bg-white/90 px-2.5 py-1.5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md"
+        title={`${formattedCredits} credits remaining`}
       >
-        <Coins className={`w-4 h-4 ${getColor()}`} />
-        <span className={`text-sm font-medium ${getColor()}`}>{totalCredits}</span>
+        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-gold-100 to-white border border-gold-200">
+          <Coins className={`w-3.5 h-3.5 ${getColor()}`} />
+        </span>
+        <div className="leading-none">
+          <div className={`text-xs font-semibold tracking-[0.18em] ${getColor()}`}>{planLabel}</div>
+          <div className="text-sm font-semibold text-charcoal">{formattedCredits}</div>
+        </div>
       </Link>
     );
   }
@@ -115,13 +122,26 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
     <div className="relative z-[100]" ref={dropdownRef}>
       <button
         onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-cream-50 hover:bg-cream-100 border border-cream-200 transition-colors cursor-pointer"
+        className="group flex items-center gap-3 rounded-full border border-cream-200 bg-white/92 px-3.5 py-2.5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md cursor-pointer"
         type="button"
       >
-        <Coins className={`w-4 h-4 ${getColor()}`} />
-        <div className="text-left">
-          <div className={`text-sm font-semibold ${getColor()}`}>
-            {totalCredits} credits
+        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-gold-200 bg-gradient-to-br from-gold-100 via-white to-cream-50 shadow-inner">
+          <Coins className={`w-4 h-4 ${getColor()}`} />
+        </span>
+        <div className="text-left min-w-0">
+          <div className={`text-[10px] font-bold tracking-[0.2em] ${getColor()}`}>
+            {planLabel}
+          </div>
+          <div className="text-sm font-semibold text-charcoal">
+            {formattedCredits} credits
+          </div>
+          <div className="mt-1 h-1.5 w-28 rounded-full bg-cream-100 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${
+                percentRemaining > 50 ? 'bg-gold-400' : percentRemaining > 20 ? 'bg-gold-600' : 'bg-navy-600'
+              }`}
+              style={{ width: `${totalCredits > 0 ? Math.max(percentRemaining, 10) : 0}%` }}
+            />
           </div>
         </div>
         {isExpanded ? (
