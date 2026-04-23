@@ -170,8 +170,9 @@ function DashboardUpgradeButton({
   return (
     <Link
       href="/pricing"
+      aria-label={mobile ? (isPlus ? 'Upgrade to Plus' : 'Upgrade to Max') : undefined}
       className={[
-        'inline-flex items-center justify-center whitespace-nowrap font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md',
+        'inline-flex shrink-0 items-center justify-center whitespace-nowrap font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md',
         mobile
           ? 'h-8 gap-1.5 rounded-full px-3 text-xs mr-1.5'
           : 'h-11 gap-2 rounded-full px-4 text-sm mr-2',
