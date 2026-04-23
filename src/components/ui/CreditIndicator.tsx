@@ -102,7 +102,7 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
   if (compact) {
     return (
       <Link 
-        href="/settings?section=subscription"
+        href="/subscription"
         className="group flex items-center gap-1.5 rounded-full border border-cream-200 bg-white/90 px-2 py-1 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md"
         title={`${formattedCredits} credits remaining`}
       >
@@ -222,7 +222,7 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
                     Buy More Credits
                   </Link>
                   <Link
-                    href="/settings?section=subscription"
+                    href="/subscription"
                     className="block w-full text-center text-sm font-medium text-navy-600 hover:text-navy-700 transition-colors py-1"
                     onClick={() => setIsExpanded(false)}
                   >
@@ -301,7 +301,7 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
                   Buy More Credits
                 </Link>
                 <Link
-                  href="/settings?section=subscription"
+                  href="/subscription"
                   className="block w-full text-center text-sm font-medium text-navy-600 hover:text-navy-700 transition-colors"
                 >
                   Manage Subscription →

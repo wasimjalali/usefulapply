@@ -22,6 +22,8 @@ interface ChatInputProps {
   /** Show screening question CTA buttons after application generation */
   pendingScreeningPrompt?: boolean;
   onScreeningAction?: (action: 'screening' | 'skip') => void;
+  /** Embedded composer style for docked desktop panels */
+  surface?: 'floating' | 'embedded';
 }
 
 export function ChatInput({
@@ -40,6 +42,7 @@ export function ChatInput({
   compact = false,
   pendingScreeningPrompt = false,
   onScreeningAction,
+  surface = 'floating',
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
@@ -88,8 +91,10 @@ export function ChatInput({
     }
   };
 
+  const isEmbedded = surface === 'embedded';
+
   return (
-    <div className={`${compact ? 'p-2' : 'p-4'} bg-gradient-to-t from-cream-100/80 to-transparent backdrop-blur-sm`}>
+    <div className={`${isEmbedded ? 'p-0 bg-transparent' : `${compact ? 'p-2' : 'p-4'} bg-gradient-to-t from-cream-100/80 to-transparent backdrop-blur-sm`}`}>
       <div className="relative">
         {/* Hover tooltips - rendered OUTSIDE the overflow-hidden container */}
         {hoveredMode === 'apply_directly' && showModeSelector && !compact && !pendingFitAnalysis && !value.trim() && !isWorking && (
@@ -152,11 +157,22 @@ export function ChatInput({
         )}
 
         {/* Main input container with gold border */}
-        <div id="tour-mode-selector" className={`relative glass-input ${compact ? 'rounded-2xl' : 'rounded-3xl'} border-2 shadow-lg overflow-hidden transition-all duration-200 ${
-          isWorking
-            ? 'border-gold-400 shadow-gold-200/50'
-            : 'border-gold-300/60 shadow-gold-100/40 focus-within:border-gold-400 focus-within:shadow-gold-200/50'
-        }`}>
+        <div
+          id="tour-mode-selector"
+          className={`relative overflow-hidden transition-all duration-200 ${
+            isEmbedded
+              ? `rounded-[24px] border bg-white shadow-[0_18px_34px_-28px_rgba(30,58,95,0.35)] ${
+                  isWorking
+                    ? 'border-gold-400'
+                    : 'border-cream-200 focus-within:border-gold-300'
+                }`
+              : `glass-input ${compact ? 'rounded-2xl' : 'rounded-3xl'} border-2 shadow-lg ${
+                  isWorking
+                    ? 'border-gold-400 shadow-gold-200/50'
+                    : 'border-gold-300/60 shadow-gold-100/40 focus-within:border-gold-400 focus-within:shadow-gold-200/50'
+                }`
+          }`}
+        >
 
           <div className="relative flex flex-col">
             {/* Mode selector - inside input, hidden when typing or when fit analysis is pending */}
@@ -232,7 +248,7 @@ export function ChatInput({
         </div>
 
         {/* Keyboard hint */}
-        {!compact && (
+        {!compact && !isEmbedded && (
           <p className="text-[10px] text-warm-gray/60 text-center mt-2">
             Shift + Enter for new line
           </p>

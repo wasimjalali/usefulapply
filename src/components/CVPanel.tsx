@@ -710,6 +710,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
         const srcY = breakPoints[page];
         const srcEnd = page + 1 < totalPages ? breakPoints[page + 1] : canvas.height;
         const srcH = Math.min(srcEnd - srcY, contentCanvasH);
+        const topGutterCanvasH = page === 0 ? 0 : gutterCanvasH;
         const pageCanvas = document.createElement('canvas');
         pageCanvas.width = canvas.width;
         pageCanvas.height = pageCanvasH;
@@ -717,7 +718,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
         if (ctx) {
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-          ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, gutterCanvasH, canvas.width, srcH);
+          ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, topGutterCanvasH, canvas.width, srcH);
         }
 
         // Use toDataURL on all platforms — toBlob() throws InvalidStateError on
@@ -755,7 +756,8 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
           }
           const pageSrcY = breakPoints[pageIdx] / captureScale;
           const yOnContent = link.y - pageSrcY;
-          const yOnPage = gutterNaturalPx + yOnContent;
+          const topGutterNaturalPx = pageIdx === 0 ? 0 : gutterNaturalPx;
+          const yOnPage = topGutterNaturalPx + yOnContent;
 
           const xMm = link.x * pxToMmX;
           const yMm = yOnPage * pxToMmY;

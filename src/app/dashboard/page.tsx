@@ -58,10 +58,10 @@ function DashboardProfileMenu({ profile, onSignOut }: DashboardProfileMenuProps)
   }, [isOpen]);
 
   const menuItems = [
-    { href: '/settings?section=profile', label: 'Profile', description: 'Personal details', icon: User },
-    { href: '/settings?section=account', label: 'Account', description: 'Security and login', icon: Shield },
-    { href: '/settings?section=subscription', label: 'Subscription', description: 'Plan and billing', icon: CreditCard },
-    { href: '/settings?section=notifications', label: 'Notifications', description: 'Email preferences', icon: Bell },
+    { href: '/profile', label: 'Profile', description: 'Personal details', icon: User },
+    { href: '/account', label: 'Account', description: 'Security and login', icon: Shield },
+    { href: '/subscription', label: 'Subscription', description: 'Plan and billing', icon: CreditCard },
+    { href: '/notifications', label: 'Notifications', description: 'Email preferences', icon: Bell },
     { href: '/documents', label: 'Documents', description: 'Manage uploaded files', icon: FolderOpen },
   ];
 
@@ -791,7 +791,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          <div className={`absolute inset-y-2 right-1.5 left-1.5 flex flex-col items-center justify-start py-2.5 bg-cream-50 border border-cream-200 rounded-[20px] shadow-[0_18px_40px_-32px_rgba(30,58,95,0.35)] transition-opacity duration-200 ${
+          <div className={`absolute inset-y-2.5 right-2.5 left-2.5 flex flex-col items-center justify-start py-2.5 bg-white border border-cream-200 rounded-[22px] shadow-[0_20px_44px_-34px_rgba(30,58,95,0.32)] transition-opacity duration-200 ${
             isChatCollapsed ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}>
             <button
@@ -806,7 +806,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div id="tour-chat-panel" className={`absolute inset-y-3 right-3 left-2 overflow-hidden rounded-[28px] border border-cream-200 bg-cream-50 shadow-[0_24px_54px_-36px_rgba(30,58,95,0.36)] transition-opacity duration-200 ${
+          <div id="tour-chat-panel" className={`absolute inset-y-2.5 right-2.5 left-2.5 overflow-hidden rounded-[30px] border border-cream-200 bg-gradient-to-b from-white via-white to-cream-50 shadow-[0_28px_72px_-40px_rgba(30,58,95,0.4)] transition-opacity duration-200 ${
             isChatCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
           }`}>
             <ChatPanel
