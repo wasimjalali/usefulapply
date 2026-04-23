@@ -77,12 +77,12 @@ function DashboardProfileMenu({ profile, onSignOut }: DashboardProfileMenuProps)
       <button
         type="button"
         onClick={() => setIsOpen(prev => !prev)}
-        className="group flex items-center gap-2 rounded-full border border-cream-200 bg-white/90 px-2 py-1.5 shadow-sm transition-all hover:border-gold-200 hover:shadow-md cursor-pointer"
+        className="group flex items-center gap-1.5 rounded-full border border-cream-200 bg-white/90 px-1.5 py-1 shadow-sm transition-all hover:border-gold-200 hover:shadow-md cursor-pointer"
         aria-haspopup="menu"
         aria-expanded={isOpen}
       >
         <div className="relative">
-          <div className={`w-8 h-8 rounded-full bg-gradient-to-br from-navy-500 to-navy-700 flex items-center justify-center overflow-hidden ring-2 ring-offset-1 ring-offset-white/90 ${
+          <div className={`w-[30px] h-[30px] rounded-full bg-gradient-to-br from-navy-500 to-navy-700 flex items-center justify-center overflow-hidden ring-2 ring-offset-1 ring-offset-white/90 ${
             subscriptionTier === 'max' || subscriptionTier === 'pro'
               ? 'ring-navy-600'
               : subscriptionTier === 'plus'
@@ -92,7 +92,7 @@ function DashboardProfileMenu({ profile, onSignOut }: DashboardProfileMenuProps)
             {profile?.avatar_url ? (
               <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
             ) : (
-              <User className="w-4 h-4 text-white" />
+              <User className="w-3.5 h-3.5 text-white" />
             )}
           </div>
           <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full leading-none whitespace-nowrap ${
@@ -105,7 +105,7 @@ function DashboardProfileMenu({ profile, onSignOut }: DashboardProfileMenuProps)
             {tierBadge}
           </span>
         </div>
-        <ChevronDown className={`w-4 h-4 text-warm-gray transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3.5 h-3.5 text-warm-gray transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
@@ -460,16 +460,16 @@ export default function Dashboard() {
 
   return (
     <div className="h-screen flex flex-col bg-cream-100">
-      <div className="hidden md:flex items-center gap-4 px-4 py-2 bg-white/95 backdrop-blur-sm border-b border-cream-200 flex-shrink-0 z-50">
+      <div className="hidden md:flex items-center gap-3 px-4 py-1.5 bg-white/95 backdrop-blur-sm border-b border-cream-200 flex-shrink-0 z-50">
         <Link href="/" className="flex items-center">
           <KarkoLogo variant="full" size="xs" theme="light" />
         </Link>
 
-        <div className="flex items-center bg-cream-100/80 rounded-full p-1">
+        <div className="flex items-center bg-cream-100/80 rounded-full p-0.5">
           <button
             type="button"
             onClick={() => handleWorkspaceChange('application-kit')}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
               activeWorkspace === 'application-kit'
                 ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
                 : 'text-warm-gray hover:text-navy-600'
@@ -481,7 +481,7 @@ export default function Dashboard() {
           <button
             type="button"
             onClick={() => handleWorkspaceChange('job-feed')}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
               activeWorkspace === 'job-feed'
                 ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
                 : 'text-warm-gray hover:text-navy-600'
@@ -494,7 +494,7 @@ export default function Dashboard() {
             id="tour-tracker"
             type="button"
             onClick={() => handleWorkspaceChange('tracker')}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
               activeWorkspace === 'tracker'
                 ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
                 : 'text-warm-gray hover:text-navy-600'
@@ -511,7 +511,7 @@ export default function Dashboard() {
         {user && profile && (profile.subscription_tier === 'free' || profile.subscription_tier === 'starter') && (
           <Link
             href="/pricing"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 rounded-lg transition-all shadow-sm hover:shadow-md mr-2"
+            className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-white bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 rounded-lg transition-all shadow-sm hover:shadow-md mr-2"
           >
             Upgrade to Plus
             <ArrowUpRight className="w-3 h-3" />
@@ -520,7 +520,7 @@ export default function Dashboard() {
         {user && profile?.subscription_tier === 'plus' && (
           <Link
             href="/pricing"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-navy-600 to-navy-700 hover:from-navy-700 hover:to-navy-800 rounded-lg transition-all shadow-sm hover:shadow-md mr-2"
+            className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-white bg-gradient-to-r from-navy-600 to-navy-700 hover:from-navy-700 hover:to-navy-800 rounded-lg transition-all shadow-sm hover:shadow-md mr-2"
           >
             Upgrade to Max
             <ArrowUpRight className="w-3 h-3" />
@@ -541,7 +541,7 @@ export default function Dashboard() {
         {!isChatCollapsed && (
           <button
             onClick={() => setIsChatCollapsed(true)}
-            className="p-2 rounded-full text-warm-gray hover:bg-cream-100 hover:text-navy-600 transition-all cursor-pointer"
+            className="p-1.5 rounded-full text-warm-gray hover:bg-cream-100 hover:text-navy-600 transition-all cursor-pointer"
             title="Collapse chat (⌘⇧C)"
           >
             <PanelRightClose className="w-4 h-4" />
@@ -569,7 +569,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      <div className="md:hidden flex items-center px-3 py-2 bg-white/95 backdrop-blur-sm border-b border-cream-200 flex-shrink-0 z-50">
+      <div className="md:hidden flex items-center px-3 py-1.5 bg-white/95 backdrop-blur-sm border-b border-cream-200 flex-shrink-0 z-50">
         <Link href="/" className="flex items-center">
           <KarkoLogo variant="full" size="xs" theme="light" />
         </Link>
@@ -613,13 +613,13 @@ export default function Dashboard() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {activeWorkspace === 'application-kit' && (
             <>
-              <div className="bg-white/90 border-b border-cream-200 px-4 sm:px-5 py-3">
+              <div className="bg-white/90 border-b border-cream-200 px-4 sm:px-5 py-2.5">
                 <div className="flex items-center justify-between gap-3">
-                  <div id="tour-doc-tabs" className="flex items-center bg-cream-100/80 rounded-2xl p-1">
+                  <div id="tour-doc-tabs" className="flex items-center bg-cream-100/80 rounded-[18px] p-0.5">
                     <button
                       type="button"
                       onClick={() => handleTabChange('cv')}
-                      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+                      className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-[14px] transition-all cursor-pointer whitespace-nowrap ${
                         activeTab === 'cv'
                           ? 'bg-white text-navy-700 shadow-sm font-semibold'
                           : 'text-warm-gray hover:text-navy-600'
@@ -631,7 +631,7 @@ export default function Dashboard() {
                     <button
                       type="button"
                       onClick={() => handleTabChange('cover-letter')}
-                      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+                      className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-[14px] transition-all cursor-pointer whitespace-nowrap ${
                         activeTab === 'cover-letter'
                           ? 'bg-white text-navy-700 shadow-sm font-semibold'
                           : 'text-warm-gray hover:text-navy-600'
@@ -643,7 +643,7 @@ export default function Dashboard() {
                     <button
                       type="button"
                       onClick={() => handleTabChange('email')}
-                      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+                      className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-[14px] transition-all cursor-pointer whitespace-nowrap ${
                         activeTab === 'email'
                           ? 'bg-white text-navy-700 shadow-sm font-semibold'
                           : 'text-warm-gray hover:text-navy-600'
@@ -662,7 +662,7 @@ export default function Dashboard() {
                           setShowATSModal(true);
                         }
                       }}
-                      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition-all ${
+                      className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold transition-all ${
                         hasATSInsights || atsScore !== null
                           ? 'border-gold-200 bg-white text-navy-700 shadow-sm hover:-translate-y-0.5 hover:shadow-md cursor-pointer'
                           : 'border-cream-200 bg-cream-50 text-warm-gray cursor-default'
@@ -675,7 +675,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="relative z-40 glass-toolbar px-3 sm:px-5 py-3">
+              <div className="relative z-40 glass-toolbar px-3 sm:px-5 py-2.5">
                 <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
                   <div ref={setToolbarNode} className="flex items-center gap-2" />
                 </div>
@@ -820,13 +820,13 @@ export default function Dashboard() {
 
       <div className="md:hidden flex-1 flex flex-col overflow-hidden">
         {mobileView === 'application-kit' && (
-          <div className="bg-white/90 border-b border-cream-200 px-3 py-3">
+          <div className="bg-white/90 border-b border-cream-200 px-3 py-2.5">
             <div className="flex items-center gap-3">
-              <div className="flex items-center bg-cream-100/80 rounded-2xl p-1 overflow-x-auto scrollbar-hide">
+              <div className="flex items-center bg-cream-100/80 rounded-[18px] p-0.5 overflow-x-auto scrollbar-hide">
                 <button
                   type="button"
                   onClick={() => handleMobileApplicationTabChange('cv')}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-[14px] transition-all whitespace-nowrap ${
                     mobileApplicationTab === 'cv'
                       ? 'bg-white text-navy-700 shadow-sm font-semibold'
                       : 'text-warm-gray'
@@ -838,7 +838,7 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={() => handleMobileApplicationTabChange('cover-letter')}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-[14px] transition-all whitespace-nowrap ${
                     mobileApplicationTab === 'cover-letter'
                       ? 'bg-white text-navy-700 shadow-sm font-semibold'
                       : 'text-warm-gray'
@@ -850,7 +850,7 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={() => handleMobileApplicationTabChange('email')}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-[14px] transition-all whitespace-nowrap ${
                     mobileApplicationTab === 'email'
                       ? 'bg-white text-navy-700 shadow-sm font-semibold'
                       : 'text-warm-gray'
@@ -869,7 +869,7 @@ export default function Dashboard() {
                       setShowATSModal(true);
                     }
                   }}
-                  className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold ${
+                  className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-semibold ${
                     hasATSInsights || atsScore !== null
                       ? 'border-gold-200 bg-white text-navy-700 shadow-sm'
                       : 'border-cream-200 bg-cream-50 text-warm-gray'

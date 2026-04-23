@@ -550,13 +550,13 @@ ${letter.signatureName}`;
       {isEditMode && (
         <>
           <span className="text-sm font-semibold text-navy-600 flex-shrink-0">Editing</span>
-          <Button variant="primary" size="md" onClick={handleSaveEdits} className="flex-shrink-0 rounded-2xl shadow-sm">
+          <Button variant="primary" size="sm" onClick={handleSaveEdits} className="flex-shrink-0 rounded-[20px] shadow-sm">
             <Check className="w-4 h-4 mr-1" />
             Save
           </Button>
           <button
             onClick={() => { setIsEditMode(false); setEditedCoverLetter(coverLetter); }}
-            className="px-4 py-2.5 text-sm font-medium text-warm-gray hover:text-charcoal rounded-2xl hover:bg-cream-100 transition-all cursor-pointer flex-shrink-0"
+            className="px-3.5 py-2 text-sm font-medium text-warm-gray hover:text-charcoal rounded-[20px] hover:bg-cream-100 transition-all cursor-pointer flex-shrink-0"
           >
             Cancel
           </button>
@@ -567,7 +567,7 @@ ${letter.signatureName}`;
       {!isEditMode && coverLetter && (
         <button
           onClick={() => setIsEditMode(true)}
-          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-white border border-cream-200 rounded-2xl hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0 shadow-sm"
+          className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium bg-white border border-cream-200 rounded-[20px] hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0 shadow-sm"
         >
           <Edit3 className="w-4 h-4 text-navy-500" />
           <span>Edit</span>
@@ -579,15 +579,15 @@ ${letter.signatureName}`;
         <>
           <Button
             variant="outline"
-            size="md"
+            size="sm"
             onClick={handleGenerateCoverLetter}
             isLoading={isLoadingCoverLetter}
-            className="flex-shrink-0 rounded-2xl bg-white shadow-sm"
+            className="flex-shrink-0 rounded-[20px] bg-white shadow-sm"
           >
             <RefreshCw className="w-4 h-4 mr-1" />
             <span>Regenerate</span>
           </Button>
-          <Button variant="outline" size="md" onClick={handleCopy} className="flex-shrink-0 rounded-2xl bg-white shadow-sm">
+          <Button variant="outline" size="sm" onClick={handleCopy} className="flex-shrink-0 rounded-[20px] bg-white shadow-sm">
             {copied ? <Check className="w-4 h-4 text-gold-600" /> : <Copy className="w-4 h-4" />}
             <span className="ml-1">{copied ? 'Copied!' : 'Copy'}</span>
           </Button>
@@ -599,10 +599,10 @@ ${letter.signatureName}`;
         <div className="relative flex-shrink-0" ref={downloadMenuRef}>
           <Button
             variant="primary"
-            size="md"
+            size="sm"
             onClick={() => setShowDownloadMenu(!showDownloadMenu)}
             disabled={isDownloading}
-            className="rounded-2xl shadow-sm"
+            className="rounded-[20px] shadow-sm"
           >
             {isDownloading ? (
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-1" />
@@ -644,7 +644,7 @@ ${letter.signatureName}`;
     <div className="h-full flex flex-col bg-cream-50">
       {/* Inline toolbar for mobile only (no portal) */}
       {!toolbarPortal && (
-        <div className="px-3 sm:px-5 py-3 glass-toolbar flex-shrink-0">
+        <div className="px-3 sm:px-5 py-2.5 glass-toolbar flex-shrink-0">
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
             {toolbarContent}
           </div>

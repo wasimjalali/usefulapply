@@ -104,15 +104,15 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
     return (
       <Link 
         href="/settings?section=subscription"
-        className="group flex items-center gap-2 rounded-full border border-cream-200 bg-white/90 px-2.5 py-1.5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md"
+        className="group flex items-center gap-1.5 rounded-full border border-cream-200 bg-white/90 px-2 py-1 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md"
         title={`${formattedCredits} credits remaining`}
       >
-        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-gold-100 to-white border border-gold-200">
-          <Coins className={`w-3.5 h-3.5 ${getColor()}`} />
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-gold-100 to-white border border-gold-200">
+          <Coins className={`w-3 h-3 ${getColor()}`} />
         </span>
         <div className="leading-none">
-          <div className={`text-xs font-semibold tracking-[0.18em] ${getColor()}`}>{planLabel}</div>
-          <div className="text-sm font-semibold text-charcoal">{formattedCredits}</div>
+          <div className={`text-[10px] font-semibold tracking-[0.16em] ${getColor()}`}>{planLabel}</div>
+          <div className="text-[13px] font-semibold text-charcoal">{formattedCredits}</div>
         </div>
       </Link>
     );
@@ -122,20 +122,20 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
     <div className="relative z-[100]" ref={dropdownRef}>
       <button
         onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
-        className="group flex items-center gap-3 rounded-full border border-cream-200 bg-white/92 px-3.5 py-2.5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md cursor-pointer"
+        className="group flex items-center gap-2.5 rounded-full border border-cream-200 bg-white/92 px-3 py-2 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md cursor-pointer"
         type="button"
       >
-        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-gold-200 bg-gradient-to-br from-gold-100 via-white to-cream-50 shadow-inner">
-          <Coins className={`w-4 h-4 ${getColor()}`} />
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gold-200 bg-gradient-to-br from-gold-100 via-white to-cream-50 shadow-inner">
+          <Coins className={`w-3.5 h-3.5 ${getColor()}`} />
         </span>
         <div className="text-left min-w-0">
-          <div className={`text-[10px] font-bold tracking-[0.2em] ${getColor()}`}>
+          <div className={`text-[9px] font-bold tracking-[0.18em] ${getColor()}`}>
             {planLabel}
           </div>
-          <div className="text-sm font-semibold text-charcoal">
+          <div className="text-[13px] font-semibold leading-tight text-charcoal">
             {formattedCredits} credits
           </div>
-          <div className="mt-1 h-1.5 w-28 rounded-full bg-cream-100 overflow-hidden">
+          <div className="mt-1 h-1.5 w-24 rounded-full bg-cream-100 overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${
                 percentRemaining > 50 ? 'bg-gold-400' : percentRemaining > 20 ? 'bg-gold-600' : 'bg-navy-600'
@@ -145,9 +145,9 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
           </div>
         </div>
         {isExpanded ? (
-          <ChevronUp className="w-4 h-4 text-warm-gray" />
+          <ChevronUp className="w-3.5 h-3.5 text-warm-gray" />
         ) : (
-          <ChevronDown className="w-4 h-4 text-warm-gray" />
+          <ChevronDown className="w-3.5 h-3.5 text-warm-gray" />
         )}
       </button>
 

@@ -293,7 +293,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     <div className="flex items-center gap-1">
       <button
         onClick={() => setShowHistory(!showHistory)}
-        className={`p-2 rounded-lg transition-all cursor-pointer ${
+        className={`p-1.5 rounded-lg transition-all cursor-pointer ${
           showHistory ? 'bg-navy-50 text-navy-600 shadow-sm' : 'text-warm-gray hover:bg-cream-100 hover:text-navy-600'
         }`}
         title="Application History"
@@ -302,7 +302,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
       </button>
       <button
         onClick={handleNewApplication}
-        className="p-2 rounded-lg text-warm-gray hover:bg-cream-100 hover:text-navy-600 transition-all cursor-pointer"
+        className="p-1.5 rounded-lg text-warm-gray hover:bg-cream-100 hover:text-navy-600 transition-all cursor-pointer"
         title="New Application"
       >
         <Plus className="w-4 h-4" />
