@@ -180,6 +180,10 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
   const cvWrapperRef = useRef<HTMLDivElement>(null);
   const [cvScale, setCvScale] = useState(1);
   const [cvScaledHeight, setCvScaledHeight] = useState<number | null>(null);
+  const fullPreviewContainerRef = useRef<HTMLDivElement>(null);
+  const fullPreviewWrapperRef = useRef<HTMLDivElement>(null);
+  const [fullPreviewScale, setFullPreviewScale] = useState(1);
+  const [fullPreviewScaledHeight, setFullPreviewScaledHeight] = useState<number | null>(null);
 
   // Close template selector when clicking outside
   useEffect(() => {
@@ -209,8 +213,10 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
         // scrollWidth gives the actual rendered width, unaffected by transform: scale
         const naturalWidth = cvWrapperRef.current.scrollWidth;
         const naturalHeight = cvWrapperRef.current.scrollHeight;
-        if (containerWidth > 0 && naturalWidth > 0 && containerWidth < naturalWidth) {
-          const newScale = containerWidth / naturalWidth;
+        const targetWidth = Math.max(containerWidth - 24, 0);
+        if (targetWidth > 0 && naturalWidth > 0) {
+          const fitScale = targetWidth / naturalWidth;
+          const newScale = Math.min(fitScale, 1.18);
           setCvScale(newScale);
           setCvScaledHeight(naturalHeight > 0 ? Math.ceil(naturalHeight * newScale) : null);
         } else {
@@ -247,6 +253,47 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
   // selectedTemplateId triggers re-mount of CVTemplateRenderer; ResizeObserver handles rest
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTemplateId]);
+
+  useEffect(() => {
+    if (!showFullPreview) return;
+
+    let rafId: number | null = null;
+
+    const updateScale = () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        if (!fullPreviewContainerRef.current || !fullPreviewWrapperRef.current) return;
+        const containerWidth = fullPreviewContainerRef.current.clientWidth;
+        const naturalWidth = fullPreviewWrapperRef.current.scrollWidth;
+        const naturalHeight = fullPreviewWrapperRef.current.scrollHeight;
+        const targetWidth = Math.max(containerWidth - 12, 0);
+
+        if (targetWidth > 0 && naturalWidth > 0) {
+          const fitScale = targetWidth / naturalWidth;
+          const newScale = Math.min(fitScale, 1.35);
+          setFullPreviewScale(newScale);
+          setFullPreviewScaledHeight(naturalHeight > 0 ? Math.ceil(naturalHeight * newScale) : null);
+        } else {
+          setFullPreviewScale(1);
+          setFullPreviewScaledHeight(null);
+        }
+      });
+    };
+
+    const timer = setTimeout(updateScale, 50);
+    const roContainer = new ResizeObserver(updateScale);
+    const roWrapper = new ResizeObserver(updateScale);
+    if (fullPreviewContainerRef.current) roContainer.observe(fullPreviewContainerRef.current);
+    if (fullPreviewWrapperRef.current) roWrapper.observe(fullPreviewWrapperRef.current);
+
+    return () => {
+      clearTimeout(timer);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      roContainer.disconnect();
+      roWrapper.disconnect();
+    };
+  }, [showFullPreview, selectedTemplateId, editedCVData, currentSession?.updatedAt]);
 
   // Refresh photo URL when a Supabase signed URL has expired (long sessions).
   // base64 data URLs are always valid; only re-check external URLs.
@@ -807,6 +854,8 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
   const isLoading = isAnalyzing || isGenerating || isAgentWorking;
   const displayContent = showOptimized && generatedCV ? generatedCV.content : currentCV.rawText;
   const previewCVData = editedCVData || cvData;
+  const hasScaledCvPreview = Math.abs(cvScale - 1) > 0.01;
+  const hasScaledFullPreview = Math.abs(fullPreviewScale - 1) > 0.01;
 
   // Toolbar content — rendered via portal (desktop) or inline (mobile)
   const toolbarContent = !isLoading ? (
@@ -969,7 +1018,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
             )}
 
             {/* CV Content - View Mode or Edit Mode */}
-            <div className="flex-1 overflow-auto p-2 sm:p-6 bg-gray-100">
+            <div className="flex-1 overflow-auto bg-gray-100 p-1.5 sm:p-4">
               {isEditMode && cvData ? (
                 /* Edit Mode - Editable Canvas */
                 <div className="flex flex-col h-full">
@@ -1025,9 +1074,9 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
                   <div
                     className="relative"
                     style={{
-                      width: cvScale < 1 ? Math.ceil((cvWrapperRef.current?.scrollWidth ?? 816) * cvScale) : undefined,
+                      width: hasScaledCvPreview ? Math.ceil((cvWrapperRef.current?.scrollWidth ?? 816) * cvScale) : undefined,
                       height: cvScaledHeight ?? undefined,
-                      overflow: cvScale < 1 ? 'hidden' : undefined,
+                      overflow: hasScaledCvPreview && cvScale < 1 ? 'hidden' : undefined,
                     }}
                   >
                     <button
@@ -1041,7 +1090,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
                     <div
                       ref={cvWrapperRef}
                       className="relative bg-white shadow-lg"
-                      style={cvScale < 1 ? {
+                      style={hasScaledCvPreview ? {
                         transform: `scale(${cvScale})`,
                         transformOrigin: 'top left',
                         willChange: 'transform',
@@ -1109,8 +1158,8 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
       />
 
       {showFullPreview && previewCVData && createPortal(
-        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">
-          <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-[30px] border border-cream-200 bg-cream-50 shadow-[0_36px_100px_-38px_rgba(30,58,95,0.45)]">
+        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-2 sm:p-4 backdrop-blur-[2px]">
+          <div className="relative flex h-[94vh] w-full max-w-[1440px] flex-col overflow-hidden rounded-[30px] border border-cream-200 bg-cream-50 shadow-[0_36px_100px_-38px_rgba(30,58,95,0.45)]">
             <div className="flex items-center justify-between border-b border-cream-200 bg-white/95 px-5 py-3">
               <div>
                 <p className="text-sm font-semibold text-charcoal">CV Full Preview</p>
@@ -1125,9 +1174,26 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
               </button>
             </div>
 
-            <div className="flex-1 overflow-auto bg-gray-100 p-4 sm:p-6">
-              <div className="mx-auto w-fit bg-white shadow-xl">
-                <CVTemplateRenderer data={previewCVData} templateId={selectedTemplateId} />
+            <div ref={fullPreviewContainerRef} className="flex-1 overflow-auto bg-gray-100 p-2 sm:p-4">
+              <div
+                className="mx-auto"
+                style={{
+                  width: hasScaledFullPreview ? Math.ceil((fullPreviewWrapperRef.current?.scrollWidth ?? 816) * fullPreviewScale) : undefined,
+                  height: fullPreviewScaledHeight ?? undefined,
+                  overflow: hasScaledFullPreview && fullPreviewScale < 1 ? 'hidden' : undefined,
+                }}
+              >
+                <div
+                  ref={fullPreviewWrapperRef}
+                  className="bg-white shadow-xl"
+                  style={hasScaledFullPreview ? {
+                    transform: `scale(${fullPreviewScale})`,
+                    transformOrigin: 'top left',
+                    willChange: 'transform',
+                  } : undefined}
+                >
+                  <CVTemplateRenderer data={previewCVData} templateId={selectedTemplateId} />
+                </div>
               </div>
             </div>
           </div>

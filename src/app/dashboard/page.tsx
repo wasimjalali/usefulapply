@@ -634,7 +634,7 @@ export default function Dashboard() {
           {activeWorkspace === 'application-kit' && (
             <>
               <div className="bg-white/90 border-b border-cream-200 px-4 sm:px-5 py-2.5">
-                <div id="tour-doc-tabs" className="flex items-center bg-cream-100/80 rounded-[18px] p-0.5">
+                <div id="tour-doc-tabs" className="inline-flex items-center bg-cream-100/80 rounded-[18px] p-0.5">
                   <button
                     type="button"
                     onClick={() => handleTabChange('cv')}
@@ -764,8 +764,8 @@ export default function Dashboard() {
             ) : (
               <>
                 {activeTab === 'cv' && <CVPanel toolbarPortal={toolbarNode} atsControl={atsControl} />}
-                {activeTab === 'cover-letter' && <CoverLetterPanel toolbarPortal={toolbarNode} atsControl={atsControl} />}
-                {activeTab === 'email' && <EmailPanel toolbarPortal={toolbarNode} atsControl={atsControl} />}
+                {activeTab === 'cover-letter' && <CoverLetterPanel toolbarPortal={toolbarNode} />}
+                {activeTab === 'email' && <EmailPanel toolbarPortal={toolbarNode} />}
               </>
             )}
           </div>
@@ -806,7 +806,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div id="tour-chat-panel" className={`absolute inset-y-3 right-3 left-2 overflow-hidden transition-opacity duration-200 ${
+          <div id="tour-chat-panel" className={`absolute inset-y-3 right-3 left-2 overflow-hidden rounded-[28px] border border-cream-200 bg-cream-50 shadow-[0_24px_54px_-36px_rgba(30,58,95,0.36)] transition-opacity duration-200 ${
             isChatCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
           }`}>
             <ChatPanel
@@ -820,7 +820,7 @@ export default function Dashboard() {
       <div className="md:hidden flex-1 flex flex-col overflow-hidden">
         {mobileView === 'application-kit' && (
           <div className="bg-white/90 border-b border-cream-200 px-3 py-2.5">
-            <div className="flex items-center bg-cream-100/80 rounded-[18px] p-0.5 overflow-x-auto scrollbar-hide">
+            <div className="inline-flex items-center bg-cream-100/80 rounded-[18px] p-0.5 overflow-x-auto scrollbar-hide">
               <button
                 type="button"
                 onClick={() => handleMobileApplicationTabChange('cv')}
@@ -924,8 +924,8 @@ export default function Dashboard() {
           ) : (
             <>
               {mobileApplicationTab === 'cv' && <CVPanel atsControl={atsControl} />}
-              {mobileApplicationTab === 'cover-letter' && <CoverLetterPanel atsControl={atsControl} />}
-              {mobileApplicationTab === 'email' && <EmailPanel atsControl={atsControl} />}
+              {mobileApplicationTab === 'cover-letter' && <CoverLetterPanel />}
+              {mobileApplicationTab === 'email' && <EmailPanel />}
             </>
           )}
         </div>
