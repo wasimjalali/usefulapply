@@ -52,12 +52,51 @@ The current branch has completed the foundations through Phase 6 MVP, plus the f
 - Phase 7 first slice: latest-run operational diagnostics now surface ranking mode, token usage, estimated cost, fetch failures, duplicates, and ranked-item materialization state
 - Phase 7 second slice: scheduler maintenance now redacts older raw provider payloads and compacts older run metadata after retention windows
 - Phase 7 third slice: debug tooling now supports an explicit same-day force rerun path for operational recovery without creating duplicate run rows
+- Frontend productization pass: the visible Job Feed screen now uses product-facing state copy, a more guided setup form, cleaner signed-out gating, and hidden-by-default diagnostics/debug controls
+- Dependency triage checkpoint: the unused `@vercel/blob` package has been removed, and low-risk direct dependency updates for `next`, `eslint-config-next`, `jspdf`, and `dompurify` are in progress so the remaining production vulnerability review can focus on real runtime exposure instead of obviously stale or unused packages
 
 Current next sequence:
 
+- Finish validating the post-upgrade vulnerability set so only real/current production issues remain on the follow-up list
+- Live-verify the newly productized Job Feed UI with a signed-in premium-capable account and real feed data
 - Set deployed `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` values, then verify the `/api/inngest` route with the Inngest dev server or dashboard
 - Disable any old external cron that still calls the temporary scheduler shim once the Inngest cron is active
 - Then continue any remaining Phase 7 polish such as additional analytics or debug affordances only if they still feel necessary
+
+Execution order from here:
+
+1. Live-verify the newly productized Job Feed UI with a signed-in premium-capable account and real feed data
+2. Verify local Inngest sync and function registration against `/api/inngest`
+3. Verify the in-app debug actions from the Job Feed screen while signed into a premium-capable account
+4. Add the Inngest environment keys on Wasim's side only when the local verification path is ready
+5. Disable the old scheduler cron only after the new Inngest path has been verified end to end
+
+### Remaining work split
+
+#### Frontend remaining
+
+- verify the signed-in premium states against real data so the ready, thin-feed, empty, awaiting-first-run, generating, and error screens all feel right in practice
+- do one final polish pass only after seeing the real signed-in feed, setup, and detail flow in the browser
+
+#### Backend remaining
+
+- verify the local Inngest dev server can sync against `/api/inngest`; the code-side route and function bundle are already wired and build correctly
+- confirm the expected functions register and are visible:
+  - `job-feed-hourly-scheduler-tick`
+  - `job-feed-sweep-requested`
+  - `job-feed-run-requested`
+- verify the debug actions actually enqueue and run the backend workflow from the app surface
+- confirm whether any old external cron still calls `/api/job-feed/internal/scheduler`
+- keep the remaining production dependency follow-up focused on real runtime exposure; the currently known unresolved items are primarily the PostHog CLI transitive audit findings rather than the main Job Feed runtime path
+
+#### Wasim-owned steps
+
+- keep local dev available when live UI or local Inngest verification is needed
+- sign into the app and keep an account ready that can access the premium Job Feed surface during verification
+- run the local Inngest dev server against `http://localhost:3000/api/inngest` when prompted and report the exact function registration result
+- create or locate the correct `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` values in Inngest without sharing them in chat
+- place those values into `.env.local` and the deployed environment when prompted
+- disable the old scheduler cron only after the new Inngest path is verified and only after the exact cron target has been identified
 
 ### What exists today
 

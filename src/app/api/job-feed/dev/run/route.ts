@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to run the feed backend workflow.' },
+      { error: error instanceof Error ? error.message : 'Failed to run the background workflow.' },
       { status: 500 }
     );
   }

@@ -1,7 +1,7 @@
 # Karko Daily Feed Foundations TODO
 
 Status: In progress
-Scope: Phases 0-6 MVP foundations plus ranking materialization and orchestration handoff prep
+Scope: Phases 0-6 MVP foundations plus ranking materialization, orchestration handoff prep, and dependency triage
 
 ## Working branch
 
@@ -60,5 +60,36 @@ Deliver the current feed foundations slice:
 - [x] Add lightweight retention cleanup for old raw payloads and old run metadata
 - [x] Add a same-day force rerun path for debug recovery without duplicating run rows
 - [x] Replace the current direct orchestration adapter with real Inngest functions
+- [x] Triage the current direct/runtime dependency exposure and land the low-risk manifest cleanup plus patch-level upgrades
+- [x] Productize the visible Job Feed UI so it no longer presents branch milestones, phase language, or internal implementation framing to end users
+- [x] Tighten the setup and state UX for ready, thin-feed, empty, awaiting-first-run, generating, and error cases
+- [x] Keep diagnostics and debug controls hidden unless explicitly enabled for verification
+- [x] Re-run targeted lint, typecheck, and build after the UI pass
+- [ ] Verify the signed-in premium Job Feed states with real data after the UI pass
 - [ ] Verify the deployed `/api/inngest` endpoint with `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` configured
+- [ ] Verify local Inngest dev sync and confirm the three expected Job Feed functions register correctly
+- [ ] Verify the app-side debug flow from Job Feed through queued or forced rerun behavior
 - [ ] Disable any old cron that still hits the temporary internal scheduler route after the Inngest cron is active
+
+## Execution order from here
+
+1. Signed-in frontend verification:
+   confirm the newly productized Job Feed UI with a premium-capable account and real feed data
+2. Local workflow verification:
+   verify `INNGEST_DEV=1 npm run dev`, then sync the local Inngest dev server against `/api/inngest`
+3. Signed-in backend verification:
+   confirm the app-side debug actions queue or rerun the backend workflow correctly from the Job Feed screen
+4. Wasim-only environment setup:
+   add `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` locally and in the deployed environment without sharing the values
+5. Production cleanup:
+   identify and disable the old scheduler cron only after the Inngest path is verified
+
+## Wasim follow-up
+
+- [ ] Keep a signed-in premium-capable account ready for live Job Feed verification
+- [ ] Run the local Inngest dev server against `http://localhost:3000/api/inngest` when prompted and share whether the expected functions appear
+- [ ] Create or find `INNGEST_EVENT_KEY`
+- [ ] Create or find `INNGEST_SIGNING_KEY`
+- [ ] Add the Inngest keys to `.env.local`
+- [ ] Add the Inngest keys to the deployed environment
+- [ ] Disable the old scheduler cron only after the new Inngest path is verified

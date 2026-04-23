@@ -1042,18 +1042,18 @@ function buildWorkflowResultSummary(
   rankingResult: JobFeedRankingExecutionResult
 ): string {
   if (ingestion.rawJobsFetched === 0 && ingestion.failedFetches.length === 0) {
-    return 'Phase 4 prefilter completed. The provider queries ran, but no jobs matched the current feed settings yet.';
+    return 'Karko checked the current searches, but no jobs matched these settings yet.';
   }
 
-  const summary = `Phase 4 ranking completed. ${ingestion.rawJobsFetched} raw jobs fetched across ${ingestion.searchPlan.length} queries, normalized into ${ingestion.canonicalJobs.length} canonical jobs, and ${prefilter.survivors.length} survived deterministic filters.`;
+  const summary = `Karko found ${ingestion.rawJobsFetched} job observations across ${ingestion.searchPlan.length} searches and narrowed them to ${prefilter.survivors.length} roles that matched the current filter.`;
   const operationalTail = buildWorkflowOperationalTail(ingestion);
 
   if (rankingPrep.candidates.length === 0) {
-    return `${summary} No jobs survived into the Strong/Good shortlist.${operationalTail}`;
+    return `${summary} Nothing stayed strong enough to reach the final shortlist.${operationalTail}`;
   }
 
   if (rankingResult.items.length === 0) {
-    return `${summary} ${rankingPrep.candidates.length} shortlisted jobs reached final ranking, but none cleared the Strong/Good bar.${operationalTail}`;
+    return `${summary} ${rankingPrep.candidates.length} roles reached final review, but none felt strong enough to surface in the feed.${operationalTail}`;
   }
 
   const strongCount = rankingResult.items.filter((item) => item.fitLabel === 'strong').length;
@@ -1061,13 +1061,13 @@ function buildWorkflowResultSummary(
 
   switch (rankingResult.status) {
     case 'completed_llm':
-      return `${summary} ${rankingResult.items.length} jobs were AI-ranked for the feed (${strongCount} Strong, ${goodCount} Good).${operationalTail}`;
+      return `${summary} ${rankingResult.items.length} jobs made the feed (${strongCount} Strong, ${goodCount} Good).${operationalTail}`;
     case 'completed_deterministic':
-      return `${summary} ${rankingResult.items.length} jobs were ranked with deterministic Strong/Good labels because the LLM step is not configured here.${operationalTail}`;
+      return `${summary} ${rankingResult.items.length} jobs made the feed (${strongCount} Strong, ${goodCount} Good).${operationalTail}`;
     case 'llm_failed_fallback':
-      return `${summary} ${rankingResult.items.length} jobs were ranked with deterministic Strong/Good fallback after the LLM step failed.${operationalTail}`;
+      return `${summary} ${rankingResult.items.length} jobs still made the feed after the fallback ranking path ran (${strongCount} Strong, ${goodCount} Good).${operationalTail}`;
     default:
-      return `${summary} ${rankingResult.items.length} jobs were ranked for the feed (${strongCount} Strong, ${goodCount} Good).${operationalTail}`;
+      return `${summary} ${rankingResult.items.length} jobs made the feed (${strongCount} Strong, ${goodCount} Good).${operationalTail}`;
   }
 }
 
@@ -1082,7 +1082,7 @@ function buildWorkflowOperationalTail(ingestion: {
   }
 
   if (ingestion.duplicateCount > 0) {
-    notes.push(`${ingestion.duplicateCount} duplicate observations were collapsed into canonical records`);
+    notes.push(`${ingestion.duplicateCount} duplicate job observations were removed during cleanup`);
   }
 
   if (notes.length === 0) {
