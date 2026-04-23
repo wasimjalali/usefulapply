@@ -6,6 +6,8 @@ export type JobFeedOverviewState =
   | 'paused'
   | 'awaiting_first_run'
   | 'generating'
+  | 'ready'
+  | 'thin_feed'
   | 'empty'
   | 'error';
 
@@ -17,6 +19,7 @@ export interface JobFeedOverviewResponse {
   canAccess: boolean;
   settings: JobFeedSettings | null;
   latestRun: JobFeedRun | null;
+  jobs: JobFeedFeedItem[];
   state: JobFeedOverviewState;
   foundationMode: boolean;
 }
@@ -59,6 +62,30 @@ export interface JobFeedJobPreview {
   employmentType: JobFeedCanonicalJob['employment_type'];
   freshnessDays: number | null;
   applyUrl: string | null;
+}
+
+export interface JobFeedApplyOption {
+  title: string;
+  link: string;
+}
+
+export interface JobFeedFeedItem {
+  id: string;
+  title: string;
+  company: string;
+  location: string | null;
+  workMode: JobFeedCanonicalWorkMode;
+  employmentType: JobFeedCanonicalJob['employment_type'];
+  salaryText: string | null;
+  description: string | null;
+  applyUrl: string | null;
+  sourceUrl: string | null;
+  via: string | null;
+  freshnessDays: number | null;
+  postedAtText: string | null;
+  fitLabel: JobFeedFitLabel | null;
+  pipelineStage: 'shortlisted' | 'ranked';
+  applyOptions: JobFeedApplyOption[];
 }
 
 export interface JobFeedIngestionFailure {

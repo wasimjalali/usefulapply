@@ -5,6 +5,7 @@ import {
   JOB_FEED_MARKET_OPTIONS,
   JOB_FEED_REMOTE_PREFERENCE_OPTIONS,
   JOB_FEED_SENIORITY_OPTIONS,
+  JOB_FEED_VISIBLE_DEFAULT_COUNT,
   JOB_FEED_WORK_AUTH_OPTIONS,
   PREMIUM_JOB_FEED_TIERS,
 } from '@/lib/job-feed/constants';
@@ -78,8 +79,9 @@ export function getJobFeedOverviewState(params: {
   canAccess: boolean;
   settings: JobFeedSettings | null;
   latestRun: JobFeedRun | null;
+  jobsCount?: number;
 }): JobFeedOverviewState {
-  const { canAccess, settings, latestRun } = params;
+  const { canAccess, settings, latestRun, jobsCount = 0 } = params;
 
   if (!canAccess) return 'upgrade_required';
   if (!isJobFeedConfigured(settings)) return 'setup_required';
@@ -88,8 +90,10 @@ export function getJobFeedOverviewState(params: {
   if (!latestRun) return 'awaiting_first_run';
   if (latestRun.status === 'queued' || latestRun.status === 'running') return 'generating';
   if (latestRun.status === 'failed') return 'error';
+  if (jobsCount === 0) return 'empty';
+  if (jobsCount < JOB_FEED_VISIBLE_DEFAULT_COUNT) return 'thin_feed';
+  return 'ready';
 
-  return 'empty';
 }
 
 export function createDefaultJobFeedInput(timeZone?: string): JobFeedSettingsInput {

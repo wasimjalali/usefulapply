@@ -1,7 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/admin';
-import type { JobFeedRun, JobFeedSettings, Json } from '@/lib/supabase/types';
+import type { JobFeedCanonicalJob, JobFeedRun, JobFeedSettings, Json } from '@/lib/supabase/types';
 import { canAccessJobFeed, getLocalDateKey, getTimeZoneParts, isJobFeedConfigured } from '@/lib/job-feed/helpers';
 import type {
+  JobFeedFeedItem,
   JobFeedPrefilterResult,
   JobFeedRankingPrepResult,
   JobFeedRunWorkflowResult,
@@ -69,6 +70,43 @@ export async function getLatestJobFeedRunAdmin(userId: string): Promise<JobFeedR
   return (data ?? null) as JobFeedRun | null;
 }
 
+export async function listLatestJobFeedItemsAdmin(params: {
+  userId: string;
+  latestRun?: JobFeedRun | null;
+}): Promise<JobFeedFeedItem[]> {
+  const candidateRun = params.latestRun ?? await getLatestJobFeedRunAdmin(params.userId);
+  const run = candidateRun?.status === 'completed'
+    ? candidateRun
+    : await getLatestCompletedJobFeedRunAdmin(params.userId);
+  if (!run || run.status !== 'completed') {
+    return [];
+  }
+
+  const jobIds = extractFeedJobIds(run.metadata);
+  if (jobIds.length === 0) {
+    return [];
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+  const { data, error } = await admin
+    .from('job_feed_canonical_jobs')
+    .select('*')
+    .in('id', jobIds);
+
+  if (error) {
+    throw new Error(`Failed to load latest job feed items: ${error.message}`);
+  }
+
+  const rows = (data ?? []) as JobFeedCanonicalJob[];
+  const rowsById = new Map(rows.map((row) => [row.id, row]));
+
+  return jobIds
+    .map((jobId) => rowsById.get(jobId))
+    .filter((job): job is JobFeedCanonicalJob => Boolean(job))
+    .map((job) => toFeedItem(job));
+}
+
 export async function listDueJobFeedUsers(now = new Date()): Promise<DueJobFeedUser[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
   const admin = createAdminClient() as any;
@@ -114,6 +152,25 @@ export async function listDueJobFeedUsers(now = new Date()): Promise<DueJobFeedU
       timeZone: settings.user_timezone,
       deliveryHourLocal: settings.delivery_hour_local,
     }));
+}
+
+async function getLatestCompletedJobFeedRunAdmin(userId: string): Promise<JobFeedRun | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+  const { data, error } = await admin
+    .from('job_feed_runs')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'completed')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to load latest completed job feed run: ${error.message}`);
+  }
+
+  return (data ?? null) as JobFeedRun | null;
 }
 
 export async function runJobFeedFoundationWorkflow(params: {
@@ -346,6 +403,84 @@ function mergeMetadata(existing: Json, patch: Record<string, Json>): Json {
     ...base,
     ...patch,
   };
+}
+
+function extractFeedJobIds(metadata: Json): string[] {
+  const shortlistIds = extractIdsFromPreviewList(readMetadataArray(metadata, 'shortlist_preview_jobs'));
+  if (shortlistIds.length > 0) {
+    return shortlistIds;
+  }
+
+  return extractIdsFromPreviewList(readMetadataArray(metadata, 'ingestion_preview_jobs'));
+}
+
+function readMetadataArray(metadata: Json, key: string): Json[] {
+  if (!isJsonRecord(metadata)) {
+    return [];
+  }
+
+  const value = metadata[key];
+  return Array.isArray(value) ? value : [];
+}
+
+function extractIdsFromPreviewList(items: Json[]): string[] {
+  const ids: string[] = [];
+
+  for (const item of items) {
+    if (!isJsonRecord(item)) continue;
+
+    const value = item.id;
+    if (typeof value !== 'string' || value.length === 0) continue;
+    ids.push(value);
+  }
+
+  return ids;
+}
+
+function toFeedItem(job: JobFeedCanonicalJob): JobFeedFeedItem {
+  const sourceIdentifiers = isJsonRecord(job.source_identifiers) ? job.source_identifiers : {};
+
+  return {
+    id: job.id,
+    title: job.title,
+    company: job.company,
+    location: job.location_text,
+    workMode: job.work_mode,
+    employmentType: job.employment_type,
+    salaryText: job.salary_text,
+    description: job.description,
+    applyUrl: job.apply_url,
+    sourceUrl: job.source_url,
+    via: typeof sourceIdentifiers.via === 'string' ? sourceIdentifiers.via : null,
+    freshnessDays: job.freshness_days,
+    postedAtText: job.posted_at_text,
+    fitLabel: null,
+    pipelineStage: 'shortlisted',
+    applyOptions: extractApplyOptions(sourceIdentifiers.apply_options),
+  };
+}
+
+function extractApplyOptions(value: Json | undefined): JobFeedFeedItem['applyOptions'] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const options: JobFeedFeedItem['applyOptions'] = [];
+  for (const item of value) {
+    if (!isJsonRecord(item)) continue;
+
+    const title = typeof item.title === 'string' ? item.title.trim() : '';
+    const link = typeof item.link === 'string' ? item.link.trim() : '';
+    if (!title || !link) continue;
+
+    options.push({ title, link });
+  }
+
+  return options;
+}
+
+function isJsonRecord(value: Json): value is Record<string, Json> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function buildWorkflowResultSummary(

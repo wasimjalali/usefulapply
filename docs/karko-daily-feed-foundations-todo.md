@@ -45,8 +45,10 @@ Deliver the current feed foundations slice:
 
 ## Next slice
 
+- [x] Phase 5 foundation: expose real shortlisted jobs through the feed API and panel
 - [ ] Apply the new Supabase migration in the target environment
-- [ ] Replace the temporary scheduler shim with real Inngest functions once dependency install is available
+- [ ] Phase 6: wire real Apply with Karko AI handoff plus saved/dismissed/applied feedback events
+- [ ] Finish the Strong/Good ranking pass on top of the deterministic shortlist
 - [ ] Call the LLM ranking stage on the deterministic shortlist
-- [ ] Materialize ranked feed items and the first read API for real jobs
-- [ ] Hook the real ranked feed into the visible Job Feed panel
+- [ ] Replace the temporary scheduler shim with real Inngest functions once dependency install is available
+- [ ] Materialize ranked feed items once the ranking stage is live

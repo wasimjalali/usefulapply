@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { canAccessJobFeed, getJobFeedOverviewState } from '@/lib/job-feed/helpers';
+import { listLatestJobFeedItemsAdmin } from '@/lib/job-feed/server';
 
 export const runtime = 'nodejs';
 
@@ -32,6 +33,7 @@ export async function GET() {
         canAccess: false,
         settings: null,
         latestRun: null,
+        jobs: [],
         state: 'upgrade_required',
         foundationMode: true,
       });
@@ -60,14 +62,23 @@ export async function GET() {
       return NextResponse.json({ error: runError.message }, { status: 500 });
     }
 
+    const jobs = latestRun
+      ? await listLatestJobFeedItemsAdmin({
+          userId: user.id,
+          latestRun: latestRun ?? null,
+        })
+      : [];
+
     return NextResponse.json({
       canAccess,
       settings: settings ?? null,
       latestRun: latestRun ?? null,
+      jobs,
       state: getJobFeedOverviewState({
         canAccess,
         settings: settings ?? null,
         latestRun: latestRun ?? null,
+        jobsCount: jobs.length,
       }),
       foundationMode: true,
     });

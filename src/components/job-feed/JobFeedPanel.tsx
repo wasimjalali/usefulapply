@@ -6,10 +6,16 @@ import { usePostHog } from 'posthog-js/react';
 import {
   AlertCircle,
   ArrowRight,
+  Building2,
   Briefcase,
+  Calendar,
   CalendarClock,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Clock3,
+  DollarSign,
+  ExternalLink,
   Globe,
   Loader2,
   MapPin,
@@ -19,6 +25,7 @@ import {
   ShieldCheck,
   Sparkles,
   Wand2,
+  X,
   Zap,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,11 +41,17 @@ import {
   JOB_FEED_SUGGESTED_LANGUAGES,
   JOB_FEED_SUGGESTED_LOCATIONS,
   JOB_FEED_SUGGESTED_ROLES,
+  JOB_FEED_VISIBLE_DEFAULT_COUNT,
+  JOB_FEED_VISIBLE_MAX_COUNT,
   JOB_FEED_WORK_AUTH_OPTIONS,
   formatDeliveryHourLabel,
 } from '@/lib/job-feed/constants';
 import { createDefaultJobFeedInput, toJobFeedInput } from '@/lib/job-feed/helpers';
-import type { JobFeedOverviewResponse, JobFeedSettingsInput } from '@/lib/job-feed/types';
+import type {
+  JobFeedFeedItem,
+  JobFeedOverviewResponse,
+  JobFeedSettingsInput,
+} from '@/lib/job-feed/types';
 
 type SaveState = 'idle' | 'saving';
 
@@ -52,6 +65,8 @@ export function JobFeedPanel() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isRunningDebugFlow, setIsRunningDebugFlow] = useState(false);
+  const [isShowingAllJobs, setIsShowingAllJobs] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<JobFeedFeedItem | null>(null);
   const [form, setForm] = useState<JobFeedSettingsInput>(() => createDefaultJobFeedInput(getBrowserTimeZone()));
   const lastTrackedState = useRef<string | null>(null);
 
@@ -113,6 +128,10 @@ export function JobFeedPanel() {
       foundation_mode: true,
     });
   }, [overview?.state, posthog]);
+
+  useEffect(() => {
+    setIsShowingAllJobs(false);
+  }, [overview?.latestRun?.id]);
 
   const handleSave = async () => {
     setSaveState('saving');
@@ -239,6 +258,29 @@ export function JobFeedPanel() {
                 onRefresh={() => loadOverview({ quiet: true })}
                 isRefreshing={isRefreshing}
               />
+            )}
+
+            {!isLoading && overview?.jobs && overview.jobs.length > 0 && (
+              <FeedResultsCard
+                overview={overview}
+                jobs={overview.jobs}
+                isShowingAllJobs={isShowingAllJobs}
+                onToggleShowAll={() => setIsShowingAllJobs((prev) => !prev)}
+                onOpenDetails={setSelectedJob}
+                onApplyWithKarko={() => {
+                  toast.info('Phase 6 will wire real Apply with Karko AI handoff. For now, open the job details or apply externally.');
+                }}
+                onSave={() => {
+                  toast.info('Save and dismiss feedback actions land in Phase 6. The Phase 5 goal here is to expose the real feed and detail view.');
+                }}
+                onDismiss={() => {
+                  toast.info('Dismiss actions land in Phase 6. The Phase 5 goal here is to expose the real feed and detail view.');
+                }}
+              />
+            )}
+
+            {!isLoading && overview?.state === 'empty' && (
+              <EmptyFeedCard onEditSettings={() => setIsEditing(true)} />
             )}
 
             {setupOpen && (
@@ -450,7 +492,7 @@ export function JobFeedPanel() {
 
                   <div className="flex flex-col gap-3 border-t border-cream-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-warm-gray">
-                      This milestone now covers settings, scheduling, raw/canonical ingestion, and deterministic shortlist prep. LLM ranking and feed materialization come next.
+                      This milestone now covers settings, scheduling, ingestion, deterministic shortlist prep, and a real feed read/display layer. LLM ranking and apply handoff come next.
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <Button variant="outline" onClick={() => loadOverview({ quiet: true })} disabled={isRefreshing}>
@@ -500,6 +542,7 @@ export function JobFeedPanel() {
                 <MilestoneStep title="Phase 2" body="Track durable per-user daily runs so the scheduler and later Inngest workflow have a real operational foundation." />
                 <MilestoneStep title="Phase 3" body="Persist raw SerpApi fetches and normalize deduped canonical jobs so later feed logic has a durable source of truth." />
                 <MilestoneStep title="Phase 4" body="Reject obvious mismatches in code and prepare a deterministic shortlist before any Strong/Good ranking step." />
+                <MilestoneStep title="Phase 5" body="Expose the real shortlist through feed APIs and render honest ready, thin-feed, and detail states inside Job Feed." />
               </div>
             </Card>
 
@@ -508,7 +551,7 @@ export function JobFeedPanel() {
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-600">Developer Check</p>
                 <h2 className="mt-2 text-lg font-semibold text-charcoal">Run the current feed backend pass for this account</h2>
                 <p className="mt-2 text-sm leading-6 text-warm-gray">
-                  This is a debug-only helper to exercise scheduling, ingestion, canonical dedupe, and prefiltering end to end before ranking and feed item materialization are wired in.
+                  This is a debug-only helper to exercise scheduling, ingestion, canonical dedupe, prefiltering, and the real feed read path end to end before ranking and apply handoff are wired in.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button variant="outline" onClick={handleDebugRun} disabled={isRunningDebugFlow}>
@@ -540,6 +583,16 @@ export function JobFeedPanel() {
           </div>
         </div>
       </div>
+
+      {selectedJob && (
+        <JobFeedDetailModal
+          job={selectedJob}
+          onClose={() => setSelectedJob(null)}
+          onApplyWithKarko={() => {
+            toast.info('Phase 6 will wire real Apply with Karko AI handoff. For now, use the external apply path here in the detail view.');
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -590,14 +643,26 @@ function PrimaryStateCard({
     generating: {
       icon: Loader2,
       title: 'A feed run is in progress',
-      body: 'The backend workflow is currently fetching and shaping candidate jobs for this user. Ranking and materialized feed items land in the next milestone.',
+      body: 'The backend workflow is currently fetching and shaping today’s shortlist. Once it finishes, the latest jobs will appear here automatically.',
+      tone: 'from-navy-50 to-white border-navy-200 text-charcoal',
+    },
+    ready: {
+      icon: CheckCircle2,
+      title: 'Today’s feed is ready',
+      body: latestRun?.result_summary || 'Karko found a solid shortlist for today. Open details, scan the strongest jobs first, and decide what to pursue.',
+      tone: 'from-emerald-50 to-white border-emerald-200 text-charcoal',
+    },
+    thin_feed: {
+      icon: CheckCircle2,
+      title: 'Today’s feed is ready, but a bit thin',
+      body: latestRun?.result_summary || 'A smaller shortlist survived the current filters. You can review it here or widen the settings if you want more volume.',
       tone: 'from-navy-50 to-white border-navy-200 text-charcoal',
     },
     empty: {
-      icon: CheckCircle2,
-      title: 'The latest backend run completed',
-      body: latestRun?.result_summary || 'Settings, ingestion, and shortlist prep are active. Ranked feed items land in the next milestone.',
-      tone: 'from-emerald-50 to-white border-emerald-200 text-charcoal',
+      icon: AlertCircle,
+      title: 'No jobs made today’s shortlist',
+      body: latestRun?.result_summary || 'The feed ran successfully, but nothing survived the current filters closely enough to show here.',
+      tone: 'from-cream-100 to-white border-cream-300 text-charcoal',
     },
     error: {
       icon: AlertCircle,
@@ -643,6 +708,389 @@ function PrimaryStateCard({
         </div>
       </div>
     </Card>
+  );
+}
+
+function FeedResultsCard({
+  overview,
+  jobs,
+  isShowingAllJobs,
+  onToggleShowAll,
+  onOpenDetails,
+  onApplyWithKarko,
+  onSave,
+  onDismiss,
+}: {
+  overview: JobFeedOverviewResponse;
+  jobs: JobFeedFeedItem[];
+  isShowingAllJobs: boolean;
+  onToggleShowAll: () => void;
+  onOpenDetails: (job: JobFeedFeedItem) => void;
+  onApplyWithKarko: (job: JobFeedFeedItem) => void;
+  onSave: (job: JobFeedFeedItem) => void;
+  onDismiss: (job: JobFeedFeedItem) => void;
+}) {
+  const visibleCount = isShowingAllJobs ? JOB_FEED_VISIBLE_MAX_COUNT : JOB_FEED_VISIBLE_DEFAULT_COUNT;
+  const visibleJobs = jobs.slice(0, visibleCount);
+  const hasMore = jobs.length > JOB_FEED_VISIBLE_DEFAULT_COUNT;
+
+  return (
+    <Card className="rounded-[24px] border-cream-200 bg-white/92 p-6 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">Today&apos;s Feed</p>
+          <h2 className="mt-2 text-xl font-semibold text-charcoal">
+            {overview.state === 'thin_feed' ? 'A smaller shortlist still made the cut' : 'Karko prepared a shortlist for you'}
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-warm-gray">
+            Showing {visibleJobs.length} of {jobs.length} shortlisted jobs from the latest completed run. The real Strong/Good ranking layer lands next.
+          </p>
+        </div>
+
+        {hasMore && (
+          <Button variant="outline" size="sm" onClick={onToggleShowAll}>
+            {isShowingAllJobs ? <ChevronUp className="mr-2 h-4 w-4" /> : <ChevronDown className="mr-2 h-4 w-4" />}
+            {isShowingAllJobs ? 'Show top 5' : `Show all ${Math.min(jobs.length, JOB_FEED_VISIBLE_MAX_COUNT)}`}
+          </Button>
+        )}
+      </div>
+
+      <div className="mt-5 space-y-4">
+        {visibleJobs.map((job, index) => (
+          <JobFeedCard
+            key={job.id}
+            job={job}
+            highlightIndex={index}
+            onOpenDetails={() => onOpenDetails(job)}
+            onApplyWithKarko={() => onApplyWithKarko(job)}
+            onSave={() => onSave(job)}
+            onDismiss={() => onDismiss(job)}
+          />
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function EmptyFeedCard({
+  onEditSettings,
+}: {
+  onEditSettings: () => void;
+}) {
+  return (
+    <Card className="rounded-[24px] border-cream-200 bg-white/92 p-6 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">No Shortlist Yet</p>
+      <h2 className="mt-2 text-xl font-semibold text-charcoal">Nothing survived today&apos;s filters closely enough to show</h2>
+      <p className="mt-2 text-sm leading-6 text-warm-gray">
+        The run succeeded, but the current role, location, salary, or authorization rules were probably too tight for today&apos;s market. Widening one or two settings usually helps.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button variant="gold" onClick={onEditSettings}>
+          Adjust settings
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+function JobFeedCard({
+  job,
+  highlightIndex,
+  onOpenDetails,
+  onApplyWithKarko,
+  onSave,
+  onDismiss,
+}: {
+  job: JobFeedFeedItem;
+  highlightIndex: number;
+  onOpenDetails: () => void;
+  onApplyWithKarko: () => void;
+  onSave: () => void;
+  onDismiss: () => void;
+}) {
+  const directApplyLink = job.applyUrl || job.sourceUrl;
+
+  return (
+    <div className="rounded-[24px] border border-cream-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,244,234,0.82))] p-5 shadow-sm">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-navy-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-navy-700">
+              #{highlightIndex + 1}
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+              {job.fitLabel ? fitLabelText(job.fitLabel) : 'Shortlisted'}
+            </span>
+            {job.pipelineStage === 'shortlisted' && (
+              <span className="inline-flex items-center gap-2 rounded-full border border-cream-300 bg-cream-50 px-3 py-1 text-xs font-medium text-warm-gray">
+                Ranking pending
+              </span>
+            )}
+          </div>
+
+          <h3 className="mt-3 text-xl font-semibold text-charcoal">{job.title}</h3>
+          <p className="mt-1 text-base text-warm-gray">{job.company}</p>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <MetaPill icon={MapPin} label={job.location || 'Location not specified'} />
+            <MetaPill icon={Globe} label={workModeLabel(job.workMode)} />
+            {job.salaryText && <MetaPill icon={DollarSign} label={job.salaryText} tone="emerald" />}
+            {job.employmentType && <MetaPill icon={Briefcase} label={employmentTypeLabel(job.employmentType)} />}
+            {job.postedAtText && <MetaPill icon={Calendar} label={job.postedAtText} />}
+          </div>
+
+          {job.via && (
+            <p className="mt-3 text-xs text-warm-gray">via {job.via}</p>
+          )}
+
+          {job.description && (
+            <p className="mt-3 text-sm leading-6 text-charcoal/85 line-clamp-3">
+              {job.description.replace(/\s+/g, ' ').trim()}
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-2 lg:w-[220px]">
+          <Button variant="gold" onClick={onApplyWithKarko}>
+            Apply with Karko AI
+          </Button>
+          <Button variant="outline" onClick={onOpenDetails}>
+            See details
+          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="ghost" size="sm" onClick={onSave}>
+              Save
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onDismiss}>
+              Dismiss
+            </Button>
+          </div>
+          {directApplyLink && (
+            <a
+              href={directApplyLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-transparent px-4 py-2 text-sm font-medium text-navy-600 transition-colors hover:bg-navy-50"
+            >
+              External apply
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function JobFeedDetailModal({
+  job,
+  onClose,
+  onApplyWithKarko,
+}: {
+  job: JobFeedFeedItem;
+  onClose: () => void;
+  onApplyWithKarko: () => void;
+}) {
+  const directApplyLink = job.applyUrl || job.sourceUrl;
+
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 md:p-6" onClick={onClose}>
+      <div
+        className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start gap-4 border-b border-cream-200 bg-cream-50 px-6 py-5">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-cream-200 bg-white text-navy-600">
+            <Building2 className="h-8 w-8" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                {job.fitLabel ? fitLabelText(job.fitLabel) : 'Shortlisted'}
+              </span>
+              {job.pipelineStage === 'shortlisted' && (
+                <span className="inline-flex items-center gap-2 rounded-full border border-cream-300 bg-white px-3 py-1 text-xs text-warm-gray">
+                  Ranking pending
+                </span>
+              )}
+            </div>
+            <h2 className="mt-3 text-2xl font-semibold text-charcoal">{job.title}</h2>
+            <p className="mt-1 text-lg text-warm-gray">{job.company}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-warm-gray transition-colors hover:bg-cream-100 hover:text-charcoal"
+            aria-label="Close job details"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-auto px-6 py-6">
+          <div className="mb-6 flex flex-wrap gap-3">
+            <MetaPill icon={MapPin} label={job.location || 'Location not specified'} />
+            <MetaPill icon={Globe} label={workModeLabel(job.workMode)} />
+            {job.salaryText && <MetaPill icon={DollarSign} label={job.salaryText} tone="emerald" />}
+            {job.employmentType && <MetaPill icon={Briefcase} label={employmentTypeLabel(job.employmentType)} />}
+            {job.postedAtText && <MetaPill icon={Calendar} label={job.postedAtText} />}
+          </div>
+
+          {job.via && (
+            <p className="mb-6 text-sm text-warm-gray">via {job.via}</p>
+          )}
+
+          {job.description ? (
+            <div className="mb-6">
+              <h3 className="mb-3 text-base font-semibold text-charcoal">Job Description</h3>
+              <div className="text-sm leading-7 text-charcoal/90">
+                <JobFeedDescription text={job.description} />
+              </div>
+            </div>
+          ) : (
+            <div className="mb-6 rounded-2xl border border-cream-200 bg-cream-50 px-4 py-4 text-sm text-warm-gray">
+              The provider did not include a full description for this job.
+            </div>
+          )}
+
+          {job.applyOptions.length > 0 && (
+            <div>
+              <h3 className="mb-3 text-base font-semibold text-charcoal">Apply via</h3>
+              <div className="flex flex-wrap gap-2">
+                {job.applyOptions.map((option) => (
+                  <a
+                    key={`${option.title}-${option.link}`}
+                    href={option.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg bg-navy-50 px-4 py-2 text-sm text-navy-700 transition-colors hover:bg-navy-100"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    {option.title}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-3 border-t border-cream-200 bg-cream-50 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-warm-gray">
+            Use the detail view to verify the role first, then decide whether to continue in Karko or on the external application page.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {directApplyLink && (
+              <a
+                href={directApplyLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-navy-700 transition-colors hover:bg-navy-100"
+              >
+                Direct external apply
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            )}
+            <Button variant="gold" onClick={onApplyWithKarko}>
+              Apply with Karko AI
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function JobFeedDescription({ text }: { text: string }) {
+  const lines = text.split(/\n/).map((line) => line.trimEnd());
+  const elements: React.ReactNode[] = [];
+  let currentList: string[] = [];
+
+  const flushList = () => {
+    if (currentList.length === 0) return;
+
+    elements.push(
+      <ul key={`list-${elements.length}`} className="my-2 ml-1 space-y-1.5">
+        {currentList.map((item, index) => (
+          <li key={index} className="flex items-start gap-2">
+            <span className="mt-0.5 flex-shrink-0 text-navy-500">•</span>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    );
+    currentList = [];
+  };
+
+  for (const line of lines) {
+    if (!line.trim()) {
+      flushList();
+      continue;
+    }
+
+    const bulletMatch = line.match(/^\s*[•\-*►●○■▪–·]\s*(.+)/);
+    if (bulletMatch) {
+      currentList.push(bulletMatch[1].trim());
+      continue;
+    }
+
+    const trimmed = line.trim();
+    const isHeader = (
+      (trimmed.endsWith(':') && trimmed.length < 80) ||
+      (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && trimmed.length < 80 && /[A-Z]/.test(trimmed))
+    );
+
+    if (isHeader) {
+      flushList();
+      elements.push(
+        <h4 key={`heading-${elements.length}`} className="mb-1.5 mt-4 font-semibold text-charcoal">
+          {trimmed}
+        </h4>
+      );
+      continue;
+    }
+
+    flushList();
+    elements.push(
+      <p key={`paragraph-${elements.length}`} className="mb-2">
+        {trimmed}
+      </p>
+    );
+  }
+
+  flushList();
+
+  return <div className="space-y-0.5">{elements}</div>;
+}
+
+function MetaPill({
+  icon: Icon,
+  label,
+  tone = 'default',
+}: {
+  icon: typeof MapPin;
+  label: string;
+  tone?: 'default' | 'emerald';
+}) {
+  const classes = tone === 'emerald'
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+    : 'border-cream-200 bg-cream-50 text-charcoal';
+
+  return (
+    <span className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${classes}`}>
+      <Icon className={`h-4 w-4 ${tone === 'emerald' ? 'text-emerald-600' : 'text-warm-gray'}`} />
+      {label}
+    </span>
   );
 }
 
@@ -960,9 +1408,47 @@ function readableState(value: string): string {
       return 'Awaiting first run';
     case 'upgrade_required':
       return 'Upgrade required';
+    case 'ready':
+      return 'Ready';
+    case 'thin_feed':
+      return 'Thin feed';
     default:
       return value.replace(/_/g, ' ');
   }
+}
+
+function workModeLabel(value: JobFeedFeedItem['workMode']): string {
+  switch (value) {
+    case 'remote':
+      return 'Remote';
+    case 'hybrid':
+      return 'Hybrid';
+    case 'onsite':
+      return 'On-site';
+    default:
+      return 'Work mode unknown';
+  }
+}
+
+function employmentTypeLabel(value: NonNullable<JobFeedFeedItem['employmentType']>): string {
+  switch (value) {
+    case 'full_time':
+      return 'Full-time';
+    case 'part_time':
+      return 'Part-time';
+    case 'contract':
+      return 'Contract';
+    case 'internship':
+      return 'Internship';
+    case 'temporary':
+      return 'Temporary';
+    default:
+      return 'Other';
+  }
+}
+
+function fitLabelText(value: NonNullable<JobFeedFeedItem['fitLabel']>): string {
+  return value === 'strong' ? 'Strong' : 'Good';
 }
 
 function getBrowserTimeZone(): string {
