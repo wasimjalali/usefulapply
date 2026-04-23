@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useAppStore } from '@/store/useAppStore';
-import { Mail, Download, Copy, Check, RefreshCw, ChevronDown, FileText, File, Edit3 } from 'lucide-react';
+import { Mail, Download, Copy, Check, RefreshCw, FileText, Edit3 } from 'lucide-react';
 import type { GeneratedCoverLetter } from '@/lib/types';
 import { jsPDF } from 'jspdf';
 import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
@@ -32,11 +32,9 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   
   const [copied, setCopied] = useState(false);
   const [isLoadingCoverLetter, setIsLoadingCoverLetter] = useState(false);
-  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadFormat, setDownloadFormat] = useState<'pdf' | 'docx' | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedCoverLetter, setEditedCoverLetter] = useState<GeneratedCoverLetter | null>(null);
-  const downloadMenuRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   // Check if cover letter still contains any address placeholder (old or new format)
@@ -54,17 +52,6 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coverLetter]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (downloadMenuRef.current && !downloadMenuRef.current.contains(event.target as Node)) {
-        setShowDownloadMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const formatCoverLetterAsText = (letter: GeneratedCoverLetter) => {
     // If body contains the full letter (3-agent architecture), return it directly
@@ -112,15 +99,13 @@ ${letter.signatureName}`;
     // Gate: Anonymous users must sign up to download
     if (!user) {
       setShowSignUpWall(true);
-      setShowDownloadMenu(false);
       return;
     }
     const letterToDownload = editedCoverLetter || coverLetter;
     if (!letterToDownload) return;
     const showAddressReminder = hasAddressPlaceholder();
     
-    setIsDownloading(true);
-    setShowDownloadMenu(false);
+    setDownloadFormat('pdf');
     
     try {
       const sanitize = (s: string) => s.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
@@ -256,7 +241,7 @@ ${letter.signatureName}`;
       console.error('PDF generation error:', error);
       toast.error('Failed to download PDF. Try copying the text instead.');
     } finally {
-      setIsDownloading(false);
+      setDownloadFormat(null);
     }
   };
 
@@ -264,15 +249,13 @@ ${letter.signatureName}`;
     // Gate: Anonymous users must sign up to download
     if (!user) {
       setShowSignUpWall(true);
-      setShowDownloadMenu(false);
       return;
     }
     const letterToDownload = editedCoverLetter || coverLetter;
     if (!letterToDownload) return;
     const showAddressReminder = hasAddressPlaceholder();
     
-    setIsDownloading(true);
-    setShowDownloadMenu(false);
+    setDownloadFormat('docx');
     
     try {
       const sanitize = (s: string) => s.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
@@ -369,7 +352,7 @@ ${letter.signatureName}`;
       console.error('DOCX generation error:', error);
       toast.error('Failed to download DOCX. Try copying the text instead.');
     } finally {
-      setIsDownloading(false);
+      setDownloadFormat(null);
     }
   };
 
@@ -594,44 +577,32 @@ ${letter.signatureName}`;
         </>
       )}
 
-      {/* Download Dropdown (view mode) */}
+      {/* Download actions (view mode) */}
       {!isEditMode && (
-        <div className="relative flex-shrink-0" ref={downloadMenuRef}>
+        <>
           <Button
             variant="primary"
             size="sm"
-            onClick={() => setShowDownloadMenu(!showDownloadMenu)}
-            disabled={isDownloading}
-            className="rounded-[20px] shadow-sm"
+            onClick={handleDownloadPDF}
+            isLoading={downloadFormat === 'pdf'}
+            disabled={downloadFormat !== null}
+            className="flex-shrink-0 rounded-[20px] shadow-sm"
           >
-            {isDownloading ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-1" />
-            ) : (
-              <Download className="w-4 h-4 mr-1" />
-            )}
-            <span>Download</span>
-            <ChevronDown className="w-3 h-3 ml-1" />
+            {downloadFormat !== 'pdf' && <Download className="w-4 h-4 mr-1" />}
+            <span>Download PDF</span>
           </Button>
-
-          {showDownloadMenu && (
-            <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-cream-200 py-1 z-50">
-              <button
-                onClick={handleDownloadPDF}
-                className="w-full px-4 py-2 text-left text-sm text-charcoal hover:bg-cream-100 flex items-center gap-2 cursor-pointer"
-              >
-                <FileText className="w-4 h-4 text-red-500" />
-                Download as PDF
-              </button>
-              <button
-                onClick={handleDownloadDOCX}
-                className="w-full px-4 py-2 text-left text-sm text-charcoal hover:bg-cream-100 flex items-center gap-2 cursor-pointer"
-              >
-                <File className="w-4 h-4 text-blue-500" />
-                Download as DOCX
-              </button>
-            </div>
-          )}
-        </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadDOCX}
+            isLoading={downloadFormat === 'docx'}
+            disabled={downloadFormat !== null}
+            className="flex-shrink-0 rounded-[20px] bg-white shadow-sm"
+          >
+            {downloadFormat !== 'docx' && <FileText className="w-4 h-4 mr-1" />}
+            <span>Download DOCX</span>
+          </Button>
+        </>
       )}
     </>
   );
