@@ -158,6 +158,34 @@ function DashboardProfileMenu({ profile, onSignOut }: DashboardProfileMenuProps)
   );
 }
 
+function DashboardUpgradeButton({
+  tier,
+  mobile = false,
+}: {
+  tier: 'plus' | 'max';
+  mobile?: boolean;
+}) {
+  const isPlus = tier === 'plus';
+
+  return (
+    <Link
+      href="/pricing"
+      aria-label={mobile ? (isPlus ? 'Upgrade to Plus' : 'Upgrade to Max') : undefined}
+      className={[
+        'inline-flex shrink-0 items-center justify-center whitespace-nowrap font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md',
+        mobile
+          ? 'h-8 gap-1.5 rounded-full px-3 text-xs mr-1.5'
+          : 'h-11 gap-2 rounded-full px-4 text-sm mr-2',
+        isPlus
+          ? 'border border-gold-300/70 bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600'
+          : 'border border-navy-500/70 bg-gradient-to-r from-navy-600 to-navy-700 hover:from-navy-700 hover:to-navy-800',
+      ].join(' ')}
+    >
+      {mobile ? (isPlus ? 'Upgrade' : 'Go Max') : isPlus ? 'Upgrade to Plus' : 'Upgrade to Max'}
+      <ArrowUpRight className={mobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} />
+    </Link>
+  );
+}
 export default function Dashboard() {
   const router = useRouter();
   const {
@@ -529,22 +557,10 @@ export default function Dashboard() {
 
         {/* Upgrade CTA — shown for free and plus plans */}
         {user && profile && (profile.subscription_tier === 'free' || profile.subscription_tier === 'starter') && (
-          <Link
-            href="/pricing"
-            className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-white bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 rounded-lg transition-all shadow-sm hover:shadow-md mr-2"
-          >
-            Upgrade to Plus
-            <ArrowUpRight className="w-3 h-3" />
-          </Link>
+          <DashboardUpgradeButton tier="plus" />
         )}
         {user && profile?.subscription_tier === 'plus' && (
-          <Link
-            href="/pricing"
-            className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-white bg-gradient-to-r from-navy-600 to-navy-700 hover:from-navy-700 hover:to-navy-800 rounded-lg transition-all shadow-sm hover:shadow-md mr-2"
-          >
-            Upgrade to Max
-            <ArrowUpRight className="w-3 h-3" />
-          </Link>
+          <DashboardUpgradeButton tier="max" />
         )}
 
         {/* Credit Indicator */}
