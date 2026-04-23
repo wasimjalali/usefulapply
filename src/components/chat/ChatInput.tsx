@@ -22,6 +22,8 @@ interface ChatInputProps {
   /** Show screening question CTA buttons after application generation */
   pendingScreeningPrompt?: boolean;
   onScreeningAction?: (action: 'screening' | 'skip') => void;
+  /** Embedded composer style for docked desktop panels */
+  surface?: 'floating' | 'embedded';
 }
 
 export function ChatInput({
@@ -40,6 +42,7 @@ export function ChatInput({
   compact = false,
   pendingScreeningPrompt = false,
   onScreeningAction,
+  surface = 'floating',
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
@@ -88,151 +91,248 @@ export function ChatInput({
     }
   };
 
+  const isEmbedded = surface === 'embedded';
+  const showModeOptions = showModeSelector && !compact && !pendingFitAnalysis && !value.trim() && !isWorking;
+  const modeButtonBase = isEmbedded
+    ? 'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all cursor-pointer'
+    : 'flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg transition-all cursor-pointer';
+  const suggestionButtonBase =
+    'flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium transition-all cursor-pointer';
+  const inputShellClassName = isEmbedded
+    ? `relative rounded-[22px] border bg-white transition-all duration-200 ${
+        isWorking
+          ? 'border-gold-400 shadow-[0_18px_34px_-28px_rgba(212,175,55,0.45)]'
+          : 'border-cream-200 shadow-[0_16px_30px_-28px_rgba(30,58,95,0.24)] focus-within:border-gold-300'
+      }`
+    : `relative glass-input ${compact ? 'rounded-2xl' : 'rounded-3xl'} border-2 shadow-lg overflow-hidden transition-all duration-200 ${
+        isWorking
+          ? 'border-gold-400 shadow-gold-200/50'
+          : 'border-gold-300/60 shadow-gold-100/40 focus-within:border-gold-400 focus-within:shadow-gold-200/50'
+      }`;
+
   return (
-    <div className={`${compact ? 'p-2' : 'p-4'} bg-gradient-to-t from-cream-100/80 to-transparent backdrop-blur-sm`}>
+    <div className={`${isEmbedded ? 'p-0 bg-transparent' : `${compact ? 'p-2' : 'p-4'} bg-gradient-to-t from-cream-100/80 to-transparent backdrop-blur-sm`}`}>
       <div className="relative">
         {/* Hover tooltips - rendered OUTSIDE the overflow-hidden container */}
-        {hoveredMode === 'apply_directly' && showModeSelector && !compact && !pendingFitAnalysis && !value.trim() && !isWorking && (
+        {hoveredMode === 'apply_directly' && showModeOptions && (
           <div className="absolute bottom-full left-3 mb-1 w-60 bg-navy-700 text-white text-xs rounded-xl p-3.5 shadow-xl z-50">
             <div className="font-semibold mb-1">Apply Directly</div>
-            <p className="text-navy-200 leading-relaxed">Skips fit analysis and generates your optimized CV, cover letter, and email immediately.</p>
-            <p className="text-navy-300 mt-1.5 italic">Best when you&apos;ve already read the job description and it matches your qualifications.</p>
+            <p className="text-navy-200 leading-relaxed">Generates your optimized CV, cover letter, and email immediately.</p>
+            <p className="text-navy-300 mt-1.5 italic">Best when you already know the role is worth applying to.</p>
             <div className="mt-2 text-gold-400 font-medium">2 credits</div>
             <div className="absolute top-full left-6 w-2.5 h-2.5 bg-navy-700 rotate-45 -mt-1.5" />
           </div>
         )}
-        {hoveredMode === 'analyze_first' && showModeSelector && !compact && !pendingFitAnalysis && !value.trim() && !isWorking && (
+        {hoveredMode === 'analyze_first' && showModeOptions && (
           <div className="absolute bottom-full left-24 mb-1 w-60 bg-navy-700 text-white text-xs rounded-xl p-3.5 shadow-xl z-50">
-            <div className="font-semibold mb-1">Analyze First</div>
-            <p className="text-navy-200 leading-relaxed">Runs a fit analysis to show your match score and skill gaps before generating the full application.</p>
-            <p className="text-navy-300 mt-1.5 italic">Best when you haven&apos;t read the job description yet and want AI to evaluate the fit for you first.</p>
+            <div className="font-semibold mb-1">Analyze Fit First</div>
+            <p className="text-navy-200 leading-relaxed">Checks your match score and main gaps before generating the full application package.</p>
+            <p className="text-navy-300 mt-1.5 italic">Best when you want a quick go / no-go signal before spending full credits.</p>
             <div className="mt-2 text-gold-400 font-medium">0.5 credits (analysis) + 2 credits (application)</div>
             <div className="absolute top-full left-6 w-2.5 h-2.5 bg-navy-700 rotate-45 -mt-1.5" />
           </div>
         )}
 
-        {/* Post-analysis suggested actions — replaces mode selector when fit analysis is complete */}
+        {/* Post-analysis suggested actions — kept lightweight so it reads like chat follow-ups */}
         {pendingFitAnalysis && !isWorking && (
-          <div className="flex items-center gap-2 mb-3">
-            <button
-              onClick={() => onFitAnalysisAction?.('apply')}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold bg-gradient-to-r from-navy-600 to-navy-700 text-white rounded-xl hover:from-navy-700 hover:to-navy-800 transition-all shadow-md hover:shadow-lg cursor-pointer"
-            >
-              <FileText className="w-4 h-4" />
-              Apply for This Job
-            </button>
-            <button
-              onClick={() => onFitAnalysisAction?.('skip')}
-              className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium bg-white text-charcoal border border-cream-300 rounded-xl hover:bg-cream-50 hover:border-gold-300 hover:shadow-sm transition-all cursor-pointer"
-            >
-              <RotateCcw className="w-4 h-4 text-warm-gray" />
-              New Search
-            </button>
+          <div className="mb-3 px-1">
+            <p className="mb-2 text-[11px] font-medium text-warm-gray">Suggested next step</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => onFitAnalysisAction?.('apply')}
+                className={`${suggestionButtonBase} bg-navy-700 text-white shadow-sm hover:bg-navy-800`}
+              >
+                <FileText className="w-4 h-4" />
+                Generate Application Package
+              </button>
+              <button
+                onClick={() => onFitAnalysisAction?.('skip')}
+                className={`${suggestionButtonBase} border border-cream-300 bg-white text-charcoal hover:bg-cream-50 hover:border-gold-300`}
+              >
+                <RotateCcw className="w-4 h-4 text-warm-gray" />
+                Try Another Role
+              </button>
+            </div>
           </div>
         )}
 
         {/* Screening question CTA — shown after application generation */}
         {pendingScreeningPrompt && !isWorking && !pendingFitAnalysis && (
-          <div className="flex items-center gap-2 mb-3">
-            <button
-              onClick={() => onScreeningAction?.('screening')}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold bg-gradient-to-r from-navy-600 to-navy-700 text-white rounded-xl hover:from-navy-700 hover:to-navy-800 transition-all shadow-md hover:shadow-lg cursor-pointer"
-            >
-              <ClipboardList className="w-4 h-4" />
-              Screening Questions
-            </button>
-            <button
-              onClick={() => onScreeningAction?.('skip')}
-              className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium bg-white text-charcoal border border-cream-300 rounded-xl hover:bg-cream-50 hover:border-gold-300 hover:shadow-sm transition-all cursor-pointer"
-            >
-              <X className="w-4 h-4 text-warm-gray" />
-              No, Thanks
-            </button>
+          <div className="mb-3 px-1">
+            <p className="mb-2 text-[11px] font-medium text-warm-gray">Suggested follow-up</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => onScreeningAction?.('screening')}
+                className={`${suggestionButtonBase} bg-navy-700 text-white shadow-sm hover:bg-navy-800`}
+              >
+                <ClipboardList className="w-4 h-4" />
+                Answer Screening Questions
+              </button>
+              <button
+                onClick={() => onScreeningAction?.('skip')}
+                className={`${suggestionButtonBase} border border-cream-300 bg-white text-charcoal hover:bg-cream-50 hover:border-gold-300`}
+              >
+                <X className="w-4 h-4 text-warm-gray" />
+                Skip For Now
+              </button>
+            </div>
           </div>
         )}
 
-        {/* Main input container with gold border */}
-        <div id="tour-mode-selector" className={`relative glass-input ${compact ? 'rounded-2xl' : 'rounded-3xl'} border-2 shadow-lg overflow-hidden transition-all duration-200 ${
-          isWorking
-            ? 'border-gold-400 shadow-gold-200/50'
-            : 'border-gold-300/60 shadow-gold-100/40 focus-within:border-gold-400 focus-within:shadow-gold-200/50'
-        }`}>
-
-          <div className="relative flex flex-col">
-            {/* Mode selector - inside input, hidden when typing or when fit analysis is pending */}
-            {showModeSelector && !compact && !pendingFitAnalysis && !value.trim() && !isWorking && (
-              <div className="flex items-center gap-1.5 px-3 pt-2.5 pb-0">
-                <button
-                  onClick={() => onModeChange?.('apply_directly')}
-                  onMouseEnter={() => setHoveredMode('apply_directly')}
-                  onMouseLeave={() => setHoveredMode(null)}
-                  className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                    applicationMode === 'apply_directly'
-                      ? 'bg-navy-600 text-white'
-                      : 'bg-cream-100 text-warm-gray hover:bg-cream-200'
-                  }`}
-                >
-                  <Zap className="w-3 h-3" />
-                  Apply Directly
-                </button>
-                <button
-                  onClick={() => onModeChange?.('analyze_first')}
-                  onMouseEnter={() => setHoveredMode('analyze_first')}
-                  onMouseLeave={() => setHoveredMode(null)}
-                  className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                    applicationMode === 'analyze_first'
-                      ? 'bg-navy-600 text-white'
-                      : 'bg-cream-100 text-warm-gray hover:bg-cream-200'
-                  }`}
-                >
-                  <Search className="w-3 h-3" />
-                  Analyze First
-                </button>
-              </div>
+        {isEmbedded ? (
+          <div id="tour-mode-selector" className="space-y-2">
+            {showModeOptions && (
+              <>
+                <div className="flex flex-wrap items-center gap-2 px-1">
+                  <button
+                    onClick={() => onModeChange?.('apply_directly')}
+                    onMouseEnter={() => setHoveredMode('apply_directly')}
+                    onMouseLeave={() => setHoveredMode(null)}
+                    className={`${modeButtonBase} ${
+                      applicationMode === 'apply_directly'
+                        ? 'bg-navy-700 text-white shadow-sm'
+                        : 'bg-cream-100 text-warm-gray hover:bg-cream-200 hover:text-navy-600'
+                    }`}
+                  >
+                    <Zap className="w-3 h-3" />
+                    Apply Directly
+                  </button>
+                  <button
+                    onClick={() => onModeChange?.('analyze_first')}
+                    onMouseEnter={() => setHoveredMode('analyze_first')}
+                    onMouseLeave={() => setHoveredMode(null)}
+                    className={`${modeButtonBase} ${
+                      applicationMode === 'analyze_first'
+                        ? 'bg-navy-700 text-white shadow-sm'
+                        : 'bg-cream-100 text-warm-gray hover:bg-cream-200 hover:text-navy-600'
+                    }`}
+                  >
+                    <Search className="w-3 h-3" />
+                    Analyze Fit First
+                  </button>
+                </div>
+                <p className="px-1 text-[11px] text-warm-gray">
+                  Fastest path: <span className="font-medium text-charcoal">Apply Directly</span>. Use <span className="font-medium text-charcoal">Analyze Fit First</span> when you want a match check before generating.
+                </p>
+              </>
             )}
 
-            {/* Input row */}
-            <div className={`flex items-end gap-2 ${compact ? 'p-2' : 'p-3'}`}>
-              <div className="flex-1 relative">
-                <textarea
-                  ref={textareaRef}
-                  value={value}
-                  onChange={(e) => onChange(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={placeholder}
-                  disabled={disabled || isWorking}
-                  className="chat-input-textarea w-full px-1 py-1 text-sm bg-transparent focus:outline-none focus:ring-0 border-none resize-none disabled:opacity-50 placeholder:text-warm-gray min-h-[24px] max-h-[150px]"
-                  rows={1}
-                />
-              </div>
+            <div className={inputShellClassName}>
+              <div className="flex items-end gap-2 p-3">
+                <div className="flex-1 relative">
+                  <textarea
+                    ref={textareaRef}
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={placeholder}
+                    disabled={disabled || isWorking}
+                    className="chat-input-textarea w-full px-1 py-1 text-sm bg-transparent focus:outline-none focus:ring-0 border-none resize-none disabled:opacity-50 placeholder:text-warm-gray min-h-[24px] max-h-[150px]"
+                    rows={1}
+                  />
+                </div>
 
-              {/* Send/Stop button - circular with gradient */}
-              {isWorking ? (
-                <button
-                  onClick={onStop}
-                  title="Stop generation"
-                  aria-label="Stop generation"
-                  className="flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 flex items-center justify-center shadow-md transition-all duration-200 hover:shadow-lg animate-pulse cursor-pointer"
-                >
-                  <Square className="w-3.5 h-3.5 text-white fill-white" />
-                </button>
-              ) : (
-                <button
-                  onClick={onSend}
-                  disabled={!value.trim() || disabled}
-                  title="Send message"
-                  aria-label="Send message"
-                  className="flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 disabled:from-cream-300 disabled:to-cream-400 disabled:cursor-not-allowed flex items-center justify-center shadow-md transition-all duration-200 hover:shadow-lg hover:scale-105 disabled:hover:scale-100"
-                >
-                  <Send className="w-4 h-4 text-white" />
-                </button>
-              )}
+                {isWorking ? (
+                  <button
+                    onClick={onStop}
+                    title="Stop generation"
+                    aria-label="Stop generation"
+                    className="flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 flex items-center justify-center shadow-md transition-all duration-200 hover:shadow-lg animate-pulse cursor-pointer"
+                  >
+                    <Square className="w-3.5 h-3.5 text-white fill-white" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={onSend}
+                    disabled={!value.trim() || disabled}
+                    title="Send message"
+                    aria-label="Send message"
+                    className="flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 disabled:from-cream-300 disabled:to-cream-400 disabled:cursor-not-allowed flex items-center justify-center shadow-md transition-all duration-200 hover:shadow-lg hover:scale-105 disabled:hover:scale-100"
+                  >
+                    <Send className="w-4 h-4 text-white" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div
+            id="tour-mode-selector"
+            className={inputShellClassName}
+          >
+            <div className="relative flex flex-col">
+              {showModeOptions && (
+                <div className="flex items-center gap-1.5 px-3 pt-2.5 pb-0">
+                  <button
+                    onClick={() => onModeChange?.('apply_directly')}
+                    onMouseEnter={() => setHoveredMode('apply_directly')}
+                    onMouseLeave={() => setHoveredMode(null)}
+                    className={`${modeButtonBase} ${
+                      applicationMode === 'apply_directly'
+                        ? 'bg-navy-600 text-white'
+                        : 'bg-cream-100 text-warm-gray hover:bg-cream-200'
+                    }`}
+                  >
+                    <Zap className="w-3 h-3" />
+                    Apply Directly
+                  </button>
+                  <button
+                    onClick={() => onModeChange?.('analyze_first')}
+                    onMouseEnter={() => setHoveredMode('analyze_first')}
+                    onMouseLeave={() => setHoveredMode(null)}
+                    className={`${modeButtonBase} ${
+                      applicationMode === 'analyze_first'
+                        ? 'bg-navy-600 text-white'
+                        : 'bg-cream-100 text-warm-gray hover:bg-cream-200'
+                    }`}
+                  >
+                    <Search className="w-3 h-3" />
+                    Analyze Fit First
+                  </button>
+                </div>
+              )}
+
+              <div className={`flex items-end gap-2 ${compact ? 'p-2' : 'p-3'}`}>
+                <div className="flex-1 relative">
+                  <textarea
+                    ref={textareaRef}
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={placeholder}
+                    disabled={disabled || isWorking}
+                    className="chat-input-textarea w-full px-1 py-1 text-sm bg-transparent focus:outline-none focus:ring-0 border-none resize-none disabled:opacity-50 placeholder:text-warm-gray min-h-[24px] max-h-[150px]"
+                    rows={1}
+                  />
+                </div>
+
+                {isWorking ? (
+                  <button
+                    onClick={onStop}
+                    title="Stop generation"
+                    aria-label="Stop generation"
+                    className="flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 flex items-center justify-center shadow-md transition-all duration-200 hover:shadow-lg animate-pulse cursor-pointer"
+                  >
+                    <Square className="w-3.5 h-3.5 text-white fill-white" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={onSend}
+                    disabled={!value.trim() || disabled}
+                    title="Send message"
+                    aria-label="Send message"
+                    className="flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 disabled:from-cream-300 disabled:to-cream-400 disabled:cursor-not-allowed flex items-center justify-center shadow-md transition-all duration-200 hover:shadow-lg hover:scale-105 disabled:hover:scale-100"
+                  >
+                    <Send className="w-4 h-4 text-white" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Keyboard hint */}
-        {!compact && (
+        {!compact && !isEmbedded && (
           <p className="text-[10px] text-warm-gray/60 text-center mt-2">
             Shift + Enter for new line
           </p>

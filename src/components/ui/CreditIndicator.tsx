@@ -90,6 +90,7 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
     : 0;
   const maxCredits = (credits?.plan_tier === 'starter' || credits?.plan_tier === 'free') ? 10 : credits?.plan_tier === 'plus' ? 100 : 200;
   const percentRemaining = Math.min((totalCredits / maxCredits) * 100, 100);
+  const formattedCredits = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(totalCredits);
 
   // Color based on remaining credits — brand palette
   const getColor = () => {
@@ -101,12 +102,16 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
   if (compact) {
     return (
       <Link 
-        href="/settings?section=subscription"
-        className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-cream-100 transition-colors"
-        title={`${totalCredits} credits remaining`}
+        href="/subscription"
+        className="group flex items-center gap-1.5 rounded-full border border-cream-200 bg-white/90 px-2 py-1 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md"
+        title={`${formattedCredits} credits remaining`}
       >
-        <Coins className={`w-4 h-4 ${getColor()}`} />
-        <span className={`text-sm font-medium ${getColor()}`}>{totalCredits}</span>
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-gold-100 to-white border border-gold-200">
+          <Coins className={`w-3 h-3 ${getColor()}`} />
+        </span>
+        <div className="leading-none">
+          <div className="text-[13px] font-semibold text-charcoal">{formattedCredits}</div>
+        </div>
       </Link>
     );
   }
@@ -115,19 +120,29 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
     <div className="relative z-[100]" ref={dropdownRef}>
       <button
         onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-cream-50 hover:bg-cream-100 border border-cream-200 transition-colors cursor-pointer"
+        className="group flex items-center gap-2.5 rounded-full border border-cream-200 bg-white/92 px-3 py-2 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md cursor-pointer"
         type="button"
       >
-        <Coins className={`w-4 h-4 ${getColor()}`} />
-        <div className="text-left">
-          <div className={`text-sm font-semibold ${getColor()}`}>
-            {totalCredits} credits
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gold-200 bg-gradient-to-br from-gold-100 via-white to-cream-50 shadow-inner">
+          <Coins className={`w-3.5 h-3.5 ${getColor()}`} />
+        </span>
+        <div className="text-left min-w-0">
+          <div className="text-[13px] font-semibold leading-tight text-charcoal">
+            {formattedCredits} credits
+          </div>
+          <div className="mt-1 h-1.5 w-24 rounded-full bg-cream-100 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${
+                percentRemaining > 50 ? 'bg-gold-400' : percentRemaining > 20 ? 'bg-gold-600' : 'bg-navy-600'
+              }`}
+              style={{ width: `${totalCredits > 0 ? Math.max(percentRemaining, 10) : 0}%` }}
+            />
           </div>
         </div>
         {isExpanded ? (
-          <ChevronUp className="w-4 h-4 text-warm-gray" />
+          <ChevronUp className="w-3.5 h-3.5 text-warm-gray" />
         ) : (
-          <ChevronDown className="w-4 h-4 text-warm-gray" />
+          <ChevronDown className="w-3.5 h-3.5 text-warm-gray" />
         )}
       </button>
 
@@ -207,7 +222,7 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
                     Buy More Credits
                   </Link>
                   <Link
-                    href="/settings?section=subscription"
+                    href="/subscription"
                     className="block w-full text-center text-sm font-medium text-navy-600 hover:text-navy-700 transition-colors py-1"
                     onClick={() => setIsExpanded(false)}
                   >
@@ -286,7 +301,7 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
                   Buy More Credits
                 </Link>
                 <Link
-                  href="/settings?section=subscription"
+                  href="/subscription"
                   className="block w-full text-center text-sm font-medium text-navy-600 hover:text-navy-700 transition-colors"
                 >
                   Manage Subscription →

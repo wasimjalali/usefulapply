@@ -28,7 +28,7 @@ import { InsufficientCreditsModal } from '@/components/InsufficientCreditsModal'
 import { usePostHog } from 'posthog-js/react';
 
 interface ChatPanelProps {
-  onTabChange?: (tab: 'cv' | 'cover-letter' | 'email' | 'documents') => void;
+  onTabChange?: (tab: 'cv' | 'cover-letter' | 'email') => void;
   isMobileDrawer?: boolean;
   /** When provided, History + New Application buttons are portalled into this DOM node (desktop nav bar). Header is hidden. */
   navBarPortal?: HTMLDivElement | null;
@@ -96,6 +96,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const isDesktopDocked = !!navBarPortal && !isMobileDrawer;
 
   const isNearBottom = () => {
     const container = messagesContainerRef.current;
@@ -136,6 +137,22 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
       scrollToBottom();
     }
   }, [isAgentWorking, agentSteps]);
+
+  const previousGeneratedStateRef = useRef<{ sessionId: string | null; hasGeneratedCV: boolean }>({
+    sessionId: null,
+    hasGeneratedCV: false,
+  });
+  useEffect(() => {
+    const sessionId = currentSession?.id ?? null;
+    const hasGeneratedCV = !!currentSession?.generatedCV;
+    const previous = previousGeneratedStateRef.current;
+
+    if (sessionId && previous.sessionId === sessionId && !previous.hasGeneratedCV && hasGeneratedCV) {
+      onTabChange?.('cv');
+    }
+
+    previousGeneratedStateRef.current = { sessionId, hasGeneratedCV };
+  }, [currentSession?.id, currentSession?.generatedCV, onTabChange]);
 
   const messages = currentSession?.chatMessages || [];
 
@@ -190,11 +207,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
   const handleAction = async (action: string) => {
     switch (action) {
       case 'navigate-documents':
-        if (onTabChange) {
-          onTabChange('documents');
-        } else {
-          router.push('/documents');
-        }
+        router.push('/documents');
         break;
       case 'view-cv':
         onTabChange?.('cv');
@@ -297,7 +310,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     <div className="flex items-center gap-1">
       <button
         onClick={() => setShowHistory(!showHistory)}
-        className={`p-2 rounded-lg transition-all cursor-pointer ${
+        className={`p-1.5 rounded-lg transition-all cursor-pointer ${
           showHistory ? 'bg-navy-50 text-navy-600 shadow-sm' : 'text-warm-gray hover:bg-cream-100 hover:text-navy-600'
         }`}
         title="Application History"
@@ -306,7 +319,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
       </button>
       <button
         onClick={handleNewApplication}
-        className="p-2 rounded-lg text-warm-gray hover:bg-cream-100 hover:text-navy-600 transition-all cursor-pointer"
+        className="p-1.5 rounded-lg text-warm-gray hover:bg-cream-100 hover:text-navy-600 transition-all cursor-pointer"
         title="New Application"
       >
         <Plus className="w-4 h-4" />
@@ -328,7 +341,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
       {/* Portal nav buttons into main nav bar when on desktop (navBarPortal provided) */}
       {navBarPortal && createPortal(chatNavButtons, navBarPortal)}
 
-      <div className={`h-full flex flex-col bg-cream-50 ${isMobileDrawer ? '' : 'border-l border-cream-200'}`}>
+      <div className={`h-full flex flex-col ${isDesktopDocked ? 'bg-transparent' : 'bg-cream-50'} ${isMobileDrawer ? '' : navBarPortal ? '' : 'border-l border-cream-200'}`}>
         {/* Chat Header — only shown when navBarPortal is not provided (mobile layout) */}
         {navBarPortal === undefined && (
           <div className="relative px-4 py-2.5 glass-header">
@@ -393,7 +406,15 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
         </div>
 
         {/* Messages */}
-        <div ref={messagesContainerRef} onScroll={handleScroll} className="flex-1 overflow-auto p-4 space-y-4 relative">
+        <div
+          ref={messagesContainerRef}
+          onScroll={handleScroll}
+          className={`flex-1 overflow-auto space-y-4 relative ${
+            isDesktopDocked
+              ? 'px-4 pt-4 pb-3 bg-[linear-gradient(180deg,rgba(255,255,255,0.78),rgba(248,244,234,0.22))]'
+              : 'p-4'
+          }`}
+        >
           {/* Welcome message */}
           {!currentSession && messages.length === 0 && (
             <div className="flex gap-3">
@@ -519,56 +540,59 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
         )}
 
         {/* Input Area with integrated mode selector */}
-        <ChatInput
-          value={inputValue}
-          onChange={setInputValue}
-          onSend={handleSend}
-          onStop={handleStopGeneration}
-          disabled={!currentCV || isAnalyzing || isGenerating || isTyping}
-          isWorking={isAgentWorking || isTyping}
-          placeholder={currentCV
-            ? "Paste a job description or ask me anything..."
-            : "Upload your CV first to get started..."
-          }
-          applicationMode={applicationMode}
-          onModeChange={setApplicationMode}
-          showModeSelector={!!currentCV}
-          compact={messages.length > 0}
-          pendingFitAnalysis={
-            !isAgentWorking &&
-            !currentSession?.generatedCV &&
-            !!(fitAnalysisContextId || (
-              currentSession?.pendingFitAnalysis &&
-              (Date.now() - new Date(currentSession.pendingFitAnalysis.createdAt).getTime()) < 30 * 60 * 1000
-            ))
-          }
-          onFitAnalysisAction={(action) => {
-            if (action === 'apply') {
-              handleAction('generate-full-application');
-            } else {
-              handleAction('skip-job');
+        <div className={isDesktopDocked ? 'border-t border-gold-100/80 bg-cream-50/90 px-3 pt-2.5 pb-3 backdrop-blur-sm' : ''}>
+          <ChatInput
+            value={inputValue}
+            onChange={setInputValue}
+            onSend={handleSend}
+            onStop={handleStopGeneration}
+            disabled={!currentCV || isAnalyzing || isGenerating || isTyping}
+            isWorking={isAgentWorking || isTyping}
+            placeholder={currentCV
+              ? "Paste a job description or ask me anything..."
+              : "Upload your CV first to get started..."
             }
-          }}
-          pendingScreeningPrompt={
-            !isAgentWorking &&
-            !isScreeningMode &&
-            !!currentSession?.generatedCV &&
-            (currentSession?.screeningUsageCount ?? 0) < 2
-          }
-          onScreeningAction={(action) => {
-            const isMaxPlan = profile?.subscription_tier === 'max' || profile?.subscription_tier === 'pro';
-            if (action === 'screening') {
-              handleAction(isMaxPlan ? 'screening-questions' : 'upgrade-for-screening');
+            applicationMode={applicationMode}
+            onModeChange={setApplicationMode}
+            showModeSelector={!!currentCV}
+            compact={messages.length > 0}
+            pendingFitAnalysis={
+              !isAgentWorking &&
+              !currentSession?.generatedCV &&
+              !!(fitAnalysisContextId || (
+                currentSession?.pendingFitAnalysis &&
+                (Date.now() - new Date(currentSession.pendingFitAnalysis.createdAt).getTime()) < 30 * 60 * 1000
+              ))
             }
-            // Max plan: increment by 1 (allows 2 uses for questions + follow-up)
-            // Non-Max plan: set to 2 immediately (dismiss after showing upgrade once)
-            // "No, Thanks": set to 2 immediately (dismiss permanently)
-            const dismissNow = !isMaxPlan || action === 'skip';
-            useAppStore.getState().updateCurrentSession({
-              screeningUsageCount: dismissNow ? 2 : (currentSession?.screeningUsageCount ?? 0) + 1,
-            });
-          }}
-        />
+            onFitAnalysisAction={(action) => {
+              if (action === 'apply') {
+                handleAction('generate-full-application');
+              } else {
+                handleAction('skip-job');
+              }
+            }}
+            pendingScreeningPrompt={
+              !isAgentWorking &&
+              !isScreeningMode &&
+              !!currentSession?.generatedCV &&
+              (currentSession?.screeningUsageCount ?? 0) < 2
+            }
+            onScreeningAction={(action) => {
+              const isMaxPlan = profile?.subscription_tier === 'max' || profile?.subscription_tier === 'pro';
+              if (action === 'screening') {
+                handleAction(isMaxPlan ? 'screening-questions' : 'upgrade-for-screening');
+              }
+              // Max plan: increment by 1 (allows 2 uses for questions + follow-up)
+              // Non-Max plan: set to 2 immediately (dismiss after showing upgrade once)
+              // "No, Thanks": set to 2 immediately (dismiss permanently)
+              const dismissNow = !isMaxPlan || action === 'skip';
+              useAppStore.getState().updateCurrentSession({
+                screeningUsageCount: dismissNow ? 2 : (currentSession?.screeningUsageCount ?? 0) + 1,
+              });
+            }}
+            surface={isDesktopDocked ? 'embedded' : 'floating'}
+          />
+        </div>
       </div>
 
       {/* Sign Up Wall Modal */}

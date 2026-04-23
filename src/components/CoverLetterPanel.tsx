@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useAppStore } from '@/store/useAppStore';
-import { Mail, Download, Copy, Check, RefreshCw, ChevronDown, FileText, File, Edit3 } from 'lucide-react';
+import { Mail, Download, Copy, Check, RefreshCw, FileText, Edit3, Maximize2, X } from 'lucide-react';
 import type { GeneratedCoverLetter } from '@/lib/types';
 import { jsPDF } from 'jspdf';
-import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
+import { Document, Packer, Paragraph, TextRun } from 'docx';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import { useToast } from './ui/Toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,18 +25,16 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   const { currentSession, isGenerating, isAgentWorking, agentWorkflowPhase, setCoverLetter, currentCV, structuredCV, masterCV } = useAppStore();
   const [showSignUpWall, setShowSignUpWall] = useState(false);
   const coverLetter = currentSession?.coverLetter;
-  const generatedCV = currentSession?.generatedCV;
   const requirements = currentSession?.requirements;
   const jobDescription = currentSession?.jobDescription;
   const companyResearch = currentSession?.companyResearch;
   
   const [copied, setCopied] = useState(false);
   const [isLoadingCoverLetter, setIsLoadingCoverLetter] = useState(false);
-  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadFormat, setDownloadFormat] = useState<'pdf' | 'docx' | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedCoverLetter, setEditedCoverLetter] = useState<GeneratedCoverLetter | null>(null);
-  const downloadMenuRef = useRef<HTMLDivElement>(null);
+  const [showFullPreview, setShowFullPreview] = useState(false);
   const { toast } = useToast();
 
   // Check if cover letter still contains any address placeholder (old or new format)
@@ -54,17 +52,6 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coverLetter]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (downloadMenuRef.current && !downloadMenuRef.current.contains(event.target as Node)) {
-        setShowDownloadMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const formatCoverLetterAsText = (letter: GeneratedCoverLetter) => {
     // If body contains the full letter (3-agent architecture), return it directly
@@ -112,15 +99,13 @@ ${letter.signatureName}`;
     // Gate: Anonymous users must sign up to download
     if (!user) {
       setShowSignUpWall(true);
-      setShowDownloadMenu(false);
       return;
     }
     const letterToDownload = editedCoverLetter || coverLetter;
     if (!letterToDownload) return;
     const showAddressReminder = hasAddressPlaceholder();
     
-    setIsDownloading(true);
-    setShowDownloadMenu(false);
+    setDownloadFormat('pdf');
     
     try {
       const sanitize = (s: string) => s.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
@@ -256,7 +241,7 @@ ${letter.signatureName}`;
       console.error('PDF generation error:', error);
       toast.error('Failed to download PDF. Try copying the text instead.');
     } finally {
-      setIsDownloading(false);
+      setDownloadFormat(null);
     }
   };
 
@@ -264,15 +249,13 @@ ${letter.signatureName}`;
     // Gate: Anonymous users must sign up to download
     if (!user) {
       setShowSignUpWall(true);
-      setShowDownloadMenu(false);
       return;
     }
     const letterToDownload = editedCoverLetter || coverLetter;
     if (!letterToDownload) return;
     const showAddressReminder = hasAddressPlaceholder();
     
-    setIsDownloading(true);
-    setShowDownloadMenu(false);
+    setDownloadFormat('docx');
     
     try {
       const sanitize = (s: string) => s.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
@@ -369,7 +352,7 @@ ${letter.signatureName}`;
       console.error('DOCX generation error:', error);
       toast.error('Failed to download DOCX. Try copying the text instead.');
     } finally {
-      setIsDownloading(false);
+      setDownloadFormat(null);
     }
   };
 
@@ -543,20 +526,58 @@ ${letter.signatureName}`;
     }
   };
 
+  const renderCoverLetterContent = (letter: GeneratedCoverLetter) => {
+    if (letter.applicantAddress.name) {
+      return (
+        <>
+          <div className="text-sm text-charcoal mb-6">
+            <p className="font-medium">{letter.applicantAddress.name}</p>
+            {letter.applicantAddress.street && <p>{letter.applicantAddress.street}</p>}
+            {letter.applicantAddress.city && <p>{letter.applicantAddress.city}</p>}
+            {letter.applicantAddress.country && <p>{letter.applicantAddress.country}</p>}
+            {letter.applicantAddress.phone && <p className="mt-2">{letter.applicantAddress.phone}</p>}
+            {letter.applicantAddress.email && <p>{letter.applicantAddress.email}</p>}
+          </div>
+          {letter.date && <p className="text-sm text-charcoal mb-6">{letter.date}</p>}
+          {letter.companyAddress.companyName && (
+            <div className="text-sm text-charcoal mb-6">
+              <p className="font-medium">{letter.companyAddress.companyName}</p>
+              {letter.companyAddress.department && <p>{letter.companyAddress.department}</p>}
+              {letter.companyAddress.street && <p>{letter.companyAddress.street}</p>}
+              {letter.companyAddress.city && <p>{letter.companyAddress.city}</p>}
+            </div>
+          )}
+          {letter.salutation && <p className="text-sm text-charcoal mb-4">{letter.salutation}</p>}
+          <div className="text-sm text-charcoal whitespace-pre-wrap mb-6 leading-relaxed">
+            {letter.body}
+          </div>
+          {letter.closing && <p className="text-sm text-charcoal mb-8">{letter.closing}</p>}
+          {letter.signatureName && <p className="text-sm text-charcoal font-medium">{letter.signatureName}</p>}
+        </>
+      );
+    }
+
+    return (
+      <div className="text-sm text-charcoal whitespace-pre-wrap leading-relaxed">
+        {letter.body}
+      </div>
+    );
+  };
+
   // Toolbar content — rendered via portal (desktop) or inline (mobile)
   const toolbarContent = (
     <>
       {/* Edit mode controls */}
       {isEditMode && (
         <>
-          <span className="text-xs font-medium text-navy-600 flex-shrink-0">Editing</span>
-          <Button variant="primary" size="sm" onClick={handleSaveEdits} className="flex-shrink-0">
+          <span className="text-sm font-semibold text-navy-600 flex-shrink-0">Editing</span>
+          <Button variant="primary" size="sm" onClick={handleSaveEdits} className="flex-shrink-0 rounded-[20px] shadow-sm">
             <Check className="w-4 h-4 mr-1" />
             Save
           </Button>
           <button
             onClick={() => { setIsEditMode(false); setEditedCoverLetter(coverLetter); }}
-            className="px-2.5 py-1.5 text-xs font-medium text-warm-gray hover:text-charcoal rounded-md hover:bg-cream-100 transition-all cursor-pointer flex-shrink-0"
+            className="px-3.5 py-2 text-sm font-medium text-warm-gray hover:text-charcoal rounded-[20px] hover:bg-cream-100 transition-all cursor-pointer flex-shrink-0"
           >
             Cancel
           </button>
@@ -567,10 +588,10 @@ ${letter.signatureName}`;
       {!isEditMode && coverLetter && (
         <button
           onClick={() => setIsEditMode(true)}
-          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-white border border-cream-200 rounded-lg hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0"
+          className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium bg-white border border-cream-200 rounded-[20px] hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0 shadow-sm"
         >
-          <Edit3 className="w-3 h-3 text-navy-500" />
-          <span className="hidden sm:inline">Edit</span>
+          <Edit3 className="w-4 h-4 text-navy-500" />
+          <span>Edit</span>
         </button>
       )}
 
@@ -582,56 +603,44 @@ ${letter.signatureName}`;
             size="sm"
             onClick={handleGenerateCoverLetter}
             isLoading={isLoadingCoverLetter}
-            className="flex-shrink-0"
+            className="flex-shrink-0 rounded-[20px] bg-white shadow-sm"
           >
             <RefreshCw className="w-4 h-4 mr-1" />
-            <span className="hidden sm:inline">Regenerate</span>
-            <span className="sm:hidden">Regen</span>
+            <span>Regenerate</span>
           </Button>
-          <Button variant="outline" size="sm" onClick={handleCopy} className="flex-shrink-0">
+          <Button variant="outline" size="sm" onClick={handleCopy} className="flex-shrink-0 rounded-[20px] bg-white shadow-sm">
             {copied ? <Check className="w-4 h-4 text-gold-600" /> : <Copy className="w-4 h-4" />}
-            <span className="ml-1 hidden sm:inline">{copied ? 'Copied!' : 'Copy'}</span>
+            <span className="ml-1">{copied ? 'Copied!' : 'Copy'}</span>
           </Button>
         </>
       )}
 
-      {/* Download Dropdown (view mode) */}
+      {/* Download actions (view mode) */}
       {!isEditMode && (
-        <div className="relative flex-shrink-0" ref={downloadMenuRef}>
+        <>
           <Button
             variant="primary"
             size="sm"
-            onClick={() => setShowDownloadMenu(!showDownloadMenu)}
-            disabled={isDownloading}
+            onClick={handleDownloadPDF}
+            isLoading={downloadFormat === 'pdf'}
+            disabled={downloadFormat !== null}
+            className="flex-shrink-0 rounded-[20px] shadow-sm"
           >
-            {isDownloading ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-1" />
-            ) : (
-              <Download className="w-4 h-4 mr-1" />
-            )}
-            <span className="hidden sm:inline">Download</span>
-            <ChevronDown className="w-3 h-3 ml-1" />
+            {downloadFormat !== 'pdf' && <Download className="w-4 h-4 mr-1" />}
+            <span>Download PDF</span>
           </Button>
-
-          {showDownloadMenu && (
-            <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-cream-200 py-1 z-50">
-              <button
-                onClick={handleDownloadPDF}
-                className="w-full px-4 py-2 text-left text-sm text-charcoal hover:bg-cream-100 flex items-center gap-2 cursor-pointer"
-              >
-                <FileText className="w-4 h-4 text-red-500" />
-                Download as PDF
-              </button>
-              <button
-                onClick={handleDownloadDOCX}
-                className="w-full px-4 py-2 text-left text-sm text-charcoal hover:bg-cream-100 flex items-center gap-2 cursor-pointer"
-              >
-                <File className="w-4 h-4 text-blue-500" />
-                Download as DOCX
-              </button>
-            </div>
-          )}
-        </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadDOCX}
+            isLoading={downloadFormat === 'docx'}
+            disabled={downloadFormat !== null}
+            className="flex-shrink-0 rounded-[20px] bg-white shadow-sm"
+          >
+            {downloadFormat !== 'docx' && <FileText className="w-4 h-4 mr-1" />}
+            <span>Download DOCX</span>
+          </Button>
+        </>
       )}
     </>
   );
@@ -644,14 +653,14 @@ ${letter.signatureName}`;
     <div className="h-full flex flex-col bg-cream-50">
       {/* Inline toolbar for mobile only (no portal) */}
       {!toolbarPortal && (
-        <div className="px-2.5 sm:px-4 py-1.5 sm:py-2 glass-toolbar flex-shrink-0">
-          <div className="flex items-center gap-1.5">
+        <div className="px-3 sm:px-5 py-2.5 glass-toolbar flex-shrink-0">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
             {toolbarContent}
           </div>
         </div>
       )}
 
-      <div className="flex-1 overflow-auto p-3 sm:p-6">
+      <div className="flex-1 overflow-auto bg-gradient-to-b from-cream-100 to-cream-50 px-3 pb-4 pt-1 sm:px-6 sm:pb-6 sm:pt-3">
         {isGenerating || isLoadingCoverLetter || isAgentWorking ? (
           <KarkoAIStepIndicator
             stepType="cover_letter"
@@ -665,7 +674,18 @@ ${letter.signatureName}`;
           />
         ) : (
           <>
-            <Card className="max-w-2xl mx-auto p-8">
+            <div className="relative mx-auto w-full max-w-2xl">
+              {!isEditMode && activeCoverLetter && (
+                <button
+                  type="button"
+                  onClick={() => setShowFullPreview(true)}
+                  className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full border border-cream-200 bg-white/92 px-3 py-1.5 text-xs font-semibold text-navy-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md cursor-pointer"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                  Full Preview
+                </button>
+              )}
+              <Card className="p-8">
               {isEditMode ? (
                 /* Edit Mode */
                 <div className="space-y-2">
@@ -682,41 +702,10 @@ ${letter.signatureName}`;
                 </div>
               ) : (
                 /* View Mode */
-                <>
-                  {activeCoverLetter?.applicantAddress.name ? (
-                    <>
-                      <div className="text-sm text-charcoal mb-6">
-                        <p className="font-medium">{activeCoverLetter?.applicantAddress.name}</p>
-                        {activeCoverLetter?.applicantAddress.street && <p>{activeCoverLetter.applicantAddress.street}</p>}
-                        {activeCoverLetter?.applicantAddress.city && <p>{activeCoverLetter.applicantAddress.city}</p>}
-                        {activeCoverLetter?.applicantAddress.country && <p>{activeCoverLetter.applicantAddress.country}</p>}
-                        {activeCoverLetter?.applicantAddress.phone && <p className="mt-2">{activeCoverLetter.applicantAddress.phone}</p>}
-                        {activeCoverLetter?.applicantAddress.email && <p>{activeCoverLetter.applicantAddress.email}</p>}
-                      </div>
-                      {activeCoverLetter?.date && <p className="text-sm text-charcoal mb-6">{activeCoverLetter.date}</p>}
-                      {activeCoverLetter?.companyAddress.companyName && (
-                        <div className="text-sm text-charcoal mb-6">
-                          <p className="font-medium">{activeCoverLetter.companyAddress.companyName}</p>
-                          {activeCoverLetter.companyAddress.department && <p>{activeCoverLetter.companyAddress.department}</p>}
-                          {activeCoverLetter.companyAddress.street && <p>{activeCoverLetter.companyAddress.street}</p>}
-                          {activeCoverLetter.companyAddress.city && <p>{activeCoverLetter.companyAddress.city}</p>}
-                        </div>
-                      )}
-                      {activeCoverLetter?.salutation && <p className="text-sm text-charcoal mb-4">{activeCoverLetter.salutation}</p>}
-                      <div className="text-sm text-charcoal whitespace-pre-wrap mb-6 leading-relaxed">
-                        {activeCoverLetter?.body}
-                      </div>
-                      {activeCoverLetter?.closing && <p className="text-sm text-charcoal mb-8">{activeCoverLetter.closing}</p>}
-                      {activeCoverLetter?.signatureName && <p className="text-sm text-charcoal font-medium">{activeCoverLetter.signatureName}</p>}
-                    </>
-                  ) : (
-                    <div className="text-sm text-charcoal whitespace-pre-wrap leading-relaxed">
-                      {activeCoverLetter?.body}
-                    </div>
-                  )}
-                </>
+                activeCoverLetter ? renderCoverLetterContent(activeCoverLetter) : null
               )}
-            </Card>
+              </Card>
+            </div>
 
           </>
         )}
@@ -728,6 +717,33 @@ ${letter.signatureName}`;
         onClose={() => setShowSignUpWall(false)}
         trigger="download"
       />
+
+      {showFullPreview && activeCoverLetter && createPortal(
+        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">
+          <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-[30px] border border-cream-200 bg-gradient-to-b from-cream-100 to-cream-50 shadow-[0_36px_100px_-38px_rgba(30,58,95,0.45)]">
+            <div className="flex items-center justify-between border-b border-cream-200 bg-cream-50/95 px-5 py-3">
+              <div>
+                <p className="text-sm font-semibold text-charcoal">Cover Letter Full Preview</p>
+                <p className="text-xs text-warm-gray">Focused reading mode with the surrounding dashboard hidden.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFullPreview(false)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-cream-200 bg-white text-warm-gray transition-colors hover:border-navy-200 hover:text-navy-700 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-auto bg-gradient-to-b from-cream-100 to-cream-50 p-4 sm:p-6">
+              <Card className="mx-auto w-full max-w-3xl p-8 sm:p-10 shadow-[0_30px_60px_-40px_rgba(30,58,95,0.3)]">
+                {renderCoverLetterContent(activeCoverLetter)}
+              </Card>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
     </>
   );

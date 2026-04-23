@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -33,7 +33,6 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   
   const email = currentSession?.email;
   const followUpEmail = currentSession?.followUpEmail;
-  const generatedCV = currentSession?.generatedCV;
   const requirements = currentSession?.requirements;
   const jobDescription = currentSession?.jobDescription;
   const companyResearch = currentSession?.companyResearch;
@@ -52,6 +51,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [isLoadingFollowUp, setIsLoadingFollowUp] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [activeEmailTab, setActiveEmailTab] = useState<'primary' | 'follow-up'>('primary');
   const [editedEmail, setEditedEmail] = useState<GeneratedEmail | null>(null);
   const [editedFollowUp, setEditedFollowUp] = useState<{ subject: string; body: string; recommendedDelay: number } | null>(null);
   const { toast } = useToast();
@@ -59,6 +59,12 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   // Get active email (edited or original)
   const activeEmail = editedEmail || email;
   const activeFollowUp = editedFollowUp || followUpEmail;
+
+  useEffect(() => {
+    if (!followUpEmail && activeEmailTab === 'follow-up') {
+      setActiveEmailTab('primary');
+    }
+  }, [followUpEmail, activeEmailTab]);
 
   // Update edited email field
   const updateEmailField = (field: 'subject' | 'body', value: string) => {
@@ -360,15 +366,53 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
     );
   }
 
+  const isFollowUpView = activeEmailTab === 'follow-up' && !!followUpEmail;
+  const activeCopyHandler = isFollowUpView ? handleCopyFullFollowUp : handleCopyFullPrimary;
+  const activeCopyTooltip = isFollowUpView ? 'Copy full follow-up email' : 'Copy full primary email';
+  const activeCopyLabel = isFollowUpView
+    ? (copiedFullFollowUp ? 'Copied' : 'Copy Follow-Up')
+    : (copiedFullPrimary ? 'Copied' : 'Copy Email');
+  const activeCopyState = isFollowUpView ? copiedFullFollowUp : copiedFullPrimary;
+  const activeRegenerateHandler = isFollowUpView ? handleRegenerateFollowUp : handleGenerateEmail;
+  const activeRegenerateLabel = isFollowUpView ? 'Regenerate Follow-Up' : 'Regenerate Email';
+  const activeRegenerateLoading = isFollowUpView ? isLoadingFollowUp : isLoadingEmail;
+  const followUpDelay = activeFollowUp?.recommendedDelay || followUpEmail?.recommendedDelay || 5;
+
   // Toolbar content — rendered via portal (desktop) or inline (mobile)
   const toolbarContent = (
     <>
-      {/* Edit mode controls */}
+      {followUpEmail && (
+        <div className="flex items-center bg-white/85 border border-cream-200 rounded-[20px] p-0.5 shadow-sm flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveEmailTab('primary')}
+            className={`px-3.5 py-2 text-sm font-medium rounded-[14px] transition-all cursor-pointer ${
+              activeEmailTab === 'primary'
+                ? 'bg-navy-700 text-white shadow-sm'
+                : 'text-warm-gray hover:text-charcoal'
+            }`}
+          >
+            Application Email
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveEmailTab('follow-up')}
+            className={`px-3.5 py-2 text-sm font-medium rounded-[14px] transition-all cursor-pointer ${
+              activeEmailTab === 'follow-up'
+                ? 'bg-navy-700 text-white shadow-sm'
+                : 'text-warm-gray hover:text-charcoal'
+            }`}
+          >
+            Follow-Up Email
+          </button>
+        </div>
+      )}
+
       {isEditMode && (
         <>
-          <span className="text-xs font-medium text-navy-600 flex-shrink-0">Editing</span>
-          <Button variant="primary" size="sm" onClick={handleSaveEdits} className="flex-shrink-0">
-            <Check className="w-4 h-4 mr-1" />
+          <span className="text-sm font-semibold text-navy-600 flex-shrink-0">Editing</span>
+          <Button variant="primary" size="sm" onClick={handleSaveEdits} className="flex-shrink-0 rounded-[20px] shadow-sm">
+            <Check className="w-4 h-4 mr-1.5" />
             Save
           </Button>
           <button
@@ -377,14 +421,13 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
               setEditedEmail(null);
               setEditedFollowUp(null);
             }}
-            className="px-2.5 py-1.5 text-xs font-medium text-warm-gray hover:text-charcoal rounded-md hover:bg-cream-100 transition-all cursor-pointer flex-shrink-0"
+            className="px-3.5 py-2 text-sm font-medium text-warm-gray hover:text-charcoal rounded-[20px] hover:bg-cream-100 transition-all cursor-pointer flex-shrink-0"
           >
             Cancel
           </button>
         </>
       )}
 
-      {/* Edit button (view mode) */}
       {!isEditMode && email && (
         <button
           onClick={() => {
@@ -392,30 +435,31 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
             if (email && !editedEmail) setEditedEmail(email);
             if (followUpEmail && !editedFollowUp) setEditedFollowUp(followUpEmail);
           }}
-          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-white border border-cream-200 rounded-lg hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0"
+          className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium bg-white border border-cream-200 rounded-[20px] hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0 shadow-sm"
         >
-          <Edit3 className="w-3 h-3 text-navy-500" />
-          <span className="hidden sm:inline">Edit</span>
+          <Edit3 className="w-4 h-4 text-navy-500" />
+          <span>Edit</span>
         </button>
       )}
 
-      {/* Copy Full Email Buttons (view mode) */}
       {!isEditMode && (
         <>
-          <PortalTooltip text="Copy full primary email">
-            <Button variant="primary" size="sm" onClick={handleCopyFullPrimary}>
-              {copiedFullPrimary ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
-              {copiedFullPrimary ? 'Copied' : 'Copy Email'}
+          <PortalTooltip text={activeCopyTooltip}>
+            <Button variant="primary" size="sm" onClick={activeCopyHandler} className="rounded-[20px] shadow-sm flex-shrink-0">
+              {activeCopyState ? <Check className="w-4 h-4 mr-1.5" /> : <Copy className="w-4 h-4 mr-1.5" />}
+              {activeCopyLabel}
             </Button>
           </PortalTooltip>
-          {followUpEmail && (
-            <PortalTooltip text="Copy full follow-up email">
-              <Button variant="outline" size="sm" onClick={handleCopyFullFollowUp}>
-                {copiedFullFollowUp ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
-                {copiedFullFollowUp ? 'Copied' : 'Copy Follow-Up'}
-              </Button>
-            </PortalTooltip>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={activeRegenerateHandler}
+            isLoading={activeRegenerateLoading}
+            className="rounded-[20px] bg-white shadow-sm flex-shrink-0"
+          >
+            <RefreshCw className="w-4 h-4 mr-1.5" />
+            {activeRegenerateLabel}
+          </Button>
         </>
       )}
     </>
@@ -429,8 +473,8 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
     <div className="h-full flex flex-col bg-cream-50">
       {/* Inline toolbar for mobile only (no portal) */}
       {!toolbarPortal && (
-        <div className="px-2.5 sm:px-4 py-1.5 sm:py-2 glass-toolbar flex-shrink-0">
-          <div className="flex items-center gap-1.5">
+        <div className="px-3 sm:px-5 py-2.5 glass-toolbar flex-shrink-0">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
             {toolbarContent}
           </div>
         </div>
@@ -450,217 +494,164 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
           />
         ) : (
           <>
-          <Card className="max-w-2xl mx-auto">
-            {/* Primary Application Email Badge */}
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold mb-4" style={{ backgroundColor: 'rgba(201, 168, 76, 0.12)', color: '#b8952f' }}>
-              <Send className="w-3 h-3" />
-              Primary Application Email
-            </div>
-
-            {/* Subject Line */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-medium text-warm-gray uppercase tracking-wide">
-                  Subject Line
-                </label>
-                <button
-                  onClick={handleCopySubject}
-                  className="text-xs text-navy-600 hover:text-navy-700 flex items-center gap-1"
-                >
-                  {copiedSubject ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                  {copiedSubject ? 'Copied' : 'Copy'}
-                </button>
-              </div>
-              {isEditMode ? (
-                <input
-                  type="text"
-                  value={activeEmail?.subject || ''}
-                  onChange={(e) => updateEmailField('subject', e.target.value)}
-                  className="w-full bg-cream-50 rounded-lg p-3 border border-cream-300 text-charcoal font-medium focus:border-navy-400 focus:outline-none"
-                  placeholder="Email subject..."
-                />
-              ) : (
-                <div className="bg-cream-100 rounded-lg p-3 border border-cream-300">
-                  <p className="text-charcoal font-medium">{activeEmail?.subject}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Email Body */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-medium text-warm-gray uppercase tracking-wide">
-                  Email Body
-                </label>
-                <button
-                  onClick={handleCopyBody}
-                  className="text-xs text-navy-600 hover:text-navy-700 flex items-center gap-1"
-                >
-                  {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                  {copied ? 'Copied' : 'Copy'}
-                </button>
-              </div>
-              {isEditMode ? (
-                <textarea
-                  value={activeEmail?.body || ''}
-                  onChange={(e) => updateEmailField('body', e.target.value)}
-                  className="w-full bg-cream-50 rounded-lg p-4 border border-cream-300 text-charcoal text-sm leading-relaxed focus:border-navy-400 focus:outline-none resize-none"
-                  rows={10}
-                  placeholder="Email body..."
-                  style={{ borderLeft: '3px solid #c9a84c' }}
-                />
-              ) : (
-                <div className="bg-cream-100 rounded-lg p-4 border border-cream-300" style={{ borderLeft: '3px solid #c9a84c' }}>
-                  <div className="whitespace-pre-wrap text-charcoal text-sm leading-relaxed">
-                    {activeEmail?.body}
+            <Card padding="lg" className="max-w-3xl mx-auto rounded-[28px] border-cream-200 shadow-[0_20px_50px_-30px_rgba(30,58,95,0.28)]">
+              {!isFollowUpView ? (
+                <>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold mb-5" style={{ backgroundColor: 'rgba(201, 168, 76, 0.12)', color: '#b8952f' }}>
+                    <Send className="w-3.5 h-3.5" />
+                    Application Email
                   </div>
-                </div>
-              )}
-            </div>
 
-            {/* Regenerate Primary Email */}
-            <div className="flex justify-end mt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleGenerateEmail}
-                isLoading={isLoadingEmail}
-              >
-                <RefreshCw className="w-3.5 h-3.5 mr-1" />
-                Regenerate Email
-              </Button>
-            </div>
-
-            {/* Follow-Up Email Section */}
-            {followUpEmail && (
-              <>
-                {/* Gold Dashed Divider */}
-                <div className="relative mt-8 mb-6" style={{ borderTop: '2px dashed #c9a84c' }}>
-                  <span className="absolute -top-2.5 left-4 bg-white px-3 text-xs font-bold uppercase tracking-wider" style={{ color: '#c9a84c' }}>
-                    Follow-Up Email — Send after {followUpEmail.recommendedDelay} days
-                  </span>
-                </div>
-
-                {/* Schedule Badge */}
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold mb-4" style={{ backgroundColor: 'rgba(201, 168, 76, 0.12)', color: '#b8952f' }}>
-                  <Clock className="w-3 h-3" />
-                  Schedule for: {followUpEmail.recommendedDelay}–{followUpEmail.recommendedDelay + 2} business days after sending primary email
-                </div>
-
-                {/* Follow-up Subject */}
-                <div className="mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-medium text-warm-gray uppercase tracking-wide">
-                      Subject Line
-                    </label>
-                    <button
-                      onClick={handleCopyFollowUpSubject}
-                      className="text-xs text-navy-600 hover:text-navy-700 flex items-center gap-1"
-                    >
-                      {copiedFollowUpSubject ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                      {copiedFollowUpSubject ? 'Copied' : 'Copy'}
-                    </button>
-                  </div>
-                  {isEditMode ? (
-                    <input
-                      type="text"
-                      value={activeFollowUp?.subject || ''}
-                      onChange={(e) => updateFollowUpField('subject', e.target.value)}
-                      className="w-full bg-cream-50 rounded-lg p-3 border border-cream-300 text-charcoal font-medium focus:border-navy-400 focus:outline-none"
-                      placeholder="Follow-up subject..."
-                    />
-                  ) : (
-                    <div className="bg-cream-100 rounded-lg p-3 border border-cream-300">
-                      <p className="text-charcoal font-medium">{activeFollowUp?.subject}</p>
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-semibold text-warm-gray uppercase tracking-[0.18em]">
+                        Subject Line
+                      </label>
+                      <button
+                        onClick={handleCopySubject}
+                        className="text-sm text-navy-600 hover:text-navy-700 flex items-center gap-1.5"
+                      >
+                        {copiedSubject ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copiedSubject ? 'Copied' : 'Copy'}
+                      </button>
                     </div>
-                  )}
-                </div>
-
-                {/* Follow-up Body with gold left border */}
-                <div className="mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-medium text-warm-gray uppercase tracking-wide">
-                      Follow-Up Body
-                    </label>
-                    <button
-                      onClick={handleCopyFollowUpBody}
-                      className="text-xs text-navy-600 hover:text-navy-700 flex items-center gap-1"
-                    >
-                      {copiedFollowUpBody ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                      {copiedFollowUpBody ? 'Copied' : 'Copy'}
-                    </button>
-                  </div>
-                  {isEditMode ? (
-                    <textarea
-                      value={activeFollowUp?.body || ''}
-                      onChange={(e) => updateFollowUpField('body', e.target.value)}
-                      className="w-full bg-cream-50 rounded-lg p-4 border border-cream-300 text-charcoal text-sm leading-relaxed focus:border-navy-400 focus:outline-none resize-none"
-                      rows={8}
-                      placeholder="Follow-up body..."
-                      style={{ borderLeft: '3px solid #c9a84c' }}
-                    />
-                  ) : (
-                    <div className="bg-cream-100 rounded-lg p-4 border border-cream-300" style={{ borderLeft: '3px solid #c9a84c' }}>
-                      <div className="whitespace-pre-wrap text-charcoal text-sm leading-relaxed">
-                        {activeFollowUp?.body}
+                    {isEditMode ? (
+                      <input
+                        type="text"
+                        value={activeEmail?.subject || ''}
+                        onChange={(e) => updateEmailField('subject', e.target.value)}
+                        className="w-full bg-white rounded-2xl px-4 py-3.5 border border-cream-300 text-charcoal font-medium focus:border-navy-400 focus:outline-none"
+                        placeholder="Email subject..."
+                      />
+                    ) : (
+                      <div className="bg-white rounded-2xl px-4 py-3.5 border border-cream-300">
+                        <p className="text-charcoal text-lg font-medium">{activeEmail?.subject}</p>
                       </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-semibold text-warm-gray uppercase tracking-[0.18em]">
+                        Email Body
+                      </label>
+                      <button
+                        onClick={handleCopyBody}
+                        className="text-sm text-navy-600 hover:text-navy-700 flex items-center gap-1.5"
+                      >
+                        {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copied ? 'Copied' : 'Copy'}
+                      </button>
                     </div>
-                  )}
-                </div>
+                    {isEditMode ? (
+                      <textarea
+                        value={activeEmail?.body || ''}
+                        onChange={(e) => updateEmailField('body', e.target.value)}
+                        className="w-full bg-white rounded-2xl px-4 py-4 border border-cream-300 text-charcoal text-sm leading-relaxed focus:border-navy-400 focus:outline-none resize-none"
+                        rows={11}
+                        placeholder="Email body..."
+                        style={{ borderLeft: '4px solid #c9a84c' }}
+                      />
+                    ) : (
+                      <div className="bg-white rounded-2xl px-4 py-4 border border-cream-300" style={{ borderLeft: '4px solid #c9a84c' }}>
+                        <div className="whitespace-pre-wrap text-charcoal text-sm leading-7">
+                          {activeEmail?.body}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-                {/* Regenerate Follow-Up Button */}
-                <div className="flex justify-end mb-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRegenerateFollowUp}
-                    isLoading={isLoadingFollowUp}
-                  >
-                    <RefreshCw className="w-3.5 h-3.5 mr-1" />
-                    Regenerate Follow-Up
-                  </Button>
-                </div>
-              </>
-            )}
-
-            {/* Combined Tips */}
-            <div className="mt-6 p-4 bg-gradient-to-br from-navy-50 to-cream-50 rounded-xl border border-navy-100">
-              <h4 className="text-sm font-semibold text-navy-700 mb-3 flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-gold-100 flex items-center justify-center text-xs">💡</span>
-                {followUpEmail ? 'Tips for both emails' : 'Tips for sending'}
-              </h4>
-              {followUpEmail ? (
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs font-semibold text-navy-700 mb-1.5">PRIMARY EMAIL:</p>
-                    <ul className="text-xs text-navy-600 space-y-1.5">
-                      <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Attach your optimized CV and cover letter as PDFs</li>
-                      <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Double-check the recipient&apos;s email address</li>
-                      <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Send Tue-Thu, 8-10 AM recipient&apos;s time zone</li>
+                  <div className="mt-6 p-4 bg-gradient-to-br from-navy-50 to-cream-50 rounded-2xl border border-navy-100">
+                    <h4 className="text-sm font-semibold text-navy-700 mb-3">Sending Tips</h4>
+                    <ul className="text-sm text-navy-600 space-y-2">
+                      <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Attach your optimized CV and cover letter as PDFs.</li>
+                      <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Double-check the recipient&apos;s email address and subject line before sending.</li>
+                      <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Send during business hours for better visibility in the recruiter inbox.</li>
                     </ul>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold text-navy-700 mb-1.5">FOLLOW-UP EMAIL:</p>
-                    <ul className="text-xs text-navy-600 space-y-1.5">
-                      <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Schedule for {followUpEmail.recommendedDelay}-{followUpEmail.recommendedDelay + 2} business days after primary</li>
-                      <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Use Gmail &quot;Schedule Send&quot; or Outlook &quot;Delay Delivery&quot; to set it in advance</li>
-                      <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Do NOT re-attach your CV — they have it</li>
-                      <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> If no response after follow-up, move on — do not send a third email</li>
-                    </ul>
-                  </div>
-                </div>
+                </>
               ) : (
-                <ul className="text-xs text-navy-600 space-y-2">
-                  <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Attach your optimized CV and cover letter as PDFs</li>
-                  <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Double-check the recipient&apos;s email address</li>
-                  <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Send during business hours for best visibility</li>
-                  <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Attach relevant certifications mentioned in your CV</li>
-                  <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Follow up after 5-7 business days if no response</li>
-                </ul>
-              )}
-            </div>
-          </Card>
+                <>
+                  <div className="flex flex-wrap items-center gap-3 mb-5">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold" style={{ backgroundColor: 'rgba(201, 168, 76, 0.12)', color: '#b8952f' }}>
+                      <Clock className="w-3.5 h-3.5" />
+                      Follow-Up Email
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-navy-50 text-navy-700 border border-navy-100">
+                      Send after {followUpDelay}-{followUpDelay + 2} business days
+                    </div>
+                  </div>
 
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-semibold text-warm-gray uppercase tracking-[0.18em]">
+                        Subject Line
+                      </label>
+                      <button
+                        onClick={handleCopyFollowUpSubject}
+                        className="text-sm text-navy-600 hover:text-navy-700 flex items-center gap-1.5"
+                      >
+                        {copiedFollowUpSubject ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copiedFollowUpSubject ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
+                    {isEditMode ? (
+                      <input
+                        type="text"
+                        value={activeFollowUp?.subject || ''}
+                        onChange={(e) => updateFollowUpField('subject', e.target.value)}
+                        className="w-full bg-white rounded-2xl px-4 py-3.5 border border-cream-300 text-charcoal font-medium focus:border-navy-400 focus:outline-none"
+                        placeholder="Follow-up subject..."
+                      />
+                    ) : (
+                      <div className="bg-white rounded-2xl px-4 py-3.5 border border-cream-300">
+                        <p className="text-charcoal text-lg font-medium">{activeFollowUp?.subject}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-semibold text-warm-gray uppercase tracking-[0.18em]">
+                        Follow-Up Body
+                      </label>
+                      <button
+                        onClick={handleCopyFollowUpBody}
+                        className="text-sm text-navy-600 hover:text-navy-700 flex items-center gap-1.5"
+                      >
+                        {copiedFollowUpBody ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copiedFollowUpBody ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
+                    {isEditMode ? (
+                      <textarea
+                        value={activeFollowUp?.body || ''}
+                        onChange={(e) => updateFollowUpField('body', e.target.value)}
+                        className="w-full bg-white rounded-2xl px-4 py-4 border border-cream-300 text-charcoal text-sm leading-relaxed focus:border-navy-400 focus:outline-none resize-none"
+                        rows={10}
+                        placeholder="Follow-up body..."
+                        style={{ borderLeft: '4px solid #c9a84c' }}
+                      />
+                    ) : (
+                      <div className="bg-white rounded-2xl px-4 py-4 border border-cream-300" style={{ borderLeft: '4px solid #c9a84c' }}>
+                        <div className="whitespace-pre-wrap text-charcoal text-sm leading-7">
+                          {activeFollowUp?.body}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-6 p-4 bg-gradient-to-br from-navy-50 to-cream-50 rounded-2xl border border-navy-100">
+                    <h4 className="text-sm font-semibold text-navy-700 mb-3">Follow-Up Tips</h4>
+                    <ul className="text-sm text-navy-600 space-y-2">
+                      <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Schedule it for {followUpDelay}-{followUpDelay + 2} business days after the primary email.</li>
+                      <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Do not re-attach your CV unless the company explicitly asks for it again.</li>
+                      <li className="flex items-start gap-2"><span className="text-gold-500 mt-0.5">•</span> Keep the tone concise, polite, and focused on one relevant value point.</li>
+                    </ul>
+                  </div>
+                </>
+              )}
+            </Card>
           </>
         )}
       </div>

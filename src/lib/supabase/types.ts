@@ -29,6 +29,8 @@ export interface Database {
           notify_updates: boolean
           notify_weekly: boolean
           notify_marketing: boolean
+          job_searches_used: number
+          job_searches_reset_at: string
           created_at: string
           updated_at: string
         }
@@ -51,6 +53,8 @@ export interface Database {
           notify_updates?: boolean
           notify_weekly?: boolean
           notify_marketing?: boolean
+          job_searches_used?: number
+          job_searches_reset_at?: string
           created_at?: string
           updated_at?: string
         }
@@ -73,6 +77,8 @@ export interface Database {
           notify_updates?: boolean
           notify_weekly?: boolean
           notify_marketing?: boolean
+          job_searches_used?: number
+          job_searches_reset_at?: string
           created_at?: string
           updated_at?: string
         }

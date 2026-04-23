@@ -1,36 +1,176 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { CVPanel } from '@/components/CVPanel';
 import { CoverLetterPanel } from '@/components/CoverLetterPanel';
 import { EmailPanel } from '@/components/EmailPanel';
 import { ATSScorePanel } from '@/components/ATSScorePanel';
-import { DocumentsPanel } from '@/components/DocumentsPanel';
 import { TrackerPanel } from '@/components/TrackerPanel';
+import { JobBoardPanel } from '@/components/JobBoardPanel';
 import { ChatPanel } from '@/components/ChatPanel';
 import { CVInputZone } from '@/components/CVInputZone';
 import { useAppStore, useCVStore } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import { uploadCVFile, saveDocument } from '@/lib/supabase';
-import { FileText, Mail, Send, FolderOpen, ClipboardList, Settings, Target, User, Loader2, MessageCircle, MoreHorizontal, AlertCircle, ArrowRight, PanelRightClose, PanelRightOpen, ArrowUpRight } from 'lucide-react';
+import { FileText, Mail, Send, FolderOpen, ClipboardList, Target, User, Loader2, MessageCircle, AlertCircle, ArrowRight, PanelRightClose, PanelRightOpen, ArrowUpRight, Briefcase, ChevronDown, CreditCard, Bell, Shield, LogOut, X } from 'lucide-react';
 import KarkoLogo, { KarkoIcon } from '@/components/KarkoLogo';
 import Link from 'next/link';
 import { CreditIndicator } from '@/components/ui/CreditIndicator';
 import { useDashboardTour } from '@/hooks/useDashboardTour';
 import type { ParsedCV } from '@/lib/types';
+import type { StructuredCV } from '@/lib/types/cv-schema';
+
+type ApplicationTab = 'cv' | 'cover-letter' | 'email';
+type Workspace = 'application-kit' | 'job-feed' | 'tracker';
+type MobileView = 'chat' | Workspace;
+
+interface DashboardProfileMenuProps {
+  profile: {
+    avatar_url?: string | null;
+    subscription_tier?: string | null;
+    full_name?: string | null;
+    email?: string | null;
+  } | null;
+  onSignOut: () => Promise<void> | void;
+}
+
+function DashboardProfileMenu({ profile, onSignOut }: DashboardProfileMenuProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+    };
+  }, [isOpen]);
+
+  const menuItems = [
+    { href: '/profile', label: 'Profile', description: 'Personal details', icon: User },
+    { href: '/account', label: 'Account', description: 'Security and login', icon: Shield },
+    { href: '/subscription', label: 'Subscription', description: 'Plan and billing', icon: CreditCard },
+    { href: '/notifications', label: 'Notifications', description: 'Email preferences', icon: Bell },
+    { href: '/documents', label: 'Documents', description: 'Manage uploaded files', icon: FolderOpen },
+  ];
+
+  const subscriptionTier = profile?.subscription_tier;
+  const tierBadge = subscriptionTier === 'max' || subscriptionTier === 'pro'
+    ? 'MAX'
+    : subscriptionTier === 'plus'
+      ? 'PLUS'
+      : 'FREE';
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen(prev => !prev)}
+        className="group flex items-center gap-1.5 rounded-full border border-cream-200 bg-white/90 px-1.5 py-1 shadow-sm transition-all hover:border-gold-200 hover:shadow-md cursor-pointer"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+      >
+        <div className="relative">
+          <div className={`w-[30px] h-[30px] rounded-full bg-gradient-to-br from-navy-500 to-navy-700 flex items-center justify-center overflow-hidden ring-2 ring-offset-1 ring-offset-white/90 ${
+            subscriptionTier === 'max' || subscriptionTier === 'pro'
+              ? 'ring-navy-600'
+              : subscriptionTier === 'plus'
+                ? 'ring-gold-400'
+                : 'ring-gray-300'
+          }`}>
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <User className="w-3.5 h-3.5 text-white" />
+            )}
+          </div>
+          <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full leading-none whitespace-nowrap ${
+            subscriptionTier === 'max' || subscriptionTier === 'pro'
+              ? 'bg-navy-600 text-white'
+              : subscriptionTier === 'plus'
+                ? 'bg-gold-400 text-white'
+                : 'bg-cream-100 text-warm-gray border border-cream-200'
+          }`}>
+            {tierBadge}
+          </span>
+        </div>
+        <ChevronDown className={`w-3.5 h-3.5 text-warm-gray transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div
+          className="absolute right-0 top-full mt-3 w-[280px] rounded-[28px] border border-cream-200 bg-white/95 p-2 shadow-[0_24px_70px_-32px_rgba(30,58,95,0.35)] backdrop-blur-md z-[80]"
+          role="menu"
+        >
+          <div className="px-3 py-3 border-b border-cream-200">
+            <p className="text-sm font-semibold text-charcoal">{profile?.full_name || 'Your account'}</p>
+            <p className="text-xs text-warm-gray mt-1">{profile?.email || 'Manage profile and documents'}</p>
+          </div>
+
+          <div className="py-2">
+            {menuItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-start gap-3 rounded-2xl px-3 py-3 text-charcoal transition-colors hover:bg-cream-50"
+                onClick={() => setIsOpen(false)}
+              >
+                <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-navy-50 text-navy-600 border border-navy-100">
+                  <item.icon className="w-4 h-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">{item.label}</span>
+                  <span className="block text-xs text-warm-gray mt-0.5">{item.description}</span>
+                </span>
+              </Link>
+            ))}
+          </div>
+
+          <div className="border-t border-cream-200 pt-2">
+            <button
+              type="button"
+              onClick={async () => {
+                setIsOpen(false);
+                await onSignOut();
+              }}
+              className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 cursor-pointer"
+            >
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-red-50 text-red-500 border border-red-100">
+                <LogOut className="w-4 h-4" />
+              </span>
+              Sign Out
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Dashboard() {
+  const router = useRouter();
   const {
     activeTab,
     setActiveTab,
     isAgentWorking,
     currentCV,
+    currentSession,
     setCurrentCV,
     setStructuredCV,
   } = useAppStore();
 
-  const { user, profile, isLoading } = useAuth();
+  const { user, profile, isLoading, signOut } = useAuth();
 
   // Sync sessions with Supabase in background
   useSupabaseSync();
@@ -86,20 +226,28 @@ export default function Dashboard() {
       }
 
       const result = await response.json();
+      const structuredCV = result.structuredCV as {
+        personal?: { fullName?: string; email?: string; phone?: string };
+        summary?: string;
+        experience?: Array<{ position?: string; company?: string; bullets?: string[] }>;
+        education?: Array<{ degree?: string; institution?: string }>;
+        skills?: Array<{ category?: string; skills?: string[] }>;
+      } | undefined;
+
       if (result.success && result.rawText) {
         const parsedCV: ParsedCV = {
           rawText: result.rawText,
           sections: {
-            contactInfo: result.structuredCV?.personal
-              ? `${result.structuredCV.personal.fullName || ''}\n${result.structuredCV.personal.email || ''}\n${result.structuredCV.personal.phone || ''}` : '',
-            summary: result.structuredCV?.summary || '',
-            experience: result.structuredCV?.experience?.map((e: any) =>
+            contactInfo: structuredCV?.personal
+              ? `${structuredCV.personal.fullName || ''}\n${structuredCV.personal.email || ''}\n${structuredCV.personal.phone || ''}` : '',
+            summary: structuredCV?.summary || '',
+            experience: structuredCV?.experience?.map((e) =>
               `${e.position} at ${e.company}\n${e.bullets?.join('\n') || ''}`
             ).join('\n\n') || '',
-            education: result.structuredCV?.education?.map((e: any) =>
+            education: structuredCV?.education?.map((e) =>
               `${e.degree} - ${e.institution}`
             ).join('\n') || '',
-            skills: result.structuredCV?.skills?.map((s: any) =>
+            skills: structuredCV?.skills?.map((s) =>
               `${s.category}: ${s.skills?.join(', ') || ''}`
             ).join('\n') || '',
           },
@@ -109,7 +257,7 @@ export default function Dashboard() {
 
         setCurrentCV(parsedCV);
         if (result.structuredCV) {
-          setStructuredCV(result.structuredCV);
+          setStructuredCV(result.structuredCV as StructuredCV);
         }
         useCVStore.getState().setEditedOriginalCVData(null);
 
@@ -122,7 +270,7 @@ export default function Dashboard() {
             storage_path: storagePath,
             raw_text: parsedCV.rawText,
             sections: parsedCV.sections,
-            structured_data: result.structuredCV,
+            structured_data: structuredCV,
           });
         }
       } else {
@@ -152,10 +300,41 @@ export default function Dashboard() {
   });
   const [isResizing, setIsResizing] = useState(false);
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
-  const lastResizeClickRef = { current: 0 };
+  const [showATSModal, setShowATSModal] = useState(false);
+  const lastResizeClickRef = useRef(0);
   const MIN_CHAT_WIDTH = 360;
   const MAX_CHAT_WIDTH = 650;
   const COLLAPSED_WIDTH = 48;
+  const lastApplicationTabRef = useRef<ApplicationTab>('cv');
+
+  const isApplicationTab = activeTab === 'cv' || activeTab === 'cover-letter' || activeTab === 'email';
+  const activeWorkspace: Workspace = activeTab === 'jobs'
+    ? 'job-feed'
+    : activeTab === 'tracker'
+      ? 'tracker'
+      : 'application-kit';
+  const atsScore = currentSession?.optimizedCVData?.analysis?.ats_compatibility ?? null;
+  const hasATSInsights = Boolean(currentSession?.optimizedCVData?.analysis || currentSession?.generatedCV?.changes?.length);
+  const showATSControl = atsScore !== null || hasATSInsights || isAgentWorking;
+
+  const atsControl = showATSControl ? (
+    <button
+      type="button"
+      onClick={() => {
+        if (hasATSInsights || atsScore !== null) {
+          setShowATSModal(true);
+        }
+      }}
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all sm:px-3.5 sm:py-2 sm:text-sm ${
+        hasATSInsights || atsScore !== null
+          ? 'border-gold-200 bg-white text-navy-700 shadow-sm hover:-translate-y-0.5 hover:shadow-md cursor-pointer'
+          : 'border-cream-200 bg-cream-50 text-warm-gray cursor-default'
+      }`}
+    >
+      <Target className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${atsScore !== null ? 'text-gold-500' : 'text-warm-gray'}`} />
+      {atsScore !== null ? `${atsScore}% ATS Score` : isAgentWorking ? 'Scoring...' : 'ATS Insights'}
+    </button>
+  ) : null;
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     // Double-click to toggle collapse
@@ -170,32 +349,47 @@ export default function Dashboard() {
     setIsResizing(true);
   }, []);
 
-  const handleTabChange = useCallback((tab: 'cv' | 'cover-letter' | 'email' | 'documents') => {
+  const handleTabChange = useCallback((tab: ApplicationTab) => {
     setActiveTab(tab);
+    lastApplicationTabRef.current = tab;
   }, [setActiveTab]);
 
-  // Track the previous chat-collapsed state so we can restore it when leaving tracker
-  const chatCollapsedBeforeTrackerRef = useRef(false);
+  const handleWorkspaceChange = useCallback((workspace: Workspace) => {
+    if (workspace === 'application-kit') {
+      setActiveTab(lastApplicationTabRef.current);
+      return;
+    }
 
-  // Auto-collapse chat when entering tracker, restore when leaving
+    setActiveTab(workspace === 'job-feed' ? 'jobs' : 'tracker');
+  }, [setActiveTab]);
+
+  // Track the previous chat-collapsed state so we can restore it when leaving full-width tabs
+  const chatCollapsedBeforeFullWidthRef = useRef(false);
+
+  // Auto-collapse chat when entering tracker or jobs, restore when leaving
   const prevActiveTabRef = useRef(activeTab);
   useEffect(() => {
     const prevTab = prevActiveTabRef.current;
     prevActiveTabRef.current = activeTab;
 
-    if (activeTab === 'tracker' && prevTab !== 'tracker') {
-      // Entering tracker — remember current collapsed state and collapse chat
-      chatCollapsedBeforeTrackerRef.current = isChatCollapsed;
+    const isFullWidthTab = activeTab === 'tracker' || activeTab === 'jobs';
+    const wasFullWidthTab = prevTab === 'tracker' || prevTab === 'jobs';
+    const enteringFullWidth = isFullWidthTab && !wasFullWidthTab;
+    const leavingFullWidth = !isFullWidthTab && wasFullWidthTab;
+
+    if (enteringFullWidth) {
+      // Entering full-width tab — remember current collapsed state and collapse chat
+      chatCollapsedBeforeFullWidthRef.current = isChatCollapsed;
       setIsChatCollapsed(true);
-    } else if (activeTab !== 'tracker' && prevTab === 'tracker') {
-      // Leaving tracker — restore previous collapsed state
-      setIsChatCollapsed(chatCollapsedBeforeTrackerRef.current);
+    } else if (leavingFullWidth) {
+      // Leaving full-width tab — restore previous collapsed state
+      setIsChatCollapsed(chatCollapsedBeforeFullWidthRef.current);
     }
   }, [activeTab, isChatCollapsed]);
 
   // Mobile tab state — must be before any early returns (Rules of Hooks)
-  const [mobileTab, setMobileTab] = useState<'chat' | 'cv' | 'ats-score' | 'cover-letter' | 'email' | 'documents' | 'tracker'>('chat');
-  const [showMobileMore, setShowMobileMore] = useState(false);
+  const [mobileView, setMobileView] = useState<MobileView>('chat');
+  const [mobileApplicationTab, setMobileApplicationTab] = useState<ApplicationTab>('cv');
 
   // Resize effect (desktop only)
   useEffect(() => {
@@ -238,6 +432,43 @@ export default function Dashboard() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  useEffect(() => {
+    if (isApplicationTab) {
+      lastApplicationTabRef.current = activeTab;
+      setMobileApplicationTab(activeTab);
+    }
+  }, [activeTab, isApplicationTab]);
+
+  const handleSignOut = useCallback(async () => {
+    await signOut();
+    router.push('/auth/login');
+  }, [router, signOut]);
+
+  const handleMobileViewChange = useCallback((view: MobileView) => {
+    setMobileView(view);
+
+    if (view === 'application-kit') {
+      setActiveTab(mobileApplicationTab);
+      return;
+    }
+
+    if (view === 'job-feed') {
+      setActiveTab('jobs');
+      return;
+    }
+
+    if (view === 'tracker') {
+      setActiveTab('tracker');
+    }
+  }, [mobileApplicationTab, setActiveTab]);
+
+  const handleMobileApplicationTabChange = useCallback((tab: ApplicationTab) => {
+    setMobileApplicationTab(tab);
+    setMobileView('application-kit');
+    setActiveTab(tab);
+    lastApplicationTabRef.current = tab;
+  }, [setActiveTab]);
+
   // Show loading state while checking auth (brief — just to resolve user state)
   if (isLoading) {
     return (
@@ -247,104 +478,50 @@ export default function Dashboard() {
     );
   }
 
-  // Sync mobile tab with active tab on desktop
-  const handleMobileTabChange = (tab: 'chat' | 'cv' | 'ats-score' | 'cover-letter' | 'email' | 'documents' | 'tracker') => {
-    setMobileTab(tab);
-    if (tab !== 'chat') {
-      setActiveTab(tab);
-    }
-    setShowMobileMore(false);
-  };
-
   return (
     <div className="h-screen flex flex-col bg-cream-100">
-      {/* ═══ TIER 1: Global Nav + Document Tabs ═══ */}
-      <div className="hidden md:flex items-center px-4 py-1.5 bg-white/95 backdrop-blur-sm border-b border-cream-200 flex-shrink-0 z-50">
+      <div className="hidden md:flex items-center gap-3 px-4 py-1.5 bg-white/95 backdrop-blur-sm border-b border-cream-200 flex-shrink-0 z-50">
         <Link href="/" className="flex items-center">
           <KarkoLogo variant="full" size="xs" theme="light" />
         </Link>
 
-        {/* Document Tabs — CV, Cover Letter, Email, ATS Score */}
-        <div id="tour-doc-tabs" className="flex items-center bg-cream-100/80 rounded-xl p-0.5 ml-4">
+        <div className="flex items-center bg-cream-100/80 rounded-full p-0.5">
           <button
             type="button"
-            onClick={() => setActiveTab('cv')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'cv'
+            onClick={() => handleWorkspaceChange('application-kit')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
+              activeWorkspace === 'application-kit'
                 ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
                 : 'text-warm-gray hover:text-navy-600'
             }`}
           >
-            <FileText className={`w-3.5 h-3.5 ${activeTab === 'cv' ? 'text-gold-500' : ''}`} />
-            CV
+            <FileText className={`w-4 h-4 ${activeWorkspace === 'application-kit' ? 'text-gold-500' : ''}`} />
+            Application Kit
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('cover-letter')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'cover-letter'
+            onClick={() => handleWorkspaceChange('job-feed')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
+              activeWorkspace === 'job-feed'
                 ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
                 : 'text-warm-gray hover:text-navy-600'
             }`}
           >
-            <Mail className={`w-3.5 h-3.5 ${activeTab === 'cover-letter' ? 'text-gold-500' : ''}`} />
-            Cover Letter
+            <Briefcase className={`w-4 h-4 ${activeWorkspace === 'job-feed' ? 'text-gold-500' : ''}`} />
+            Job Feed
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('email')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'email'
-                ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
-                : 'text-warm-gray hover:text-navy-600'
-            }`}
-          >
-            <Send className={`w-3.5 h-3.5 ${activeTab === 'email' ? 'text-gold-500' : ''}`} />
-            Email
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('ats-score')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'ats-score'
-                ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
-                : 'text-warm-gray hover:text-navy-600'
-            }`}
-          >
-            <Target className={`w-3.5 h-3.5 ${activeTab === 'ats-score' ? 'text-gold-500' : ''}`} />
-            ATS Score
-          </button>
-
-          {/* Divider */}
-          <div className="w-px h-5 bg-cream-300 mx-1" />
-
-          {/* Tracker — inline panel */}
           <button
             id="tour-tracker"
             type="button"
-            onClick={() => setActiveTab('tracker')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'tracker'
+            onClick={() => handleWorkspaceChange('tracker')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
+              activeWorkspace === 'tracker'
                 ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
                 : 'text-warm-gray hover:text-navy-600'
             }`}
           >
-            <ClipboardList className={`w-3.5 h-3.5 ${activeTab === 'tracker' ? 'text-gold-500' : ''}`} />
+            <ClipboardList className={`w-4 h-4 ${activeWorkspace === 'tracker' ? 'text-gold-500' : ''}`} />
             Tracker
-          </button>
-
-          {/* Documents — tab panel */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('documents')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'documents'
-                ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
-                : 'text-warm-gray hover:text-navy-600'
-            }`}
-          >
-            <FolderOpen className={`w-3.5 h-3.5 ${activeTab === 'documents' ? 'text-gold-500' : ''}`} />
-            Documents
           </button>
         </div>
 
@@ -354,7 +531,7 @@ export default function Dashboard() {
         {user && profile && (profile.subscription_tier === 'free' || profile.subscription_tier === 'starter') && (
           <Link
             href="/pricing"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 rounded-lg transition-all shadow-sm hover:shadow-md mr-2"
+            className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-white bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 rounded-lg transition-all shadow-sm hover:shadow-md mr-2"
           >
             Upgrade to Plus
             <ArrowUpRight className="w-3 h-3" />
@@ -363,7 +540,7 @@ export default function Dashboard() {
         {user && profile?.subscription_tier === 'plus' && (
           <Link
             href="/pricing"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-navy-600 to-navy-700 hover:from-navy-700 hover:to-navy-800 rounded-lg transition-all shadow-sm hover:shadow-md mr-2"
+            className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-white bg-gradient-to-r from-navy-600 to-navy-700 hover:from-navy-700 hover:to-navy-800 rounded-lg transition-all shadow-sm hover:shadow-md mr-2"
           >
             Upgrade to Max
             <ArrowUpRight className="w-3 h-3" />
@@ -377,63 +554,22 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Divider between credits and action buttons */}
         {user && <div className="w-px h-5 bg-cream-300 mx-1.5" />}
 
-        {/* Chat nav portal slot — ChatPanel portals History + New Application buttons here */}
-        <div ref={setChatNavNode} className="flex items-center" />
+        <div ref={setChatNavNode} className="flex items-center gap-2" />
 
-        {/* Chat collapse toggle */}
         {!isChatCollapsed && (
           <button
             onClick={() => setIsChatCollapsed(true)}
-            className="p-2 rounded-lg text-warm-gray hover:bg-cream-100 hover:text-navy-600 transition-all cursor-pointer"
+            className="p-1.5 rounded-full text-warm-gray hover:bg-cream-100 hover:text-navy-600 transition-all cursor-pointer"
             title="Collapse chat (⌘⇧C)"
           >
             <PanelRightClose className="w-4 h-4" />
           </button>
         )}
 
-        {/* Avatar with tier badge (also links to settings) */}
         {user ? (
-          <Link
-            href="/settings"
-            className="flex items-center ml-1 cursor-pointer"
-            title="Profile"
-          >
-            <div className="relative">
-              <div className={`w-7 h-7 rounded-full bg-gradient-to-br from-navy-500 to-navy-700 flex items-center justify-center overflow-hidden ring-2 ring-offset-1 ring-offset-white/80 ${
-                profile?.subscription_tier === 'max' || profile?.subscription_tier === 'pro'
-                  ? 'ring-navy-600'
-                  : profile?.subscription_tier === 'plus'
-                    ? 'ring-gold-400'
-                    : 'ring-gray-300'
-              }`}>
-                {profile?.avatar_url ? (
-                  <img
-                    src={profile.avatar_url}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <User className="w-3.5 h-3.5 text-white" />
-                )}
-              </div>
-              <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full leading-none whitespace-nowrap ${
-                profile?.subscription_tier === 'max' || profile?.subscription_tier === 'pro'
-                  ? 'bg-navy-600 text-white'
-                  : profile?.subscription_tier === 'plus'
-                    ? 'bg-gold-400 text-white'
-                    : 'bg-cream-100 text-warm-gray border border-cream-200'
-              }`}>
-                {profile?.subscription_tier === 'max' || profile?.subscription_tier === 'pro'
-                  ? 'MAX'
-                  : profile?.subscription_tier === 'plus'
-                    ? 'PLUS'
-                    : 'FREE'}
-              </span>
-            </div>
-          </Link>
+          <DashboardProfileMenu profile={profile} onSignOut={handleSignOut} />
         ) : (
           <div className="flex items-center gap-2 ml-2">
             <Link
@@ -453,13 +589,11 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* ═══ MOBILE: Slim top bar (logo + avatar only) ═══ */}
-      <div className="md:hidden flex items-center px-3 py-2 bg-white/95 backdrop-blur-sm border-b border-cream-200 flex-shrink-0 z-50">
+      <div className="md:hidden flex items-center px-3 py-1.5 bg-white/95 backdrop-blur-sm border-b border-cream-200 flex-shrink-0 z-50">
         <Link href="/" className="flex items-center">
           <KarkoLogo variant="full" size="xs" theme="light" />
         </Link>
         <div className="flex-1" />
-        {/* Mobile Upgrade CTA */}
         {user && profile && (profile.subscription_tier === 'free' || profile.subscription_tier === 'starter') && (
           <Link
             href="/pricing"
@@ -484,36 +618,7 @@ export default function Dashboard() {
           </div>
         )}
         {user ? (
-          <Link href="/settings" className="cursor-pointer">
-            <div className="relative">
-              <div className={`w-7 h-7 rounded-full bg-gradient-to-br from-navy-500 to-navy-700 flex items-center justify-center overflow-hidden ring-2 ring-offset-1 ring-offset-white/80 ${
-                profile?.subscription_tier === 'max' || profile?.subscription_tier === 'pro'
-                  ? 'ring-navy-600'
-                  : profile?.subscription_tier === 'plus'
-                    ? 'ring-gold-400'
-                    : 'ring-gray-300'
-              }`}>
-                {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <User className="w-3.5 h-3.5 text-white" />
-                )}
-              </div>
-              <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full leading-none whitespace-nowrap ${
-                profile?.subscription_tier === 'max' || profile?.subscription_tier === 'pro'
-                  ? 'bg-navy-600 text-white'
-                  : profile?.subscription_tier === 'plus'
-                    ? 'bg-gold-400 text-white'
-                    : 'bg-cream-100 text-warm-gray border border-cream-200'
-              }`}>
-                {profile?.subscription_tier === 'max' || profile?.subscription_tier === 'pro'
-                  ? 'MAX'
-                  : profile?.subscription_tier === 'plus'
-                    ? 'PLUS'
-                    : 'FREE'}
-              </span>
-            </div>
-          </Link>
+          <DashboardProfileMenu profile={profile} onSignOut={handleSignOut} />
         ) : (
           <Link
             href="/auth/login"
@@ -524,26 +629,65 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* ═══ DESKTOP LAYOUT ═══ */}
       <div className="hidden md:flex flex-1 overflow-hidden">
-        {/* Left Panel - Results */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* ═══ TIER 2: Panel Toolbar (controls only, no tabs) ═══ */}
-          <div className="relative z-40 glass-toolbar px-3 sm:px-5 py-1.5">
-            <div className="flex items-center gap-1.5">
-              {/* Panel toolbar slot — each panel renders its controls here via portal */}
-              <div ref={setToolbarNode} className="flex items-center gap-1.5" />
-            </div>
-          </div>
+          {activeWorkspace === 'application-kit' && currentCV && (
+            <>
+              <div className="bg-white/90 border-b border-cream-200 px-4 sm:px-5 py-2.5">
+                <div id="tour-doc-tabs" className="inline-flex items-center bg-cream-100/80 rounded-[18px] p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('cv')}
+                    className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-[14px] transition-all cursor-pointer whitespace-nowrap ${
+                      activeTab === 'cv'
+                        ? 'bg-white text-navy-700 shadow-sm font-semibold'
+                        : 'text-warm-gray hover:text-navy-600'
+                    }`}
+                  >
+                    <FileText className={`w-4 h-4 ${activeTab === 'cv' ? 'text-gold-500' : ''}`} />
+                    CV
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('cover-letter')}
+                    className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-[14px] transition-all cursor-pointer whitespace-nowrap ${
+                      activeTab === 'cover-letter'
+                        ? 'bg-white text-navy-700 shadow-sm font-semibold'
+                        : 'text-warm-gray hover:text-navy-600'
+                    }`}
+                  >
+                    <Mail className={`w-4 h-4 ${activeTab === 'cover-letter' ? 'text-gold-500' : ''}`} />
+                    Cover Letter
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('email')}
+                    className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-[14px] transition-all cursor-pointer whitespace-nowrap ${
+                      activeTab === 'email'
+                        ? 'bg-white text-navy-700 shadow-sm font-semibold'
+                        : 'text-warm-gray hover:text-navy-600'
+                    }`}
+                  >
+                    <Send className={`w-4 h-4 ${activeTab === 'email' ? 'text-gold-500' : ''}`} />
+                    Email
+                  </button>
+                </div>
+              </div>
 
-          {/* Content Area */}
+              <div className="relative z-40 glass-toolbar px-3 sm:px-5 py-2.5">
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+                  <div ref={setToolbarNode} className="flex items-center gap-2" />
+                </div>
+              </div>
+            </>
+          )}
+
           <div className="flex-1 overflow-auto">
-            {activeTab === 'tracker' ? (
+            {activeWorkspace === 'tracker' ? (
               <TrackerPanel />
-            ) : activeTab === 'documents' ? (
-              <DocumentsPanel />
+            ) : activeWorkspace === 'job-feed' ? (
+              <JobBoardPanel />
             ) : !currentCV ? (
-              /* ═══ Onboarding: Upload CV to get started ═══ */
               <div className="flex items-center justify-center h-full p-8">
                 <div id="tour-cv-upload" className="max-w-lg w-full">
                   <div className="text-center mb-8">
@@ -569,7 +713,7 @@ export default function Dashboard() {
                         <Loader2 className="w-5 h-5 animate-spin text-navy-600" />
                         <p className="text-sm text-navy-600 font-medium">Parsing your CV...</p>
                       </div>
-                      <p className="text-xs text-navy-500">This may take 30–60 seconds</p>
+                      <p className="text-xs text-navy-500">This may take 30-60 seconds</p>
                     </div>
                   ) : (
                     <CVInputZone
@@ -607,11 +751,11 @@ export default function Dashboard() {
 
                   <div className="mt-6 flex items-center justify-center">
                     <button
-                      onClick={() => setActiveTab('documents')}
+                      onClick={() => router.push('/documents')}
                       className="inline-flex items-center gap-1.5 text-xs text-warm-gray hover:text-navy-600 transition-colors cursor-pointer"
                     >
                       <FolderOpen className="w-3.5 h-3.5" />
-                      Go to Documents for more options
+                      Open Documents Library
                       <ArrowRight className="w-3 h-3" />
                     </button>
                   </div>
@@ -619,8 +763,7 @@ export default function Dashboard() {
               </div>
             ) : (
               <>
-                {activeTab === 'cv' && <CVPanel toolbarPortal={toolbarNode} />}
-                {activeTab === 'ats-score' && <ATSScorePanel />}
+                {activeTab === 'cv' && <CVPanel toolbarPortal={toolbarNode} atsControl={atsControl} />}
                 {activeTab === 'cover-letter' && <CoverLetterPanel toolbarPortal={toolbarNode} />}
                 {activeTab === 'email' && <EmailPanel toolbarPortal={toolbarNode} />}
               </>
@@ -628,35 +771,32 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Right Panel - Chat (Desktop: resizable side panel) */}
         <div className="relative h-full flex-shrink-0 transition-[width] duration-300 ease-in-out" style={{ width: isChatCollapsed ? COLLAPSED_WIDTH : chatPanelWidth }}>
-          {/* Resize Handle — wider hit target (10px) with always-visible grip */}
           {!isChatCollapsed && (
             <div
               onMouseDown={handleMouseDown}
-              className="absolute left-0 top-0 bottom-0 w-2.5 -ml-1 cursor-col-resize z-10 group/resize"
+              className="absolute left-0 top-0 bottom-0 w-3 -ml-1.5 cursor-col-resize z-10 group/resize"
               title="Drag to resize · Double-click to collapse"
             >
-              {/* Visible track */}
-              <div className={`absolute left-1 top-0 bottom-0 w-px transition-colors ${
-                isResizing ? 'bg-gold-400' : 'bg-cream-200 group-hover/resize:bg-gold-300'
+              <div className={`absolute left-1.5 top-0 bottom-0 w-px transition-all duration-200 ${
+                isResizing ? 'bg-gold-400 opacity-100' : 'bg-gold-300 opacity-0 group-hover/resize:opacity-100'
               }`} />
-              {/* Grip dots — always visible */}
-              <div className="absolute left-0.5 top-1/2 -translate-y-1/2 flex flex-col gap-1">
-                <div className={`w-1 h-1 rounded-full transition-colors ${isResizing ? 'bg-gold-500' : 'bg-cream-400 group-hover/resize:bg-gold-400'}`} />
-                <div className={`w-1 h-1 rounded-full transition-colors ${isResizing ? 'bg-gold-500' : 'bg-cream-400 group-hover/resize:bg-gold-400'}`} />
-                <div className={`w-1 h-1 rounded-full transition-colors ${isResizing ? 'bg-gold-500' : 'bg-cream-400 group-hover/resize:bg-gold-400'}`} />
+              <div className={`absolute left-0.5 top-1/2 -translate-y-1/2 flex flex-col gap-1 transition-opacity duration-200 ${
+                isResizing ? 'opacity-100' : 'opacity-0 group-hover/resize:opacity-100'
+              }`}>
+                <div className={`w-1 h-1 rounded-full ${isResizing ? 'bg-gold-500' : 'bg-gold-400'}`} />
+                <div className={`w-1 h-1 rounded-full ${isResizing ? 'bg-gold-500' : 'bg-gold-400'}`} />
+                <div className={`w-1 h-1 rounded-full ${isResizing ? 'bg-gold-500' : 'bg-gold-400'}`} />
               </div>
             </div>
           )}
 
-          {/* Collapsed state — thin icon strip; fades in/out with width animation */}
-          <div className={`absolute inset-0 flex flex-col items-center py-3 bg-cream-50 border-l border-cream-200 transition-opacity duration-200 ${
+          <div className={`absolute inset-y-2 right-2 left-2 flex flex-col items-center justify-start py-2.5 border border-gold-300/90 bg-cream-50/96 rounded-[16px] shadow-[0_18px_36px_-30px_rgba(30,58,95,0.22)] transition-opacity duration-200 ${
             isChatCollapsed ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}>
             <button
               onClick={() => setIsChatCollapsed(false)}
-              className="p-2 rounded-lg text-warm-gray hover:text-navy-600 hover:bg-cream-100 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-warm-gray hover:text-navy-600 hover:bg-cream-100 transition-colors cursor-pointer"
               title="Expand chat (⌘⇧C)"
             >
               <PanelRightOpen className="w-4 h-4" />
@@ -666,8 +806,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Chat panel — stays mounted, fades in/out so content change is in sync with width */}
-          <div id="tour-chat-panel" className={`absolute inset-0 overflow-hidden transition-opacity duration-200 ${
+          <div id="tour-chat-panel" className={`absolute inset-y-2 right-2 left-2 overflow-hidden rounded-[16px] border border-gold-300/90 bg-cream-50/96 backdrop-blur-[6px] shadow-[0_24px_54px_-40px_rgba(30,58,95,0.28)] transition-opacity duration-200 ${
             isChatCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
           }`}>
             <ChatPanel
@@ -678,16 +817,61 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ═══ MOBILE LAYOUT ═══ */}
       <div className="md:hidden flex-1 flex flex-col overflow-hidden">
-        {/* Mobile Content — full screen per tab */}
+        {mobileView === 'application-kit' && currentCV && (
+          <div className="bg-white/90 border-b border-cream-200 px-3 py-2.5">
+            <div className="inline-flex items-center bg-cream-100/80 rounded-[18px] p-0.5 overflow-x-auto scrollbar-hide">
+              <button
+                type="button"
+                onClick={() => handleMobileApplicationTabChange('cv')}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-[14px] transition-all whitespace-nowrap ${
+                  mobileApplicationTab === 'cv'
+                    ? 'bg-white text-navy-700 shadow-sm font-semibold'
+                    : 'text-warm-gray'
+                }`}
+              >
+                <FileText className={`w-4 h-4 ${mobileApplicationTab === 'cv' ? 'text-gold-500' : ''}`} />
+                CV
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMobileApplicationTabChange('cover-letter')}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-[14px] transition-all whitespace-nowrap ${
+                  mobileApplicationTab === 'cover-letter'
+                    ? 'bg-white text-navy-700 shadow-sm font-semibold'
+                    : 'text-warm-gray'
+                }`}
+              >
+                <Mail className={`w-4 h-4 ${mobileApplicationTab === 'cover-letter' ? 'text-gold-500' : ''}`} />
+                Letter
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMobileApplicationTabChange('email')}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-[14px] transition-all whitespace-nowrap ${
+                  mobileApplicationTab === 'email'
+                    ? 'bg-white text-navy-700 shadow-sm font-semibold'
+                    : 'text-warm-gray'
+                }`}
+              >
+                <Send className={`w-4 h-4 ${mobileApplicationTab === 'email' ? 'text-gold-500' : ''}`} />
+                Email
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 overflow-auto">
-          {mobileTab === 'tracker' ? (
+          {mobileView === 'tracker' ? (
             <TrackerPanel />
-          ) : mobileTab === 'documents' ? (
-            <DocumentsPanel />
-          ) : !currentCV && mobileTab !== 'chat' ? (
-            /* Mobile onboarding */
+          ) : mobileView === 'job-feed' ? (
+            <JobBoardPanel />
+          ) : mobileView === 'chat' ? (
+            <ChatPanel
+              onTabChange={(tab) => handleMobileApplicationTabChange(tab)}
+              isMobileDrawer={false}
+            />
+          ) : !currentCV ? (
             <div className="flex items-center justify-center h-full p-6">
               <div className="max-w-sm w-full">
                 <div className="text-center mb-6">
@@ -713,7 +897,7 @@ export default function Dashboard() {
                       <Loader2 className="w-5 h-5 animate-spin text-navy-600" />
                       <p className="text-sm text-navy-600 font-medium">Parsing your CV...</p>
                     </div>
-                    <p className="text-xs text-navy-500">This may take 30–60 seconds</p>
+                    <p className="text-xs text-navy-500">This may take 30-60 seconds</p>
                   </div>
                 ) : (
                   <CVInputZone
@@ -727,11 +911,11 @@ export default function Dashboard() {
 
                 <div className="mt-4 flex items-center justify-center">
                   <button
-                    onClick={() => handleMobileTabChange('documents')}
+                    onClick={() => router.push('/documents')}
                     className="inline-flex items-center gap-1.5 text-sm text-warm-gray hover:text-navy-600 transition-colors cursor-pointer"
                   >
                     <FolderOpen className="w-3.5 h-3.5" />
-                    More options
+                    Open Documents
                     <ArrowRight className="w-3 h-3" />
                   </button>
                 </div>
@@ -739,145 +923,99 @@ export default function Dashboard() {
             </div>
           ) : (
             <>
-              {mobileTab === 'chat' && (
-                <ChatPanel
-                  onTabChange={(tab) => handleMobileTabChange(tab)}
-                  isMobileDrawer={false}
-                />
-              )}
-              {mobileTab === 'cv' && <CVPanel />}
-              {mobileTab === 'ats-score' && <ATSScorePanel />}
-              {mobileTab === 'cover-letter' && <CoverLetterPanel />}
-              {mobileTab === 'email' && <EmailPanel />}
+              {mobileApplicationTab === 'cv' && <CVPanel atsControl={atsControl} />}
+              {mobileApplicationTab === 'cover-letter' && <CoverLetterPanel />}
+              {mobileApplicationTab === 'email' && <EmailPanel />}
             </>
           )}
         </div>
 
-        {/* Mobile Bottom Tab Bar */}
         <div className="flex-shrink-0 bg-white border-t border-cream-200 px-2 pb-[env(safe-area-inset-bottom)] z-50">
           <div className="flex items-center justify-around py-1.5">
             <button
               type="button"
-              onClick={() => handleMobileTabChange('chat')}
+              onClick={() => handleMobileViewChange('chat')}
               className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer min-w-[52px] ${
-                mobileTab === 'chat' ? 'text-gold-600' : 'text-warm-gray'
+                mobileView === 'chat' ? 'text-gold-600' : 'text-warm-gray'
               }`}
             >
-              <MessageCircle className={`w-5 h-5 ${mobileTab === 'chat' ? 'text-gold-500' : ''}`} />
+              <MessageCircle className={`w-5 h-5 ${mobileView === 'chat' ? 'text-gold-500' : ''}`} />
               <span className="text-[10px] font-medium">Chat</span>
-              {isAgentWorking && mobileTab !== 'chat' && (
+              {isAgentWorking && mobileView !== 'chat' && (
                 <span className="absolute top-1 right-1 w-2 h-2 bg-gold-500 rounded-full animate-pulse" />
               )}
             </button>
             <button
               type="button"
-              onClick={() => handleMobileTabChange('cv')}
+              onClick={() => handleMobileViewChange('application-kit')}
               className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer min-w-[52px] ${
-                mobileTab === 'cv' ? 'text-gold-600' : 'text-warm-gray'
+                mobileView === 'application-kit' ? 'text-gold-600' : 'text-warm-gray'
               }`}
             >
-              <FileText className={`w-5 h-5 ${mobileTab === 'cv' ? 'text-gold-500' : ''}`} />
-              <span className="text-[10px] font-medium">CV</span>
+              <FileText className={`w-5 h-5 ${mobileView === 'application-kit' ? 'text-gold-500' : ''}`} />
+              <span className="text-[10px] font-medium">Kit</span>
             </button>
             <button
               type="button"
-              onClick={() => handleMobileTabChange('cover-letter')}
+              onClick={() => handleMobileViewChange('job-feed')}
               className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer min-w-[52px] ${
-                mobileTab === 'cover-letter' ? 'text-gold-600' : 'text-warm-gray'
+                mobileView === 'job-feed' ? 'text-gold-600' : 'text-warm-gray'
               }`}
             >
-              <Mail className={`w-5 h-5 ${mobileTab === 'cover-letter' ? 'text-gold-500' : ''}`} />
-              <span className="text-[10px] font-medium">Letter</span>
+              <Briefcase className={`w-5 h-5 ${mobileView === 'job-feed' ? 'text-gold-500' : ''}`} />
+              <span className="text-[10px] font-medium">Feed</span>
             </button>
             <button
               type="button"
-              onClick={() => handleMobileTabChange('email')}
+              onClick={() => handleMobileViewChange('tracker')}
               className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer min-w-[52px] ${
-                mobileTab === 'email' ? 'text-gold-600' : 'text-warm-gray'
+                mobileView === 'tracker' ? 'text-gold-600' : 'text-warm-gray'
               }`}
             >
-              <Send className={`w-5 h-5 ${mobileTab === 'email' ? 'text-gold-500' : ''}`} />
-              <span className="text-[10px] font-medium">Email</span>
+              <ClipboardList className={`w-5 h-5 ${mobileView === 'tracker' ? 'text-gold-500' : ''}`} />
+              <span className="text-[10px] font-medium">Tracker</span>
             </button>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowMobileMore(!showMobileMore)}
-                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer min-w-[52px] ${
-                  showMobileMore ? 'text-gold-600' : 'text-warm-gray'
-                }`}
-              >
-                <MoreHorizontal className="w-5 h-5" />
-                <span className="text-[10px] font-medium">More</span>
-              </button>
-              {/* More menu popover */}
-              {showMobileMore && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowMobileMore(false)} />
-                  <div className="absolute bottom-full right-0 mb-2 w-52 bg-white rounded-xl shadow-lg border border-cream-200 py-1.5 z-50">
-                    <button
-                      type="button"
-                      onClick={() => handleMobileTabChange('ats-score')}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${mobileTab === 'ats-score' ? 'text-gold-600 bg-gold-50' : 'text-charcoal hover:bg-cream-50'}`}
-                    >
-                      <Target className="w-4 h-4 text-navy-500" />
-                      ATS Score
-                    </button>
-                    {user && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => handleMobileTabChange('tracker')}
-                          className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${mobileTab === 'tracker' ? 'text-gold-600 bg-gold-50' : 'text-charcoal hover:bg-cream-50'}`}
-                        >
-                          <ClipboardList className="w-4 h-4 text-navy-500" />
-                          Tracker
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleMobileTabChange('documents')}
-                          className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${mobileTab === 'documents' ? 'text-gold-600 bg-gold-50' : 'text-charcoal hover:bg-cream-50'}`}
-                        >
-                          <FolderOpen className="w-4 h-4 text-navy-500" />
-                          Documents
-                        </button>
-                        <Link
-                          href="/settings"
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-charcoal hover:bg-cream-50 transition-colors"
-                          onClick={() => setShowMobileMore(false)}
-                        >
-                          <Settings className="w-4 h-4 text-navy-500" />
-                          Settings
-                        </Link>
-                      </>
-                    )}
-                    {!user && (
-                      <>
-                        <Link
-                          href="/auth/signup"
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-charcoal hover:bg-cream-50 transition-colors"
-                          onClick={() => setShowMobileMore(false)}
-                        >
-                          <User className="w-4 h-4 text-navy-500" />
-                          Sign Up
-                        </Link>
-                        <Link
-                          href="/auth/login"
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-charcoal hover:bg-cream-50 transition-colors"
-                          onClick={() => setShowMobileMore(false)}
-                        >
-                          <User className="w-4 h-4 text-gold-500" />
-                          Sign In
-                        </Link>
-                      </>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
           </div>
         </div>
       </div>
+
+      {showATSModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/45"
+            onClick={() => setShowATSModal(false)}
+            aria-label="Close ATS insights"
+          />
+          <div className="relative flex h-[90vh] w-full max-w-4xl min-h-0 max-h-[90vh] flex-col overflow-hidden rounded-[32px] border border-cream-200 bg-cream-50 shadow-[0_30px_90px_-30px_rgba(30,58,95,0.45)]">
+            <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-cream-200 bg-white/90 backdrop-blur-sm">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-gold-50 px-3 py-1 text-xs font-semibold text-gold-700 border border-gold-100 mb-3">
+                  <Target className="w-3.5 h-3.5" />
+                  ATS Insights
+                </div>
+                <h2 className="text-xl font-semibold text-charcoal">CV optimization details</h2>
+                <p className="text-sm text-warm-gray mt-1">
+                  {atsScore !== null
+                    ? `Review the ${atsScore}% ATS score, optimization strategy, and exact improvements applied to this CV.`
+                    : 'Review the AI changes and ATS-focused improvements applied to this CV.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowATSModal(false)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-cream-200 bg-white text-warm-gray hover:text-navy-700 hover:border-navy-200 transition-colors cursor-pointer"
+                aria-label="Close ATS insights"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              <ATSScorePanel />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

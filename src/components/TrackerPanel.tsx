@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, useDeferredValue } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -47,51 +48,109 @@ const ALL_STATUSES: ApplicationStatus[] = ['applied', 'interview', 'follow_up', 
 function StatusDropdown({
   status,
   onStatusChange,
+  preferredPlacement = 'bottom',
 }: {
   status: ApplicationStatus;
   onStatusChange: (newStatus: ApplicationStatus) => void;
+  preferredPlacement?: 'top' | 'bottom';
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [menuStyle, setMenuStyle] = useState<{ top: number; right: number } | null>(null);
+  const [menuStyle, setMenuStyle] = useState<{ top: number; left: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.applied;
+  const MENU_WIDTH = 192;
+  const MENU_HEIGHT = 248;
+  const MENU_OFFSET = 8;
+  const VIEWPORT_MARGIN = 12;
+
+  const calculateMenuStyle = useCallback(() => {
+    if (!buttonRef.current) return null;
+
+    const rect = buttonRef.current.getBoundingClientRect();
+    const menuHeight = menuRef.current?.offsetHeight ?? MENU_HEIGHT;
+    const menuWidth = menuRef.current?.offsetWidth ?? MENU_WIDTH;
+    const shouldOpenAbove = preferredPlacement === 'top';
+
+    return {
+      top: shouldOpenAbove
+        ? Math.max(VIEWPORT_MARGIN, rect.top - menuHeight - MENU_OFFSET)
+        : Math.min(rect.bottom + MENU_OFFSET, window.innerHeight - menuHeight - VIEWPORT_MARGIN),
+      left: Math.min(
+        Math.max(rect.left, VIEWPORT_MARGIN),
+        window.innerWidth - menuWidth - VIEWPORT_MARGIN,
+      ),
+    };
+  }, [MENU_HEIGHT, MENU_OFFSET, MENU_WIDTH, VIEWPORT_MARGIN, preferredPlacement]);
 
   const openMenu = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setMenuStyle({
-        top: rect.bottom + 8,
-        right: window.innerWidth - rect.right,
-      });
+    if (isOpen) {
+      setIsOpen(false);
+      return;
     }
-    setIsOpen((prev) => !prev);
+
+    setMenuStyle(calculateMenuStyle());
+    setIsOpen(true);
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const updatePosition = () => {
+      const nextStyle = calculateMenuStyle();
+      if (nextStyle) setMenuStyle(nextStyle);
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    const rafId = window.requestAnimationFrame(updatePosition);
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isOpen, calculateMenuStyle]);
 
   return (
     <div className="relative">
       <button
+        type="button"
         ref={buttonRef}
         onClick={openMenu}
         className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all hover:opacity-80 ${config.bg} ${config.text}`}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
       >
         <span className={`w-2 h-2 rounded-full ${config.dot}`} />
         {config.label}
         <ChevronDown className="w-3.5 h-3.5 ml-0.5" />
       </button>
 
-      {isOpen && menuStyle && (
+      {isOpen && menuStyle && createPortal(
         <>
           <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setIsOpen(false); }} />
           <div
+            ref={menuRef}
             className="fixed z-50 w-48 bg-white rounded-xl shadow-xl border border-cream-200 py-1.5"
-            style={{ top: menuStyle.top, right: menuStyle.right }}
+            style={{ top: menuStyle.top, left: menuStyle.left }}
+            onClick={(e) => e.stopPropagation()}
+            role="menu"
           >
             {ALL_STATUSES.map((s) => {
               const sc = STATUS_CONFIG[s];
               return (
                 <button
                   key={s}
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     onStatusChange(s);
@@ -107,7 +166,8 @@ function StatusDropdown({
               );
             })}
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );
@@ -119,29 +179,31 @@ function PipelineStage({
   active,
   onClick,
   isFirst,
+  isLast,
 }: {
   label: string;
   count: number;
   active: boolean;
   onClick: () => void;
   isFirst?: boolean;
+  isLast?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`relative flex-1 min-w-[100px] flex flex-col items-center justify-center py-3.5 px-3 cursor-pointer transition-all ${
+      className={`relative flex-1 min-w-[100px] flex flex-col items-center justify-center px-3 py-3.5 cursor-pointer transition-all ${
         active
-          ? 'bg-navy-600 text-white'
-          : 'bg-white text-charcoal hover:bg-cream-50'
-      } ${isFirst ? 'rounded-l-xl' : ''}`}
+          ? 'bg-gradient-to-r from-navy-600 to-navy-700 text-white shadow-sm'
+          : 'bg-transparent text-charcoal hover:bg-white/75'
+      } ${isFirst ? 'rounded-l-[18px]' : ''} ${isLast ? 'rounded-r-[18px]' : ''}`}
     >
       <span className={`text-xl font-bold leading-none ${active ? 'text-white' : 'text-navy-700'}`}>
-        {count || '--'}
+        {count}
       </span>
       <span className={`text-xs font-semibold mt-1 uppercase tracking-wide ${active ? 'text-white/80' : 'text-warm-gray'}`}>
         {label}
       </span>
-      <div className="absolute right-0 top-0 bottom-0 w-px bg-cream-200" />
+      {!isLast && <div className="absolute right-0 top-2.5 bottom-2.5 w-px bg-cream-200" />}
     </button>
   );
 }
@@ -200,7 +262,7 @@ function InlineEditableCompany({
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={isSaving}
-          className="px-1.5 py-0.5 text-sm font-semibold text-navy-700 border border-gold-400 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-gold-400 w-[160px]"
+          className="px-1.5 py-0.5 text-sm font-semibold text-navy-700 border border-gold-400 rounded-md bg-white focus:outline-none w-[160px] transition-colors"
         />
         {isSaving ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin text-gold-500" />
@@ -249,6 +311,7 @@ export function TrackerPanel() {
 
   const [applications, setApplications] = useState<TrackerSession[]>([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [matchingCount, setMatchingCount] = useState(0);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [isLoadingInitial, setIsLoadingInitial] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -261,18 +324,40 @@ export function TrackerPanel() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const deferredSearchQuery = useDeferredValue(searchQuery.trim());
 
-  const fetchApplications = useCallback(async (offset: number, limit: number) => {
+  const fetchApplications = useCallback(async ({
+    offset,
+    limit,
+    search,
+    status,
+  }: {
+    offset: number;
+    limit: number;
+    search: string;
+    status: ApplicationStatus | 'all';
+  }) => {
     if (!user) return { data: [], count: 0 };
 
     const supabase = getSupabase() as any;
-    const { data, error, count } = await supabase
+    let query = supabase
       .from('application_sessions')
       .select('id, company, job_title, match_score, status, created_at', { count: 'exact' })
       .eq('user_id', user.id)
       .not('generated_cv', 'is', null)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .order('created_at', { ascending: false });
+
+    if (status !== 'all') {
+      query = query.eq('status', status);
+    }
+
+    const normalizedSearch = search.replace(/[,%()']/g, ' ').trim();
+    if (normalizedSearch) {
+      const searchValue = `%${normalizedSearch}%`;
+      query = query.or(`company.ilike.${searchValue},job_title.ilike.${searchValue}`);
+    }
+
+    const { data, error, count } = await query.range(offset, offset + limit - 1);
 
     if (error) {
       console.error('[Tracker] Error fetching:', error);
@@ -282,6 +367,25 @@ export function TrackerPanel() {
     return { data: (data || []) as TrackerSession[], count: count || 0 };
   }, [user]);
 
+  const matchesCurrentQuery = useCallback((app: Pick<TrackerSession, 'company' | 'job_title' | 'status'>, overrides?: {
+    company?: string | null;
+    status?: ApplicationStatus;
+  }) => {
+    const effectiveCompany = (overrides?.company ?? app.company ?? '').toLowerCase();
+    const effectiveTitle = (app.job_title ?? '').toLowerCase();
+    const effectiveStatus = overrides?.status ?? app.status ?? 'applied';
+    const loweredSearch = deferredSearchQuery.toLowerCase();
+
+    const matchesSearch =
+      !loweredSearch ||
+      effectiveCompany.includes(loweredSearch) ||
+      effectiveTitle.includes(loweredSearch);
+
+    const matchesStatus = statusFilter === 'all' || effectiveStatus === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  }, [deferredSearchQuery, statusFilter]);
+
   const handleDelete = async (sessionId: string) => {
     setDeletingSessionId(sessionId);
     try {
@@ -289,7 +393,15 @@ export function TrackerPanel() {
       if (!error) {
         const deleted = applications.find((a) => a.id === sessionId);
         setApplications((prev) => prev.filter((a) => a.id !== sessionId));
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(sessionId);
+          return next;
+        });
         setTotalCount((prev) => Math.max(0, prev - 1));
+        if (deleted && matchesCurrentQuery(deleted)) {
+          setMatchingCount((prev) => Math.max(0, prev - 1));
+        }
         if (deleted) {
           const s = deleted.status || 'applied';
           setStatusCounts((prev) => ({ ...prev, [s]: Math.max(0, (prev[s] || 0) - 1) }));
@@ -309,12 +421,18 @@ export function TrackerPanel() {
   useEffect(() => {
     if (!user) return;
 
+    let cancelled = false;
     const load = async () => {
       setIsLoadingInitial(true);
       const supabase = getSupabase() as any;
 
       const [pageResult, statusResult] = await Promise.all([
-        fetchApplications(0, PAGE_SIZE),
+        fetchApplications({
+          offset: 0,
+          limit: PAGE_SIZE,
+          search: deferredSearchQuery,
+          status: statusFilter,
+        }),
         supabase
           .from('application_sessions')
           .select('status')
@@ -322,8 +440,10 @@ export function TrackerPanel() {
           .not('generated_cv', 'is', null) as Promise<{ data: { status: string | null }[] | null; error: unknown }>,
       ]);
 
+      if (cancelled) return;
+
       setApplications(pageResult.data);
-      setTotalCount(pageResult.count);
+      setMatchingCount(pageResult.count);
 
       if (statusResult.data) {
         const counts: Record<string, number> = {};
@@ -332,36 +452,33 @@ export function TrackerPanel() {
           counts[s] = (counts[s] || 0) + 1;
         }
         setStatusCounts(counts);
+        setTotalCount(statusResult.data.length);
       }
 
       setIsLoadingInitial(false);
     };
 
     load();
-  }, [user, fetchApplications]);
+    return () => {
+      cancelled = true;
+    };
+  }, [user, fetchApplications, statusFilter, deferredSearchQuery]);
 
-  const hasMore = applications.length < totalCount;
+  const hasMore = applications.length < matchingCount;
 
   const handleLoadMore = async () => {
     setIsLoadingMore(true);
-    const { data } = await fetchApplications(applications.length, PAGE_SIZE);
+    const { data } = await fetchApplications({
+      offset: applications.length,
+      limit: PAGE_SIZE,
+      search: deferredSearchQuery,
+      status: statusFilter,
+    });
     setApplications((prev) => [...prev, ...data]);
     setIsLoadingMore(false);
   };
 
-  const filteredApplications = useMemo(() => {
-    return applications.filter((app) => {
-      const matchesSearch =
-        !searchQuery ||
-        (app.company || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (app.job_title || '').toLowerCase().includes(searchQuery.toLowerCase());
-
-      const appStatus = app.status || 'applied';
-      const matchesStatus = statusFilter === 'all' || appStatus === statusFilter;
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [applications, searchQuery, statusFilter]);
+  const filteredApplications = useMemo(() => applications, [applications]);
 
   const stats = useMemo((): Record<string, number> => {
     return { all: totalCount, ...statusCounts };
@@ -399,6 +516,9 @@ export function TrackerPanel() {
           const deleted = applications.find((a) => a.id === id);
           setApplications((prev) => prev.filter((a) => a.id !== id));
           setTotalCount((prev) => Math.max(0, prev - 1));
+          if (deleted && matchesCurrentQuery(deleted)) {
+            setMatchingCount((prev) => Math.max(0, prev - 1));
+          }
           if (deleted) {
             const s = deleted.status || 'applied';
             setStatusCounts((prev) => ({ ...prev, [s]: Math.max(0, (prev[s] || 0) - 1) }));
@@ -420,9 +540,23 @@ export function TrackerPanel() {
         console.error('[Tracker] Error renaming company:', error);
         return;
       }
-      setApplications((prev) =>
-        prev.map((app) => (app.id === sessionId ? { ...app, company: newCompany } : app))
-      );
+        const renamed = applications.find((app) => app.id === sessionId);
+        if (renamed) {
+          const stillMatches = matchesCurrentQuery(renamed, { company: newCompany });
+          setApplications((prev) =>
+            stillMatches
+              ? prev.map((app) => (app.id === sessionId ? { ...app, company: newCompany } : app))
+              : prev.filter((app) => app.id !== sessionId)
+          );
+          if (!stillMatches) {
+            setSelectedIds((prev) => {
+              const next = new Set(prev);
+              next.delete(sessionId);
+              return next;
+            });
+            setMatchingCount((prev) => Math.max(0, prev - 1));
+          }
+        }
       const store = useSessionStore.getState();
       const updatedSessions = store.sessions.map((s) =>
         s.id === sessionId ? { ...s, company: newCompany } as any : s
@@ -443,10 +577,24 @@ export function TrackerPanel() {
       if (error) {
         console.error('[Tracker] Error updating status:', error);
       } else {
-        const oldStatus = applications.find((a) => a.id === sessionId)?.status || 'applied';
-        setApplications((prev) =>
-          prev.map((app) => (app.id === sessionId ? { ...app, status: newStatus } : app))
-        );
+        const changed = applications.find((a) => a.id === sessionId);
+        const oldStatus = changed?.status || 'applied';
+        if (changed) {
+          const stillMatches = matchesCurrentQuery(changed, { status: newStatus });
+          setApplications((prev) =>
+            stillMatches
+              ? prev.map((app) => (app.id === sessionId ? { ...app, status: newStatus } : app))
+              : prev.filter((app) => app.id !== sessionId)
+          );
+          if (!stillMatches) {
+            setSelectedIds((prev) => {
+              const next = new Set(prev);
+              next.delete(sessionId);
+              return next;
+            });
+            setMatchingCount((prev) => Math.max(0, prev - 1));
+          }
+        }
         if (oldStatus !== newStatus) {
           setStatusCounts((prev) => ({
             ...prev,
@@ -552,21 +700,23 @@ export function TrackerPanel() {
     <div className="h-full overflow-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Pipeline Status Bar */}
-        <div className="flex rounded-xl border border-cream-200 overflow-hidden shadow-sm">
+        <div className="flex rounded-[24px] border border-cream-200 bg-white/90 p-1 shadow-[0_18px_42px_-32px_rgba(30,58,95,0.2)] backdrop-blur-sm">
           <PipelineStage
             label="All"
             count={totalCount}
             active={statusFilter === 'all'}
             onClick={() => setStatusFilter('all')}
             isFirst
+            isLast={ALL_STATUSES.length === 0}
           />
-          {ALL_STATUSES.map((s) => (
+          {ALL_STATUSES.map((s, index) => (
             <PipelineStage
               key={s}
               label={STATUS_CONFIG[s].label}
               count={stats[s] || 0}
               active={statusFilter === s}
               onClick={() => setStatusFilter(s)}
+              isLast={index === ALL_STATUSES.length - 1}
             />
           ))}
         </div>
@@ -618,7 +768,7 @@ export function TrackerPanel() {
         </div>
 
         {/* Applications List */}
-        {applications.length === 0 ? (
+        {totalCount === 0 ? (
           <div className="mt-16 text-center">
             <div className="inline-flex p-6 bg-cream-100 rounded-3xl mb-6">
               <Briefcase className="w-12 h-12 text-warm-gray/60" />
@@ -635,12 +785,12 @@ export function TrackerPanel() {
               Add a New Job
             </button>
           </div>
-        ) : filteredApplications.length === 0 ? (
+        ) : matchingCount === 0 ? (
           <div className="mt-16 text-center">
             <div className="inline-flex p-6 bg-cream-100 rounded-3xl mb-6">
               <Search className="w-12 h-12 text-warm-gray/60" />
             </div>
-            <h3 className="text-xl font-bold text-navy-700 mb-2">No jobs match your search</h3>
+            <h3 className="text-xl font-bold text-navy-700 mb-2">No jobs match this view</h3>
             <p className="text-base text-warm-gray mb-6 max-w-sm mx-auto">
               Try adjusting your search or filter criteria.
             </p>
@@ -701,10 +851,10 @@ export function TrackerPanel() {
 
             {/* Desktop Table */}
             <div className="hidden md:block mt-4">
-              <div className="bg-white rounded-2xl border border-cream-200 shadow-sm overflow-hidden">
+              <div className="overflow-hidden rounded-[24px] border border-cream-200 bg-white/95 shadow-[0_22px_56px_-38px_rgba(30,58,95,0.24)] backdrop-blur-sm">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-cream-200 bg-cream-50">
+                    <tr className="border-b border-cream-200 bg-gradient-to-r from-cream-50 to-white">
                       <th className="w-12 px-4 py-4" />
                       <th className="text-left px-6 py-4 text-xs font-semibold text-warm-gray uppercase tracking-wider">Job Position</th>
                       <th className="text-left px-6 py-4 text-xs font-semibold text-warm-gray uppercase tracking-wider">Company</th>
@@ -715,8 +865,9 @@ export function TrackerPanel() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cream-100">
-                    {filteredApplications.map((app) => {
+                    {filteredApplications.map((app, index) => {
                       const appStatus = app.status || 'applied';
+                      const preferredPlacement = index === filteredApplications.length - 1 ? 'top' : 'bottom';
                       return (
                         <tr
                           key={app.id}
@@ -798,6 +949,7 @@ export function TrackerPanel() {
                             ) : (
                               <StatusDropdown
                                 status={appStatus}
+                                preferredPlacement={preferredPlacement}
                                 onStatusChange={(newStatus) => handleStatusChange(app.id, newStatus)}
                               />
                             )}
@@ -840,12 +992,13 @@ export function TrackerPanel() {
 
             {/* Mobile Cards */}
             <div className="md:hidden mt-4 space-y-3">
-              {filteredApplications.map((app) => {
+              {filteredApplications.map((app, index) => {
                 const appStatus = app.status || 'applied';
+                const preferredPlacement = index === filteredApplications.length - 1 ? 'top' : 'bottom';
                 return (
                   <div
                     key={app.id}
-                    className={`bg-white rounded-2xl border border-cream-200 shadow-sm p-5 transition-all ${navigatingSessionId === app.id ? 'opacity-70' : 'hover:border-cream-300 hover:shadow-md'}`}
+                    className={`rounded-[24px] border border-cream-200 bg-white/95 p-5 shadow-[0_18px_40px_-32px_rgba(30,58,95,0.22)] transition-all ${navigatingSessionId === app.id ? 'opacity-70' : 'hover:border-cream-300 hover:shadow-[0_22px_48px_-32px_rgba(30,58,95,0.26)]'}`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <input
@@ -879,6 +1032,7 @@ export function TrackerPanel() {
                       ) : (
                         <StatusDropdown
                           status={appStatus}
+                          preferredPlacement={preferredPlacement}
                           onStatusChange={(newStatus) => handleStatusChange(app.id, newStatus)}
                         />
                       )}
@@ -955,14 +1109,14 @@ export function TrackerPanel() {
                     <>
                       Load More
                       <span className="text-xs text-warm-gray">
-                        ({applications.length} of {totalCount})
+                        ({applications.length} of {matchingCount})
                       </span>
                     </>
                   )}
                 </button>
               )}
               <p className="text-sm text-warm-gray">
-                Showing {filteredApplications.length} of {totalCount} application{totalCount !== 1 ? 's' : ''}
+                Showing {filteredApplications.length} of {matchingCount} matching application{matchingCount !== 1 ? 's' : ''}{matchingCount !== totalCount ? ` · ${totalCount} total` : ''}
               </p>
             </div>
           </>
