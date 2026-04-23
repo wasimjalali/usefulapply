@@ -1053,38 +1053,31 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
                         <CVTemplateRenderer data={editedCVData || cvData} templateId={selectedTemplateId} />
                       </div>
                       {/* Page break indicators — outside cvTemplateRef so not captured in PDF.
-                          Band spans CV_PAGE_GUTTER_PX above + below the cut point, mirroring
-                          the white margins that will appear in the downloaded PDF. */}
+                          Keep the marker minimal so it communicates the split without obscuring content. */}
                       {pageBreaks.map((y, i) => (
                         <div
                           key={y}
                           style={{
                             position: 'absolute',
-                            top: y - CV_PAGE_GUTTER_PX,
-                            left: 0,
-                            right: 0,
-                            height: CV_PAGE_GUTTER_PX * 2,
-                            background: 'rgba(148, 163, 184, 0.1)',
-                            borderTop: '1px dashed #CBD5E0',
-                            borderBottom: '1px dashed #CBD5E0',
+                            top: y,
+                            right: 10,
+                            transform: 'translateY(-50%)',
                             pointerEvents: 'none',
                             zIndex: 10,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'flex-end',
-                            paddingRight: 10,
                           }}
                         >
                           <span style={{
-                            fontSize: 10,
-                            color: '#94A3B8',
-                            background: 'rgba(255, 255, 255, 0.9)',
-                            padding: '1px 5px',
-                            borderRadius: 3,
-                            fontWeight: 400,
-                            lineHeight: 1.4,
+                            fontSize: 11,
+                            color: '#B8891C',
+                            background: 'rgba(255, 255, 255, 0.96)',
+                            padding: '3px 8px',
+                            borderRadius: 999,
+                            fontWeight: 600,
+                            lineHeight: 1.2,
+                            border: '1px solid rgba(212, 175, 55, 0.45)',
+                            boxShadow: '0 8px 18px -14px rgba(30, 58, 95, 0.25)',
                           }}>
-                            Page {i + 1} | Page {i + 2}
+                            Page {i + 1} → {i + 2}
                           </span>
                         </div>
                       ))}

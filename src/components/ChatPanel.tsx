@@ -395,7 +395,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
           onScroll={handleScroll}
           className={`flex-1 overflow-auto space-y-4 relative ${
             isDesktopDocked
-              ? 'px-4 pt-4 pb-3 bg-[radial-gradient(circle_at_top,_rgba(212,175,55,0.08),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.7),rgba(248,244,234,0.3))]'
+              ? 'px-4 pt-4 pb-3 bg-[linear-gradient(180deg,rgba(255,255,255,0.78),rgba(248,244,234,0.22))]'
               : 'p-4'
           }`}
         >
@@ -524,7 +524,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
         )}
 
         {/* Input Area with integrated mode selector */}
-        <div className={isDesktopDocked ? 'border-t border-cream-200/90 bg-gradient-to-b from-white/78 via-cream-50/92 to-cream-100/95 px-3 py-3 backdrop-blur-sm' : ''}>
+        <div className={isDesktopDocked ? 'border-t border-cream-200/90 bg-white/88 px-3 pt-2.5 pb-3 backdrop-blur-sm' : ''}>
           <ChatInput
             value={inputValue}
             onChange={setInputValue}
