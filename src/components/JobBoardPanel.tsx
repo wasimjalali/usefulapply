@@ -25,6 +25,7 @@ import {
   ListChecks,
 } from 'lucide-react';
 import Link from 'next/link';
+import { JobFeedPanel } from '@/components/job-feed/JobFeedPanel';
 
 interface ApplyOption {
   title: string;
@@ -196,7 +197,7 @@ function FormattedDescription({ text }: { text: string }) {
   return <div className="space-y-0.5">{elements}</div>;
 }
 
-export function JobBoardPanel() {
+function LegacyJobBoardPanel() {
   const { user, profile } = useAuth();
 
   // Search inputs
@@ -891,7 +892,7 @@ ${job.description ? `\nDescription:\n${job.description}` : ''}${highlightsText}`
                 Enter a job title, company name, or keywords to find opportunities worldwide.
               </p>
               <div className="text-xs text-warm-gray/70 space-y-1">
-                <p>Examples: "Software Engineer", "Google", "Remote Data Analyst"</p>
+                <p>Examples: &quot;Software Engineer&quot;, &quot;Google&quot;, &quot;Remote Data Analyst&quot;</p>
                 <p>Add a city or country to narrow results</p>
               </div>
             </div>
@@ -1079,4 +1080,12 @@ ${job.description ? `\nDescription:\n${job.description}` : ''}${highlightsText}`
       )}
     </div>
   );
+}
+
+export function JobBoardPanel() {
+  if (process.env.NEXT_PUBLIC_ENABLE_LEGACY_JOB_BOARD === 'true') {
+    return <LegacyJobBoardPanel />;
+  }
+
+  return <JobFeedPanel />;
 }

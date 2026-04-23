@@ -1,0 +1,125 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { normalizeJobFeedSettingsInput } from '@/lib/job-feed/helpers';
+import { createClient } from '@/lib/supabase/server';
+
+export const runtime = 'nodejs';
+
+export async function GET() {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
+    const typedSupabase = supabase as any;
+    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+
+    const { data, error } = await typedSupabase
+      .from('job_feed_settings')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ settings: data ?? null });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to load job feed settings.' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
+    const typedSupabase = supabase as any;
+    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+
+    const { data: profile, error: profileError } = await typedSupabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      return NextResponse.json({ error: 'Failed to load profile.' }, { status: 500 });
+    }
+
+    if (!['plus', 'max', 'pro'].includes(profile.subscription_tier)) {
+      return NextResponse.json(
+        { error: 'Job Feed is available on paid plans only.' },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+    const normalized = normalizeJobFeedSettingsInput(body);
+
+    if (!normalized.data) {
+      return NextResponse.json({ error: normalized.error || 'Invalid settings payload.' }, { status: 400 });
+    }
+
+    const { data: existingSettings } = await typedSupabase
+      .from('job_feed_settings')
+      .select('consent_accepted_at')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const consentAcceptedAt = existingSettings?.consent_accepted_at
+      ?? (normalized.data.consent_accepted ? new Date().toISOString() : null);
+
+    if (normalized.data.enabled && !consentAcceptedAt) {
+      return NextResponse.json(
+        { error: 'Please accept feed automation consent before turning the daily feed on.' },
+        { status: 400 }
+      );
+    }
+
+    const { data, error } = await typedSupabase
+      .from('job_feed_settings')
+      .upsert({
+        user_id: user.id,
+        enabled: normalized.data.enabled,
+        consent_accepted_at: consentAcceptedAt,
+        user_timezone: normalized.data.user_timezone,
+        delivery_hour_local: normalized.data.delivery_hour_local,
+        target_market: normalized.data.target_market,
+        target_roles: normalized.data.target_roles,
+        adjacent_roles_enabled: normalized.data.adjacent_roles_enabled,
+        adjacent_roles: normalized.data.adjacent_roles_enabled ? normalized.data.adjacent_roles : [],
+        preferred_locations: normalized.data.preferred_locations,
+        remote_preference: normalized.data.remote_preference,
+        salary_floor: normalized.data.salary_floor,
+        languages: normalized.data.languages,
+        seniority_target: normalized.data.seniority_target,
+        employment_types: normalized.data.employment_types,
+        work_authorization_status: normalized.data.work_authorization_status,
+        aggressiveness: normalized.data.aggressiveness,
+      }, {
+        onConflict: 'user_id',
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ settings: data });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to save job feed settings.' },
+      { status: 500 }
+    );
+  }
+}

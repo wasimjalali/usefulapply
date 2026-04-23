@@ -83,6 +83,133 @@ export interface Database {
           updated_at?: string
         }
       }
+      job_feed_settings: {
+        Row: {
+          user_id: string
+          enabled: boolean
+          consent_accepted_at: string | null
+          user_timezone: string
+          delivery_hour_local: number
+          target_market: 'us' | 'canada' | 'us_canada'
+          target_roles: string[]
+          adjacent_roles_enabled: boolean
+          adjacent_roles: string[]
+          preferred_locations: string[]
+          remote_preference: 'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible'
+          salary_floor: number | null
+          languages: string[]
+          seniority_target: 'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager' | null
+          employment_types: Array<'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'>
+          work_authorization_status: 'authorized' | 'needs_sponsorship' | 'open_to_both' | null
+          aggressiveness: 'strict' | 'balanced' | 'broad'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          enabled?: boolean
+          consent_accepted_at?: string | null
+          user_timezone?: string
+          delivery_hour_local?: number
+          target_market?: 'us' | 'canada' | 'us_canada'
+          target_roles?: string[]
+          adjacent_roles_enabled?: boolean
+          adjacent_roles?: string[]
+          preferred_locations?: string[]
+          remote_preference?: 'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible'
+          salary_floor?: number | null
+          languages?: string[]
+          seniority_target?: 'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager' | null
+          employment_types?: Array<'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'>
+          work_authorization_status?: 'authorized' | 'needs_sponsorship' | 'open_to_both' | null
+          aggressiveness?: 'strict' | 'balanced' | 'broad'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          enabled?: boolean
+          consent_accepted_at?: string | null
+          user_timezone?: string
+          delivery_hour_local?: number
+          target_market?: 'us' | 'canada' | 'us_canada'
+          target_roles?: string[]
+          adjacent_roles_enabled?: boolean
+          adjacent_roles?: string[]
+          preferred_locations?: string[]
+          remote_preference?: 'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible'
+          salary_floor?: number | null
+          languages?: string[]
+          seniority_target?: 'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager' | null
+          employment_types?: Array<'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'>
+          work_authorization_status?: 'authorized' | 'needs_sponsorship' | 'open_to_both' | null
+          aggressiveness?: 'strict' | 'balanced' | 'broad'
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      job_feed_runs: {
+        Row: {
+          id: string
+          user_id: string
+          local_date: string
+          local_timezone: string
+          delivery_hour_local: number
+          trigger_source: string
+          status: 'queued' | 'running' | 'completed' | 'failed' | 'skipped'
+          idempotency_key: string
+          started_at: string | null
+          completed_at: string | null
+          error_message: string | null
+          result_summary: string | null
+          raw_jobs_fetched: number
+          jobs_after_prefilter: number
+          ranked_jobs_count: number
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          local_date: string
+          local_timezone: string
+          delivery_hour_local: number
+          trigger_source?: string
+          status?: 'queued' | 'running' | 'completed' | 'failed' | 'skipped'
+          idempotency_key: string
+          started_at?: string | null
+          completed_at?: string | null
+          error_message?: string | null
+          result_summary?: string | null
+          raw_jobs_fetched?: number
+          jobs_after_prefilter?: number
+          ranked_jobs_count?: number
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          local_date?: string
+          local_timezone?: string
+          delivery_hour_local?: number
+          trigger_source?: string
+          status?: 'queued' | 'running' | 'completed' | 'failed' | 'skipped'
+          idempotency_key?: string
+          started_at?: string | null
+          completed_at?: string | null
+          error_message?: string | null
+          result_summary?: string | null
+          raw_jobs_fetched?: number
+          jobs_after_prefilter?: number
+          ranked_jobs_count?: number
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
       documents: {
         Row: {
           id: string
@@ -660,6 +787,8 @@ export type UpdateTables<T extends keyof Database['public']['Tables']> = Databas
 
 // Convenience types
 export type Profile = Tables<'profiles'>
+export type JobFeedSettings = Tables<'job_feed_settings'>
+export type JobFeedRun = Tables<'job_feed_runs'>
 export type Document = Tables<'documents'>
 export type ProfilePhoto = Tables<'profile_photos'>
 export type ApplicationSession = Tables<'application_sessions'>

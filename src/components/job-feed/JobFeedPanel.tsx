@@ -1,0 +1,972 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { usePostHog } from 'posthog-js/react';
+import {
+  AlertCircle,
+  ArrowRight,
+  Briefcase,
+  CalendarClock,
+  CheckCircle2,
+  Clock3,
+  Globe,
+  Loader2,
+  MapPin,
+  PauseCircle,
+  RefreshCw,
+  Settings2,
+  ShieldCheck,
+  Sparkles,
+  Wand2,
+  Zap,
+} from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { useToast } from '@/components/ui/Toast';
+import {
+  JOB_FEED_AGGRESSIVENESS_OPTIONS,
+  JOB_FEED_EMPLOYMENT_TYPE_OPTIONS,
+  JOB_FEED_MARKET_OPTIONS,
+  JOB_FEED_REMOTE_PREFERENCE_OPTIONS,
+  JOB_FEED_SENIORITY_OPTIONS,
+  JOB_FEED_SUGGESTED_LANGUAGES,
+  JOB_FEED_SUGGESTED_LOCATIONS,
+  JOB_FEED_SUGGESTED_ROLES,
+  JOB_FEED_WORK_AUTH_OPTIONS,
+  formatDeliveryHourLabel,
+} from '@/lib/job-feed/constants';
+import { createDefaultJobFeedInput, toJobFeedInput } from '@/lib/job-feed/helpers';
+import type { JobFeedOverviewResponse, JobFeedSettingsInput } from '@/lib/job-feed/types';
+
+type SaveState = 'idle' | 'saving';
+
+export function JobFeedPanel() {
+  const { user, profile } = useAuth();
+  const { toast } = useToast();
+  const posthog = usePostHog();
+  const [overview, setOverview] = useState<JobFeedOverviewResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isRunningDebugFlow, setIsRunningDebugFlow] = useState(false);
+  const [form, setForm] = useState<JobFeedSettingsInput>(() => createDefaultJobFeedInput(getBrowserTimeZone()));
+  const lastTrackedState = useRef<string | null>(null);
+
+  const showDebugActions = process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_ENABLE_JOB_FEED_DEBUG === 'true';
+
+  const loadOverview = useCallback(async (options?: { quiet?: boolean }) => {
+    if (!options?.quiet) {
+      setIsLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
+
+    try {
+      const response = await fetch('/api/job-feed/overview', {
+        method: 'GET',
+        cache: 'no-store',
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to load Job Feed.');
+      }
+
+      setOverview(payload as JobFeedOverviewResponse);
+      setForm(toJobFeedInput(payload.settings, getBrowserTimeZone()));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load Job Feed.');
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
+    loadOverview();
+  }, [loadOverview, user]);
+
+  useEffect(() => {
+    if (!posthog) return;
+
+    posthog.capture('job_feed_opened', {
+      foundation_mode: true,
+      subscription_tier: profile?.subscription_tier ?? 'unknown',
+    });
+  }, [posthog, profile?.subscription_tier]);
+
+  useEffect(() => {
+    if (!posthog || !overview?.state) return;
+    if (lastTrackedState.current === overview.state) return;
+
+    lastTrackedState.current = overview.state;
+    posthog.capture('job_feed_state_viewed', {
+      state: overview.state,
+      foundation_mode: true,
+    });
+  }, [overview?.state, posthog]);
+
+  const handleSave = async () => {
+    setSaveState('saving');
+
+    try {
+      const response = await fetch('/api/job-feed/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(form),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to save Job Feed settings.');
+      }
+
+      posthog?.capture('job_feed_setup_completed', {
+        foundation_mode: true,
+        enabled: form.enabled,
+        target_market: form.target_market,
+        roles_count: form.target_roles.length,
+      });
+
+      toast.success(form.enabled ? 'Daily feed is on and scheduled.' : 'Job Feed settings saved.');
+      setIsEditing(false);
+      await loadOverview({ quiet: true });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save Job Feed settings.');
+    } finally {
+      setSaveState('idle');
+    }
+  };
+
+  const handleDebugRun = async () => {
+    setIsRunningDebugFlow(true);
+
+    try {
+      const response = await fetch('/api/job-feed/dev/run', {
+        method: 'POST',
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to run foundation workflow.');
+      }
+
+      posthog?.capture('job_feed_foundation_run_requested', {
+        foundation_mode: true,
+      });
+
+      toast.success('Foundation run completed for this account.');
+      await loadOverview({ quiet: true });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to run foundation workflow.');
+    } finally {
+      setIsRunningDebugFlow(false);
+    }
+  };
+
+  const currentState = overview?.state ?? 'setup_required';
+  const setupOpen = currentState === 'setup_required' || isEditing;
+
+  return (
+    <div className="min-h-full bg-[radial-gradient(circle_at_top_left,rgba(215,180,58,0.12),transparent_32%),linear-gradient(180deg,#fbfaf6_0%,#f5f0e4_100%)]">
+      <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-4 sm:px-6">
+        <section className="overflow-hidden rounded-[28px] border border-cream-200 bg-[linear-gradient(135deg,rgba(16,44,87,0.98),rgba(27,65,120,0.96)_58%,rgba(207,171,76,0.86)_150%)] text-white shadow-[0_28px_90px_-40px_rgba(16,44,87,0.6)]">
+          <div className="grid gap-6 px-6 py-6 lg:grid-cols-[1.4fr_0.95fr] lg:px-8">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cream-100/90">
+                <Sparkles className="h-3.5 w-3.5 text-gold-300" />
+                Daily Job Feed
+              </div>
+
+              <div className="max-w-2xl space-y-3">
+                <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-[2.25rem]">
+                  Karko researches your next job in the background.
+                </h1>
+                <p className="max-w-xl text-sm leading-6 text-cream-100/85 sm:text-base">
+                  Phase 0 is live here: the old manual-search-first board is hidden so Job Feed can become a prepared, daily, feed-first surface.
+                  Phases 1 and 2 in this milestone add real settings, scheduling, and operational run tracking underneath it.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <HeroPill icon={ShieldCheck} label="Premium-only daily discovery" />
+                <HeroPill icon={Wand2} label="Settings saved in Supabase" />
+                <HeroPill icon={CalendarClock} label="Run tracking wired for background delivery" />
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+              <HeroStat
+                icon={Clock3}
+                label="Delivery window"
+                value={formatDeliveryHourLabel(form.delivery_hour_local)}
+                sublabel={form.user_timezone}
+              />
+              <HeroStat
+                icon={Globe}
+                label="Target market"
+                value={readableMarket(form.target_market)}
+                sublabel="US + Canada launch shape"
+              />
+              <HeroStat
+                icon={Zap}
+                label="Current state"
+                value={readableState(currentState)}
+                sublabel="Foundation mode enabled"
+              />
+            </div>
+          </div>
+        </section>
+
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.9fr)]">
+          <div className="space-y-5">
+            {isLoading ? (
+              <LoadingState />
+            ) : (
+              <PrimaryStateCard
+                overview={overview}
+                onEditSettings={() => setIsEditing(true)}
+                onRefresh={() => loadOverview({ quiet: true })}
+                isRefreshing={isRefreshing}
+              />
+            )}
+
+            {setupOpen && (
+              <Card className="rounded-[24px] border-cream-200 bg-white/92 p-0 shadow-sm">
+                <div className="border-b border-cream-200 px-6 py-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-navy-500">Phase 1 Setup</p>
+                      <h2 className="mt-2 text-xl font-semibold text-charcoal">Tell Karko what a good daily match looks like</h2>
+                      <p className="mt-1 text-sm text-warm-gray">
+                        Keep it practical for v1: a few strong role, market, location, and fit signals are enough to start.
+                      </p>
+                    </div>
+                    {currentState !== 'setup_required' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setForm(toJobFeedInput(overview?.settings ?? null, getBrowserTimeZone()));
+                          setIsEditing(false);
+                        }}
+                      >
+                        Close
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-6 px-6 py-6">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <FieldGroup label="Target roles" help="Structured suggestions first, then your own write-in roles.">
+                      <ChipField
+                        values={form.target_roles}
+                        suggestions={JOB_FEED_SUGGESTED_ROLES}
+                        placeholder="Type a role and press Enter"
+                        onChange={(target_roles) => setForm((prev) => ({ ...prev, target_roles }))}
+                      />
+                    </FieldGroup>
+
+                    <FieldGroup label="Preferred locations" help="Add cities, regions, or remote market hints if they matter.">
+                      <ChipField
+                        values={form.preferred_locations}
+                        suggestions={JOB_FEED_SUGGESTED_LOCATIONS}
+                        placeholder="Add a location"
+                        onChange={(preferred_locations) => setForm((prev) => ({ ...prev, preferred_locations }))}
+                      />
+                    </FieldGroup>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <SelectField
+                      label="Target market"
+                      value={form.target_market}
+                      onChange={(target_market) => setForm((prev) => ({ ...prev, target_market: target_market as JobFeedSettingsInput['target_market'] }))}
+                      options={JOB_FEED_MARKET_OPTIONS}
+                    />
+                    <SelectField
+                      label="Remote preference"
+                      value={form.remote_preference}
+                      onChange={(remote_preference) => setForm((prev) => ({ ...prev, remote_preference: remote_preference as JobFeedSettingsInput['remote_preference'] }))}
+                      options={JOB_FEED_REMOTE_PREFERENCE_OPTIONS}
+                    />
+                    <SelectField
+                      label="Seniority"
+                      value={form.seniority_target ?? ''}
+                      onChange={(seniority_target) => setForm((prev) => ({ ...prev, seniority_target: (seniority_target || null) as JobFeedSettingsInput['seniority_target'] }))}
+                      options={[{ value: '', label: 'Select seniority' }, ...JOB_FEED_SENIORITY_OPTIONS]}
+                    />
+                    <SelectField
+                      label="Aggressiveness"
+                      value={form.aggressiveness}
+                      onChange={(aggressiveness) => setForm((prev) => ({ ...prev, aggressiveness: aggressiveness as JobFeedSettingsInput['aggressiveness'] }))}
+                      options={JOB_FEED_AGGRESSIVENESS_OPTIONS}
+                    />
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <SelectField
+                      label="Delivery hour"
+                      value={String(form.delivery_hour_local)}
+                      onChange={(value) => setForm((prev) => ({ ...prev, delivery_hour_local: Number(value) }))}
+                      options={Array.from({ length: 16 }, (_, index) => {
+                        const hour = index + 6;
+                        return {
+                          value: String(hour),
+                          label: `${formatDeliveryHourLabel(hour)} local`,
+                        };
+                      })}
+                    />
+
+                    <InputField
+                      label="Timezone"
+                      value={form.user_timezone}
+                      onChange={(user_timezone) => setForm((prev) => ({ ...prev, user_timezone }))}
+                      placeholder="Europe/Berlin"
+                    />
+
+                    <InputField
+                      label="Salary floor (optional)"
+                      type="number"
+                      value={form.salary_floor === null ? '' : String(form.salary_floor)}
+                      onChange={(salary_floor) => setForm((prev) => ({
+                        ...prev,
+                        salary_floor: salary_floor ? Number(salary_floor) : null,
+                      }))}
+                      placeholder="120000"
+                    />
+
+                    <SelectField
+                      label="Work authorization"
+                      value={form.work_authorization_status ?? ''}
+                      onChange={(work_authorization_status) => setForm((prev) => ({
+                        ...prev,
+                        work_authorization_status: (work_authorization_status || null) as JobFeedSettingsInput['work_authorization_status'],
+                      }))}
+                      options={[{ value: '', label: 'Select status' }, ...JOB_FEED_WORK_AUTH_OPTIONS]}
+                    />
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <FieldGroup label="Employment types" help="Keep the first version practical.">
+                      <div className="flex flex-wrap gap-2">
+                        {JOB_FEED_EMPLOYMENT_TYPE_OPTIONS.map((option) => {
+                          const selected = form.employment_types.includes(option.value);
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => {
+                                const nextValues = selected
+                                  ? form.employment_types.filter((value) => value !== option.value)
+                                  : [...form.employment_types, option.value];
+                                setForm((prev) => ({ ...prev, employment_types: nextValues as JobFeedSettingsInput['employment_types'] }));
+                              }}
+                              className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                                selected
+                                  ? 'border-navy-600 bg-navy-600 text-white'
+                                  : 'border-cream-300 bg-cream-50 text-warm-gray hover:border-navy-300 hover:text-navy-600'
+                              }`}
+                            >
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </FieldGroup>
+
+                    <FieldGroup label="Languages" help="Used for market-fit and future ranking context.">
+                      <ChipField
+                        values={form.languages}
+                        suggestions={JOB_FEED_SUGGESTED_LANGUAGES}
+                        placeholder="Add a language"
+                        onChange={(languages) => setForm((prev) => ({ ...prev, languages }))}
+                      />
+                    </FieldGroup>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <FieldGroup label="Adjacent roles" help="Let Karko widen into close neighbours when the market is thin.">
+                      <ToggleRow
+                        title="Include adjacent roles"
+                        description="Helpful for strict markets or when exact titles vary."
+                        checked={form.adjacent_roles_enabled}
+                        onChange={(adjacent_roles_enabled) => setForm((prev) => ({ ...prev, adjacent_roles_enabled }))}
+                      />
+
+                      {form.adjacent_roles_enabled && (
+                        <div className="pt-3">
+                          <ChipField
+                            values={form.adjacent_roles}
+                            suggestions={['Platform Engineer', 'Solutions Engineer', 'Product Analyst']}
+                            placeholder="Add an adjacent role"
+                            onChange={(adjacent_roles) => setForm((prev) => ({ ...prev, adjacent_roles }))}
+                          />
+                        </div>
+                      )}
+                    </FieldGroup>
+
+                    <FieldGroup label="Automation consent" help="Required before the feed can run automatically.">
+                      <div className="rounded-2xl border border-cream-200 bg-cream-50/70 p-4">
+                        <label className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            checked={form.consent_accepted}
+                            onChange={(event) => setForm((prev) => ({ ...prev, consent_accepted: event.target.checked }))}
+                            className="mt-1 h-4 w-4 rounded border-cream-300 text-navy-600 focus:ring-navy-500"
+                          />
+                          <span className="text-sm leading-6 text-charcoal">
+                            I’m happy for Karko to research jobs for me automatically once per day using these settings.
+                            {overview?.settings?.consent_accepted_at && (
+                              <span className="mt-1 block text-xs text-navy-600">
+                                Consent already recorded. Leaving this checked keeps the feed eligible to run.
+                              </span>
+                            )}
+                          </span>
+                        </label>
+
+                        <div className="mt-4 border-t border-cream-200 pt-4">
+                          <ToggleRow
+                            title="Enable daily feed"
+                            description="Turn scheduling on now, or save the settings first and enable it later."
+                            checked={form.enabled}
+                            onChange={(enabled) => setForm((prev) => ({ ...prev, enabled }))}
+                          />
+                        </div>
+                      </div>
+                    </FieldGroup>
+                  </div>
+
+                  <div className="flex flex-col gap-3 border-t border-cream-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-warm-gray">
+                      This milestone stops at settings, scheduling, and run tracking. Ingestion and ranking come next.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" onClick={() => loadOverview({ quiet: true })} disabled={isRefreshing}>
+                        {isRefreshing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Refresh
+                      </Button>
+                      <Button variant="gold" onClick={handleSave} disabled={saveState === 'saving'}>
+                        {saveState === 'saving' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Save Job Feed settings
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+          </div>
+
+          <div className="space-y-5">
+            <Card className="rounded-[24px] border-cream-200 bg-white/92 p-6 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">Current Shape</p>
+                  <h2 className="mt-2 text-lg font-semibold text-charcoal">Feed summary</h2>
+                </div>
+                {!setupOpen && (
+                  <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
+                    <Settings2 className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                )}
+              </div>
+
+              <div className="mt-5 space-y-4">
+                <SummaryRow icon={Briefcase} label="Roles" value={form.target_roles.length > 0 ? form.target_roles.join(', ') : 'Not set yet'} />
+                <SummaryRow icon={MapPin} label="Locations" value={form.preferred_locations.length > 0 ? form.preferred_locations.join(', ') : 'Flexible'} />
+                <SummaryRow icon={Globe} label="Market" value={readableMarket(form.target_market)} />
+                <SummaryRow icon={Clock3} label="Delivery" value={`${formatDeliveryHourLabel(form.delivery_hour_local)} in ${form.user_timezone}`} />
+              </div>
+            </Card>
+
+            <Card className="rounded-[24px] border-cream-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(248,244,234,0.9))] p-6 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">Milestone To-Do</p>
+              <h2 className="mt-2 text-lg font-semibold text-charcoal">What this branch is building right now</h2>
+              <div className="mt-5 space-y-3">
+                <MilestoneStep title="Phase 0" body="Hide the legacy manual-search-first board from the visible product and make Job Feed feel prepared, not manual." />
+                <MilestoneStep title="Phase 1" body="Persist feed settings with honest consent, timezone, delivery time, role, market, and fit controls." />
+                <MilestoneStep title="Phase 2" body="Track durable per-user daily runs so the scheduler and later Inngest workflow have a real operational foundation." />
+              </div>
+            </Card>
+
+            {showDebugActions && (
+              <Card className="rounded-[24px] border-dashed border-navy-200 bg-navy-50/60 p-6 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-600">Developer Check</p>
+                <h2 className="mt-2 text-lg font-semibold text-charcoal">Run the Phase 2 foundation for this account</h2>
+                <p className="mt-2 text-sm leading-6 text-warm-gray">
+                  This is a debug-only helper to prove the run-tracking path end to end before ingestion and ranking are wired in.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={handleDebugRun} disabled={isRunningDebugFlow}>
+                    {isRunningDebugFlow ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                    Run foundation workflow
+                  </Button>
+                  <Button variant="ghost" onClick={() => loadOverview({ quiet: true })} disabled={isRefreshing}>
+                    Refresh status
+                  </Button>
+                </div>
+              </Card>
+            )}
+
+            {!overview?.canAccess && !isLoading && (
+              <Card className="rounded-[24px] border-gold-200 bg-[linear-gradient(135deg,rgba(255,255,255,0.94),rgba(253,247,228,0.95))] p-6 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-700">Premium Access</p>
+                <h2 className="mt-2 text-lg font-semibold text-charcoal">Upgrade to unlock automatic daily discovery</h2>
+                <p className="mt-2 text-sm leading-6 text-warm-gray">
+                  The feed foundation is premium-only, because it relies on background research, personalization, and later ranking costs.
+                </p>
+                <Link href="/pricing" className="mt-4 inline-flex">
+                  <Button variant="gold">
+                    View plans
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </Card>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PrimaryStateCard({
+  overview,
+  onEditSettings,
+  onRefresh,
+  isRefreshing,
+}: {
+  overview: JobFeedOverviewResponse | null;
+  onEditSettings: () => void;
+  onRefresh: () => void;
+  isRefreshing: boolean;
+}) {
+  const latestRun = overview?.latestRun ?? null;
+
+  const contentByState: Record<string, {
+    icon: typeof Sparkles;
+    title: string;
+    body: string;
+    tone: string;
+  }> = {
+    upgrade_required: {
+      icon: Sparkles,
+      title: 'Job Feed is waiting on a premium plan',
+      body: 'The daily feed is built for premium users only. Once access is enabled, the rest of this setup can stay in-context right here.',
+      tone: 'from-gold-50 to-white border-gold-200 text-charcoal',
+    },
+    setup_required: {
+      icon: Settings2,
+      title: 'Finish setup to activate the feed',
+      body: 'Karko needs your target roles, delivery time, and consent before it can start a background run.',
+      tone: 'from-navy-50 to-white border-navy-200 text-charcoal',
+    },
+    paused: {
+      icon: PauseCircle,
+      title: 'The feed is configured but paused',
+      body: 'Your preferences are saved. Re-enable the daily feed whenever you want background discovery to resume.',
+      tone: 'from-cream-100 to-white border-cream-300 text-charcoal',
+    },
+    awaiting_first_run: {
+      icon: CalendarClock,
+      title: 'Settings are saved. The first automated run is next.',
+      body: 'Phase 2 scheduling is ready. Once the scheduler hits your delivery window, the first tracked run will appear here.',
+      tone: 'from-navy-50 to-white border-navy-200 text-charcoal',
+    },
+    generating: {
+      icon: Loader2,
+      title: 'A feed run is in progress',
+      body: 'The foundation workflow is currently running for this user. Later phases will populate jobs and ranking results here.',
+      tone: 'from-navy-50 to-white border-navy-200 text-charcoal',
+    },
+    empty: {
+      icon: CheckCircle2,
+      title: 'The foundation run completed successfully',
+      body: latestRun?.result_summary || 'Settings and scheduling are active. The next milestone plugs in ingestion, filtering, and ranking.',
+      tone: 'from-emerald-50 to-white border-emerald-200 text-charcoal',
+    },
+    error: {
+      icon: AlertCircle,
+      title: 'The latest foundation run failed',
+      body: latestRun?.error_message || 'The scheduler foundation needs attention before the next daily run.',
+      tone: 'from-red-50 to-white border-red-200 text-charcoal',
+    },
+  };
+
+  const stateContent = contentByState[overview?.state ?? 'setup_required'];
+  const Icon = stateContent.icon;
+
+  return (
+    <Card className={`rounded-[24px] border bg-[linear-gradient(180deg,var(--tw-gradient-stops))] p-6 shadow-sm ${stateContent.tone}`}>
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm">
+            <Icon className={`h-6 w-6 ${overview?.state === 'generating' ? 'animate-spin text-navy-600' : 'text-navy-600'}`} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-500">Primary state</p>
+            <h2 className="mt-2 text-2xl font-semibold text-charcoal">{stateContent.title}</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-warm-gray">{stateContent.body}</p>
+            {latestRun && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <RunStatPill label="Run status" value={latestRun.status} />
+                <RunStatPill label="Feed date" value={latestRun.local_date} />
+                <RunStatPill label="Triggered by" value={latestRun.trigger_source} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2 lg:justify-end">
+          <Button variant="outline" onClick={onRefresh} disabled={isRefreshing}>
+            {isRefreshing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            Refresh
+          </Button>
+          <Button variant="gold" onClick={onEditSettings}>
+            <Settings2 className="mr-2 h-4 w-4" />
+            {overview?.state === 'setup_required' ? 'Open setup' : 'Edit settings'}
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function LoadingState() {
+  return (
+    <Card className="rounded-[24px] border-cream-200 bg-white/92 p-6 shadow-sm">
+      <div className="flex items-center gap-3 text-navy-600">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        <span className="text-sm font-medium">Loading Job Feed foundation…</span>
+      </div>
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div key={index} className="h-24 rounded-2xl bg-cream-100 animate-pulse" />
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function HeroPill({
+  icon: Icon,
+  label,
+}: {
+  icon: typeof Sparkles;
+  label: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/10 px-3 py-1.5 text-xs font-medium text-cream-100/90">
+      <Icon className="h-3.5 w-3.5 text-gold-300" />
+      {label}
+    </span>
+  );
+}
+
+function HeroStat({
+  icon: Icon,
+  label,
+  value,
+  sublabel,
+}: {
+  icon: typeof Clock3;
+  label: string;
+  value: string;
+  sublabel: string;
+}) {
+  return (
+    <div className="rounded-[22px] border border-white/12 bg-white/10 p-4 backdrop-blur-sm">
+      <div className="flex items-center gap-2 text-cream-100/80">
+        <Icon className="h-4 w-4 text-gold-300" />
+        <p className="text-xs font-semibold uppercase tracking-[0.18em]">{label}</p>
+      </div>
+      <p className="mt-3 text-xl font-semibold text-white">{value}</p>
+      <p className="mt-1 text-xs text-cream-100/75">{sublabel}</p>
+    </div>
+  );
+}
+
+function FieldGroup({
+  label,
+  help,
+  children,
+}: {
+  label: string;
+  help: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="mb-2">
+        <p className="text-sm font-semibold text-charcoal">{label}</p>
+        <p className="mt-1 text-xs leading-5 text-warm-gray">{help}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: ReadonlyArray<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-semibold text-charcoal">{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-2xl border border-cream-300 bg-white px-3 py-2.5 text-sm text-charcoal shadow-sm outline-none transition-colors focus:border-navy-400"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function InputField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = 'text',
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  type?: 'text' | 'number';
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-semibold text-charcoal">{label}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="w-full rounded-2xl border border-cream-300 bg-white px-3 py-2.5 text-sm text-charcoal shadow-sm outline-none transition-colors focus:border-navy-400"
+      />
+    </label>
+  );
+}
+
+function ToggleRow({
+  title,
+  description,
+  checked,
+  onChange,
+}: {
+  title: string;
+  description: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="pr-2">
+        <p className="text-sm font-semibold text-charcoal">{title}</p>
+        <p className="mt-1 text-xs leading-5 text-warm-gray">{description}</p>
+      </div>
+      <label className="relative inline-flex cursor-pointer items-center">
+        <input
+          type="checkbox"
+          className="peer sr-only"
+          checked={checked}
+          onChange={(event) => onChange(event.target.checked)}
+        />
+        <div className="h-6 w-11 rounded-full bg-cream-300 transition-colors peer-checked:bg-navy-600 peer-focus:ring-2 peer-focus:ring-navy-300" />
+        <div className="absolute left-[2px] top-[2px] h-5 w-5 rounded-full bg-white transition-transform peer-checked:translate-x-5" />
+      </label>
+    </div>
+  );
+}
+
+function ChipField({
+  values,
+  suggestions,
+  placeholder,
+  onChange,
+}: {
+  values: string[];
+  suggestions: string[];
+  placeholder: string;
+  onChange: (values: string[]) => void;
+}) {
+  const [draft, setDraft] = useState('');
+
+  const addValue = (rawValue: string) => {
+    const normalized = rawValue.trim();
+    if (!normalized) return;
+    if (values.includes(normalized)) {
+      setDraft('');
+      return;
+    }
+    onChange([...values, normalized]);
+    setDraft('');
+  };
+
+  return (
+    <div className="rounded-2xl border border-cream-200 bg-white p-3 shadow-sm">
+      <div className="flex flex-wrap gap-2">
+        {values.map((value) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => onChange(values.filter((item) => item !== value))}
+            className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-navy-50 px-3 py-1.5 text-sm text-navy-700"
+          >
+            {value}
+            <span className="text-xs text-navy-500">Remove</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <input
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              addValue(draft);
+            }
+          }}
+          placeholder={placeholder}
+          className="min-w-0 flex-1 rounded-2xl border border-cream-300 bg-white px-3 py-2.5 text-sm text-charcoal outline-none transition-colors focus:border-navy-400"
+        />
+        <Button variant="outline" type="button" onClick={() => addValue(draft)}>
+          Add
+        </Button>
+      </div>
+
+      {suggestions.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {suggestions.map((suggestion) => {
+            const selected = values.includes(suggestion);
+            return (
+              <button
+                key={suggestion}
+                type="button"
+                onClick={() => addValue(suggestion)}
+                disabled={selected}
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  selected
+                    ? 'border-cream-200 bg-cream-100 text-warm-gray'
+                    : 'border-cream-300 bg-cream-50 text-charcoal hover:border-navy-300 hover:text-navy-600'
+                }`}
+              >
+                {suggestion}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SummaryRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Briefcase;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-cream-200 bg-cream-50 text-navy-600">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-warm-gray">{label}</p>
+        <p className="mt-1 text-sm leading-6 text-charcoal">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function MilestoneStep({
+  title,
+  body,
+}: {
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="flex gap-3">
+      <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-navy-600 text-xs font-semibold text-white">
+        {title.replace('Phase ', '')}
+      </div>
+      <p className="text-sm leading-6 text-warm-gray">
+        <span className="font-semibold text-charcoal">{title}.</span> {body}
+      </p>
+    </div>
+  );
+}
+
+function RunStatPill({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-cream-300 bg-white px-3 py-1.5 text-xs text-warm-gray shadow-sm">
+      <span className="font-semibold text-charcoal">{label}:</span>
+      {value}
+    </span>
+  );
+}
+
+function readableMarket(value: string): string {
+  const option = JOB_FEED_MARKET_OPTIONS.find((item) => item.value === value);
+  return option?.label ?? value;
+}
+
+function readableState(value: string): string {
+  switch (value) {
+    case 'setup_required':
+      return 'Setup required';
+    case 'awaiting_first_run':
+      return 'Awaiting first run';
+    case 'upgrade_required':
+      return 'Upgrade required';
+    default:
+      return value.replace(/_/g, ' ');
+  }
+}
+
+function getBrowserTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
