@@ -52,21 +52,43 @@ function StatusDropdown({
   onStatusChange: (newStatus: ApplicationStatus) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [menuStyle, setMenuStyle] = useState<{ top: number; right: number } | null>(null);
+  const [menuStyle, setMenuStyle] = useState<{ top: number; left: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.applied;
+  const MENU_WIDTH = 192;
+  const MENU_HEIGHT = 248;
+  const VIEWPORT_MARGIN = 12;
 
   const openMenu = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       setMenuStyle({
-        top: rect.bottom + 8,
-        right: window.innerWidth - rect.right,
+        top: Math.max(
+          VIEWPORT_MARGIN,
+          Math.min(rect.bottom + 8, window.innerHeight - MENU_HEIGHT - VIEWPORT_MARGIN),
+        ),
+        left: Math.max(
+          VIEWPORT_MARGIN,
+          Math.min(rect.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - VIEWPORT_MARGIN),
+        ),
       });
     }
     setIsOpen((prev) => !prev);
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const closeMenu = () => setIsOpen(false);
+    window.addEventListener('resize', closeMenu);
+    window.addEventListener('scroll', closeMenu, true);
+
+    return () => {
+      window.removeEventListener('resize', closeMenu);
+      window.removeEventListener('scroll', closeMenu, true);
+    };
+  }, [isOpen]);
 
   return (
     <div className="relative">
@@ -85,7 +107,7 @@ function StatusDropdown({
           <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setIsOpen(false); }} />
           <div
             className="fixed z-50 w-48 bg-white rounded-xl shadow-xl border border-cream-200 py-1.5"
-            style={{ top: menuStyle.top, right: menuStyle.right }}
+            style={{ top: menuStyle.top, left: menuStyle.left }}
           >
             {ALL_STATUSES.map((s) => {
               const sc = STATUS_CONFIG[s];

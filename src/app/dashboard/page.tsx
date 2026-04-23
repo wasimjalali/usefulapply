@@ -631,7 +631,7 @@ export default function Dashboard() {
 
       <div className="hidden md:flex flex-1 overflow-hidden">
         <div className="flex-1 flex flex-col overflow-hidden">
-          {activeWorkspace === 'application-kit' && (
+          {activeWorkspace === 'application-kit' && currentCV && (
             <>
               <div className="bg-white/90 border-b border-cream-200 px-4 sm:px-5 py-2.5">
                 <div id="tour-doc-tabs" className="inline-flex items-center bg-cream-100/80 rounded-[18px] p-0.5">
@@ -713,7 +713,7 @@ export default function Dashboard() {
                         <Loader2 className="w-5 h-5 animate-spin text-navy-600" />
                         <p className="text-sm text-navy-600 font-medium">Parsing your CV...</p>
                       </div>
-                      <p className="text-xs text-navy-500">This may take 30–60 seconds</p>
+                      <p className="text-xs text-navy-500">This may take 30-60 seconds</p>
                     </div>
                   ) : (
                     <CVInputZone
@@ -818,7 +818,7 @@ export default function Dashboard() {
       </div>
 
       <div className="md:hidden flex-1 flex flex-col overflow-hidden">
-        {mobileView === 'application-kit' && (
+        {mobileView === 'application-kit' && currentCV && (
           <div className="bg-white/90 border-b border-cream-200 px-3 py-2.5">
             <div className="inline-flex items-center bg-cream-100/80 rounded-[18px] p-0.5 overflow-x-auto scrollbar-hide">
               <button
@@ -897,7 +897,7 @@ export default function Dashboard() {
                       <Loader2 className="w-5 h-5 animate-spin text-navy-600" />
                       <p className="text-sm text-navy-600 font-medium">Parsing your CV...</p>
                     </div>
-                    <p className="text-xs text-navy-500">This may take 30–60 seconds</p>
+                    <p className="text-xs text-navy-500">This may take 30-60 seconds</p>
                   </div>
                 ) : (
                   <CVInputZone
@@ -987,7 +987,7 @@ export default function Dashboard() {
             onClick={() => setShowATSModal(false)}
             aria-label="Close ATS insights"
           />
-          <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-[32px] bg-cream-50 border border-cream-200 shadow-[0_30px_90px_-30px_rgba(30,58,95,0.45)]">
+          <div className="relative flex w-full max-w-4xl max-h-[90vh] flex-col overflow-hidden rounded-[32px] border border-cream-200 bg-cream-50 shadow-[0_30px_90px_-30px_rgba(30,58,95,0.45)]">
             <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-cream-200 bg-white/90 backdrop-blur-sm">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-gold-50 px-3 py-1 text-xs font-semibold text-gold-700 border border-gold-100 mb-3">
@@ -1010,7 +1010,7 @@ export default function Dashboard() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="h-[min(78vh,720px)] overflow-hidden">
+            <div className="min-h-0 flex-1 overflow-hidden">
               <ATSScorePanel />
             </div>
           </div>

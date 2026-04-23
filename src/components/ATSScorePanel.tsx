@@ -36,7 +36,7 @@ export function ATSScorePanel() {
   }
 
   return (
-    <div className="h-full overflow-auto p-6">
+    <div className="h-full overflow-y-auto px-6 pb-10 pt-6">
       {optimizedCVData?.analysis ? (
         <div className="space-y-6">
           {/* ATS Compatibility Score */}
@@ -84,7 +84,7 @@ export function ATSScorePanel() {
           {optimizedCVData.analysis.missing_keywords_added.length > 0 && (
             <div>
               <h3 className="font-bold mb-3 text-navy-800 text-base">Keywords Added for ATS</h3>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 pb-2">
                 {optimizedCVData.analysis.missing_keywords_added.map((keyword, i) => (
                   <span
                     key={i}

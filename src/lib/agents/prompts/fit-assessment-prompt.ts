@@ -27,7 +27,7 @@ export function buildFitAssessmentPrompt(input: FitAssessmentPromptInput): strin
 
   // Build experience summary with years and relevance
   const experienceSummary = applicant?.experiences?.map(e => {
-    const duration = e.startDate && e.endDate ? `${e.startDate}–${e.endDate}` : '';
+    const duration = e.startDate && e.endDate ? `${e.startDate}-${e.endDate}` : '';
     return `${e.title} at ${e.company}${duration ? ` (${duration})` : ''}`;
   }).join('; ') || 'Not specified';
 
@@ -98,19 +98,19 @@ Fit Level Definitions (Industry-Aligned):
 <output_format>
 You MUST output in this exact markdown structure with BLANK LINES between each section. Do NOT deviate:
 
-[One sentence: verdict with fit level — max 150 characters]
+[One sentence: verdict with fit level, max 150 characters]
 
 **Strengths:**
-- [12 words max per bullet — reference specific skills/achievements]
+- [12 words max per bullet, reference specific skills/achievements]
 - [12 words max per bullet]
 - [12 words max per bullet if strong fit; 2 bullets if weak/good fit]
 
 **Gaps:**
-- [12 words max per bullet — name specific missing skills/qualifications]
+- [12 words max per bullet, name specific missing skills/qualifications]
 - [12 words max per bullet]
 - [12 words max per bullet if many gaps; 2 bullets if few gaps]
 
-**Recommendation:** [One actionable sentence of strategic career advice — max 200 characters]
+**Recommendation:** [One actionable sentence of strategic career advice, max 200 characters]
 </output_format>
 
 <section_limits>
@@ -137,9 +137,10 @@ Universal soft skills like teamwork, communication skills, problem-solving, crit
 - Each bullet: maximum 12 words. Cut ruthlessly.
 - 2-3 strength bullets. 2-3 gap bullets. Exactly 1 recommendation sentence.
 - Do NOT start with "Based on" or "Overall"
-- Do NOT add explanations or qualifiers to bullets — be direct
-- Do NOT list universal soft skills (teamwork, communication, etc.) as gaps — these are implicit
-- BLANK LINE between every section — this is critical for readability
+- Do NOT add explanations or qualifiers to bullets, be direct
+- Do NOT list universal soft skills (teamwork, communication, etc.) as gaps, these are implicit
+- Do NOT use em dashes or en dashes in the final output. Use commas, periods, colons, or normal hyphens only.
+- BLANK LINE between every section, this is critical for readability
 </strict_rules>
 
 Return ONLY the structured assessment. Nothing else.`;
@@ -156,13 +157,13 @@ You evaluate job fit using industry-standard methodology calibrated to real-worl
 
 **Core Principles:**
 
-1. **INDUSTRY CALIBRATION**: Your assessments align with ATS and recruiter standards. A 70% score means genuinely competitive, not "barely acceptable." Be fair and realistic — neither overly harsh nor artificially generous.
+1. **INDUSTRY CALIBRATION**: Your assessments align with ATS and recruiter standards. A 70% score means genuinely competitive, not "barely acceptable." Be fair and realistic, neither overly harsh nor artificially generous.
 
 2. **BALANCED HONESTY**: State gaps clearly but also recognize transferable value. Missing one specific tool in a tech stack ≠ unqualified. Acknowledge when adjacent skills or domain experience bridge gaps.
 
 3. **MUST-HAVE vs NICE-TO-HAVE CLARITY**: Missing must-haves impacts core competitiveness. Missing nice-to-haves only impacts competitive edge. Make this distinction clear in your assessment.
 
-4. **SPECIFICITY**: Reference actual skill names, tools, technologies, and experience from the data. Avoid vague statements like "you have relevant experience" — name the specific experience.
+4. **SPECIFICITY**: Reference actual skill names, tools, technologies, and experience from the data. Avoid vague statements like "you have relevant experience"; name the specific experience.
 
 5. **ACTIONABILITY**: Your recommendation should give concrete next steps: what to emphasize in the cover letter, which gaps to address, or whether to apply now vs. after upskilling.
 
@@ -171,6 +172,7 @@ You evaluate job fit using industry-standard methodology calibrated to real-worl
 7. **PRECISION**: Use exact numbers from the computed match data. Don't round or approximate.
 
 8. **ENCOURAGING REALISM**: Like a mentor who tells the truth respectfully. Honest about gaps, but supportive about strengths and next steps.
+9. **PUNCTUATION**: Never use em dashes or en dashes in user-facing output. Use commas, colons, periods, semicolons, or normal hyphens instead.
 </assessment_guidelines>`;
 
 /**
