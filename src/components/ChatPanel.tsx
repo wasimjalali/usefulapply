@@ -540,7 +540,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
         )}
 
         {/* Input Area with integrated mode selector */}
-        <div className={isDesktopDocked ? 'border-t border-cream-200/90 bg-white/88 px-3 pt-2.5 pb-3 backdrop-blur-sm' : ''}>
+        <div className={isDesktopDocked ? 'border-t border-gold-100/80 bg-cream-50/90 px-3 pt-2.5 pb-3 backdrop-blur-sm' : ''}>
           <ChatInput
             value={inputValue}
             onChange={setInputValue}

@@ -971,7 +971,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
             )}
 
             {/* CV Content - View Mode or Edit Mode */}
-            <div className="flex-1 overflow-auto p-2 sm:p-6 bg-gray-100">
+            <div className="flex-1 overflow-auto bg-gradient-to-b from-cream-100 to-cream-50 p-2 sm:p-6">
               {isEditMode && cvData ? (
                 /* Edit Mode - Editable Canvas */
                 <div className="flex flex-col h-full">
@@ -1042,7 +1042,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
                     </button>
                     <div
                       ref={cvWrapperRef}
-                      className="relative bg-white shadow-lg"
+                      className="relative bg-white shadow-[0_28px_56px_-40px_rgba(30,58,95,0.3)]"
                       style={cvScale < 1 ? {
                         transform: `scale(${cvScale})`,
                         transformOrigin: 'top left',
@@ -1069,7 +1069,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
                           <span style={{
                             fontSize: 11,
                             color: '#B8891C',
-                            background: 'rgba(255, 255, 255, 0.96)',
+                            background: 'rgba(248, 244, 234, 0.96)',
                             padding: '3px 8px',
                             borderRadius: 999,
                             fontWeight: 600,
@@ -1105,8 +1105,8 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
 
       {showFullPreview && previewCVData && createPortal(
         <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">
-          <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-[30px] border border-cream-200 bg-cream-50 shadow-[0_36px_100px_-38px_rgba(30,58,95,0.45)]">
-            <div className="flex items-center justify-between border-b border-cream-200 bg-white/95 px-5 py-3">
+          <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-[30px] border border-cream-200 bg-gradient-to-b from-cream-100 to-cream-50 shadow-[0_36px_100px_-38px_rgba(30,58,95,0.45)]">
+            <div className="flex items-center justify-between border-b border-cream-200 bg-cream-50/95 px-5 py-3">
               <div>
                 <p className="text-sm font-semibold text-charcoal">CV Full Preview</p>
                 <p className="text-xs text-warm-gray">Focused reading mode with the surrounding dashboard hidden.</p>
@@ -1120,8 +1120,8 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
               </button>
             </div>
 
-            <div className="flex-1 overflow-auto bg-gray-100 p-4 sm:p-6">
-              <div className="mx-auto w-fit bg-white shadow-xl">
+            <div className="flex-1 overflow-auto bg-gradient-to-b from-cream-100 to-cream-50 p-4 sm:p-6">
+              <div className="mx-auto w-fit bg-white shadow-[0_30px_60px_-40px_rgba(30,58,95,0.3)]">
                 <CVTemplateRenderer data={previewCVData} templateId={selectedTemplateId} />
               </div>
             </div>

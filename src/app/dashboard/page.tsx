@@ -791,7 +791,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          <div className={`absolute inset-y-2.5 right-2.5 left-2.5 flex flex-col items-center justify-start py-2.5 bg-white/96 border border-cream-200 rounded-[22px] shadow-[0_18px_36px_-30px_rgba(30,58,95,0.28)] transition-opacity duration-200 ${
+          <div className={`absolute inset-y-2 right-2 left-2 flex flex-col items-center justify-start py-2.5 border border-gold-300/90 bg-cream-50/96 rounded-[16px] shadow-[0_18px_36px_-30px_rgba(30,58,95,0.22)] transition-opacity duration-200 ${
             isChatCollapsed ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}>
             <button
@@ -806,7 +806,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div id="tour-chat-panel" className={`absolute inset-y-2.5 right-2.5 left-2.5 overflow-hidden rounded-[30px] border border-cream-200 bg-white/96 backdrop-blur-[6px] shadow-[0_26px_62px_-40px_rgba(30,58,95,0.34)] transition-opacity duration-200 ${
+          <div id="tour-chat-panel" className={`absolute inset-y-2 right-2 left-2 overflow-hidden rounded-[16px] border border-gold-300/90 bg-cream-50/96 backdrop-blur-[6px] shadow-[0_24px_54px_-40px_rgba(30,58,95,0.28)] transition-opacity duration-200 ${
             isChatCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
           }`}>
             <ChatPanel
