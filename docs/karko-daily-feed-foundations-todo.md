@@ -1,44 +1,52 @@
 # Karko Daily Feed Foundations TODO
 
 Status: In progress
-Scope: Phases 0-2
+Scope: Phases 0-4 foundations
 
 ## Working branch
 
-- Intended branch: `codex/daily-feed-foundations-phase-0-2`
-- Fallback until write access is available: current branch
+- Active branch: `codex-daily-feed-foundations-phase-0-2`
 
 ## Milestone
 
-Deliver the feed foundations slice:
+Deliver the current feed foundations slice:
 
 - feed-first `Job Feed` shell
 - persistent `job_feed_settings`
 - run tracking for daily feed generation
-- background orchestration foundation
-- stub per-user generation flow with idempotent runs
+- raw SerpApi fetch + canonical job ingestion
+- deterministic prefilter + shortlist prep before ranking
+- background orchestration foundation with a real backend run path
 
 ## Checklist
 
 - [x] Create dedicated feature branch
 - [x] Add Supabase migration for `job_feed_settings`
 - [x] Add Supabase migration for `job_feed_runs`
+- [x] Add Supabase migration for raw job fetches + canonical jobs
 - [x] Update generated Supabase TypeScript types
 - [x] Add shared job-feed domain types and helpers
+- [x] Extract shared SerpApi request/response helpers from the legacy manual search route
 - [x] Add authenticated API for reading/updating feed settings
 - [x] Add authenticated API for reading latest feed run state
 - [x] Replace manual-search-first Job Feed UI with feed-first shell
 - [x] Add in-context feed setup UI with simple v1 settings
 - [x] Add paused / setup required / generating / empty states
 - [x] Add background orchestration foundation for daily runs
-- [x] Add stub per-user workflow with idempotent run creation
+- [x] Replace the stub per-user workflow with real raw/canonical ingestion
+- [x] Persist raw provider payloads per run
+- [x] Normalize canonical jobs with practical dedupe across fetches
+- [x] Add code-based prefilter and deterministic shortlist prep before ranking
+- [x] Keep ranking prep shaped around `Strong` / `Good` only
 - [x] Add product analytics events for feed setup/open/state views
+- [x] Refresh feed-panel/debug copy so the UI matches the current backend foundation
 - [x] Lint and typecheck touched code
-- [ ] Commit and push working branch
+- [x] Commit and push the earlier Phase 0-2 branch state
 
 ## Next slice
 
 - [ ] Apply the new Supabase migration in the target environment
-- [ ] Add canonical raw/normalized job ingestion tables
 - [ ] Replace the temporary scheduler shim with real Inngest functions once dependency install is available
+- [ ] Call the LLM ranking stage on the deterministic shortlist
 - [ ] Materialize ranked feed items and the first read API for real jobs
+- [ ] Hook the real ranked feed into the visible Job Feed panel

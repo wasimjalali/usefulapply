@@ -210,6 +210,166 @@ export interface Database {
           updated_at?: string
         }
       }
+      job_feed_raw_fetches: {
+        Row: {
+          id: string
+          run_id: string
+          user_id: string
+          provider: string
+          status: 'completed' | 'no_results' | 'failed'
+          query_text: string
+          market: 'us' | 'canada' | 'us_canada'
+          country_code: string | null
+          language_code: string | null
+          request_location: string | null
+          request_filters: string[]
+          page_number: number
+          query_context: Json
+          request_params: Json
+          response_payload: Json
+          response_error: string | null
+          fetched_jobs_count: number
+          next_page_token: string | null
+          fetched_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          run_id: string
+          user_id: string
+          provider?: string
+          status?: 'completed' | 'no_results' | 'failed'
+          query_text: string
+          market: 'us' | 'canada' | 'us_canada'
+          country_code?: string | null
+          language_code?: string | null
+          request_location?: string | null
+          request_filters?: string[]
+          page_number?: number
+          query_context?: Json
+          request_params?: Json
+          response_payload?: Json
+          response_error?: string | null
+          fetched_jobs_count?: number
+          next_page_token?: string | null
+          fetched_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          run_id?: string
+          user_id?: string
+          provider?: string
+          status?: 'completed' | 'no_results' | 'failed'
+          query_text?: string
+          market?: 'us' | 'canada' | 'us_canada'
+          country_code?: string | null
+          language_code?: string | null
+          request_location?: string | null
+          request_filters?: string[]
+          page_number?: number
+          query_context?: Json
+          request_params?: Json
+          response_payload?: Json
+          response_error?: string | null
+          fetched_jobs_count?: number
+          next_page_token?: string | null
+          fetched_at?: string
+          created_at?: string
+        }
+      }
+      job_feed_canonical_jobs: {
+        Row: {
+          id: string
+          canonical_key: string
+          source_provider: string
+          source_job_id: string | null
+          title: string
+          title_normalized: string
+          company: string
+          company_normalized: string
+          location_text: string | null
+          location_normalized: string | null
+          work_mode: 'remote' | 'hybrid' | 'onsite' | 'unknown'
+          employment_type: 'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary' | null
+          salary_text: string | null
+          salary_min: number | null
+          salary_max: number | null
+          salary_currency: string | null
+          description: string | null
+          apply_url: string | null
+          source_url: string | null
+          posted_at_text: string | null
+          freshness_days: number | null
+          source_identifiers: Json
+          first_seen_at: string
+          last_seen_at: string
+          last_raw_fetch_id: string | null
+          times_seen: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          canonical_key: string
+          source_provider?: string
+          source_job_id?: string | null
+          title: string
+          title_normalized: string
+          company: string
+          company_normalized: string
+          location_text?: string | null
+          location_normalized?: string | null
+          work_mode?: 'remote' | 'hybrid' | 'onsite' | 'unknown'
+          employment_type?: 'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary' | null
+          salary_text?: string | null
+          salary_min?: number | null
+          salary_max?: number | null
+          salary_currency?: string | null
+          description?: string | null
+          apply_url?: string | null
+          source_url?: string | null
+          posted_at_text?: string | null
+          freshness_days?: number | null
+          source_identifiers?: Json
+          first_seen_at?: string
+          last_seen_at?: string
+          last_raw_fetch_id?: string | null
+          times_seen?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          canonical_key?: string
+          source_provider?: string
+          source_job_id?: string | null
+          title?: string
+          title_normalized?: string
+          company?: string
+          company_normalized?: string
+          location_text?: string | null
+          location_normalized?: string | null
+          work_mode?: 'remote' | 'hybrid' | 'onsite' | 'unknown'
+          employment_type?: 'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary' | null
+          salary_text?: string | null
+          salary_min?: number | null
+          salary_max?: number | null
+          salary_currency?: string | null
+          description?: string | null
+          apply_url?: string | null
+          source_url?: string | null
+          posted_at_text?: string | null
+          freshness_days?: number | null
+          source_identifiers?: Json
+          first_seen_at?: string
+          last_seen_at?: string
+          last_raw_fetch_id?: string | null
+          times_seen?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
       documents: {
         Row: {
           id: string
@@ -789,6 +949,8 @@ export type UpdateTables<T extends keyof Database['public']['Tables']> = Databas
 export type Profile = Tables<'profiles'>
 export type JobFeedSettings = Tables<'job_feed_settings'>
 export type JobFeedRun = Tables<'job_feed_runs'>
+export type JobFeedRawFetch = Tables<'job_feed_raw_fetches'>
+export type JobFeedCanonicalJob = Tables<'job_feed_canonical_jobs'>
 export type Document = Tables<'documents'>
 export type ProfilePhoto = Tables<'profile_photos'>
 export type ApplicationSession = Tables<'application_sessions'>

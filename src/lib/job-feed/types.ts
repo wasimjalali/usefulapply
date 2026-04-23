@@ -1,4 +1,4 @@
-import type { JobFeedRun, JobFeedSettings } from '@/lib/supabase/types';
+import type { JobFeedCanonicalJob, JobFeedRun, JobFeedSettings } from '@/lib/supabase/types';
 
 export type JobFeedOverviewState =
   | 'upgrade_required'
@@ -8,6 +8,10 @@ export type JobFeedOverviewState =
   | 'generating'
   | 'empty'
   | 'error';
+
+export type JobFeedCanonicalWorkMode = JobFeedCanonicalJob['work_mode'];
+export type JobFeedEmploymentType = NonNullable<JobFeedCanonicalJob['employment_type']>;
+export type JobFeedFitLabel = 'strong' | 'good';
 
 export interface JobFeedOverviewResponse {
   canAccess: boolean;
@@ -36,8 +40,83 @@ export interface JobFeedSettingsInput {
   aggressiveness: JobFeedSettings['aggressiveness'];
 }
 
+export interface JobFeedSearchPlanItem {
+  query: string;
+  targetRole: string;
+  isAdjacentRole: boolean;
+  market: JobFeedSettings['target_market'];
+  country: 'us' | 'ca';
+  language: string;
+  location: string | null;
+}
+
+export interface JobFeedJobPreview {
+  id: string;
+  title: string;
+  company: string;
+  location: string | null;
+  workMode: JobFeedCanonicalWorkMode;
+  employmentType: JobFeedCanonicalJob['employment_type'];
+  freshnessDays: number | null;
+  applyUrl: string | null;
+}
+
+export interface JobFeedIngestionFailure {
+  query: string;
+  country: string;
+  error: string;
+}
+
+export interface JobFeedIngestionResult {
+  searchPlan: JobFeedSearchPlanItem[];
+  rawFetchIds: string[];
+  rawJobsFetched: number;
+  canonicalJobs: JobFeedCanonicalJob[];
+  canonicalJobsCreated: number;
+  canonicalJobsUpdated: number;
+  duplicateCount: number;
+  failedFetches: JobFeedIngestionFailure[];
+  previewJobs: JobFeedJobPreview[];
+}
+
+export type JobFeedPrefilterRejectReason =
+  | 'location_mismatch'
+  | 'remote_mismatch'
+  | 'employment_type_mismatch'
+  | 'salary_mismatch'
+  | 'work_authorization_mismatch'
+  | 'seniority_mismatch';
+
+export interface JobFeedPrefilterResult {
+  survivors: JobFeedCanonicalJob[];
+  survivorsPreview: JobFeedJobPreview[];
+  shortlist: JobFeedCanonicalJob[];
+  shortlistPreview: JobFeedJobPreview[];
+  rejectedCount: number;
+  rejectionsByReason: Record<JobFeedPrefilterRejectReason, number>;
+}
+
+export interface JobFeedRankingCandidate {
+  jobId: string;
+  title: string;
+  company: string;
+  location: string | null;
+  workMode: JobFeedCanonicalWorkMode;
+  employmentType: JobFeedCanonicalJob['employment_type'];
+  salaryText: string | null;
+  description: string | null;
+  applyUrl: string | null;
+  freshnessDays: number | null;
+}
+
+export interface JobFeedRankingPrepResult {
+  fitLabels: readonly JobFeedFitLabel[];
+  candidates: JobFeedRankingCandidate[];
+}
+
 export interface JobFeedRunWorkflowResult {
   run: JobFeedRun;
   created: boolean;
   skipped: boolean;
+  previewJobs?: JobFeedJobPreview[];
 }

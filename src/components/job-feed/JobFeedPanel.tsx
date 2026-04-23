@@ -158,17 +158,17 @@ export function JobFeedPanel() {
 
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error || 'Failed to run foundation workflow.');
+        throw new Error(payload.error || 'Failed to run the feed backend workflow.');
       }
 
       posthog?.capture('job_feed_foundation_run_requested', {
         foundation_mode: true,
       });
 
-      toast.success('Foundation run completed for this account.');
+      toast.success('Feed backend run completed for this account.');
       await loadOverview({ quiet: true });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to run foundation workflow.');
+      toast.error(error instanceof Error ? error.message : 'Failed to run the feed backend workflow.');
     } finally {
       setIsRunningDebugFlow(false);
     }
@@ -194,14 +194,14 @@ export function JobFeedPanel() {
                 </h1>
                 <p className="max-w-xl text-sm leading-6 text-cream-100/85 sm:text-base">
                   Phase 0 is live here: the old manual-search-first board is hidden so Job Feed can become a prepared, daily, feed-first surface.
-                  Phases 1 and 2 in this milestone add real settings, scheduling, and operational run tracking underneath it.
+                  Phases 1 through 4 in this branch now add real settings, scheduling, durable ingestion, and deterministic shortlist prep underneath it.
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2">
                 <HeroPill icon={ShieldCheck} label="Premium-only daily discovery" />
-                <HeroPill icon={Wand2} label="Settings saved in Supabase" />
-                <HeroPill icon={CalendarClock} label="Run tracking wired for background delivery" />
+                <HeroPill icon={Wand2} label="Canonical job ingestion saved in Supabase" />
+                <HeroPill icon={CalendarClock} label="Prefilter + shortlist foundation wired" />
               </div>
             </div>
 
@@ -450,7 +450,7 @@ export function JobFeedPanel() {
 
                   <div className="flex flex-col gap-3 border-t border-cream-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-warm-gray">
-                      This milestone stops at settings, scheduling, and run tracking. Ingestion and ranking come next.
+                      This milestone now covers settings, scheduling, raw/canonical ingestion, and deterministic shortlist prep. LLM ranking and feed materialization come next.
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <Button variant="outline" onClick={() => loadOverview({ quiet: true })} disabled={isRefreshing}>
@@ -498,20 +498,22 @@ export function JobFeedPanel() {
                 <MilestoneStep title="Phase 0" body="Hide the legacy manual-search-first board from the visible product and make Job Feed feel prepared, not manual." />
                 <MilestoneStep title="Phase 1" body="Persist feed settings with honest consent, timezone, delivery time, role, market, and fit controls." />
                 <MilestoneStep title="Phase 2" body="Track durable per-user daily runs so the scheduler and later Inngest workflow have a real operational foundation." />
+                <MilestoneStep title="Phase 3" body="Persist raw SerpApi fetches and normalize deduped canonical jobs so later feed logic has a durable source of truth." />
+                <MilestoneStep title="Phase 4" body="Reject obvious mismatches in code and prepare a deterministic shortlist before any Strong/Good ranking step." />
               </div>
             </Card>
 
             {showDebugActions && (
               <Card className="rounded-[24px] border-dashed border-navy-200 bg-navy-50/60 p-6 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-600">Developer Check</p>
-                <h2 className="mt-2 text-lg font-semibold text-charcoal">Run the Phase 2 foundation for this account</h2>
+                <h2 className="mt-2 text-lg font-semibold text-charcoal">Run the current feed backend pass for this account</h2>
                 <p className="mt-2 text-sm leading-6 text-warm-gray">
-                  This is a debug-only helper to prove the run-tracking path end to end before ingestion and ranking are wired in.
+                  This is a debug-only helper to exercise scheduling, ingestion, canonical dedupe, and prefiltering end to end before ranking and feed item materialization are wired in.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button variant="outline" onClick={handleDebugRun} disabled={isRunningDebugFlow}>
                     {isRunningDebugFlow ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                    Run foundation workflow
+                    Run backend workflow
                   </Button>
                   <Button variant="ghost" onClick={() => loadOverview({ quiet: true })} disabled={isRefreshing}>
                     Refresh status
@@ -582,25 +584,25 @@ function PrimaryStateCard({
     awaiting_first_run: {
       icon: CalendarClock,
       title: 'Settings are saved. The first automated run is next.',
-      body: 'Phase 2 scheduling is ready. Once the scheduler hits your delivery window, the first tracked run will appear here.',
+      body: 'Scheduling is ready. Once the scheduler hits your delivery window, the next run will fetch, normalize, and prefilter jobs here.',
       tone: 'from-navy-50 to-white border-navy-200 text-charcoal',
     },
     generating: {
       icon: Loader2,
       title: 'A feed run is in progress',
-      body: 'The foundation workflow is currently running for this user. Later phases will populate jobs and ranking results here.',
+      body: 'The backend workflow is currently fetching and shaping candidate jobs for this user. Ranking and materialized feed items land in the next milestone.',
       tone: 'from-navy-50 to-white border-navy-200 text-charcoal',
     },
     empty: {
       icon: CheckCircle2,
-      title: 'The foundation run completed successfully',
-      body: latestRun?.result_summary || 'Settings and scheduling are active. The next milestone plugs in ingestion, filtering, and ranking.',
+      title: 'The latest backend run completed',
+      body: latestRun?.result_summary || 'Settings, ingestion, and shortlist prep are active. Ranked feed items land in the next milestone.',
       tone: 'from-emerald-50 to-white border-emerald-200 text-charcoal',
     },
     error: {
       icon: AlertCircle,
-      title: 'The latest foundation run failed',
-      body: latestRun?.error_message || 'The scheduler foundation needs attention before the next daily run.',
+      title: 'The latest backend run failed',
+      body: latestRun?.error_message || 'The feed backend needs attention before the next daily run.',
       tone: 'from-red-50 to-white border-red-200 text-charcoal',
     },
   };
@@ -649,7 +651,7 @@ function LoadingState() {
     <Card className="rounded-[24px] border-cream-200 bg-white/92 p-6 shadow-sm">
       <div className="flex items-center gap-3 text-navy-600">
         <Loader2 className="h-5 w-5 animate-spin" />
-        <span className="text-sm font-medium">Loading Job Feed foundation…</span>
+        <span className="text-sm font-medium">Loading Job Feed backend…</span>
       </div>
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
         {Array.from({ length: 3 }).map((_, index) => (

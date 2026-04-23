@@ -12,6 +12,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/middleware/rateLimiter';
+import {
+  buildSerpApiFilterGroups,
+  fetchSerpApiJobs,
+  isSerpApiNoResultsError,
+  SerpApiHttpError,
+  toLegacyJobSearchResult,
+} from '@/lib/job-feed/serpapi';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -34,53 +41,6 @@ type SupabaseAny = any;
 
 const JOB_SEARCH_RATE_LIMIT = { limit: 10, windowMs: 60_000 };
 
-interface SerpApiJob {
-  job_id: string;
-  title: string;
-  company_name: string;
-  location: string;
-  via: string;
-  share_link: string;
-  thumbnail?: string;
-  extensions?: string[];
-  detected_extensions?: {
-    posted_at?: string;
-    schedule_type?: string;
-    work_from_home?: boolean;
-    salary?: string;
-  };
-  description: string;
-  job_highlights?: Array<{
-    title: string;
-    items: string[];
-  }>;
-  apply_options?: Array<{
-    title: string;
-    link: string;
-  }>;
-}
-
-interface SerpApiFilterOption {
-  name?: string;
-  uds?: string;
-  q?: string;
-  serpapi_link?: string;
-}
-
-interface SerpApiFilter {
-  name: string;
-  options?: SerpApiFilterOption[];
-}
-
-interface SerpApiResponse {
-  jobs_results?: SerpApiJob[];
-  filters?: SerpApiFilter[];
-  serpapi_pagination?: {
-    next_page_token?: string;
-  };
-  error?: string;
-}
-
 interface SearchRequestBody {
   query?: string;
   location?: string;
@@ -94,125 +54,6 @@ interface SearchRequestBody {
 // 1 search credit = up to FREE_PAGES_PER_CREDIT pages (10 results each).
 // After that, each additional "Load More" costs 1 more credit.
 const FREE_PAGES_PER_CREDIT = 3; // 30 results per credit
-
-// SerpAPI uses non-standard country codes for `gl` in some cases
-// ISO 3166-1 alpha-2 uses 'gb' but SerpAPI/Google uses 'uk'
-function toSerpApiGl(code: string): string {
-  const normalized = code.toLowerCase().trim();
-  if (normalized === 'gb') return 'uk';
-  return normalized;
-}
-
-// Normalize incoming country code to a consistent internal key
-function normalizeCountryCode(code: string): string {
-  const normalized = code.toLowerCase().trim();
-  // Accept both 'gb' and 'uk' — internally use 'uk' as canonical
-  if (normalized === 'gb') return 'uk';
-  return normalized;
-}
-
-// Map internal country codes to default languages
-const COUNTRY_LANGUAGES: Record<string, string> = {
-  us: 'en',
-  uk: 'en',
-  de: 'de',
-  fr: 'fr',
-  nl: 'nl',
-  ca: 'en',
-  au: 'en',
-  in: 'en',
-  sg: 'en',
-  ae: 'en',
-  ch: 'de',
-  se: 'sv',
-  es: 'es',
-  it: 'it',
-  ie: 'en',
-  jp: 'ja',
-  br: 'pt',
-  mx: 'es',
-  pl: 'pl',
-  at: 'de',
-  be: 'nl',
-  dk: 'da',
-  fi: 'fi',
-  no: 'no',
-  nz: 'en',
-  za: 'en',
-  hk: 'zh-TW',
-  kr: 'ko',
-  tw: 'zh-TW',
-};
-
-// Map internal country codes to full country names for location parameter
-const COUNTRY_NAMES: Record<string, string> = {
-  us: 'United States',
-  uk: 'United Kingdom',
-  de: 'Germany',
-  fr: 'France',
-  nl: 'Netherlands',
-  ca: 'Canada',
-  au: 'Australia',
-  in: 'India',
-  sg: 'Singapore',
-  ae: 'United Arab Emirates',
-  ch: 'Switzerland',
-  se: 'Sweden',
-  es: 'Spain',
-  it: 'Italy',
-  ie: 'Ireland',
-  jp: 'Japan',
-  br: 'Brazil',
-  mx: 'Mexico',
-  pl: 'Poland',
-  at: 'Austria',
-  be: 'Belgium',
-  dk: 'Denmark',
-  fi: 'Finland',
-  no: 'Norway',
-  nz: 'New Zealand',
-  za: 'South Africa',
-  hk: 'Hong Kong',
-  kr: 'South Korea',
-  tw: 'Taiwan',
-};
-
-// Google domain per country — critical for international result quality
-const COUNTRY_GOOGLE_DOMAINS: Record<string, string> = {
-  us: 'google.com',
-  uk: 'google.co.uk',
-  de: 'google.de',
-  fr: 'google.fr',
-  nl: 'google.nl',
-  ca: 'google.ca',
-  au: 'google.com.au',
-  in: 'google.co.in',
-  sg: 'google.com.sg',
-  ae: 'google.ae',
-  ch: 'google.ch',
-  se: 'google.se',
-  es: 'google.es',
-  it: 'google.it',
-  ie: 'google.ie',
-  jp: 'google.co.jp',
-  br: 'google.com.br',
-  mx: 'google.com.mx',
-  pl: 'google.pl',
-  at: 'google.at',
-  be: 'google.be',
-  dk: 'google.dk',
-  fi: 'google.fi',
-  no: 'google.no',
-  nz: 'google.co.nz',
-  za: 'google.co.za',
-  hk: 'google.com.hk',
-  kr: 'google.co.kr',
-  tw: 'google.com.tw',
-};
-
-function getCountryName(code: string): string {
-  return COUNTRY_NAMES[code] || code.toUpperCase();
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -337,138 +178,63 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 7. Build SerpAPI request
-    const serpApiKey = process.env.SERPAPI_API_KEY;
-    if (!serpApiKey) {
-      console.error('SERPAPI_API_KEY not configured');
-      return NextResponse.json(
-        { error: 'Job search service unavailable' },
-        { status: 503 }
-      );
-    }
+    // 7. Call SerpAPI through the shared provider helper
+    let serpData;
+    try {
+      const result = await fetchSerpApiJobs({
+        query: body.query.trim(),
+        location: body.location?.trim() || undefined,
+        country: body.country?.trim() || undefined,
+        language: body.language?.trim() || undefined,
+        filters: body.filters,
+        nextPageToken: body.next_page_token,
+      });
 
-    const searchParams = new URLSearchParams({
-      engine: 'google_jobs',
-      api_key: serpApiKey,
-      q: body.query.trim(),
-    });
+      serpData = result.data;
+    } catch (error) {
+      console.error('SerpAPI request failed:', error);
 
-    // Normalize country code: both 'gb' and 'uk' → 'uk' internally
-    const countryCode = body.country?.trim()
-      ? normalizeCountryCode(body.country.trim())
-      : '';
+      if (error instanceof SerpApiHttpError) {
+        if (error.status === 401 || error.status === 403) {
+          return NextResponse.json(
+            { error: 'Job search service authentication failed' },
+            { status: 503 }
+          );
+        }
 
-    // Location + Country logic:
-    // The location field is the PRIMARY search signal for "where".
-    // Country dropdown supplements it with gl/google_domain/hl for localization.
-    //
-    // Three scenarios:
-    // A) Country selected + location: full localization (gl + google_domain + hl + location with country)
-    // B) Country selected, no location: broad country search (gl + google_domain + hl + country as location)
-    // C) No country, location provided: pass location as-is, no gl/hl bias — SerpAPI resolves it
-    // D) Neither: default to US
-    if (countryCode) {
-      // Scenario A or B — full international localization
-      searchParams.set('gl', toSerpApiGl(countryCode));
-      searchParams.set('google_domain', COUNTRY_GOOGLE_DOMAINS[countryCode] || 'google.com');
-      const language = body.language || COUNTRY_LANGUAGES[countryCode] || 'en';
-      searchParams.set('hl', language);
+        if (error.status === 429) {
+          return NextResponse.json(
+            { error: 'Job search service rate limited. Please try again later.' },
+            { status: 429 }
+          );
+        }
 
-      if (body.location?.trim()) {
-        // Append country name to disambiguate (e.g., "Berlin, Germany")
-        const loc = body.location.trim();
-        const countryName = getCountryName(countryCode);
-        const locationValue = !loc.toLowerCase().includes(countryName.toLowerCase())
-          ? `${loc}, ${countryName}`
-          : loc;
-        searchParams.set('location', locationValue);
-      } else {
-        // No city — use country name as broad location
-        searchParams.set('location', getCountryName(countryCode));
-      }
-    } else if (body.location?.trim()) {
-      // Scenario C — location only, no country selected
-      // Do NOT set gl or google_domain — let SerpAPI resolve from the location string.
-      // Do NOT force hl=en — let SerpAPI pick language based on resolved location.
-      // This allows "Berlin" to resolve to Berlin, Germany and show German jobs,
-      // "London" to resolve to London, UK, etc.
-      searchParams.set('location', body.location.trim());
-    } else {
-      // Scenario D — nothing specified, default to US
-      searchParams.set('gl', 'us');
-      searchParams.set('google_domain', 'google.com');
-      searchParams.set('hl', 'en');
-    }
-
-    // Apply dynamic filters (uds values) — filter out any undefined/empty values
-    if (body.filters && body.filters.length > 0) {
-      const validFilters = body.filters.filter((f): f is string => typeof f === 'string' && f.length > 0);
-      if (validFilters.length > 0) {
-        searchParams.set('uds', validFilters.join(','));
-      }
-    }
-
-    // Handle pagination via next_page_token
-    if (body.next_page_token) {
-      searchParams.set('next_page_token', body.next_page_token);
-    }
-
-    // 8. Call SerpAPI
-    const serpApiUrl = `https://serpapi.com/search?${searchParams.toString()}`;
-    console.log('[SerpAPI] Calling:', serpApiUrl.replace(serpApiKey, 'REDACTED'));
-
-    const serpResponse = await fetch(serpApiUrl);
-    const serpText = await serpResponse.text();
-
-    console.log('[SerpAPI] Status:', serpResponse.status);
-    console.log('[SerpAPI] Response preview:', serpText.substring(0, 500));
-
-    if (!serpResponse.ok) {
-      console.error('SerpAPI error:', serpResponse.status, serpText);
-
-      if (serpResponse.status === 401 || serpResponse.status === 403) {
         return NextResponse.json(
-          { error: 'Job search service authentication failed' },
+          { error: 'Job search failed. Please try again.' },
+          { status: 502 }
+        );
+      }
+
+      if (error instanceof Error && error.message.includes('SERPAPI_API_KEY')) {
+        return NextResponse.json(
+          { error: 'Job search service unavailable' },
           { status: 503 }
         );
       }
-      if (serpResponse.status === 429) {
+
+      if (error instanceof Error && error.message.includes('parse SerpApi response JSON')) {
         return NextResponse.json(
-          { error: 'Job search service rate limited. Please try again later.' },
-          { status: 429 }
+          { error: 'Invalid response from job search service' },
+          { status: 502 }
         );
       }
 
-      return NextResponse.json(
-        { error: 'Job search failed. Please try again.' },
-        { status: 502 }
-      );
-    }
-
-    let serpData: SerpApiResponse;
-    try {
-      serpData = JSON.parse(serpText);
-    } catch (parseError) {
-      console.error('SerpAPI JSON parse error:', parseError);
-      return NextResponse.json(
-        { error: 'Invalid response from job search service' },
-        { status: 502 }
-      );
+      throw error;
     }
 
     // Handle "no results" as empty array, not error
     if (serpData.error) {
-      // SerpAPI returns various "no results" messages — treat them all as empty
-      const noResultsPatterns = [
-        "hasn't returned any results",
-        'no results',
-        'could not get results',
-      ];
-      const isNoResults = noResultsPatterns.some(
-        (pattern) => serpData.error!.toLowerCase().includes(pattern)
-      );
-
-      if (isNoResults) {
+      if (isSerpApiNoResultsError(serpData.error)) {
         console.log('[SerpAPI] No results found for query');
         if (shouldDeductCredit) {
           await (supabase.from('profiles') as SupabaseAny)
@@ -494,7 +260,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 9. Increment search usage
+    // 8. Increment search usage
     // Free pages (2-3) don't cost credits. Pages 4+ cost 1 credit each.
     if (shouldDeductCredit) {
       const { error: updateError } = await (supabase
@@ -507,45 +273,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 10. Transform jobs
-    const jobs = (serpData.jobs_results || []).map((job) => ({
-      id: job.job_id,
-      title: job.title,
-      company: job.company_name,
-      location: job.location || 'Not specified',
-      remote: job.detected_extensions?.work_from_home || false,
-      via: job.via,
-      share_link: job.share_link,
-      thumbnail: job.thumbnail,
-      posted_date: job.detected_extensions?.posted_at,
-      employment_type: job.detected_extensions?.schedule_type,
-      salary: job.detected_extensions?.salary,
-      description: job.description || undefined,
-      highlights: job.job_highlights,
-      apply_options: job.apply_options?.slice(0, 5),
-      extensions: job.extensions, // Raw extension tags
-    }));
-
-    // 11. Transform filters for frontend
-    // SerpAPI can return duplicate filter group names — merge them by name
-    const filterMap = new Map<string, { label: string; value: string }[]>();
-    for (const filter of serpData.filters || []) {
-      if (!Array.isArray(filter.options) || filter.options.length === 0) continue;
-      const existing = filterMap.get(filter.name) || [];
-      for (const opt of filter.options) {
-        if (!opt.uds || typeof opt.uds !== 'string') continue;
-        // Avoid duplicate values within the same group
-        if (existing.some((e) => e.value === opt.uds)) continue;
-        existing.push({ label: opt.name || opt.q || 'Other', value: opt.uds });
-      }
-      if (existing.length > 0) {
-        filterMap.set(filter.name, existing);
-      }
-    }
-    const filters = Array.from(filterMap.entries()).map(([name, options]) => ({
-      name,
-      options,
-    }));
+    // 9. Transform jobs + filters for the frontend
+    const jobs = (serpData.jobs_results || []).map(toLegacyJobSearchResult);
+    const filters = buildSerpApiFilterGroups(serpData.filters);
 
     return NextResponse.json({
       jobs,

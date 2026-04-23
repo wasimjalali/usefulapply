@@ -1,10 +1,24 @@
 export const PREMIUM_JOB_FEED_TIERS = ['plus', 'max', 'pro'] as const;
+export const JOB_FEED_PROVIDER = 'serpapi' as const;
+export const JOB_FEED_MAX_DAILY_QUERIES = 4;
+export const JOB_FEED_MAX_RAW_JOBS_PER_RUN = 40;
+export const JOB_FEED_PREFILTER_TARGET_MIN = 8;
+export const JOB_FEED_PREFILTER_HARD_CAP = 15;
+export const JOB_FEED_VISIBLE_DEFAULT_COUNT = 5;
+export const JOB_FEED_VISIBLE_MAX_COUNT = 10;
+export const JOB_FEED_ALLOWED_FIT_LABELS = ['strong', 'good'] as const;
 
 export const JOB_FEED_MARKET_OPTIONS = [
   { value: 'us_canada', label: 'United States + Canada' },
   { value: 'us', label: 'United States only' },
   { value: 'canada', label: 'Canada only' },
 ] as const;
+
+export const JOB_FEED_MARKET_COUNTRIES = {
+  us: ['us'],
+  canada: ['ca'],
+  us_canada: ['us', 'ca'],
+} as const;
 
 export const JOB_FEED_REMOTE_PREFERENCE_OPTIONS = [
   { value: 'remote_first', label: 'Remote first' },
