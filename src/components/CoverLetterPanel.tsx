@@ -660,7 +660,7 @@ ${letter.signatureName}`;
         </div>
       )}
 
-      <div className="flex-1 overflow-auto p-3 sm:p-6">
+      <div className="flex-1 overflow-auto bg-gradient-to-b from-cream-100 to-cream-50 px-3 pb-4 pt-1 sm:px-6 sm:pb-6 sm:pt-3">
         {isGenerating || isLoadingCoverLetter || isAgentWorking ? (
           <KarkoAIStepIndicator
             stepType="cover_letter"
@@ -674,19 +674,18 @@ ${letter.signatureName}`;
           />
         ) : (
           <>
-            {!isEditMode && activeCoverLetter && (
-              <div className="mx-auto mb-3 flex w-full max-w-2xl justify-end">
+            <div className="relative mx-auto w-full max-w-2xl">
+              {!isEditMode && activeCoverLetter && (
                 <button
                   type="button"
                   onClick={() => setShowFullPreview(true)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-cream-200 bg-white/92 px-3 py-1.5 text-xs font-semibold text-navy-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md cursor-pointer"
+                  className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full border border-cream-200 bg-white/92 px-3 py-1.5 text-xs font-semibold text-navy-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md cursor-pointer"
                 >
                   <Maximize2 className="w-3.5 h-3.5" />
                   Full Preview
                 </button>
-              </div>
-            )}
-            <Card className="max-w-2xl mx-auto p-8">
+              )}
+              <Card className="p-8">
               {isEditMode ? (
                 /* Edit Mode */
                 <div className="space-y-2">
@@ -705,7 +704,8 @@ ${letter.signatureName}`;
                 /* View Mode */
                 activeCoverLetter ? renderCoverLetterContent(activeCoverLetter) : null
               )}
-            </Card>
+              </Card>
+            </div>
 
           </>
         )}

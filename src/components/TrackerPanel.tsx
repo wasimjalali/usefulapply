@@ -48,13 +48,16 @@ const ALL_STATUSES: ApplicationStatus[] = ['applied', 'interview', 'follow_up', 
 function StatusDropdown({
   status,
   onStatusChange,
+  preferredPlacement = 'bottom',
 }: {
   status: ApplicationStatus;
   onStatusChange: (newStatus: ApplicationStatus) => void;
+  preferredPlacement?: 'top' | 'bottom';
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState<{ top: number; left: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.applied;
   const MENU_WIDTH = 192;
   const MENU_HEIGHT = 248;
@@ -65,20 +68,20 @@ function StatusDropdown({
     if (!buttonRef.current) return null;
 
     const rect = buttonRef.current.getBoundingClientRect();
-    const shouldOpenAbove =
-      rect.bottom + MENU_OFFSET + MENU_HEIGHT > window.innerHeight - VIEWPORT_MARGIN &&
-      rect.top - MENU_OFFSET - MENU_HEIGHT >= VIEWPORT_MARGIN;
+    const menuHeight = menuRef.current?.offsetHeight ?? MENU_HEIGHT;
+    const menuWidth = menuRef.current?.offsetWidth ?? MENU_WIDTH;
+    const shouldOpenAbove = preferredPlacement === 'top';
 
     return {
       top: shouldOpenAbove
-        ? rect.top - MENU_HEIGHT - MENU_OFFSET
-        : rect.bottom + MENU_OFFSET,
+        ? Math.max(VIEWPORT_MARGIN, rect.top - menuHeight - MENU_OFFSET)
+        : Math.min(rect.bottom + MENU_OFFSET, window.innerHeight - menuHeight - VIEWPORT_MARGIN),
       left: Math.min(
         Math.max(rect.left, VIEWPORT_MARGIN),
-        window.innerWidth - MENU_WIDTH - VIEWPORT_MARGIN,
+        window.innerWidth - menuWidth - VIEWPORT_MARGIN,
       ),
     };
-  }, [MENU_HEIGHT, MENU_OFFSET, MENU_WIDTH, VIEWPORT_MARGIN]);
+  }, [MENU_HEIGHT, MENU_OFFSET, MENU_WIDTH, VIEWPORT_MARGIN, preferredPlacement]);
 
   const openMenu = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -94,15 +97,28 @@ function StatusDropdown({
   useEffect(() => {
     if (!isOpen) return;
 
-    const closeMenu = () => setIsOpen(false);
-    window.addEventListener('resize', closeMenu);
-    window.addEventListener('scroll', closeMenu, true);
+    const updatePosition = () => {
+      const nextStyle = calculateMenuStyle();
+      if (nextStyle) setMenuStyle(nextStyle);
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    const rafId = window.requestAnimationFrame(updatePosition);
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    document.addEventListener('keydown', handleEscape);
 
     return () => {
-      window.removeEventListener('resize', closeMenu);
-      window.removeEventListener('scroll', closeMenu, true);
+      window.cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+      document.removeEventListener('keydown', handleEscape);
     };
-  }, [isOpen]);
+  }, [isOpen, calculateMenuStyle]);
 
   return (
     <div className="relative">
@@ -123,6 +139,7 @@ function StatusDropdown({
         <>
           <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setIsOpen(false); }} />
           <div
+            ref={menuRef}
             className="fixed z-50 w-48 bg-white rounded-xl shadow-xl border border-cream-200 py-1.5"
             style={{ top: menuStyle.top, left: menuStyle.left }}
             onClick={(e) => e.stopPropagation()}
@@ -848,8 +865,9 @@ export function TrackerPanel() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cream-100">
-                    {filteredApplications.map((app) => {
+                    {filteredApplications.map((app, index) => {
                       const appStatus = app.status || 'applied';
+                      const preferredPlacement = index === filteredApplications.length - 1 ? 'top' : 'bottom';
                       return (
                         <tr
                           key={app.id}
@@ -931,6 +949,7 @@ export function TrackerPanel() {
                             ) : (
                               <StatusDropdown
                                 status={appStatus}
+                                preferredPlacement={preferredPlacement}
                                 onStatusChange={(newStatus) => handleStatusChange(app.id, newStatus)}
                               />
                             )}
@@ -973,8 +992,9 @@ export function TrackerPanel() {
 
             {/* Mobile Cards */}
             <div className="md:hidden mt-4 space-y-3">
-              {filteredApplications.map((app) => {
+              {filteredApplications.map((app, index) => {
                 const appStatus = app.status || 'applied';
+                const preferredPlacement = index === filteredApplications.length - 1 ? 'top' : 'bottom';
                 return (
                   <div
                     key={app.id}
@@ -1012,6 +1032,7 @@ export function TrackerPanel() {
                       ) : (
                         <StatusDropdown
                           status={appStatus}
+                          preferredPlacement={preferredPlacement}
                           onStatusChange={(newStatus) => handleStatusChange(app.id, newStatus)}
                         />
                       )}
