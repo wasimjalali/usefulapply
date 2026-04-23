@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Card } from './ui/Card';
 import { MarkdownText } from './MarkdownText';
@@ -23,10 +23,27 @@ import {
 } from 'lucide-react';
 import { KarkoIcon } from './KarkoLogo';
 import { useRouter } from 'next/navigation';
-import { useSearchParams } from 'next/navigation';
 import { SignUpWallModal, hasUsedFreeGeneration } from '@/components/SignUpWallModal';
 import { InsufficientCreditsModal } from '@/components/InsufficientCreditsModal';
 import { usePostHog } from 'posthog-js/react';
+
+function readChatQuery() {
+  if (typeof window === 'undefined') {
+    return {
+      autostart: null,
+      session: null,
+      search: '',
+    };
+  }
+
+  const search = window.location.search;
+  const searchParams = new URLSearchParams(search);
+  return {
+    autostart: searchParams.get('autostart'),
+    session: searchParams.get('session'),
+    search,
+  };
+}
 
 interface ChatPanelProps {
   onTabChange?: (tab: 'cv' | 'cover-letter' | 'email') => void;
@@ -37,7 +54,6 @@ interface ChatPanelProps {
 
 export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }: ChatPanelProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { user, profile } = useAuth();
   const posthog = usePostHog();
   const {
@@ -100,17 +116,17 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
   const [showScrollButton, setShowScrollButton] = useState(false);
   const isDesktopDocked = !!navBarPortal && !isMobileDrawer;
 
-  const isNearBottom = () => {
+  const isNearBottom = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container) return true;
     return container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-  };
+  }, []);
 
-  const scrollToBottom = (force = false) => {
+  const scrollToBottom = useCallback((force = false) => {
     if (force || isNearBottom()) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  };
+  }, [isNearBottom]);
 
   // Track scroll position to show/hide scroll-to-bottom button
   const handleScroll = () => {
@@ -126,19 +142,19 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
       scrollToBottom(true);
     }
     prevMessageCount.current = count;
-  }, [currentSession?.chatMessages]);
+  }, [currentSession?.chatMessages, scrollToBottom]);
 
   // Scroll when typing indicator appears (if near bottom)
   useEffect(() => {
     if (isTyping) scrollToBottom();
-  }, [isTyping]);
+  }, [isTyping, scrollToBottom]);
 
   // Auto-scroll when agent starts working (only if near bottom)
   useEffect(() => {
     if (isAgentWorking && agentSteps.length > 0) {
       scrollToBottom();
     }
-  }, [isAgentWorking, agentSteps]);
+  }, [isAgentWorking, agentSteps, scrollToBottom]);
 
   const previousGeneratedStateRef = useRef<{ sessionId: string | null; hasGeneratedCV: boolean }>({
     sessionId: null,
@@ -173,15 +189,18 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
   }, []);
 
   useEffect(() => {
-    const autostart = searchParams.get('autostart');
-    const requestedSessionId = searchParams.get('session');
+    const {
+      autostart,
+      session: requestedSessionId,
+      search,
+    } = readChatQuery();
 
     if (autostart !== 'job-feed-apply' || !currentSession || currentSession.id !== requestedSessionId) {
       return;
     }
 
     const clearAutostartParam = () => {
-      const nextParams = new URLSearchParams(searchParams.toString());
+      const nextParams = new URLSearchParams(search);
       nextParams.delete('autostart');
       const nextQuery = nextParams.toString();
       router.replace(nextQuery ? `/dashboard?${nextQuery}` : '/dashboard');
@@ -211,7 +230,6 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     currentCV,
     currentSession,
     router,
-    searchParams,
     workflowHandleSend,
   ]);
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { CVPanel } from '@/components/CVPanel';
 import { CoverLetterPanel } from '@/components/CoverLetterPanel';
 import { EmailPanel } from '@/components/EmailPanel';
@@ -25,6 +25,25 @@ import type { StructuredCV } from '@/lib/types/cv-schema';
 type ApplicationTab = 'cv' | 'cover-letter' | 'email';
 type Workspace = 'application-kit' | 'job-feed' | 'tracker';
 type MobileView = 'chat' | Workspace;
+
+function readDashboardQuery() {
+  if (typeof window === 'undefined') {
+    return {
+      workspace: null,
+      session: null,
+      tab: null,
+      autostart: null,
+    };
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  return {
+    workspace: searchParams.get('workspace'),
+    session: searchParams.get('session'),
+    tab: searchParams.get('tab'),
+    autostart: searchParams.get('autostart'),
+  };
+}
 
 interface DashboardProfileMenuProps {
   profile: {
@@ -90,6 +109,7 @@ function DashboardProfileMenu({ profile, onSignOut }: DashboardProfileMenuProps)
                 : 'ring-gray-300'
           }`}>
             {profile?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element -- Remote avatar URLs come from user profile storage and are already sized to this tiny menu slot.
               <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
             ) : (
               <User className="w-3.5 h-3.5 text-white" />
@@ -188,7 +208,6 @@ function DashboardUpgradeButton({
 }
 export default function Dashboard() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const {
     activeTab,
     setActiveTab,
@@ -471,10 +490,12 @@ export default function Dashboard() {
   }, [activeTab, isApplicationTab]);
 
   useEffect(() => {
-    const requestedWorkspace = searchParams.get('workspace');
-    const requestedSessionId = searchParams.get('session');
-    const requestedTab = searchParams.get('tab');
-    const autostart = searchParams.get('autostart');
+    const {
+      workspace: requestedWorkspace,
+      session: requestedSessionId,
+      tab: requestedTab,
+      autostart,
+    } = readDashboardQuery();
 
     if (!requestedWorkspace && !requestedSessionId && !requestedTab && !autostart) {
       return;
@@ -516,7 +537,6 @@ export default function Dashboard() {
   }, [
     currentSession?.id,
     loadSession,
-    searchParams,
     sessions,
     setActiveTab,
   ]);
