@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -18,9 +18,10 @@ import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
 
 interface CoverLetterPanelProps {
   toolbarPortal?: HTMLDivElement | null;
+  atsControl?: ReactNode;
 }
 
-export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) {
+export function CoverLetterPanel({ toolbarPortal, atsControl }: CoverLetterPanelProps = {}) {
   const { user } = useAuth();
   const { currentSession, isGenerating, isAgentWorking, agentWorkflowPhase, setCoverLetter, currentCV, structuredCV, masterCV } = useAppStore();
   const [showSignUpWall, setShowSignUpWall] = useState(false);
@@ -633,6 +634,8 @@ ${letter.signatureName}`;
           )}
         </div>
       )}
+
+      {atsControl}
     </>
   );
 

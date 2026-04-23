@@ -324,7 +324,13 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
       {/* Portal nav buttons into main nav bar when on desktop (navBarPortal provided) */}
       {navBarPortal && createPortal(chatNavButtons, navBarPortal)}
 
-      <div className={`h-full flex flex-col bg-cream-50 ${isMobileDrawer ? '' : 'border-l border-cream-200'}`}>
+      <div className={`h-full flex flex-col bg-cream-50 ${
+        navBarPortal
+          ? 'rounded-[26px] border border-cream-200 shadow-[0_24px_48px_-34px_rgba(30,58,95,0.34)] overflow-hidden'
+          : isMobileDrawer
+            ? ''
+            : 'border-l border-cream-200'
+      }`}>
         {/* Chat Header — only shown when navBarPortal is not provided (mobile layout) */}
         {navBarPortal === undefined && (
           <div className="relative px-4 py-2.5 glass-header">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -17,9 +17,10 @@ import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
 
 interface EmailPanelProps {
   toolbarPortal?: HTMLDivElement | null;
+  atsControl?: ReactNode;
 }
 
-export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
+export function EmailPanel({ toolbarPortal, atsControl }: EmailPanelProps = {}) {
   const { user } = useAuth();
   const posthog = usePostHog();
   const { 
@@ -462,6 +463,8 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
           </Button>
         </>
       )}
+
+      {atsControl}
     </>
   );
 

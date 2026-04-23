@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Card } from './ui/Card';
@@ -22,7 +22,9 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
-  Edit3
+  Edit3,
+  Maximize2,
+  X,
 } from 'lucide-react';
 import { EditableCVCanvas, EditableCVCanvasRef } from './EditableCVCanvas';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
@@ -123,9 +125,10 @@ function findBestBreakY(
 
 interface CVPanelProps {
   toolbarPortal?: HTMLDivElement | null;
+  atsControl?: ReactNode;
 }
 
-export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
+export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
   const router = useRouter();
   const {
     currentCV,
@@ -165,6 +168,7 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [showFullPreview, setShowFullPreview] = useState(false);
   const [editedCVData, setEditedCVData] = useState<CVData | null>(null);
   const [pageBreaks, setPageBreaks] = useState<number[]>([]);
   const cvTemplateRef = useRef<HTMLDivElement>(null);
@@ -802,6 +806,7 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
 
   const isLoading = isAnalyzing || isGenerating || isAgentWorking;
   const displayContent = showOptimized && generatedCV ? generatedCV.content : currentCV.rawText;
+  const previewCVData = editedCVData || cvData;
 
   // Toolbar content — rendered via portal (desktop) or inline (mobile)
   const toolbarContent = !isLoading ? (
@@ -909,6 +914,8 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
           </Button>
         </>
       )}
+
+      {atsControl}
     </>
   ) : null;
 
@@ -1016,12 +1023,21 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
                   {/* Size wrapper: reserves the correct visual space after scaling,
                       and clips the layout overflow that transform: scale doesn't affect */}
                   <div
+                    className="relative"
                     style={{
                       width: cvScale < 1 ? Math.ceil((cvWrapperRef.current?.scrollWidth ?? 816) * cvScale) : undefined,
                       height: cvScaledHeight ?? undefined,
                       overflow: cvScale < 1 ? 'hidden' : undefined,
                     }}
                   >
+                    <button
+                      type="button"
+                      onClick={() => setShowFullPreview(true)}
+                      className="absolute right-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-full border border-cream-200 bg-white/92 px-3 py-1.5 text-xs font-semibold text-navy-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md cursor-pointer"
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" />
+                      Full Preview
+                    </button>
                     <div
                       ref={cvWrapperRef}
                       className="relative bg-white shadow-lg"
@@ -1091,6 +1107,33 @@ export function CVPanel({ toolbarPortal }: CVPanelProps = {}) {
         onClose={() => setShowSignUpWall(false)}
         trigger="download"
       />
+
+      {showFullPreview && previewCVData && createPortal(
+        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">
+          <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-[30px] border border-cream-200 bg-cream-50 shadow-[0_36px_100px_-38px_rgba(30,58,95,0.45)]">
+            <div className="flex items-center justify-between border-b border-cream-200 bg-white/95 px-5 py-3">
+              <div>
+                <p className="text-sm font-semibold text-charcoal">CV Full Preview</p>
+                <p className="text-xs text-warm-gray">Focused reading mode with the surrounding dashboard hidden.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFullPreview(false)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-cream-200 bg-white text-warm-gray transition-colors hover:border-navy-200 hover:text-navy-700 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-auto bg-gray-100 p-4 sm:p-6">
+              <div className="mx-auto w-fit bg-white shadow-xl">
+                <CVTemplateRenderer data={previewCVData} templateId={selectedTemplateId} />
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

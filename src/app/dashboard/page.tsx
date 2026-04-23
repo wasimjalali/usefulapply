@@ -315,6 +315,26 @@ export default function Dashboard() {
       : 'application-kit';
   const atsScore = currentSession?.optimizedCVData?.analysis?.ats_compatibility ?? null;
   const hasATSInsights = Boolean(currentSession?.optimizedCVData?.analysis || currentSession?.generatedCV?.changes?.length);
+  const showATSControl = atsScore !== null || hasATSInsights || isAgentWorking;
+
+  const atsControl = showATSControl ? (
+    <button
+      type="button"
+      onClick={() => {
+        if (hasATSInsights || atsScore !== null) {
+          setShowATSModal(true);
+        }
+      }}
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all sm:px-3.5 sm:py-2 sm:text-sm ${
+        hasATSInsights || atsScore !== null
+          ? 'border-gold-200 bg-white text-navy-700 shadow-sm hover:-translate-y-0.5 hover:shadow-md cursor-pointer'
+          : 'border-cream-200 bg-cream-50 text-warm-gray cursor-default'
+      }`}
+    >
+      <Target className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${atsScore !== null ? 'text-gold-500' : 'text-warm-gray'}`} />
+      {atsScore !== null ? `${atsScore}% ATS Score` : isAgentWorking ? 'Scoring...' : 'ATS Insights'}
+    </button>
+  ) : null;
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     // Double-click to toggle collapse
@@ -614,64 +634,43 @@ export default function Dashboard() {
           {activeWorkspace === 'application-kit' && (
             <>
               <div className="bg-white/90 border-b border-cream-200 px-4 sm:px-5 py-2.5">
-                <div className="flex items-center justify-between gap-3">
-                  <div id="tour-doc-tabs" className="flex items-center bg-cream-100/80 rounded-[18px] p-0.5">
-                    <button
-                      type="button"
-                      onClick={() => handleTabChange('cv')}
-                      className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-[14px] transition-all cursor-pointer whitespace-nowrap ${
-                        activeTab === 'cv'
-                          ? 'bg-white text-navy-700 shadow-sm font-semibold'
-                          : 'text-warm-gray hover:text-navy-600'
-                      }`}
-                    >
-                      <FileText className={`w-4 h-4 ${activeTab === 'cv' ? 'text-gold-500' : ''}`} />
-                      CV
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleTabChange('cover-letter')}
-                      className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-[14px] transition-all cursor-pointer whitespace-nowrap ${
-                        activeTab === 'cover-letter'
-                          ? 'bg-white text-navy-700 shadow-sm font-semibold'
-                          : 'text-warm-gray hover:text-navy-600'
-                      }`}
-                    >
-                      <Mail className={`w-4 h-4 ${activeTab === 'cover-letter' ? 'text-gold-500' : ''}`} />
-                      Cover Letter
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleTabChange('email')}
-                      className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-[14px] transition-all cursor-pointer whitespace-nowrap ${
-                        activeTab === 'email'
-                          ? 'bg-white text-navy-700 shadow-sm font-semibold'
-                          : 'text-warm-gray hover:text-navy-600'
-                      }`}
-                    >
-                      <Send className={`w-4 h-4 ${activeTab === 'email' ? 'text-gold-500' : ''}`} />
-                      Email
-                    </button>
-                  </div>
-
-                  {(atsScore !== null || hasATSInsights || isAgentWorking) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (hasATSInsights || atsScore !== null) {
-                          setShowATSModal(true);
-                        }
-                      }}
-                      className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold transition-all ${
-                        hasATSInsights || atsScore !== null
-                          ? 'border-gold-200 bg-white text-navy-700 shadow-sm hover:-translate-y-0.5 hover:shadow-md cursor-pointer'
-                          : 'border-cream-200 bg-cream-50 text-warm-gray cursor-default'
-                      }`}
-                    >
-                      <Target className={`w-4 h-4 ${atsScore !== null ? 'text-gold-500' : 'text-warm-gray'}`} />
-                      {atsScore !== null ? `${atsScore}% ATS Score` : isAgentWorking ? 'Scoring...' : 'ATS Insights'}
-                    </button>
-                  )}
+                <div id="tour-doc-tabs" className="flex items-center bg-cream-100/80 rounded-[18px] p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('cv')}
+                    className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-[14px] transition-all cursor-pointer whitespace-nowrap ${
+                      activeTab === 'cv'
+                        ? 'bg-white text-navy-700 shadow-sm font-semibold'
+                        : 'text-warm-gray hover:text-navy-600'
+                    }`}
+                  >
+                    <FileText className={`w-4 h-4 ${activeTab === 'cv' ? 'text-gold-500' : ''}`} />
+                    CV
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('cover-letter')}
+                    className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-[14px] transition-all cursor-pointer whitespace-nowrap ${
+                      activeTab === 'cover-letter'
+                        ? 'bg-white text-navy-700 shadow-sm font-semibold'
+                        : 'text-warm-gray hover:text-navy-600'
+                    }`}
+                  >
+                    <Mail className={`w-4 h-4 ${activeTab === 'cover-letter' ? 'text-gold-500' : ''}`} />
+                    Cover Letter
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('email')}
+                    className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-[14px] transition-all cursor-pointer whitespace-nowrap ${
+                      activeTab === 'email'
+                        ? 'bg-white text-navy-700 shadow-sm font-semibold'
+                        : 'text-warm-gray hover:text-navy-600'
+                    }`}
+                  >
+                    <Send className={`w-4 h-4 ${activeTab === 'email' ? 'text-gold-500' : ''}`} />
+                    Email
+                  </button>
                 </div>
               </div>
 
@@ -764,9 +763,9 @@ export default function Dashboard() {
               </div>
             ) : (
               <>
-                {activeTab === 'cv' && <CVPanel toolbarPortal={toolbarNode} />}
-                {activeTab === 'cover-letter' && <CoverLetterPanel toolbarPortal={toolbarNode} />}
-                {activeTab === 'email' && <EmailPanel toolbarPortal={toolbarNode} />}
+                {activeTab === 'cv' && <CVPanel toolbarPortal={toolbarNode} atsControl={atsControl} />}
+                {activeTab === 'cover-letter' && <CoverLetterPanel toolbarPortal={toolbarNode} atsControl={atsControl} />}
+                {activeTab === 'email' && <EmailPanel toolbarPortal={toolbarNode} atsControl={atsControl} />}
               </>
             )}
           </div>
@@ -792,12 +791,12 @@ export default function Dashboard() {
             </div>
           )}
 
-          <div className={`absolute inset-0 flex flex-col items-center py-3 bg-cream-50 border-l border-cream-200 transition-opacity duration-200 ${
+          <div className={`absolute inset-y-2 right-1.5 left-1.5 flex flex-col items-center justify-start py-2.5 bg-cream-50 border border-cream-200 rounded-[20px] shadow-[0_18px_40px_-32px_rgba(30,58,95,0.35)] transition-opacity duration-200 ${
             isChatCollapsed ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}>
             <button
               onClick={() => setIsChatCollapsed(false)}
-              className="p-2 rounded-lg text-warm-gray hover:text-navy-600 hover:bg-cream-100 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-warm-gray hover:text-navy-600 hover:bg-cream-100 transition-colors cursor-pointer"
               title="Expand chat (⌘⇧C)"
             >
               <PanelRightOpen className="w-4 h-4" />
@@ -807,7 +806,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div id="tour-chat-panel" className={`absolute inset-0 overflow-hidden transition-opacity duration-200 ${
+          <div id="tour-chat-panel" className={`absolute inset-y-3 right-3 left-2 overflow-hidden transition-opacity duration-200 ${
             isChatCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
           }`}>
             <ChatPanel
@@ -821,64 +820,43 @@ export default function Dashboard() {
       <div className="md:hidden flex-1 flex flex-col overflow-hidden">
         {mobileView === 'application-kit' && (
           <div className="bg-white/90 border-b border-cream-200 px-3 py-2.5">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center bg-cream-100/80 rounded-[18px] p-0.5 overflow-x-auto scrollbar-hide">
-                <button
-                  type="button"
-                  onClick={() => handleMobileApplicationTabChange('cv')}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-[14px] transition-all whitespace-nowrap ${
-                    mobileApplicationTab === 'cv'
-                      ? 'bg-white text-navy-700 shadow-sm font-semibold'
-                      : 'text-warm-gray'
-                  }`}
-                >
-                  <FileText className={`w-4 h-4 ${mobileApplicationTab === 'cv' ? 'text-gold-500' : ''}`} />
-                  CV
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleMobileApplicationTabChange('cover-letter')}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-[14px] transition-all whitespace-nowrap ${
-                    mobileApplicationTab === 'cover-letter'
-                      ? 'bg-white text-navy-700 shadow-sm font-semibold'
-                      : 'text-warm-gray'
-                  }`}
-                >
-                  <Mail className={`w-4 h-4 ${mobileApplicationTab === 'cover-letter' ? 'text-gold-500' : ''}`} />
-                  Letter
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleMobileApplicationTabChange('email')}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-[14px] transition-all whitespace-nowrap ${
-                    mobileApplicationTab === 'email'
-                      ? 'bg-white text-navy-700 shadow-sm font-semibold'
-                      : 'text-warm-gray'
-                  }`}
-                >
-                  <Send className={`w-4 h-4 ${mobileApplicationTab === 'email' ? 'text-gold-500' : ''}`} />
-                  Email
-                </button>
-              </div>
-
-              {(atsScore !== null || hasATSInsights || isAgentWorking) && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (hasATSInsights || atsScore !== null) {
-                      setShowATSModal(true);
-                    }
-                  }}
-                  className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-semibold ${
-                    hasATSInsights || atsScore !== null
-                      ? 'border-gold-200 bg-white text-navy-700 shadow-sm'
-                      : 'border-cream-200 bg-cream-50 text-warm-gray'
-                  }`}
-                >
-                  <Target className={`w-3.5 h-3.5 ${atsScore !== null ? 'text-gold-500' : 'text-warm-gray'}`} />
-                  {atsScore !== null ? `${atsScore}%` : isAgentWorking ? '...' : 'ATS'}
-                </button>
-              )}
+            <div className="flex items-center bg-cream-100/80 rounded-[18px] p-0.5 overflow-x-auto scrollbar-hide">
+              <button
+                type="button"
+                onClick={() => handleMobileApplicationTabChange('cv')}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-[14px] transition-all whitespace-nowrap ${
+                  mobileApplicationTab === 'cv'
+                    ? 'bg-white text-navy-700 shadow-sm font-semibold'
+                    : 'text-warm-gray'
+                }`}
+              >
+                <FileText className={`w-4 h-4 ${mobileApplicationTab === 'cv' ? 'text-gold-500' : ''}`} />
+                CV
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMobileApplicationTabChange('cover-letter')}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-[14px] transition-all whitespace-nowrap ${
+                  mobileApplicationTab === 'cover-letter'
+                    ? 'bg-white text-navy-700 shadow-sm font-semibold'
+                    : 'text-warm-gray'
+                }`}
+              >
+                <Mail className={`w-4 h-4 ${mobileApplicationTab === 'cover-letter' ? 'text-gold-500' : ''}`} />
+                Letter
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMobileApplicationTabChange('email')}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-[14px] transition-all whitespace-nowrap ${
+                  mobileApplicationTab === 'email'
+                    ? 'bg-white text-navy-700 shadow-sm font-semibold'
+                    : 'text-warm-gray'
+                }`}
+              >
+                <Send className={`w-4 h-4 ${mobileApplicationTab === 'email' ? 'text-gold-500' : ''}`} />
+                Email
+              </button>
             </div>
           </div>
         )}
@@ -945,9 +923,9 @@ export default function Dashboard() {
             </div>
           ) : (
             <>
-              {mobileApplicationTab === 'cv' && <CVPanel />}
-              {mobileApplicationTab === 'cover-letter' && <CoverLetterPanel />}
-              {mobileApplicationTab === 'email' && <EmailPanel />}
+              {mobileApplicationTab === 'cv' && <CVPanel atsControl={atsControl} />}
+              {mobileApplicationTab === 'cover-letter' && <CoverLetterPanel atsControl={atsControl} />}
+              {mobileApplicationTab === 'email' && <EmailPanel atsControl={atsControl} />}
             </>
           )}
         </div>

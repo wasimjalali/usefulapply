@@ -91,7 +91,6 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
   const maxCredits = (credits?.plan_tier === 'starter' || credits?.plan_tier === 'free') ? 10 : credits?.plan_tier === 'plus' ? 100 : 200;
   const percentRemaining = Math.min((totalCredits / maxCredits) * 100, 100);
   const formattedCredits = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(totalCredits);
-  const planLabel = (credits?.plan_tier || 'free').toUpperCase();
 
   // Color based on remaining credits — brand palette
   const getColor = () => {
@@ -111,7 +110,6 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
           <Coins className={`w-3 h-3 ${getColor()}`} />
         </span>
         <div className="leading-none">
-          <div className={`text-[10px] font-semibold tracking-[0.16em] ${getColor()}`}>{planLabel}</div>
           <div className="text-[13px] font-semibold text-charcoal">{formattedCredits}</div>
         </div>
       </Link>
@@ -129,9 +127,6 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
           <Coins className={`w-3.5 h-3.5 ${getColor()}`} />
         </span>
         <div className="text-left min-w-0">
-          <div className={`text-[9px] font-bold tracking-[0.18em] ${getColor()}`}>
-            {planLabel}
-          </div>
           <div className="text-[13px] font-semibold leading-tight text-charcoal">
             {formattedCredits} credits
           </div>
