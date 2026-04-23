@@ -123,15 +123,6 @@ function findBestBreakY(
   return bestY;
 }
 
-function areNumberArraysEqual(a: number[], b: number[]) {
-  if (a === b) return true;
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i += 1) {
-    if (a[i] !== b[i]) return false;
-  }
-  return true;
-}
-
 interface CVPanelProps {
   toolbarPortal?: HTMLDivElement | null;
   atsControl?: ReactNode;
@@ -189,11 +180,6 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
   const cvWrapperRef = useRef<HTMLDivElement>(null);
   const [cvScale, setCvScale] = useState(1);
   const [cvScaledHeight, setCvScaledHeight] = useState<number | null>(null);
-  const fullPreviewContainerRef = useRef<HTMLDivElement>(null);
-  const fullPreviewWrapperRef = useRef<HTMLDivElement>(null);
-  const fullPreviewTemplateRef = useRef<HTMLDivElement>(null);
-  const [fullPreviewScale, setFullPreviewScale] = useState(1);
-  const [fullPreviewScaledHeight, setFullPreviewScaledHeight] = useState<number | null>(null);
 
   // Close template selector when clicking outside
   useEffect(() => {
@@ -218,21 +204,18 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
       if (rafId !== null) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
         rafId = null;
-        if (!cvContainerRef.current || !cvTemplateRef.current) return;
+        if (!cvContainerRef.current || !cvWrapperRef.current) return;
         const containerWidth = cvContainerRef.current.clientWidth;
-        // Measure the natural template, not the scaled wrapper, to avoid feedback loops.
-        const naturalWidth = cvTemplateRef.current.scrollWidth;
-        const naturalHeight = cvTemplateRef.current.scrollHeight;
-        const targetWidth = Math.max(containerWidth - 24, 0);
-        if (targetWidth > 0 && naturalWidth > 0) {
-          const fitScale = targetWidth / naturalWidth;
-          const newScale = Number(Math.min(fitScale, 1.18).toFixed(4));
-          setCvScale((prev) => (Math.abs(prev - newScale) > 0.001 ? newScale : prev));
-          const nextScaledHeight = naturalHeight > 0 ? Math.ceil(naturalHeight * newScale) : null;
-          setCvScaledHeight((prev) => (prev !== nextScaledHeight ? nextScaledHeight : prev));
+        // scrollWidth gives the actual rendered width, unaffected by transform: scale
+        const naturalWidth = cvWrapperRef.current.scrollWidth;
+        const naturalHeight = cvWrapperRef.current.scrollHeight;
+        if (containerWidth > 0 && naturalWidth > 0 && containerWidth < naturalWidth) {
+          const newScale = containerWidth / naturalWidth;
+          setCvScale(newScale);
+          setCvScaledHeight(naturalHeight > 0 ? Math.ceil(naturalHeight * newScale) : null);
         } else {
-          setCvScale((prev) => (prev !== 1 ? 1 : prev));
-          setCvScaledHeight((prev) => (prev !== null ? null : prev));
+          setCvScale(1);
+          setCvScaledHeight(null);
         }
         // Page break indicator positions (in natural pixels, before any CSS transform).
         // Use contentHeightPx (not full pageHeightPx) so the line matches the PDF cut point.
@@ -243,7 +226,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
         for (let y = contentHeightPx; y < naturalHeight; y += contentHeightPx) {
           breaks.push(y);
         }
-        setPageBreaks((prev) => (areNumberArraysEqual(prev, breaks) ? prev : breaks));
+        setPageBreaks(breaks);
       });
     };
 
@@ -251,61 +234,19 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
     const timer = setTimeout(updateScale, 50);
     // Watch container width changes (window resize, chat panel resize)
     const roContainer = new ResizeObserver(updateScale);
-    // Watch the unscaled template for content changes (original ↔ optimized, edits, etc.)
-    const roTemplate = new ResizeObserver(updateScale);
+    // Watch CV wrapper height changes (content switches: original ↔ optimized)
+    const roWrapper = new ResizeObserver(updateScale);
     if (cvContainerRef.current) roContainer.observe(cvContainerRef.current);
-    if (cvTemplateRef.current) roTemplate.observe(cvTemplateRef.current);
+    if (cvWrapperRef.current) roWrapper.observe(cvWrapperRef.current);
     return () => {
       clearTimeout(timer);
       if (rafId !== null) cancelAnimationFrame(rafId);
       roContainer.disconnect();
-      roTemplate.disconnect();
+      roWrapper.disconnect();
     };
   // selectedTemplateId triggers re-mount of CVTemplateRenderer; ResizeObserver handles rest
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTemplateId]);
-
-  useEffect(() => {
-    if (!showFullPreview) return;
-
-    let rafId: number | null = null;
-
-    const updateScale = () => {
-      if (rafId !== null) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        rafId = null;
-        if (!fullPreviewContainerRef.current || !fullPreviewTemplateRef.current) return;
-        const containerWidth = fullPreviewContainerRef.current.clientWidth;
-        const naturalWidth = fullPreviewTemplateRef.current.scrollWidth;
-        const naturalHeight = fullPreviewTemplateRef.current.scrollHeight;
-        const targetWidth = Math.max(containerWidth - 12, 0);
-
-        if (targetWidth > 0 && naturalWidth > 0) {
-          const fitScale = targetWidth / naturalWidth;
-          const newScale = Number(Math.min(fitScale, 1.35).toFixed(4));
-          setFullPreviewScale((prev) => (Math.abs(prev - newScale) > 0.001 ? newScale : prev));
-          const nextScaledHeight = naturalHeight > 0 ? Math.ceil(naturalHeight * newScale) : null;
-          setFullPreviewScaledHeight((prev) => (prev !== nextScaledHeight ? nextScaledHeight : prev));
-        } else {
-          setFullPreviewScale((prev) => (prev !== 1 ? 1 : prev));
-          setFullPreviewScaledHeight((prev) => (prev !== null ? null : prev));
-        }
-      });
-    };
-
-    const timer = setTimeout(updateScale, 50);
-    const roContainer = new ResizeObserver(updateScale);
-    const roTemplate = new ResizeObserver(updateScale);
-    if (fullPreviewContainerRef.current) roContainer.observe(fullPreviewContainerRef.current);
-    if (fullPreviewTemplateRef.current) roTemplate.observe(fullPreviewTemplateRef.current);
-
-    return () => {
-      clearTimeout(timer);
-      if (rafId !== null) cancelAnimationFrame(rafId);
-      roContainer.disconnect();
-      roTemplate.disconnect();
-    };
-  }, [showFullPreview, selectedTemplateId, editedCVData, currentSession?.updatedAt]);
 
   // Refresh photo URL when a Supabase signed URL has expired (long sessions).
   // base64 data URLs are always valid; only re-check external URLs.
@@ -866,8 +807,6 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
   const isLoading = isAnalyzing || isGenerating || isAgentWorking;
   const displayContent = showOptimized && generatedCV ? generatedCV.content : currentCV.rawText;
   const previewCVData = editedCVData || cvData;
-  const hasScaledCvPreview = Math.abs(cvScale - 1) > 0.01;
-  const hasScaledFullPreview = Math.abs(fullPreviewScale - 1) > 0.01;
 
   // Toolbar content — rendered via portal (desktop) or inline (mobile)
   const toolbarContent = !isLoading ? (
@@ -1030,10 +969,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
             )}
 
             {/* CV Content - View Mode or Edit Mode */}
-            <div
-              className="flex-1 overflow-auto bg-gray-100 p-1.5 sm:p-4"
-              style={{ scrollbarGutter: 'stable both-edges' }}
-            >
+            <div className="flex-1 overflow-auto p-2 sm:p-6 bg-gray-100">
               {isEditMode && cvData ? (
                 /* Edit Mode - Editable Canvas */
                 <div className="flex flex-col h-full">
@@ -1083,16 +1019,16 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
                 </div>
               ) : cvData ? (
                 /* View Mode - Template Preview */
-                <div ref={cvContainerRef} className="flex w-full flex-col items-center">
+                <div ref={cvContainerRef} className="flex flex-col items-center">
                   {/* Size wrapper: reserves the correct visual space after scaling,
                       and clips the layout overflow that transform: scale doesn't affect */}
-                    <div
-                      className="relative"
-                      style={{
-                        width: hasScaledCvPreview ? Math.ceil((cvTemplateRef.current?.scrollWidth ?? 816) * cvScale) : undefined,
-                        height: cvScaledHeight ?? undefined,
-                        overflow: hasScaledCvPreview && cvScale < 1 ? 'hidden' : undefined,
-                      }}
+                  <div
+                    className="relative"
+                    style={{
+                      width: cvScale < 1 ? Math.ceil((cvWrapperRef.current?.scrollWidth ?? 816) * cvScale) : undefined,
+                      height: cvScaledHeight ?? undefined,
+                      overflow: cvScale < 1 ? 'hidden' : undefined,
+                    }}
                   >
                     <button
                       type="button"
@@ -1105,7 +1041,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
                     <div
                       ref={cvWrapperRef}
                       className="relative bg-white shadow-lg"
-                      style={hasScaledCvPreview ? {
+                      style={cvScale < 1 ? {
                         transform: `scale(${cvScale})`,
                         transformOrigin: 'top left',
                         willChange: 'transform',
@@ -1173,8 +1109,8 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
       />
 
       {showFullPreview && previewCVData && createPortal(
-        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-2 sm:p-4 backdrop-blur-[2px]">
-          <div className="relative flex h-[94vh] w-full max-w-[1440px] flex-col overflow-hidden rounded-[30px] border border-cream-200 bg-cream-50 shadow-[0_36px_100px_-38px_rgba(30,58,95,0.45)]">
+        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">
+          <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-[30px] border border-cream-200 bg-cream-50 shadow-[0_36px_100px_-38px_rgba(30,58,95,0.45)]">
             <div className="flex items-center justify-between border-b border-cream-200 bg-white/95 px-5 py-3">
               <div>
                 <p className="text-sm font-semibold text-charcoal">CV Full Preview</p>
@@ -1189,32 +1125,9 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
               </button>
             </div>
 
-            <div
-              ref={fullPreviewContainerRef}
-              className="flex-1 overflow-auto bg-gray-100 p-2 sm:p-4"
-              style={{ scrollbarGutter: 'stable both-edges' }}
-            >
-              <div
-                className="mx-auto"
-                style={{
-                  width: hasScaledFullPreview ? Math.ceil((fullPreviewTemplateRef.current?.scrollWidth ?? 816) * fullPreviewScale) : undefined,
-                  height: fullPreviewScaledHeight ?? undefined,
-                  overflow: hasScaledFullPreview && fullPreviewScale < 1 ? 'hidden' : undefined,
-                }}
-              >
-                <div
-                  ref={fullPreviewWrapperRef}
-                  className="bg-white shadow-xl"
-                  style={hasScaledFullPreview ? {
-                    transform: `scale(${fullPreviewScale})`,
-                    transformOrigin: 'top left',
-                    willChange: 'transform',
-                  } : undefined}
-                >
-                  <div ref={fullPreviewTemplateRef}>
-                    <CVTemplateRenderer data={previewCVData} templateId={selectedTemplateId} />
-                  </div>
-                </div>
+            <div className="flex-1 overflow-auto bg-gray-100 p-4 sm:p-6">
+              <div className="mx-auto w-fit bg-white shadow-xl">
+                <CVTemplateRenderer data={previewCVData} templateId={selectedTemplateId} />
               </div>
             </div>
           </div>
