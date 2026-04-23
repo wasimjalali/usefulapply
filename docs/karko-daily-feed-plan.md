@@ -40,11 +40,11 @@ For v1, the product direction is:
 
 ### Implementation checkpoint as of 2026-04-23
 
-The current branch has completed the foundations through Phase 6 MVP, plus the first real ranking/materialization pass, the orchestration handoff prep, and the first practical Phase 7 slices:
+The current branch has completed the foundations through Phase 6 MVP, plus the first real ranking/materialization pass, the real Inngest orchestration swap, and the first practical Phase 7 slices:
 
 - Phase 0: feed-first cleanup is in place
 - Phase 1: `job_feed_settings` is implemented and wired
-- Phase 2: `job_feed_runs` plus a shared scheduler/debug orchestration boundary are implemented
+- Phase 2: `job_feed_runs` plus real Inngest-backed hourly sweep, per-user dispatch, and `/api/inngest` serve wiring are implemented
 - Phase 3: raw provider fetches plus canonical normalized jobs are implemented
 - Phase 4: code-based prefiltering, deterministic Strong/Good fallback labels, and the LLM ranking pass on the capped shortlist are implemented
 - Phase 5 foundation: ranked feed items are exposed in the feed API/panel with ready, thin-feed, empty, and detail states
@@ -55,7 +55,8 @@ The current branch has completed the foundations through Phase 6 MVP, plus the f
 
 Current next sequence:
 
-- Replace the current direct orchestration adapter with real Inngest functions once dependency install is available
+- Set deployed `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` values, then verify the `/api/inngest` route with the Inngest dev server or dashboard
+- Disable any old external cron that still calls the temporary scheduler shim once the Inngest cron is active
 - Then continue any remaining Phase 7 polish such as additional analytics or debug affordances only if they still feel necessary
 
 ### What exists today
@@ -67,7 +68,7 @@ Current next sequence:
 
 ### What does not exist yet
 
-- No production Inngest-backed orchestration adapter yet; the shared dispatch layer still executes inline in direct mode
+- No confirmed deployed Inngest environment wiring yet; the code path is ready, but runtime keys and registration still need to be verified in the target environment
 - No advanced seen-job suppression beyond simple dismiss feedback
 - No heavier feedback learning loop yet
 

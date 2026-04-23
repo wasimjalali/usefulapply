@@ -384,12 +384,13 @@ export function getJobFeedRunDiagnostics(run: JobFeedRun | null): JobFeedRunDiag
   const rankingInputTokens = readNumericJsonValue(rankingModel?.input_tokens);
   const rankingOutputTokens = readNumericJsonValue(rankingModel?.output_tokens);
   const rankingLatencyMs = readNumericJsonValue(rankingModel?.latency_ms);
+  const orchestrator = metadata.orchestrator === 'inngest' ? 'inngest' : 'direct';
   const rankingEstimatedCostUsd = rankingInputTokens !== null && rankingOutputTokens !== null
     ? estimateCost('fit_assessment', rankingInputTokens, rankingOutputTokens)
     : null;
 
   return {
-    orchestrator: 'direct',
+    orchestrator,
     rankingStatus,
     rankingSource: inferRankingSource(rankingStatus),
     rankingInputTokens,
@@ -434,8 +435,9 @@ export async function runJobFeedFoundationWorkflow(params: {
   triggerSource?: string;
   now?: Date;
   force?: boolean;
+  orchestrator?: JobFeedRunDiagnostics['orchestrator'];
 }): Promise<JobFeedRunWorkflowResult> {
-  const { userId, triggerSource = 'scheduled', now = new Date(), force = false } = params;
+  const { userId, triggerSource = 'scheduled', now = new Date(), force = false, orchestrator = 'direct' } = params;
   const settings = await getJobFeedSettingsAdmin(userId);
 
   if (!settings) {
@@ -480,6 +482,7 @@ export async function runJobFeedFoundationWorkflow(params: {
       stage: 'phase_4_ranking',
       foundation_mode: true,
       target_market: settings.target_market,
+      orchestrator,
     },
   });
 
@@ -493,6 +496,7 @@ export async function runJobFeedFoundationWorkflow(params: {
       stage: 'phase_4_ranking',
       foundation_mode: true,
       last_trigger_source: triggerSource,
+      orchestrator,
     }),
   });
 

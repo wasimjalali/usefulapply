@@ -43,7 +43,7 @@ export interface JobFeedOverviewResponse {
 }
 
 export interface JobFeedRunDiagnostics {
-  orchestrator: 'direct';
+  orchestrator: 'direct' | 'inngest';
   rankingStatus: JobFeedRankingExecutionResult['status'] | null;
   rankingSource: JobFeedRankingSource | null;
   rankingInputTokens: number | null;

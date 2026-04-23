@@ -59,4 +59,6 @@ Deliver the current feed foundations slice:
 - [x] Add a lightweight latest-run diagnostics snapshot for ranking cost and run health visibility
 - [x] Add lightweight retention cleanup for old raw payloads and old run metadata
 - [x] Add a same-day force rerun path for debug recovery without duplicating run rows
-- [ ] Replace the current direct orchestration adapter with real Inngest functions once dependency install is available
+- [x] Replace the current direct orchestration adapter with real Inngest functions
+- [ ] Verify the deployed `/api/inngest` endpoint with `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` configured
+- [ ] Disable any old cron that still hits the temporary internal scheduler route after the Inngest cron is active

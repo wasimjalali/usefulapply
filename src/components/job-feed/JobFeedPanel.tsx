@@ -406,7 +406,9 @@ export function JobFeedPanel() {
           ? force
             ? 'Feed backend rerun completed for this account.'
             : 'Feed backend run completed for this account.'
-          : 'Feed backend run queued for this account.';
+          : force
+            ? 'Feed backend rerun queued for this account.'
+            : 'Feed backend run queued for this account.';
 
       toast.success(toastMessage);
       await loadOverview({ quiet: true });
@@ -777,14 +779,14 @@ export function JobFeedPanel() {
             {showDebugActions && (
               <Card className="rounded-[24px] border-dashed border-navy-200 bg-navy-50/60 p-6 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-600">Developer Check</p>
-                <h2 className="mt-2 text-lg font-semibold text-charcoal">Run the current feed backend pass for this account</h2>
+                <h2 className="mt-2 text-lg font-semibold text-charcoal">Queue the current feed backend pass for this account</h2>
                 <p className="mt-2 text-sm leading-6 text-warm-gray">
-                  This is a debug-only helper to exercise the orchestration entrypoint, ingestion, canonical dedupe, ranking, the real feed read path, and an explicit same-day rerun when needed.
+                  This is a debug-only helper to exercise the Inngest-backed orchestration entrypoint, ingestion, canonical dedupe, ranking, the real feed read path, and an explicit same-day rerun when needed.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button variant="outline" onClick={() => handleDebugRun()} disabled={isRunningDebugFlow}>
                     {isRunningDebugFlow ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                    Run backend workflow
+                    Queue backend workflow
                   </Button>
                   <Button variant="ghost" onClick={() => handleDebugRun({ force: true })} disabled={isRunningDebugFlow}>
                     Force rerun today

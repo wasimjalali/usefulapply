@@ -1,8 +1,14 @@
-import { listDueJobFeedUsers, runJobFeedFoundationWorkflow } from '@/lib/job-feed/server';
+import {
+  inngest,
+  JOB_FEED_RUN_REQUESTED_EVENT,
+  JOB_FEED_SWEEP_REQUESTED_EVENT,
+  type JobFeedRunRequestedEventData,
+  type JobFeedSweepRequestedEventData,
+} from '@/inngest/client';
 import type { JobFeedRunWorkflowResult } from '@/lib/job-feed/types';
 
-export type JobFeedOrchestrator = 'direct';
-export type JobFeedExecutionMode = 'inline';
+export type JobFeedOrchestrator = 'inngest';
+export type JobFeedExecutionMode = 'background';
 
 export interface JobFeedDispatchState {
   orchestrator: JobFeedOrchestrator;
@@ -12,72 +18,78 @@ export interface JobFeedDispatchState {
 export interface JobFeedUserRunDispatchResult extends JobFeedDispatchState {
   requestedUserId: string;
   accepted: boolean;
-  workflow: JobFeedRunWorkflowResult;
+  eventIds: string[];
+  workflow: JobFeedRunWorkflowResult | null;
 }
 
 export interface JobFeedScheduledSweepDispatchResult extends JobFeedDispatchState {
-  checkedUsers: number;
-  dueUsers: number;
-  acceptedUsers: number;
-  processedRuns: number;
-  skippedRuns: number;
-  failedRuns: Array<{ userId: string; error: string }>;
+  accepted: boolean;
+  requestedAt: string;
+  triggerSource: JobFeedSweepRequestedEventData['triggerSource'];
+  eventIds: string[];
 }
 
-const DIRECT_DISPATCH: JobFeedDispatchState = {
-  orchestrator: 'direct',
-  execution: 'inline',
+const INNGEST_DISPATCH: JobFeedDispatchState = {
+  orchestrator: 'inngest',
+  execution: 'background',
 };
 
 export async function dispatchJobFeedUserRun(params: {
   userId: string;
-  triggerSource?: string;
+  triggerSource?: JobFeedRunRequestedEventData['triggerSource'];
   now?: Date;
   force?: boolean;
 }): Promise<JobFeedUserRunDispatchResult> {
-  const workflow = await runJobFeedFoundationWorkflow(params);
+  const requestedAt = (params.now ?? new Date()).toISOString();
+  const payload = {
+    name: JOB_FEED_RUN_REQUESTED_EVENT,
+    data: {
+      userId: params.userId,
+      requestedAt,
+      triggerSource: params.triggerSource ?? 'manual_debug',
+      force: params.force === true,
+    } satisfies JobFeedRunRequestedEventData,
+  };
+
+  const result = await inngest.send(payload).catch((error) => {
+    throw withDispatchContext(error, 'job feed run dispatch');
+  });
 
   return {
-    ...DIRECT_DISPATCH,
+    ...INNGEST_DISPATCH,
     requestedUserId: params.userId,
-    accepted: true,
-    workflow,
+    accepted: result.ids.length > 0,
+    eventIds: result.ids,
+    workflow: null,
   };
 }
 
 export async function dispatchScheduledJobFeedSweep(now = new Date()): Promise<JobFeedScheduledSweepDispatchResult> {
-  const dueUsers = await listDueJobFeedUsers(now);
-
-  const result: JobFeedScheduledSweepDispatchResult = {
-    ...DIRECT_DISPATCH,
-    checkedUsers: dueUsers.length,
-    dueUsers: dueUsers.length,
-    acceptedUsers: dueUsers.length,
-    processedRuns: 0,
-    skippedRuns: 0,
-    failedRuns: [],
+  const requestedAt = now.toISOString();
+  const payload = {
+    name: JOB_FEED_SWEEP_REQUESTED_EVENT,
+    data: {
+      requestedAt,
+      triggerSource: 'internal_scheduler',
+    } satisfies JobFeedSweepRequestedEventData,
   };
 
-  for (const dueUser of dueUsers) {
-    try {
-      const dispatch = await dispatchJobFeedUserRun({
-        userId: dueUser.userId,
-        triggerSource: 'scheduled',
-        now,
-      });
+  const result = await inngest.send(payload).catch((error) => {
+    throw withDispatchContext(error, 'job feed sweep dispatch');
+  });
 
-      if (dispatch.workflow.skipped) {
-        result.skippedRuns += 1;
-      } else {
-        result.processedRuns += 1;
-      }
-    } catch (error) {
-      result.failedRuns.push({
-        userId: dueUser.userId,
-        error: error instanceof Error ? error.message : 'Unknown scheduling error',
-      });
-    }
-  }
+  return {
+    ...INNGEST_DISPATCH,
+    accepted: result.ids.length > 0,
+    requestedAt,
+    triggerSource: 'internal_scheduler',
+    eventIds: result.ids,
+  };
+}
 
-  return result;
+function withDispatchContext(error: unknown, action: string): Error {
+  const message = error instanceof Error ? error.message : `Unknown ${action} failure`;
+  return new Error(
+    `Failed to send ${action} via Inngest. ${message}`
+  );
 }
