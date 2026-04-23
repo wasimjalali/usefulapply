@@ -1,7 +1,7 @@
 # Karko Daily Feed Foundations TODO
 
 Status: In progress
-Scope: Phases 0-6 MVP foundations plus Phase 4 ranking materialization
+Scope: Phases 0-6 MVP foundations plus ranking materialization and orchestration handoff prep
 
 ## Working branch
 
@@ -18,7 +18,7 @@ Deliver the current feed foundations slice:
 - deterministic prefilter + shortlist prep before ranking
 - Strong/Good ranking + ranked feed-item materialization
 - simple feed feedback state plus real apply-session handoff
-- background orchestration foundation with a real backend run path
+- background orchestration foundation with a shared backend dispatch path
 
 ## Checklist
 
@@ -51,8 +51,10 @@ Deliver the current feed foundations slice:
 - [x] Add Supabase migration for Phase 6 feedback state + application-session linkage
 - [x] Phase 6: wire real Apply with Karko AI handoff plus saved/dismissed/applied feedback events
 - [x] Add Supabase migration for ranked feed items
-- [ ] Apply the new Supabase migration in the target environment
+- [x] Apply the new Supabase migration in the target environment
 - [x] Finish the Strong/Good ranking pass on top of the deterministic shortlist
 - [x] Call the LLM ranking stage on the deterministic shortlist
 - [x] Materialize ranked feed items once the ranking stage is live
-- [ ] Replace the temporary scheduler shim with real Inngest functions once dependency install is available
+- [x] Extract a shared orchestration boundary so scheduler/debug routes no longer own workflow execution details
+- [x] Add a lightweight latest-run diagnostics snapshot for ranking cost and run health visibility
+- [ ] Replace the current direct orchestration adapter with real Inngest functions once dependency install is available

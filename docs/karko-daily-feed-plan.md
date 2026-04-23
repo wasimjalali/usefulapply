@@ -40,20 +40,20 @@ For v1, the product direction is:
 
 ### Implementation checkpoint as of 2026-04-23
 
-The current branch has completed the foundations through Phase 6 MVP, plus the first real ranking/materialization pass:
+The current branch has completed the foundations through Phase 6 MVP, plus the first real ranking/materialization pass, the orchestration handoff prep, and a first Phase 7 operational snapshot:
 
 - Phase 0: feed-first cleanup is in place
 - Phase 1: `job_feed_settings` is implemented and wired
-- Phase 2: `job_feed_runs` plus the scheduler/debug workflow foundation are implemented
+- Phase 2: `job_feed_runs` plus a shared scheduler/debug orchestration boundary are implemented
 - Phase 3: raw provider fetches plus canonical normalized jobs are implemented
 - Phase 4: code-based prefiltering, deterministic Strong/Good fallback labels, and the LLM ranking pass on the capped shortlist are implemented
 - Phase 5 foundation: ranked feed items are exposed in the feed API/panel with ready, thin-feed, empty, and detail states
 - Phase 6 MVP: saved/opened/dismissed/applied feedback plus a real `Apply with Karko AI` session handoff are implemented
+- Phase 7 first slice: latest-run operational diagnostics now surface ranking mode, token usage, estimated cost, fetch failures, duplicates, and ranked-item materialization state
 
 Current next sequence:
 
-- Apply the new ranked-item migration in the target environment
-- Replace the temporary scheduler shim with real Inngest functions once dependency install is available
+- Replace the current direct orchestration adapter with real Inngest functions once dependency install is available
 - Then Phase 7 - Cost, Analytics, Retention, Cleanup
 
 ### What exists today
@@ -65,7 +65,7 @@ Current next sequence:
 
 ### What does not exist yet
 
-- No production Inngest-backed orchestration yet
+- No production Inngest-backed orchestration adapter yet; the shared dispatch layer still executes inline in direct mode
 - No advanced seen-job suppression beyond simple dismiss feedback
 - No heavier feedback learning loop yet
 

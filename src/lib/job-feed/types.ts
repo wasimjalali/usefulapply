@@ -36,9 +36,27 @@ export interface JobFeedOverviewResponse {
   settings: JobFeedSettings | null;
   latestRun: JobFeedRun | null;
   feedRun: JobFeedRun | null;
+  latestRunDiagnostics: JobFeedRunDiagnostics | null;
   jobs: JobFeedFeedItem[];
   state: JobFeedOverviewState;
   foundationMode: boolean;
+}
+
+export interface JobFeedRunDiagnostics {
+  orchestrator: 'direct';
+  rankingStatus: JobFeedRankingExecutionResult['status'] | null;
+  rankingSource: JobFeedRankingSource | null;
+  rankingInputTokens: number | null;
+  rankingOutputTokens: number | null;
+  rankingLatencyMs: number | null;
+  rankingEstimatedCostUsd: number | null;
+  canonicalJobsCount: number | null;
+  prefilterSurvivorsCount: number | null;
+  rankingCandidateCount: number | null;
+  rankedJobsCount: number | null;
+  duplicateCount: number;
+  failedFetchCount: number;
+  rankedItemsMaterialized: boolean | null;
 }
 
 export interface JobFeedSettingsInput {

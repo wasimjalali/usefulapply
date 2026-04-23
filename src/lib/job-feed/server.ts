@@ -14,6 +14,7 @@ import type {
   JobFeedFeedItem,
   JobFeedItemFeedbackState,
   JobFeedPrefilterResult,
+  JobFeedRunDiagnostics,
   JobFeedRankedItemRecord,
   JobFeedRankedPreviewItem,
   JobFeedRankingExecutionResult,
@@ -23,6 +24,7 @@ import type {
 import { ingestJobFeedRunJobs } from '@/lib/job-feed/ingestion';
 import { prepareJobFeedRankingCandidates, prefilterJobFeedJobs } from '@/lib/job-feed/prefilter';
 import { rankJobFeedCandidates } from '@/lib/job-feed/ranking';
+import { estimateCost } from '@/lib/models';
 
 type JobFeedRunUpdate = Partial<Pick<JobFeedRun,
   | 'status'
@@ -36,18 +38,10 @@ type JobFeedRunUpdate = Partial<Pick<JobFeedRun,
   | 'metadata'
 >>;
 
-interface DueJobFeedUser {
+export interface DueJobFeedUser {
   userId: string;
   timeZone: string;
   deliveryHourLocal: number;
-}
-
-interface ScheduledJobFeedSweepResult {
-  checkedUsers: number;
-  dueUsers: number;
-  processedRuns: number;
-  skippedRuns: number;
-  failedRuns: Array<{ userId: string; error: string }>;
 }
 
 interface LatestJobFeedItemsResult {
@@ -379,6 +373,41 @@ export async function listDueJobFeedUsers(now = new Date()): Promise<DueJobFeedU
     }));
 }
 
+export function getJobFeedRunDiagnostics(run: JobFeedRun | null): JobFeedRunDiagnostics | null {
+  if (!run) {
+    return null;
+  }
+
+  const metadata = isJsonRecord(run.metadata) ? run.metadata : {};
+  const rankingStatus = readRankingStatus(metadata.ranking_status);
+  const rankingModel = isJsonRecord(metadata.ranking_model) ? metadata.ranking_model : null;
+  const rankingInputTokens = readNumericJsonValue(rankingModel?.input_tokens);
+  const rankingOutputTokens = readNumericJsonValue(rankingModel?.output_tokens);
+  const rankingLatencyMs = readNumericJsonValue(rankingModel?.latency_ms);
+  const rankingEstimatedCostUsd = rankingInputTokens !== null && rankingOutputTokens !== null
+    ? estimateCost('fit_assessment', rankingInputTokens, rankingOutputTokens)
+    : null;
+
+  return {
+    orchestrator: 'direct',
+    rankingStatus,
+    rankingSource: inferRankingSource(rankingStatus),
+    rankingInputTokens,
+    rankingOutputTokens,
+    rankingLatencyMs,
+    rankingEstimatedCostUsd,
+    canonicalJobsCount: readNumericJsonValue(metadata.canonical_jobs_count),
+    prefilterSurvivorsCount: readNumericJsonValue(metadata.prefilter_survivors_count),
+    rankingCandidateCount: readNumericJsonValue(metadata.ranking_candidate_count),
+    rankedJobsCount: run.ranked_jobs_count ?? null,
+    duplicateCount: readNumericJsonValue(metadata.duplicate_count) ?? 0,
+    failedFetchCount: Array.isArray(metadata.failed_fetches) ? metadata.failed_fetches.length : 0,
+    rankedItemsMaterialized: typeof metadata.ranked_items_materialized === 'boolean'
+      ? metadata.ranked_items_materialized
+      : null,
+  };
+}
+
 async function getLatestCompletedJobFeedRunAdmin(userId: string): Promise<JobFeedRun | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
   const admin = createAdminClient() as any;
@@ -549,41 +578,6 @@ export async function runJobFeedFoundationWorkflow(params: {
 
     throw error;
   }
-}
-
-export async function runScheduledJobFeedFoundationSweep(now = new Date()): Promise<ScheduledJobFeedSweepResult> {
-  const dueUsers = await listDueJobFeedUsers(now);
-
-  const result: ScheduledJobFeedSweepResult = {
-    checkedUsers: dueUsers.length,
-    dueUsers: dueUsers.length,
-    processedRuns: 0,
-    skippedRuns: 0,
-    failedRuns: [],
-  };
-
-  for (const dueUser of dueUsers) {
-    try {
-      const workflow = await runJobFeedFoundationWorkflow({
-        userId: dueUser.userId,
-        triggerSource: 'scheduled',
-        now,
-      });
-
-      if (workflow.skipped) {
-        result.skippedRuns += 1;
-      } else {
-        result.processedRuns += 1;
-      }
-    } catch (error) {
-      result.failedRuns.push({
-        userId: dueUser.userId,
-        error: error instanceof Error ? error.message : 'Unknown scheduling error',
-      });
-    }
-  }
-
-  return result;
 }
 
 async function getJobFeedRunByDate(userId: string, localDate: string): Promise<JobFeedRun | null> {
@@ -944,6 +938,37 @@ function extractApplyOptions(value: Json | undefined): JobFeedFeedItem['applyOpt
 
 function isJsonRecord(value: Json): value is Record<string, Json> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readNumericJsonValue(value: Json | undefined): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function readRankingStatus(value: Json | undefined): JobFeedRankingExecutionResult['status'] | null {
+  if (
+    value === 'completed_llm'
+    || value === 'completed_deterministic'
+    || value === 'llm_failed_fallback'
+    || value === 'no_candidates'
+  ) {
+    return value;
+  }
+
+  return null;
+}
+
+function inferRankingSource(
+  status: JobFeedRankingExecutionResult['status'] | null
+): JobFeedRunDiagnostics['rankingSource'] {
+  switch (status) {
+    case 'completed_llm':
+      return 'llm';
+    case 'completed_deterministic':
+    case 'llm_failed_fallback':
+      return 'deterministic';
+    default:
+      return null;
+  }
 }
 
 function isMissingRankedItemsRelationError(error: { code?: string; message?: string }): boolean {

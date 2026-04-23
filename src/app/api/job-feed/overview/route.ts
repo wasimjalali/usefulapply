@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { canAccessJobFeed, getJobFeedOverviewState } from '@/lib/job-feed/helpers';
-import { listLatestJobFeedItemsAdmin } from '@/lib/job-feed/server';
+import { getJobFeedRunDiagnostics, listLatestJobFeedItemsAdmin } from '@/lib/job-feed/server';
 
 export const runtime = 'nodejs';
 
@@ -34,6 +34,7 @@ export async function GET() {
         settings: null,
         latestRun: null,
         feedRun: null,
+        latestRunDiagnostics: null,
         jobs: [],
         state: 'upgrade_required',
         foundationMode: true,
@@ -80,6 +81,7 @@ export async function GET() {
       settings: settings ?? null,
       latestRun: latestRun ?? null,
       feedRun: feedItems.run,
+      latestRunDiagnostics: getJobFeedRunDiagnostics(latestRun ?? null),
       jobs,
       state: getJobFeedOverviewState({
         canAccess,

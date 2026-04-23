@@ -53,6 +53,7 @@ import type {
   JobFeedFeedbackResponse,
   JobFeedFeedItem,
   JobFeedOverviewResponse,
+  JobFeedRunDiagnostics,
   JobFeedSettingsInput,
 } from '@/lib/job-feed/types';
 import { useCVStore } from '@/store/useCVStore';
@@ -393,7 +394,11 @@ export function JobFeedPanel() {
         foundation_mode: true,
       });
 
-      toast.success('Feed backend run completed for this account.');
+      toast.success(
+        payload.execution === 'inline'
+          ? 'Feed backend run completed for this account.'
+          : 'Feed backend run queued for this account.'
+      );
       await loadOverview({ quiet: true });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to run the feed backend workflow.');
@@ -744,7 +749,7 @@ export function JobFeedPanel() {
               <div className="mt-5 space-y-3">
                 <MilestoneStep title="Phase 0" body="Hide the legacy manual-search-first board from the visible product and make Job Feed feel prepared, not manual." />
                 <MilestoneStep title="Phase 1" body="Persist feed settings with honest consent, timezone, delivery time, role, market, and fit controls." />
-                <MilestoneStep title="Phase 2" body="Track durable per-user daily runs so the scheduler and later Inngest workflow have a real operational foundation." />
+                <MilestoneStep title="Phase 2" body="Track durable per-user daily runs and route scheduler/debug triggers through one orchestration boundary so the later Inngest swap stays narrow." />
                 <MilestoneStep title="Phase 3" body="Persist raw SerpApi fetches and normalize deduped canonical jobs so later feed logic has a durable source of truth." />
                 <MilestoneStep title="Phase 4" body="Reject obvious mismatches in code, cap a deterministic shortlist, and finish Strong/Good ranking with an LLM-first pass plus fallback." />
                 <MilestoneStep title="Phase 5" body="Expose ranked feed items through the feed APIs and render honest ready, thin-feed, and detail states inside Job Feed." />
@@ -752,12 +757,19 @@ export function JobFeedPanel() {
               </div>
             </Card>
 
+            {showDebugActions && overview?.latestRun && overview.latestRunDiagnostics && (
+              <OperationalSnapshotCard
+                latestRunDate={overview.latestRun.local_date}
+                diagnostics={overview.latestRunDiagnostics}
+              />
+            )}
+
             {showDebugActions && (
               <Card className="rounded-[24px] border-dashed border-navy-200 bg-navy-50/60 p-6 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-600">Developer Check</p>
                 <h2 className="mt-2 text-lg font-semibold text-charcoal">Run the current feed backend pass for this account</h2>
                 <p className="mt-2 text-sm leading-6 text-warm-gray">
-                  This is a debug-only helper to exercise scheduling, ingestion, canonical dedupe, ranking, and the real feed read path end to end.
+                  This is a debug-only helper to exercise the orchestration entrypoint, ingestion, canonical dedupe, ranking, and the real feed read path end to end.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button variant="outline" onClick={handleDebugRun} disabled={isRunningDebugFlow}>
@@ -1645,6 +1657,38 @@ function MilestoneStep({
   );
 }
 
+function OperationalSnapshotCard({
+  latestRunDate,
+  diagnostics,
+}: {
+  latestRunDate: string;
+  diagnostics: JobFeedRunDiagnostics | null;
+}) {
+  if (!diagnostics) {
+    return null;
+  }
+
+  return (
+    <Card className="rounded-[24px] border-dashed border-emerald-200 bg-emerald-50/70 p-6 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Phase 7 Snapshot</p>
+      <h2 className="mt-2 text-lg font-semibold text-charcoal">Latest run operational summary</h2>
+      <p className="mt-2 text-sm leading-6 text-warm-gray">
+        Lightweight run visibility for {latestRunDate}. This keeps ranking cost, fetch health, and materialization status readable without opening raw JSON metadata.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <RunStatPill label="Dispatch" value={diagnostics.orchestrator} />
+        <RunStatPill label="Ranking" value={formatRankingStatusLabel(diagnostics.rankingStatus)} />
+        <RunStatPill label="Candidates" value={`${diagnostics.rankingCandidateCount ?? 0} -> ${diagnostics.rankedJobsCount ?? 0}`} />
+        <RunStatPill label="Fetch failures" value={String(diagnostics.failedFetchCount)} />
+        <RunStatPill label="Duplicates" value={String(diagnostics.duplicateCount)} />
+        <RunStatPill label="Materialized" value={formatYesNoUnknown(diagnostics.rankedItemsMaterialized)} />
+        <RunStatPill label="Tokens" value={formatTokenUsage(diagnostics)} />
+        <RunStatPill label="Est. LLM cost" value={formatUsdAmount(diagnostics.rankingEstimatedCostUsd)} />
+      </div>
+    </Card>
+  );
+}
+
 function RunStatPill({
   label,
   value,
@@ -1658,6 +1702,43 @@ function RunStatPill({
       {value}
     </span>
   );
+}
+
+function formatRankingStatusLabel(value: JobFeedRunDiagnostics['rankingStatus']): string {
+  switch (value) {
+    case 'completed_llm':
+      return 'LLM ranked';
+    case 'completed_deterministic':
+      return 'Deterministic only';
+    case 'llm_failed_fallback':
+      return 'LLM fallback';
+    case 'no_candidates':
+      return 'No candidates';
+    default:
+      return 'Not available';
+  }
+}
+
+function formatTokenUsage(diagnostics: JobFeedRunDiagnostics): string {
+  if (diagnostics.rankingInputTokens === null || diagnostics.rankingOutputTokens === null) {
+    return 'n/a';
+  }
+
+  return `${diagnostics.rankingInputTokens} in / ${diagnostics.rankingOutputTokens} out`;
+}
+
+function formatUsdAmount(value: number | null): string {
+  if (value === null) {
+    return 'n/a';
+  }
+
+  return `$${value.toFixed(4)}`;
+}
+
+function formatYesNoUnknown(value: boolean | null): string {
+  if (value === true) return 'yes';
+  if (value === false) return 'no';
+  return 'unknown';
 }
 
 function readableMarket(value: string): string {

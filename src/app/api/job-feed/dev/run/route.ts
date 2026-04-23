@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { isJobFeedDebugModeEnabled } from '@/lib/job-feed/constants';
 import { canAccessJobFeed } from '@/lib/job-feed/helpers';
-import { runJobFeedFoundationWorkflow } from '@/lib/job-feed/server';
+import { dispatchJobFeedUserRun } from '@/lib/job-feed/orchestration';
 import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
@@ -31,12 +31,12 @@ export async function POST() {
       return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 
-    const workflow = await runJobFeedFoundationWorkflow({
+    const result = await dispatchJobFeedUserRun({
       userId: user.id,
       triggerSource: 'manual_debug',
     });
 
-    return NextResponse.json(workflow);
+    return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to run the feed backend workflow.' },

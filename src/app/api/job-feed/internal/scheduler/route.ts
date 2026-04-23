@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runScheduledJobFeedFoundationSweep } from '@/lib/job-feed/server';
+import { dispatchScheduledJobFeedSweep } from '@/lib/job-feed/orchestration';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await runScheduledJobFeedFoundationSweep();
+    const result = await dispatchScheduledJobFeedSweep();
     return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json(
