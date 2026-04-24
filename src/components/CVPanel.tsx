@@ -280,7 +280,6 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
       setTemplatePopoverPos(null);
       return;
     }
-    const PREFERRED_WIDTH = 880;
     const MIN_WIDTH = 320;
     const MARGIN = 12;
     const updatePosition = () => {
@@ -290,12 +289,13 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
       const viewportW = window.innerWidth;
       const viewportH = window.innerHeight;
       const top = rect.bottom + 8;
-      // Fill available width up to the preferred size so the grid breathes.
-      const width = Math.max(MIN_WIDTH, Math.min(PREFERRED_WIDTH, viewportW - MARGIN * 2));
-      // Prefer right-aligned to the button, but clamp into viewport.
-      let left = rect.right - width;
-      if (left < MARGIN) left = MARGIN;
-      if (left + width > viewportW - MARGIN) left = viewportW - width - MARGIN;
+      // Find the CV panel container so the popover spans its full width.
+      // The button lives inside the tab-bar area whose parent is the flex-1 document panel.
+      const cvPanel = btn.closest('.flex-1.flex.flex-col') as HTMLElement | null;
+      const panelLeft = cvPanel ? cvPanel.getBoundingClientRect().left + MARGIN : MARGIN;
+      const panelRight = cvPanel ? cvPanel.getBoundingClientRect().right - MARGIN : rect.right;
+      const width = Math.max(MIN_WIDTH, panelRight - panelLeft);
+      const left = panelLeft;
       const maxHeight = Math.max(240, viewportH - top - MARGIN);
       setTemplatePopoverPos({ top, left, maxHeight, width });
     };

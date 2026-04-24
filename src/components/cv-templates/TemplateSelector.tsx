@@ -94,11 +94,12 @@ export function TemplateSelector({ selectedTemplateId, onSelect, defaultTemplate
                       src={previewSrc}
                       alt={`${template.name} template preview`}
                       fill
-                      sizes="(max-width: 640px) 45vw, 320px"
+                      sizes="(max-width: 640px) 45vw, 420px"
                       className={`object-cover object-top transition-transform duration-300 ${
                         isSelected ? '' : 'group-hover:scale-[1.02]'
                       }`}
-                      quality={85}
+                      quality={90}
+                      priority
                     />
                   ) : (
                     <div className="w-full h-full bg-cream-100 flex items-center justify-center">
