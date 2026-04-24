@@ -83,14 +83,21 @@ export async function uploadProfilePhoto(
   file: File
 ): Promise<{ url: string | null; path: string | null; error: Error | null }> {
   const supabase = getSupabase();
-  
+
   const fileExt = file.name.split('.').pop();
   const fileName = `${userId}/profile.${fileExt}`;
-  
+
   try {
-    // Delete existing photo first
-    await supabase.storage.from('profile-photos').remove([fileName]);
-    
+    // Delete ALL existing photos first (handles extension changes, e.g. jpg→png)
+    const { data: existing } = await supabase.storage
+      .from('profile-photos')
+      .list(userId);
+    if (existing && existing.length > 0) {
+      await supabase.storage
+        .from('profile-photos')
+        .remove(existing.map(f => `${userId}/${f.name}`));
+    }
+
     // Upload new photo
     const { data, error } = await supabase.storage
       .from('profile-photos')
@@ -109,10 +116,10 @@ export async function uploadProfilePhoto(
       .from('profile-photos')
       .createSignedUrl(fileName, 60 * 60 * 24 * 7); // 7 days
 
-    return { 
-      url: urlData?.signedUrl || null, 
+    return {
+      url: urlData?.signedUrl || null,
       path: data.path,
-      error: null 
+      error: null
     };
   } catch (err) {
     console.error('Profile photo upload exception:', err);
@@ -138,7 +145,10 @@ export async function getProfilePhotoUrl(
       return { url: null, error: null };
     }
 
-    const profileFile = files.find(f => f.name.startsWith('profile.'));
+    const profileFiles = files
+      .filter(f => f.name.startsWith('profile.'))
+      .sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
+    const profileFile = profileFiles[0];
     if (!profileFile) {
       return { url: null, error: null };
     }
