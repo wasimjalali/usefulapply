@@ -55,6 +55,7 @@ export interface UnifiedAgentInput {
   jobDescription: string;
   primaryCV: string;
   masterCV?: string;
+  jobPreferences?: MasterContext['jobPreferences'];
 }
 
 // =====================================================
@@ -78,6 +79,7 @@ export const unifiedWriterAgent = {
       jobDescription: input.jobDescription,
       rawCV: input.primaryCV,
       masterCV: input.masterCV,
+      jobPreferences: input.jobPreferences,
     };
 
     try {
@@ -237,6 +239,7 @@ export const unifiedWriterAgent = {
       jobDescription: input.jobDescription,
       rawCV: input.primaryCV,
       masterCV: input.masterCV,
+      jobPreferences: input.jobPreferences,
     };
 
     try {

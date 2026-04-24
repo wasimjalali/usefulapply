@@ -303,6 +303,14 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
           console.error('Error saving to Supabase:', saveError);
         } else if (savedDoc) {
           setSupabaseDocs(prev => ({ ...prev, primary: savedDoc }));
+
+          if (result.structuredCV) {
+            fetch('/api/job-feed/settings/suggest', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ structured_data: result.structuredCV }),
+            }).catch(() => {});
+          }
         }
       }
     } catch (error) {

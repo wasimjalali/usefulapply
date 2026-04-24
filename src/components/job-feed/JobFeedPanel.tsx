@@ -1181,10 +1181,18 @@ function JobFeedOnboardingWizard({
             <button
               type="button"
               onClick={() => setIsAdvancedOpen((prev) => !prev)}
-              className="flex items-center gap-2 text-sm font-medium text-warm-gray hover:text-charcoal"
+              className="flex w-full items-center justify-between gap-3 rounded-[18px] border border-navy-200 bg-navy-50/60 px-4 py-3 transition-colors hover:bg-navy-50"
             >
-              {isAdvancedOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              Fine-tune your feed
+              <div className="flex items-center gap-3">
+                {isAdvancedOpen ? <ChevronUp className="h-4 w-4 text-navy-600" /> : <ChevronDown className="h-4 w-4 text-navy-600" />}
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-charcoal">Fine-tune your feed</p>
+                  <p className="text-xs text-warm-gray">Salary floor, skills, seniority, work authorisation</p>
+                </div>
+              </div>
+              <span className="shrink-0 rounded-full bg-navy-600 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                Recommended
+              </span>
             </button>
 
             {isAdvancedOpen && (

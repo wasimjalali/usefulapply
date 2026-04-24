@@ -1015,6 +1015,64 @@ export interface Database {
           created_at?: string
         }
       }
+      user_cv_suggestions: {
+        Row: {
+          user_id: string
+          suggestion: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          suggestion: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          suggestion?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      user_job_preferences: {
+        Row: {
+          user_id: string
+          salary_floor: number | null
+          remote_preference: 'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible' | null
+          employment_types: string[]
+          target_roles: string[]
+          user_skills: string[]
+          target_market: 'us' | 'canada' | 'us_canada' | null
+          seniority_target: 'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager' | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          salary_floor?: number | null
+          remote_preference?: 'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible' | null
+          employment_types?: string[]
+          target_roles?: string[]
+          user_skills?: string[]
+          target_market?: 'us' | 'canada' | 'us_canada' | null
+          seniority_target?: 'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager' | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          salary_floor?: number | null
+          remote_preference?: 'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible' | null
+          employment_types?: string[]
+          target_roles?: string[]
+          user_skills?: string[]
+          target_market?: 'us' | 'canada' | 'us_canada' | null
+          seniority_target?: 'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager' | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

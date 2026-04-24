@@ -229,6 +229,27 @@ export async function POST(request: NextRequest) {
         const isAnonymous = !user;
         distinctId = user?.id || 'anonymous';
 
+        // Fetch job preferences for cover letter context (best-effort, never blocks)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const typedSupabase = supabase as any;
+        let jobPreferences: import('@/lib/agents/types').MasterContext['jobPreferences'] = undefined;
+        if (user) {
+          const { data: prefs } = await typedSupabase
+            .from('user_job_preferences')
+            .select('salary_floor,remote_preference,employment_types,target_market,seniority_target')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          if (prefs) {
+            jobPreferences = {
+              salaryFloor: prefs.salary_floor,
+              remotePreference: prefs.remote_preference,
+              employmentTypes: prefs.employment_types,
+              targetMarket: prefs.target_market,
+              seniorityTarget: prefs.seniority_target,
+            };
+          }
+        }
+
         const body: AgentRequest = await request.json();
         const {
           jobDescription,
@@ -405,6 +426,7 @@ export async function POST(request: NextRequest) {
             jobDescription,
             primaryCV: currentCV,
             masterCV,
+            jobPreferences,
           }, eventHandler);
 
           if (result.success && result.data) {
@@ -527,6 +549,7 @@ export async function POST(request: NextRequest) {
                 jobDescription,
                 primaryCV: currentCV,
                 masterCV,
+                jobPreferences,
               }, eventHandler);
 
               if (result.success && result.data) {
@@ -586,6 +609,7 @@ export async function POST(request: NextRequest) {
           })}\n\n`));
 
           const eventHandler = createEventHandler((id) => getGenerateWithContextStepIndex(id));
+          if (jobPreferences) cachedContext.jobPreferences = jobPreferences;
           const result = await runWithContext(cachedContext, eventHandler);
 
           // Remove cached context after use
@@ -668,6 +692,7 @@ export async function POST(request: NextRequest) {
             jobDescription,
             primaryCV: currentCV,
             masterCV,
+            jobPreferences,
           }, eventHandler);
           
           if (result.success && result.data) {
@@ -691,6 +716,7 @@ export async function POST(request: NextRequest) {
             jobDescription,
             primaryCV: currentCV,
             masterCV,
+            jobPreferences,
           }, eventHandler);
 
           if (result.success && result.data) {

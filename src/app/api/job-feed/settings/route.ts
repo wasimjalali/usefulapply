@@ -129,6 +129,24 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to save job feed settings.' }, { status: 500 });
     }
 
+    // Sync preferences for cover letter context (fire-and-forget)
+    typedSupabase
+      .from('user_job_preferences')
+      .upsert({
+        user_id: user.id,
+        salary_floor: normalized.data.salary_floor,
+        remote_preference: normalized.data.remote_preference,
+        employment_types: normalized.data.employment_types,
+        target_roles: normalized.data.target_roles,
+        user_skills: normalized.data.user_skills,
+        target_market: normalized.data.target_market,
+        seniority_target: normalized.data.seniority_target,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' })
+      .then(({ error: prefError }: { error: { message: string } | null }) => {
+        if (prefError) console.error('[job-feed/settings] preferences sync error:', prefError.message);
+      });
+
     return NextResponse.json({ settings: data });
   } catch (error) {
     console.error('[job-feed/settings] PUT unexpected error:', error);

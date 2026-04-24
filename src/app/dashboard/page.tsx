@@ -322,6 +322,14 @@ export default function Dashboard() {
             sections: parsedCV.sections,
             structured_data: structuredCV,
           });
+
+          if (structuredCV) {
+            fetch('/api/job-feed/settings/suggest', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ structured_data: structuredCV }),
+            }).catch(() => {});
+          }
         }
       } else {
         throw new Error('CV was parsed but no content was extracted. The file may be empty or image-based.');
