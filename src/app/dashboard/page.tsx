@@ -589,20 +589,18 @@ export default function Dashboard() {
         </Link>
 
         <div className="flex items-center bg-cream-100/80 rounded-full p-0.5">
-          {!isSignedOutJobFeedMode && (
-            <button
-              type="button"
-              onClick={() => handleWorkspaceChange('application-kit')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
-                activeWorkspace === 'application-kit'
-                  ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
-                  : 'text-warm-gray hover:text-navy-600'
-              }`}
-            >
-              <FileText className={`w-4 h-4 ${activeWorkspace === 'application-kit' ? 'text-gold-500' : ''}`} />
-              Application Kit
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => handleWorkspaceChange('application-kit')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
+              activeWorkspace === 'application-kit'
+                ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
+                : 'text-warm-gray hover:text-navy-600'
+            }`}
+          >
+            <FileText className={`w-4 h-4 ${activeWorkspace === 'application-kit' ? 'text-gold-500' : ''}`} />
+            Application Kit
+          </button>
           <button
             type="button"
             onClick={() => handleWorkspaceChange('job-feed')}
@@ -615,21 +613,19 @@ export default function Dashboard() {
             <Briefcase className={`w-4 h-4 ${activeWorkspace === 'job-feed' ? 'text-gold-500' : ''}`} />
             Job Feed
           </button>
-          {!isSignedOutJobFeedMode && (
-            <button
-              id="tour-tracker"
-              type="button"
-              onClick={() => handleWorkspaceChange('tracker')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
-                activeWorkspace === 'tracker'
-                  ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
-                  : 'text-warm-gray hover:text-navy-600'
-              }`}
-            >
-              <ClipboardList className={`w-4 h-4 ${activeWorkspace === 'tracker' ? 'text-gold-500' : ''}`} />
-              Tracker
-            </button>
-          )}
+          <button
+            id="tour-tracker"
+            type="button"
+            onClick={() => handleWorkspaceChange('tracker')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
+              activeWorkspace === 'tracker'
+                ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
+                : 'text-warm-gray hover:text-navy-600'
+            }`}
+          >
+            <ClipboardList className={`w-4 h-4 ${activeWorkspace === 'tracker' ? 'text-gold-500' : ''}`} />
+            Tracker
+          </button>
         </div>
 
         <div className="flex-1" />

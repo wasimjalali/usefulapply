@@ -8,7 +8,6 @@ import {
   AlertCircle,
   ArrowRight,
   Building2,
-  Briefcase,
   CalendarClock,
   ChevronDown,
   ChevronUp,
@@ -20,6 +19,7 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
+import { KarkoIcon } from '@/components/KarkoLogo';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -744,8 +744,8 @@ function SignedOutStage() {
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center">
       <div className="max-w-lg">
-        <div className="mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-navy-600 to-navy-700 shadow-lg">
-          <Briefcase className="h-7 w-7 text-white" />
+        <div className="mb-6">
+          <KarkoIcon theme="light" size="lg" />
         </div>
         <h1 className="text-3xl font-semibold tracking-tight text-charcoal sm:text-4xl">
           Jobs picked for you, every day
@@ -778,8 +778,8 @@ function UpgradeStage() {
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center">
       <div className="max-w-lg">
-        <div className="mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-gold-400 to-gold-500 shadow-lg">
-          <Sparkles className="h-7 w-7 text-white" />
+        <div className="mb-6">
+          <KarkoIcon theme="dark" size="lg" />
         </div>
         <h1 className="text-3xl font-semibold tracking-tight text-charcoal sm:text-4xl">
           Get jobs picked for you, every morning
@@ -891,10 +891,10 @@ function FeedPageHeader({
         <button
           type="button"
           onClick={onEditSettings}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full text-warm-gray transition-colors hover:bg-cream-100 hover:text-navy-600"
-          title="Edit settings"
+          className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-4 py-2 text-sm font-semibold text-navy-700 shadow-sm transition-colors hover:border-navy-300 hover:bg-navy-50"
         >
           <Settings2 className="h-4 w-4" />
+          Edit feed
         </button>
       </div>
     </div>
