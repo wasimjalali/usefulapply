@@ -215,6 +215,16 @@ export interface MasterContext {
     missingSkills: string[];
   };
 
+  // Job preferences fetched from user_job_preferences table
+  // Used in cover letter generation to align tone/expectations with user's stated preferences
+  jobPreferences?: {
+    salaryFloor?: number | null;
+    remotePreference?: string | null;
+    employmentTypes?: string[];
+    targetMarket?: string | null;
+    seniorityTarget?: string | null;
+  };
+
   metadata?: Record<string, unknown>;
 }
 

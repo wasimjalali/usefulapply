@@ -1,0 +1,1598 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { usePostHog } from 'posthog-js/react';
+import {
+  AlertCircle,
+  ArrowRight,
+  Building2,
+  CalendarClock,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Loader2,
+  MapPin,
+  PauseCircle,
+  RefreshCw,
+  Settings2,
+  Sparkles,
+  X,
+} from 'lucide-react';
+import { KarkoIcon } from '@/components/KarkoLogo';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { useToast } from '@/components/ui/Toast';
+import {
+  JOB_FEED_AGGRESSIVENESS_OPTIONS,
+  JOB_FEED_EMPLOYMENT_TYPE_OPTIONS,
+  JOB_FEED_MARKET_OPTIONS,
+  JOB_FEED_REMOTE_PREFERENCE_OPTIONS,
+  JOB_FEED_SENIORITY_OPTIONS,
+  JOB_FEED_SUGGESTED_LANGUAGES,
+  JOB_FEED_SUGGESTED_LOCATIONS,
+  JOB_FEED_SUGGESTED_ROLES,
+  JOB_FEED_WORK_AUTH_OPTIONS,
+  formatDeliveryHourLabel,
+} from '@/lib/job-feed/constants';
+import { createDefaultJobFeedInput, getJobFeedOverviewState, isValidTimeZone, toJobFeedInput } from '@/lib/job-feed/helpers';
+import type {
+  JobFeedApplyResponse,
+  JobFeedFeedbackResponse,
+  JobFeedFeedItem,
+  JobFeedOverviewResponse,
+  JobFeedOverviewState,
+  JobFeedRunDiagnostics,
+  JobFeedSettingsInput,
+  JobFeedSettingsSuggestion,
+} from '@/lib/job-feed/types';
+import { useCVStore } from '@/store/useCVStore';
+import { useSessionStore, type ApplicationSession as StoreApplicationSession } from '@/store/useSessionStore';
+import {
+  type JobFeedPreviewMode,
+  getJobFeedPreviewMode,
+  buildJobFeedPreviewSnapshot,
+  getSupportedTimeZones,
+  toPreviewJobFeedSettings,
+} from './preview-utils';
+import {
+  ChipField,
+  ChoiceGrid,
+  SelectField,
+  InputField,
+  ToggleRow,
+  RoleEntryField,
+  FieldGroup,
+} from './form-controls';
+import {
+  FeedResultsCard,
+  JobFeedDetailModal,
+  RunStatPill,
+} from './feed-cards';
+
+type SaveState = 'idle' | 'saving';
+type PendingJobAction = {
+  jobId: string;
+  action: 'apply' | 'save' | 'dismiss';
+} | null;
+
+const JOB_FEED_QUICK_DELIVERY_HOURS = [7, 8, 9, 12, 18, 20];
+export function JobFeedPanel() {
+  const router = useRouter();
+  const { user, profile } = useAuth();
+  const currentCV = useCVStore((state) => state.currentCV);
+  const { toast } = useToast();
+  const posthog = usePostHog();
+  const [previewMode] = useState<JobFeedPreviewMode>(() => getJobFeedPreviewMode());
+  const [overview, setOverview] = useState<JobFeedOverviewResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSetupWizardOpen, setIsSetupWizardOpen] = useState(false);
+  const [draftForm, setDraftForm] = useState<JobFeedSettingsInput | null>(null);
+  const [isRunningDebugFlow, setIsRunningDebugFlow] = useState(false);
+  const [isShowingAllJobs, setIsShowingAllJobs] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<JobFeedFeedItem | null>(null);
+  const [pendingJobAction, setPendingJobAction] = useState<PendingJobAction>(null);
+  const [form, setForm] = useState<JobFeedSettingsInput>(() => createDefaultJobFeedInput(getBrowserTimeZone()));
+  const lastTrackedState = useRef<string | null>(null);
+  const setupWizardRef = useRef<HTMLDivElement | null>(null);
+  const isPreviewing = previewMode !== 'off';
+  const isSignedIn = isPreviewing ? previewMode !== 'signed_out' : Boolean(user);
+
+  const showDebugActions = !isPreviewing && process.env.NEXT_PUBLIC_ENABLE_JOB_FEED_DEBUG === 'true';
+
+  const loadOverview = useCallback(async (options?: { quiet?: boolean }) => {
+    if (isPreviewing) {
+      setIsLoading(false);
+      setIsRefreshing(false);
+      return;
+    }
+
+    if (!options?.quiet) {
+      setIsLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
+
+    try {
+      const response = await fetch('/api/job-feed/overview', {
+        method: 'GET',
+        cache: 'no-store',
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to load Job Feed.');
+      }
+
+      setOverview(payload as JobFeedOverviewResponse);
+      setForm(toJobFeedInput(payload.settings, getBrowserTimeZone()));
+      setDraftForm(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load Job Feed.');
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [isPreviewing, toast]);
+
+  useEffect(() => {
+    if (isPreviewing) {
+      const snapshot = buildJobFeedPreviewSnapshot(previewMode, getBrowserTimeZone());
+      setOverview(snapshot.overview);
+      setForm(snapshot.form);
+      setIsEditing(false);
+      setIsSetupWizardOpen(false);
+      setDraftForm(null);
+      setIsShowingAllJobs(false);
+      setSelectedJob(null);
+      setIsLoading(false);
+      return;
+    }
+
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
+    loadOverview();
+  }, [isPreviewing, loadOverview, previewMode, user]);
+
+  useEffect(() => {
+    if (isPreviewing || !isSignedIn) return;
+    if (!posthog) return;
+
+    posthog.capture('job_feed_opened', {
+      foundation_mode: true,
+      subscription_tier: profile?.subscription_tier ?? 'unknown',
+    });
+  }, [isPreviewing, isSignedIn, posthog, profile?.subscription_tier]);
+
+  useEffect(() => {
+    if (isPreviewing) return;
+    if (!posthog || !overview?.state) return;
+    if (lastTrackedState.current === overview.state) return;
+
+    lastTrackedState.current = overview.state;
+    posthog.capture('job_feed_state_viewed', {
+      state: overview.state,
+      foundation_mode: true,
+    });
+  }, [isPreviewing, overview?.state, posthog]);
+
+  useEffect(() => {
+    setIsShowingAllJobs(false);
+  }, [overview?.feedRun?.id]);
+
+  useEffect(() => {
+    if (isSignedIn) {
+      return;
+    }
+
+    setIsEditing(false);
+    setIsSetupWizardOpen(false);
+  }, [isSignedIn]);
+
+  useEffect(() => {
+    if (!isSetupWizardOpen) {
+      return;
+    }
+
+    setupWizardRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  }, [isSetupWizardOpen]);
+
+  const updateJobFeedbackState = useCallback((jobId: string, feedback: JobFeedFeedbackResponse['feedback']) => {
+    setOverview((prev) => {
+      if (!prev) return prev;
+
+      return {
+        ...prev,
+        jobs: prev.jobs.map((job) => (
+          job.id === jobId
+            ? { ...job, feedback }
+            : job
+        )),
+      };
+    });
+
+    setSelectedJob((prev) => (
+      prev?.id === jobId
+        ? { ...prev, feedback }
+        : prev
+    ));
+  }, []);
+
+  const applyPreviewFeedback = useCallback((jobId: string, action: 'opened' | 'saved' | 'dismissed' | 'applied') => {
+    const now = new Date().toISOString();
+
+    const mutateFeedback = (feedback: JobFeedFeedItem['feedback']) => {
+      switch (action) {
+        case 'opened':
+          return {
+            ...feedback,
+            openedAt: feedback.openedAt ?? now,
+          };
+        case 'saved':
+          return {
+            ...feedback,
+            savedAt: feedback.savedAt ?? now,
+          };
+        case 'dismissed':
+          return {
+            ...feedback,
+            dismissedAt: now,
+          };
+        case 'applied':
+          return {
+            ...feedback,
+            appliedAt: feedback.appliedAt ?? now,
+            applicationSessionId: feedback.applicationSessionId ?? 'preview-session',
+          };
+      }
+    };
+
+    setOverview((prev) => {
+      if (!prev) return prev;
+
+      return {
+        ...prev,
+        jobs: prev.jobs.map((job) => (
+          job.id === jobId
+            ? { ...job, feedback: mutateFeedback(job.feedback) }
+            : job
+        )),
+      };
+    });
+
+    setSelectedJob((prev) => (
+      prev?.id === jobId
+        ? { ...prev, feedback: mutateFeedback(prev.feedback) }
+        : prev
+    ));
+  }, []);
+
+  const removeJobFromOverview = useCallback((jobId: string) => {
+    setOverview((prev) => {
+      if (!prev) return prev;
+
+      const jobs = prev.jobs.filter((job) => job.id !== jobId);
+      return {
+        ...prev,
+        jobs,
+        state: getJobFeedOverviewState({
+          canAccess: prev.canAccess,
+          settings: prev.settings,
+          latestRun: prev.latestRun,
+          jobsCount: jobs.length,
+        }),
+      };
+    });
+  }, []);
+
+  const syncApplicationSession = useCallback((session: JobFeedApplyResponse['session']) => {
+    const mappedSession = toStoreApplicationSession(session);
+    const sessionStore = useSessionStore.getState();
+    sessionStore.setSessions([
+      mappedSession,
+      ...sessionStore.sessions.filter((item) => item.id !== mappedSession.id),
+    ]);
+    sessionStore.loadSession(mappedSession.id);
+  }, []);
+
+  const recordJobFeedback = useCallback(async (
+    job: JobFeedFeedItem,
+    action: 'opened' | 'saved' | 'dismissed'
+  ) => {
+    const response = await fetch('/api/job-feed/feedback', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        jobId: job.id,
+        action,
+        runId: overview?.feedRun?.id ?? null,
+      }),
+    });
+
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error || 'Failed to update job feed feedback.');
+    }
+
+    const typedPayload = payload as JobFeedFeedbackResponse;
+    updateJobFeedbackState(job.id, typedPayload.feedback);
+    return typedPayload.feedback;
+  }, [overview?.feedRun?.id, updateJobFeedbackState]);
+
+  const handleOpenDetails = useCallback((job: JobFeedFeedItem) => {
+    setSelectedJob(job);
+
+    if (isPreviewing) {
+      applyPreviewFeedback(job.id, 'opened');
+      return;
+    }
+
+    posthog?.capture('job_feed_item_opened', {
+      foundation_mode: true,
+      job_id: job.id,
+      job_title: job.title,
+      company: job.company,
+      feed_run_id: overview?.feedRun?.id ?? null,
+    });
+
+    void recordJobFeedback(job, 'opened').catch((error) => {
+      console.error('[JobFeedPanel] Failed to record opened feedback:', error);
+    });
+  }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback]);
+
+  const handleSaveJob = useCallback(async (job: JobFeedFeedItem) => {
+    setPendingJobAction({ jobId: job.id, action: 'save' });
+
+    try {
+      if (isPreviewing) {
+        applyPreviewFeedback(job.id, 'saved');
+        toast.success('Preview updated locally.');
+        return;
+      }
+
+      await recordJobFeedback(job, 'saved');
+      posthog?.capture('job_feed_item_saved', {
+        foundation_mode: true,
+        job_id: job.id,
+        job_title: job.title,
+        company: job.company,
+        feed_run_id: overview?.feedRun?.id ?? null,
+      });
+      toast.success('Saved to your feed decisions so you can come back to it.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save this job.');
+    } finally {
+      setPendingJobAction(null);
+    }
+  }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback, toast]);
+
+  const handleDismissJob = useCallback(async (job: JobFeedFeedItem) => {
+    setPendingJobAction({ jobId: job.id, action: 'dismiss' });
+
+    try {
+      if (isPreviewing) {
+        applyPreviewFeedback(job.id, 'dismissed');
+        removeJobFromOverview(job.id);
+        if (selectedJob?.id === job.id) {
+          setSelectedJob(null);
+        }
+        toast.success('Preview updated locally.');
+        return;
+      }
+
+      await recordJobFeedback(job, 'dismissed');
+      removeJobFromOverview(job.id);
+      if (selectedJob?.id === job.id) {
+        setSelectedJob(null);
+      }
+
+      posthog?.capture('job_feed_item_dismissed', {
+        foundation_mode: true,
+        job_id: job.id,
+        job_title: job.title,
+        company: job.company,
+        feed_run_id: overview?.feedRun?.id ?? null,
+      });
+      toast.success('Dismissed from your current feed.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to dismiss this job.');
+    } finally {
+      setPendingJobAction(null);
+    }
+  }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback, removeJobFromOverview, selectedJob?.id, toast]);
+
+  const handleApplyWithKarko = useCallback(async (job: JobFeedFeedItem) => {
+    setPendingJobAction({ jobId: job.id, action: 'apply' });
+
+    try {
+      if (isPreviewing) {
+        applyPreviewFeedback(job.id, 'applied');
+        toast.success('Preview updated locally. This local preview does not create an application session.');
+        return;
+      }
+
+      const response = await fetch('/api/job-feed/apply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jobId: job.id,
+          runId: overview?.feedRun?.id ?? null,
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to start the application handoff.');
+      }
+
+      const typedPayload = payload as JobFeedApplyResponse;
+      updateJobFeedbackState(job.id, typedPayload.feedback);
+      syncApplicationSession(typedPayload.session);
+      setSelectedJob(null);
+
+      posthog?.capture('job_feed_item_applied', {
+        foundation_mode: true,
+        job_id: job.id,
+        job_title: job.title,
+        company: job.company,
+        feed_run_id: overview?.feedRun?.id ?? null,
+        created_session: typedPayload.created,
+      });
+
+      toast.success(
+        currentCV
+          ? `${job.title} at ${job.company} — opening your application`
+          : `${job.title} at ${job.company} — upload your CV to continue`
+      );
+
+      router.push(buildJobFeedApplyPath({
+        sessionId: typedPayload.session.id,
+        autostart: Boolean(currentCV),
+      }));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to start the Karko AI application handoff.');
+    } finally {
+      setPendingJobAction(null);
+    }
+  }, [applyPreviewFeedback, currentCV, isPreviewing, overview?.feedRun?.id, posthog, router, syncApplicationSession, toast, updateJobFeedbackState]);
+
+  const handleExternalApply = useCallback((job: JobFeedFeedItem) => {
+    if (isPreviewing) {
+      return;
+    }
+
+    posthog?.capture('job_feed_external_apply_clicked', {
+      foundation_mode: true,
+      job_id: job.id,
+      job_title: job.title,
+      company: job.company,
+      feed_run_id: overview?.feedRun?.id ?? null,
+    });
+  }, [isPreviewing, overview?.feedRun?.id, posthog]);
+
+  const handleSave = async (nextForm: JobFeedSettingsInput) => {
+    setSaveState('saving');
+
+    try {
+      const consentReady = nextForm.consent_accepted || Boolean(overview?.settings?.consent_accepted_at);
+
+      if (isPreviewing) {
+        const previewSettings = toPreviewJobFeedSettings(nextForm);
+
+        setOverview((prev) => {
+          if (!prev) return prev;
+
+          return {
+            ...prev,
+            settings: previewSettings,
+            state: getJobFeedOverviewState({
+              canAccess: prev.canAccess,
+              settings: previewSettings,
+              latestRun: prev.latestRun,
+              jobsCount: prev.jobs.length,
+            }),
+          };
+        });
+        setForm(nextForm);
+        setDraftForm(null);
+
+        toast.success(
+          nextForm.enabled && consentReady
+            ? 'Preview updated. The feed would be eligible to run with these settings.'
+            : 'Preview updated. These settings are saved locally for layout verification.'
+        );
+        setIsEditing(false);
+        setIsSetupWizardOpen(false);
+        return;
+      }
+
+      const response = await fetch('/api/job-feed/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(nextForm),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to save Job Feed settings.');
+      }
+
+      posthog?.capture('job_feed_setup_completed', {
+        foundation_mode: true,
+        enabled: nextForm.enabled,
+        target_market: nextForm.target_market,
+        roles_count: nextForm.target_roles.length,
+      });
+
+      setForm(nextForm);
+      setDraftForm(null);
+      toast.success(nextForm.enabled && consentReady ? 'Daily feed is on and scheduled.' : 'Job Feed settings saved.');
+      setIsEditing(false);
+      setIsSetupWizardOpen(false);
+      await loadOverview({ quiet: true });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save Job Feed settings.');
+    } finally {
+      setSaveState('idle');
+    }
+  };
+
+  const handleDebugRun = async (options?: { force?: boolean }) => {
+    const force = options?.force === true;
+    setIsRunningDebugFlow(true);
+
+    try {
+      const response = await fetch('/api/job-feed/dev/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ force }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to run the background workflow.');
+      }
+
+      posthog?.capture('job_feed_foundation_run_requested', {
+        foundation_mode: true,
+        forced: force,
+      });
+
+      const toastMessage = payload.workflow?.skipped
+        ? 'A feed run already exists for today, so no new run was started.'
+        : payload.execution === 'inline'
+          ? force
+            ? 'Background rerun completed for this account.'
+            : 'Background run completed for this account.'
+          : force
+            ? 'Background rerun queued for this account.'
+            : 'Background run queued for this account.';
+
+      toast.success(toastMessage);
+      await loadOverview({ quiet: true });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to run the background workflow.');
+    } finally {
+      setIsRunningDebugFlow(false);
+    }
+  };
+
+  const openSetupWizard = useCallback(() => {
+    setDraftForm(toJobFeedInput(overview?.settings ?? null, getBrowserTimeZone()));
+    setIsEditing(true);
+
+    if (isSetupWizardOpen) {
+      setupWizardRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+      return;
+    }
+
+    setIsSetupWizardOpen(true);
+  }, [isSetupWizardOpen, overview?.settings]);
+  const updateDraftForm = useCallback((nextValue: React.SetStateAction<JobFeedSettingsInput>) => {
+    setDraftForm((prev) => {
+      const baseValue = prev ?? form;
+      return typeof nextValue === 'function'
+        ? (nextValue as (value: JobFeedSettingsInput) => JobFeedSettingsInput)(baseValue)
+        : nextValue;
+    });
+  }, [form]);
+
+  const currentState = isSignedIn ? (overview?.state ?? 'setup_required') : 'sign_in_required';
+  const setupOpen = isSignedIn && (isEditing || isSetupWizardOpen);
+  const canAccess = Boolean(overview?.canAccess);
+  const shellForm = isSignedIn && overview?.settings
+    ? toJobFeedInput(overview.settings, getBrowserTimeZone())
+    : form;
+  const wizardForm = draftForm ?? form;
+  const showStateSupportCard = isSignedIn
+    && !setupOpen
+    && currentState !== 'upgrade_required'
+    && currentState !== 'ready'
+    && currentState !== 'thin_feed';
+  const showFeedResults = isSignedIn
+    && !setupOpen
+    && !isLoading
+    && Boolean(overview?.jobs && overview.jobs.length > 0);
+  return (
+    <div className="min-h-full bg-[radial-gradient(circle_at_top_left,rgba(215,180,58,0.12),transparent_32%),linear-gradient(180deg,#fbfaf6_0%,#f5f0e4_100%)]">
+      <div className={`mx-auto flex flex-col gap-5 px-4 py-4 sm:px-6 ${setupOpen ? 'max-w-5xl' : 'max-w-7xl'}`}>
+        {isLoading ? (
+          <LoadingState />
+        ) : !isSignedIn ? (
+          <SignedOutStage />
+        ) : currentState === 'upgrade_required' ? (
+          <UpgradeStage />
+        ) : (
+          <>
+            {!setupOpen && (
+              <FeedPageHeader
+                currentState={currentState}
+                form={shellForm}
+                jobsCount={overview?.jobs.length ?? 0}
+                latestRun={overview?.latestRun ?? null}
+                isRefreshing={isRefreshing}
+                onEditSettings={openSetupWizard}
+                onRefresh={() => loadOverview({ quiet: true })}
+              />
+            )}
+
+            {showStateSupportCard && (
+              <InlineStateMessage state={overview?.state ?? 'setup_required'} overview={overview} onStartSetup={openSetupWizard} />
+            )}
+
+            {setupOpen && (
+              <div ref={setupWizardRef}>
+                <JobFeedOnboardingWizard
+                  form={wizardForm}
+                  overview={overview}
+                  saveState={saveState}
+                  onFormChange={updateDraftForm}
+                  onSave={handleSave}
+                  onClose={() => {
+                    setDraftForm(null);
+                    setIsEditing(false);
+                    setIsSetupWizardOpen(false);
+                  }}
+                />
+              </div>
+            )}
+
+            {showFeedResults && overview && (
+              <FeedResultsCard
+                jobs={overview.jobs}
+                isShowingAllJobs={isShowingAllJobs}
+                onToggleShowAll={() => setIsShowingAllJobs((prev) => !prev)}
+                pendingJobAction={pendingJobAction}
+                feedSummary={buildFeedSummary(shellForm)}
+                onOpenDetails={handleOpenDetails}
+                onApplyWithKarko={handleApplyWithKarko}
+                onEditSettings={openSetupWizard}
+              />
+            )}
+
+
+            {showDebugActions && overview?.latestRun && overview.latestRunDiagnostics && (
+              <OperationalSnapshotCard
+                latestRunDate={overview.latestRun.local_date}
+                diagnostics={overview.latestRunDiagnostics}
+              />
+            )}
+
+            {showDebugActions && (
+              <Card className="rounded-[24px] border-dashed border-navy-200 bg-navy-50/60 p-6 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-600">Diagnostics</p>
+                <h2 className="mt-2 text-lg font-semibold text-charcoal">Run feed diagnostics for this account</h2>
+                <p className="mt-2 text-sm leading-6 text-warm-gray">
+                  These tools are hidden unless debug mode is explicitly enabled. Use them to queue the background workflow or force a same-day rerun while verifying the feed.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={() => handleDebugRun()} disabled={isRunningDebugFlow}>
+                    {isRunningDebugFlow ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                    Queue background workflow
+                  </Button>
+                  <Button variant="ghost" onClick={() => handleDebugRun({ force: true })} disabled={isRunningDebugFlow}>
+                    Force rerun today
+                  </Button>
+                  <Button variant="ghost" onClick={() => loadOverview({ quiet: true })} disabled={isRefreshing}>
+                    Refresh status
+                  </Button>
+                </div>
+              </Card>
+            )}
+          </>
+        )}
+      </div>
+
+      {selectedJob && (
+        <JobFeedDetailModal
+          job={selectedJob}
+          onClose={() => setSelectedJob(null)}
+          isApplying={pendingJobAction?.jobId === selectedJob.id && pendingJobAction.action === 'apply'}
+          isSaving={pendingJobAction?.jobId === selectedJob.id && pendingJobAction.action === 'save'}
+          isDismissing={pendingJobAction?.jobId === selectedJob.id && pendingJobAction.action === 'dismiss'}
+          onApplyWithKarko={() => handleApplyWithKarko(selectedJob)}
+          onSave={() => handleSaveJob(selectedJob)}
+          onDismiss={() => handleDismissJob(selectedJob)}
+          onExternalApply={() => handleExternalApply(selectedJob)}
+        />
+      )}
+    </div>
+  );
+}
+
+function SignedOutStage() {
+  return (
+    <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center">
+      <div className="max-w-lg">
+        <div className="mb-6 flex justify-center">
+          <KarkoIcon theme="light" size="lg" />
+        </div>
+        <h1 className="text-3xl font-semibold tracking-tight text-charcoal sm:text-4xl">
+          Jobs picked for you, every day
+        </h1>
+        <p className="mx-auto mt-4 max-w-md text-base leading-relaxed text-warm-gray">
+          Tell Karko what you're looking for. Each morning, your best matches are ready when you open this page.
+        </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link href="/auth/signup" className="inline-flex">
+            <Button variant="gold" className="px-6 py-3 text-base">
+              Sign up free
+            </Button>
+          </Link>
+          <Link href="/auth/login" className="inline-flex">
+            <Button variant="outline" className="px-6 py-3 text-base">
+              Sign in
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      <div className="mt-12 w-full max-w-2xl">
+        <FeedPreviewCards />
+      </div>
+    </div>
+  );
+}
+
+function UpgradeStage() {
+  return (
+    <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center">
+      <div className="max-w-lg">
+        <div className="mb-6 flex justify-center">
+          <KarkoIcon theme="dark" size="lg" />
+        </div>
+        <h1 className="text-3xl font-semibold tracking-tight text-charcoal sm:text-4xl">
+          Get jobs picked for you, every morning
+        </h1>
+        <p className="mx-auto mt-4 max-w-md text-base leading-relaxed text-warm-gray">
+          Upgrade to Plus and Karko will search for jobs while you sleep. When you open this page, your top matches are already here.
+        </p>
+        <div className="mt-8">
+          <Link href="/pricing" className="inline-flex">
+            <Button variant="gold" className="px-8 py-3 text-base">
+              Upgrade to Plus
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      <div className="mt-12 w-full max-w-2xl">
+        <FeedPreviewCards />
+      </div>
+    </div>
+  );
+}
+
+function FeedPreviewCards() {
+  const previewJobs = [
+    { title: 'Senior Product Manager', company: 'Northstar Labs', location: 'Remote', fit: 'Strong' },
+    { title: 'Growth Product Manager', company: 'SignalPath', location: 'New York, NY', fit: 'Strong' },
+    { title: 'Platform Product Manager', company: 'Orbit Systems', location: 'Toronto, ON', fit: 'Good' },
+  ];
+
+  return (
+    <div className="space-y-3 opacity-50 select-none" aria-hidden>
+      {previewJobs.map((job) => (
+        <div key={job.title} className="flex items-center gap-4 rounded-2xl border border-cream-200 bg-white/80 px-5 py-4 shadow-sm blur-[1px]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cream-100">
+            <Building2 className="h-5 w-5 text-warm-gray" />
+          </div>
+          <div className="min-w-0 flex-1 text-left">
+            <p className="text-sm font-semibold text-charcoal">{job.title}</p>
+            <p className="text-xs text-warm-gray">{job.company} · {job.location}</p>
+          </div>
+          <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+            {job.fit}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FeedPageHeader({
+  currentState,
+  form,
+  jobsCount,
+  latestRun,
+  isRefreshing,
+  onEditSettings,
+  onRefresh,
+}: {
+  currentState: string;
+  form: JobFeedSettingsInput;
+  jobsCount: number;
+  latestRun: JobFeedOverviewResponse['latestRun'];
+  isRefreshing: boolean;
+  onEditSettings: () => void;
+  onRefresh: () => void;
+}) {
+  const isReady = currentState === 'ready' || currentState === 'thin_feed';
+
+  const headline = isReady
+    ? jobsCount > 0
+      ? `${jobsCount} ${jobsCount === 1 ? 'job' : 'jobs'} for you today`
+      : 'Your feed for today'
+    : currentState === 'setup_required'
+      ? 'Set up your daily feed'
+      : currentState === 'paused'
+        ? 'Your feed is paused'
+        : currentState === 'awaiting_first_run'
+          ? 'Your first feed is on the way'
+          : currentState === 'generating'
+            ? 'Preparing your jobs...'
+            : 'Daily Job Feed';
+
+  const subtitle = isReady && form.target_roles.length > 0
+    ? `${summarizeList(form.target_roles)} · ${readableMarket(form.target_market)}`
+    : null;
+
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-charcoal">{headline}</h1>
+        {subtitle && (
+          <p className="mt-1 text-sm text-warm-gray">{subtitle}</p>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        {currentState !== 'setup_required' && (
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-warm-gray transition-colors hover:bg-cream-100 hover:text-navy-600 disabled:opacity-50"
+            title="Refresh"
+          >
+            {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onEditSettings}
+          className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-4 py-2 text-sm font-semibold text-navy-700 shadow-sm transition-colors hover:border-navy-300 hover:bg-navy-50"
+        >
+          <Settings2 className="h-4 w-4" />
+          Edit feed
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function InlineStateMessage({
+  state,
+  overview,
+  onStartSetup,
+}: {
+  state: JobFeedOverviewState | 'setup_required';
+  overview: JobFeedOverviewResponse | null;
+  onStartSetup: () => void;
+}) {
+  const config: Record<string, { icon: typeof Sparkles; message: string; action?: string }> = {
+    setup_required: {
+      icon: Settings2,
+      message: 'Add your roles and delivery time so Karko knows what to look for.',
+      action: 'Start setup',
+    },
+    paused: {
+      icon: PauseCircle,
+      message: 'Your settings are saved. Turn the feed back on when you\'re ready.',
+      action: 'Edit settings',
+    },
+    awaiting_first_run: {
+      icon: CalendarClock,
+      message: 'Everything is set. Your first jobs will arrive at your chosen delivery time.',
+    },
+    generating: {
+      icon: Loader2,
+      message: 'Karko is finding your jobs right now. This usually takes a few minutes.',
+    },
+    empty: {
+      icon: AlertCircle,
+      message: 'Nothing looked strong enough today. Try widening a filter for better results tomorrow.',
+      action: 'Adjust settings',
+    },
+    error: {
+      icon: AlertCircle,
+      message: overview?.latestRun?.error_message || 'Something went wrong with the latest run. Try refreshing or checking your settings.',
+      action: 'Review settings',
+    },
+  };
+
+  const stateConfig = config[state];
+  if (!stateConfig) return null;
+
+  const Icon = stateConfig.icon;
+  const isAnimated = state === 'generating';
+
+  return (
+    <div className="flex items-start gap-4 rounded-2xl border border-cream-200 bg-white/90 px-5 py-4 shadow-sm">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-navy-50">
+        <Icon className={`h-5 w-5 text-navy-600 ${isAnimated ? 'animate-spin' : ''}`} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm leading-relaxed text-charcoal">{stateConfig.message}</p>
+      </div>
+      {stateConfig.action && (
+        <Button variant="outline" size="sm" onClick={onStartSetup} className="shrink-0">
+          {stateConfig.action}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function JobFeedOnboardingWizard({
+  form,
+  overview,
+  saveState,
+  onFormChange,
+  onSave,
+  onClose,
+}: {
+  form: JobFeedSettingsInput;
+  overview: JobFeedOverviewResponse | null;
+  saveState: SaveState;
+  onFormChange: React.Dispatch<React.SetStateAction<JobFeedSettingsInput>>;
+  onSave: (form: JobFeedSettingsInput) => void;
+  onClose: () => void;
+}) {
+  const [isLocationConstraintOpen, setIsLocationConstraintOpen] = useState(form.preferred_locations.length > 0);
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [isLoadingCVSuggestions, setIsLoadingCVSuggestions] = useState(false);
+  const [cvSuggestionApplied, setCVSuggestionApplied] = useState(false);
+  const browserTimeZone = getBrowserTimeZone();
+  const hasRecordedConsent = Boolean(overview?.settings?.consent_accepted_at);
+  const canSave = canSaveJobFeedSettings(form, hasRecordedConsent);
+  const consentReady = form.consent_accepted || hasRecordedConsent;
+  const deliveryLabel = `${formatDeliveryHourLabel(form.delivery_hour_local)} in ${form.user_timezone}`;
+  const isEditing = Boolean(overview?.settings);
+
+  const handleTakeFromCV = useCallback(async () => {
+    setIsLoadingCVSuggestions(true);
+    try {
+      const response = await fetch('/api/job-feed/settings/suggest');
+      const data = await response.json();
+      if (!response.ok || !data.suggestion) return;
+
+      const suggestion = data.suggestion as JobFeedSettingsSuggestion;
+      onFormChange((prev) => ({
+        ...prev,
+        target_roles: suggestion.target_roles.length > 0 ? suggestion.target_roles : prev.target_roles,
+        preferred_locations: suggestion.preferred_locations.length > 0 ? suggestion.preferred_locations : prev.preferred_locations,
+        user_skills: suggestion.user_skills.length > 0 ? suggestion.user_skills : prev.user_skills,
+        languages: suggestion.languages.length > 0 ? suggestion.languages : prev.languages,
+        seniority_target: suggestion.seniority_target ?? prev.seniority_target,
+      }));
+      setCVSuggestionApplied(true);
+      if (suggestion.preferred_locations.length > 0) {
+        setIsLocationConstraintOpen(true);
+      }
+    } catch {
+      // silently ignore — user can still fill manually
+    } finally {
+      setIsLoadingCVSuggestions(false);
+    }
+  }, [onFormChange]);
+
+  const chunk1Done = form.target_roles.length > 0;
+  const showChunk2 = chunk1Done || isEditing;
+  const showChunk3 = showChunk2 || isEditing;
+  const showSaveAction = (showChunk3 && isValidTimeZone(form.user_timezone)) || isEditing;
+
+  useEffect(() => {
+    if (form.preferred_locations.length > 0) {
+      setIsLocationConstraintOpen(true);
+    }
+  }, [form.preferred_locations.length]);
+
+  return (
+    <Card className="overflow-hidden rounded-[32px] border-cream-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.985),rgba(248,244,234,0.94))] p-0 shadow-[0_28px_80px_-42px_rgba(30,58,95,0.35)]">
+      <div className="border-b border-cream-200 px-6 py-5 sm:px-8">
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight text-charcoal">
+              {isEditing ? 'Edit your feed settings' : 'Set up your daily feed'}
+            </h2>
+            <p className="mt-1 text-sm text-warm-gray">
+              {isEditing ? 'Changes save when you press save below.' : 'Fill in the basics and your first feed will be ready by tomorrow.'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {!isEditing && !cvSuggestionApplied && (
+              <button
+                type="button"
+                onClick={() => void handleTakeFromCV()}
+                disabled={isLoadingCVSuggestions}
+                className="flex items-center gap-1.5 rounded-full border border-navy-200 bg-navy-50 px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:bg-navy-100 disabled:opacity-50"
+              >
+                {isLoadingCVSuggestions ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                Take from my CV
+              </button>
+            )}
+            {cvSuggestionApplied && (
+              <span className="text-xs text-green-600">CV data applied</span>
+            )}
+            <button type="button" onClick={onClose} className="rounded-full p-2 text-warm-gray hover:bg-cream-100 hover:text-charcoal">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-0 divide-y divide-cream-200">
+        {/* Chunk 1: Roles + Market */}
+        <div className="px-6 py-6 sm:px-8">
+          <p className="text-sm font-semibold text-charcoal">What jobs are you looking for?</p>
+          <div className="mt-4 space-y-4">
+            <FieldGroup label="Roles" help="Type your own or pick from the list.">
+              <RoleEntryField
+                values={form.target_roles}
+                suggestions={JOB_FEED_SUGGESTED_ROLES}
+                placeholder="Type a role and press Enter"
+                onChange={(target_roles) => onFormChange((prev) => ({ ...prev, target_roles }))}
+              />
+            </FieldGroup>
+
+            <FieldGroup label="Market" help="Where should Karko look?">
+              <ChoiceGrid
+                value={form.target_market}
+                options={JOB_FEED_MARKET_OPTIONS.map((option) => ({
+                  value: option.value,
+                  label: option.label,
+                }))}
+                onChange={(target_market) => onFormChange((prev) => ({
+                  ...prev,
+                  target_market: target_market as JobFeedSettingsInput['target_market'],
+                }))}
+              />
+            </FieldGroup>
+          </div>
+        </div>
+
+        {/* Chunk 2: Work mode + optional cities */}
+        {showChunk2 && (
+          <div className="px-6 py-6 sm:px-8">
+            <p className="text-sm font-semibold text-charcoal">Where and how do you want to work?</p>
+            <div className="mt-4 space-y-4">
+              <FieldGroup label="Work mode" help="How flexible should the shortlist be?">
+                <ChoiceGrid
+                  value={form.remote_preference}
+                  options={JOB_FEED_REMOTE_PREFERENCE_OPTIONS.map((option) => ({
+                    value: option.value,
+                    label: option.label,
+                  }))}
+                  onChange={(remote_preference) => onFormChange((prev) => ({
+                    ...prev,
+                    remote_preference: remote_preference as JobFeedSettingsInput['remote_preference'],
+                  }))}
+                />
+              </FieldGroup>
+
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setIsLocationConstraintOpen((prev) => !prev)}
+                  className="text-sm font-medium text-navy-600 hover:text-navy-700"
+                >
+                  {isLocationConstraintOpen ? 'Hide preferred cities' : 'Add preferred cities'}
+                </button>
+                {isLocationConstraintOpen && (
+                  <div className="mt-3">
+                    <ChipField
+                      values={form.preferred_locations}
+                      suggestions={JOB_FEED_SUGGESTED_LOCATIONS}
+                      placeholder="Add a city or region"
+                      onChange={(preferred_locations) => onFormChange((prev) => ({ ...prev, preferred_locations }))}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Chunk 3: Delivery timing */}
+        {showChunk3 && (
+          <div className="px-6 py-6 sm:px-8">
+            <p className="text-sm font-semibold text-charcoal">When should we deliver your jobs?</p>
+            <div className="mt-4 space-y-4">
+              <ChoiceGrid
+                value={String(form.delivery_hour_local)}
+                options={JOB_FEED_QUICK_DELIVERY_HOURS.map((hour) => ({
+                  value: String(hour),
+                  label: formatDeliveryHourLabel(hour),
+                }))}
+                onChange={(value) => onFormChange((prev) => ({ ...prev, delivery_hour_local: Number(value) }))}
+                columns="three"
+              />
+
+              <p className="text-sm text-warm-gray">
+                {form.user_timezone}
+                {browserTimeZone !== form.user_timezone && (
+                  <>
+                    {' \u00b7 '}
+                    <button
+                      type="button"
+                      onClick={() => onFormChange((prev) => ({ ...prev, user_timezone: browserTimeZone }))}
+                      className="font-medium text-navy-600 hover:text-navy-700"
+                    >
+                      Use {browserTimeZone}
+                    </button>
+                  </>
+                )}
+                {' \u00b7 '}
+                <TimeZoneInlineEdit
+                  value={form.user_timezone}
+                  onChange={(user_timezone) => onFormChange((prev) => ({ ...prev, user_timezone }))}
+                />
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Advanced filters (collapsed by default) */}
+        {showChunk3 && (
+          <div className="px-6 py-6 sm:px-8">
+            <button
+              type="button"
+              onClick={() => setIsAdvancedOpen((prev) => !prev)}
+              className="flex w-full items-center justify-between gap-3 rounded-[18px] border border-navy-200 bg-navy-50/60 px-4 py-3 transition-colors hover:bg-navy-50"
+            >
+              <div className="flex items-center gap-3">
+                {isAdvancedOpen ? <ChevronUp className="h-4 w-4 text-navy-600" /> : <ChevronDown className="h-4 w-4 text-navy-600" />}
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-charcoal">Fine-tune your feed</p>
+                  <p className="text-xs text-warm-gray">Salary floor, skills, seniority, work authorisation</p>
+                </div>
+              </div>
+              <span className="shrink-0 rounded-full bg-navy-600 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                Recommended
+              </span>
+            </button>
+
+            {isAdvancedOpen && (
+              <div className="mt-4 grid gap-5 xl:grid-cols-2">
+                <div className="space-y-4">
+                  <SelectField
+                    label="Seniority"
+                    value={form.seniority_target ?? ''}
+                    onChange={(seniority_target) => onFormChange((prev) => ({
+                      ...prev,
+                      seniority_target: (seniority_target || null) as JobFeedSettingsInput['seniority_target'],
+                    }))}
+                    options={[{ value: '', label: 'Keep flexible' }, ...JOB_FEED_SENIORITY_OPTIONS]}
+                  />
+
+                  <SelectField
+                    label="Search style"
+                    value={form.aggressiveness}
+                    onChange={(aggressiveness) => onFormChange((prev) => ({
+                      ...prev,
+                      aggressiveness: aggressiveness as JobFeedSettingsInput['aggressiveness'],
+                    }))}
+                    options={JOB_FEED_AGGRESSIVENESS_OPTIONS}
+                  />
+
+                  <FieldGroup label="Employment types" help="Leave broad unless you have a strong preference.">
+                    <ChoiceGrid
+                      value={form.employment_types}
+                      multiple
+                      options={JOB_FEED_EMPLOYMENT_TYPE_OPTIONS.map((option) => ({
+                        value: option.value,
+                        label: option.label,
+                      }))}
+                      onChange={(employment_types) => onFormChange((prev) => ({
+                        ...prev,
+                        employment_types: employment_types as JobFeedSettingsInput['employment_types'],
+                      }))}
+                    />
+                  </FieldGroup>
+                </div>
+
+                <div className="space-y-4">
+                  <InputField
+                    label="Salary floor"
+                    type="number"
+                    value={form.salary_floor === null ? '' : String(form.salary_floor)}
+                    onChange={(salary_floor) => onFormChange((prev) => ({
+                      ...prev,
+                      salary_floor: salary_floor ? Number(salary_floor) : null,
+                    }))}
+                    placeholder="120000"
+                  />
+
+                  <FieldGroup label="Your skills" help="Used to match you with jobs that need what you bring. Imported from your CV or add manually.">
+                    <ChipField
+                      values={form.user_skills}
+                      suggestions={[]}
+                      placeholder="Add a skill (e.g. Python, React, SQL)"
+                      onChange={(user_skills) => onFormChange((prev) => ({ ...prev, user_skills }))}
+                    />
+                    {form.user_skills.length === 0 && !cvSuggestionApplied && (
+                      <button
+                        type="button"
+                        onClick={() => void handleTakeFromCV()}
+                        disabled={isLoadingCVSuggestions}
+                        className="mt-2 flex items-center gap-1 text-xs font-medium text-navy-600 hover:text-navy-700 disabled:opacity-50"
+                      >
+                        {isLoadingCVSuggestions ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+                        Import skills from CV
+                      </button>
+                    )}
+                  </FieldGroup>
+
+                  <SelectField
+                    label="Work authorization"
+                    value={form.work_authorization_status ?? ''}
+                    onChange={(work_authorization_status) => onFormChange((prev) => ({
+                      ...prev,
+                      work_authorization_status: (work_authorization_status || null) as JobFeedSettingsInput['work_authorization_status'],
+                    }))}
+                    options={[{ value: '', label: 'Keep flexible' }, ...JOB_FEED_WORK_AUTH_OPTIONS]}
+                  />
+
+                  <FieldGroup label="Languages" help="Only matters if language fit changes whether a role is worth seeing.">
+                    <ChipField
+                      values={form.languages}
+                      suggestions={JOB_FEED_SUGGESTED_LANGUAGES}
+                      placeholder="Add a language"
+                      onChange={(languages) => onFormChange((prev) => ({ ...prev, languages }))}
+                    />
+                  </FieldGroup>
+
+                  <FieldGroup label="Adjacent roles" help="Widen into close role neighbors when exact matches are quiet.">
+                    <ToggleRow
+                      title="Include adjacent roles"
+                      description="Useful when related titles are often worth seeing."
+                      checked={form.adjacent_roles_enabled}
+                      onChange={(adjacent_roles_enabled) => onFormChange((prev) => ({ ...prev, adjacent_roles_enabled }))}
+                    />
+
+                    {form.adjacent_roles_enabled && (
+                      <div className="pt-3">
+                        <ChipField
+                          values={form.adjacent_roles}
+                          suggestions={['Platform Engineer', 'Solutions Engineer', 'Product Analyst']}
+                          placeholder="Add an adjacent role"
+                          onChange={(adjacent_roles) => onFormChange((prev) => ({ ...prev, adjacent_roles }))}
+                        />
+                      </div>
+                    )}
+                  </FieldGroup>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Save action */}
+        {showSaveAction && (
+          <div className="px-6 py-6 sm:px-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                {!isEditing && !hasRecordedConsent && (
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={form.consent_accepted}
+                      onChange={(event) => onFormChange((prev) => ({ ...prev, consent_accepted: event.target.checked }))}
+                      className="mt-1 h-4 w-4 rounded border-cream-300 text-navy-600 focus:ring-navy-500"
+                    />
+                    <span className="text-sm leading-relaxed text-charcoal">
+                      Karko will search for jobs for you once a day.
+                    </span>
+                  </label>
+                )}
+                {isEditing && (
+                  <p className="text-sm text-warm-gray">
+                    Next delivery: {deliveryLabel}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                {!isEditing && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onFormChange((prev) => ({ ...prev, enabled: false }));
+                      void onSave({ ...form, enabled: false });
+                    }}
+                    disabled={!canSave || saveState === 'saving'}
+                    className="text-sm font-medium text-warm-gray hover:text-charcoal disabled:opacity-50"
+                  >
+                    Save and keep paused
+                  </button>
+                )}
+                <Button
+                  variant="gold"
+                  onClick={() => {
+                    const saveForm = isEditing ? form : { ...form, enabled: true };
+                    void onSave(saveForm);
+                  }}
+                  disabled={!canSave || saveState === 'saving'}
+                >
+                  {saveState === 'saving' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isEditing ? 'Save changes' : 'Start my daily feed'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function TimeZoneInlineEdit({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const timeZoneOptions = getSupportedTimeZones();
+
+  if (!isOpen) {
+    return (
+      <button type="button" onClick={() => setIsOpen(true)} className="font-medium text-navy-600 hover:text-navy-700">
+        Change timezone
+      </button>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-2">
+      <input
+        list="job-feed-tz-inline"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onBlur={() => setIsOpen(false)}
+        autoFocus
+        className="w-48 rounded-lg border border-cream-300 bg-white px-2 py-1 text-sm text-charcoal outline-none focus:border-navy-400"
+      />
+      <datalist id="job-feed-tz-inline">
+        {timeZoneOptions.map((tz) => (
+          <option key={tz} value={tz} />
+        ))}
+      </datalist>
+    </span>
+  );
+}
+
+
+function LoadingState() {
+  return (
+    <Card className="rounded-[24px] border-cream-200 bg-white/92 p-6 shadow-sm">
+      <div className="flex items-center gap-3 text-navy-600">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        <span className="text-sm font-medium">Loading your daily feed…</span>
+      </div>
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div key={index} className="h-24 rounded-2xl bg-cream-100 animate-pulse" />
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function buildFeedSummary(form: JobFeedSettingsInput): string {
+  const roles = summarizeTargetRoles(form.target_roles);
+  const market = readableMarket(form.target_market);
+  const delivery = formatDeliveryHourLabel(form.delivery_hour_local);
+  return `Roles: ${roles} | Market: ${market} | Delivery: ${delivery} ${form.user_timezone}`;
+}
+
+function OperationalSnapshotCard({
+  latestRunDate,
+  diagnostics,
+}: {
+  latestRunDate: string;
+  diagnostics: JobFeedRunDiagnostics | null;
+}) {
+  if (!diagnostics) {
+    return null;
+  }
+
+  return (
+    <Card className="rounded-[24px] border-dashed border-emerald-200 bg-emerald-50/70 p-6 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Run snapshot</p>
+      <h2 className="mt-2 text-lg font-semibold text-charcoal">Latest run operational summary</h2>
+      <p className="mt-2 text-sm leading-6 text-warm-gray">
+        Lightweight visibility for {latestRunDate}. This keeps ranking cost, fetch health, and materialization status readable without opening raw JSON metadata.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <RunStatPill label="Dispatch" value={diagnostics.orchestrator} />
+        <RunStatPill label="Ranking" value={formatRankingStatusLabel(diagnostics.rankingStatus)} />
+        <RunStatPill label="Candidates" value={`${diagnostics.rankingCandidateCount ?? 0} -> ${diagnostics.rankedJobsCount ?? 0}`} />
+        <RunStatPill label="Fetch failures" value={String(diagnostics.failedFetchCount)} />
+        <RunStatPill label="Duplicates" value={String(diagnostics.duplicateCount)} />
+        <RunStatPill label="Materialized" value={formatYesNoUnknown(diagnostics.rankedItemsMaterialized)} />
+        <RunStatPill label="Tokens" value={formatTokenUsage(diagnostics)} />
+        <RunStatPill label="Est. LLM cost" value={formatUsdAmount(diagnostics.rankingEstimatedCostUsd)} />
+      </div>
+    </Card>
+  );
+}
+
+function formatRankingStatusLabel(value: JobFeedRunDiagnostics['rankingStatus']): string {
+  switch (value) {
+    case 'completed_llm':
+      return 'LLM ranked';
+    case 'completed_deterministic':
+      return 'Deterministic only';
+    case 'llm_failed_fallback':
+      return 'LLM fallback';
+    case 'no_candidates':
+      return 'No candidates';
+    default:
+      return 'Not available';
+  }
+}
+
+function formatTokenUsage(diagnostics: JobFeedRunDiagnostics): string {
+  if (diagnostics.rankingInputTokens === null || diagnostics.rankingOutputTokens === null) {
+    return 'n/a';
+  }
+
+  return `${diagnostics.rankingInputTokens} in / ${diagnostics.rankingOutputTokens} out`;
+}
+
+function formatUsdAmount(value: number | null): string {
+  if (value === null) {
+    return 'n/a';
+  }
+
+  return `$${value.toFixed(4)}`;
+}
+
+function formatYesNoUnknown(value: boolean | null): string {
+  if (value === true) return 'yes';
+  if (value === false) return 'no';
+  return 'unknown';
+}
+
+function canSaveJobFeedSettings(form: JobFeedSettingsInput, hasRecordedConsent = false): boolean {
+  const consentReady = form.consent_accepted || hasRecordedConsent;
+
+  return form.target_roles.length > 0
+    && form.employment_types.length > 0
+    && isValidTimeZone(form.user_timezone)
+    && (!form.enabled || consentReady);
+}
+
+
+
+function summarizeTargetRoles(roles: string[]): string {
+  if (roles.length === 0) {
+    return 'Choose roles';
+  }
+
+  return summarizeList(roles);
+}
+
+function summarizeList(values: string[], fallback = 'Not set yet'): string {
+  if (values.length === 0) {
+    return fallback;
+  }
+
+  if (values.length <= 2) {
+    return values.join(', ');
+  }
+
+  return `${values.slice(0, 2).join(', ')} +${values.length - 2} more`;
+}
+
+function readableMarket(value: string): string {
+  const option = JOB_FEED_MARKET_OPTIONS.find((item) => item.value === value);
+  return option?.label ?? value;
+}
+
+
+
+
+function toStoreApplicationSession(session: JobFeedApplyResponse['session']): StoreApplicationSession {
+  const companyResearch = session.company_research && typeof session.company_research === 'object' && !Array.isArray(session.company_research)
+    ? {
+        ...(session.company_research as Record<string, unknown>),
+        address: session.company_address ?? (session.company_research as Record<string, unknown>).address as string | undefined,
+        contactPerson: session.company_contact_person ?? (session.company_research as Record<string, unknown>).contactPerson as string | undefined,
+      } as unknown as StoreApplicationSession['companyResearch']
+    : null;
+
+  return {
+    id: session.id,
+    jobTitle: session.job_title ?? '',
+    company: session.company ?? '',
+    createdAt: session.created_at,
+    updatedAt: session.updated_at,
+    jobDescription: session.job_description,
+    matchScore: session.match_score ?? undefined,
+    matchingSkills: session.matching_skills ?? [],
+    missingSkills: session.missing_skills ?? [],
+    suggestions: session.suggestions ?? [],
+    requirements: session.requirements as unknown as StoreApplicationSession['requirements'],
+    gaps: session.gaps as unknown as StoreApplicationSession['gaps'],
+    generatedCV: session.generated_cv as unknown as StoreApplicationSession['generatedCV'],
+    coverLetter: session.cover_letter as unknown as StoreApplicationSession['coverLetter'],
+    email: session.email as unknown as StoreApplicationSession['email'],
+    followUpEmail: session.follow_up_email as unknown as StoreApplicationSession['followUpEmail'],
+    fitAssessment: session.fit_assessment as unknown as StoreApplicationSession['fitAssessment'],
+    companyResearch,
+    screeningUsageCount: 0,
+    cvEdits: Array.isArray(session.cv_edits) ? session.cv_edits as unknown as StoreApplicationSession['cvEdits'] : [],
+    chatMessages: [],
+  };
+}
+
+function buildJobFeedApplyPath(params: {
+  sessionId: string;
+  autostart: boolean;
+}): string {
+  const searchParams = new URLSearchParams({
+    workspace: 'application-kit',
+    tab: 'cv',
+    session: params.sessionId,
+  });
+
+  if (params.autostart) {
+    searchParams.set('autostart', 'job-feed-apply');
+  }
+
+  return `/dashboard?${searchParams.toString()}`;
+}
+
+function getBrowserTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}

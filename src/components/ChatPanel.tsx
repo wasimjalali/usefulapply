@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Card } from './ui/Card';
 import { MarkdownText } from './MarkdownText';
 import { ChatMessage, type ChatMessageData } from './chat/ChatMessage';
 import { ChatInput } from './chat/ChatInput';
-import { ChatHistory, type SessionSummary } from './chat/ChatHistory';
+import { ChatHistory } from './chat/ChatHistory';
 import { FeedbackModal } from './chat/FeedbackModal';
 import { AgentProgressV2 } from './AgentProgressV2';
 import { useAgentWorkflow } from './chat/useAgentWorkflow';
@@ -26,6 +26,24 @@ import { useRouter } from 'next/navigation';
 import { SignUpWallModal, hasUsedFreeGeneration } from '@/components/SignUpWallModal';
 import { InsufficientCreditsModal } from '@/components/InsufficientCreditsModal';
 import { usePostHog } from 'posthog-js/react';
+
+function readChatQuery() {
+  if (typeof window === 'undefined') {
+    return {
+      autostart: null,
+      session: null,
+      search: '',
+    };
+  }
+
+  const search = window.location.search;
+  const searchParams = new URLSearchParams(search);
+  return {
+    autostart: searchParams.get('autostart'),
+    session: searchParams.get('session'),
+    search,
+  };
+}
 
 interface ChatPanelProps {
   onTabChange?: (tab: 'cv' | 'cover-letter' | 'email') => void;
@@ -98,17 +116,17 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
   const [showScrollButton, setShowScrollButton] = useState(false);
   const isDesktopDocked = !!navBarPortal && !isMobileDrawer;
 
-  const isNearBottom = () => {
+  const isNearBottom = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container) return true;
     return container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-  };
+  }, []);
 
-  const scrollToBottom = (force = false) => {
+  const scrollToBottom = useCallback((force = false) => {
     if (force || isNearBottom()) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  };
+  }, [isNearBottom]);
 
   // Track scroll position to show/hide scroll-to-bottom button
   const handleScroll = () => {
@@ -124,24 +142,26 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
       scrollToBottom(true);
     }
     prevMessageCount.current = count;
-  }, [currentSession?.chatMessages]);
+  }, [currentSession?.chatMessages, scrollToBottom]);
 
   // Scroll when typing indicator appears (if near bottom)
   useEffect(() => {
     if (isTyping) scrollToBottom();
-  }, [isTyping]);
+  }, [isTyping, scrollToBottom]);
 
   // Auto-scroll when agent starts working (only if near bottom)
   useEffect(() => {
     if (isAgentWorking && agentSteps.length > 0) {
       scrollToBottom();
     }
-  }, [isAgentWorking, agentSteps]);
+  }, [isAgentWorking, agentSteps, scrollToBottom]);
 
   const previousGeneratedStateRef = useRef<{ sessionId: string | null; hasGeneratedCV: boolean }>({
     sessionId: null,
     hasGeneratedCV: false,
   });
+  const autostartedApplySessionRef = useRef<string | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
     const sessionId = currentSession?.id ?? null;
     const hasGeneratedCV = !!currentSession?.generatedCV;
@@ -155,6 +175,63 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
   }, [currentSession?.id, currentSession?.generatedCV, onTabChange]);
 
   const messages = currentSession?.chatMessages || [];
+  const hasFreshPendingFitAnalysis = Boolean(
+    currentSession?.pendingFitAnalysis?.createdAt
+    && nowMs < new Date(currentSession.pendingFitAnalysis.createdAt).getTime() + 30 * 60 * 1000
+  );
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 60_000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const {
+      autostart,
+      session: requestedSessionId,
+      search,
+    } = readChatQuery();
+
+    if (autostart !== 'job-feed-apply' || !currentSession || currentSession.id !== requestedSessionId) {
+      return;
+    }
+
+    const clearAutostartParam = () => {
+      const nextParams = new URLSearchParams(search);
+      nextParams.delete('autostart');
+      const nextQuery = nextParams.toString();
+      router.replace(nextQuery ? `/dashboard?${nextQuery}` : '/dashboard');
+    };
+
+    const alreadyInProgress = currentSession.chatMessages.length > 0 || !!currentSession.generatedCV || !!currentSession.pendingFitAnalysis;
+    if (alreadyInProgress) {
+      if (autostartedApplySessionRef.current !== currentSession.id) {
+        autostartedApplySessionRef.current = currentSession.id;
+        clearAutostartParam();
+      }
+      return;
+    }
+
+    if (!currentCV || !currentSession.jobDescription.trim()) {
+      return;
+    }
+
+    if (autostartedApplySessionRef.current === currentSession.id) {
+      return;
+    }
+
+    autostartedApplySessionRef.current = currentSession.id;
+    clearAutostartParam();
+    void workflowHandleSend(currentSession.jobDescription);
+  }, [
+    currentCV,
+    currentSession,
+    router,
+    workflowHandleSend,
+  ]);
 
   const handleFeedbackClick = (messageId: string, content: string, type: 'positive' | 'negative') => {
     setFeedbackModal({ messageId, content, type });
@@ -382,7 +459,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                   // Guard: if user switched sessions during async fetch, discard stale messages
                   if (useSessionStore.getState().currentSession?.id !== sessionId) return;
                   if (messages && messages.length > 0) {
-                    const mapped = messages.map((msg: any) => ({
+                    const mapped = messages.map((msg) => ({
                       id: msg.id,
                       role: msg.role,
                       content: msg.content,
@@ -433,6 +510,27 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                       Upload your CV using the panel on the left, then paste a job description here to get started.
                     </p>
                   )}
+                </Card>
+                <p className="text-xs text-warm-gray mt-1.5 ml-1">Just now</p>
+              </div>
+            </div>
+          )}
+
+          {currentSession && messages.length === 0 && (
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 h-fit">
+                <KarkoIcon size="xs" theme="light" />
+              </div>
+              <div className="flex-1">
+                <Card padding="sm" className="bg-white border-cream-200 shadow-sm">
+                  <MarkdownText
+                    content={
+                      currentCV
+                        ? `**${currentSession.jobTitle || 'This application'}** is ready. Karko already has the saved job description, so we can start generating from here.`
+                        : `**${currentSession.jobTitle || 'This application'}** is ready from Job Feed. Upload your CV to continue the application workflow.`
+                    }
+                    className="text-sm text-charcoal"
+                  />
                 </Card>
                 <p className="text-xs text-warm-gray mt-1.5 ml-1">Just now</p>
               </div>
@@ -490,7 +588,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                     id: s.function,
                     description: s.description,
                     status: s.status,
-                    agent: (s as any).agent,
+                    agent: s.agent,
                     result: s.result,
                     error: s.error,
                   }))}
@@ -559,10 +657,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
             pendingFitAnalysis={
               !isAgentWorking &&
               !currentSession?.generatedCV &&
-              !!(fitAnalysisContextId || (
-                currentSession?.pendingFitAnalysis &&
-                (Date.now() - new Date(currentSession.pendingFitAnalysis.createdAt).getTime()) < 30 * 60 * 1000
-              ))
+              !!(fitAnalysisContextId || hasFreshPendingFitAnalysis)
             }
             onFitAnalysisAction={(action) => {
               if (action === 'apply') {

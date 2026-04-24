@@ -373,7 +373,19 @@ Job location: ${job?.location || 'Not specified'}
 ${masterCV && /relocat/i.test(masterCV) ? `Master CV relocation statement found. The applicant's relocation preferences are ONLY what is written in the Master CV above. If the job location (${job?.location || 'unknown'}) is NOT explicitly covered by the Master CV's relocation statement, do NOT mention relocation willingness at all.` : `No relocation statement found in Master CV. Do NOT mention relocation willingness in the cover letter.`}
 NEVER fabricate relocation willingness to any city or country not explicitly listed in the Master CV.
 
-=== JOB DESCRIPTION + ANY USER INSTRUCTIONS ===
+${context.jobPreferences && (context.jobPreferences.salaryFloor || context.jobPreferences.remotePreference) ? `=== APPLICANT JOB PREFERENCES ===
+These are the applicant's stated work preferences. Use them to align the letter's tone and any relevant content:
+${context.jobPreferences.salaryFloor ? `- Minimum salary expectation: $${context.jobPreferences.salaryFloor.toLocaleString()}` : ''}
+${context.jobPreferences.remotePreference ? `- Work mode preference: ${context.jobPreferences.remotePreference.replace(/_/g, ' ')}` : ''}
+${context.jobPreferences.seniorityTarget ? `- Seniority level: ${context.jobPreferences.seniorityTarget}` : ''}
+
+INSTRUCTIONS:
+- If the job is fully remote and the applicant prefers remote, you may briefly reinforce enthusiasm for the remote setup
+- If there is a visible mismatch (e.g., job is fully on-site and applicant prefers remote), do NOT mention work mode at all — the applicant chose to apply, so let the letter speak to their strengths
+- Do NOT reference the salary figure in the letter — it is provided as context only, not something to write about
+- Only incorporate preferences where they add genuine value to the letter; omit this section's influence entirely if it doesn't fit naturally
+
+` : ''}=== JOB DESCRIPTION + ANY USER INSTRUCTIONS ===
 The text below is the job description. It may also contain personal instructions from the applicant (e.g., "I want you to mention X", "Please include Y"). Apply the <user_instructions_rule> to detect and honor any such requests.
 
 ${context.jobDescription}

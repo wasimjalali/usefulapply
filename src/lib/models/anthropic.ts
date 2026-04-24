@@ -205,7 +205,7 @@ class DigitalOceanClient {
     system?: string | Array<{ type: 'text'; text: string; cache_control?: { type: 'ephemeral' } }>;
     messages: Array<{ role: 'user' | 'assistant'; content: string }>;
   }) {
-    const url = `${this.endpoint}/api/v1/chat/completions`;
+    const url = `${this.endpoint}/v1/chat/completions`;
     const openaiMessages = this.buildOpenAIMessages(params.system, params.messages);
 
     const MAX_RETRIES = 2;
@@ -269,7 +269,7 @@ class DigitalOceanClient {
     content: string;
     usage: { input_tokens: number; output_tokens: number };
   }> {
-    const url = `${this.endpoint}/api/v1/chat/completions`;
+    const url = `${this.endpoint}/v1/chat/completions`;
     const openaiMessages = this.buildOpenAIMessages(params.system, params.messages);
 
     const response = await fetch(url, {

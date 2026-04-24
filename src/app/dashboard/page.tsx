@@ -26,6 +26,25 @@ type ApplicationTab = 'cv' | 'cover-letter' | 'email';
 type Workspace = 'application-kit' | 'job-feed' | 'tracker';
 type MobileView = 'chat' | Workspace;
 
+function readDashboardQuery() {
+  if (typeof window === 'undefined') {
+    return {
+      workspace: null,
+      session: null,
+      tab: null,
+      autostart: null,
+    };
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  return {
+    workspace: searchParams.get('workspace'),
+    session: searchParams.get('session'),
+    tab: searchParams.get('tab'),
+    autostart: searchParams.get('autostart'),
+  };
+}
+
 interface DashboardProfileMenuProps {
   profile: {
     avatar_url?: string | null;
@@ -90,6 +109,7 @@ function DashboardProfileMenu({ profile, onSignOut }: DashboardProfileMenuProps)
                 : 'ring-gray-300'
           }`}>
             {profile?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element -- Remote avatar URLs come from user profile storage and are already sized to this tiny menu slot.
               <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
             ) : (
               <User className="w-3.5 h-3.5 text-white" />
@@ -194,6 +214,8 @@ export default function Dashboard() {
     isAgentWorking,
     currentCV,
     currentSession,
+    sessions,
+    loadSession,
     setCurrentCV,
     setStructuredCV,
   } = useAppStore();
@@ -300,6 +322,14 @@ export default function Dashboard() {
             sections: parsedCV.sections,
             structured_data: structuredCV,
           });
+
+          if (structuredCV) {
+            fetch('/api/job-feed/settings/suggest', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ structured_data: structuredCV }),
+            }).catch(() => {});
+          }
         }
       } else {
         throw new Error('CV was parsed but no content was extracted. The file may be empty or image-based.');
@@ -341,6 +371,7 @@ export default function Dashboard() {
     : activeTab === 'tracker'
       ? 'tracker'
       : 'application-kit';
+  const isSignedOutJobFeedMode = !user && activeWorkspace === 'job-feed';
   const atsScore = currentSession?.optimizedCVData?.analysis?.ats_compatibility ?? null;
   const hasATSInsights = Boolean(currentSession?.optimizedCVData?.analysis || currentSession?.generatedCV?.changes?.length);
   const showATSControl = atsScore !== null || hasATSInsights || isAgentWorking;
@@ -467,6 +498,58 @@ export default function Dashboard() {
     }
   }, [activeTab, isApplicationTab]);
 
+  useEffect(() => {
+    const {
+      workspace: requestedWorkspace,
+      session: requestedSessionId,
+      tab: requestedTab,
+      autostart,
+    } = readDashboardQuery();
+
+    if (!requestedWorkspace && !requestedSessionId && !requestedTab && !autostart) {
+      return;
+    }
+
+    if (requestedSessionId && currentSession?.id !== requestedSessionId && sessions.some((session) => session.id === requestedSessionId)) {
+      loadSession(requestedSessionId);
+    }
+
+    const resolvedTab: ApplicationTab = requestedTab === 'cover-letter' || requestedTab === 'email'
+      ? requestedTab
+      : 'cv';
+
+    if (requestedWorkspace === 'application-kit') {
+      setActiveTab(resolvedTab);
+      lastApplicationTabRef.current = resolvedTab;
+      setMobileApplicationTab(resolvedTab);
+
+      if (autostart === 'job-feed-apply') {
+        setMobileView('chat');
+        setIsChatCollapsed(false);
+      } else {
+        setMobileView('application-kit');
+      }
+
+      return;
+    }
+
+    if (requestedWorkspace === 'job-feed') {
+      setActiveTab('jobs');
+      setMobileView('job-feed');
+      return;
+    }
+
+    if (requestedWorkspace === 'tracker') {
+      setActiveTab('tracker');
+      setMobileView('tracker');
+    }
+  }, [
+    currentSession?.id,
+    loadSession,
+    sessions,
+    setActiveTab,
+  ]);
+
   const handleSignOut = useCallback(async () => {
     await signOut();
     router.push('/auth/login');
@@ -564,17 +647,17 @@ export default function Dashboard() {
         )}
 
         {/* Credit Indicator */}
-        {user && (
+        {!isSignedOutJobFeedMode && user && (
           <div className="flex items-center">
             <CreditIndicator />
           </div>
         )}
 
-        {user && <div className="w-px h-5 bg-cream-300 mx-1.5" />}
+        {!isSignedOutJobFeedMode && user && <div className="w-px h-5 bg-cream-300 mx-1.5" />}
 
-        <div ref={setChatNavNode} className="flex items-center gap-2" />
+        {!isSignedOutJobFeedMode && <div ref={setChatNavNode} className="flex items-center gap-2" />}
 
-        {!isChatCollapsed && (
+        {!isSignedOutJobFeedMode && !isChatCollapsed && (
           <button
             onClick={() => setIsChatCollapsed(true)}
             className="p-1.5 rounded-full text-warm-gray hover:bg-cream-100 hover:text-navy-600 transition-all cursor-pointer"
@@ -775,50 +858,52 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="relative h-full flex-shrink-0 transition-[width] duration-300 ease-in-out" style={{ width: isChatCollapsed ? COLLAPSED_WIDTH : chatPanelWidth }}>
-          {!isChatCollapsed && (
-            <div
-              onMouseDown={handleMouseDown}
-              className="absolute left-0 top-0 bottom-0 w-3 -ml-1.5 cursor-col-resize z-10 group/resize"
-              title="Drag to resize · Double-click to collapse"
-            >
-              <div className={`absolute left-1.5 top-0 bottom-0 w-px transition-all duration-200 ${
-                isResizing ? 'bg-gold-400 opacity-100' : 'bg-gold-300 opacity-0 group-hover/resize:opacity-100'
-              }`} />
-              <div className={`absolute left-0.5 top-1/2 -translate-y-1/2 flex flex-col gap-1 transition-opacity duration-200 ${
-                isResizing ? 'opacity-100' : 'opacity-0 group-hover/resize:opacity-100'
-              }`}>
-                <div className={`w-1 h-1 rounded-full ${isResizing ? 'bg-gold-500' : 'bg-gold-400'}`} />
-                <div className={`w-1 h-1 rounded-full ${isResizing ? 'bg-gold-500' : 'bg-gold-400'}`} />
-                <div className={`w-1 h-1 rounded-full ${isResizing ? 'bg-gold-500' : 'bg-gold-400'}`} />
+        {!isSignedOutJobFeedMode && (
+          <div className="relative h-full flex-shrink-0 transition-[width] duration-300 ease-in-out" style={{ width: isChatCollapsed ? COLLAPSED_WIDTH : chatPanelWidth }}>
+            {!isChatCollapsed && (
+              <div
+                onMouseDown={handleMouseDown}
+                className="absolute left-0 top-0 bottom-0 w-3 -ml-1.5 cursor-col-resize z-10 group/resize"
+                title="Drag to resize · Double-click to collapse"
+              >
+                <div className={`absolute left-1.5 top-0 bottom-0 w-px transition-all duration-200 ${
+                  isResizing ? 'bg-gold-400 opacity-100' : 'bg-gold-300 opacity-0 group-hover/resize:opacity-100'
+                }`} />
+                <div className={`absolute left-0.5 top-1/2 -translate-y-1/2 flex flex-col gap-1 transition-opacity duration-200 ${
+                  isResizing ? 'opacity-100' : 'opacity-0 group-hover/resize:opacity-100'
+                }`}>
+                  <div className={`w-1 h-1 rounded-full ${isResizing ? 'bg-gold-500' : 'bg-gold-400'}`} />
+                  <div className={`w-1 h-1 rounded-full ${isResizing ? 'bg-gold-500' : 'bg-gold-400'}`} />
+                  <div className={`w-1 h-1 rounded-full ${isResizing ? 'bg-gold-500' : 'bg-gold-400'}`} />
+                </div>
+              </div>
+            )}
+
+            <div className={`absolute inset-y-2 right-2 left-2 flex flex-col items-center justify-start py-2.5 border border-gold-300/90 bg-cream-50/96 rounded-[16px] shadow-[0_18px_36px_-30px_rgba(30,58,95,0.22)] transition-opacity duration-200 ${
+              isChatCollapsed ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+            }`}>
+              <button
+                onClick={() => setIsChatCollapsed(false)}
+                className="p-1.5 rounded-lg text-warm-gray hover:text-navy-600 hover:bg-cream-100 transition-colors cursor-pointer"
+                title="Expand chat (⌘⇧C)"
+              >
+                <PanelRightOpen className="w-4 h-4" />
+              </button>
+              <div className="mt-3 flex flex-col items-center">
+                <KarkoIcon size="xs" theme="light" />
               </div>
             </div>
-          )}
 
-          <div className={`absolute inset-y-2 right-2 left-2 flex flex-col items-center justify-start py-2.5 border border-gold-300/90 bg-cream-50/96 rounded-[16px] shadow-[0_18px_36px_-30px_rgba(30,58,95,0.22)] transition-opacity duration-200 ${
-            isChatCollapsed ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-          }`}>
-            <button
-              onClick={() => setIsChatCollapsed(false)}
-              className="p-1.5 rounded-lg text-warm-gray hover:text-navy-600 hover:bg-cream-100 transition-colors cursor-pointer"
-              title="Expand chat (⌘⇧C)"
-            >
-              <PanelRightOpen className="w-4 h-4" />
-            </button>
-            <div className="mt-3 flex flex-col items-center">
-              <KarkoIcon size="xs" theme="light" />
+            <div id="tour-chat-panel" className={`absolute inset-y-2 right-2 left-2 overflow-hidden rounded-[16px] border border-gold-300/90 bg-cream-50/96 backdrop-blur-[6px] shadow-[0_24px_54px_-40px_rgba(30,58,95,0.28)] transition-opacity duration-200 ${
+              isChatCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
+            }`}>
+              <ChatPanel
+                onTabChange={handleTabChange}
+                navBarPortal={chatNavNode}
+              />
             </div>
           </div>
-
-          <div id="tour-chat-panel" className={`absolute inset-y-2 right-2 left-2 overflow-hidden rounded-[16px] border border-gold-300/90 bg-cream-50/96 backdrop-blur-[6px] shadow-[0_24px_54px_-40px_rgba(30,58,95,0.28)] transition-opacity duration-200 ${
-            isChatCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
-          }`}>
-            <ChatPanel
-              onTabChange={handleTabChange}
-              navBarPortal={chatNavNode}
-            />
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="md:hidden flex-1 flex flex-col overflow-hidden">

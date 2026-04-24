@@ -83,6 +83,381 @@ export interface Database {
           updated_at?: string
         }
       }
+      job_feed_settings: {
+        Row: {
+          user_id: string
+          enabled: boolean
+          consent_accepted_at: string | null
+          user_timezone: string
+          delivery_hour_local: number
+          target_market: 'us' | 'canada' | 'us_canada'
+          target_roles: string[]
+          adjacent_roles_enabled: boolean
+          adjacent_roles: string[]
+          preferred_locations: string[]
+          remote_preference: 'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible'
+          salary_floor: number | null
+          languages: string[]
+          seniority_target: 'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager' | null
+          employment_types: Array<'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'>
+          work_authorization_status: 'authorized' | 'needs_sponsorship' | 'open_to_both' | null
+          aggressiveness: 'strict' | 'balanced' | 'broad'
+          user_skills: string[]
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          enabled?: boolean
+          consent_accepted_at?: string | null
+          user_timezone?: string
+          delivery_hour_local?: number
+          target_market?: 'us' | 'canada' | 'us_canada'
+          target_roles?: string[]
+          adjacent_roles_enabled?: boolean
+          adjacent_roles?: string[]
+          preferred_locations?: string[]
+          remote_preference?: 'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible'
+          salary_floor?: number | null
+          languages?: string[]
+          seniority_target?: 'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager' | null
+          employment_types?: Array<'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'>
+          work_authorization_status?: 'authorized' | 'needs_sponsorship' | 'open_to_both' | null
+          aggressiveness?: 'strict' | 'balanced' | 'broad'
+          user_skills?: string[]
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          enabled?: boolean
+          consent_accepted_at?: string | null
+          user_timezone?: string
+          delivery_hour_local?: number
+          target_market?: 'us' | 'canada' | 'us_canada'
+          target_roles?: string[]
+          adjacent_roles_enabled?: boolean
+          adjacent_roles?: string[]
+          preferred_locations?: string[]
+          remote_preference?: 'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible'
+          salary_floor?: number | null
+          languages?: string[]
+          seniority_target?: 'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager' | null
+          employment_types?: Array<'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'>
+          work_authorization_status?: 'authorized' | 'needs_sponsorship' | 'open_to_both' | null
+          aggressiveness?: 'strict' | 'balanced' | 'broad'
+          user_skills?: string[]
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      job_feed_runs: {
+        Row: {
+          id: string
+          user_id: string
+          local_date: string
+          local_timezone: string
+          delivery_hour_local: number
+          trigger_source: string
+          status: 'queued' | 'running' | 'completed' | 'failed' | 'skipped'
+          idempotency_key: string
+          started_at: string | null
+          completed_at: string | null
+          error_message: string | null
+          result_summary: string | null
+          raw_jobs_fetched: number
+          jobs_after_prefilter: number
+          ranked_jobs_count: number
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          local_date: string
+          local_timezone: string
+          delivery_hour_local: number
+          trigger_source?: string
+          status?: 'queued' | 'running' | 'completed' | 'failed' | 'skipped'
+          idempotency_key: string
+          started_at?: string | null
+          completed_at?: string | null
+          error_message?: string | null
+          result_summary?: string | null
+          raw_jobs_fetched?: number
+          jobs_after_prefilter?: number
+          ranked_jobs_count?: number
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          local_date?: string
+          local_timezone?: string
+          delivery_hour_local?: number
+          trigger_source?: string
+          status?: 'queued' | 'running' | 'completed' | 'failed' | 'skipped'
+          idempotency_key?: string
+          started_at?: string | null
+          completed_at?: string | null
+          error_message?: string | null
+          result_summary?: string | null
+          raw_jobs_fetched?: number
+          jobs_after_prefilter?: number
+          ranked_jobs_count?: number
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      job_feed_raw_fetches: {
+        Row: {
+          id: string
+          run_id: string
+          user_id: string
+          provider: string
+          status: 'completed' | 'no_results' | 'failed'
+          query_text: string
+          market: 'us' | 'canada' | 'us_canada'
+          country_code: string | null
+          language_code: string | null
+          request_location: string | null
+          request_filters: string[]
+          page_number: number
+          query_context: Json
+          request_params: Json
+          response_payload: Json
+          response_error: string | null
+          fetched_jobs_count: number
+          next_page_token: string | null
+          fetched_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          run_id: string
+          user_id: string
+          provider?: string
+          status?: 'completed' | 'no_results' | 'failed'
+          query_text: string
+          market: 'us' | 'canada' | 'us_canada'
+          country_code?: string | null
+          language_code?: string | null
+          request_location?: string | null
+          request_filters?: string[]
+          page_number?: number
+          query_context?: Json
+          request_params?: Json
+          response_payload?: Json
+          response_error?: string | null
+          fetched_jobs_count?: number
+          next_page_token?: string | null
+          fetched_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          run_id?: string
+          user_id?: string
+          provider?: string
+          status?: 'completed' | 'no_results' | 'failed'
+          query_text?: string
+          market?: 'us' | 'canada' | 'us_canada'
+          country_code?: string | null
+          language_code?: string | null
+          request_location?: string | null
+          request_filters?: string[]
+          page_number?: number
+          query_context?: Json
+          request_params?: Json
+          response_payload?: Json
+          response_error?: string | null
+          fetched_jobs_count?: number
+          next_page_token?: string | null
+          fetched_at?: string
+          created_at?: string
+        }
+      }
+      job_feed_canonical_jobs: {
+        Row: {
+          id: string
+          canonical_key: string
+          source_provider: string
+          source_job_id: string | null
+          title: string
+          title_normalized: string
+          company: string
+          company_normalized: string
+          location_text: string | null
+          location_normalized: string | null
+          work_mode: 'remote' | 'hybrid' | 'onsite' | 'unknown'
+          employment_type: 'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary' | null
+          salary_text: string | null
+          salary_min: number | null
+          salary_max: number | null
+          salary_currency: string | null
+          description: string | null
+          apply_url: string | null
+          source_url: string | null
+          posted_at_text: string | null
+          freshness_days: number | null
+          source_identifiers: Json
+          first_seen_at: string
+          last_seen_at: string
+          last_raw_fetch_id: string | null
+          times_seen: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          canonical_key: string
+          source_provider?: string
+          source_job_id?: string | null
+          title: string
+          title_normalized: string
+          company: string
+          company_normalized: string
+          location_text?: string | null
+          location_normalized?: string | null
+          work_mode?: 'remote' | 'hybrid' | 'onsite' | 'unknown'
+          employment_type?: 'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary' | null
+          salary_text?: string | null
+          salary_min?: number | null
+          salary_max?: number | null
+          salary_currency?: string | null
+          description?: string | null
+          apply_url?: string | null
+          source_url?: string | null
+          posted_at_text?: string | null
+          freshness_days?: number | null
+          source_identifiers?: Json
+          first_seen_at?: string
+          last_seen_at?: string
+          last_raw_fetch_id?: string | null
+          times_seen?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          canonical_key?: string
+          source_provider?: string
+          source_job_id?: string | null
+          title?: string
+          title_normalized?: string
+          company?: string
+          company_normalized?: string
+          location_text?: string | null
+          location_normalized?: string | null
+          work_mode?: 'remote' | 'hybrid' | 'onsite' | 'unknown'
+          employment_type?: 'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary' | null
+          salary_text?: string | null
+          salary_min?: number | null
+          salary_max?: number | null
+          salary_currency?: string | null
+          description?: string | null
+          apply_url?: string | null
+          source_url?: string | null
+          posted_at_text?: string | null
+          freshness_days?: number | null
+          source_identifiers?: Json
+          first_seen_at?: string
+          last_seen_at?: string
+          last_raw_fetch_id?: string | null
+          times_seen?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      job_feed_feedback: {
+        Row: {
+          id: string
+          user_id: string
+          canonical_job_id: string
+          latest_run_id: string | null
+          application_session_id: string | null
+          opened_at: string | null
+          saved_at: string | null
+          dismissed_at: string | null
+          applied_at: string | null
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          canonical_job_id: string
+          latest_run_id?: string | null
+          application_session_id?: string | null
+          opened_at?: string | null
+          saved_at?: string | null
+          dismissed_at?: string | null
+          applied_at?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          canonical_job_id?: string
+          latest_run_id?: string | null
+          application_session_id?: string | null
+          opened_at?: string | null
+          saved_at?: string | null
+          dismissed_at?: string | null
+          applied_at?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      job_feed_ranked_items: {
+        Row: {
+          id: string
+          run_id: string
+          user_id: string
+          canonical_job_id: string
+          rank_position: number
+          fit_label: 'strong' | 'good'
+          ranking_source: 'deterministic' | 'llm'
+          reason: string | null
+          deterministic_score: number
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          run_id: string
+          user_id: string
+          canonical_job_id: string
+          rank_position: number
+          fit_label: 'strong' | 'good'
+          ranking_source?: 'deterministic' | 'llm'
+          reason?: string | null
+          deterministic_score?: number
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          run_id?: string
+          user_id?: string
+          canonical_job_id?: string
+          rank_position?: number
+          fit_label?: 'strong' | 'good'
+          ranking_source?: 'deterministic' | 'llm'
+          reason?: string | null
+          deterministic_score?: number
+          metadata?: Json
+          created_at?: string
+        }
+      }
       documents: {
         Row: {
           id: string
@@ -640,6 +1015,64 @@ export interface Database {
           created_at?: string
         }
       }
+      user_cv_suggestions: {
+        Row: {
+          user_id: string
+          suggestion: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          suggestion: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          suggestion?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      user_job_preferences: {
+        Row: {
+          user_id: string
+          salary_floor: number | null
+          remote_preference: 'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible' | null
+          employment_types: string[]
+          target_roles: string[]
+          user_skills: string[]
+          target_market: 'us' | 'canada' | 'us_canada' | null
+          seniority_target: 'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager' | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          salary_floor?: number | null
+          remote_preference?: 'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible' | null
+          employment_types?: string[]
+          target_roles?: string[]
+          user_skills?: string[]
+          target_market?: 'us' | 'canada' | 'us_canada' | null
+          seniority_target?: 'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager' | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          salary_floor?: number | null
+          remote_preference?: 'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible' | null
+          employment_types?: string[]
+          target_roles?: string[]
+          user_skills?: string[]
+          target_market?: 'us' | 'canada' | 'us_canada' | null
+          seniority_target?: 'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager' | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -660,6 +1093,12 @@ export type UpdateTables<T extends keyof Database['public']['Tables']> = Databas
 
 // Convenience types
 export type Profile = Tables<'profiles'>
+export type JobFeedSettings = Tables<'job_feed_settings'>
+export type JobFeedRun = Tables<'job_feed_runs'>
+export type JobFeedRawFetch = Tables<'job_feed_raw_fetches'>
+export type JobFeedCanonicalJob = Tables<'job_feed_canonical_jobs'>
+export type JobFeedFeedback = Tables<'job_feed_feedback'>
+export type JobFeedRankedItem = Tables<'job_feed_ranked_items'>
 export type Document = Tables<'documents'>
 export type ProfilePhoto = Tables<'profile_photos'>
 export type ApplicationSession = Tables<'application_sessions'>
