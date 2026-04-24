@@ -36,7 +36,7 @@ The user configures their preferences once:
 - Seniority target (junior, mid, senior, lead, staff, manager)
 - Employment types (full-time, part-time, contract, etc.)
 - Work authorization status (authorized, needs sponsorship, open to both)
-- Market (US, Canada, or both)
+- Market (US, Canada, or both) 
 - Delivery hour (what time to generate the feed, in their timezone)
 - Aggressiveness (strict = exact matches only, balanced = default, broad = cast a wider net)
 
@@ -99,9 +99,7 @@ The shortlisted **up to 15 jobs** are sent to an LLM for intelligent ranking:
 
 **If the LLM fails** (API error, invalid response, no credentials), the system falls back to **deterministic ranking** — the prefilter scores become the final ranks. The feed still works, just without the AI judgment layer.
 
-**Current state:** Ranking now uses **GPT-4.1 Mini** via OpenAI. For scheduled overnight runs, it uses the **OpenAI Batch API** (50% cheaper). For manual/debug triggers, it runs in real-time. If OpenAI is unavailable, it falls back to deterministic ranking.
-
-**Cost:** GPT-4.1 Mini real-time: $0.40/M input, $1.60/M output. Batch: $0.20/M input, $0.80/M output. For 15 jobs, a typical ranking costs well under $0.01.
+**Current state:** The ranking currently routes through the main Claude Sonnet model. This is over-powered and expensive for this task. See "What Needs to Be Done" below.
 
 ### Step 6 — Feedback & Apply (User actions)
 
@@ -174,9 +172,7 @@ All endpoints now have **rate limiting** and **generic error messages** (fixed i
 | `src/lib/job-feed/serpapi.ts` | SerpAPI client, job normalization, salary parsing |
 | `src/lib/job-feed/ingestion.ts` | Search plan building, fetching, deduplication, upsert |
 | `src/lib/job-feed/prefilter.ts` | Filter bad matches, score survivors, prepare shortlist |
-| `src/lib/job-feed/ranking.ts` | Ranking entry point (routes to OpenAI) |
-| `src/lib/job-feed/openai-ranking.ts` | GPT-4.1 Mini real-time ranking client |
-| `src/lib/job-feed/batch-ranking.ts` | OpenAI Batch API for overnight ranking (50% savings) |
+| `src/lib/job-feed/ranking.ts` | LLM ranking with deterministic fallback |
 | `src/lib/job-feed/orchestration.ts` | Inngest event dispatching |
 | `src/lib/job-feed/cleanup.ts` | Data retention (redact old payloads, compact metadata) |
 | `src/lib/job-feed/server.ts` | Core workflow, data access, feed materialization |
@@ -198,8 +194,8 @@ JOB_FEED_INTERNAL_SECRET=any_random_secret_string
 INNGEST_EVENT_KEY=your_inngest_event_key
 INNGEST_SIGNING_KEY=your_inngest_signing_key
 
-# Required — LLM for ranking (GPT-4.1 Mini via OpenAI, separate from the main Claude model)
-OPENAI_API_KEY=your_openai_key
+# Required — LLM for ranking (currently uses main Claude model, will switch to OpenAI)
+OPENAI_API_KEY=your_openai_key  # (not yet wired — see "What Needs to Be Done")
 ```
 
 ---
@@ -222,17 +218,33 @@ OPENAI_API_KEY=your_openai_key
 
 ## What Needs to Be Done
 
-### 1. Inngest setup
+### 1. Switch ranking LLM to GPT-4.1 Mini
+
+**Current state:** The ranking step calls `callModel({ task: 'fit_assessment', ... })` which routes through the main Claude Sonnet 4.6 model — the same model used for CV generation. This is too expensive for ranking 15 job cards.
+
+**What's needed:**
+- Add an OpenAI client (or use the existing model abstraction) to call **GPT-4.1 Mini** specifically for the `fit_assessment` task in the job feed ranking
+- The ranking prompt is simple JSON in / JSON out — GPT-4.1 Mini handles this well
+- Wire `OPENAI_API_KEY` env var
+- Update `ranking.ts` to use the new OpenAI path instead of `callModel()`
+
+### 2. Enable OpenAI Batch API for overnight processing
+
+**Current state:** Ranking runs in real-time (synchronous LLM call during the workflow).
+
+**What's needed:**
+- Since feeds are generated overnight (not real-time), we can use the **OpenAI Batch API** which gives **50% cost savings**
+- Submit ranking requests as batch jobs, poll for results, then materialize the feed
+- This changes the workflow from "run everything in one pass" to "submit batch, wait, then finalize"
+- The Inngest step function architecture already supports this (can add a wait/poll step)
+
+### 3. Inngest setup
 
 To get the background scheduling working, you need:
 1. An Inngest account (free tier covers this)
 2. Set `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` in `.env.local`
 3. Point the Inngest webhook to `https://your-domain.com/api/inngest`
 4. The hourly cron will start automatically once Inngest is connected
-
-### 2. OpenAI API key
-
-Set `OPENAI_API_KEY` in `.env.local` — this is used only for job feed ranking (GPT-4.1 Mini). Everything else still uses Claude.
 
 ---
 
