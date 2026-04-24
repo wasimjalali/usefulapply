@@ -230,7 +230,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
       {/* Left Sidebar with Photo (Decorative) */}
       <aside
         style={{
-          width: '70mm',
+          width: '52mm',
           padding: '0 12px 0 0',
           borderRight: `2px solid ${germanColors.primary}`,
           overflow: 'visible',
