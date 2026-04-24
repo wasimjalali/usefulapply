@@ -163,7 +163,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
     return 'premium-ats';
   });
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
-  const [templatePopoverPos, setTemplatePopoverPos] = useState<{ top: number; left: number; maxHeight: number } | null>(null);
+  const [templatePopoverPos, setTemplatePopoverPos] = useState<{ top: number; left: number; maxHeight: number; width: number } | null>(null);
   const templateSelectorRef = useRef<HTMLDivElement>(null);
   const templateSelectorBtnRef = useRef<HTMLButtonElement>(null);
   const [copied, setCopied] = useState(false);
@@ -211,7 +211,8 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
       setTemplatePopoverPos(null);
       return;
     }
-    const POPOVER_WIDTH = 420;
+    const PREFERRED_WIDTH = 880;
+    const MIN_WIDTH = 320;
     const MARGIN = 12;
     const updatePosition = () => {
       const btn = templateSelectorBtnRef.current;
@@ -220,12 +221,14 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
       const viewportW = window.innerWidth;
       const viewportH = window.innerHeight;
       const top = rect.bottom + 8;
+      // Fill available width up to the preferred size so the grid breathes.
+      const width = Math.max(MIN_WIDTH, Math.min(PREFERRED_WIDTH, viewportW - MARGIN * 2));
       // Prefer right-aligned to the button, but clamp into viewport.
-      let left = rect.right - POPOVER_WIDTH;
+      let left = rect.right - width;
       if (left < MARGIN) left = MARGIN;
-      if (left + POPOVER_WIDTH > viewportW - MARGIN) left = viewportW - POPOVER_WIDTH - MARGIN;
+      if (left + width > viewportW - MARGIN) left = viewportW - width - MARGIN;
       const maxHeight = Math.max(240, viewportH - top - MARGIN);
-      setTemplatePopoverPos({ top, left, maxHeight });
+      setTemplatePopoverPos({ top, left, maxHeight, width });
     };
     updatePosition();
     window.addEventListener('resize', updatePosition);
@@ -968,8 +971,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
             position: 'fixed',
             top: templatePopoverPos.top,
             left: templatePopoverPos.left,
-            width: 420,
-            maxWidth: 'calc(100vw - 24px)',
+            width: templatePopoverPos.width,
             maxHeight: templatePopoverPos.maxHeight,
             zIndex: 60,
           }}
