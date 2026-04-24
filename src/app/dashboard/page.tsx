@@ -639,10 +639,10 @@ export default function Dashboard() {
         <div className="flex-1" />
 
         {/* Upgrade CTA — shown for free and plus plans */}
-        {!isSignedOutJobFeedMode && user && profile && (profile.subscription_tier === 'free' || profile.subscription_tier === 'starter') && (
+        {user && profile && (profile.subscription_tier === 'free' || profile.subscription_tier === 'starter') && (
           <DashboardUpgradeButton tier="plus" />
         )}
-        {!isSignedOutJobFeedMode && user && profile?.subscription_tier === 'plus' && (
+        {user && profile?.subscription_tier === 'plus' && (
           <DashboardUpgradeButton tier="max" />
         )}
 
