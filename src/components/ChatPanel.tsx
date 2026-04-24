@@ -152,7 +152,15 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     if (isTyping) scrollToBottom();
   }, [isTyping, scrollToBottom]);
 
-  // Auto-scroll when agent starts working (only if near bottom)
+  // Auto-scroll when agent starts working — force so progress is visible
+  const wasWorkingRef = useRef(false);
+  useEffect(() => {
+    if (isAgentWorking && !wasWorkingRef.current) {
+      scrollToBottom(true);
+    }
+    wasWorkingRef.current = isAgentWorking;
+  }, [isAgentWorking, scrollToBottom]);
+
   useEffect(() => {
     if (isAgentWorking && agentSteps.length > 0) {
       scrollToBottom();
@@ -714,6 +722,60 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
             </div>
           )}
           
+          {/* Inline follow-up: Fit analysis actions */}
+          {!isAgentWorking &&
+            !currentSession?.generatedCV &&
+            !!(fitAnalysisContextId || hasFreshPendingFitAnalysis) && (
+            <div className="flex justify-end gap-2 mt-2">
+              <button
+                onClick={() => handleAction('generate-full-application')}
+                className="flex items-center gap-2 rounded-full border border-navy-700 bg-navy-700 text-white px-4 py-2.5 text-sm font-medium shadow-sm hover:bg-navy-800 hover:border-navy-800 transition-all cursor-pointer"
+              >
+                <Zap className="w-4 h-4" />
+                Apply for This Job
+              </button>
+              <button
+                onClick={() => handleAction('skip-job')}
+                className="flex items-center gap-2 rounded-full border border-cream-200 bg-white text-charcoal px-4 py-2.5 text-sm font-medium hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer"
+              >
+                New Search
+              </button>
+            </div>
+          )}
+
+          {/* Inline follow-up: Screening question prompt */}
+          {!isAgentWorking &&
+            !isScreeningMode &&
+            !!currentSession?.generatedCV &&
+            (currentSession?.screeningUsageCount ?? 0) < 2 &&
+            !(fitAnalysisContextId || hasFreshPendingFitAnalysis) && (
+            <div className="flex justify-end gap-2 mt-2">
+              <button
+                onClick={() => {
+                  const isMaxPlan = profile?.subscription_tier === 'max' || profile?.subscription_tier === 'pro';
+                  handleAction(isMaxPlan ? 'screening-questions' : 'upgrade-for-screening');
+                  const dismissNow = !isMaxPlan;
+                  useAppStore.getState().updateCurrentSession({
+                    screeningUsageCount: dismissNow ? 2 : (currentSession?.screeningUsageCount ?? 0) + 1,
+                  });
+                }}
+                className="flex items-center gap-2 rounded-full border border-navy-700 bg-navy-700 text-white px-4 py-2.5 text-sm font-medium shadow-sm hover:bg-navy-800 hover:border-navy-800 transition-all cursor-pointer"
+              >
+                Answer Screening Questions
+              </button>
+              <button
+                onClick={() => {
+                  useAppStore.getState().updateCurrentSession({
+                    screeningUsageCount: 2,
+                  });
+                }}
+                className="flex items-center gap-2 rounded-full border border-cream-200 bg-white text-charcoal px-4 py-2.5 text-sm font-medium hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer"
+              >
+                Skip For Now
+              </button>
+            </div>
+          )}
+
           <div ref={messagesEndRef} />
         </div>
 
@@ -730,7 +792,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
           </div>
         )}
 
-        {/* Input Area with integrated mode selector */}
+        {/* Input Area */}
         <div className={isDesktopDocked ? 'border-t border-gold-100/80 bg-cream-50/90 px-3 pt-2.5 pb-3 backdrop-blur-sm' : ''}>
           <ChatInput
             value={inputValue}
@@ -743,41 +805,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
               ? "Paste a job description or ask me anything..."
               : "Upload your CV first to get started..."
             }
-            applicationMode={applicationMode}
-            onModeChange={setApplicationMode}
-            showModeSelector={!!currentCV}
             compact={messages.length > 0}
-            pendingFitAnalysis={
-              !isAgentWorking &&
-              !currentSession?.generatedCV &&
-              !!(fitAnalysisContextId || hasFreshPendingFitAnalysis)
-            }
-            onFitAnalysisAction={(action) => {
-              if (action === 'apply') {
-                handleAction('generate-full-application');
-              } else {
-                handleAction('skip-job');
-              }
-            }}
-            pendingScreeningPrompt={
-              !isAgentWorking &&
-              !isScreeningMode &&
-              !!currentSession?.generatedCV &&
-              (currentSession?.screeningUsageCount ?? 0) < 2
-            }
-            onScreeningAction={(action) => {
-              const isMaxPlan = profile?.subscription_tier === 'max' || profile?.subscription_tier === 'pro';
-              if (action === 'screening') {
-                handleAction(isMaxPlan ? 'screening-questions' : 'upgrade-for-screening');
-              }
-              // Max plan: increment by 1 (allows 2 uses for questions + follow-up)
-              // Non-Max plan: set to 2 immediately (dismiss after showing upgrade once)
-              // "No, Thanks": set to 2 immediately (dismiss permanently)
-              const dismissNow = !isMaxPlan || action === 'skip';
-              useAppStore.getState().updateCurrentSession({
-                screeningUsageCount: dismissNow ? 2 : (currentSession?.screeningUsageCount ?? 0) + 1,
-              });
-            }}
             surface={isDesktopDocked ? 'embedded' : 'floating'}
           />
         </div>
