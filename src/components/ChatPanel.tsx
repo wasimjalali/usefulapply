@@ -20,6 +20,9 @@ import {
   History,
   Sparkles,
   ArrowDown,
+  Zap,
+  Search,
+  Upload,
 } from 'lucide-react';
 import { KarkoIcon } from './KarkoLogo';
 import { useRouter } from 'next/navigation';
@@ -109,8 +112,8 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
   const [signUpWallTrigger, setSignUpWallTrigger] = useState<'download' | 'new-application' | 'general'>('new-application');
   const [showCreditsModal, setShowCreditsModal] = useState(false);
   const [creditsModalData, setCreditsModalData] = useState<{ required: number; available: number } | null>(null);
-  // screeningUsageCount is persisted in the session store (survives refresh)
-  
+  const [hoveredHeroMode, setHoveredHeroMode] = useState<string | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -280,6 +283,16 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     setInputValue('');
   };
 
+  const handleModeSelect = (mode: 'apply_directly' | 'analyze_first') => {
+    setApplicationMode(mode);
+    if (!currentSession) {
+      useSessionStore.getState().createNewSession('');
+    }
+    const msg = mode === 'apply_directly'
+      ? "Paste a job description below. I'll generate a tailored CV, cover letter, and application email right away."
+      : "Paste a job description below. I'll first analyze how well your profile matches the role, then you can decide whether to generate the full application.";
+    addChatMessage({ role: 'assistant', content: msg });
+  };
 
   const handleAction = async (action: string) => {
     switch (action) {
@@ -358,7 +371,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
         posthog?.capture('screening_upgrade_prompt_shown');
         addChatMessage({
           role: 'assistant',
-          content: '🔒 **Screening Question Answers** is available on the **Max plan**.\n\nWith Max, I can draft personalized answers to screening questions using the context from your CV and job description — formatted for easy copy & paste.',
+          content: '🔒 **Screening Question Answers** is available on the **Max plan**.\n\nWith Max, I can draft personalized answers to screening questions using the context from your CV and job description, formatted for easy copy and paste.',
           actions: [
             { label: 'View Plans', action: 'navigate-pricing', icon: 'new' },
           ],
@@ -492,26 +505,106 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
               : 'p-4'
           }`}
         >
-          {/* Welcome message */}
+          {/* Welcome Hero */}
           {!currentSession && messages.length === 0 && (
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 h-fit">
-                <KarkoIcon size="xs" theme="light" />
-              </div>
-              <div className="flex-1">
-                <Card padding="sm" className="bg-white border-cream-200 shadow-sm">
-                  {currentCV ? (
-                    <MarkdownText
-                      content="Your CV is ready! **Paste a job description** below and I'll optimize your CV, write a cover letter, and draft an application email."
-                      className="text-sm text-charcoal"
-                    />
-                  ) : (
-                    <p className="text-sm text-charcoal">
-                      Upload your CV using the panel on the left, then paste a job description here to get started.
+            <div className="flex-1 flex items-center justify-center min-h-[280px]">
+              <div className="text-center max-w-sm px-6 py-8">
+                {currentCV ? (
+                  <>
+                    <div className="flex items-center justify-center gap-3 mb-3">
+                      <KarkoIcon size="md" theme="light" />
+                      <h2 className="text-lg font-bold text-navy-800">
+                        {user ? 'Ready to apply?' : 'Your AI Job Application Assistant'}
+                      </h2>
+                    </div>
+                    <p className="text-sm text-warm-gray leading-relaxed mb-6">
+                      Paste a job description and I&apos;ll create a tailored CV, cover letter, and application emails.
                     </p>
-                  )}
-                </Card>
-                <p className="text-xs text-warm-gray mt-1.5 ml-1">Just now</p>
+                    <div className="relative flex flex-col gap-2.5">
+                      {hoveredHeroMode === 'apply_directly' && (
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-navy-700 text-white text-xs rounded-xl p-3.5 shadow-xl z-50">
+                          <div className="font-semibold mb-1">Apply Directly</div>
+                          <p className="text-navy-200 leading-relaxed">Generates your optimized CV, cover letter, and email immediately.</p>
+                          <p className="text-navy-300 mt-1.5 italic">Best when you&apos;ve already read the job description.</p>
+                          <div className="mt-2 text-gold-400 font-medium">2 credits</div>
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-navy-700 rotate-45 -mt-1.5" />
+                        </div>
+                      )}
+                      {hoveredHeroMode === 'analyze_first' && (
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-navy-700 text-white text-xs rounded-xl p-3.5 shadow-xl z-50">
+                          <div className="font-semibold mb-1">Analyze First</div>
+                          <p className="text-navy-200 leading-relaxed">Shows your match score and skill gaps before generating the full application.</p>
+                          <p className="text-navy-300 mt-1.5 italic">Best when you haven&apos;t read the job description yet.</p>
+                          <div className="mt-2 text-gold-400 font-medium">0.5 credits (analysis) + 2 credits (application)</div>
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-navy-700 rotate-45 -mt-1.5" />
+                        </div>
+                      )}
+                      <button
+                        onClick={() => handleModeSelect('apply_directly')}
+                        onMouseEnter={() => setHoveredHeroMode('apply_directly')}
+                        onMouseLeave={() => setHoveredHeroMode(null)}
+                        className="flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold bg-gradient-to-r from-navy-600 to-navy-700 text-white rounded-xl hover:from-navy-700 hover:to-navy-800 transition-all shadow-md hover:shadow-lg cursor-pointer"
+                      >
+                        <Zap className="w-4 h-4" />
+                        Apply Directly
+                      </button>
+                      <button
+                        onClick={() => handleModeSelect('analyze_first')}
+                        onMouseEnter={() => setHoveredHeroMode('analyze_first')}
+                        onMouseLeave={() => setHoveredHeroMode(null)}
+                        className="flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium bg-white text-charcoal border border-cream-300 rounded-xl hover:bg-cream-50 hover:border-gold-300 hover:shadow-sm transition-all cursor-pointer"
+                      >
+                        <Search className="w-4 h-4 text-warm-gray" />
+                        Analyze Fit First
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-center gap-3 mb-3">
+                      <KarkoIcon size="md" theme="light" />
+                      <h2 className="text-lg font-bold text-navy-800">
+                        {user ? 'Upload your CV to get started' : 'Your AI Job Application Assistant'}
+                      </h2>
+                    </div>
+                    <p className="text-sm text-warm-gray leading-relaxed mb-4">
+                      {user
+                        ? 'Head to the Documents tab to upload your CV, then come back here to apply for jobs.'
+                        : 'Upload your CV, paste a job description, and I\'ll create a tailored CV, cover letter, and application emails.'}
+                    </p>
+                    {user && (
+                      <button
+                        onClick={() => onTabChange?.('cv')}
+                        className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-gradient-to-r from-navy-600 to-navy-700 text-white rounded-xl hover:from-navy-700 hover:to-navy-800 transition-all shadow-md cursor-pointer"
+                      >
+                        <Upload className="w-4 h-4" />
+                        Go to Documents
+                      </button>
+                    )}
+                  </>
+                )}
+                {!user && (
+                  <div className="mt-6 pt-5 border-t border-cream-200">
+                    <button
+                      onClick={() => { setSignUpWallTrigger('general'); setShowSignUpWall(true); }}
+                      className="w-full px-4 py-2.5 text-sm font-semibold bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-md cursor-pointer"
+                    >
+                      Sign Up Free
+                    </button>
+                    <p className="text-xs text-warm-gray mt-3">
+                      Already have an account?{' '}
+                      <button
+                        onClick={() => router.push('/auth/login')}
+                        className="text-navy-600 hover:text-navy-700 font-medium cursor-pointer"
+                      >
+                        Sign in
+                      </button>
+                    </p>
+                    <p className="text-[11px] text-warm-gray/70 mt-2 italic">
+                      Try one application free, no account needed
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}

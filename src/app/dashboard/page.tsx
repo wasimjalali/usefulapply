@@ -669,23 +669,7 @@ export default function Dashboard() {
 
         {user ? (
           <DashboardProfileMenu profile={profile} onSignOut={handleSignOut} />
-        ) : (
-          <div className="flex items-center gap-2 ml-2">
-            <Link
-              href="/auth/signup"
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-navy-700 bg-white rounded-xl hover:bg-cream-50 transition-all shadow-sm cursor-pointer border border-navy-200"
-            >
-              <User className="w-3.5 h-3.5" />
-              Sign Up
-            </Link>
-            <Link
-              href="/auth/login"
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-white bg-gradient-to-r from-gold-400 to-gold-500 rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm cursor-pointer"
-            >
-              Sign In
-            </Link>
-          </div>
-        )}
+        ) : null}
       </div>
 
       <div className="md:hidden flex items-center px-3 py-1.5 bg-white/95 backdrop-blur-sm border-b border-cream-200 flex-shrink-0 z-50">
@@ -706,14 +690,7 @@ export default function Dashboard() {
         )}
         {user ? (
           <DashboardProfileMenu profile={profile} onSignOut={handleSignOut} />
-        ) : (
-          <Link
-            href="/auth/login"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-gold-400 to-gold-500 rounded-xl cursor-pointer"
-          >
-            Sign In
-          </Link>
-        )}
+        ) : null}
       </div>
 
       <div className="hidden md:flex flex-1 overflow-hidden">
