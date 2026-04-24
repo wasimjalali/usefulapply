@@ -744,7 +744,7 @@ function SignedOutStage() {
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center">
       <div className="max-w-lg">
-        <div className="mb-6">
+        <div className="mb-6 flex justify-center">
           <KarkoIcon theme="light" size="lg" />
         </div>
         <h1 className="text-3xl font-semibold tracking-tight text-charcoal sm:text-4xl">
@@ -778,7 +778,7 @@ function UpgradeStage() {
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center">
       <div className="max-w-lg">
-        <div className="mb-6">
+        <div className="mb-6 flex justify-center">
           <KarkoIcon theme="dark" size="lg" />
         </div>
         <h1 className="text-3xl font-semibold tracking-tight text-charcoal sm:text-4xl">
