@@ -238,10 +238,19 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
       if (user) {
         try {
           const { url, error } = await uploadProfilePhoto(user.id, file);
-          if (!error && url) setProfilePhoto({ ...photo, dataUrl: url });
-        } catch { /* silent — local preview already set */ }
+          if (error) {
+            console.error('Photo upload to Supabase failed:', error);
+            toast.warning('Photo saved locally — cloud sync failed');
+          } else if (url) {
+            setProfilePhoto({ ...photo, dataUrl: url });
+          }
+        } catch (err) {
+          console.error('Photo upload exception:', err);
+        }
       }
-    } catch { /* silent */ }
+    } catch {
+      toast.error('Failed to process image');
+    }
   };
 
   // Responsive CV scaling — JS-based because CSS transform: scale can't dynamically
