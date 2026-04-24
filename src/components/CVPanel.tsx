@@ -25,7 +25,11 @@ import {
   Edit3,
   Maximize2,
   X,
+  Camera,
+  Trash2,
 } from 'lucide-react';
+import { uploadProfilePhoto } from '@/lib/supabase/storage';
+import type { ProfilePhoto } from '@/store/useCVStore';
 import { EditableCVCanvas, EditableCVCanvasRef } from './EditableCVCanvas';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,6 +41,35 @@ import { downloadBlob, getCaptureScale, getIsMobileOrTablet } from '@/lib/utils/
 // Content per page = pageHeight - 2×gutter; both the PDF slicer and the
 // preview indicator must use the same value so the line matches the cut.
 const CV_PAGE_GUTTER_PX = 40;
+
+const PHOTO_TEMPLATE_IDS = new Set(['german-ats', 'german-classic']);
+
+function resizeImage(file: File, maxSize: number, quality = 0.9): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Image load failed'));
+      img.onload = () => {
+        let w = img.naturalWidth;
+        let h = img.naturalHeight;
+        if (w > maxSize || h > maxSize) {
+          if (w > h) { h = Math.round(h * (maxSize / w)); w = maxSize; }
+          else { w = Math.round(w * (maxSize / h)); h = maxSize; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('Could not get 2d context'));
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 /**
  * Implements CSS `object-fit: cover` logic on a canvas: center-crops the source
@@ -174,6 +207,42 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
   const [pageBreaks, setPageBreaks] = useState<number[]>([]);
   const cvTemplateRef = useRef<HTMLDivElement>(null);
   const editableCVRef = useRef<EditableCVCanvasRef>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const isPhotoTemplate = PHOTO_TEMPLATE_IDS.has(selectedTemplateId);
+
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    event.target.value = '';
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file (JPG, PNG, etc.)');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+
+    try {
+      const dataUrl = await resizeImage(file, 800);
+      const photo: ProfilePhoto = {
+        id: `photo-${Date.now()}`,
+        fileName: file.name,
+        dataUrl,
+        uploadedAt: new Date().toISOString(),
+      };
+      setProfilePhoto(photo);
+
+      if (user) {
+        try {
+          const { url, error } = await uploadProfilePhoto(user.id, file);
+          if (!error && url) setProfilePhoto({ ...photo, dataUrl: url });
+        } catch { /* silent — local preview already set */ }
+      }
+    } catch { /* silent */ }
+  };
 
   // Responsive CV scaling — JS-based because CSS transform: scale can't dynamically
   // compensate for the CV template's fixed width (8.5in / 210mm).
@@ -888,6 +957,42 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
           <span>Templates</span>
           {showTemplateSelector ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
+      )}
+
+      {/* Photo upload button — only for photo-supporting templates */}
+      {!isEditMode && isPhotoTemplate && (
+        <>
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoUpload}
+            className="hidden"
+          />
+          {profilePhoto ? (
+            <button
+              onClick={() => photoInputRef.current?.click()}
+              className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium bg-white border border-cream-200 rounded-[20px] hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0 shadow-sm"
+              title="Change photo"
+            >
+              <Camera className="w-4 h-4 text-navy-500" />
+              <span className="max-w-[80px] truncate text-charcoal">{profilePhoto.fileName}</span>
+              <Trash2
+                className="w-3.5 h-3.5 text-warm-gray hover:text-red-500 transition-colors"
+                onClick={(e) => { e.stopPropagation(); setProfilePhoto(null); }}
+              />
+            </button>
+          ) : (
+            <button
+              onClick={() => photoInputRef.current?.click()}
+              className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium bg-white border border-cream-200 rounded-[20px] hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0 shadow-sm"
+              title="Upload photo for CV"
+            >
+              <Camera className="w-4 h-4 text-navy-500" />
+              <span>Add Photo</span>
+            </button>
+          )}
+        </>
       )}
 
       {/* Edit button */}

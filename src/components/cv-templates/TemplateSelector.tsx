@@ -261,8 +261,8 @@ const getTemplateRecommendation = (templateId: string) => {
     case 'premium-ats': return 'Recommended for most jobs';
     case 'modern-professional': return 'Best for tech & startups';
     case 'executive': return 'Best for senior roles';
-    case 'german-ats': return 'For German job market';
-    case 'german-classic': return 'German CV, single-column';
+    case 'german-ats': return 'Photo · A4 · EU market';
+    case 'german-classic': return 'Photo · A4 · Single-column';
     case 'classic-green': return 'Fresh design, all industries';
     default: return '';
   }

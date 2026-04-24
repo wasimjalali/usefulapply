@@ -550,11 +550,11 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
     sectionOrder: ['header', 'summary', 'experience', 'projects', 'skills', 'education', 'certifications', 'languages'],
   },
 
-  // 4. German ATS - For German job market (with photo support)
+  // 4. Portrait ATS - Two-column with photo (EU/A4 format)
   {
     id: 'german-ats',
-    name: '🇩🇪 German ATS (with Photo)',
-    description: 'German CV format with photo placeholder. CEFR language levels, German section headers.',
+    name: 'Portrait ATS',
+    description: 'Two-column A4 layout with photo. CEFR language levels, ideal for EU job markets.',
     region: 'EU',
     style: 'classic',
     includesPhoto: true,
@@ -575,11 +575,11 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
     sectionOrder: ['header', 'photo', 'summary', 'experience', 'projects', 'education', 'skills', 'languages', 'certifications'],
   },
 
-  // 5. German Classic - Single-column with photo (better ATS than two-column)
+  // 5. Portrait Classic - Single-column with photo (better ATS than two-column)
   {
     id: 'german-classic',
-    name: '🇩🇪 German Classic',
-    description: 'Single-column German CV with photo. Maximum ATS compatibility, clean charcoal design.',
+    name: 'Portrait Classic',
+    description: 'Single-column A4 layout with photo. Maximum ATS compatibility, clean charcoal design.',
     region: 'EU',
     style: 'classic',
     includesPhoto: true,
