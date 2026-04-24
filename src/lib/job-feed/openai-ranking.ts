@@ -7,7 +7,8 @@ import type {
 } from '@/lib/job-feed/types';
 import type { JobFeedSettings } from '@/lib/supabase/types';
 
-const JOB_FEED_RANKING_MODEL = process.env.AZURE_OPENAI_DEPLOYMENT ?? 'gpt-4.1-mini';
+const AZURE_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT ?? 'gpt-4.1-mini-1';
+const AZURE_MODEL_NAME = 'gpt-4.1-mini';
 
 type JobFeedRankingDecision = 'strong' | 'good' | 'skip';
 
@@ -54,7 +55,8 @@ function getAzureClient(): AzureOpenAI {
     cachedClient = new AzureOpenAI({
       endpoint: process.env.AZURE_OPENAI_ENDPOINT!,
       apiKey: process.env.AZURE_OPENAI_API_KEY!,
-      apiVersion: process.env.AZURE_OPENAI_API_VERSION ?? '2025-01-01-preview',
+      apiVersion: process.env.AZURE_OPENAI_API_VERSION ?? '2024-04-01-preview',
+      deployment: AZURE_DEPLOYMENT,
     });
   }
   return cachedClient;
@@ -86,7 +88,7 @@ export async function rankWithOpenAI(params: {
     const userPrompt = buildRankingPrompt(settings, candidates, visibleCap);
 
     const response = await client.chat.completions.create({
-      model: JOB_FEED_RANKING_MODEL,
+      model: AZURE_DEPLOYMENT,
       temperature: 0.2,
       max_tokens: 2200,
       response_format: { type: 'json_object' },
@@ -102,7 +104,7 @@ export async function rankWithOpenAI(params: {
     const outputTokens = response.usage?.completion_tokens ?? 0;
 
     console.log(
-      `[JobFeedRanking] ${JOB_FEED_RANKING_MODEL} | ${inputTokens}in/${outputTokens}out | ${latencyMs}ms`
+      `[JobFeedRanking] ${AZURE_MODEL_NAME} (${AZURE_DEPLOYMENT}) | ${inputTokens}in/${outputTokens}out | ${latencyMs}ms`
     );
 
     const parsed = JSON.parse(content) as JobFeedRankingModelResponse;
@@ -113,7 +115,7 @@ export async function rankWithOpenAI(params: {
         status: 'llm_failed_fallback',
         items: deterministicItems,
         errorMessage: 'The ranking model response was incomplete or invalid, so the deterministic fallback was used.',
-        model: { provider: 'openai', name: JOB_FEED_RANKING_MODEL, inputTokens, outputTokens, latencyMs },
+        model: { provider: 'openai', name: AZURE_MODEL_NAME, inputTokens, outputTokens, latencyMs },
       };
     }
 
@@ -121,7 +123,7 @@ export async function rankWithOpenAI(params: {
       status: 'completed_llm',
       items: llmItems,
       errorMessage: null,
-      model: { provider: 'openai', name: JOB_FEED_RANKING_MODEL, inputTokens, outputTokens, latencyMs },
+      model: { provider: 'openai', name: AZURE_MODEL_NAME, inputTokens, outputTokens, latencyMs },
     };
   } catch (error) {
     return {
@@ -146,7 +148,7 @@ export function buildRankingRequestBody(params: {
 } {
   const cap = params.visibleCap ?? JOB_FEED_VISIBLE_MAX_COUNT;
   return {
-    model: JOB_FEED_RANKING_MODEL,
+    model: AZURE_DEPLOYMENT,
     temperature: 0.2,
     max_tokens: 2200,
     response_format: { type: 'json_object' },
