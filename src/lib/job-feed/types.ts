@@ -40,6 +40,7 @@ export interface JobFeedOverviewResponse {
   jobs: JobFeedFeedItem[];
   state: JobFeedOverviewState;
   foundationMode: boolean;
+  feedCap: number;
 }
 
 export interface JobFeedRunDiagnostics {
@@ -76,6 +77,16 @@ export interface JobFeedSettingsInput {
   employment_types: JobFeedSettings['employment_types'];
   work_authorization_status: JobFeedSettings['work_authorization_status'];
   aggressiveness: JobFeedSettings['aggressiveness'];
+  user_skills: string[];
+}
+
+export interface JobFeedSettingsSuggestion {
+  target_roles: string[];
+  preferred_locations: string[];
+  user_skills: string[];
+  languages: string[];
+  seniority_target: JobFeedSettings['seniority_target'];
+  source: 'cv';
 }
 
 export interface JobFeedSearchPlanItem {
@@ -193,6 +204,7 @@ export interface JobFeedRankingCandidate {
     preferredLocationMatched: boolean;
     hasApplyUrl: boolean;
     hasEmploymentType: boolean;
+    skillOverlapScore: number;
   };
 }
 

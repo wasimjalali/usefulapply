@@ -1,5 +1,8 @@
 import { cleanupHistoricalJobFeedData } from '@/lib/job-feed/cleanup';
-import { listDueJobFeedUsers, runJobFeedFoundationWorkflow } from '@/lib/job-feed/server';
+import {
+  listDueJobFeedUsers,
+  runJobFeedFoundationWorkflow,
+} from '@/lib/job-feed/server';
 import {
   inngest,
   JOB_FEED_RUN_REQUESTED_EVENT,

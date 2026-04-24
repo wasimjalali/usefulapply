@@ -9,6 +9,7 @@ import type {
   Json,
 } from '@/lib/supabase/types';
 import { canAccessJobFeed, getLocalDateKey, getTimeZoneParts, isJobFeedConfigured } from '@/lib/job-feed/helpers';
+import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
 import type {
   JobFeedFeedbackAction,
   JobFeedFeedItem,
@@ -24,7 +25,6 @@ import type {
 import { ingestJobFeedRunJobs } from '@/lib/job-feed/ingestion';
 import { prepareJobFeedRankingCandidates, prefilterJobFeedJobs } from '@/lib/job-feed/prefilter';
 import { rankJobFeedCandidates } from '@/lib/job-feed/ranking';
-import { estimateCost } from '@/lib/models';
 
 type JobFeedRunUpdate = Partial<Pick<JobFeedRun,
   | 'status'
@@ -47,6 +47,17 @@ export interface DueJobFeedUser {
 interface LatestJobFeedItemsResult {
   run: JobFeedRun | null;
   items: JobFeedFeedItem[];
+}
+
+async function getUserSubscriptionTierAdmin(userId: string): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+  const { data } = await admin
+    .from('profiles')
+    .select('subscription_tier')
+    .eq('id', userId)
+    .single();
+  return data?.subscription_tier ?? 'plus';
 }
 
 export async function getJobFeedSettingsAdmin(userId: string): Promise<JobFeedSettings | null> {
@@ -386,7 +397,7 @@ export function getJobFeedRunDiagnostics(run: JobFeedRun | null): JobFeedRunDiag
   const rankingLatencyMs = readNumericJsonValue(rankingModel?.latency_ms);
   const orchestrator = metadata.orchestrator === 'inngest' ? 'inngest' : 'direct';
   const rankingEstimatedCostUsd = rankingInputTokens !== null && rankingOutputTokens !== null
-    ? estimateCost('fit_assessment', rankingInputTokens, rankingOutputTokens)
+    ? estimateJobFeedRankingCost(rankingInputTokens, rankingOutputTokens, rankingModel)
     : null;
 
   return {
@@ -501,10 +512,15 @@ export async function runJobFeedFoundationWorkflow(params: {
   });
 
   try {
+    const subscriptionTier = await getUserSubscriptionTierAdmin(userId);
+    const tierLimits = getJobFeedTierLimits(subscriptionTier);
+
     const ingestion = await ingestJobFeedRunJobs({
       runId: run.id,
       userId,
       settings,
+      maxQueries: tierLimits.maxDailyQueries,
+      maxRawJobs: tierLimits.maxRawJobsPerRun,
     });
 
     if (ingestion.rawJobsFetched === 0 && ingestion.failedFetches.length === ingestion.searchPlan.length && ingestion.searchPlan.length > 0) {
@@ -514,6 +530,7 @@ export async function runJobFeedFoundationWorkflow(params: {
     const prefilter = prefilterJobFeedJobs({
       settings,
       jobs: ingestion.canonicalJobs,
+      hardCap: tierLimits.prefilterHardCap,
     });
 
     const rankingPrep = prepareJobFeedRankingCandidates({
@@ -523,6 +540,7 @@ export async function runJobFeedFoundationWorkflow(params: {
     const rankingResult = await rankJobFeedCandidates({
       settings,
       candidates: rankingPrep.candidates,
+      visibleCap: tierLimits.visibleCount,
     });
     const rankedPreviewItems = rankingResult.items.map(toRankedPreviewRecord);
     const materializedRanking = await persistJobFeedRankedItemsForRunAdmin({
@@ -1091,6 +1109,18 @@ function buildWorkflowOperationalTail(ingestion: {
 
   return ` ${notes.join(', and ')}.`;
 }
+
+// GPT-4.1 Mini pricing: $0.40/M input, $1.60/M output
+function estimateJobFeedRankingCost(
+  inputTokens: number,
+  outputTokens: number,
+  _modelMeta: Record<string, Json> | null
+): number {
+  const inputRate = 0.40;
+  const outputRate = 1.60;
+  return (inputTokens / 1_000_000) * inputRate + (outputTokens / 1_000_000) * outputRate;
+}
+
 
 function toJson(value: unknown): Json {
   if (

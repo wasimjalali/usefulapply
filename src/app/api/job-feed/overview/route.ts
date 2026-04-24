@@ -1,12 +1,20 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { canAccessJobFeed, getJobFeedOverviewState } from '@/lib/job-feed/helpers';
+import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
 import { getJobFeedRunDiagnostics, listLatestJobFeedItemsAdmin } from '@/lib/job-feed/server';
+import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 
 export const runtime = 'nodejs';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const ip = getClientIP(request);
+    const { allowed } = checkRateLimit(`job-feed-overview:${ip}`, RATE_LIMITS['job-feed-overview']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
     const supabase = await createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
     const typedSupabase = supabase as any;
@@ -23,10 +31,13 @@ export async function GET() {
       .single();
 
     if (profileError || !profile) {
+      console.error('[job-feed/overview] profile load error:', profileError?.message);
       return NextResponse.json({ error: 'Failed to load profile.' }, { status: 500 });
     }
 
     const canAccess = canAccessJobFeed(profile.subscription_tier);
+
+    const tierLimits = getJobFeedTierLimits(profile.subscription_tier);
 
     if (!canAccess) {
       return NextResponse.json({
@@ -38,6 +49,7 @@ export async function GET() {
         jobs: [],
         state: 'upgrade_required',
         foundationMode: true,
+        feedCap: tierLimits.visibleCount,
       });
     }
 
@@ -57,11 +69,13 @@ export async function GET() {
     ]);
 
     if (settingsError) {
-      return NextResponse.json({ error: settingsError.message }, { status: 500 });
+      console.error('[job-feed/overview] settings load error:', settingsError.message);
+      return NextResponse.json({ error: 'Failed to load job feed overview.' }, { status: 500 });
     }
 
     if (runError) {
-      return NextResponse.json({ error: runError.message }, { status: 500 });
+      console.error('[job-feed/overview] run load error:', runError.message);
+      return NextResponse.json({ error: 'Failed to load job feed overview.' }, { status: 500 });
     }
 
     const feedItems = latestRun
@@ -90,11 +104,10 @@ export async function GET() {
         jobsCount: jobs.length,
       }),
       foundationMode: true,
+      feedCap: tierLimits.visibleCount,
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to load job feed overview.' },
-      { status: 500 }
-    );
+    console.error('[job-feed/overview] unexpected error:', error);
+    return NextResponse.json({ error: 'Failed to load job feed overview.' }, { status: 500 });
   }
 }

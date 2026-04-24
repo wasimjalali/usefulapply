@@ -6,6 +6,8 @@ import {
   recordJobFeedFeedbackAdmin,
   toJobFeedFeedbackState,
 } from '@/lib/job-feed/server';
+import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { getPostHogServer } from '@/lib/posthog-server';
 import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
@@ -14,6 +16,12 @@ const SUPPORTED_ACTIONS = new Set(['opened', 'saved', 'dismissed']);
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIP(request);
+    const { allowed } = checkRateLimit(`job-feed-feedback:${ip}`, RATE_LIMITS['job-feed-feedback']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
     const supabase = await createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand all of the newly added tables here.
     const typedSupabase = supabase as any;
@@ -67,13 +75,23 @@ export async function POST(request: NextRequest) {
       latestRunId: validatedRunId,
     });
 
+    const posthog = getPostHogServer();
+    posthog.capture({
+      distinctId: user.id,
+      event: 'job_feed_feedback',
+      properties: {
+        action,
+        job_id: jobId,
+        company: job.company,
+        title: job.title,
+      },
+    });
+
     return NextResponse.json({
       feedback: toJobFeedFeedbackState(feedback),
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to record job feed feedback.' },
-      { status: 500 }
-    );
+    console.error('[job-feed/feedback] unexpected error:', error);
+    return NextResponse.json({ error: 'Failed to record job feed feedback.' }, { status: 500 });
   }
 }

@@ -169,15 +169,19 @@ export function SelectField({
   value,
   options,
   onChange,
+  help,
 }: {
   label: string;
   value: string;
-  options: ReadonlyArray<{ value: string; label: string }>;
+  options: ReadonlyArray<{ value: string; label: string; description?: string }>;
   onChange: (value: string) => void;
+  help?: string;
 }) {
+  const selectedOption = options.find((o) => o.value === value);
   return (
     <label className="block">
       <span className="mb-2 block text-sm font-semibold text-charcoal">{label}</span>
+      {help && <span className="mb-2 block text-xs text-warm-gray">{help}</span>}
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -189,6 +193,9 @@ export function SelectField({
           </option>
         ))}
       </select>
+      {selectedOption?.description && (
+        <span className="mt-1.5 block text-xs text-warm-gray">{selectedOption.description}</span>
+      )}
     </label>
   );
 }

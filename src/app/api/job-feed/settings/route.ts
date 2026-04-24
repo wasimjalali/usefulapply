@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { normalizeJobFeedSettingsInput } from '@/lib/job-feed/helpers';
+import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const ip = getClientIP(request);
+    const { allowed } = checkRateLimit(`job-feed-settings:${ip}`, RATE_LIMITS['job-feed-settings']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
     const supabase = await createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
     const typedSupabase = supabase as any;
@@ -22,20 +29,25 @@ export async function GET() {
       .maybeSingle();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('[job-feed/settings] GET error:', error.message);
+      return NextResponse.json({ error: 'Failed to load job feed settings.' }, { status: 500 });
     }
 
     return NextResponse.json({ settings: data ?? null });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to load job feed settings.' },
-      { status: 500 }
-    );
+    console.error('[job-feed/settings] GET unexpected error:', error);
+    return NextResponse.json({ error: 'Failed to load job feed settings.' }, { status: 500 });
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
+    const ip = getClientIP(request);
+    const { allowed } = checkRateLimit(`job-feed-settings:${ip}`, RATE_LIMITS['job-feed-settings']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
     const supabase = await createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
     const typedSupabase = supabase as any;
@@ -55,7 +67,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to load profile.' }, { status: 500 });
     }
 
-    if (!['plus', 'max', 'pro'].includes(profile.subscription_tier)) {
+    if (!['plus', 'max'].includes(profile.subscription_tier)) {
       return NextResponse.json(
         { error: 'Job Feed is available on paid plans only.' },
         { status: 403 }
@@ -105,6 +117,7 @@ export async function PUT(request: NextRequest) {
         employment_types: normalized.data.employment_types,
         work_authorization_status: normalized.data.work_authorization_status,
         aggressiveness: normalized.data.aggressiveness,
+        user_skills: normalized.data.user_skills,
       }, {
         onConflict: 'user_id',
       })
@@ -112,14 +125,13 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('[job-feed/settings] PUT error:', error.message);
+      return NextResponse.json({ error: 'Failed to save job feed settings.' }, { status: 500 });
     }
 
     return NextResponse.json({ settings: data });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to save job feed settings.' },
-      { status: 500 }
-    );
+    console.error('[job-feed/settings] PUT unexpected error:', error);
+    return NextResponse.json({ error: 'Failed to save job feed settings.' }, { status: 500 });
   }
 }

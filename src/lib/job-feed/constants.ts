@@ -1,4 +1,4 @@
-export const PREMIUM_JOB_FEED_TIERS = ['plus', 'max', 'pro'] as const;
+export const PREMIUM_JOB_FEED_TIERS = ['plus', 'max'] as const;
 export const JOB_FEED_PROVIDER = 'serpapi' as const;
 export const JOB_FEED_MAX_DAILY_QUERIES = 4;
 export const JOB_FEED_MAX_RAW_JOBS_PER_RUN = 40;
@@ -6,6 +6,35 @@ export const JOB_FEED_PREFILTER_TARGET_MIN = 8;
 export const JOB_FEED_PREFILTER_HARD_CAP = 15;
 export const JOB_FEED_VISIBLE_DEFAULT_COUNT = 5;
 export const JOB_FEED_VISIBLE_MAX_COUNT = 10;
+
+export type JobFeedTier = 'plus' | 'max';
+
+export interface JobFeedTierLimits {
+  maxDailyQueries: number;
+  maxRawJobsPerRun: number;
+  prefilterHardCap: number;
+  visibleCount: number;
+}
+
+export const JOB_FEED_TIER_LIMITS: Record<JobFeedTier, JobFeedTierLimits> = {
+  plus: {
+    maxDailyQueries: 2,
+    maxRawJobsPerRun: 20,
+    prefilterHardCap: 10,
+    visibleCount: 5,
+  },
+  max: {
+    maxDailyQueries: 4,
+    maxRawJobsPerRun: 40,
+    prefilterHardCap: 15,
+    visibleCount: 10,
+  },
+};
+
+export function getJobFeedTierLimits(subscriptionTier: string): JobFeedTierLimits {
+  if (subscriptionTier === 'max') return JOB_FEED_TIER_LIMITS.max;
+  return JOB_FEED_TIER_LIMITS.plus;
+}
 export const JOB_FEED_ALLOWED_FIT_LABELS = ['strong', 'good'] as const;
 export const JOB_FEED_RAW_PAYLOAD_RETENTION_DAYS = 14;
 export const JOB_FEED_RUN_METADATA_RETENTION_DAYS = 30;
@@ -54,9 +83,9 @@ export const JOB_FEED_WORK_AUTH_OPTIONS = [
 ] as const;
 
 export const JOB_FEED_AGGRESSIVENESS_OPTIONS = [
-  { value: 'strict', label: 'Strict' },
-  { value: 'balanced', label: 'Balanced' },
-  { value: 'broad', label: 'Broad' },
+  { value: 'strict', label: 'Strict', description: 'Exact role and location matches only. Fewer but highly targeted results.' },
+  { value: 'balanced', label: 'Balanced', description: 'Core criteria matched, some flexibility on adjacent roles and locations.' },
+  { value: 'broad', label: 'Broad', description: 'Wider net — includes adjacent roles, nearby cities, and flexible requirements.' },
 ] as const;
 
 export const JOB_FEED_SUGGESTED_ROLES = [

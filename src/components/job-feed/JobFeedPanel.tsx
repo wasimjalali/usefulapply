@@ -11,6 +11,7 @@ import {
   CalendarClock,
   ChevronDown,
   ChevronUp,
+  FileText,
   Loader2,
   MapPin,
   PauseCircle,
@@ -45,6 +46,7 @@ import type {
   JobFeedOverviewState,
   JobFeedRunDiagnostics,
   JobFeedSettingsInput,
+  JobFeedSettingsSuggestion,
 } from '@/lib/job-feed/types';
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore, type ApplicationSession as StoreApplicationSession } from '@/store/useSessionStore';
@@ -981,12 +983,41 @@ function JobFeedOnboardingWizard({
 }) {
   const [isLocationConstraintOpen, setIsLocationConstraintOpen] = useState(form.preferred_locations.length > 0);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [isLoadingCVSuggestions, setIsLoadingCVSuggestions] = useState(false);
+  const [cvSuggestionApplied, setCVSuggestionApplied] = useState(false);
   const browserTimeZone = getBrowserTimeZone();
   const hasRecordedConsent = Boolean(overview?.settings?.consent_accepted_at);
   const canSave = canSaveJobFeedSettings(form, hasRecordedConsent);
   const consentReady = form.consent_accepted || hasRecordedConsent;
   const deliveryLabel = `${formatDeliveryHourLabel(form.delivery_hour_local)} in ${form.user_timezone}`;
   const isEditing = Boolean(overview?.settings);
+
+  const handleTakeFromCV = useCallback(async () => {
+    setIsLoadingCVSuggestions(true);
+    try {
+      const response = await fetch('/api/job-feed/settings/suggest');
+      const data = await response.json();
+      if (!response.ok || !data.suggestion) return;
+
+      const suggestion = data.suggestion as JobFeedSettingsSuggestion;
+      onFormChange((prev) => ({
+        ...prev,
+        target_roles: suggestion.target_roles.length > 0 ? suggestion.target_roles : prev.target_roles,
+        preferred_locations: suggestion.preferred_locations.length > 0 ? suggestion.preferred_locations : prev.preferred_locations,
+        user_skills: suggestion.user_skills.length > 0 ? suggestion.user_skills : prev.user_skills,
+        languages: suggestion.languages.length > 0 ? suggestion.languages : prev.languages,
+        seniority_target: suggestion.seniority_target ?? prev.seniority_target,
+      }));
+      setCVSuggestionApplied(true);
+      if (suggestion.preferred_locations.length > 0) {
+        setIsLocationConstraintOpen(true);
+      }
+    } catch {
+      // silently ignore — user can still fill manually
+    } finally {
+      setIsLoadingCVSuggestions(false);
+    }
+  }, [onFormChange]);
 
   const chunk1Done = form.target_roles.length > 0;
   const showChunk2 = chunk1Done || isEditing;
@@ -1011,9 +1042,25 @@ function JobFeedOnboardingWizard({
               {isEditing ? 'Changes save when you press save below.' : 'Fill in the basics and your first feed will be ready by tomorrow.'}
             </p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-full p-2 text-warm-gray hover:bg-cream-100 hover:text-charcoal">
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {!isEditing && !cvSuggestionApplied && (
+              <button
+                type="button"
+                onClick={() => void handleTakeFromCV()}
+                disabled={isLoadingCVSuggestions}
+                className="flex items-center gap-1.5 rounded-full border border-navy-200 bg-navy-50 px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:bg-navy-100 disabled:opacity-50"
+              >
+                {isLoadingCVSuggestions ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                Take from my CV
+              </button>
+            )}
+            {cvSuggestionApplied && (
+              <span className="text-xs text-green-600">CV data applied</span>
+            )}
+            <button type="button" onClick={onClose} className="rounded-full p-2 text-warm-gray hover:bg-cream-100 hover:text-charcoal">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1190,6 +1237,26 @@ function JobFeedOnboardingWizard({
                     }))}
                     placeholder="120000"
                   />
+
+                  <FieldGroup label="Your skills" help="Used to match you with jobs that need what you bring. Imported from your CV or add manually.">
+                    <ChipField
+                      values={form.user_skills}
+                      suggestions={[]}
+                      placeholder="Add a skill (e.g. Python, React, SQL)"
+                      onChange={(user_skills) => onFormChange((prev) => ({ ...prev, user_skills }))}
+                    />
+                    {form.user_skills.length === 0 && !cvSuggestionApplied && (
+                      <button
+                        type="button"
+                        onClick={() => void handleTakeFromCV()}
+                        disabled={isLoadingCVSuggestions}
+                        className="mt-2 flex items-center gap-1 text-xs font-medium text-navy-600 hover:text-navy-700 disabled:opacity-50"
+                      >
+                        {isLoadingCVSuggestions ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+                        Import skills from CV
+                      </button>
+                    )}
+                  </FieldGroup>
 
                   <SelectField
                     label="Work authorization"

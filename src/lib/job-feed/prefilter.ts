@@ -33,8 +33,9 @@ const SENIORITY_RANK: Record<NonNullable<JobFeedSettings['seniority_target']>, n
 export function prefilterJobFeedJobs(params: {
   settings: JobFeedSettings;
   jobs: JobFeedCanonicalJob[];
+  hardCap?: number;
 }): JobFeedPrefilterResult {
-  const { settings, jobs } = params;
+  const { settings, jobs, hardCap = JOB_FEED_PREFILTER_HARD_CAP } = params;
   const rejectionsByReason = { ...EMPTY_REJECTIONS };
   const survivorsWithScores: Array<{ job: JobFeedCanonicalJob; score: number }> = [];
 
@@ -67,7 +68,7 @@ export function prefilterJobFeedJobs(params: {
   });
 
   const survivors = survivorsWithScores.map((item) => item.job);
-  const shortlist = survivors.slice(0, JOB_FEED_PREFILTER_HARD_CAP);
+  const shortlist = survivors.slice(0, hardCap);
 
   return {
     survivors,
@@ -113,6 +114,7 @@ export function prepareJobFeedRankingCandidates(params: {
           preferredLocationMatched: scoreBreakdown.preferredLocationMatched,
           hasApplyUrl: scoreBreakdown.hasApplyUrl,
           hasEmploymentType: scoreBreakdown.hasEmploymentType,
+          skillOverlapScore: scoreBreakdown.skillOverlapScore,
         },
       };
     }),
@@ -229,6 +231,7 @@ function getShortlistScoreBreakdown(job: JobFeedCanonicalJob, settings: JobFeedS
   const preferredLocationMatched = matchesPreferredLocation(job, settings.preferred_locations);
   const hasApplyUrl = Boolean(job.apply_url);
   const hasEmploymentType = Boolean(job.employment_type);
+  const skillOverlapScore = getSkillOverlapScore(job, settings);
 
   return {
     targetRoleScore,
@@ -239,12 +242,14 @@ function getShortlistScoreBreakdown(job: JobFeedCanonicalJob, settings: JobFeedS
     preferredLocationMatched,
     hasApplyUrl,
     hasEmploymentType,
+    skillOverlapScore,
     totalScore:
       targetRoleScore
       + adjacentRoleScore
       + freshnessScore
       + salaryScore
       + remoteAlignmentScore
+      + skillOverlapScore
       + (preferredLocationMatched ? 4 : 0)
       + (hasApplyUrl ? 2 : 0)
       + (hasEmploymentType ? 1 : 0),
@@ -353,6 +358,29 @@ function getRemoteAlignmentScore(job: JobFeedCanonicalJob, settings: JobFeedSett
     default:
       return job.work_mode !== 'unknown' ? 2 : 0;
   }
+}
+
+function getSkillOverlapScore(job: JobFeedCanonicalJob, settings: JobFeedSettings): number {
+  const userSkills = settings.user_skills;
+  if (!userSkills || userSkills.length === 0) return 0;
+
+  const jobText = normalizeText(`${job.title} ${job.description ?? ''}`);
+  if (!jobText) return 0;
+
+  let matchCount = 0;
+  for (const skill of userSkills) {
+    const normalizedSkill = normalizeText(skill);
+    if (!normalizedSkill) continue;
+    if (jobText.includes(normalizedSkill)) {
+      matchCount++;
+    }
+  }
+
+  if (matchCount === 0) return 0;
+  if (matchCount >= 6) return 12;
+  if (matchCount >= 4) return 10;
+  if (matchCount >= 2) return 7;
+  return 4;
 }
 
 function matchesPreferredLocation(job: JobFeedCanonicalJob, preferredLocations: string[]): boolean {

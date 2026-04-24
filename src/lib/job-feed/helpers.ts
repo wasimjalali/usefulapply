@@ -13,6 +13,7 @@ import type { JobFeedOverviewState, JobFeedSettingsInput } from '@/lib/job-feed/
 import type { JobFeedRun, JobFeedSettings } from '@/lib/supabase/types';
 
 const MAX_LIST_ITEMS = 8;
+const MAX_SKILLS_ITEMS = 50;
 const MAX_ITEM_LENGTH = 80;
 
 const MARKET_VALUES = new Set<string>(JOB_FEED_MARKET_OPTIONS.map((option) => option.value));
@@ -113,6 +114,7 @@ export function createDefaultJobFeedInput(timeZone?: string): JobFeedSettingsInp
     employment_types: [...JOB_FEED_DEFAULT_SETTINGS.employment_types] as JobFeedSettingsInput['employment_types'],
     work_authorization_status: JOB_FEED_DEFAULT_SETTINGS.work_authorization_status,
     aggressiveness: JOB_FEED_DEFAULT_SETTINGS.aggressiveness,
+    user_skills: [],
     consent_accepted: false,
   };
 }
@@ -141,6 +143,7 @@ export function toJobFeedInput(settings: JobFeedSettings | null, fallbackTimeZon
       : [...JOB_FEED_DEFAULT_SETTINGS.employment_types] as JobFeedSettingsInput['employment_types'],
     work_authorization_status: settings.work_authorization_status ?? JOB_FEED_DEFAULT_SETTINGS.work_authorization_status,
     aggressiveness: settings.aggressiveness,
+    user_skills: settings.user_skills ?? [],
   };
 }
 
@@ -202,6 +205,8 @@ export function normalizeJobFeedSettingsInput(input: unknown): { data?: JobFeedS
     return { error: 'Salary floor cannot be negative.' };
   }
 
+  const userSkills = sanitizeStringArray(payload.user_skills, MAX_SKILLS_ITEMS);
+
   const data: JobFeedSettingsInput = {
     enabled: Boolean(payload.enabled),
     consent_accepted: Boolean(payload.consent_accepted),
@@ -219,12 +224,13 @@ export function normalizeJobFeedSettingsInput(input: unknown): { data?: JobFeedS
     employment_types: employmentTypes,
     work_authorization_status: (workAuthorizationStatus ?? null) as JobFeedSettingsInput['work_authorization_status'],
     aggressiveness: aggressiveness as JobFeedSettingsInput['aggressiveness'],
+    user_skills: userSkills,
   };
 
   return { data };
 }
 
-function sanitizeStringArray(value: unknown): string[] {
+function sanitizeStringArray(value: unknown, maxItems: number = MAX_LIST_ITEMS): string[] {
   if (!Array.isArray(value)) return [];
 
   const uniqueValues = new Set<string>();
@@ -233,7 +239,7 @@ function sanitizeStringArray(value: unknown): string[] {
     const normalized = asTrimmedString(item, MAX_ITEM_LENGTH);
     if (!normalized) continue;
     uniqueValues.add(normalized);
-    if (uniqueValues.size >= MAX_LIST_ITEMS) break;
+    if (uniqueValues.size >= maxItems) break;
   }
 
   return Array.from(uniqueValues);

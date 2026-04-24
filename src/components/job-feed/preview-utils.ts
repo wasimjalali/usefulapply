@@ -113,6 +113,7 @@ export function buildJobFeedPreviewSnapshot(
         jobs: [],
         state: 'upgrade_required',
         foundationMode: true,
+        feedCap: 10,
       },
       form: configuredForm,
     };
@@ -135,6 +136,7 @@ export function buildJobFeedPreviewSnapshot(
         jobs: [],
         state: 'setup_required',
         foundationMode: true,
+        feedCap: 10,
       },
       form: setupForm,
     };
@@ -156,6 +158,7 @@ export function buildJobFeedPreviewSnapshot(
         jobs: [],
         state: 'awaiting_first_run',
         foundationMode: true,
+        feedCap: 10,
       },
       form: formByMode,
     };
@@ -172,6 +175,7 @@ export function buildJobFeedPreviewSnapshot(
         jobs: [],
         state: 'paused',
         foundationMode: true,
+        feedCap: 10,
       },
       form: formByMode,
     };
@@ -210,6 +214,7 @@ export function buildJobFeedPreviewSnapshot(
       jobs: jobsForMode,
       state: mode,
       foundationMode: true,
+      feedCap: 10,
     },
     form: formByMode,
   };
@@ -236,6 +241,7 @@ export function toPreviewJobFeedSettings(form: JobFeedSettingsInput): NonNullabl
     employment_types: form.employment_types,
     work_authorization_status: form.work_authorization_status,
     aggressiveness: form.aggressiveness,
+    user_skills: form.user_skills,
     created_at: now,
     updated_at: now,
   };

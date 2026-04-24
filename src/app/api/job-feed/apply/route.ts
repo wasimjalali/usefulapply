@@ -9,12 +9,20 @@ import {
   recordJobFeedFeedbackAdmin,
   toJobFeedFeedbackState,
 } from '@/lib/job-feed/server';
+import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { getPostHogServer } from '@/lib/posthog-server';
 import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIP(request);
+    const { allowed } = checkRateLimit(`job-feed-apply:${ip}`, RATE_LIMITS['job-feed-apply']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
     const supabase = await createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand all of the newly added tables here.
     const typedSupabase = supabase as any;
@@ -81,15 +89,25 @@ export async function POST(request: NextRequest) {
       applicationSessionId: session.id,
     });
 
+    const posthog = getPostHogServer();
+    posthog.capture({
+      distinctId: user.id,
+      event: 'job_feed_applied',
+      properties: {
+        job_id: jobId,
+        company: job.company,
+        title: job.title,
+        session_created: created,
+      },
+    });
+
     return NextResponse.json({
       created,
       session,
       feedback: toJobFeedFeedbackState(feedback),
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to start the Karko AI application handoff.' },
-      { status: 500 }
-    );
+    console.error('[job-feed/apply] unexpected error:', error);
+    return NextResponse.json({ error: 'Failed to start the application handoff.' }, { status: 500 });
   }
 }

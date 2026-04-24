@@ -91,13 +91,18 @@ export function getClientIP(request: Request): string {
 
 // Pre-configured rate limits per route
 export const RATE_LIMITS = {
-  'agent-v2':    { limit: 5,  windowMs: 60_000 },
-  'parse-cv':    { limit: 10, windowMs: 60_000 },
-  'chat':        { limit: 20, windowMs: 60_000 },
-  'contact':     { limit: 3,  windowMs: 60_000 },
-  'generate-pdf': { limit: 10, windowMs: 60_000 },
-  'regenerate':  { limit: 10, windowMs: 60_000 },
-  'signup':      { limit: 3,  windowMs: 60_000 },
+  'agent-v2':           { limit: 5,  windowMs: 60_000 },
+  'parse-cv':           { limit: 10, windowMs: 60_000 },
+  'chat':               { limit: 20, windowMs: 60_000 },
+  'contact':            { limit: 3,  windowMs: 60_000 },
+  'generate-pdf':       { limit: 10, windowMs: 60_000 },
+  'regenerate':         { limit: 10, windowMs: 60_000 },
+  'signup':             { limit: 3,  windowMs: 60_000 },
+  'job-feed-settings':  { limit: 10, windowMs: 60_000 },
+  'job-feed-overview':  { limit: 15, windowMs: 60_000 },
+  'job-feed-feedback':  { limit: 20, windowMs: 60_000 },
+  'job-feed-apply':     { limit: 10, windowMs: 60_000 },
+  'job-feed-dev-run':   { limit: 3,  windowMs: 60_000 },
 } as const;
 
 export type RateLimitRoute = keyof typeof RATE_LIMITS;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isJobFeedDebugModeEnabled } from '@/lib/job-feed/constants';
 import { canAccessJobFeed } from '@/lib/job-feed/helpers';
 import { dispatchJobFeedUserRun } from '@/lib/job-feed/orchestration';
+import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
@@ -12,6 +13,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const ip = getClientIP(request);
+    const { allowed } = checkRateLimit(`job-feed-dev-run:${ip}`, RATE_LIMITS['job-feed-dev-run']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
     const payload = await request.json().catch(() => ({}));
     const force = Boolean(payload?.force);
     const supabase = await createClient();
@@ -41,9 +48,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to run the background workflow.' },
-      { status: 500 }
-    );
+    console.error('[job-feed/dev/run] unexpected error:', error);
+    return NextResponse.json({ error: 'Failed to run the background workflow.' }, { status: 500 });
   }
 }

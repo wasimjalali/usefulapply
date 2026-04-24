@@ -17,10 +17,8 @@ function isAuthorized(request: NextRequest): boolean {
 
 export async function POST(request: NextRequest) {
   if (!process.env.JOB_FEED_INTERNAL_SECRET) {
-    return NextResponse.json(
-      { error: 'JOB_FEED_INTERNAL_SECRET is not configured.' },
-      { status: 500 }
-    );
+    console.error('[job-feed/scheduler] JOB_FEED_INTERNAL_SECRET is not configured.');
+    return NextResponse.json({ error: 'Internal configuration error.' }, { status: 500 });
   }
 
   if (!isAuthorized(request)) {
@@ -31,9 +29,7 @@ export async function POST(request: NextRequest) {
     const result = await dispatchScheduledJobFeedSweep();
     return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to run scheduler sweep.' },
-      { status: 500 }
-    );
+    console.error('[job-feed/scheduler] unexpected error:', error);
+    return NextResponse.json({ error: 'Failed to run scheduler sweep.' }, { status: 500 });
   }
 }

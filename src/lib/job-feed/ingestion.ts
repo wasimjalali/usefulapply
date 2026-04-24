@@ -42,9 +42,9 @@ interface AggregatedNormalizedJob {
   lastRawFetchId: string;
 }
 
-export function buildJobFeedSearchPlan(settings: JobFeedSettings): JobFeedSearchPlanItem[] {
+export function buildJobFeedSearchPlan(settings: JobFeedSettings, maxQueries: number = JOB_FEED_MAX_DAILY_QUERIES): JobFeedSearchPlanItem[] {
   const countries = JOB_FEED_MARKET_COUNTRIES[settings.target_market] || JOB_FEED_MARKET_COUNTRIES.us_canada;
-  const maxRoles = Math.max(1, Math.floor(JOB_FEED_MAX_DAILY_QUERIES / countries.length));
+  const maxRoles = Math.max(1, Math.floor(maxQueries / countries.length));
 
   const targetRoles = dedupeRoles(settings.target_roles).map((role) => ({
     role,
@@ -73,19 +73,21 @@ export function buildJobFeedSearchPlan(settings: JobFeedSettings): JobFeedSearch
       language,
       location: null,
     })))
-    .slice(0, JOB_FEED_MAX_DAILY_QUERIES);
+    .slice(0, maxQueries);
 }
 
 export async function ingestJobFeedRunJobs(params: {
   runId: string;
   userId: string;
   settings: JobFeedSettings;
+  maxQueries?: number;
+  maxRawJobs?: number;
 }): Promise<JobFeedIngestionResult> {
-  const { runId, userId, settings } = params;
+  const { runId, userId, settings, maxQueries, maxRawJobs = JOB_FEED_MAX_RAW_JOBS_PER_RUN } = params;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the new tables here.
   const admin = createAdminClient() as any;
 
-  const searchPlan = buildJobFeedSearchPlan(settings);
+  const searchPlan = buildJobFeedSearchPlan(settings, maxQueries);
   const rawFetchIds: string[] = [];
   const observedJobs: ObservedNormalizedJob[] = [];
   const failedFetches: JobFeedIngestionFailure[] = [];
@@ -108,7 +110,7 @@ export async function ingestJobFeedRunJobs(params: {
       });
 
       const jobsResults = data.jobs_results ?? [];
-      const remainingCapacity = Math.max(0, JOB_FEED_MAX_RAW_JOBS_PER_RUN - rawJobsFetched);
+      const remainingCapacity = Math.max(0, maxRawJobs - rawJobsFetched);
       const jobsToStore = jobsResults.slice(0, remainingCapacity);
       const providerError = data.error ?? null;
       const noResults = isSerpApiNoResultsError(providerError ?? undefined);
