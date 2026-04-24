@@ -972,13 +972,13 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
           {profilePhoto ? (
             <button
               onClick={() => photoInputRef.current?.click()}
-              className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium bg-white border border-cream-200 rounded-[20px] hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0 shadow-sm"
+              className="group flex items-center gap-2 px-3.5 py-2 text-sm font-medium bg-white border border-cream-200 rounded-[20px] hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0 shadow-sm"
               title="Change photo"
             >
               <Camera className="w-4 h-4 text-navy-500" />
               <span className="max-w-[80px] truncate text-charcoal">{profilePhoto.fileName}</span>
               <Trash2
-                className="w-3.5 h-3.5 text-warm-gray hover:text-red-500 transition-colors"
+                className="w-3.5 h-3.5 text-warm-gray hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                 onClick={(e) => { e.stopPropagation(); setProfilePhoto(null); }}
               />
             </button>
