@@ -1,0 +1,493 @@
+'use client';
+
+import { useEffect } from 'react';
+import {
+  Briefcase,
+  Building2,
+  Calendar,
+  ChevronDown,
+  ChevronUp,
+  DollarSign,
+  ExternalLink,
+  Globe,
+  Loader2,
+  MapPin,
+  X,
+} from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import {
+  JOB_FEED_VISIBLE_DEFAULT_COUNT,
+  JOB_FEED_VISIBLE_MAX_COUNT,
+} from '@/lib/job-feed/constants';
+import type { JobFeedFeedItem } from '@/lib/job-feed/types';
+
+type PendingJobAction = {
+  jobId: string;
+  action: 'apply' | 'save' | 'dismiss';
+} | null;
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+export function fitLabelText(value: NonNullable<JobFeedFeedItem['fitLabel']>): string {
+  return value === 'strong' ? 'Strong' : 'Good';
+}
+
+export function workModeLabel(value: JobFeedFeedItem['workMode']): string {
+  switch (value) {
+    case 'remote':
+      return 'Remote';
+    case 'hybrid':
+      return 'Hybrid';
+    case 'onsite':
+      return 'On-site';
+    default:
+      return 'Work mode unknown';
+  }
+}
+
+export function employmentTypeLabel(value: NonNullable<JobFeedFeedItem['employmentType']>): string {
+  switch (value) {
+    case 'full_time':
+      return 'Full-time';
+    case 'part_time':
+      return 'Part-time';
+    case 'contract':
+      return 'Contract';
+    case 'internship':
+      return 'Internship';
+    case 'temporary':
+      return 'Temporary';
+    default:
+      return 'Other';
+  }
+}
+
+export function formatFeedDateLabel(value: string): string {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date);
+}
+
+// ============================================================================
+// Components
+// ============================================================================
+
+export function MetaPill({
+  icon: Icon,
+  label,
+  tone = 'default',
+}: {
+  icon: typeof MapPin;
+  label: string;
+  tone?: 'default' | 'emerald';
+}) {
+  const classes = tone === 'emerald'
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+    : 'border-cream-200 bg-cream-50 text-charcoal';
+
+  return (
+    <span className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${classes}`}>
+      <Icon className={`h-4 w-4 ${tone === 'emerald' ? 'text-emerald-600' : 'text-warm-gray'}`} />
+      {label}
+    </span>
+  );
+}
+
+export function RunStatPill({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-cream-300 bg-white px-3 py-1.5 text-xs text-warm-gray shadow-sm">
+      <span className="font-semibold text-charcoal">{label}:</span>
+      {value}
+    </span>
+  );
+}
+
+export function JobFeedDescription({ text }: { text: string }) {
+  const lines = text.split(/\n/).map((line) => line.trimEnd());
+  const elements: React.ReactNode[] = [];
+  let currentList: string[] = [];
+
+  const flushList = () => {
+    if (currentList.length === 0) return;
+
+    elements.push(
+      <ul key={`list-${elements.length}`} className="my-2 ml-1 space-y-1.5">
+        {currentList.map((item, index) => (
+          <li key={index} className="flex items-start gap-2">
+            <span className="mt-0.5 flex-shrink-0 text-navy-500">•</span>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    );
+    currentList = [];
+  };
+
+  for (const line of lines) {
+    if (!line.trim()) {
+      flushList();
+      continue;
+    }
+
+    const bulletMatch = line.match(/^\s*[•\-*►●○■▪–·]\s*(.+)/);
+    if (bulletMatch) {
+      currentList.push(bulletMatch[1].trim());
+      continue;
+    }
+
+    const trimmed = line.trim();
+    const isHeader = (
+      (trimmed.endsWith(':') && trimmed.length < 80) ||
+      (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && trimmed.length < 80 && /[A-Z]/.test(trimmed))
+    );
+
+    if (isHeader) {
+      flushList();
+      elements.push(
+        <h4 key={`heading-${elements.length}`} className="mb-1.5 mt-4 font-semibold text-charcoal">
+          {trimmed}
+        </h4>
+      );
+      continue;
+    }
+
+    flushList();
+    elements.push(
+      <p key={`paragraph-${elements.length}`} className="mb-2">
+        {trimmed}
+      </p>
+    );
+  }
+
+  flushList();
+
+  return <div className="space-y-0.5">{elements}</div>;
+}
+
+export function JobFeedCard({
+  job,
+  isApplying,
+  onOpenDetails,
+  onApplyWithKarko,
+}: {
+  job: JobFeedFeedItem;
+  isApplying: boolean;
+  onOpenDetails: () => void;
+  onApplyWithKarko: () => void;
+}) {
+  const isSaved = Boolean(job.feedback.savedAt);
+  const isApplied = Boolean(job.feedback.appliedAt);
+
+  return (
+    <div className={`rounded-[24px] border p-5 shadow-sm transition-colors duration-200 ${
+      isApplying
+        ? 'border-gold-300 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(212,168,83,0.08))] ring-1 ring-gold-200'
+        : 'border-cream-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,244,234,0.82))]'
+    }`}>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="inline-flex items-center gap-1.5">
+              <span className={`h-2 w-2 flex-shrink-0 rounded-full ${job.fitLabel === 'strong' ? 'bg-emerald-500' : 'bg-sky-400'}`} />
+              <span className="text-sm font-semibold text-charcoal">
+                {job.fitLabel === 'strong' ? 'Strong match' : job.fitLabel === 'good' ? 'Good match' : 'Promising match'}
+              </span>
+            </span>
+            {isSaved && !isApplied && (
+              <span className="inline-flex items-center gap-2 rounded-full border border-gold-200 bg-gold-50 px-3 py-1 text-xs font-medium text-gold-700">
+                Saved
+              </span>
+            )}
+            {isApplied && (
+              <span className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-medium text-navy-700">
+                Application started
+              </span>
+            )}
+          </div>
+
+          <h3 className="mt-3 text-xl font-semibold text-charcoal">{job.title}</h3>
+          <p className="mt-1 text-base text-warm-gray">{job.company}</p>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <MetaPill icon={MapPin} label={job.location || 'Location not specified'} />
+            <MetaPill icon={Globe} label={workModeLabel(job.workMode)} />
+            {job.salaryText && <MetaPill icon={DollarSign} label={job.salaryText} tone="emerald" />}
+          </div>
+
+          {job.description && (
+            <p className="mt-3 text-sm leading-6 text-charcoal/85 line-clamp-2">
+              {job.description.replace(/\s+/g, ' ').trim()}
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-col items-stretch gap-2 lg:w-[180px]">
+          <Button variant="gold" onClick={onApplyWithKarko} disabled={isApplying}>
+            {isApplying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isApplying ? 'Opening...' : isApplied ? 'Continue in Karko' : 'Apply with Karko'}
+          </Button>
+          <button
+            type="button"
+            onClick={onOpenDetails}
+            className="py-1 text-center text-sm font-medium text-navy-600 hover:text-navy-700"
+          >
+            Details
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function JobFeedDetailModal({
+  job,
+  isApplying,
+  isSaving,
+  isDismissing,
+  onClose,
+  onApplyWithKarko,
+  onSave,
+  onDismiss,
+  onExternalApply,
+}: {
+  job: JobFeedFeedItem;
+  isApplying: boolean;
+  isSaving: boolean;
+  isDismissing: boolean;
+  onClose: () => void;
+  onApplyWithKarko: () => void;
+  onSave: () => void;
+  onDismiss: () => void;
+  onExternalApply: () => void;
+}) {
+  const directApplyLink = job.applyUrl || job.sourceUrl;
+  const isSaved = Boolean(job.feedback.savedAt);
+  const isApplied = Boolean(job.feedback.appliedAt);
+
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 md:p-6" onClick={onClose}>
+      <div
+        className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start gap-4 border-b border-cream-200 bg-cream-50 px-6 py-5">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-cream-200 bg-white text-navy-600">
+            <Building2 className="h-8 w-8" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5">
+                <span className={`h-2 w-2 flex-shrink-0 rounded-full ${job.fitLabel === 'strong' ? 'bg-emerald-500' : 'bg-sky-400'}`} />
+                <span className="text-sm font-semibold text-charcoal">
+                  {job.fitLabel === 'strong' ? 'Strong match' : job.fitLabel === 'good' ? 'Good match' : 'Promising match'}
+                </span>
+              </span>
+              {isSaved && !isApplied && (
+                <span className="inline-flex items-center gap-2 rounded-full border border-gold-200 bg-gold-50 px-3 py-1 text-xs font-medium text-gold-700">
+                  Saved
+                </span>
+              )}
+              {isApplied && (
+                <span className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-medium text-navy-700">
+                  Application started
+                </span>
+              )}
+            </div>
+            <h2 className="mt-3 text-2xl font-semibold text-charcoal">{job.title}</h2>
+            <p className="mt-1 text-lg text-warm-gray">{job.company}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-warm-gray transition-colors hover:bg-cream-100 hover:text-charcoal"
+            aria-label="Close job details"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-auto px-6 py-6">
+          <div className="mb-6 flex flex-wrap gap-3">
+            <MetaPill icon={MapPin} label={job.location || 'Location not specified'} />
+            <MetaPill icon={Globe} label={workModeLabel(job.workMode)} />
+            {job.salaryText && <MetaPill icon={DollarSign} label={job.salaryText} tone="emerald" />}
+            {job.employmentType && <MetaPill icon={Briefcase} label={employmentTypeLabel(job.employmentType)} />}
+            {job.postedAtText && <MetaPill icon={Calendar} label={job.postedAtText} />}
+          </div>
+
+          {job.via && (
+            <p className="mb-6 text-sm text-warm-gray">via {job.via}</p>
+          )}
+
+          {job.description ? (
+            <div className="mb-6">
+              <h3 className="mb-3 text-base font-semibold text-charcoal">Role details</h3>
+              <div className="text-sm leading-7 text-charcoal/90">
+                <JobFeedDescription text={job.description} />
+              </div>
+            </div>
+          ) : (
+            <div className="mb-6 rounded-2xl border border-cream-200 bg-cream-50 px-4 py-4 text-sm text-warm-gray">
+              The provider did not include a full description for this job.
+            </div>
+          )}
+
+          {job.applyOptions.length > 0 && (
+            <div>
+              <h3 className="mb-3 text-base font-semibold text-charcoal">Apply via</h3>
+              <div className="flex flex-wrap gap-2">
+                {job.applyOptions.map((option) => (
+                  <a
+                    key={`${option.title}-${option.link}`}
+                    href={option.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg bg-navy-50 px-4 py-2 text-sm text-navy-700 transition-colors hover:bg-navy-100"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    {option.title}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-3 border-t border-cream-200 bg-cream-50 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            {directApplyLink && (
+              <a
+                href={directApplyLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onExternalApply}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-navy-700 transition-colors hover:text-navy-900"
+              >
+                Employer site
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            )}
+            {!isApplied && (
+              <>
+                <button
+                  type="button"
+                  onClick={onSave}
+                  disabled={isSaved || isApplying || isDismissing}
+                  className="text-sm font-medium text-warm-gray transition-colors hover:text-charcoal disabled:opacity-50"
+                >
+                  {isSaving ? <Loader2 className="inline mr-1 h-3.5 w-3.5 animate-spin" /> : null}
+                  {isSaved ? 'Saved' : 'Save'}
+                </button>
+                <button
+                  type="button"
+                  onClick={onDismiss}
+                  disabled={isApplying || isDismissing}
+                  className="text-sm font-medium text-warm-gray transition-colors hover:text-charcoal disabled:opacity-50"
+                >
+                  {isDismissing ? <Loader2 className="inline mr-1 h-3.5 w-3.5 animate-spin" /> : null}
+                  Dismiss
+                </button>
+              </>
+            )}
+          </div>
+          <Button variant="gold" onClick={onApplyWithKarko} disabled={isApplying}>
+            {isApplying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isApplied ? 'Continue in Karko' : 'Apply with Karko'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function FeedResultsCard({
+  jobs,
+  isShowingAllJobs,
+  pendingJobAction,
+  feedSummary,
+  onToggleShowAll,
+  onOpenDetails,
+  onApplyWithKarko,
+  onEditSettings,
+}: {
+  jobs: JobFeedFeedItem[];
+  isShowingAllJobs: boolean;
+  pendingJobAction: PendingJobAction;
+  feedSummary: string;
+  onToggleShowAll: () => void;
+  onOpenDetails: (job: JobFeedFeedItem) => void;
+  onApplyWithKarko: (job: JobFeedFeedItem) => void;
+  onEditSettings: () => void;
+}) {
+  const visibleCount = isShowingAllJobs ? JOB_FEED_VISIBLE_MAX_COUNT : JOB_FEED_VISIBLE_DEFAULT_COUNT;
+  const visibleJobs = jobs.slice(0, visibleCount);
+  const hasMore = jobs.length > JOB_FEED_VISIBLE_DEFAULT_COUNT;
+
+  return (
+    <Card className="rounded-[24px] border-cream-200 bg-white/92 p-6 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-warm-gray">
+          {feedSummary}
+          {' · '}
+          <button
+            type="button"
+            onClick={onEditSettings}
+            className="font-medium text-navy-600 hover:text-navy-700"
+          >
+            Edit
+          </button>
+        </p>
+
+        {hasMore && (
+          <button
+            type="button"
+            onClick={onToggleShowAll}
+            className="inline-flex items-center gap-1 text-sm font-medium text-navy-600 hover:text-navy-700"
+          >
+            {isShowingAllJobs ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            {isShowingAllJobs ? 'Show top 5' : `Show all ${Math.min(jobs.length, JOB_FEED_VISIBLE_MAX_COUNT)}`}
+          </button>
+        )}
+      </div>
+
+      <div className="mt-5 space-y-4">
+        {visibleJobs.map((job) => (
+          <JobFeedCard
+            key={job.id}
+            job={job}
+            isApplying={pendingJobAction?.jobId === job.id && pendingJobAction.action === 'apply'}
+            onOpenDetails={() => onOpenDetails(job)}
+            onApplyWithKarko={() => onApplyWithKarko(job)}
+          />
+        ))}
+      </div>
+    </Card>
+  );
+}
