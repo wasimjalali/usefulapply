@@ -163,6 +163,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
     return 'premium-ats';
   });
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [templatePopoverPos, setTemplatePopoverPos] = useState<{ top: number; left: number; maxHeight: number } | null>(null);
   const templateSelectorRef = useRef<HTMLDivElement>(null);
   const templateSelectorBtnRef = useRef<HTMLButtonElement>(null);
   const [copied, setCopied] = useState(false);
@@ -181,7 +182,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
   const [cvScale, setCvScale] = useState(1);
   const [cvScaledHeight, setCvScaledHeight] = useState<number | null>(null);
 
-  // Close template selector when clicking outside
+  // Close template selector when clicking outside, on Escape, or on resize/scroll
   useEffect(() => {
     if (!showTemplateSelector) return;
     const handleClickOutside = (e: MouseEvent) => {
@@ -193,8 +194,46 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
         setShowTemplateSelector(false);
       }
     };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowTemplateSelector(false);
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [showTemplateSelector]);
+
+  // Anchor popover to the Templates button — reposition on scroll/resize.
+  useEffect(() => {
+    if (!showTemplateSelector) {
+      setTemplatePopoverPos(null);
+      return;
+    }
+    const POPOVER_WIDTH = 420;
+    const MARGIN = 12;
+    const updatePosition = () => {
+      const btn = templateSelectorBtnRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      const viewportW = window.innerWidth;
+      const viewportH = window.innerHeight;
+      const top = rect.bottom + 8;
+      // Prefer right-aligned to the button, but clamp into viewport.
+      let left = rect.right - POPOVER_WIDTH;
+      if (left < MARGIN) left = MARGIN;
+      if (left + POPOVER_WIDTH > viewportW - MARGIN) left = viewportW - POPOVER_WIDTH - MARGIN;
+      const maxHeight = Math.max(240, viewportH - top - MARGIN);
+      setTemplatePopoverPos({ top, left, maxHeight });
+    };
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
   }, [showTemplateSelector]);
 
   useEffect(() => {
@@ -921,8 +960,43 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
     </>
   ) : null;
 
+  const templatePopover = showTemplateSelector && !isEditMode && templatePopoverPos && typeof document !== 'undefined'
+    ? createPortal(
+        <div
+          ref={templateSelectorRef}
+          style={{
+            position: 'fixed',
+            top: templatePopoverPos.top,
+            left: templatePopoverPos.left,
+            width: 420,
+            maxWidth: 'calc(100vw - 24px)',
+            maxHeight: templatePopoverPos.maxHeight,
+            zIndex: 60,
+          }}
+          className="rounded-2xl border border-cream-200 bg-white shadow-[0_24px_60px_-20px_rgba(30,58,95,0.35)] overflow-y-auto p-4"
+          role="dialog"
+          aria-label="Select CV template"
+        >
+          <TemplateSelector
+            selectedTemplateId={selectedTemplateId}
+            onSelect={(id) => {
+              setSelectedTemplateId(id);
+              setShowTemplateSelector(false);
+            }}
+            defaultTemplateId={defaultTemplateId}
+            onSetDefault={(id) => {
+              localStorage.setItem('karko-default-template', id);
+              setDefaultTemplateId(id);
+            }}
+          />
+        </div>,
+        document.body
+      )
+    : null;
+
   return (
     <div className="h-full flex flex-col bg-cream-50">
+      {templatePopover}
       {/* Toolbar: portal to tab bar on desktop, inline on mobile */}
       {toolbarContent && toolbarPortal && createPortal(toolbarContent, toolbarPortal)}
       {toolbarContent && !toolbarPortal && (
@@ -952,23 +1026,6 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
           />
         ) : (
           <div className="h-full flex flex-col">
-            {/* Template Selector Dropdown - Scrollable */}
-            {showTemplateSelector && !isEditMode && (
-              <div ref={templateSelectorRef} className="px-4 py-4 bg-white border-b border-cream-300 shadow-sm max-h-[60vh] overflow-y-auto">
-                <TemplateSelector
-                  selectedTemplateId={selectedTemplateId}
-                  onSelect={(id) => {
-                    setSelectedTemplateId(id);
-                    setShowTemplateSelector(false);
-                  }}
-                  defaultTemplateId={defaultTemplateId}
-                  onSetDefault={(id) => {
-                    localStorage.setItem('karko-default-template', id);
-                    setDefaultTemplateId(id);
-                  }}
-                />
-              </div>
-            )}
 
             {/* CV Content - View Mode or Edit Mode */}
             <div className="flex-1 overflow-auto bg-gradient-to-b from-cream-100 to-cream-50 p-2 sm:p-6">

@@ -592,9 +592,15 @@ export default function Dashboard() {
   return (
     <div className="h-screen flex flex-col bg-cream-100">
       <div className="hidden md:flex items-center gap-3 px-4 py-1.5 bg-white/95 backdrop-blur-sm border-b border-cream-200 flex-shrink-0 z-50">
-        <Link href="/" className="flex items-center">
+        <button
+          type="button"
+          onClick={() => handleWorkspaceChange('application-kit')}
+          className="flex items-center cursor-pointer"
+          aria-label="Go to Application Kit"
+          title="Go to Application Kit"
+        >
           <KarkoLogo variant="full" size="xs" theme="light" />
-        </Link>
+        </button>
 
         <div className="flex items-center bg-cream-100/80 rounded-full p-0.5">
           <button
@@ -673,9 +679,15 @@ export default function Dashboard() {
       </div>
 
       <div className="md:hidden flex items-center px-3 py-1.5 bg-white/95 backdrop-blur-sm border-b border-cream-200 flex-shrink-0 z-50">
-        <Link href="/" className="flex items-center">
+        <button
+          type="button"
+          onClick={() => handleWorkspaceChange('application-kit')}
+          className="flex items-center cursor-pointer"
+          aria-label="Go to Application Kit"
+          title="Go to Application Kit"
+        >
           <KarkoLogo variant="full" size="xs" theme="light" />
-        </Link>
+        </button>
         <div className="flex-1" />
         {user && profile && (profile.subscription_tier === 'free' || profile.subscription_tier === 'starter') && (
           <DashboardUpgradeButton tier="plus" mobile />

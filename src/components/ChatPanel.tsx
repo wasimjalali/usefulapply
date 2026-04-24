@@ -22,7 +22,6 @@ import {
   ArrowDown,
   Zap,
   Search,
-  Upload,
 } from 'lucide-react';
 import { KarkoIcon } from './KarkoLogo';
 import { useRouter } from 'next/navigation';
@@ -161,11 +160,37 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     wasWorkingRef.current = isAgentWorking;
   }, [isAgentWorking, scrollToBottom]);
 
+  // While agent is working, force-scroll on every progress/step update so the
+  // user always sees the latest content even as AgentProgressV2 expands.
   useEffect(() => {
-    if (isAgentWorking && agentSteps.length > 0) {
-      scrollToBottom();
+    if (isAgentWorking) {
+      scrollToBottom(true);
     }
-  }, [isAgentWorking, agentSteps, scrollToBottom]);
+  }, [isAgentWorking, agentSteps, v2Progress, scrollToBottom]);
+
+  // Also observe the messages container: while agent is working, any height
+  // growth (e.g. progress bar + new step + token counter) should pin to bottom.
+  useEffect(() => {
+    if (!isAgentWorking) return;
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    let rafId: number | null = null;
+    const ro = new ResizeObserver(() => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      });
+    });
+    ro.observe(container);
+    // Observe all child nodes too so inner growth (AgentProgressV2) is caught.
+    Array.from(container.children).forEach((child) => ro.observe(child));
+    return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      ro.disconnect();
+    };
+  }, [isAgentWorking]);
 
   const previousGeneratedStateRef = useRef<{ sessionId: string | null; hasGeneratedCV: boolean }>({
     sessionId: null,
@@ -581,18 +606,9 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                     </div>
                     <p className="text-sm text-warm-gray leading-relaxed mb-4">
                       {user
-                        ? 'Head to the Documents tab to upload your CV, then come back here to apply for jobs.'
+                        ? 'Upload your CV from the left panel, then come back here to apply for jobs.'
                         : 'Upload your CV, paste a job description, and I\'ll create a tailored CV, cover letter, and application emails.'}
                     </p>
-                    {user && (
-                      <button
-                        onClick={() => onTabChange?.('cv')}
-                        className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-gradient-to-r from-navy-600 to-navy-700 text-white rounded-xl hover:from-navy-700 hover:to-navy-800 transition-all shadow-md cursor-pointer"
-                      >
-                        <Upload className="w-4 h-4" />
-                        Go to Documents
-                      </button>
-                    )}
                   </>
                 )}
                 {!user && (
