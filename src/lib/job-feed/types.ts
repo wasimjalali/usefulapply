@@ -87,6 +87,7 @@ export interface JobFeedSettingsInput {
 export interface JobFeedSettingsSuggestion {
   target_roles: string[];
   preferred_locations: string[];
+  target_countries: string[];
   user_skills: string[];
   languages: string[];
   seniority_target: JobFeedSettings['seniority_target'];

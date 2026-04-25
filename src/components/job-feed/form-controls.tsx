@@ -515,11 +515,17 @@ export function RoleEntryField({
   suggestions,
   placeholder,
   onChange,
+  addLabel = 'Add role',
+  suggestionsLabel = 'Suggestions',
+  emptyLabel = 'No roles added yet.',
 }: {
   values: string[];
   suggestions: string[];
   placeholder: string;
   onChange: (values: string[]) => void;
+  addLabel?: string;
+  suggestionsLabel?: string;
+  emptyLabel?: string;
 }) {
   const [draft, setDraft] = useState('');
 
@@ -551,7 +557,7 @@ export function RoleEntryField({
             </button>
           ))
         ) : (
-          <p className="text-sm text-warm-gray">No roles added yet.</p>
+          <p className="text-sm text-warm-gray">{emptyLabel}</p>
         )}
       </div>
 
@@ -569,12 +575,13 @@ export function RoleEntryField({
           className="min-w-0 flex-1 rounded-2xl border border-cream-300 bg-white px-3 py-2.5 text-sm text-charcoal outline-none transition-colors focus:border-navy-400"
         />
         <Button variant="outline" type="button" onClick={() => addValue(draft)}>
-          Add role
+          {addLabel}
         </Button>
       </div>
 
+      {suggestions.length > 0 && (
       <div className="mt-4 border-t border-cream-200 pt-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-warm-gray">Suggestions</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-warm-gray">{suggestionsLabel}</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {suggestions.map((suggestion) => {
             const selected = values.includes(suggestion);
@@ -597,6 +604,7 @@ export function RoleEntryField({
           })}
         </div>
       </div>
+      )}
     </div>
   );
 }

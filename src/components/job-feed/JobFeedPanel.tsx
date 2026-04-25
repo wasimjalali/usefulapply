@@ -13,7 +13,6 @@ import {
   ChevronUp,
   FileText,
   Loader2,
-  MapPin,
   PauseCircle,
   RefreshCw,
   Settings2,
@@ -29,16 +28,15 @@ import {
   JOB_FEED_AGGRESSIVENESS_OPTIONS,
   JOB_FEED_COUNTRY_OPTIONS,
   JOB_FEED_EMPLOYMENT_TYPE_OPTIONS,
-  JOB_FEED_MARKET_OPTIONS,
   JOB_FEED_REMOTE_PREFERENCE_OPTIONS,
   JOB_FEED_SENIORITY_OPTIONS,
   JOB_FEED_SUGGESTED_LANGUAGES,
+  JOB_FEED_SUGGESTED_LOCATIONS,
   JOB_FEED_SUGGESTED_ROLES,
   JOB_FEED_TIMEZONE_GROUPS,
   JOB_FEED_TIMEZONE_LOOKUP,
   JOB_FEED_WORK_AUTH_OPTIONS,
   formatDeliveryHourLabel,
-  getJobFeedCityOptionsForCountries,
   getJobFeedTimeZoneLabel,
   legacyMarketFromCountries,
 } from '@/lib/job-feed/constants';
@@ -63,12 +61,10 @@ import {
 } from './preview-utils';
 import {
   ChipField,
-  ChoiceGrid,
   GroupedSelectField,
   MultiSelectDropdown,
   SelectField,
   InputField,
-  ToggleRow,
   RoleEntryField,
   FieldGroup,
 } from './form-controls';
@@ -1023,6 +1019,10 @@ function JobFeedOnboardingWizard({
       if (suggestion.preferred_locations.length > 0 && shouldFill(prev.preferred_locations)) {
         next.preferred_locations = suggestion.preferred_locations;
       }
+      if (suggestion.target_countries && suggestion.target_countries.length > 0 && shouldFill(prev.target_countries)) {
+        next.target_countries = suggestion.target_countries;
+        next.target_market = legacyMarketFromCountries(suggestion.target_countries);
+      }
       if (suggestion.user_skills.length > 0 && shouldFill(prev.user_skills)) {
         next.user_skills = suggestion.user_skills;
       }
@@ -1163,39 +1163,31 @@ function JobFeedOnboardingWizard({
               <MultiSelectDropdown
                 values={form.target_countries}
                 options={[...JOB_FEED_COUNTRY_OPTIONS]}
-                placeholder="Choose countries (e.g. United States, Canada)"
+                placeholder="Choose countries (e.g. United States, Germany, United Kingdom)"
                 searchable
                 maxSelections={6}
                 onChange={(target_countries) => onFormChange((prev) => ({
                   ...prev,
                   target_countries,
                   target_market: legacyMarketFromCountries(target_countries),
-                  // Drop any cities that no longer match a selected country.
-                  target_cities: prev.target_cities.filter((city) =>
-                    getJobFeedCityOptionsForCountries(target_countries).includes(city),
-                  ),
                 }))}
               />
             </FieldGroup>
 
-            {form.target_countries.length > 0 && (
-              <FieldGroup
-                label="Cities (optional)"
-                help="Pick specific cities to focus your search. Leave empty to search the whole country."
-              >
-                <MultiSelectDropdown
-                  values={form.target_cities}
-                  options={getJobFeedCityOptionsForCountries(form.target_countries).map((city) => ({
-                    value: city,
-                    label: city,
-                  }))}
-                  placeholder="Add popular cities in your selected countries"
-                  searchable
-                  maxSelections={10}
-                  onChange={(target_cities) => onFormChange((prev) => ({ ...prev, target_cities }))}
-                />
-              </FieldGroup>
-            )}
+            <FieldGroup
+              label="Locations"
+              help="Type the cities or regions you want jobs in. Include the country (e.g. Berlin, Germany). Leave empty to search the whole country."
+            >
+              <RoleEntryField
+                values={form.preferred_locations}
+                suggestions={JOB_FEED_SUGGESTED_LOCATIONS}
+                placeholder="Type a location and press Enter (e.g. Berlin, Germany)"
+                addLabel="Add location"
+                suggestionsLabel="Examples"
+                emptyLabel="No locations added yet — we'll search the whole country."
+                onChange={(preferred_locations) => onFormChange((prev) => ({ ...prev, preferred_locations }))}
+              />
+            </FieldGroup>
           </div>
         </div>
 
@@ -1339,6 +1331,15 @@ function JobFeedOnboardingWizard({
                       }))}
                     />
                   </FieldGroup>
+
+                  <FieldGroup label="Languages" help="Only matters if language fit changes whether a role is worth seeing.">
+                    <ChipField
+                      values={form.languages}
+                      suggestions={JOB_FEED_SUGGESTED_LANGUAGES}
+                      placeholder="Add a language"
+                      onChange={(languages) => onFormChange((prev) => ({ ...prev, languages }))}
+                    />
+                  </FieldGroup>
                 </div>
 
                 <div className="space-y-4">
@@ -1382,35 +1383,6 @@ function JobFeedOnboardingWizard({
                     }))}
                     options={[{ value: '', label: 'Keep flexible' }, ...JOB_FEED_WORK_AUTH_OPTIONS]}
                   />
-
-                  <FieldGroup label="Languages" help="Only matters if language fit changes whether a role is worth seeing.">
-                    <ChipField
-                      values={form.languages}
-                      suggestions={JOB_FEED_SUGGESTED_LANGUAGES}
-                      placeholder="Add a language"
-                      onChange={(languages) => onFormChange((prev) => ({ ...prev, languages }))}
-                    />
-                  </FieldGroup>
-
-                  <FieldGroup label="Adjacent roles" help="Widen into close role neighbors when exact matches are quiet.">
-                    <ToggleRow
-                      title="Include adjacent roles"
-                      description="Useful when related titles are often worth seeing."
-                      checked={form.adjacent_roles_enabled}
-                      onChange={(adjacent_roles_enabled) => onFormChange((prev) => ({ ...prev, adjacent_roles_enabled }))}
-                    />
-
-                    {form.adjacent_roles_enabled && (
-                      <div className="pt-3">
-                        <ChipField
-                          values={form.adjacent_roles}
-                          suggestions={['Platform Engineer', 'Solutions Engineer', 'Product Analyst']}
-                          placeholder="Add an adjacent role"
-                          onChange={(adjacent_roles) => onFormChange((prev) => ({ ...prev, adjacent_roles }))}
-                        />
-                      </div>
-                    )}
-                  </FieldGroup>
                 </div>
               </div>
             )}
@@ -1420,29 +1392,38 @@ function JobFeedOnboardingWizard({
         {/* Save action */}
         {showSaveAction && (
           <div className="px-6 py-6 sm:px-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                {!isEditing && !hasRecordedConsent && (
-                  <label className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      checked={form.consent_accepted}
-                      onChange={(event) => onFormChange((prev) => ({ ...prev, consent_accepted: event.target.checked }))}
-                      className="mt-1 h-4 w-4 rounded border-cream-300 text-navy-600 focus:ring-navy-500"
-                    />
-                    <span className="text-sm leading-relaxed text-charcoal">
-                      Karko will search for jobs for you once a day.
-                    </span>
-                  </label>
-                )}
-                {isEditing && (
-                  <p className="text-sm text-warm-gray">
-                    Next delivery: {deliveryLabel}
-                  </p>
-                )}
-              </div>
+            <div className="flex flex-col items-center gap-4 text-center">
+              {!isEditing && !hasRecordedConsent && (
+                <label className="flex items-start justify-center gap-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={form.consent_accepted}
+                    onChange={(event) => onFormChange((prev) => ({ ...prev, consent_accepted: event.target.checked }))}
+                    className="mt-1 h-4 w-4 rounded border-cream-300 text-navy-600 focus:ring-navy-500"
+                  />
+                  <span className="text-sm leading-relaxed text-charcoal">
+                    Karko will search for jobs for you once a day.
+                  </span>
+                </label>
+              )}
+              {isEditing && (
+                <p className="text-sm text-warm-gray">
+                  Next delivery: {deliveryLabel}
+                </p>
+              )}
 
-              <div className="flex gap-2">
+              <div className="flex flex-col items-center gap-2 sm:flex-row">
+                <Button
+                  variant="gold"
+                  onClick={() => {
+                    const saveForm = isEditing ? form : { ...form, enabled: true };
+                    void onSave(saveForm);
+                  }}
+                  disabled={!canSave || saveState === 'saving'}
+                >
+                  {saveState === 'saving' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isEditing ? 'Save changes' : 'Start my daily feed'}
+                </Button>
                 {!isEditing && (
                   <button
                     type="button"
@@ -1456,17 +1437,6 @@ function JobFeedOnboardingWizard({
                     Save and keep paused
                   </button>
                 )}
-                <Button
-                  variant="gold"
-                  onClick={() => {
-                    const saveForm = isEditing ? form : { ...form, enabled: true };
-                    void onSave(saveForm);
-                  }}
-                  disabled={!canSave || saveState === 'saving'}
-                >
-                  {saveState === 'saving' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isEditing ? 'Save changes' : 'Start my daily feed'}
-                </Button>
               </div>
             </div>
           </div>
@@ -1494,9 +1464,9 @@ function LoadingState() {
 
 function buildFeedSummary(form: JobFeedSettingsInput): string {
   const roles = summarizeTargetRoles(form.target_roles);
-  const market = summarizeCountries(form.target_countries, form.target_market);
+  const countries = summarizeCountries(form.target_countries, form.target_market);
   const delivery = formatDeliveryHourLabel(form.delivery_hour_local);
-  return `Roles: ${roles} | Markets: ${market} | Delivery: ${delivery} ${form.user_timezone}`;
+  return `Roles: ${roles} | Countries: ${countries} | Delivery: ${delivery} ${form.user_timezone}`;
 }
 
 function OperationalSnapshotCard({
@@ -1600,8 +1570,10 @@ function summarizeList(values: string[], fallback = 'Not set yet'): string {
 }
 
 function readableMarket(value: string): string {
-  const option = JOB_FEED_MARKET_OPTIONS.find((item) => item.value === value);
-  return option?.label ?? value;
+  if (value === 'us_canada') return 'United States + Canada';
+  if (value === 'us') return 'United States';
+  if (value === 'canada') return 'Canada';
+  return value;
 }
 
 function summarizeCountries(

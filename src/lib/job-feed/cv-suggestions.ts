@@ -1,3 +1,4 @@
+import { JOB_FEED_COUNTRY_OPTIONS } from '@/lib/job-feed/constants';
 import type { JobFeedSettingsSuggestion } from '@/lib/job-feed/types';
 import type { StructuredCV } from '@/lib/types/cv-schema';
 
@@ -10,6 +11,12 @@ export function extractJobFeedSuggestionsFromCV(cv: StructuredCV): JobFeedSettin
     preferredLocations.push(`${cv.personal.city}, ${cv.personal.country}`);
   } else if (cv.personal?.city) {
     preferredLocations.push(cv.personal.city);
+  }
+
+  const targetCountries: string[] = [];
+  const countryCode = inferCountryCodeFromLabel(cv.personal?.country);
+  if (countryCode) {
+    targetCountries.push(countryCode);
   }
 
   const userSkills: string[] = [];
@@ -41,11 +48,70 @@ export function extractJobFeedSuggestionsFromCV(cv: StructuredCV): JobFeedSettin
   return {
     target_roles: targetRoles.slice(0, 3),
     preferred_locations: preferredLocations.slice(0, 4),
+    target_countries: targetCountries,
     user_skills: userSkills,
     languages,
     seniority_target: inferSeniorityFromCV(cv),
     source: 'cv',
   };
+}
+
+function inferCountryCodeFromLabel(country: string | undefined): string | null {
+  if (!country) return null;
+  const normalized = country.trim().toLowerCase();
+  if (!normalized) return null;
+
+  // Try exact code match first (e.g. "US", "DE")
+  if (normalized.length === 2) {
+    const byCode = JOB_FEED_COUNTRY_OPTIONS.find((option) => option.value === normalized);
+    if (byCode) return byCode.value;
+  }
+
+  // Common country label aliases
+  const aliases: Record<string, string> = {
+    'united states': 'us',
+    'usa': 'us',
+    'u.s.': 'us',
+    'u.s.a.': 'us',
+    'united states of america': 'us',
+    'america': 'us',
+    'canada': 'ca',
+    'united kingdom': 'gb',
+    'uk': 'gb',
+    'great britain': 'gb',
+    'england': 'gb',
+    'scotland': 'gb',
+    'wales': 'gb',
+    'ireland': 'ie',
+    'germany': 'de',
+    'deutschland': 'de',
+    'netherlands': 'nl',
+    'holland': 'nl',
+    'the netherlands': 'nl',
+    'france': 'fr',
+    'spain': 'es',
+    'italy': 'it',
+    'switzerland': 'ch',
+    'austria': 'at',
+    'belgium': 'be',
+    'denmark': 'dk',
+    'sweden': 'se',
+    'norway': 'no',
+    'finland': 'fi',
+    'poland': 'pl',
+    'australia': 'au',
+    'new zealand': 'nz',
+    'india': 'in',
+    'singapore': 'sg',
+    'united arab emirates': 'ae',
+    'uae': 'ae',
+  };
+
+  if (aliases[normalized]) return aliases[normalized];
+
+  // Try matching by label
+  const byLabel = JOB_FEED_COUNTRY_OPTIONS.find((option) => option.label.toLowerCase() === normalized);
+  return byLabel ? byLabel.value : null;
 }
 
 // ---------------------------------------------------------------------------

@@ -256,9 +256,7 @@ function hasSeniorityMismatch(job: JobFeedCanonicalJob, settings: JobFeedSetting
 
 function getShortlistScoreBreakdown(job: JobFeedCanonicalJob, settings: JobFeedSettings) {
   const targetRoleScore = getRoleAlignmentScore(job.title, settings.target_roles, 28);
-  const adjacentRoleScore = settings.adjacent_roles_enabled
-    ? getRoleAlignmentScore(job.title, settings.adjacent_roles, 14)
-    : 0;
+  const adjacentRoleScore = 0;
   const freshnessScore = getFreshnessScore(job.freshness_days);
   const salaryScore = getSalaryScore(job, settings);
   const remoteAlignmentScore = getRemoteAlignmentScore(job, settings);

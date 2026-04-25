@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
+  JOB_FEED_COUNTRY_OPTIONS,
   JOB_FEED_MARKET_COUNTRIES,
   JOB_FEED_MAX_DAILY_QUERIES,
   JOB_FEED_MAX_RAW_JOBS_PER_RUN,
@@ -52,51 +53,79 @@ export function buildJobFeedSearchPlan(settings: JobFeedSettings, maxQueries: nu
 
   const maxRoles = Math.max(1, Math.floor(maxQueries / countries.length));
 
-  const targetRoles = dedupeRoles(settings.target_roles).map((role) => ({
-    role,
-    isAdjacentRole: false,
-  }));
-
-  const adjacentRoles = settings.adjacent_roles_enabled && settings.aggressiveness !== 'strict'
-    ? dedupeRoles(settings.adjacent_roles)
-        .filter((role) => !targetRoles.some((candidate) => candidate.role === role))
-        .map((role) => ({
-          role,
-          isAdjacentRole: true,
-        }))
-    : [];
-
-  const selectedRoles = [...targetRoles, ...adjacentRoles].slice(0, maxRoles);
+  const selectedRoles = dedupeRoles(settings.target_roles).slice(0, maxRoles);
   const language = pickQueryLanguage(settings);
-  const cityByCountry = indexCitiesByCountry(settings.target_cities ?? []);
+  const locationByCountry = indexLocationsByCountry(
+    [...(settings.preferred_locations ?? []), ...(settings.target_cities ?? [])],
+    countries,
+  );
 
   return selectedRoles
-    .flatMap((candidate) => countries.map((country) => ({
-      query: candidate.role,
-      targetRole: candidate.role,
-      isAdjacentRole: candidate.isAdjacentRole,
+    .flatMap((role) => countries.map((country) => ({
+      query: role,
+      targetRole: role,
+      isAdjacentRole: false,
       market: settings.target_market,
       country: country as JobFeedSearchPlanItem['country'],
       language,
-      // Prefer a user-picked city in that country as the SerpAPI `location`
+      // Prefer a user-typed location in that country as the SerpAPI `location`
       // hint. If none, leave null and let the country-level search run.
-      location: cityByCountry.get(country) ?? null,
+      location: locationByCountry.get(country) ?? null,
     })))
     .slice(0, maxQueries);
 }
 
-function indexCitiesByCountry(targetCities: string[]): Map<string, string> {
-  // The city strings come from JOB_FEED_CITY_SUGGESTIONS which include
-  // country hints (e.g. "New York, NY", "London", "Remote (UK)"). We index
-  // by simple substring/heuristic match so we don't lie to SerpAPI.
+function indexLocationsByCountry(locations: string[], selectedCountries: string[]): Map<string, string> {
+  // Location strings are free-form (e.g. "Berlin, Germany", "New York, NY").
+  // We infer the country per location and only index locations whose country
+  // is in the user's selected list, so we don't lie to SerpAPI.
   const result = new Map<string, string>();
-  for (const city of targetCities) {
-    const match = inferCountryForCity(city);
-    if (match && !result.has(match)) {
-      result.set(match, city);
+  const allowed = new Set(selectedCountries.map((c) => c.toLowerCase()));
+  for (const rawLocation of locations) {
+    const location = rawLocation.trim();
+    if (!location) continue;
+    const match = inferCountryForLocation(location);
+    if (match && allowed.has(match) && !result.has(match)) {
+      result.set(match, location);
     }
   }
   return result;
+}
+
+function inferCountryForLocation(location: string): string | null {
+  // First try the legacy "(Remote (XX))" or US-state heuristics.
+  const legacy = inferCountryForCity(location);
+  if (legacy) return legacy;
+
+  // Then look for an explicit country name or code in the trailing segment
+  // after the last comma (e.g. "Berlin, Germany" → "germany" → "de").
+  const normalized = location.toLowerCase();
+  const segments = normalized.split(',').map((s) => s.trim()).filter(Boolean);
+  const tail = segments[segments.length - 1];
+  if (!tail) return null;
+
+  // Match against curated country options (labels + codes).
+  for (const option of JOB_FEED_COUNTRY_OPTIONS) {
+    if (tail === option.value) return option.value;
+    if (tail === option.label.toLowerCase()) return option.value;
+  }
+
+  // Common aliases.
+  const aliases: Record<string, string> = {
+    'usa': 'us',
+    'u.s.': 'us',
+    'u.s.a.': 'us',
+    'united states': 'us',
+    'uk': 'gb',
+    'great britain': 'gb',
+    'england': 'gb',
+    'scotland': 'gb',
+    'wales': 'gb',
+    'deutschland': 'de',
+    'holland': 'nl',
+    'uae': 'ae',
+  };
+  return aliases[tail] ?? null;
 }
 
 function inferCountryForCity(city: string): string | null {

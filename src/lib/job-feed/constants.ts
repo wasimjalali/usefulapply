@@ -316,7 +316,7 @@ export const JOB_FEED_DEFAULT_SETTINGS = {
   target_countries: ['us'] as string[],
   target_cities: [] as string[],
   target_roles: [] as string[],
-  adjacent_roles_enabled: true,
+  adjacent_roles_enabled: false,
   adjacent_roles: [] as string[],
   preferred_locations: [] as string[],
   remote_preference: 'remote_first',

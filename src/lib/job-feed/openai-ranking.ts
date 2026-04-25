@@ -177,8 +177,6 @@ function buildRankingPrompt(settings: JobFeedSettings, candidates: JobFeedRankin
     instruction: `Rank the shortlist for today's feed. Return one decision per candidate job. Surface at most ${visibleCap} jobs as strong or good. Prioritize jobs where the candidate's skills match the job's requirements.`,
     userProfile: {
       targetRoles: settings.target_roles,
-      adjacentRolesEnabled: settings.adjacent_roles_enabled,
-      adjacentRoles: settings.adjacent_roles,
       userSkills: settings.user_skills ?? [],
       preferredLocations: settings.preferred_locations,
       // Multi-select fields: arrays when set, fall back to singular legacy.

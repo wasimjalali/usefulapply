@@ -116,8 +116,8 @@ export async function PUT(request: NextRequest) {
         seniority_target: normalized.data.seniority_target,
         // Shared arrays
         target_roles: normalized.data.target_roles,
-        adjacent_roles_enabled: normalized.data.adjacent_roles_enabled,
-        adjacent_roles: normalized.data.adjacent_roles_enabled ? normalized.data.adjacent_roles : [],
+        adjacent_roles_enabled: false,
+        adjacent_roles: [],
         preferred_locations: normalized.data.preferred_locations,
         salary_floor: normalized.data.salary_floor,
         languages: normalized.data.languages,
