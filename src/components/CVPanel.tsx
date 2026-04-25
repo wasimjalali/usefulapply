@@ -979,26 +979,32 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
             className="hidden"
           />
           {profilePhoto ? (
-            <button
-              onClick={() => photoInputRef.current?.click()}
-              className="group flex items-center gap-2 px-3.5 py-2 text-sm font-medium bg-white border border-cream-200 rounded-[20px] hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0 shadow-sm"
-              title="Change photo"
-            >
-              <Camera className="w-4 h-4 text-navy-500" />
-              <span className="max-w-[80px] truncate text-charcoal">{profilePhoto.fileName}</span>
-              <Trash2
-                className="w-3.5 h-3.5 text-warm-gray hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+            <div className="group relative flex-shrink-0">
+              <button
+                onClick={() => photoInputRef.current?.click()}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-gold-300 bg-gold-50 text-navy-600 shadow-sm transition-all hover:bg-gold-100 hover:border-gold-400"
+                title={`Change photo (${profilePhoto.fileName})`}
+                aria-label={`Change photo (${profilePhoto.fileName})`}
+              >
+                <Camera className="h-4 w-4" />
+              </button>
+              <button
                 onClick={(e) => { e.stopPropagation(); setProfilePhoto(null); }}
-              />
-            </button>
+                className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-white text-warm-gray opacity-0 shadow ring-1 ring-cream-300 transition-opacity hover:text-red-500 group-hover:opacity-100"
+                title="Remove photo"
+                aria-label="Remove photo"
+              >
+                <Trash2 className="h-2.5 w-2.5" />
+              </button>
+            </div>
           ) : (
             <button
               onClick={() => photoInputRef.current?.click()}
-              className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium bg-white border border-cream-200 rounded-[20px] hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0 shadow-sm"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-cream-200 bg-white text-navy-500 shadow-sm transition-all hover:bg-cream-50 hover:border-gold-300 flex-shrink-0"
               title="Upload photo for CV"
+              aria-label="Upload photo for CV"
             >
-              <Camera className="w-4 h-4 text-navy-500" />
-              <span>Add Photo</span>
+              <Camera className="h-4 w-4" />
             </button>
           )}
         </>
