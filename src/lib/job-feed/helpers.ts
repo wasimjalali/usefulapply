@@ -1,5 +1,6 @@
 import {
   JOB_FEED_AGGRESSIVENESS_OPTIONS,
+  JOB_FEED_COUNTRY_OPTIONS,
   JOB_FEED_DEFAULT_SETTINGS,
   JOB_FEED_EMPLOYMENT_TYPE_OPTIONS,
   JOB_FEED_MARKET_OPTIONS,
@@ -8,6 +9,7 @@ import {
   JOB_FEED_VISIBLE_DEFAULT_COUNT,
   JOB_FEED_WORK_AUTH_OPTIONS,
   PREMIUM_JOB_FEED_TIERS,
+  legacyMarketFromCountries,
 } from '@/lib/job-feed/constants';
 import type { JobFeedOverviewState, JobFeedSettingsInput } from '@/lib/job-feed/types';
 import type { JobFeedRun, JobFeedSettings } from '@/lib/supabase/types';
@@ -17,6 +19,7 @@ const MAX_SKILLS_ITEMS = 50;
 const MAX_ITEM_LENGTH = 80;
 
 const MARKET_VALUES = new Set<string>(JOB_FEED_MARKET_OPTIONS.map((option) => option.value));
+const COUNTRY_VALUES = new Set<string>(JOB_FEED_COUNTRY_OPTIONS.map((option) => option.value));
 const REMOTE_VALUES = new Set<string>(JOB_FEED_REMOTE_PREFERENCE_OPTIONS.map((option) => option.value));
 const SENIORITY_VALUES = new Set<string>(JOB_FEED_SENIORITY_OPTIONS.map((option) => option.value));
 const EMPLOYMENT_TYPE_VALUES = new Set<string>(JOB_FEED_EMPLOYMENT_TYPE_OPTIONS.map((option) => option.value));
@@ -103,14 +106,18 @@ export function createDefaultJobFeedInput(timeZone?: string): JobFeedSettingsInp
     user_timezone: timeZone && isValidTimeZone(timeZone) ? timeZone : JOB_FEED_DEFAULT_SETTINGS.user_timezone,
     delivery_hour_local: JOB_FEED_DEFAULT_SETTINGS.delivery_hour_local,
     target_market: JOB_FEED_DEFAULT_SETTINGS.target_market,
+    target_countries: [...JOB_FEED_DEFAULT_SETTINGS.target_countries],
+    target_cities: [...JOB_FEED_DEFAULT_SETTINGS.target_cities],
     target_roles: [...JOB_FEED_DEFAULT_SETTINGS.target_roles],
     adjacent_roles_enabled: JOB_FEED_DEFAULT_SETTINGS.adjacent_roles_enabled,
     adjacent_roles: [...JOB_FEED_DEFAULT_SETTINGS.adjacent_roles],
     preferred_locations: [...JOB_FEED_DEFAULT_SETTINGS.preferred_locations],
     remote_preference: JOB_FEED_DEFAULT_SETTINGS.remote_preference,
+    remote_preferences: [...JOB_FEED_DEFAULT_SETTINGS.remote_preferences] as JobFeedSettingsInput['remote_preferences'],
     salary_floor: JOB_FEED_DEFAULT_SETTINGS.salary_floor,
     languages: [...JOB_FEED_DEFAULT_SETTINGS.languages],
     seniority_target: JOB_FEED_DEFAULT_SETTINGS.seniority_target,
+    seniority_targets: [...JOB_FEED_DEFAULT_SETTINGS.seniority_targets] as JobFeedSettingsInput['seniority_targets'],
     employment_types: [...JOB_FEED_DEFAULT_SETTINGS.employment_types] as JobFeedSettingsInput['employment_types'],
     work_authorization_status: JOB_FEED_DEFAULT_SETTINGS.work_authorization_status,
     aggressiveness: JOB_FEED_DEFAULT_SETTINGS.aggressiveness,
@@ -124,20 +131,38 @@ export function toJobFeedInput(settings: JobFeedSettings | null, fallbackTimeZon
     return createDefaultJobFeedInput(fallbackTimeZone);
   }
 
+  // New array columns may be missing / empty on older rows — fall back to the
+  // legacy singular columns so the UI has a sensible initial selection.
+  const seniorityTargets = (settings.seniority_targets?.length ?? 0) > 0
+    ? settings.seniority_targets
+    : (settings.seniority_target ? [settings.seniority_target] : []);
+
+  const remotePreferences = (settings.remote_preferences?.length ?? 0) > 0
+    ? settings.remote_preferences
+    : [settings.remote_preference];
+
+  const targetCountries = (settings.target_countries?.length ?? 0) > 0
+    ? settings.target_countries
+    : marketToCountries(settings.target_market);
+
   return {
     enabled: settings.enabled,
     consent_accepted: Boolean(settings.consent_accepted_at),
     user_timezone: settings.user_timezone,
     delivery_hour_local: settings.delivery_hour_local,
     target_market: settings.target_market,
+    target_countries: targetCountries,
+    target_cities: settings.target_cities ?? [],
     target_roles: settings.target_roles,
     adjacent_roles_enabled: settings.adjacent_roles_enabled,
     adjacent_roles: settings.adjacent_roles,
     preferred_locations: settings.preferred_locations,
     remote_preference: settings.remote_preference,
+    remote_preferences: remotePreferences as JobFeedSettingsInput['remote_preferences'],
     salary_floor: settings.salary_floor,
     languages: settings.languages.length > 0 ? settings.languages : ['English'],
     seniority_target: settings.seniority_target ?? JOB_FEED_DEFAULT_SETTINGS.seniority_target,
+    seniority_targets: seniorityTargets as JobFeedSettingsInput['seniority_targets'],
     employment_types: settings.employment_types.length > 0
       ? settings.employment_types
       : [...JOB_FEED_DEFAULT_SETTINGS.employment_types] as JobFeedSettingsInput['employment_types'],
@@ -145,6 +170,13 @@ export function toJobFeedInput(settings: JobFeedSettings | null, fallbackTimeZon
     aggressiveness: settings.aggressiveness,
     user_skills: settings.user_skills ?? [],
   };
+}
+
+function marketToCountries(market: JobFeedSettings['target_market']): string[] {
+  if (market === 'us') return ['us'];
+  if (market === 'canada') return ['ca'];
+  if (market === 'us_canada') return ['us', 'ca'];
+  return ['us'];
 }
 
 export function normalizeJobFeedSettingsInput(input: unknown): { data?: JobFeedSettingsInput; error?: string } {
@@ -158,20 +190,64 @@ export function normalizeJobFeedSettingsInput(input: unknown): { data?: JobFeedS
     return { error: 'Please choose a valid timezone.' };
   }
 
-  const targetMarket = asTrimmedString(payload.target_market, MAX_ITEM_LENGTH);
+  // target_countries is the new multi-select. target_market is kept as a
+  // derived enum for backwards compatibility with older readers.
+  const rawTargetCountries = sanitizeStringArray(payload.target_countries, 12)
+    .map((value) => value.toLowerCase())
+    .filter((value) => COUNTRY_VALUES.has(value));
+
+  const targetCountries = rawTargetCountries.length > 0
+    ? rawTargetCountries
+    : (() => {
+      // Fall back to deriving from legacy target_market if the client didn't send
+      // the new field (e.g., stale client or tests).
+      const legacyMarket = asTrimmedString(payload.target_market, MAX_ITEM_LENGTH);
+      if (legacyMarket === 'us') return ['us'];
+      if (legacyMarket === 'canada') return ['ca'];
+      return ['us', 'ca'];
+    })();
+
+  if (targetCountries.length === 0) {
+    return { error: 'Choose at least one country for your feed.' };
+  }
+
+  const targetMarket = legacyMarketFromCountries(targetCountries);
   if (!MARKET_VALUES.has(targetMarket)) {
     return { error: 'Please choose a supported target market.' };
   }
 
-  const remotePreference = asTrimmedString(payload.remote_preference, MAX_ITEM_LENGTH);
-  if (!REMOTE_VALUES.has(remotePreference)) {
-    return { error: 'Please choose a valid remote preference.' };
+  const targetCities = sanitizeStringArray(payload.target_cities, 20);
+
+  // remote_preferences multi-select — keep singular remote_preference as the
+  // "primary" for legacy columns.
+  const rawRemotePrefs = sanitizeStringArray(payload.remote_preferences)
+    .filter((value) => REMOTE_VALUES.has(value)) as JobFeedSettingsInput['remote_preferences'];
+
+  const singularRemote = asTrimmedString(payload.remote_preference, MAX_ITEM_LENGTH);
+  const remotePreferences = rawRemotePrefs.length > 0
+    ? rawRemotePrefs
+    : (singularRemote && REMOTE_VALUES.has(singularRemote)
+        ? [singularRemote] as JobFeedSettingsInput['remote_preferences']
+        : []);
+
+  if (remotePreferences.length === 0) {
+    return { error: 'Choose at least one work mode preference.' };
   }
 
-  const seniorityTarget = asOptionalTrimmedString(payload.seniority_target, MAX_ITEM_LENGTH);
-  if (seniorityTarget && !SENIORITY_VALUES.has(seniorityTarget)) {
-    return { error: 'Please choose a valid seniority target.' };
-  }
+  const remotePreference = remotePreferences[0] as JobFeedSettingsInput['remote_preference'];
+
+  // seniority_targets multi-select; seniority_target is the primary for legacy.
+  const rawSeniorityTargets = sanitizeStringArray(payload.seniority_targets)
+    .filter((value) => SENIORITY_VALUES.has(value)) as JobFeedSettingsInput['seniority_targets'];
+
+  const singularSeniority = asOptionalTrimmedString(payload.seniority_target, MAX_ITEM_LENGTH);
+  const seniorityTargets = rawSeniorityTargets.length > 0
+    ? rawSeniorityTargets
+    : (singularSeniority && SENIORITY_VALUES.has(singularSeniority)
+        ? [singularSeniority] as JobFeedSettingsInput['seniority_targets']
+        : []);
+
+  const seniorityTarget = seniorityTargets[0] ?? null;
 
   const workAuthorizationStatus = asOptionalTrimmedString(payload.work_authorization_status, MAX_ITEM_LENGTH);
   if (workAuthorizationStatus && !WORK_AUTH_VALUES.has(workAuthorizationStatus)) {
@@ -212,15 +288,19 @@ export function normalizeJobFeedSettingsInput(input: unknown): { data?: JobFeedS
     consent_accepted: Boolean(payload.consent_accepted),
     user_timezone: userTimezone,
     delivery_hour_local: deliveryHourLocal,
-    target_market: targetMarket as JobFeedSettingsInput['target_market'],
+    target_market: targetMarket,
+    target_countries: targetCountries,
+    target_cities: targetCities,
     target_roles: targetRoles,
     adjacent_roles_enabled: Boolean(payload.adjacent_roles_enabled),
     adjacent_roles: sanitizeStringArray(payload.adjacent_roles),
     preferred_locations: sanitizeStringArray(payload.preferred_locations),
-    remote_preference: remotePreference as JobFeedSettingsInput['remote_preference'],
+    remote_preference: remotePreference,
+    remote_preferences: remotePreferences,
     salary_floor: salaryFloor,
     languages: languages.length > 0 ? languages : ['English'],
-    seniority_target: (seniorityTarget ?? null) as JobFeedSettingsInput['seniority_target'],
+    seniority_target: seniorityTarget as JobFeedSettingsInput['seniority_target'],
+    seniority_targets: seniorityTargets,
     employment_types: employmentTypes,
     work_authorization_status: (workAuthorizationStatus ?? null) as JobFeedSettingsInput['work_authorization_status'],
     aggressiveness: aggressiveness as JobFeedSettingsInput['aggressiveness'],

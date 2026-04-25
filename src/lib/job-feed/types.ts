@@ -66,14 +66,18 @@ export interface JobFeedSettingsInput {
   user_timezone: string;
   delivery_hour_local: number;
   target_market: JobFeedSettings['target_market'];
+  target_countries: string[];
+  target_cities: string[];
   target_roles: string[];
   adjacent_roles_enabled: boolean;
   adjacent_roles: string[];
   preferred_locations: string[];
   remote_preference: JobFeedSettings['remote_preference'];
+  remote_preferences: JobFeedSettings['remote_preferences'];
   salary_floor: number | null;
   languages: string[];
   seniority_target: JobFeedSettings['seniority_target'];
+  seniority_targets: JobFeedSettings['seniority_targets'];
   employment_types: JobFeedSettings['employment_types'];
   work_authorization_status: JobFeedSettings['work_authorization_status'];
   aggressiveness: JobFeedSettings['aggressiveness'];
@@ -94,7 +98,8 @@ export interface JobFeedSearchPlanItem {
   targetRole: string;
   isAdjacentRole: boolean;
   market: JobFeedSettings['target_market'];
-  country: 'us' | 'ca';
+  /** ISO 3166-1 alpha-2 country code (lowercase). */
+  country: string;
   language: string;
   location: string | null;
 }

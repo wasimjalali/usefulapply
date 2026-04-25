@@ -91,14 +91,18 @@ export interface Database {
           user_timezone: string
           delivery_hour_local: number
           target_market: 'us' | 'canada' | 'us_canada'
+          target_countries: string[]
+          target_cities: string[]
           target_roles: string[]
           adjacent_roles_enabled: boolean
           adjacent_roles: string[]
           preferred_locations: string[]
           remote_preference: 'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible'
+          remote_preferences: Array<'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible'>
           salary_floor: number | null
           languages: string[]
           seniority_target: 'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager' | null
+          seniority_targets: Array<'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager'>
           employment_types: Array<'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'>
           work_authorization_status: 'authorized' | 'needs_sponsorship' | 'open_to_both' | null
           aggressiveness: 'strict' | 'balanced' | 'broad'
@@ -113,14 +117,18 @@ export interface Database {
           user_timezone?: string
           delivery_hour_local?: number
           target_market?: 'us' | 'canada' | 'us_canada'
+          target_countries?: string[]
+          target_cities?: string[]
           target_roles?: string[]
           adjacent_roles_enabled?: boolean
           adjacent_roles?: string[]
           preferred_locations?: string[]
           remote_preference?: 'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible'
+          remote_preferences?: Array<'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible'>
           salary_floor?: number | null
           languages?: string[]
           seniority_target?: 'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager' | null
+          seniority_targets?: Array<'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager'>
           employment_types?: Array<'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'>
           work_authorization_status?: 'authorized' | 'needs_sponsorship' | 'open_to_both' | null
           aggressiveness?: 'strict' | 'balanced' | 'broad'
@@ -135,14 +143,18 @@ export interface Database {
           user_timezone?: string
           delivery_hour_local?: number
           target_market?: 'us' | 'canada' | 'us_canada'
+          target_countries?: string[]
+          target_cities?: string[]
           target_roles?: string[]
           adjacent_roles_enabled?: boolean
           adjacent_roles?: string[]
           preferred_locations?: string[]
           remote_preference?: 'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible'
+          remote_preferences?: Array<'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible'>
           salary_floor?: number | null
           languages?: string[]
           seniority_target?: 'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager' | null
+          seniority_targets?: Array<'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager'>
           employment_types?: Array<'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'>
           work_authorization_status?: 'authorized' | 'needs_sponsorship' | 'open_to_both' | null
           aggressiveness?: 'strict' | 'balanced' | 'broad'

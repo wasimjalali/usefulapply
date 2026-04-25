@@ -51,6 +51,94 @@ export const JOB_FEED_MARKET_COUNTRIES = {
   us_canada: ['us', 'ca'],
 } as const;
 
+// ---------------------------------------------------------------------------
+// Curated country list for the Job Feed onboarding "where to search" dropdown.
+// ISO 3166-1 alpha-2 codes (SerpAPI uses these via toSerpApiGl()).
+// Ordered by likely user base, with the primary English-speaking + EU markets
+// surfaced first.
+// ---------------------------------------------------------------------------
+export const JOB_FEED_COUNTRY_OPTIONS = [
+  { value: 'us', label: 'United States' },
+  { value: 'ca', label: 'Canada' },
+  { value: 'gb', label: 'United Kingdom' },
+  { value: 'ie', label: 'Ireland' },
+  { value: 'de', label: 'Germany' },
+  { value: 'nl', label: 'Netherlands' },
+  { value: 'fr', label: 'France' },
+  { value: 'es', label: 'Spain' },
+  { value: 'it', label: 'Italy' },
+  { value: 'ch', label: 'Switzerland' },
+  { value: 'at', label: 'Austria' },
+  { value: 'be', label: 'Belgium' },
+  { value: 'dk', label: 'Denmark' },
+  { value: 'se', label: 'Sweden' },
+  { value: 'no', label: 'Norway' },
+  { value: 'fi', label: 'Finland' },
+  { value: 'pl', label: 'Poland' },
+  { value: 'au', label: 'Australia' },
+  { value: 'nz', label: 'New Zealand' },
+  { value: 'in', label: 'India' },
+  { value: 'sg', label: 'Singapore' },
+  { value: 'ae', label: 'United Arab Emirates' },
+] as const;
+
+export type JobFeedCountryCode = (typeof JOB_FEED_COUNTRY_OPTIONS)[number]['value'];
+
+// Popular cities per country. Used as quick-pick suggestions and (when the
+// user selects one) as location hints passed to SerpAPI. Users can still type
+// their own city via the chip input.
+export const JOB_FEED_CITY_SUGGESTIONS: Record<string, string[]> = {
+  us: [
+    'New York, NY',
+    'San Francisco, CA',
+    'Los Angeles, CA',
+    'Seattle, WA',
+    'Austin, TX',
+    'Chicago, IL',
+    'Boston, MA',
+    'Denver, CO',
+    'Atlanta, GA',
+    'Remote (US)',
+  ],
+  ca: ['Toronto, ON', 'Vancouver, BC', 'Montreal, QC', 'Calgary, AB', 'Ottawa, ON', 'Remote (Canada)'],
+  gb: ['London', 'Manchester', 'Edinburgh', 'Bristol', 'Cambridge', 'Remote (UK)'],
+  ie: ['Dublin', 'Cork', 'Galway', 'Remote (Ireland)'],
+  de: ['Berlin', 'Munich', 'Hamburg', 'Frankfurt', 'Cologne', 'Remote (Germany)'],
+  nl: ['Amsterdam', 'Rotterdam', 'The Hague', 'Utrecht', 'Remote (Netherlands)'],
+  fr: ['Paris', 'Lyon', 'Toulouse', 'Remote (France)'],
+  es: ['Madrid', 'Barcelona', 'Valencia', 'Remote (Spain)'],
+  it: ['Milan', 'Rome', 'Turin', 'Remote (Italy)'],
+  ch: ['Zurich', 'Geneva', 'Basel', 'Remote (Switzerland)'],
+  at: ['Vienna', 'Graz', 'Remote (Austria)'],
+  be: ['Brussels', 'Antwerp', 'Remote (Belgium)'],
+  dk: ['Copenhagen', 'Aarhus', 'Remote (Denmark)'],
+  se: ['Stockholm', 'Gothenburg', 'Malmö', 'Remote (Sweden)'],
+  no: ['Oslo', 'Bergen', 'Remote (Norway)'],
+  fi: ['Helsinki', 'Espoo', 'Remote (Finland)'],
+  pl: ['Warsaw', 'Kraków', 'Wrocław', 'Remote (Poland)'],
+  au: ['Sydney', 'Melbourne', 'Brisbane', 'Perth', 'Remote (Australia)'],
+  nz: ['Auckland', 'Wellington', 'Remote (New Zealand)'],
+  in: ['Bengaluru', 'Mumbai', 'Delhi NCR', 'Hyderabad', 'Pune', 'Remote (India)'],
+  sg: ['Singapore'],
+  ae: ['Dubai', 'Abu Dhabi'],
+};
+
+export function getJobFeedCityOptionsForCountries(countries: string[]): string[] {
+  const unique = new Set<string>();
+  for (const country of countries) {
+    const cities = JOB_FEED_CITY_SUGGESTIONS[country] ?? [];
+    for (const city of cities) unique.add(city);
+  }
+  return Array.from(unique);
+}
+
+export function legacyMarketFromCountries(countries: string[]): 'us' | 'canada' | 'us_canada' {
+  const set = new Set(countries);
+  if (set.has('us') && set.has('ca')) return 'us_canada';
+  if (set.has('ca') && !set.has('us')) return 'canada';
+  return 'us';
+}
+
 export const JOB_FEED_REMOTE_PREFERENCE_OPTIONS = [
   { value: 'remote_first', label: 'Remote first' },
   { value: 'remote_only', label: 'Remote only' },
@@ -225,14 +313,18 @@ export const JOB_FEED_DEFAULT_SETTINGS = {
   user_timezone: 'America/New_York',
   delivery_hour_local: 8,
   target_market: 'us_canada',
+  target_countries: ['us'] as string[],
+  target_cities: [] as string[],
   target_roles: [] as string[],
   adjacent_roles_enabled: true,
   adjacent_roles: [] as string[],
   preferred_locations: [] as string[],
   remote_preference: 'remote_first',
+  remote_preferences: ['remote_first', 'hybrid'] as string[],
   salary_floor: null as number | null,
   languages: ['English'],
   seniority_target: 'mid',
+  seniority_targets: ['mid', 'senior'] as string[],
   employment_types: ['full_time'] as string[],
   work_authorization_status: 'open_to_both',
   aggressiveness: 'balanced',

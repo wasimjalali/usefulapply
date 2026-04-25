@@ -27,12 +27,12 @@ import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
 import {
   JOB_FEED_AGGRESSIVENESS_OPTIONS,
+  JOB_FEED_COUNTRY_OPTIONS,
   JOB_FEED_EMPLOYMENT_TYPE_OPTIONS,
   JOB_FEED_MARKET_OPTIONS,
   JOB_FEED_REMOTE_PREFERENCE_OPTIONS,
   JOB_FEED_SENIORITY_OPTIONS,
   JOB_FEED_SUGGESTED_LANGUAGES,
-  JOB_FEED_SUGGESTED_LOCATIONS,
   JOB_FEED_SUGGESTED_ROLES,
   JOB_FEED_TIMEZONE_GROUPS,
   JOB_FEED_TIMEZONE_LOOKUP,
@@ -881,7 +881,7 @@ function FeedPageHeader({
             : 'Daily Job Feed';
 
   const subtitle = isReady && form.target_roles.length > 0
-    ? `${summarizeList(form.target_roles)} · ${readableMarket(form.target_market)}`
+    ? `${summarizeList(form.target_roles)} · ${summarizeCountries(form.target_countries, form.target_market)}`
     : null;
 
   return (
@@ -995,8 +995,8 @@ function JobFeedOnboardingWizard({
   onSave: (form: JobFeedSettingsInput) => void;
   onClose: () => void;
 }) {
-  const [isLocationConstraintOpen, setIsLocationConstraintOpen] = useState(form.preferred_locations.length > 0);
-  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  // Recommended "fine-tune" block is expanded by default for non-technical users.
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(true);
   const [isLoadingCVSuggestions, setIsLoadingCVSuggestions] = useState(false);
   const [cvSuggestionApplied, setCVSuggestionApplied] = useState(false);
   const browserTimeZone = getBrowserTimeZone();
@@ -1006,6 +1006,37 @@ function JobFeedOnboardingWizard({
   const deliveryLabel = `${formatDeliveryHourLabel(form.delivery_hour_local)} in ${form.user_timezone}`;
   const isEditing = Boolean(overview?.settings);
 
+  const applyCVSuggestion = useCallback((
+    suggestion: JobFeedSettingsSuggestion,
+    options: { onlyIfEmpty?: boolean } = {},
+  ) => {
+    onFormChange((prev) => {
+      const shouldFill = (current: string[]) => !options.onlyIfEmpty || current.length === 0;
+      const next: JobFeedSettingsInput = { ...prev };
+
+      if (suggestion.target_roles.length > 0 && shouldFill(prev.target_roles)) {
+        next.target_roles = suggestion.target_roles;
+      }
+      if (suggestion.preferred_locations.length > 0 && shouldFill(prev.preferred_locations)) {
+        next.preferred_locations = suggestion.preferred_locations;
+      }
+      if (suggestion.user_skills.length > 0 && shouldFill(prev.user_skills)) {
+        next.user_skills = suggestion.user_skills;
+      }
+      if (suggestion.languages.length > 0 && shouldFill(prev.languages.filter((l) => l !== 'English'))) {
+        next.languages = suggestion.languages;
+      }
+      if (suggestion.seniority_target) {
+        const current = prev.seniority_targets ?? [];
+        if (!options.onlyIfEmpty || current.length === 0) {
+          next.seniority_targets = [suggestion.seniority_target] as JobFeedSettingsInput['seniority_targets'];
+          next.seniority_target = suggestion.seniority_target;
+        }
+      }
+      return next;
+    });
+  }, [onFormChange]);
+
   const handleTakeFromCV = useCallback(async () => {
     setIsLoadingCVSuggestions(true);
     try {
@@ -1013,36 +1044,56 @@ function JobFeedOnboardingWizard({
       const data = await response.json();
       if (!response.ok || !data.suggestion) return;
 
-      const suggestion = data.suggestion as JobFeedSettingsSuggestion;
-      onFormChange((prev) => ({
-        ...prev,
-        target_roles: suggestion.target_roles.length > 0 ? suggestion.target_roles : prev.target_roles,
-        preferred_locations: suggestion.preferred_locations.length > 0 ? suggestion.preferred_locations : prev.preferred_locations,
-        user_skills: suggestion.user_skills.length > 0 ? suggestion.user_skills : prev.user_skills,
-        languages: suggestion.languages.length > 0 ? suggestion.languages : prev.languages,
-        seniority_target: suggestion.seniority_target ?? prev.seniority_target,
-      }));
+      applyCVSuggestion(data.suggestion as JobFeedSettingsSuggestion);
       setCVSuggestionApplied(true);
-      if (suggestion.preferred_locations.length > 0) {
-        setIsLocationConstraintOpen(true);
-      }
     } catch {
       // silently ignore — user can still fill manually
     } finally {
       setIsLoadingCVSuggestions(false);
     }
-  }, [onFormChange]);
+  }, [applyCVSuggestion]);
+
+  // Auto-prefill from CV on first open (for new users without settings saved yet).
+  // Only fills fields that are currently empty, so we never overwrite choices.
+  const autoPrefillAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (isEditing) return;
+    if (autoPrefillAttemptedRef.current) return;
+    if (form.target_roles.length > 0) return;
+
+    autoPrefillAttemptedRef.current = true;
+
+    (async () => {
+      setIsLoadingCVSuggestions(true);
+      try {
+        const response = await fetch('/api/job-feed/settings/suggest');
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!data.suggestion) return;
+
+        applyCVSuggestion(data.suggestion as JobFeedSettingsSuggestion, { onlyIfEmpty: true });
+        setCVSuggestionApplied(true);
+      } catch {
+        // ignore — form stays editable
+      } finally {
+        setIsLoadingCVSuggestions(false);
+      }
+    })();
+  }, [applyCVSuggestion, form.target_roles.length, isEditing]);
 
   const chunk1Done = form.target_roles.length > 0;
   const showChunk2 = chunk1Done || isEditing;
   const showChunk3 = showChunk2 || isEditing;
   const showSaveAction = (showChunk3 && isValidTimeZone(form.user_timezone)) || isEditing;
 
+  // If the saved timezone isn't in our curated list, auto-select the closest
+  // curated equivalent so what the dropdown shows matches what we will save.
   useEffect(() => {
-    if (form.preferred_locations.length > 0) {
-      setIsLocationConstraintOpen(true);
+    if (!JOB_FEED_TIMEZONE_LOOKUP.has(form.user_timezone)) {
+      const fallback = normalizeTimeZoneValue(form.user_timezone);
+      onFormChange((prev) => ({ ...prev, user_timezone: fallback }));
     }
-  }, [form.preferred_locations.length]);
+  }, [form.user_timezone, onFormChange]);
 
   // If the saved timezone isn't in our curated list, auto-select the closest
   // curated equivalent so what the dropdown shows matches what we will save.
@@ -1088,9 +1139,10 @@ function JobFeedOnboardingWizard({
       </div>
 
       <div className="space-y-0 divide-y divide-cream-200">
-        {/* Chunk 1: Roles + Market */}
+        {/* Step 1: Roles + Countries */}
         <div className="px-6 py-6 sm:px-8">
-          <p className="text-sm font-semibold text-charcoal">What jobs are you looking for?</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy-500">Step 1 of 4</p>
+          <p className="mt-1 text-sm font-semibold text-charcoal">What jobs are you looking for?</p>
           <div className="mt-4 space-y-4">
             <FieldGroup label="Roles" help="Type your own or pick from the list.">
               <RoleEntryField
@@ -1101,65 +1153,82 @@ function JobFeedOnboardingWizard({
               />
             </FieldGroup>
 
-            <FieldGroup label="Market" help="Where should Karko look?">
-              <ChoiceGrid
-                value={form.target_market}
-                options={JOB_FEED_MARKET_OPTIONS.map((option) => ({
-                  value: option.value,
-                  label: option.label,
-                }))}
-                onChange={(target_market) => onFormChange((prev) => ({
+            <FieldGroup
+              label="Countries to search"
+              help="Pick one or more. We’ll look for jobs in each country you choose."
+            >
+              <MultiSelectDropdown
+                values={form.target_countries}
+                options={[...JOB_FEED_COUNTRY_OPTIONS]}
+                placeholder="Choose countries (e.g. United States, Canada)"
+                searchable
+                maxSelections={6}
+                onChange={(target_countries) => onFormChange((prev) => ({
                   ...prev,
-                  target_market: target_market as JobFeedSettingsInput['target_market'],
+                  target_countries,
+                  target_market: legacyMarketFromCountries(target_countries),
+                  // Drop any cities that no longer match a selected country.
+                  target_cities: prev.target_cities.filter((city) =>
+                    getJobFeedCityOptionsForCountries(target_countries).includes(city),
+                  ),
                 }))}
               />
             </FieldGroup>
+
+            {form.target_countries.length > 0 && (
+              <FieldGroup
+                label="Cities (optional)"
+                help="Pick specific cities to focus your search. Leave empty to search the whole country."
+              >
+                <MultiSelectDropdown
+                  values={form.target_cities}
+                  options={getJobFeedCityOptionsForCountries(form.target_countries).map((city) => ({
+                    value: city,
+                    label: city,
+                  }))}
+                  placeholder="Add popular cities in your selected countries"
+                  searchable
+                  maxSelections={10}
+                  onChange={(target_cities) => onFormChange((prev) => ({ ...prev, target_cities }))}
+                />
+              </FieldGroup>
+            )}
           </div>
         </div>
 
-        {/* Chunk 2: Work mode + optional cities */}
+        {/* Step 2: Work mode */}
         {showChunk2 && (
           <div className="px-6 py-6 sm:px-8">
-            <p className="text-sm font-semibold text-charcoal">Where and how do you want to work?</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy-500">Step 2 of 4</p>
+            <p className="mt-1 text-sm font-semibold text-charcoal">How do you want to work?</p>
             <div className="mt-4 space-y-4">
-              <FieldGroup label="Work mode" help="How flexible should the shortlist be?">
-                <ChoiceGrid
-                  value={form.remote_preference}
+              <FieldGroup
+                label="Work modes"
+                help="Pick any that work for you. Karko will match jobs to any mode you choose."
+              >
+                <MultiSelectDropdown
+                  values={form.remote_preferences}
                   options={JOB_FEED_REMOTE_PREFERENCE_OPTIONS.map((option) => ({
                     value: option.value,
                     label: option.label,
                   }))}
-                  onChange={(remote_preference) => onFormChange((prev) => ({
-                    ...prev,
-                    remote_preference: remote_preference as JobFeedSettingsInput['remote_preference'],
-                  }))}
+                  placeholder="Pick one or more work modes"
+                  onChange={(nextValues) => onFormChange((prev) => {
+                    const remote_preferences = nextValues as JobFeedSettingsInput['remote_preferences'];
+                    return {
+                      ...prev,
+                      remote_preferences,
+                      // Keep the legacy scalar in sync with the primary choice.
+                      remote_preference: (remote_preferences[0] ?? prev.remote_preference) as JobFeedSettingsInput['remote_preference'],
+                    };
+                  })}
                 />
               </FieldGroup>
-
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setIsLocationConstraintOpen((prev) => !prev)}
-                  className="text-sm font-medium text-navy-600 hover:text-navy-700"
-                >
-                  {isLocationConstraintOpen ? 'Hide preferred cities' : 'Add preferred cities'}
-                </button>
-                {isLocationConstraintOpen && (
-                  <div className="mt-3">
-                    <ChipField
-                      values={form.preferred_locations}
-                      suggestions={JOB_FEED_SUGGESTED_LOCATIONS}
-                      placeholder="Add a city or region"
-                      onChange={(preferred_locations) => onFormChange((prev) => ({ ...prev, preferred_locations }))}
-                    />
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         )}
 
-        {/* Chunk 3: Delivery timing */}
+        {/* Step 3: Delivery timing */}
         {showChunk3 && (
           <div className="px-6 py-6 sm:px-8">
             <p className="text-sm font-semibold text-charcoal">When should we deliver your jobs?</p>
@@ -1196,7 +1265,9 @@ function JobFeedOnboardingWizard({
           </div>
         )}
 
-        {/* Advanced filters (collapsed by default) */}
+        {/* Step 4 — Fine-tune (expanded by default for non-technical users).
+             Kept collapsible via the header button in case a power user prefers
+             a compact view. */}
         {showChunk3 && (
           <div className="px-6 py-6 sm:px-8">
             <button
@@ -1207,8 +1278,8 @@ function JobFeedOnboardingWizard({
               <div className="flex items-center gap-3">
                 {isAdvancedOpen ? <ChevronUp className="h-4 w-4 text-navy-600" /> : <ChevronDown className="h-4 w-4 text-navy-600" />}
                 <div className="text-left">
-                  <p className="text-sm font-semibold text-charcoal">Fine-tune your feed</p>
-                  <p className="text-xs text-warm-gray">Salary floor, skills, seniority, work authorisation</p>
+                  <p className="text-sm font-semibold text-charcoal">Step 4 — Fine-tune your feed</p>
+                  <p className="text-xs text-warm-gray">Seniority, skills, salary floor and a few more details to improve matches.</p>
                 </div>
               </div>
               <span className="shrink-0 rounded-full bg-navy-600 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
@@ -1219,15 +1290,27 @@ function JobFeedOnboardingWizard({
             {isAdvancedOpen && (
               <div className="mt-4 grid gap-5 xl:grid-cols-2">
                 <div className="space-y-4">
-                  <SelectField
+                  <FieldGroup
                     label="Seniority"
-                    value={form.seniority_target ?? ''}
-                    onChange={(seniority_target) => onFormChange((prev) => ({
-                      ...prev,
-                      seniority_target: (seniority_target || null) as JobFeedSettingsInput['seniority_target'],
-                    }))}
-                    options={[{ value: '', label: 'Keep flexible' }, ...JOB_FEED_SENIORITY_OPTIONS]}
-                  />
+                    help="Pick every level you’re open to — e.g. junior and mid."
+                  >
+                    <MultiSelectDropdown
+                      values={form.seniority_targets}
+                      options={JOB_FEED_SENIORITY_OPTIONS.map((option) => ({
+                        value: option.value,
+                        label: option.label,
+                      }))}
+                      placeholder="Keep flexible"
+                      onChange={(nextValues) => onFormChange((prev) => {
+                        const seniority_targets = nextValues as JobFeedSettingsInput['seniority_targets'];
+                        return {
+                          ...prev,
+                          seniority_targets,
+                          seniority_target: (seniority_targets[0] ?? null) as JobFeedSettingsInput['seniority_target'],
+                        };
+                      })}
+                    />
+                  </FieldGroup>
 
                   <SelectField
                     label="Search style"
@@ -1239,14 +1322,14 @@ function JobFeedOnboardingWizard({
                     options={JOB_FEED_AGGRESSIVENESS_OPTIONS}
                   />
 
-                  <FieldGroup label="Employment types" help="Leave broad unless you have a strong preference.">
-                    <ChoiceGrid
-                      value={form.employment_types}
-                      multiple
+                  <FieldGroup label="Employment types" help="Pick any that apply. Leave broad unless you have a strong preference.">
+                    <MultiSelectDropdown
+                      values={form.employment_types}
                       options={JOB_FEED_EMPLOYMENT_TYPE_OPTIONS.map((option) => ({
                         value: option.value,
                         label: option.label,
                       }))}
+                      placeholder="Pick one or more job types"
                       onChange={(employment_types) => onFormChange((prev) => ({
                         ...prev,
                         employment_types: employment_types as JobFeedSettingsInput['employment_types'],
@@ -1408,9 +1491,9 @@ function LoadingState() {
 
 function buildFeedSummary(form: JobFeedSettingsInput): string {
   const roles = summarizeTargetRoles(form.target_roles);
-  const market = readableMarket(form.target_market);
+  const market = summarizeCountries(form.target_countries, form.target_market);
   const delivery = formatDeliveryHourLabel(form.delivery_hour_local);
-  return `Roles: ${roles} | Market: ${market} | Delivery: ${delivery} ${form.user_timezone}`;
+  return `Roles: ${roles} | Markets: ${market} | Delivery: ${delivery} ${form.user_timezone}`;
 }
 
 function OperationalSnapshotCard({
@@ -1516,6 +1599,23 @@ function summarizeList(values: string[], fallback = 'Not set yet'): string {
 function readableMarket(value: string): string {
   const option = JOB_FEED_MARKET_OPTIONS.find((item) => item.value === value);
   return option?.label ?? value;
+}
+
+function summarizeCountries(
+  countries: string[],
+  fallbackMarket: JobFeedSettingsInput['target_market'],
+): string {
+  if (!countries || countries.length === 0) {
+    return readableMarket(fallbackMarket);
+  }
+
+  const labels = countries.map((code) => {
+    const option = JOB_FEED_COUNTRY_OPTIONS.find((item) => item.value === code);
+    return option?.label ?? code.toUpperCase();
+  });
+
+  if (labels.length <= 2) return labels.join(' + ');
+  return `${labels.slice(0, 2).join(', ')} +${labels.length - 2} more`;
 }
 
 
