@@ -60,6 +60,7 @@ export const JOB_FEED_REMOTE_PREFERENCE_OPTIONS = [
 ] as const;
 
 export const JOB_FEED_SENIORITY_OPTIONS = [
+  { value: 'intern', label: 'Intern' },
   { value: 'junior', label: 'Junior' },
   { value: 'mid', label: 'Mid-level' },
   { value: 'senior', label: 'Senior' },
@@ -67,6 +68,118 @@ export const JOB_FEED_SENIORITY_OPTIONS = [
   { value: 'staff', label: 'Staff / Principal' },
   { value: 'manager', label: 'Manager' },
 ] as const;
+
+export interface JobFeedTimeZoneOption {
+  value: string;
+  label: string;
+}
+
+export interface JobFeedTimeZoneGroup {
+  region: string;
+  zones: JobFeedTimeZoneOption[];
+}
+
+// Curated IANA timezones, grouped by region. United States listed first since
+// the primary market for the job feed is US/Canada.
+export const JOB_FEED_TIMEZONE_GROUPS: JobFeedTimeZoneGroup[] = [
+  {
+    region: 'United States',
+    zones: [
+      { value: 'America/New_York', label: 'Eastern Time — New York (ET)' },
+      { value: 'America/Chicago', label: 'Central Time — Chicago (CT)' },
+      { value: 'America/Denver', label: 'Mountain Time — Denver (MT)' },
+      { value: 'America/Phoenix', label: 'Arizona — Phoenix (MST, no DST)' },
+      { value: 'America/Los_Angeles', label: 'Pacific Time — Los Angeles (PT)' },
+      { value: 'America/Anchorage', label: 'Alaska — Anchorage (AKT)' },
+      { value: 'Pacific/Honolulu', label: 'Hawaii — Honolulu (HST)' },
+    ],
+  },
+  {
+    region: 'Canada',
+    zones: [
+      { value: 'America/Toronto', label: 'Eastern Time — Toronto' },
+      { value: 'America/Winnipeg', label: 'Central Time — Winnipeg' },
+      { value: 'America/Edmonton', label: 'Mountain Time — Edmonton' },
+      { value: 'America/Vancouver', label: 'Pacific Time — Vancouver' },
+      { value: 'America/Halifax', label: 'Atlantic Time — Halifax' },
+      { value: 'America/St_Johns', label: 'Newfoundland — St. John’s' },
+    ],
+  },
+  {
+    region: 'United Kingdom & Ireland',
+    zones: [
+      { value: 'Europe/London', label: 'United Kingdom — London (GMT/BST)' },
+      { value: 'Europe/Dublin', label: 'Ireland — Dublin (GMT/IST)' },
+    ],
+  },
+  {
+    region: 'Europe',
+    zones: [
+      { value: 'Europe/Lisbon', label: 'Portugal — Lisbon' },
+      { value: 'Europe/Madrid', label: 'Spain — Madrid' },
+      { value: 'Europe/Paris', label: 'France — Paris' },
+      { value: 'Europe/Brussels', label: 'Belgium — Brussels' },
+      { value: 'Europe/Amsterdam', label: 'Netherlands — Amsterdam' },
+      { value: 'Europe/Berlin', label: 'Germany — Berlin' },
+      { value: 'Europe/Zurich', label: 'Switzerland — Zurich' },
+      { value: 'Europe/Vienna', label: 'Austria — Vienna' },
+      { value: 'Europe/Rome', label: 'Italy — Rome' },
+      { value: 'Europe/Copenhagen', label: 'Denmark — Copenhagen' },
+      { value: 'Europe/Oslo', label: 'Norway — Oslo' },
+      { value: 'Europe/Stockholm', label: 'Sweden — Stockholm' },
+      { value: 'Europe/Helsinki', label: 'Finland — Helsinki' },
+      { value: 'Europe/Warsaw', label: 'Poland — Warsaw' },
+      { value: 'Europe/Prague', label: 'Czech Republic — Prague' },
+      { value: 'Europe/Athens', label: 'Greece — Athens' },
+      { value: 'Europe/Istanbul', label: 'Turkey — Istanbul' },
+    ],
+  },
+  {
+    region: 'Australia & New Zealand',
+    zones: [
+      { value: 'Australia/Perth', label: 'Australia — Perth (AWST)' },
+      { value: 'Australia/Adelaide', label: 'Australia — Adelaide (ACST)' },
+      { value: 'Australia/Brisbane', label: 'Australia — Brisbane (AEST)' },
+      { value: 'Australia/Sydney', label: 'Australia — Sydney (AEST/AEDT)' },
+      { value: 'Australia/Melbourne', label: 'Australia — Melbourne' },
+      { value: 'Pacific/Auckland', label: 'New Zealand — Auckland (NZST/NZDT)' },
+    ],
+  },
+  {
+    region: 'Asia & Middle East',
+    zones: [
+      { value: 'Asia/Dubai', label: 'United Arab Emirates — Dubai (GST)' },
+      { value: 'Asia/Kolkata', label: 'India — Mumbai / Delhi (IST)' },
+      { value: 'Asia/Singapore', label: 'Singapore (SGT)' },
+      { value: 'Asia/Hong_Kong', label: 'Hong Kong (HKT)' },
+      { value: 'Asia/Shanghai', label: 'China — Shanghai (CST)' },
+      { value: 'Asia/Seoul', label: 'South Korea — Seoul (KST)' },
+      { value: 'Asia/Tokyo', label: 'Japan — Tokyo (JST)' },
+    ],
+  },
+  {
+    region: 'Africa & Other',
+    zones: [
+      { value: 'Africa/Johannesburg', label: 'South Africa — Johannesburg (SAST)' },
+      { value: 'Africa/Lagos', label: 'Nigeria — Lagos (WAT)' },
+      { value: 'Africa/Cairo', label: 'Egypt — Cairo (EET)' },
+      { value: 'America/Sao_Paulo', label: 'Brazil — São Paulo (BRT)' },
+      { value: 'America/Mexico_City', label: 'Mexico — Mexico City (CST)' },
+      { value: 'UTC', label: 'UTC — Coordinated Universal Time' },
+    ],
+  },
+];
+
+export const JOB_FEED_TIMEZONE_OPTIONS: JobFeedTimeZoneOption[] = JOB_FEED_TIMEZONE_GROUPS
+  .flatMap((group) => group.zones);
+
+export const JOB_FEED_TIMEZONE_LOOKUP = new Map<string, string>(
+  JOB_FEED_TIMEZONE_OPTIONS.map((zone) => [zone.value, zone.label]),
+);
+
+export function getJobFeedTimeZoneLabel(value: string): string {
+  return JOB_FEED_TIMEZONE_LOOKUP.get(value) ?? value;
+}
 
 export const JOB_FEED_EMPLOYMENT_TYPE_OPTIONS = [
   { value: 'full_time', label: 'Full-time' },
@@ -109,7 +222,7 @@ export const JOB_FEED_SUGGESTED_LANGUAGES = ['English', 'French'];
 
 export const JOB_FEED_DEFAULT_SETTINGS = {
   enabled: true,
-  user_timezone: 'UTC',
+  user_timezone: 'America/New_York',
   delivery_hour_local: 8,
   target_market: 'us_canada',
   target_roles: [] as string[],

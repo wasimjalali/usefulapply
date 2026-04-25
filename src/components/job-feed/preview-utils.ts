@@ -6,16 +6,6 @@ import type {
 } from '@/lib/job-feed/types';
 import { createDefaultJobFeedInput } from '@/lib/job-feed/helpers';
 
-const JOB_FEED_COMMON_TIMEZONES = [
-  'America/New_York',
-  'America/Chicago',
-  'America/Denver',
-  'America/Los_Angeles',
-  'America/Toronto',
-  'Europe/Berlin',
-  'UTC',
-];
-
 export type JobFeedPreviewMode =
   | 'off'
   | 'signed_out'
@@ -463,18 +453,3 @@ export function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
   ];
 }
 
-export function getSupportedTimeZones(): string[] {
-  try {
-    const intlWithSupportedValues = Intl as typeof Intl & {
-      supportedValuesOf?: (input: string) => string[];
-    };
-    const values = intlWithSupportedValues.supportedValuesOf?.('timeZone');
-    if (values && values.length > 0) {
-      return values;
-    }
-  } catch {
-    // Fall through to the curated fallback below.
-  }
-
-  return JOB_FEED_COMMON_TIMEZONES;
-}
