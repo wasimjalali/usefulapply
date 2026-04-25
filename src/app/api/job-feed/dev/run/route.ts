@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isJobFeedDebugModeEnabled } from '@/lib/job-feed/constants';
 import { canAccessJobFeed } from '@/lib/job-feed/helpers';
 import { dispatchJobFeedUserRun } from '@/lib/job-feed/orchestration';
+import { runJobFeedFoundationWorkflow } from '@/lib/job-feed/server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
+export const maxDuration = 120;
 
 export async function POST(request: NextRequest) {
   if (!isJobFeedDebugModeEnabled()) {
@@ -21,6 +23,7 @@ export async function POST(request: NextRequest) {
 
     const payload = await request.json().catch(() => ({}));
     const force = Boolean(payload?.force);
+    const direct = Boolean(payload?.direct);
     const supabase = await createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
     const typedSupabase = supabase as any;
@@ -40,15 +43,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 
+    // direct=true bypasses Inngest and runs the full pipeline synchronously.
+    // Use this for testing in production where you can see results immediately.
+    if (direct) {
+      const result = await runJobFeedFoundationWorkflow({
+        userId: user.id,
+        triggerSource: force ? 'manual_debug_force' : 'manual_debug',
+        now: new Date(),
+        force,
+        orchestrator: 'direct',
+      });
+
+      return NextResponse.json({
+        mode: 'direct',
+        success: true,
+        runId: result.run.id,
+        status: result.run.status,
+        created: result.created,
+        skipped: result.skipped,
+        forced: result.forced ?? false,
+        rawJobsFetched: result.run.raw_jobs_fetched,
+        jobsAfterPrefilter: result.run.jobs_after_prefilter,
+        rankedJobsCount: result.run.ranked_jobs_count,
+        resultSummary: result.run.result_summary,
+        errorMessage: result.run.error_message,
+      });
+    }
+
     const result = await dispatchJobFeedUserRun({
       userId: user.id,
       triggerSource: force ? 'manual_debug_force' : 'manual_debug',
       force,
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json({ mode: 'inngest', ...result });
   } catch (error) {
-    console.error('[job-feed/dev/run] unexpected error:', error);
-    return NextResponse.json({ error: 'Failed to run the background workflow.' }, { status: 500 });
+    console.error('[job-feed/dev/run] error:', error);
+    return NextResponse.json({
+      error: 'Workflow failed.',
+      detail: error instanceof Error ? error.message : 'Unknown error',
+    }, { status: 500 });
   }
 }
