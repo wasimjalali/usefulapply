@@ -152,8 +152,8 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <PostHogProvider>
-          <PostHogPageView />
           <AuthProvider>
+            <PostHogPageView />
             <ToastProvider>
               {children}
             </ToastProvider>
