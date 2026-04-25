@@ -121,6 +121,11 @@ export function useAgentWorkflow(options?: {
   const [fitAnalysisContextData, setFitAnalysisContextData] = useState<FitAnalysisContextData | null>(null);
   const [applicationMode, setApplicationMode] = useState<'analyze_first' | 'apply_directly'>('apply_directly');
   const [isScreeningMode, setIsScreeningMode] = useState(false);
+  // True after the user picks a mode (Apply Directly / Analyze First) and we are
+  // explicitly waiting for them to paste the job description. While this is set,
+  // the next non-trivial message is treated as the JD — no keyword heuristics,
+  // no chat fallback. Prevents the "Paste a job description…" response loop.
+  const [awaitingJobDescription, setAwaitingJobDescription] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -727,27 +732,39 @@ export function useAgentWorkflow(options?: {
       }
     }
 
+    const runWorkflowForJD = (jd: string) => {
+      setJobDescription(jd);
+      setIsAgentWorking(true);
+      setAwaitingJobDescription(false);
+      posthog?.capture('jd_pasted', { jd_length: jd.length, mode: applicationMode });
+      if (applicationMode === 'apply_directly') {
+        setV2Progress({ percent: 0, message: 'Generating full application...' });
+        runAgentWorkflow(jd);
+      } else {
+        setV2Progress({ percent: 0, message: 'Analyzing job fit...' });
+        runFitAnalysisFlow(jd);
+      }
+    };
+
     if (!currentSession) {
       createNewSession(messageContent);
       addChatMessage({
         role: 'user',
         content: messageContent,
       });
-      
-      const isJobDescription = messageContent.length > 100 || 
+
+      // If the user explicitly picked a mode, treat the next non-trivial message
+      // as the JD regardless of keyword heuristics.
+      if (awaitingJobDescription && messageContent.length >= 30) {
+        runWorkflowForJD(messageContent);
+        return undefined;
+      }
+
+      const isJobDescription = messageContent.length > 100 ||
         /job|position|role|responsibilities|requirements|qualifications|experience/i.test(messageContent);
-      
+
       if (isJobDescription) {
-        setJobDescription(messageContent);
-        setIsAgentWorking(true);
-        posthog?.capture('jd_pasted', { jd_length: messageContent.length, mode: applicationMode });
-        if (applicationMode === 'apply_directly') {
-          setV2Progress({ percent: 0, message: 'Generating full application...' });
-          runAgentWorkflow(messageContent);
-        } else {
-          setV2Progress({ percent: 0, message: 'Analyzing job fit...' });
-          runFitAnalysisFlow(messageContent);
-        }
+        runWorkflowForJD(messageContent);
       } else {
         handleGeneralChat(messageContent);
       }
@@ -756,15 +773,10 @@ export function useAgentWorkflow(options?: {
         role: 'user',
         content: messageContent,
       });
-      
-      // When in screening mode, always route to chat (never re-detect as JD)
-      const jobKeywords = /\b(responsibilities|requirements|qualifications|experience required|skills required|about the role|job description|we are looking for|you will|must have|nice to have|salary|benefits|apply|candidate|position|vacancy)\b/i;
-      const isLikelyJobDescription = !isScreeningMode && messageContent.length > 200 && jobKeywords.test(messageContent);
-      const isShortJobPost = !isScreeningMode && messageContent.length > 100 && (messageContent.match(jobKeywords) || []).length >= 2;
-      const isNewJobDescription = isLikelyJobDescription || isShortJobPost;
 
-      if (isNewJobDescription) {
-        // Clear previous fit analysis state for the new JD
+      // Short-circuit: user just clicked Apply Directly / Analyze First and is
+      // pasting the JD. Skip heuristic detection entirely.
+      if (awaitingJobDescription && !isScreeningMode && messageContent.length >= 30) {
         setFitAnalysisContextId(null);
         setFitAnalysisJD('');
         setFitAnalysisContextData(null);
@@ -778,17 +790,31 @@ export function useAgentWorkflow(options?: {
           suggestions: [],
           pendingFitAnalysis: null,
         });
-        
-        setJobDescription(messageContent);
-        setIsAgentWorking(true);
-        posthog?.capture('jd_pasted', { jd_length: messageContent.length, mode: applicationMode });
-        if (applicationMode === 'apply_directly') {
-          setV2Progress({ percent: 0, message: 'Generating full application...' });
-          runAgentWorkflow(messageContent);
-        } else {
-          setV2Progress({ percent: 0, message: 'Analyzing job fit...' });
-          runFitAnalysisFlow(messageContent);
-        }
+        runWorkflowForJD(messageContent);
+        return undefined;
+      }
+
+      // When in screening mode, always route to chat (never re-detect as JD)
+      const jobKeywords = /\b(responsibilities|requirements|qualifications|experience required|skills required|about the role|job description|we are looking for|you will|must have|nice to have|salary|benefits|apply|candidate|position|vacancy)\b/i;
+      const isLikelyJobDescription = !isScreeningMode && messageContent.length > 200 && jobKeywords.test(messageContent);
+      const isShortJobPost = !isScreeningMode && messageContent.length > 100 && (messageContent.match(jobKeywords) || []).length >= 2;
+      const isNewJobDescription = isLikelyJobDescription || isShortJobPost;
+
+      if (isNewJobDescription) {
+        setFitAnalysisContextId(null);
+        setFitAnalysisJD('');
+        setFitAnalysisContextData(null);
+        useAppStore.getState().updateCurrentSession({
+          requirements: null,
+          gaps: null,
+          generatedCV: null,
+          matchScore: undefined,
+          matchingSkills: [],
+          missingSkills: [],
+          suggestions: [],
+          pendingFitAnalysis: null,
+        });
+        runWorkflowForJD(messageContent);
       } else {
         handleGeneralChat(messageContent);
       }
@@ -817,6 +843,8 @@ export function useAgentWorkflow(options?: {
     fitAnalysisContextData,
     applicationMode,
     setApplicationMode,
+    awaitingJobDescription,
+    setAwaitingJobDescription,
     isScreeningMode,
     setIsScreeningMode,
     // Actions

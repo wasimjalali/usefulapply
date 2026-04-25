@@ -82,6 +82,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     fitAnalysisJD,
     applicationMode,
     setApplicationMode,
+    setAwaitingJobDescription,
     isScreeningMode,
     setIsScreeningMode,
     handleSend: workflowHandleSend,
@@ -111,7 +112,6 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
   const [signUpWallTrigger, setSignUpWallTrigger] = useState<'download' | 'new-application' | 'general'>('new-application');
   const [showCreditsModal, setShowCreditsModal] = useState(false);
   const [creditsModalData, setCreditsModalData] = useState<{ required: number; available: number } | null>(null);
-  const [hoveredHeroMode, setHoveredHeroMode] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -318,6 +318,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
 
   const handleModeSelect = (mode: 'apply_directly' | 'analyze_first') => {
     setApplicationMode(mode);
+    setAwaitingJobDescription(true);
     if (!currentSession) {
       useSessionStore.getState().createNewSession('');
     }
@@ -366,6 +367,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
       case 'skip-job':
         setFitAnalysisContextId(null);
         setFitAnalysisJD('');
+        setAwaitingJobDescription(false);
         // Clear pending state from session
         useAppStore.getState().updateCurrentSession({ pendingFitAnalysis: null });
         useAppStore.getState().clearCurrentSession();
@@ -387,6 +389,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
         posthog?.capture('new_application_started');
         setFitAnalysisContextId(null);
         setFitAnalysisJD('');
+        setAwaitingJobDescription(false);
         useAppStore.getState().clearCurrentSession();
         useAppStore.getState().setJobDescription('');
         setJobDescription('');
@@ -554,46 +557,26 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                       Paste a job description and I&apos;ll create a tailored CV, cover letter, and application emails.
                     </p>
                     <div className="flex flex-col gap-2.5">
-                      <div className="relative">
-                        {hoveredHeroMode === 'apply_directly' && (
-                          <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-navy-700 text-white text-xs rounded-xl p-3.5 shadow-xl z-50 text-left">
-                            <div className="font-semibold mb-1">Apply Directly</div>
-                            <p className="text-navy-200 leading-relaxed">Generates your optimized CV, cover letter, and email immediately.</p>
-                            <p className="text-navy-300 mt-1.5 italic">Best when you&apos;ve already read the job description.</p>
-                            <div className="mt-2 text-gold-400 font-medium">2 credits</div>
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-navy-700 rotate-45 -mt-1.5" />
-                          </div>
-                        )}
-                        <button
-                          onClick={() => handleModeSelect('apply_directly')}
-                          onMouseEnter={() => setHoveredHeroMode('apply_directly')}
-                          onMouseLeave={() => setHoveredHeroMode(null)}
-                          className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold bg-gradient-to-r from-navy-600 to-navy-700 text-white rounded-xl hover:from-navy-700 hover:to-navy-800 transition-all shadow-md hover:shadow-lg cursor-pointer"
-                        >
-                          <Zap className="w-4 h-4" />
-                          Apply Directly
-                        </button>
-                      </div>
-                      <div className="relative">
-                        {hoveredHeroMode === 'analyze_first' && (
-                          <div className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 bg-navy-700 text-white text-xs rounded-xl p-3.5 shadow-xl z-50 text-left">
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-navy-700 rotate-45 -mb-1.5" />
-                            <div className="font-semibold mb-1">Analyze First</div>
-                            <p className="text-navy-200 leading-relaxed">Shows your match score and skill gaps before generating the full application.</p>
-                            <p className="text-navy-300 mt-1.5 italic">Best when you haven&apos;t read the job description yet.</p>
-                            <div className="mt-2 text-gold-400 font-medium">0.5 credits (analysis) + 2 credits (application)</div>
-                          </div>
-                        )}
-                        <button
-                          onClick={() => handleModeSelect('analyze_first')}
-                          onMouseEnter={() => setHoveredHeroMode('analyze_first')}
-                          onMouseLeave={() => setHoveredHeroMode(null)}
-                          className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium bg-white text-charcoal border border-cream-300 rounded-xl hover:bg-cream-50 hover:border-gold-300 hover:shadow-sm transition-all cursor-pointer"
-                        >
-                          <Search className="w-4 h-4 text-warm-gray" />
-                          Analyze Fit First
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => handleModeSelect('apply_directly')}
+                        title="Generates your optimized CV, cover letter, and email immediately (2 credits)."
+                        className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold bg-gradient-to-r from-navy-600 to-navy-700 text-white rounded-xl hover:from-navy-700 hover:to-navy-800 transition-all shadow-md hover:shadow-lg cursor-pointer"
+                      >
+                        <Zap className="w-4 h-4" />
+                        Apply Directly
+                      </button>
+                      <button
+                        onClick={() => handleModeSelect('analyze_first')}
+                        title="Shows your match score and skill gaps first, then you decide whether to generate the full application (0.5 credits, then +2 if you continue)."
+                        className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium bg-white text-charcoal border border-cream-300 rounded-xl hover:bg-cream-50 hover:border-gold-300 hover:shadow-sm transition-all cursor-pointer"
+                      >
+                        <Search className="w-4 h-4 text-warm-gray" />
+                        Analyze Fit First
+                      </button>
+                      <p className="mt-1 text-[11px] leading-relaxed text-warm-gray/80">
+                        <span className="font-medium text-charcoal">Apply Directly</span> generates everything at once.{' '}
+                        <span className="font-medium text-charcoal">Analyze First</span> shows match score before generating.
+                      </p>
                     </div>
                   </>
                 ) : (
