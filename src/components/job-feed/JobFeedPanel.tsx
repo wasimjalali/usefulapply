@@ -38,9 +38,7 @@ import {
   JOB_FEED_TIMEZONE_LOOKUP,
   JOB_FEED_WORK_AUTH_OPTIONS,
   formatDeliveryHourLabel,
-  getJobFeedCityOptionsForCountries,
   getJobFeedTimeZoneLabel,
-  legacyMarketFromCountries,
 } from '@/lib/job-feed/constants';
 import { createDefaultJobFeedInput, getJobFeedOverviewState, isValidTimeZone, toJobFeedInput } from '@/lib/job-feed/helpers';
 import type {
@@ -63,8 +61,8 @@ import {
 } from './preview-utils';
 import {
   ChipField,
+  ChoiceGrid,
   GroupedSelectField,
-  MultiSelectDropdown,
   SelectField,
   InputField,
   ToggleRow,
@@ -1097,6 +1095,15 @@ function JobFeedOnboardingWizard({
     }
   }, [form.user_timezone, onFormChange]);
 
+  // If the saved timezone isn't in our curated list, auto-select the closest
+  // curated equivalent so what the dropdown shows matches what we will save.
+  useEffect(() => {
+    if (!JOB_FEED_TIMEZONE_LOOKUP.has(form.user_timezone)) {
+      const fallback = normalizeTimeZoneValue(form.user_timezone);
+      onFormChange((prev) => ({ ...prev, user_timezone: fallback }));
+    }
+  }, [form.user_timezone, onFormChange]);
+
   return (
     <Card className="overflow-hidden rounded-[32px] border-cream-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.985),rgba(248,244,234,0.94))] p-0 shadow-[0_28px_80px_-42px_rgba(30,58,95,0.35)]">
       <div className="border-b border-cream-200 px-6 py-5 sm:px-8">
@@ -1224,8 +1231,7 @@ function JobFeedOnboardingWizard({
         {/* Step 3: Delivery timing */}
         {showChunk3 && (
           <div className="px-6 py-6 sm:px-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy-500">Step 3 of 4</p>
-            <p className="mt-1 text-sm font-semibold text-charcoal">When should we deliver your jobs?</p>
+            <p className="text-sm font-semibold text-charcoal">When should we deliver your jobs?</p>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <FieldGroup label="Delivery time" help="Karko prepares your feed at this hour in your local time.">
                 <SelectField
