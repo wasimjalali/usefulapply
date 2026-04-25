@@ -43,7 +43,13 @@ interface AggregatedNormalizedJob {
 }
 
 export function buildJobFeedSearchPlan(settings: JobFeedSettings, maxQueries: number = JOB_FEED_MAX_DAILY_QUERIES): JobFeedSearchPlanItem[] {
-  const countries = JOB_FEED_MARKET_COUNTRIES[settings.target_market] || JOB_FEED_MARKET_COUNTRIES.us_canada;
+  // Prefer the new target_countries multi-select; fall back to the legacy
+  // market enum if a row hasn't been migrated yet.
+  const selectedCountries = (settings.target_countries && settings.target_countries.length > 0)
+    ? settings.target_countries
+    : Array.from(JOB_FEED_MARKET_COUNTRIES[settings.target_market] || JOB_FEED_MARKET_COUNTRIES.us_canada);
+  const countries = selectedCountries.length > 0 ? selectedCountries : ['us'];
+
   const maxRoles = Math.max(1, Math.floor(maxQueries / countries.length));
 
   const targetRoles = dedupeRoles(settings.target_roles).map((role) => ({
@@ -62,6 +68,7 @@ export function buildJobFeedSearchPlan(settings: JobFeedSettings, maxQueries: nu
 
   const selectedRoles = [...targetRoles, ...adjacentRoles].slice(0, maxRoles);
   const language = pickQueryLanguage(settings);
+  const cityByCountry = indexCitiesByCountry(settings.target_cities ?? []);
 
   return selectedRoles
     .flatMap((candidate) => countries.map((country) => ({
@@ -69,11 +76,54 @@ export function buildJobFeedSearchPlan(settings: JobFeedSettings, maxQueries: nu
       targetRole: candidate.role,
       isAdjacentRole: candidate.isAdjacentRole,
       market: settings.target_market,
-      country,
+      country: country as JobFeedSearchPlanItem['country'],
       language,
-      location: null,
+      // Prefer a user-picked city in that country as the SerpAPI `location`
+      // hint. If none, leave null and let the country-level search run.
+      location: cityByCountry.get(country) ?? null,
     })))
     .slice(0, maxQueries);
+}
+
+function indexCitiesByCountry(targetCities: string[]): Map<string, string> {
+  // The city strings come from JOB_FEED_CITY_SUGGESTIONS which include
+  // country hints (e.g. "New York, NY", "London", "Remote (UK)"). We index
+  // by simple substring/heuristic match so we don't lie to SerpAPI.
+  const result = new Map<string, string>();
+  for (const city of targetCities) {
+    const match = inferCountryForCity(city);
+    if (match && !result.has(match)) {
+      result.set(match, city);
+    }
+  }
+  return result;
+}
+
+function inferCountryForCity(city: string): string | null {
+  const normalized = city.toLowerCase();
+  if (normalized.includes('(us)') || /, (ny|ca|tx|wa|il|ma|co|ga|az|fl|pa|nc|oh)\b/i.test(city)) return 'us';
+  if (normalized.includes('(canada)') || /, (on|bc|qc|ab)\b/i.test(city)) return 'ca';
+  if (normalized.includes('(uk)') || ['london', 'manchester', 'edinburgh', 'bristol', 'cambridge'].some((c) => normalized.includes(c))) return 'gb';
+  if (normalized.includes('(ireland)') || ['dublin', 'cork', 'galway'].some((c) => normalized.includes(c))) return 'ie';
+  if (normalized.includes('(germany)') || ['berlin', 'munich', 'hamburg', 'frankfurt', 'cologne'].some((c) => normalized.includes(c))) return 'de';
+  if (normalized.includes('(netherlands)') || ['amsterdam', 'rotterdam', 'utrecht', 'the hague'].some((c) => normalized.includes(c))) return 'nl';
+  if (normalized.includes('(france)') || ['paris', 'lyon', 'toulouse'].some((c) => normalized.includes(c))) return 'fr';
+  if (normalized.includes('(spain)') || ['madrid', 'barcelona', 'valencia'].some((c) => normalized.includes(c))) return 'es';
+  if (normalized.includes('(italy)') || ['milan', 'rome', 'turin'].some((c) => normalized.includes(c))) return 'it';
+  if (normalized.includes('(switzerland)') || ['zurich', 'geneva', 'basel'].some((c) => normalized.includes(c))) return 'ch';
+  if (normalized.includes('(austria)') || ['vienna', 'graz'].some((c) => normalized.includes(c))) return 'at';
+  if (normalized.includes('(belgium)') || ['brussels', 'antwerp'].some((c) => normalized.includes(c))) return 'be';
+  if (normalized.includes('(denmark)') || ['copenhagen', 'aarhus'].some((c) => normalized.includes(c))) return 'dk';
+  if (normalized.includes('(sweden)') || ['stockholm', 'gothenburg', 'malmö', 'malmo'].some((c) => normalized.includes(c))) return 'se';
+  if (normalized.includes('(norway)') || ['oslo', 'bergen'].some((c) => normalized.includes(c))) return 'no';
+  if (normalized.includes('(finland)') || ['helsinki', 'espoo'].some((c) => normalized.includes(c))) return 'fi';
+  if (normalized.includes('(poland)') || ['warsaw', 'kraków', 'krakow', 'wrocław', 'wroclaw'].some((c) => normalized.includes(c))) return 'pl';
+  if (normalized.includes('(australia)') || ['sydney', 'melbourne', 'brisbane', 'perth'].some((c) => normalized.includes(c))) return 'au';
+  if (normalized.includes('(new zealand)') || ['auckland', 'wellington'].some((c) => normalized.includes(c))) return 'nz';
+  if (normalized.includes('(india)') || ['bengaluru', 'bangalore', 'mumbai', 'delhi', 'hyderabad', 'pune'].some((c) => normalized.includes(c))) return 'in';
+  if (normalized.includes('singapore')) return 'sg';
+  if (['dubai', 'abu dhabi'].some((c) => normalized.includes(c))) return 'ae';
+  return null;
 }
 
 export async function ingestJobFeedRunJobs(params: {

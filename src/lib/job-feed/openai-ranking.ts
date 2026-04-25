@@ -181,9 +181,18 @@ function buildRankingPrompt(settings: JobFeedSettings, candidates: JobFeedRankin
       adjacentRoles: settings.adjacent_roles,
       userSkills: settings.user_skills ?? [],
       preferredLocations: settings.preferred_locations,
-      remotePreference: settings.remote_preference,
+      // Multi-select fields: arrays when set, fall back to singular legacy.
+      remotePreferences: (settings.remote_preferences && settings.remote_preferences.length > 0)
+        ? settings.remote_preferences
+        : [settings.remote_preference],
+      seniorityTargets: (settings.seniority_targets && settings.seniority_targets.length > 0)
+        ? settings.seniority_targets
+        : (settings.seniority_target ? [settings.seniority_target] : []),
+      targetCountries: (settings.target_countries && settings.target_countries.length > 0)
+        ? settings.target_countries
+        : undefined,
+      targetCities: settings.target_cities ?? [],
       salaryFloor: settings.salary_floor,
-      seniorityTarget: settings.seniority_target,
       employmentTypes: settings.employment_types,
       workAuthorizationStatus: settings.work_authorization_status,
       targetMarket: settings.target_market,

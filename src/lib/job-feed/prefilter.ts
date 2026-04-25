@@ -160,25 +160,59 @@ function hasEmploymentTypeMismatch(job: JobFeedCanonicalJob, settings: JobFeedSe
 }
 
 function hasRemoteMismatch(job: JobFeedCanonicalJob, settings: JobFeedSettings): boolean {
-  if (settings.remote_preference === 'remote_only') {
-    return job.work_mode !== 'remote';
-  }
+  const preferences = getEffectiveRemotePreferences(settings);
 
-  if (settings.remote_preference === 'remote_first') {
-    return job.work_mode === 'onsite' && !matchesPreferredLocation(job, settings.preferred_locations);
-  }
+  // flexible = open to everything
+  if (preferences.includes('flexible')) return false;
 
-  if (settings.remote_preference === 'onsite') {
-    return job.work_mode === 'remote';
-  }
+  // User is happy if the job matches ANY of the chosen work modes.
+  const matchesAny = preferences.some((preference) => matchesRemotePreference(preference, job, settings));
+  return !matchesAny;
+}
 
-  return false;
+function matchesRemotePreference(
+  preference: JobFeedSettings['remote_preference'],
+  job: JobFeedCanonicalJob,
+  settings: JobFeedSettings,
+): boolean {
+  switch (preference) {
+    case 'remote_only':
+      return job.work_mode === 'remote';
+    case 'remote_first':
+      return job.work_mode !== 'onsite' || matchesPreferredLocation(job, settings.preferred_locations);
+    case 'hybrid':
+      return job.work_mode === 'hybrid' || job.work_mode === 'remote';
+    case 'onsite':
+      return job.work_mode === 'onsite' || job.work_mode === 'hybrid';
+    case 'flexible':
+      return true;
+    default:
+      return true;
+  }
+}
+
+function getEffectiveRemotePreferences(settings: JobFeedSettings): Array<JobFeedSettings['remote_preference']> {
+  if (settings.remote_preferences && settings.remote_preferences.length > 0) {
+    return settings.remote_preferences;
+  }
+  return [settings.remote_preference];
+}
+
+function getEffectiveSeniorityTargets(settings: JobFeedSettings): Array<NonNullable<JobFeedSettings['seniority_target']>> {
+  if (settings.seniority_targets && settings.seniority_targets.length > 0) {
+    return settings.seniority_targets;
+  }
+  return settings.seniority_target ? [settings.seniority_target] : [];
 }
 
 function hasLocationMismatch(job: JobFeedCanonicalJob, settings: JobFeedSettings): boolean {
   if (settings.preferred_locations.length === 0) return false;
 
-  if (job.work_mode === 'remote' && settings.remote_preference !== 'onsite') {
+  const preferences = getEffectiveRemotePreferences(settings);
+  const isOnsiteOnly = preferences.every((pref) => pref === 'onsite');
+
+  // Remote jobs are acceptable unless the user explicitly wants onsite-only.
+  if (job.work_mode === 'remote' && !isOnsiteOnly) {
     return false;
   }
 
@@ -209,15 +243,15 @@ function hasWorkAuthorizationMismatch(job: JobFeedCanonicalJob, settings: JobFee
 }
 
 function hasSeniorityMismatch(job: JobFeedCanonicalJob, settings: JobFeedSettings): boolean {
-  if (!settings.seniority_target) return false;
+  const targets = getEffectiveSeniorityTargets(settings);
+  if (targets.length === 0) return false;
 
   const inferredSeniority = inferSeniority(job.title);
   if (!inferredSeniority) return false;
 
-  const targetRank = SENIORITY_RANK[settings.seniority_target];
   const jobRank = SENIORITY_RANK[inferredSeniority];
-
-  return Math.abs(jobRank - targetRank) > 1;
+  // Job is OK if it's within 1 rank of ANY selected seniority target.
+  return !targets.some((target) => Math.abs(jobRank - SENIORITY_RANK[target]) <= 1);
 }
 
 function getShortlistScoreBreakdown(job: JobFeedCanonicalJob, settings: JobFeedSettings) {
@@ -339,7 +373,19 @@ function getSalaryScore(job: JobFeedCanonicalJob, settings: JobFeedSettings): nu
 }
 
 function getRemoteAlignmentScore(job: JobFeedCanonicalJob, settings: JobFeedSettings): number {
-  switch (settings.remote_preference) {
+  const preferences = getEffectiveRemotePreferences(settings);
+  return Math.max(
+    0,
+    ...preferences.map((preference) => scoreRemoteAlignmentForPreference(preference, job, settings)),
+  );
+}
+
+function scoreRemoteAlignmentForPreference(
+  preference: JobFeedSettings['remote_preference'],
+  job: JobFeedCanonicalJob,
+  settings: JobFeedSettings,
+): number {
+  switch (preference) {
     case 'remote_only':
       return job.work_mode === 'remote' ? 8 : 0;
     case 'remote_first':
