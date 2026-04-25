@@ -38,7 +38,9 @@ import {
   JOB_FEED_TIMEZONE_LOOKUP,
   JOB_FEED_WORK_AUTH_OPTIONS,
   formatDeliveryHourLabel,
+  getJobFeedCityOptionsForCountries,
   getJobFeedTimeZoneLabel,
+  legacyMarketFromCountries,
 } from '@/lib/job-feed/constants';
 import { createDefaultJobFeedInput, getJobFeedOverviewState, isValidTimeZone, toJobFeedInput } from '@/lib/job-feed/helpers';
 import type {
@@ -63,6 +65,7 @@ import {
   ChipField,
   ChoiceGrid,
   GroupedSelectField,
+  MultiSelectDropdown,
   SelectField,
   InputField,
   ToggleRow,
