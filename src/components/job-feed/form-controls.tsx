@@ -180,7 +180,7 @@ export function SelectField({
   const selectedOption = options.find((o) => o.value === value);
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-semibold text-charcoal">{label}</span>
+      {label && <span className="mb-2 block text-sm font-semibold text-charcoal">{label}</span>}
       {help && <span className="mb-2 block text-xs text-warm-gray">{help}</span>}
       <select
         value={value}
@@ -196,6 +196,49 @@ export function SelectField({
       {selectedOption?.description && (
         <span className="mt-1.5 block text-xs text-warm-gray">{selectedOption.description}</span>
       )}
+    </label>
+  );
+}
+
+// ============================================================================
+// GroupedSelectField
+// ============================================================================
+
+export function GroupedSelectField({
+  label,
+  value,
+  groups,
+  onChange,
+  help,
+}: {
+  label: string;
+  value: string;
+  groups: ReadonlyArray<{
+    region: string;
+    zones: ReadonlyArray<{ value: string; label: string }>;
+  }>;
+  onChange: (value: string) => void;
+  help?: string;
+}) {
+  return (
+    <label className="block">
+      {label && <span className="mb-2 block text-sm font-semibold text-charcoal">{label}</span>}
+      {help && <span className="mb-2 block text-xs text-warm-gray">{help}</span>}
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-2xl border border-cream-300 bg-white px-3 py-2.5 text-sm text-charcoal shadow-sm outline-none transition-colors focus:border-navy-400"
+      >
+        {groups.map((group) => (
+          <optgroup key={group.region} label={group.region}>
+            {group.zones.map((zone) => (
+              <option key={zone.value} value={zone.value}>
+                {zone.label}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
     </label>
   );
 }

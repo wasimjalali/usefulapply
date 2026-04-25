@@ -34,8 +34,11 @@ import {
   JOB_FEED_SUGGESTED_LANGUAGES,
   JOB_FEED_SUGGESTED_LOCATIONS,
   JOB_FEED_SUGGESTED_ROLES,
+  JOB_FEED_TIMEZONE_GROUPS,
+  JOB_FEED_TIMEZONE_LOOKUP,
   JOB_FEED_WORK_AUTH_OPTIONS,
   formatDeliveryHourLabel,
+  getJobFeedTimeZoneLabel,
 } from '@/lib/job-feed/constants';
 import { createDefaultJobFeedInput, getJobFeedOverviewState, isValidTimeZone, toJobFeedInput } from '@/lib/job-feed/helpers';
 import type {
@@ -54,12 +57,12 @@ import {
   type JobFeedPreviewMode,
   getJobFeedPreviewMode,
   buildJobFeedPreviewSnapshot,
-  getSupportedTimeZones,
   toPreviewJobFeedSettings,
 } from './preview-utils';
 import {
   ChipField,
   ChoiceGrid,
+  GroupedSelectField,
   SelectField,
   InputField,
   ToggleRow,
@@ -78,7 +81,18 @@ type PendingJobAction = {
   action: 'apply' | 'save' | 'dismiss';
 } | null;
 
-const JOB_FEED_QUICK_DELIVERY_HOURS = [7, 8, 9, 12, 18, 20];
+const JOB_FEED_DELIVERY_HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) => ({
+  value: String(hour),
+  label: formatDeliveryHourLabel(hour),
+}));
+
+function normalizeTimeZoneValue(value: string): string {
+  if (JOB_FEED_TIMEZONE_LOOKUP.has(value)) {
+    return value;
+  }
+  // Fall back to the first curated zone so the <select> always has a valid selection.
+  return JOB_FEED_TIMEZONE_GROUPS[0]?.zones[0]?.value ?? 'UTC';
+}
 export function JobFeedPanel() {
   const router = useRouter();
   const { user, profile } = useAuth();
@@ -1030,6 +1044,15 @@ function JobFeedOnboardingWizard({
     }
   }, [form.preferred_locations.length]);
 
+  // If the saved timezone isn't in our curated list, auto-select the closest
+  // curated equivalent so what the dropdown shows matches what we will save.
+  useEffect(() => {
+    if (!JOB_FEED_TIMEZONE_LOOKUP.has(form.user_timezone)) {
+      const fallback = normalizeTimeZoneValue(form.user_timezone);
+      onFormChange((prev) => ({ ...prev, user_timezone: fallback }));
+    }
+  }, [form.user_timezone, onFormChange]);
+
   return (
     <Card className="overflow-hidden rounded-[32px] border-cream-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.985),rgba(248,244,234,0.94))] p-0 shadow-[0_28px_80px_-42px_rgba(30,58,95,0.35)]">
       <div className="border-b border-cream-200 px-6 py-5 sm:px-8">
@@ -1140,37 +1163,35 @@ function JobFeedOnboardingWizard({
         {showChunk3 && (
           <div className="px-6 py-6 sm:px-8">
             <p className="text-sm font-semibold text-charcoal">When should we deliver your jobs?</p>
-            <div className="mt-4 space-y-4">
-              <ChoiceGrid
-                value={String(form.delivery_hour_local)}
-                options={JOB_FEED_QUICK_DELIVERY_HOURS.map((hour) => ({
-                  value: String(hour),
-                  label: formatDeliveryHourLabel(hour),
-                }))}
-                onChange={(value) => onFormChange((prev) => ({ ...prev, delivery_hour_local: Number(value) }))}
-                columns="three"
-              />
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <FieldGroup label="Delivery time" help="Karko prepares your feed at this hour in your local time.">
+                <SelectField
+                  label=""
+                  value={String(form.delivery_hour_local)}
+                  options={JOB_FEED_DELIVERY_HOUR_OPTIONS}
+                  onChange={(value) => onFormChange((prev) => ({ ...prev, delivery_hour_local: Number(value) }))}
+                />
+              </FieldGroup>
 
-              <p className="text-sm text-warm-gray">
-                {form.user_timezone}
-                {browserTimeZone !== form.user_timezone && (
-                  <>
-                    {' \u00b7 '}
-                    <button
-                      type="button"
-                      onClick={() => onFormChange((prev) => ({ ...prev, user_timezone: browserTimeZone }))}
-                      className="font-medium text-navy-600 hover:text-navy-700"
-                    >
-                      Use {browserTimeZone}
-                    </button>
-                  </>
-                )}
-                {' \u00b7 '}
-                <TimeZoneInlineEdit
-                  value={form.user_timezone}
+              <FieldGroup label="Your timezone" help="Needed so we schedule and rank jobs for your local day.">
+                <GroupedSelectField
+                  label=""
+                  value={normalizeTimeZoneValue(form.user_timezone)}
+                  groups={JOB_FEED_TIMEZONE_GROUPS}
                   onChange={(user_timezone) => onFormChange((prev) => ({ ...prev, user_timezone }))}
                 />
-              </p>
+                {browserTimeZone
+                  && browserTimeZone !== form.user_timezone
+                  && JOB_FEED_TIMEZONE_LOOKUP.has(browserTimeZone) && (
+                  <button
+                    type="button"
+                    onClick={() => onFormChange((prev) => ({ ...prev, user_timezone: browserTimeZone }))}
+                    className="mt-2 text-xs font-medium text-navy-600 hover:text-navy-700"
+                  >
+                    Use my browser timezone ({getJobFeedTimeZoneLabel(browserTimeZone)})
+                  </button>
+                )}
+              </FieldGroup>
             </div>
           </div>
         )}
@@ -1368,44 +1389,6 @@ function JobFeedOnboardingWizard({
     </Card>
   );
 }
-
-function TimeZoneInlineEdit({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const timeZoneOptions = getSupportedTimeZones();
-
-  if (!isOpen) {
-    return (
-      <button type="button" onClick={() => setIsOpen(true)} className="font-medium text-navy-600 hover:text-navy-700">
-        Change timezone
-      </button>
-    );
-  }
-
-  return (
-    <span className="inline-flex items-center gap-2">
-      <input
-        list="job-feed-tz-inline"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={() => setIsOpen(false)}
-        autoFocus
-        className="w-48 rounded-lg border border-cream-300 bg-white px-2 py-1 text-sm text-charcoal outline-none focus:border-navy-400"
-      />
-      <datalist id="job-feed-tz-inline">
-        {timeZoneOptions.map((tz) => (
-          <option key={tz} value={tz} />
-        ))}
-      </datalist>
-    </span>
-  );
-}
-
 
 function LoadingState() {
   return (
