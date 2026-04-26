@@ -125,18 +125,15 @@ function getRejectReasons(
   job: JobFeedCanonicalJob,
   settings: JobFeedSettings
 ): JobFeedPrefilterRejectReason[] {
+  // Only reject here on HARD user constraints the LLM shouldn't override:
+  // explicit employment-type mismatch, explicit below-floor salary, and
+  // explicit no-sponsorship language. Everything soft (remote preference,
+  // seniority, location fit, role alignment) is now the LLM's job —
+  // heuristic rejection costs quality more than LLM tokens save us.
   const reasons: JobFeedPrefilterRejectReason[] = [];
 
   if (hasEmploymentTypeMismatch(job, settings)) {
     reasons.push('employment_type_mismatch');
-  }
-
-  if (hasRemoteMismatch(job, settings)) {
-    reasons.push('remote_mismatch');
-  }
-
-  if (hasLocationMismatch(job, settings)) {
-    reasons.push('location_mismatch');
   }
 
   if (hasSalaryMismatch(job, settings)) {
@@ -147,40 +144,12 @@ function getRejectReasons(
     reasons.push('work_authorization_mismatch');
   }
 
-  if (hasSeniorityMismatch(job, settings)) {
-    reasons.push('seniority_mismatch');
-  }
-
   return reasons;
 }
 
 function hasEmploymentTypeMismatch(job: JobFeedCanonicalJob, settings: JobFeedSettings): boolean {
   if (!job.employment_type) return false;
   return !settings.employment_types.includes(job.employment_type);
-}
-
-function hasRemoteMismatch(job: JobFeedCanonicalJob, settings: JobFeedSettings): boolean {
-  const preferences = getEffectiveRemotePreferences(settings);
-
-  // flexible = open to everything
-  if (preferences.includes('flexible')) return false;
-
-  // "unknown" work mode means SerpAPI didn't hand us enough signal to infer
-  // remote/hybrid/onsite. Rather than drop these (losing good listings), keep
-  // them whenever the user is open to any physical work mode. The LLM ranker
-  // then reads the description and can still downgrade false-positive remote
-  // listings. Only remote_only is strict enough to benefit from dropping
-  // unknowns (remote jobs almost always advertise themselves as remote).
-  if (
-    job.work_mode === 'unknown'
-    && !preferences.every((preference) => preference === 'remote_only')
-  ) {
-    return false;
-  }
-
-  // User is happy if the job matches ANY of the chosen work modes.
-  const matchesAny = preferences.some((preference) => matchesRemotePreference(preference, job, settings));
-  return !matchesAny;
 }
 
 function matchesRemotePreference(
@@ -211,27 +180,6 @@ function getEffectiveRemotePreferences(settings: JobFeedSettings): Array<JobFeed
   return [settings.remote_preference];
 }
 
-function getEffectiveSeniorityTargets(settings: JobFeedSettings): Array<NonNullable<JobFeedSettings['seniority_target']>> {
-  if (settings.seniority_targets && settings.seniority_targets.length > 0) {
-    return settings.seniority_targets;
-  }
-  return settings.seniority_target ? [settings.seniority_target] : [];
-}
-
-function hasLocationMismatch(job: JobFeedCanonicalJob, settings: JobFeedSettings): boolean {
-  if (settings.preferred_locations.length === 0) return false;
-
-  const preferences = getEffectiveRemotePreferences(settings);
-  const isOnsiteOnly = preferences.every((pref) => pref === 'onsite');
-
-  // Remote jobs are acceptable unless the user explicitly wants onsite-only.
-  if (job.work_mode === 'remote' && !isOnsiteOnly) {
-    return false;
-  }
-
-  return !matchesPreferredLocation(job, settings.preferred_locations);
-}
-
 function hasSalaryMismatch(job: JobFeedCanonicalJob, settings: JobFeedSettings): boolean {
   if (!settings.salary_floor) return false;
   if (job.salary_max === null) return false;
@@ -253,18 +201,6 @@ function hasWorkAuthorizationMismatch(job: JobFeedCanonicalJob, settings: JobFee
     'authorized to work in the us',
     'authorized to work in canada',
   ].some((pattern) => searchableText.includes(pattern));
-}
-
-function hasSeniorityMismatch(job: JobFeedCanonicalJob, settings: JobFeedSettings): boolean {
-  const targets = getEffectiveSeniorityTargets(settings);
-  if (targets.length === 0) return false;
-
-  const inferredSeniority = inferSeniority(job.title);
-  if (!inferredSeniority) return false;
-
-  const jobRank = SENIORITY_RANK[inferredSeniority];
-  // Job is OK if it's within 1 rank of ANY selected seniority target.
-  return !targets.some((target) => Math.abs(jobRank - SENIORITY_RANK[target]) <= 1);
 }
 
 function getShortlistScoreBreakdown(job: JobFeedCanonicalJob, settings: JobFeedSettings) {

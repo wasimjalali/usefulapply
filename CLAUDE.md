@@ -4,7 +4,29 @@
 
 ---
 
+## Karko AI Agents (use proactively — do not ask permission)
+
+Specialist agents are the **preferred** way to handle bug investigations, external research, code review, UI verification, and agent/prompt work. They protect the main context window and often find issues faster than direct exploration. Spawn them in parallel when the work is independent.
+
+### Project-scope agents (this repo)
+- **`agent-expert`** — When editing anything in `src/lib/agents/`, `src/lib/agents/prompts/`, `src/lib/models/`, `src/app/api/agent-v2/`, or the `useAgentV2` / `useAgentWorkflow` hooks. Also for anti-hallucination rule changes, SSE event debugging, context-builder work, CV pipeline, fit-assessment prompts.
+- **`ui-tester`** — After any UI change to `/dashboard`, `/applications`, `/documents`, `/` (landing), or shared components (ChatPanel, CVPanel, CoverLetterPanel, EmailPanel, JobFeedPanel). Uses Playwright MCP. Run before calling a UI task done.
+
+### Global-scope agents (all projects — from `~/.claude/CLAUDE.md`)
+- **`reviewer`** — BEFORE any git commit with non-trivial changes (>30 lines), when touching security-sensitive code (auth, API routes, DB, Stripe webhooks, credits), or when user says "review this / check this / any issues?".
+- **`debugger`** — When user reports an error, stack trace, crash, or unexpected behavior. Paste the symptom + trace hypotheses and delegate — don't burn main-context tokens investigating non-trivial bugs yourself.
+- **`researcher`** — For external doc lookups, API signatures, pricing/limits, version/release info. Prefer this over ad-hoc WebFetch (cheaper, faster, cross-references sources).
+
+### When to parallelize
+If two agent tasks are independent (different files, different questions), spawn them in a **single message with multiple Agent tool calls** — they run concurrently. Good recent example: two `debugger` agents investigating double-generation and new-chat-broken bugs at the same time, each returning a tight file:line report.
+
+---
+
 ## Working Rules
+
+### Product Priorities (read before any feature work)
+- **Quality > speed > cost.** Karko is a pre-revenue startup; perceived quality is the moat. Do not introduce soft-constraint heuristic rejections (seniority regex, location substring matching, skill keyword scoring, work-mode keyword inference) when a language model can read the description and make the same call — LLM cost is negligible at our scale. Use deterministic prefilters ONLY for hard 99%+ reliable constraints (explicit employment type, explicit salary floor, explicit sponsorship language). Prefer prompt caching + Batch APIs to reduce cost over degrading the feature.
+- **Desktop + tablet (≥768px) is the target. Mobile is NOT a priority.** Karko is a desktop-class productivity tool (CV canvas, side-by-side chat + preview, multi-panel application kit). When making UI changes, verify desktop first. Mobile may look rough or stack layouts — don't chase mobile-specific bugs unless they affect desktop too. Complex flows (CV edit, chat, generation) will eventually be gated to a "best on desktop" prompt on mobile; don't over-engineer responsive variants for them.
 
 ### Autonomy & Speed
 - Work autonomously — do NOT ask permission for bug fixes, UI changes, refactors, or small features

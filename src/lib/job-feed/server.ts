@@ -563,9 +563,14 @@ export async function runJobFeedFoundationWorkflow(params: {
       hardCap: tierLimits.prefilterHardCap,
     });
 
+    // Feed the FULL survivor set to the LLM ranker (not the shortlist cap).
+    // Quality > cost: LLM reading 40 descriptions finds better matches than
+    // a deterministic-score shortlist of 15 ever could, and the token cost
+    // is trivial at our scale. Deterministic shortlist stays wired to the
+    // fallback path inside the ranker for the case where the LLM fails.
     const rankingPrep = prepareJobFeedRankingCandidates({
       settings,
-      jobs: prefilter.shortlist,
+      jobs: prefilter.survivors,
     });
     const rankingResult = await rankJobFeedCandidates({
       settings,

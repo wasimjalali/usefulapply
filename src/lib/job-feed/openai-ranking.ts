@@ -21,32 +21,55 @@ interface JobFeedRankingModelResponse {
   }>;
 }
 
-function buildSystemPrompt(visibleCap: number): string {
-  return `# Role
-You are a job ranking engine for Karko AI's daily feed. You evaluate shortlisted jobs against a candidate's profile and return a JSON ranking.
+// Static system prompt — identical across every ranking request, every user,
+// every run. Azure OpenAI automatically caches prefixes >=1024 tokens, so the
+// LONGER and more stable this prompt is, the higher our cache hit rate and
+// the lower our effective input token cost. visibleCap deliberately lives in
+// the per-run user message (not here) so the system prompt hash is stable
+// across tiers too.
+const SYSTEM_PROMPT = `# Role
+You are the ranking engine for Karko AI's Daily Job Feed. Every morning you evaluate a set of job postings fetched for a specific candidate and decide which ones are worth putting in that candidate's feed today. You are the final quality gate — deterministic prefilters upstream only enforce hard user-stated constraints (explicit employment type, explicit salary floor, explicit no-sponsorship language). Everything else is your responsibility: role fit, seniority fit, location fit, remote preference fit, skill fit, and freshness.
 
 # Task
-For each candidate job, return exactly one decision: strong, good, or skip.
+For each candidate job in the payload, return exactly one decision: "strong", "good", or "skip". Also assign a rank (1 = best) across all non-skipped jobs. The user will only see jobs you rank as strong or good.
 
-# Priority Order (most important first)
-1. SKILL MATCH — Does the job require skills the candidate actually has? A job where the candidate meets 80%+ of must-have skills ranks higher than one with a perfect title match but skill gaps. This is the most important factor.
-2. ROLE ALIGNMENT — Does the job title and responsibilities match what the candidate is looking for?
-3. LOCATION & REMOTE FIT — Does the job match the candidate's location and remote work preferences?
-4. SENIORITY FIT — Is the job at the right level for the candidate?
-5. SALARY — Does the salary meet or exceed the candidate's floor?
-6. FRESHNESS — Prefer recently posted jobs over stale listings.
+# Priority order (most important first)
+1. SKILL MATCH — Does the job description require skills the candidate actually has? A candidate meeting 80%+ of must-have skills beats a perfect title match with meaningful skill gaps. Read the description carefully; do not infer from title alone. Skill match is the single most important signal.
+2. ROLE ALIGNMENT — Does the title and the day-to-day responsibilities match what the candidate is looking for? Adjacent roles (e.g. "Applied AI Engineer" for someone searching "AI Engineer") count as aligned. Titles in non-English languages count — translate mentally and score on content.
+3. LOCATION FIT — Does the job location satisfy the candidate's preferred locations AND their remote preferences? Accept both exact and nearby-city matches (Berlin vs Potsdam, München vs Garching). Treat "remote within DACH", "remote in EU", "hybrid from preferred city" as satisfying the intent when the candidate is open to that mode.
+4. REMOTE PREFERENCE FIT — If the candidate asked for onsite and the job is clearly fully-remote-only, that's a skip even if the skills match. If the candidate asked for remote_only and the job is clearly onsite-only, that's a skip. If work mode is unclear or compatible, treat as a match and lean on description keywords.
+5. SENIORITY FIT — Is the job at the right level? Within ±1 level of the candidate's target is OK. A clearly junior candidate seeing a staff/principal role is a skip. A senior candidate seeing an intern role is a skip. Title alone is unreliable in non-English postings; read the description.
+6. SALARY — If the job states salary AND it's below the candidate's floor, skip. If salary is absent, do not penalize.
+7. FRESHNESS — Prefer recently posted jobs. A job posted 30+ days ago is stale unless everything else is perfect.
 
-# Decision Criteria
-- strong: The candidate has most of the required skills, the role aligns well, and constraints (location, salary, seniority) are met. High confidence this is worth applying to.
-- good: Reasonable match — some skill overlap, acceptable role fit. Worth surfacing but not a standout.
-- skip: Poor skill match, wrong seniority, stale listing, or constraints violated. Not worth a feed slot.
+# Decision criteria
+- strong: High confidence. Candidate meets most required skills, title+responsibilities align, location/remote constraints are met, seniority fits. The candidate should apply to this today.
+- good: Reasonable match — some skill overlap, acceptable role fit, no hard constraints violated. Worth surfacing but not a standout. Typical "solid but not perfect" match.
+- skip: Skill gap is too large, seniority is wrong, location/remote is incompatible, the posting is too stale, or the role is fundamentally different from what the candidate wants. Not worth a feed slot.
 
-# Constraints
-- Surface at most ${visibleCap} jobs as strong or good. Prefer fewer high-quality results over padding.
-- Use the deterministic score as a prior signal but correct it when the job description reveals a better or worse real fit.
-- Do not invent facts not present in the payload.
-- Respond with ONLY valid JSON. No markdown, no explanations. Start with { and end with }.`;
-}
+# Non-English postings
+Job descriptions may be in German, French, Spanish, Italian, Dutch, Portuguese, or other languages — especially when the candidate targets DACH / EU markets. Rank these on content, not language. Do not penalize a German-language posting for a candidate whose language settings include German or English. Treat common equivalents: "Software-Entwickler" = Software Engineer, "Ingénieur IA" = AI Engineer, "vor Ort" / "presencial" = onsite, "Homeoffice" / "télétravail" = remote, "befristet" = temporary/contract.
+
+# What the deterministic score is, and how to use it
+Each candidate includes a deterministic score and score breakdown computed upstream. Use these as a prior signal — they encode role/token match, freshness, salary alignment, remote alignment, preferred-location match, apply-URL availability, and skill overlap. However: YOU are reading the full description and they are not. If the deterministic score is high but the description reveals the role is a poor fit (wrong stack, wrong seniority clearly stated, mandatory skill gap), downgrade to skip. If the deterministic score is mediocre but the description reveals a strong fit that heuristics missed (e.g. non-English title that happens to be exactly the role the candidate wants, unusual seniority phrasing, title mismatch with responsibilities match), upgrade to good or strong. Your judgement overrides the heuristic when the text supports it.
+
+# Quality over quantity
+The feed is daily — fewer high-quality matches beats more mediocre ones. If only 2 of 30 candidates are strong fits, return 2 strongs and skip the rest. Do not pad the feed with mediocre jobs just to hit a number. Do not return the same job under two decisions. Use each job ID exactly once.
+
+# Forbidden
+- Do not invent facts. If the description does not state a skill, salary, or requirement, do not assume it.
+- Do not rank based on the company name alone. A FAANG job with a bad fit is still a skip.
+- Do not surface jobs that violate hard user constraints (employment type, stated salary floor, stated no-sponsorship requirement when the candidate needs sponsorship).
+- Do not return markdown, explanations, code fences, or any text outside the JSON object.
+
+# Response format
+Return ONLY a valid JSON object. No markdown fences. No prose. Start with { and end with }. The object has one field, "items", which is an array. Each array element has:
+- "jobId": string — must exactly match one of the provided candidate jobIds.
+- "decision": "strong" | "good" | "skip".
+- "rank": positive integer when decision is "strong" or "good"; null when decision is "skip".
+- "reason": optional short sentence (<=160 characters) explaining the match or mismatch; may be null.
+
+Every candidate jobId must appear exactly once in the items array. The candidate count and your items count must match.`;
 
 let cachedClient: AzureOpenAI | null = null;
 
@@ -85,16 +108,22 @@ export async function rankWithOpenAI(params: {
   const startTime = Date.now();
   try {
     const client = getAzureClient();
-    const userPrompt = buildRankingPrompt(settings, candidates, visibleCap);
 
+    // Two-message structure optimized for Azure OpenAI prompt caching:
+    //   1. SYSTEM_PROMPT (static, >=1024 tokens → cached across all users/runs)
+    //   2. userProfile message (stable per user → cached across that user's
+    //      daily runs when they run again within the TTL window)
+    //   3. candidates message (dynamic → never cached, only these tokens paid
+    //      at full price)
     const response = await client.chat.completions.create({
       model: AZURE_DEPLOYMENT,
       temperature: 0.2,
-      max_tokens: 2200,
+      max_tokens: 4000,
       response_format: { type: 'json_object' },
       messages: [
-        { role: 'system', content: buildSystemPrompt(visibleCap) },
-        { role: 'user', content: userPrompt },
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: buildUserProfileMessage(settings) },
+        { role: 'user', content: buildCandidatesMessage(candidates, visibleCap) },
       ],
     });
 
@@ -102,9 +131,13 @@ export async function rankWithOpenAI(params: {
     const content = response.choices[0]?.message?.content ?? '';
     const inputTokens = response.usage?.prompt_tokens ?? 0;
     const outputTokens = response.usage?.completion_tokens ?? 0;
+    // Azure OpenAI returns cached token count on response.usage.prompt_tokens_details.cached_tokens
+    const cachedTokens =
+      (response.usage as unknown as { prompt_tokens_details?: { cached_tokens?: number } })
+        ?.prompt_tokens_details?.cached_tokens ?? 0;
 
     console.log(
-      `[JobFeedRanking] ${AZURE_MODEL_NAME} (${AZURE_DEPLOYMENT}) | ${inputTokens}in/${outputTokens}out | ${latencyMs}ms`
+      `[JobFeedRanking] ${AZURE_MODEL_NAME} (${AZURE_DEPLOYMENT}) | ${inputTokens}in (${cachedTokens} cached) / ${outputTokens}out | ${latencyMs}ms | candidates=${candidates.length}`
     );
 
     const parsed = JSON.parse(content) as JobFeedRankingModelResponse;
@@ -150,11 +183,12 @@ export function buildRankingRequestBody(params: {
   return {
     model: AZURE_DEPLOYMENT,
     temperature: 0.2,
-    max_tokens: 2200,
+    max_tokens: 4000,
     response_format: { type: 'json_object' },
     messages: [
-      { role: 'system', content: buildSystemPrompt(cap) },
-      { role: 'user', content: buildRankingPrompt(params.settings, params.candidates, cap) },
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: buildUserProfileMessage(params.settings) },
+      { role: 'user', content: buildCandidatesMessage(params.candidates, cap) },
     ],
   };
 }
@@ -172,14 +206,16 @@ export function parseRankingResponse(
   }
 }
 
-function buildRankingPrompt(settings: JobFeedSettings, candidates: JobFeedRankingCandidate[], visibleCap: number): string {
+// Per-user, stable across daily runs. Emitting the user profile as its own
+// message (instead of mixing it with candidates) lets Azure OpenAI cache
+// this block across repeat runs within the cache TTL window.
+function buildUserProfileMessage(settings: JobFeedSettings): string {
   return JSON.stringify({
-    instruction: `Rank the shortlist for today's feed. Return one decision per candidate job. Surface at most ${visibleCap} jobs as strong or good. Prioritize jobs where the candidate's skills match the job's requirements.`,
-    userProfile: {
+    section: 'candidate_profile',
+    profile: {
       targetRoles: settings.target_roles,
       userSkills: settings.user_skills ?? [],
       preferredLocations: settings.preferred_locations,
-      // Multi-select fields: arrays when set, fall back to singular legacy.
       remotePreferences: (settings.remote_preferences && settings.remote_preferences.length > 0)
         ? settings.remote_preferences
         : [settings.remote_preference],
@@ -197,6 +233,16 @@ function buildRankingPrompt(settings: JobFeedSettings, candidates: JobFeedRankin
       languages: settings.languages,
       aggressiveness: settings.aggressiveness,
     },
+  }, null, 2);
+}
+
+// Per-run dynamic content: the actual candidate jobs and the visibleCap.
+// This is the only message that changes every run and therefore the only
+// block we pay full input-token price on.
+function buildCandidatesMessage(candidates: JobFeedRankingCandidate[], visibleCap: number): string {
+  return JSON.stringify({
+    section: 'rank_today',
+    instruction: `Rank these ${candidates.length} candidate job(s) against the candidate profile above. Return one decision per job ID (strong, good, or skip). Surface at most ${visibleCap} jobs as strong or good; if only 2 are truly strong fits, return 2 strongs and skip the rest rather than padding. Every candidate jobId must appear exactly once in your response.`,
     candidates: candidates.map((candidate) => ({
       jobId: candidate.jobId,
       title: candidate.title,
@@ -212,16 +258,6 @@ function buildRankingPrompt(settings: JobFeedSettings, candidates: JobFeedRankin
       scoreBreakdown: candidate.scoreBreakdown,
       descriptionExcerpt: truncateText(candidate.description, 1400),
     })),
-    responseFormat: {
-      items: [
-        {
-          jobId: 'candidate job id',
-          decision: 'strong | good | skip',
-          rank: 'required integer for strong/good, null for skip',
-          reason: 'optional short sentence, under 160 characters',
-        },
-      ],
-    },
   }, null, 2);
 }
 
