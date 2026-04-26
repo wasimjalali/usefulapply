@@ -626,8 +626,9 @@ export function JobFeedPanel() {
     }
   };
 
-  const handleDebugRun = async (options?: { force?: boolean }) => {
+  const handleDebugRun = async (options?: { force?: boolean; direct?: boolean }) => {
     const force = options?.force === true;
+    const direct = options?.direct === true;
     setIsRunningDebugFlow(true);
 
     try {
@@ -636,7 +637,7 @@ export function JobFeedPanel() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ force }),
+        body: JSON.stringify({ force, direct }),
       });
 
       const payload = await response.json();
@@ -647,17 +648,22 @@ export function JobFeedPanel() {
       posthog?.capture('job_feed_foundation_run_requested', {
         foundation_mode: true,
         forced: force,
+        direct,
       });
 
-      const toastMessage = payload.workflow?.skipped
-        ? 'A feed run already exists for today, so no new run was started.'
-        : payload.execution === 'inline'
-          ? force
-            ? 'Background rerun completed for this account.'
-            : 'Background run completed for this account.'
-          : force
-            ? 'Background rerun queued for this account.'
-            : 'Background run queued for this account.';
+      const toastMessage = direct
+        ? payload.skipped
+          ? 'Today already has a completed run. Use "Force rerun" to recompute.'
+          : `Direct run completed: ${payload.rawJobsFetched ?? 0} raw jobs → ${payload.jobsAfterPrefilter ?? 0} after filter → ${payload.rankedJobsCount ?? 0} ranked.`
+        : payload.workflow?.skipped
+          ? 'A feed run already exists for today, so no new run was started.'
+          : payload.execution === 'inline'
+            ? force
+              ? 'Background rerun completed for this account.'
+              : 'Background run completed for this account.'
+            : force
+              ? 'Background rerun queued for this account.'
+              : 'Background run queued for this account.';
 
       toast.success(toastMessage);
       await loadOverview({ quiet: true });
@@ -779,15 +785,21 @@ export function JobFeedPanel() {
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-600">Diagnostics</p>
                 <h2 className="mt-2 text-lg font-semibold text-charcoal">Run feed diagnostics for this account</h2>
                 <p className="mt-2 text-sm leading-6 text-warm-gray">
-                  These tools are hidden unless debug mode is explicitly enabled. Use them to queue the background workflow or force a same-day rerun while verifying the feed.
+                  Live runs call SerpAPI right now and block on the result. Background runs queue via Inngest and may not execute in dev. Use the live buttons when you need to verify the pipeline end-to-end.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={() => handleDebugRun()} disabled={isRunningDebugFlow}>
+                  <Button variant="gold" onClick={() => handleDebugRun({ direct: true, force: true })} disabled={isRunningDebugFlow}>
                     {isRunningDebugFlow ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                    Queue background workflow
+                    Run live now (force rerun)
+                  </Button>
+                  <Button variant="outline" onClick={() => handleDebugRun({ direct: true })} disabled={isRunningDebugFlow}>
+                    Run live now (skip if done)
+                  </Button>
+                  <Button variant="ghost" onClick={() => handleDebugRun()} disabled={isRunningDebugFlow}>
+                    Queue background (async)
                   </Button>
                   <Button variant="ghost" onClick={() => handleDebugRun({ force: true })} disabled={isRunningDebugFlow}>
-                    Force rerun today
+                    Force async rerun
                   </Button>
                   <Button variant="ghost" onClick={() => loadOverview({ quiet: true })} disabled={isRefreshing}>
                     Refresh status
