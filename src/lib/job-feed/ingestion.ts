@@ -76,15 +76,20 @@ export function buildJobFeedSearchPlan(settings: JobFeedSettings, maxQueries: nu
 }
 
 function indexLocationsByCountry(locations: string[], selectedCountries: string[]): Map<string, string> {
-  // Location strings are free-form (e.g. "Berlin, Germany", "New York, NY").
-  // We infer the country per location and only index locations whose country
-  // is in the user's selected list, so we don't lie to SerpAPI.
+  // Location strings are free-form (e.g. "Berlin, Germany", "New York, NY",
+  // "Tokyo", "São Paulo"). We infer country from the string itself; if that
+  // fails AND the user has only one country selected, we assume all location
+  // strings belong to that country. This keeps the feed working for any city
+  // worldwide without a global city→country table.
   const result = new Map<string, string>();
   const allowed = new Set(selectedCountries.map((c) => c.toLowerCase()));
+  const singleCountry = selectedCountries.length === 1 ? selectedCountries[0].toLowerCase() : null;
+
   for (const rawLocation of locations) {
     const location = rawLocation.trim();
     if (!location) continue;
-    const match = inferCountryForLocation(location);
+    const inferred = inferCountryForLocation(location);
+    const match = inferred ?? singleCountry;
     if (match && allowed.has(match) && !result.has(match)) {
       result.set(match, location);
     }

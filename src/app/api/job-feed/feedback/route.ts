@@ -12,7 +12,9 @@ import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 
-const SUPPORTED_ACTIONS = new Set(['opened', 'saved', 'dismissed']);
+// 'rated_helpful' / 'rated_not_relevant' capture the user's match-quality
+// signal from the details modal so the ranker can learn from it.
+const SUPPORTED_ACTIONS = new Set(['opened', 'saved', 'dismissed', 'rated_helpful', 'rated_not_relevant']);
 
 export async function POST(request: NextRequest) {
   try {
@@ -71,7 +73,7 @@ export async function POST(request: NextRequest) {
     const feedback = await recordJobFeedFeedbackAdmin({
       userId: user.id,
       jobId,
-      action: action as 'opened' | 'saved' | 'dismissed',
+      action: action as 'opened' | 'saved' | 'dismissed' | 'rated_helpful' | 'rated_not_relevant',
       latestRunId: validatedRunId,
     });
 

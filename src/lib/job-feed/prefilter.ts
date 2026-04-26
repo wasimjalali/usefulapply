@@ -437,8 +437,11 @@ function matchesLocation(job: JobFeedCanonicalJob, preferredLocation: string): b
   const normalizedPreference = normalizeText(preferredLocation);
   if (!normalizedPreference) return false;
 
+  // Skip legacy "Remote (X)" chips saved on older profiles. Remote preference
+  // lives in settings.remote_preferences and is handled by matchesRemotePreference,
+  // so we don't want this string doing double duty.
   if (normalizedPreference.includes('remote')) {
-    return job.work_mode === 'remote';
+    return false;
   }
 
   const normalizedJobLocation = normalizeText(job.location_text);
@@ -476,10 +479,14 @@ function toJobPreview(job: JobFeedCanonicalJob): JobFeedJobPreview {
 }
 
 function normalizeText(value: string | null): string {
+  // Keep Unicode letters/digits so non-Latin city names (São Paulo, Kraków,
+  // 東京, 서울) still match against the user's preferred_locations input.
+  // Collapse all other runs (punctuation, whitespace, separators) into a
+  // single space so we can do substring/token matching.
   return (value ?? '')
     .toLowerCase()
     .replace(/&/g, ' and ')
-    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }

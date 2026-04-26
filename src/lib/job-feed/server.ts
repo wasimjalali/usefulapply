@@ -231,6 +231,22 @@ export async function recordJobFeedFeedbackAdmin(params: {
       basePatch.application_session_id = applicationSessionId ?? existing?.application_session_id ?? null;
       basePatch.dismissed_at = null;
       break;
+    case 'rated_helpful':
+      // Match-quality rating — persisted inside metadata so the ranker can
+      // consume it later without another schema migration. The row still
+      // needs a signal column set for the has_signal_check constraint; reuse
+      // opened_at since rating implies the job was viewed.
+      basePatch.opened_at = existing?.opened_at ?? now;
+      metadataPatch.match_rating = 'helpful';
+      metadataPatch.match_rating_at = now;
+      basePatch.metadata = mergeMetadata(existing?.metadata ?? null, metadataPatch);
+      break;
+    case 'rated_not_relevant':
+      basePatch.opened_at = existing?.opened_at ?? now;
+      metadataPatch.match_rating = 'not_relevant';
+      metadataPatch.match_rating_at = now;
+      basePatch.metadata = mergeMetadata(existing?.metadata ?? null, metadataPatch);
+      break;
     default:
       throw new Error(`Unsupported job feed feedback action: ${String(action)}`);
   }
@@ -253,12 +269,20 @@ export async function recordJobFeedFeedbackAdmin(params: {
     return data as JobFeedFeedback;
   }
 
+  // Ratings imply the user saw the job, so we stamp opened_at to satisfy the
+  // has_signal_check constraint. The rating itself lives in metadata.
+  const isRatingAction = action === 'rated_helpful' || action === 'rated_not_relevant';
+  if (isRatingAction) {
+    metadataPatch.match_rating = action === 'rated_helpful' ? 'helpful' : 'not_relevant';
+    metadataPatch.match_rating_at = now;
+  }
+
   const insertPayload = {
     user_id: userId,
     canonical_job_id: jobId,
     latest_run_id: latestRunId,
     application_session_id: action === 'applied' ? applicationSessionId : null,
-    opened_at: action === 'opened' || action === 'applied' ? now : null,
+    opened_at: action === 'opened' || action === 'applied' || isRatingAction ? now : null,
     saved_at: action === 'saved' ? now : null,
     dismissed_at: action === 'dismissed' ? now : null,
     applied_at: action === 'applied' ? now : null,
@@ -279,12 +303,18 @@ export async function recordJobFeedFeedbackAdmin(params: {
 }
 
 export function toJobFeedFeedbackState(feedback: JobFeedFeedback | null): JobFeedItemFeedbackState {
+  const metadata = (feedback?.metadata ?? null) as Record<string, unknown> | null;
+  const rawRating = metadata && typeof metadata === 'object' ? metadata['match_rating'] : null;
+  const matchRating =
+    rawRating === 'helpful' || rawRating === 'not_relevant' ? rawRating : null;
+
   return {
     openedAt: feedback?.opened_at ?? null,
     savedAt: feedback?.saved_at ?? null,
     dismissedAt: feedback?.dismissed_at ?? null,
     appliedAt: feedback?.applied_at ?? null,
     applicationSessionId: feedback?.application_session_id ?? null,
+    matchRating,
   };
 }
 

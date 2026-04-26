@@ -316,6 +316,7 @@ export function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
         dismissedAt: null,
         appliedAt: null,
         applicationSessionId: null,
+        matchRating: null,
       },
     },
     {
@@ -344,6 +345,7 @@ export function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
         dismissedAt: null,
         appliedAt: null,
         applicationSessionId: null,
+        matchRating: null,
       },
     },
     {
@@ -372,6 +374,7 @@ export function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
         dismissedAt: null,
         appliedAt: null,
         applicationSessionId: null,
+        matchRating: null,
       },
     },
     {
@@ -400,6 +403,7 @@ export function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
         dismissedAt: null,
         appliedAt: null,
         applicationSessionId: null,
+        matchRating: null,
       },
     },
     {
@@ -428,6 +432,7 @@ export function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
         dismissedAt: null,
         appliedAt: null,
         applicationSessionId: null,
+        matchRating: null,
       },
     },
     {
@@ -456,6 +461,7 @@ export function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
         dismissedAt: null,
         appliedAt: null,
         applicationSessionId: null,
+        matchRating: null,
       },
     },
   ];

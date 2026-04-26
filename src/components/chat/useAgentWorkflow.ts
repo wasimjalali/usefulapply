@@ -6,7 +6,7 @@
  * handleStopGeneration, getSmartFallbackResponse, and all associated state.
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePostHog } from 'posthog-js/react';
@@ -823,12 +823,11 @@ export function useAgentWorkflow(options?: {
     return undefined;
   };
 
-  // Abort any in-flight SSE stream when the component unmounts
-  useEffect(() => {
-    return () => {
-      abortControllerRef.current?.abort();
-    };
-  }, []);
+  // Intentionally NOT aborting the SSE stream on unmount: the Zustand session
+  // store is a singleton, so the stream can keep updating the session in the
+  // background while the user switches tabs or navigates away. The stream
+  // still gets replaced if the user starts a new generation (via a fresh
+  // AbortController in runAgentWorkflow / runFitAnalysisFlow).
 
   return {
     // State

@@ -12,6 +12,8 @@ import {
   Globe,
   Loader2,
   MapPin,
+  ThumbsDown,
+  ThumbsUp,
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -24,7 +26,7 @@ import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 
 type PendingJobAction = {
   jobId: string;
-  action: 'apply' | 'save' | 'dismiss';
+  action: 'apply' | 'save' | 'dismiss' | 'rate';
 } | null;
 
 // ============================================================================
@@ -119,7 +121,11 @@ export function RunStatPill({
 }
 
 export function JobFeedDescription({ text }: { text: string }) {
-  const lines = text.split(/\n/).map((line) => line.trimEnd());
+  const normalized = text
+    .replace(/\r\n?/g, '\n')
+    .replace(/\\r\\n|\\n/g, '\n')
+    .replace(/\\t/g, ' ');
+  const lines = normalized.split(/\n/).map((line) => line.trimEnd());
   const elements: React.ReactNode[] = [];
   let currentList: string[] = [];
 
@@ -260,25 +266,30 @@ export function JobFeedDetailModal({
   isApplying,
   isSaving,
   isDismissing,
+  isRating,
   onClose,
   onApplyWithKarko,
   onSave,
   onDismiss,
   onExternalApply,
+  onRateMatch,
 }: {
   job: JobFeedFeedItem;
   isApplying: boolean;
   isSaving: boolean;
   isDismissing: boolean;
+  isRating: boolean;
   onClose: () => void;
   onApplyWithKarko: () => void;
   onSave: () => void;
   onDismiss: () => void;
   onExternalApply: () => void;
+  onRateMatch: (rating: 'helpful' | 'not_relevant') => void;
 }) {
   const directApplyLink = job.applyUrl || job.sourceUrl;
   const isSaved = Boolean(job.feedback.savedAt);
   const isApplied = Boolean(job.feedback.appliedAt);
+  const matchRating = job.feedback.matchRating;
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -378,6 +389,47 @@ export function JobFeedDetailModal({
               </div>
             </div>
           )}
+
+          {/* Match-quality feedback. Signal is stored on job_feed_feedback so
+              the ranking pipeline can consume it later to tune the user's feed. */}
+          <div className="mt-6 rounded-2xl border border-cream-200 bg-cream-50/70 px-4 py-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-charcoal">How does this match feel?</p>
+                <p className="mt-0.5 text-xs text-warm-gray">Your rating helps us tune tomorrow&apos;s feed.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onRateMatch('helpful')}
+                  disabled={isRating}
+                  aria-pressed={matchRating === 'helpful'}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-60 ${
+                    matchRating === 'helpful'
+                      ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                      : 'border-cream-300 bg-white text-warm-gray hover:border-emerald-200 hover:text-emerald-700'
+                  }`}
+                >
+                  <ThumbsUp className="h-3.5 w-3.5" />
+                  Good match
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRateMatch('not_relevant')}
+                  disabled={isRating}
+                  aria-pressed={matchRating === 'not_relevant'}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-60 ${
+                    matchRating === 'not_relevant'
+                      ? 'border-rose-300 bg-rose-50 text-rose-700'
+                      : 'border-cream-300 bg-white text-warm-gray hover:border-rose-200 hover:text-rose-700'
+                  }`}
+                >
+                  <ThumbsDown className="h-3.5 w-3.5" />
+                  Not relevant
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-col gap-3 border-t border-cream-200 bg-cream-50 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">

@@ -242,7 +242,11 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
       router.replace(nextQuery ? `/dashboard?${nextQuery}` : '/dashboard');
     };
 
-    const alreadyInProgress = currentSession.chatMessages.length > 0 || !!currentSession.generatedCV || !!currentSession.pendingFitAnalysis;
+    const alreadyInProgress =
+      currentSession.chatMessages.length > 0 ||
+      !!currentSession.generatedCV ||
+      !!currentSession.pendingFitAnalysis ||
+      isAgentWorking;
     if (alreadyInProgress) {
       if (autostartedApplySessionRef.current !== currentSession.id) {
         autostartedApplySessionRef.current = currentSession.id;
@@ -251,7 +255,8 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
       return;
     }
 
-    if (!currentCV || !currentSession.jobDescription.trim()) {
+    const jobDescription = currentSession.jobDescription?.trim();
+    if (!currentCV || !jobDescription) {
       return;
     }
 
@@ -261,12 +266,27 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
 
     autostartedApplySessionRef.current = currentSession.id;
     clearAutostartParam();
-    void workflowHandleSend(currentSession.jobDescription);
+
+    // Seed the chat with the JD so the user sees what Karko is working on, then
+    // kick off Apply Directly. Bypass handleSend's heuristic routing — we know
+    // this is a JD coming from the Job Feed.
+    addChatMessage({ role: 'user', content: jobDescription });
+    setJobDescription(jobDescription);
+    setApplicationMode('apply_directly');
+    setAwaitingJobDescription(false);
+    posthog?.capture('jd_pasted', { jd_length: jobDescription.length, mode: 'apply_directly', source: 'job_feed_autostart' });
+    void runAgentWorkflow(jobDescription);
   }, [
+    addChatMessage,
     currentCV,
     currentSession,
+    isAgentWorking,
+    posthog,
     router,
-    workflowHandleSend,
+    runAgentWorkflow,
+    setApplicationMode,
+    setAwaitingJobDescription,
+    setJobDescription,
   ]);
 
   const handleFeedbackClick = (messageId: string, content: string, type: 'positive' | 'negative') => {

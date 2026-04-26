@@ -378,7 +378,7 @@ export function toLegacyJobSearchResult(job: SerpApiJob): LegacySerpApiJobResult
     posted_date: normalizeOptionalText(job.detected_extensions?.posted_at) ?? undefined,
     employment_type: normalizeOptionalText(job.detected_extensions?.schedule_type) ?? undefined,
     salary: normalizeOptionalText(job.detected_extensions?.salary) ?? undefined,
-    description: normalizeOptionalText(job.description) ?? undefined,
+    description: normalizeOptionalMultilineText(job.description) ?? undefined,
     highlights: job.job_highlights,
     apply_options: job.apply_options?.slice(0, 5),
     extensions: job.extensions,
@@ -423,7 +423,7 @@ export function normalizeSerpApiJob(job: SerpApiJob): NormalizedSerpApiJob {
     salary_min: salary.salaryMin,
     salary_max: salary.salaryMax,
     salary_currency: salary.salaryCurrency,
-    description: normalizeOptionalText(job.description),
+    description: normalizeOptionalMultilineText(job.description),
     apply_url: applyUrl,
     source_url: sourceUrl,
     posted_at_text: postedAtText,
@@ -479,15 +479,43 @@ function inferWorkMode(job: SerpApiJob): JobFeedCanonicalJob['work_mode'] {
     .join(' ')
     .toLowerCase();
 
-  if (job.detected_extensions?.work_from_home || signals.includes('remote') || signals.includes('work from home')) {
+  // Multi-language work-mode keywords. SerpAPI returns listings in the search
+  // language, so we match on the common ways each mode is expressed.
+  const REMOTE_KEYWORDS = [
+    'remote', 'work from home', 'wfh',
+    'télétravail', 'a distance', 'à distance', // fr
+    'remoto', 'teletrabajo', 'trabajo a distancia', // es/pt
+    'homeoffice', 'home office', 'fernarbeit', // de
+    'smart working', 'lavoro da remoto', // it
+    'thuiswerk', 'op afstand', // nl
+    'リモート', '在宅', 'テレワーク', // ja
+    '재택', '원격', // ko
+    '远程', '遠端', // zh
+  ];
+  const HYBRID_KEYWORDS = [
+    'hybrid', 'hybride', 'híbrido', 'ibrido', 'hybrid-arbeit', 'ハイブリッド', '하이브리드', '混合',
+  ];
+  const ONSITE_KEYWORDS = [
+    'on-site', 'onsite', 'on site', 'in office', 'in-office',
+    'sur site', 'au bureau', // fr
+    'presencial', 'en oficina', // es/pt
+    'vor ort', 'im büro', // de
+    'in sede', 'in ufficio', // it
+    'op kantoor', // nl
+    'オフィス', '出社', // ja
+    '사무실', '현장', // ko
+    '现场办公', '到場', // zh
+  ];
+
+  if (job.detected_extensions?.work_from_home || REMOTE_KEYWORDS.some((kw) => signals.includes(kw))) {
     return 'remote';
   }
 
-  if (signals.includes('hybrid')) {
+  if (HYBRID_KEYWORDS.some((kw) => signals.includes(kw))) {
     return 'hybrid';
   }
 
-  if (signals.includes('on-site') || signals.includes('onsite') || signals.includes('on site')) {
+  if (ONSITE_KEYWORDS.some((kw) => signals.includes(kw))) {
     return 'onsite';
   }
 
@@ -621,6 +649,23 @@ function normalizeDisplayText(value?: string | null): string {
 
 function normalizeOptionalText(value?: string | null): string | null {
   const normalized = normalizeDisplayText(value);
+  return normalized.length > 0 ? normalized : null;
+}
+
+function normalizeMultilineText(value?: string | null): string {
+  if (typeof value !== 'string') return '';
+  return value
+    .replace(/\r\n?/g, '\n')
+    .replace(/\\r\\n|\\n/g, '\n')
+    .replace(/\\t/g, ' ')
+    .replace(/[ \t\f\v]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function normalizeOptionalMultilineText(value?: string | null): string | null {
+  const normalized = normalizeMultilineText(value);
   return normalized.length > 0 ? normalized : null;
 }
 

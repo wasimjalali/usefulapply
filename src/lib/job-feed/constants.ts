@@ -87,6 +87,10 @@ export type JobFeedCountryCode = (typeof JOB_FEED_COUNTRY_OPTIONS)[number]['valu
 // Popular cities per country. Used as quick-pick suggestions and (when the
 // user selects one) as location hints passed to SerpAPI. Users can still type
 // their own city via the chip input.
+// Locations are strictly cities / regions. Remote preference is expressed via
+// the separate "Work mode" step (JOB_FEED_REMOTE_PREFERENCE_OPTIONS), not via a
+// "Remote (Country)" location chip — otherwise the two signals overlap and
+// users can't tell which one drives the ranker.
 export const JOB_FEED_CITY_SUGGESTIONS: Record<string, string[]> = {
   us: [
     'New York, NY',
@@ -98,27 +102,26 @@ export const JOB_FEED_CITY_SUGGESTIONS: Record<string, string[]> = {
     'Boston, MA',
     'Denver, CO',
     'Atlanta, GA',
-    'Remote (US)',
   ],
-  ca: ['Toronto, ON', 'Vancouver, BC', 'Montreal, QC', 'Calgary, AB', 'Ottawa, ON', 'Remote (Canada)'],
-  gb: ['London', 'Manchester', 'Edinburgh', 'Bristol', 'Cambridge', 'Remote (UK)'],
-  ie: ['Dublin', 'Cork', 'Galway', 'Remote (Ireland)'],
-  de: ['Berlin', 'Munich', 'Hamburg', 'Frankfurt', 'Cologne', 'Remote (Germany)'],
-  nl: ['Amsterdam', 'Rotterdam', 'The Hague', 'Utrecht', 'Remote (Netherlands)'],
-  fr: ['Paris', 'Lyon', 'Toulouse', 'Remote (France)'],
-  es: ['Madrid', 'Barcelona', 'Valencia', 'Remote (Spain)'],
-  it: ['Milan', 'Rome', 'Turin', 'Remote (Italy)'],
-  ch: ['Zurich', 'Geneva', 'Basel', 'Remote (Switzerland)'],
-  at: ['Vienna', 'Graz', 'Remote (Austria)'],
-  be: ['Brussels', 'Antwerp', 'Remote (Belgium)'],
-  dk: ['Copenhagen', 'Aarhus', 'Remote (Denmark)'],
-  se: ['Stockholm', 'Gothenburg', 'Malmö', 'Remote (Sweden)'],
-  no: ['Oslo', 'Bergen', 'Remote (Norway)'],
-  fi: ['Helsinki', 'Espoo', 'Remote (Finland)'],
-  pl: ['Warsaw', 'Kraków', 'Wrocław', 'Remote (Poland)'],
-  au: ['Sydney', 'Melbourne', 'Brisbane', 'Perth', 'Remote (Australia)'],
-  nz: ['Auckland', 'Wellington', 'Remote (New Zealand)'],
-  in: ['Bengaluru', 'Mumbai', 'Delhi NCR', 'Hyderabad', 'Pune', 'Remote (India)'],
+  ca: ['Toronto, ON', 'Vancouver, BC', 'Montreal, QC', 'Calgary, AB', 'Ottawa, ON'],
+  gb: ['London', 'Manchester', 'Edinburgh', 'Bristol', 'Cambridge'],
+  ie: ['Dublin', 'Cork', 'Galway'],
+  de: ['Berlin', 'Munich', 'Hamburg', 'Frankfurt', 'Cologne'],
+  nl: ['Amsterdam', 'Rotterdam', 'The Hague', 'Utrecht'],
+  fr: ['Paris', 'Lyon', 'Toulouse'],
+  es: ['Madrid', 'Barcelona', 'Valencia'],
+  it: ['Milan', 'Rome', 'Turin'],
+  ch: ['Zurich', 'Geneva', 'Basel'],
+  at: ['Vienna', 'Graz'],
+  be: ['Brussels', 'Antwerp'],
+  dk: ['Copenhagen', 'Aarhus'],
+  se: ['Stockholm', 'Gothenburg', 'Malmö'],
+  no: ['Oslo', 'Bergen'],
+  fi: ['Helsinki', 'Espoo'],
+  pl: ['Warsaw', 'Kraków', 'Wrocław'],
+  au: ['Sydney', 'Melbourne', 'Brisbane', 'Perth'],
+  nz: ['Auckland', 'Wellington'],
+  in: ['Bengaluru', 'Mumbai', 'Delhi NCR', 'Hyderabad', 'Pune'],
   sg: ['Singapore'],
   ae: ['Dubai', 'Abu Dhabi'],
 };
@@ -302,8 +305,8 @@ export const JOB_FEED_SUGGESTED_LOCATIONS = [
   'New York, NY',
   'San Francisco, CA',
   'Toronto, ON',
-  'Remote (US)',
-  'Remote (Canada)',
+  'Berlin, Germany',
+  'London, UK',
 ];
 
 export const JOB_FEED_SUGGESTED_LANGUAGES = ['English', 'French'];

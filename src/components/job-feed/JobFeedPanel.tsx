@@ -77,7 +77,7 @@ import {
 type SaveState = 'idle' | 'saving';
 type PendingJobAction = {
   jobId: string;
-  action: 'apply' | 'save' | 'dismiss';
+  action: 'apply' | 'save' | 'dismiss' | 'rate';
 } | null;
 
 const JOB_FEED_DELIVERY_HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) => ({
@@ -242,7 +242,7 @@ export function JobFeedPanel() {
     ));
   }, []);
 
-  const applyPreviewFeedback = useCallback((jobId: string, action: 'opened' | 'saved' | 'dismissed' | 'applied') => {
+  const applyPreviewFeedback = useCallback((jobId: string, action: 'opened' | 'saved' | 'dismissed' | 'applied' | 'rated_helpful' | 'rated_not_relevant') => {
     const now = new Date().toISOString();
 
     const mutateFeedback = (feedback: JobFeedFeedItem['feedback']) => {
@@ -267,6 +267,18 @@ export function JobFeedPanel() {
             ...feedback,
             appliedAt: feedback.appliedAt ?? now,
             applicationSessionId: feedback.applicationSessionId ?? 'preview-session',
+          };
+        case 'rated_helpful':
+          return {
+            ...feedback,
+            openedAt: feedback.openedAt ?? now,
+            matchRating: 'helpful' as const,
+          };
+        case 'rated_not_relevant':
+          return {
+            ...feedback,
+            openedAt: feedback.openedAt ?? now,
+            matchRating: 'not_relevant' as const,
           };
       }
     };
@@ -321,7 +333,7 @@ export function JobFeedPanel() {
 
   const recordJobFeedback = useCallback(async (
     job: JobFeedFeedItem,
-    action: 'opened' | 'saved' | 'dismissed'
+    action: 'opened' | 'saved' | 'dismissed' | 'rated_helpful' | 'rated_not_relevant'
   ) => {
     const response = await fetch('/api/job-feed/feedback', {
       method: 'POST',
@@ -426,6 +438,51 @@ export function JobFeedPanel() {
       setPendingJobAction(null);
     }
   }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback, removeJobFromOverview, selectedJob?.id, toast]);
+
+  const handleRateMatch = useCallback(async (job: JobFeedFeedItem, rating: 'helpful' | 'not_relevant') => {
+    // If the user clicks the same rating twice in a row, treat as no-op so we
+    // don't POST duplicate events.
+    if (job.feedback.matchRating === rating) {
+      return;
+    }
+
+    const action = rating === 'helpful' ? 'rated_helpful' : 'rated_not_relevant';
+    setPendingJobAction({ jobId: job.id, action: 'rate' });
+
+    try {
+      if (isPreviewing) {
+        applyPreviewFeedback(job.id, action);
+        toast.success('Thanks — preview updated locally.');
+        return;
+      }
+
+      const feedback = await recordJobFeedback(job, action);
+      // Mirror state into the currently open details modal so the selection
+      // reflects immediately without waiting on a re-render from the list.
+      if (selectedJob?.id === job.id) {
+        setSelectedJob((prev) => (prev ? { ...prev, feedback } : prev));
+      }
+
+      posthog?.capture('job_feed_item_rated', {
+        foundation_mode: true,
+        job_id: job.id,
+        job_title: job.title,
+        company: job.company,
+        rating,
+        feed_run_id: overview?.feedRun?.id ?? null,
+      });
+
+      toast.success(
+        rating === 'helpful'
+          ? 'Thanks — we\'ll keep sending roles like this.'
+          : 'Got it — we\'ll tune your feed away from this.'
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save your rating.');
+    } finally {
+      setPendingJobAction(null);
+    }
+  }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback, selectedJob?.id, toast]);
 
   const handleApplyWithKarko = useCallback(async (job: JobFeedFeedItem) => {
     setPendingJobAction({ jobId: job.id, action: 'apply' });
@@ -745,10 +802,12 @@ export function JobFeedPanel() {
           isApplying={pendingJobAction?.jobId === selectedJob.id && pendingJobAction.action === 'apply'}
           isSaving={pendingJobAction?.jobId === selectedJob.id && pendingJobAction.action === 'save'}
           isDismissing={pendingJobAction?.jobId === selectedJob.id && pendingJobAction.action === 'dismiss'}
+          isRating={pendingJobAction?.jobId === selectedJob.id && pendingJobAction.action === 'rate'}
           onApplyWithKarko={() => handleApplyWithKarko(selectedJob)}
           onSave={() => handleSaveJob(selectedJob)}
           onDismiss={() => handleDismissJob(selectedJob)}
           onExternalApply={() => handleExternalApply(selectedJob)}
+          onRateMatch={(rating) => handleRateMatch(selectedJob, rating)}
         />
       )}
     </div>
@@ -1176,7 +1235,7 @@ function JobFeedOnboardingWizard({
 
             <FieldGroup
               label="Locations"
-              help="Type the cities or regions you want jobs in. Include the country (e.g. Berlin, Germany). Leave empty to search the whole country."
+              help="Cities or regions only (e.g. Berlin, Germany). For remote, use the Work mode step below — don't add a 'Remote' location here. Leave empty to search the whole country."
             >
               <RoleEntryField
                 values={form.preferred_locations}
@@ -1199,7 +1258,7 @@ function JobFeedOnboardingWizard({
             <div className="mt-4 space-y-4">
               <FieldGroup
                 label="Work modes"
-                help="Pick any that work for you. Karko will match jobs to any mode you choose."
+                help="This is the only place remote preference is set. Pick any that work for you — Karko will match jobs to any mode you choose."
               >
                 <MultiSelectDropdown
                   values={form.remote_preferences}

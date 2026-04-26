@@ -19,6 +19,7 @@ import KarkoLogo, { KarkoIcon } from '@/components/KarkoLogo';
 import Link from 'next/link';
 import { CreditIndicator } from '@/components/ui/CreditIndicator';
 import { useDashboardTour } from '@/hooks/useDashboardTour';
+import { useJobFeedBadge } from '@/hooks/useJobFeedBadge';
 import type { ParsedCV } from '@/lib/types';
 import type { StructuredCV } from '@/lib/types/cv-schema';
 
@@ -228,6 +229,24 @@ export default function Dashboard() {
   // First-time onboarding tour
   useDashboardTour();
 
+  // Job Feed nav badge + first-open popup. We only poll once per dashboard
+  // mount; acknowledge() clears the signal until the next daily run lands.
+  const jobFeedBadge = useJobFeedBadge(Boolean(user));
+  const [showJobFeedPopup, setShowJobFeedPopup] = useState(false);
+  useEffect(() => {
+    if (jobFeedBadge.hasNewRun && activeTab !== 'jobs') {
+      setShowJobFeedPopup(true);
+    }
+  }, [jobFeedBadge.hasNewRun, activeTab]);
+  // Acknowledge as soon as the user actually lands on the Job Feed tab
+  // (covers click, URL nav, autostart flows — not just the button onClick).
+  useEffect(() => {
+    if (activeTab === 'jobs' && jobFeedBadge.hasNewRun) {
+      jobFeedBadge.acknowledge();
+      setShowJobFeedPopup(false);
+    }
+  }, [activeTab, jobFeedBadge]);
+
   // Onboarding CV upload state
   const [isUploadingCV, setIsUploadingCV] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -431,8 +450,11 @@ export default function Dashboard() {
     const prevTab = prevActiveTabRef.current;
     prevActiveTabRef.current = activeTab;
 
-    const isFullWidthTab = activeTab === 'tracker' || activeTab === 'jobs';
-    const wasFullWidthTab = prevTab === 'tracker' || prevTab === 'jobs';
+    // Only Tracker auto-collapses the chat. Job Feed keeps the chat open so
+    // users can paste / continue a generation while browsing jobs — the chat
+    // only closes if they collapse it manually.
+    const isFullWidthTab = activeTab === 'tracker';
+    const wasFullWidthTab = prevTab === 'tracker';
     const enteringFullWidth = isFullWidthTab && !wasFullWidthTab;
     const leavingFullWidth = !isFullWidthTab && wasFullWidthTab;
 
@@ -526,6 +548,9 @@ export default function Dashboard() {
       if (autostart === 'job-feed-apply') {
         setMobileView('chat');
         setIsChatCollapsed(false);
+        // Ensure the leaving-full-width effect also keeps chat open, so the
+        // autostart flow never races a collapse from an earlier jobs-tab visit.
+        chatCollapsedBeforeFullWidthRef.current = false;
       } else {
         setMobileView('application-kit');
       }
@@ -617,8 +642,12 @@ export default function Dashboard() {
           </button>
           <button
             type="button"
-            onClick={() => handleWorkspaceChange('job-feed')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
+            onClick={() => {
+              handleWorkspaceChange('job-feed');
+              jobFeedBadge.acknowledge();
+              setShowJobFeedPopup(false);
+            }}
+            className={`relative flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
               activeWorkspace === 'job-feed'
                 ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
                 : 'text-warm-gray hover:text-navy-600'
@@ -626,6 +655,14 @@ export default function Dashboard() {
           >
             <Briefcase className={`w-4 h-4 ${activeWorkspace === 'job-feed' ? 'text-gold-500' : ''}`} />
             Job Feed
+            {jobFeedBadge.hasNewRun && jobFeedBadge.jobCount > 0 && (
+              <span
+                aria-label={`${jobFeedBadge.jobCount} new jobs today`}
+                className="ml-1 inline-flex min-w-[20px] items-center justify-center rounded-full bg-gold-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white"
+              >
+                {jobFeedBadge.jobCount > 99 ? '99+' : jobFeedBadge.jobCount}
+              </span>
+            )}
           </button>
           <button
             id="tour-tracker"
@@ -1036,12 +1073,17 @@ export default function Dashboard() {
             <button
               type="button"
               onClick={() => handleMobileViewChange('job-feed')}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer min-w-[52px] ${
+              className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer min-w-[52px] ${
                 mobileView === 'job-feed' ? 'text-gold-600' : 'text-warm-gray'
               }`}
             >
               <Briefcase className={`w-5 h-5 ${mobileView === 'job-feed' ? 'text-gold-500' : ''}`} />
               <span className="text-[10px] font-medium">Feed</span>
+              {jobFeedBadge.hasNewRun && jobFeedBadge.jobCount > 0 && (
+                <span className="absolute top-0 right-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-gold-500 px-1 py-0.5 text-[9px] font-semibold leading-none text-white">
+                  {jobFeedBadge.jobCount > 99 ? '99+' : jobFeedBadge.jobCount}
+                </span>
+              )}
             </button>
             <button
               type="button"
@@ -1091,6 +1133,63 @@ export default function Dashboard() {
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <ATSScorePanel />
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* New-jobs popup. Shows once per daily run when the user has not yet
+          visited the Job Feed tab; acknowledging stamps the run date into
+          localStorage so it won't re-open until tomorrow's run lands. */}
+      {showJobFeedPopup && jobFeedBadge.hasNewRun && (
+        <div className="fixed bottom-6 right-6 z-[60] max-w-sm rounded-2xl border border-gold-300/80 bg-white p-4 shadow-[0_24px_48px_-20px_rgba(30,58,95,0.35)]">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gold-50 text-gold-600">
+              <Briefcase className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-charcoal">
+                {jobFeedBadge.jobCount === 1
+                  ? '1 new job for you today'
+                  : `${jobFeedBadge.jobCount} new jobs for you today`}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-warm-gray">
+                Your daily feed just landed. Open it to review your matches.
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleWorkspaceChange('job-feed');
+                    jobFeedBadge.acknowledge();
+                    setShowJobFeedPopup(false);
+                  }}
+                  className="rounded-lg bg-gold-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-gold-600"
+                >
+                  Open Job Feed
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    jobFeedBadge.acknowledge();
+                    setShowJobFeedPopup(false);
+                  }}
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-warm-gray transition-colors hover:text-charcoal"
+                >
+                  Later
+                </button>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                jobFeedBadge.acknowledge();
+                setShowJobFeedPopup(false);
+              }}
+              className="rounded-lg p-1 text-warm-gray transition-colors hover:bg-cream-100 hover:text-charcoal"
+              aria-label="Dismiss new jobs notification"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
         </div>
       )}
