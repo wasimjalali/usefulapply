@@ -475,6 +475,15 @@ export function JobFeedPanel() {
         feed_run_id: overview?.feedRun?.id ?? null,
       });
 
+      if (rating === 'not_relevant') {
+        // Hide the job right away — rating it as not relevant is a terminal
+        // action, same as dismissing. Close the modal if it was open.
+        removeJobFromOverview(job.id);
+        if (selectedJob?.id === job.id) {
+          setSelectedJob(null);
+        }
+      }
+
       toast.success(
         rating === 'helpful'
           ? 'Thanks — we\'ll keep sending roles like this.'
@@ -485,7 +494,7 @@ export function JobFeedPanel() {
     } finally {
       setPendingJobAction(null);
     }
-  }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback, selectedJob?.id, toast]);
+  }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback, removeJobFromOverview, selectedJob?.id, toast]);
 
   const handleApplyWithKarko = useCallback(async (job: JobFeedFeedItem) => {
     setPendingJobAction({ jobId: job.id, action: 'apply' });
@@ -517,6 +526,11 @@ export function JobFeedPanel() {
       updateJobFeedbackState(job.id, typedPayload.feedback);
       syncApplicationSession(typedPayload.session);
       setSelectedJob(null);
+
+      // Applied jobs belong on the Tracker, not the daily feed. Hide from
+      // the feed immediately so the user sees a fresh list and we don't
+      // confuse "Application started" badging with "still open work".
+      removeJobFromOverview(job.id);
 
       // Fire the autostart signal synchronously so ChatPanel's effect picks
       // it up on the very next render. This is the single source of truth
@@ -555,7 +569,7 @@ export function JobFeedPanel() {
     } finally {
       setPendingJobAction(null);
     }
-  }, [applyPreviewFeedback, currentCV, isPreviewing, overview?.feedRun?.id, posthog, router, syncApplicationSession, toast, updateJobFeedbackState]);
+  }, [applyPreviewFeedback, currentCV, isPreviewing, overview?.feedRun?.id, posthog, removeJobFromOverview, router, syncApplicationSession, toast, updateJobFeedbackState]);
 
   const handleExternalApply = useCallback((job: JobFeedFeedItem) => {
     if (isPreviewing) {

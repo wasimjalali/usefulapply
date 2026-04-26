@@ -560,9 +560,17 @@ export async function runJobFeedFoundationWorkflow(params: {
       throw new Error('All job feed provider fetches failed for this run.');
     }
 
+    // Exclude canonical jobs the user has already applied to, dismissed, or
+    // rated "not relevant" — no point ranking rows the user has already
+    // rejected. Keeps the feed fresh and saves LLM budget.
+    const blockedIds = await getBlockedCanonicalJobIdsAdmin(userId);
+    const rankableJobs = blockedIds.size > 0
+      ? ingestion.canonicalJobs.filter((job) => !blockedIds.has(job.id))
+      : ingestion.canonicalJobs;
+
     const prefilter = prefilterJobFeedJobs({
       settings,
-      jobs: ingestion.canonicalJobs,
+      jobs: rankableJobs,
       hardCap: tierLimits.prefilterHardCap,
     });
 
@@ -778,7 +786,7 @@ async function buildFeedItemsForSnapshot(params: {
   return orderedJobIds
     .map((jobId) => rowsById.get(jobId))
     .filter((job): job is JobFeedCanonicalJob => Boolean(job))
-    .filter((job) => !feedbackByJobId.get(job.id)?.dismissed_at)
+    .filter((job) => !isJobFeedbackBlocked(feedbackByJobId.get(job.id)))
     .map((job) => {
       const rankedItem = rankedPreviewById.get(job.id);
 
@@ -978,6 +986,72 @@ async function getJobFeedFeedbackMapAdmin(userId: string, jobIds: string[]): Pro
 
   const rows = (data ?? []) as JobFeedFeedback[];
   return new Map(rows.map((row) => [row.canonical_job_id, row]));
+}
+
+/**
+ * A job is "blocked" from the visible feed when the user has taken a definitive
+ * negative/terminal action on it: applied, dismissed, or rated not relevant.
+ * Applied jobs belong on the Tracker; dismissed and not-relevant jobs should
+ * never resurface — the ranker also consumes this signal to avoid re-ranking
+ * them in future runs.
+ */
+export function isJobFeedbackBlocked(feedback: JobFeedFeedback | null | undefined): boolean {
+  if (!feedback) return false;
+  if (feedback.applied_at) return true;
+  if (feedback.dismissed_at) return true;
+  const metadata = (feedback.metadata ?? null) as Record<string, unknown> | null;
+  if (metadata && typeof metadata === 'object' && metadata.match_rating === 'not_relevant') {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Return the set of canonical_job_ids the user has taken a terminal action on
+ * (applied / dismissed / rated not relevant). Used to exclude jobs from
+ * ranking so we don't burn LLM budget re-ranking rows the user already
+ * rejected, and so they don't re-appear in tomorrow's feed after re-ingestion.
+ */
+export async function getBlockedCanonicalJobIdsAdmin(userId: string): Promise<Set<string>> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand job_feed_feedback here.
+  const admin = createAdminClient() as any;
+  const { data, error } = await admin
+    .from('job_feed_feedback')
+    .select('canonical_job_id, applied_at, dismissed_at, metadata')
+    .eq('user_id', userId)
+    .or('applied_at.not.is.null,dismissed_at.not.is.null');
+
+  if (error) {
+    throw new Error(`Failed to load blocked job feed canonical ids: ${error.message}`);
+  }
+
+  const blocked = new Set<string>();
+  for (const row of (data ?? []) as Array<Pick<JobFeedFeedback, 'canonical_job_id' | 'applied_at' | 'dismissed_at' | 'metadata'>>) {
+    if (isJobFeedbackBlocked(row as JobFeedFeedback)) {
+      blocked.add(row.canonical_job_id);
+    }
+  }
+
+  // The `or` filter above covers applied/dismissed. Do a second query for
+  // rated_not_relevant which lives in metadata (no column predicate), then
+  // merge. Separate query keeps the main one indexable.
+  const { data: ratedData, error: ratedError } = await admin
+    .from('job_feed_feedback')
+    .select('canonical_job_id, applied_at, dismissed_at, metadata')
+    .eq('user_id', userId)
+    .contains('metadata', { match_rating: 'not_relevant' });
+
+  if (ratedError) {
+    // Non-fatal — just log and continue with what we have.
+    console.error('[job-feed] not-relevant exclusion query failed:', ratedError.message);
+    return blocked;
+  }
+
+  for (const row of (ratedData ?? []) as Array<Pick<JobFeedFeedback, 'canonical_job_id' | 'applied_at' | 'dismissed_at' | 'metadata'>>) {
+    blocked.add(row.canonical_job_id);
+  }
+
+  return blocked;
 }
 
 function toFeedItem(
@@ -1257,9 +1331,16 @@ export async function stageJobFeedRunForBatch(params: {
     maxRawJobs: tierLimits.maxRawJobsPerRun,
   });
 
+  // Exclude canonical jobs the user has already applied to, dismissed, or
+  // rated "not relevant" (mirrors the live path above).
+  const blockedIds = await getBlockedCanonicalJobIdsAdmin(userId);
+  const rankableJobs = blockedIds.size > 0
+    ? ingestion.canonicalJobs.filter((job) => !blockedIds.has(job.id))
+    : ingestion.canonicalJobs;
+
   const prefilter = prefilterJobFeedJobs({
     settings,
-    jobs: ingestion.canonicalJobs,
+    jobs: rankableJobs,
     hardCap: tierLimits.prefilterHardCap,
   });
 

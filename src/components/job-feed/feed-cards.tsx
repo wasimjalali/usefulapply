@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import {
+  Bookmark,
   Briefcase,
   Building2,
   Calendar,
@@ -514,25 +515,29 @@ export function JobFeedDetailModal({
         </div>
 
         <div className="flex flex-col gap-3 border-t border-cream-200 bg-cream-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap items-center gap-2">
             {!isApplied && (
               <>
                 <button
                   type="button"
                   onClick={onSave}
                   disabled={isSaved || isApplying || isDismissing}
-                  className="text-sm font-medium text-warm-gray transition-colors hover:text-charcoal disabled:opacity-50"
+                  className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
+                    isSaved
+                      ? 'border-gold-300 bg-gold-50 text-gold-700'
+                      : 'border-cream-300 bg-white text-charcoal hover:border-gold-300 hover:text-gold-700'
+                  }`}
                 >
-                  {isSaving ? <Loader2 className="inline mr-1 h-3.5 w-3.5 animate-spin" /> : null}
+                  {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Bookmark className="h-3.5 w-3.5" />}
                   {isSaved ? 'Saved' : 'Save'}
                 </button>
                 <button
                   type="button"
                   onClick={onDismiss}
                   disabled={isApplying || isDismissing}
-                  className="text-sm font-medium text-warm-gray transition-colors hover:text-charcoal disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-cream-300 bg-white px-3 py-1.5 text-xs font-medium text-charcoal transition-colors hover:border-navy-300 hover:text-navy-700 disabled:opacity-50"
                 >
-                  {isDismissing ? <Loader2 className="inline mr-1 h-3.5 w-3.5 animate-spin" /> : null}
+                  {isDismissing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
                   Dismiss
                 </button>
               </>
@@ -544,10 +549,10 @@ export function JobFeedDetailModal({
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={onExternalApply}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-navy-600 transition-colors hover:text-navy-700"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-cream-300 bg-white px-3 py-1.5 text-xs font-medium text-charcoal transition-colors hover:border-navy-300 hover:text-navy-700"
               >
-                Employer site
                 <ExternalLink className="h-3.5 w-3.5" />
+                Employer site
               </a>
             )}
           </div>
