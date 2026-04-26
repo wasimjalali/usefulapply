@@ -14,6 +14,7 @@ import type {
   GeneratedCoverLetter,
   GeneratedEmail,
 } from '@/lib/types';
+import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
 
 export interface CVEdit {
   id: string;
@@ -165,6 +166,12 @@ export interface ApplicationSession {
     recommendedDelay: number;
   } | null;
   fitAssessment?: string | null;
+  generationStatus?: JobFeedGenerationStatus;
+  generationError?: string | null;
+  generationStartedAt?: string | null;
+  generationCompletedAt?: string | null;
+  generationFailedAt?: string | null;
+  generationCancelledAt?: string | null;
   companyResearch: CompanyResearch | null;
   
   /** Persisted fit analysis state — survives session switches, expires after 30 min */

@@ -391,7 +391,7 @@ export function normalizeSerpApiJob(job: SerpApiJob): NormalizedSerpApiJob {
   const locationText = normalizeOptionalText(job.location);
   const workMode = inferWorkMode(job);
   const applyUrl = extractApplyUrl(job);
-  const sourceUrl = normalizeOptionalText(job.share_link);
+  const sourceUrl = isHttpUrl(job.share_link) ? normalizeOptionalText(job.share_link) : null;
   const postedAtText = normalizeOptionalText(job.detected_extensions?.posted_at);
   const salary = parseSalaryText(job.detected_extensions?.salary);
 
@@ -432,7 +432,7 @@ export function normalizeSerpApiJob(job: SerpApiJob): NormalizedSerpApiJob {
       job_id: normalizeOptionalText(job.job_id),
       via: normalizeOptionalText(job.via),
       share_link: sourceUrl,
-      apply_options: job.apply_options ?? [],
+      apply_options: sanitizeApplyOptions(job.apply_options),
       highlights: job.job_highlights ?? [],
       extensions: job.extensions ?? [],
       thumbnail: normalizeOptionalText(job.thumbnail),
@@ -540,6 +540,18 @@ function extractApplyUrl(job: SerpApiJob): string | null {
   }
 
   return isHttpUrl(job.share_link) ? job.share_link : null;
+}
+
+function sanitizeApplyOptions(options?: SerpApiJob['apply_options']): Array<{ title: string; link: string }> {
+  if (!Array.isArray(options)) return [];
+
+  return options
+    .map((option) => ({
+      title: normalizeOptionalText(option.title) ?? 'Apply',
+      link: normalizeOptionalText(option.link) ?? '',
+    }))
+    .filter((option) => option.title.length > 0 && isHttpUrl(option.link))
+    .slice(0, 8);
 }
 
 function estimateFreshnessDays(value?: string | null): number | null {

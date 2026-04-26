@@ -76,7 +76,9 @@ export function isJobFeedConfigured(settings: JobFeedSettings | null): settings 
     settings.consent_accepted_at &&
     settings.user_timezone &&
     settings.target_market &&
-    settings.target_roles.length > 0
+    settings.target_roles.length > 0 &&
+    settings.remote_preferences.length > 0 &&
+    settings.employment_types.length > 0
   );
 }
 

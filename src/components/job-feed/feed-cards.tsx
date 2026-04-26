@@ -268,7 +268,8 @@ export function JobFeedCard({
   onExternalApply: () => void;
 }) {
   const isSaved = Boolean(job.feedback.savedAt);
-  const isApplied = Boolean(job.feedback.appliedAt);
+  const isApplied = Boolean(job.feedback.appliedAt) || job.feedback.generationStatus === 'succeeded';
+  const isApplyStarted = Boolean(job.feedback.applyStartedAt) && !isApplied;
   const employerLink = job.applyUrl || job.sourceUrl;
 
   return (
@@ -288,7 +289,13 @@ export function JobFeedCard({
             </span>
             {isApplied ? (
               <span className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-medium text-navy-700">
-                Application started
+                Application ready
+              </span>
+            ) : isApplyStarted ? (
+              <span className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-medium text-navy-700">
+                {job.feedback.generationStatus === 'failed' || job.feedback.generationStatus === 'cancelled'
+                  ? 'Retry available'
+                  : 'Application started'}
               </span>
             ) : isSaved ? (
               <span className="inline-flex items-center gap-2 rounded-full border border-gold-200 bg-gold-50 px-3 py-1 text-xs font-medium text-gold-700">
@@ -317,7 +324,7 @@ export function JobFeedCard({
         <div className="flex flex-col items-stretch gap-2 lg:w-[180px]">
           <Button variant="gold" onClick={onApplyWithKarko} disabled={isApplying}>
             {isApplying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isApplying ? 'Opening...' : isApplied ? 'Continue in Karko' : 'Apply with Karko'}
+            {isApplying ? 'Opening...' : isApplied || isApplyStarted ? 'Continue in Karko' : 'Apply with Karko'}
           </Button>
           {employerLink && (
             <a
@@ -371,7 +378,9 @@ export function JobFeedDetailModal({
 }) {
   const directApplyLink = job.applyUrl || job.sourceUrl;
   const isSaved = Boolean(job.feedback.savedAt);
-  const isApplied = Boolean(job.feedback.appliedAt);
+  const isApplied = Boolean(job.feedback.appliedAt) || job.feedback.generationStatus === 'succeeded';
+  const isApplyStarted = Boolean(job.feedback.applyStartedAt) && !isApplied;
+  const isJobActionPending = isApplying || isSaving || isDismissing || isRating;
   const matchRating = job.feedback.matchRating;
 
   useEffect(() => {
@@ -405,7 +414,13 @@ export function JobFeedDetailModal({
               </span>
               {isApplied ? (
                 <span className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-medium text-navy-700">
-                  Application started
+                  Application ready
+                </span>
+              ) : isApplyStarted ? (
+                <span className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-medium text-navy-700">
+                  {job.feedback.generationStatus === 'failed' || job.feedback.generationStatus === 'cancelled'
+                    ? 'Retry available'
+                    : 'Application started'}
                 </span>
               ) : isSaved ? (
                 <span className="inline-flex items-center gap-2 rounded-full border border-gold-200 bg-gold-50 px-3 py-1 text-xs font-medium text-gold-700">
@@ -484,7 +499,7 @@ export function JobFeedDetailModal({
                 <button
                   type="button"
                   onClick={() => onRateMatch('helpful')}
-                  disabled={isRating}
+                  disabled={isJobActionPending}
                   aria-pressed={matchRating === 'helpful'}
                   className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed ${
                     matchRating === 'helpful'
@@ -498,7 +513,7 @@ export function JobFeedDetailModal({
                 <button
                   type="button"
                   onClick={() => onRateMatch('not_relevant')}
-                  disabled={isRating}
+                  disabled={isJobActionPending}
                   aria-pressed={matchRating === 'not_relevant'}
                   className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed ${
                     matchRating === 'not_relevant'
@@ -521,7 +536,7 @@ export function JobFeedDetailModal({
                 <button
                   type="button"
                   onClick={onSave}
-                  disabled={isSaved || isApplying || isDismissing}
+                  disabled={isSaved || isJobActionPending}
                   className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed ${
                     isSaved
                       ? 'border-gold-300 bg-gold-50 text-gold-700'
@@ -534,7 +549,7 @@ export function JobFeedDetailModal({
                 <button
                   type="button"
                   onClick={onDismiss}
-                  disabled={isApplying || isDismissing}
+                  disabled={isJobActionPending}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-cream-300 bg-white px-3 py-1.5 text-xs font-medium text-charcoal transition-colors hover:border-navy-300 hover:text-navy-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {isDismissing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
@@ -556,9 +571,9 @@ export function JobFeedDetailModal({
               </a>
             )}
           </div>
-          <Button variant="gold" onClick={onApplyWithKarko} disabled={isApplying}>
+          <Button variant="gold" onClick={onApplyWithKarko} disabled={isJobActionPending}>
             {isApplying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isApplied ? 'Continue in Karko' : 'Apply with Karko'}
+            {isApplied || isApplyStarted ? 'Continue in Karko' : 'Apply with Karko'}
           </Button>
         </div>
       </div>

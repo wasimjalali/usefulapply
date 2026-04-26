@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from 'react';
 // The number badge on the nav uses the live unprocessed count instead, so
 // dismissing the popup does NOT clear the badge — the user still has pending
 // jobs to work through.
-const LAST_SEEN_KEY = 'karko_job_feed_last_seen_run_date';
+const LAST_SEEN_KEY_PREFIX = 'karko_job_feed_last_seen_run_date';
 
 type JobFeedSummary = {
   canAccess: boolean;
@@ -16,19 +16,23 @@ type JobFeedSummary = {
   unprocessedCount: number;
 };
 
-function readLastSeen(): string | null {
+function getLastSeenKey(userId?: string | null): string {
+  return userId ? `${LAST_SEEN_KEY_PREFIX}:${userId}` : LAST_SEEN_KEY_PREFIX;
+}
+
+function readLastSeen(userId?: string | null): string | null {
   if (typeof window === 'undefined') return null;
   try {
-    return window.localStorage.getItem(LAST_SEEN_KEY);
+    return window.localStorage.getItem(getLastSeenKey(userId));
   } catch {
     return null;
   }
 }
 
-function writeLastSeen(value: string) {
+function writeLastSeen(value: string, userId?: string | null) {
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(LAST_SEEN_KEY, value);
+    window.localStorage.setItem(getLastSeenKey(userId), value);
   } catch {
     // ignore storage failures (private mode, quota)
   }
@@ -43,10 +47,14 @@ export function notifyJobFeedBadgeRefresh() {
   for (const listener of listeners) listener();
 }
 
-export function useJobFeedBadge(enabled: boolean) {
+export function useJobFeedBadge(enabled: boolean, userId?: string | null) {
   const [summary, setSummary] = useState<JobFeedSummary | null>(null);
-  const [lastSeenDate, setLastSeenDate] = useState<string | null>(() => readLastSeen());
+  const [lastSeenDate, setLastSeenDate] = useState<string | null>(() => readLastSeen(userId));
   const [refreshTick, setRefreshTick] = useState(0);
+
+  useEffect(() => {
+    setLastSeenDate(readLastSeen(userId));
+  }, [userId]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -87,9 +95,9 @@ export function useJobFeedBadge(enabled: boolean) {
   const latestRunDate = summary?.latestRunDate ?? null;
   const acknowledge = useCallback(() => {
     if (!latestRunDate) return;
-    writeLastSeen(latestRunDate);
+    writeLastSeen(latestRunDate, userId);
     setLastSeenDate(latestRunDate);
-  }, [latestRunDate]);
+  }, [latestRunDate, userId]);
 
   const refresh = useCallback(() => setRefreshTick((n) => n + 1), []);
 

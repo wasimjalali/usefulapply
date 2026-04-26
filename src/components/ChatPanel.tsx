@@ -25,7 +25,7 @@ import {
   Search,
 } from 'lucide-react';
 import { KarkoIcon } from './KarkoLogo';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { SignUpWallModal, hasUsedFreeGeneration } from '@/components/SignUpWallModal';
 import { InsufficientCreditsModal } from '@/components/InsufficientCreditsModal';
 import { usePostHog } from 'posthog-js/react';
@@ -45,6 +45,7 @@ interface ChatPanelProps {
 
 export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }: ChatPanelProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, profile } = useAuth();
   const posthog = usePostHog();
   const {
@@ -219,6 +220,16 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
   // mounted ChatPanel instances (desktop + mobile can both be in the DOM).
   const pendingJobFeedAutostart = useUIStore((state) => state.pendingJobFeedAutostart);
   const setPendingJobFeedAutostart = useUIStore((state) => state.setPendingJobFeedAutostart);
+  useEffect(() => {
+    const urlSessionId = searchParams.get('session');
+    if (searchParams.get('autostart') !== 'job-feed-apply') return;
+    if (!urlSessionId || currentSession?.id !== urlSessionId) return;
+    if (pendingJobFeedAutostart?.sessionId === urlSessionId) return;
+    if (autostartedApplySessionIds.has(urlSessionId)) return;
+
+    setPendingJobFeedAutostart({ sessionId: urlSessionId });
+  }, [currentSession?.id, pendingJobFeedAutostart?.sessionId, searchParams, setPendingJobFeedAutostart]);
+
   useEffect(() => {
     if (!pendingJobFeedAutostart) return;
     if (!currentSession || currentSession.id !== pendingJobFeedAutostart.sessionId) return;
@@ -773,7 +784,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
             <div className="flex justify-end gap-2 mt-2">
               <button
                 onClick={() => {
-                  const isMaxPlan = profile?.subscription_tier === 'max' || profile?.subscription_tier === 'pro';
+                  const isMaxPlan = profile?.subscription_tier === 'max';
                   handleAction(isMaxPlan ? 'screening-questions' : 'upgrade-for-screening');
                   const dismissNow = !isMaxPlan;
                   useAppStore.getState().updateCurrentSession({

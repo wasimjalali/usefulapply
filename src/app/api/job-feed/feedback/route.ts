@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { canAccessJobFeed } from '@/lib/job-feed/helpers';
 import {
-  getJobFeedCanonicalJobAdmin,
-  getJobFeedRunAdmin,
+  authorizeJobFeedJobActionAdmin,
   recordJobFeedFeedbackAdmin,
   toJobFeedFeedbackState,
 } from '@/lib/job-feed/server';
@@ -56,19 +55,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unsupported feedback action.' }, { status: 400 });
     }
 
-    const job = await getJobFeedCanonicalJobAdmin(jobId);
-    if (!job) {
+    const authorizedItem = await authorizeJobFeedJobActionAdmin({
+      userId: user.id,
+      jobId,
+      runId: runId || null,
+    });
+    if (!authorizedItem) {
       return NextResponse.json({ error: 'Job Feed item not found.' }, { status: 404 });
     }
-
-    let validatedRunId: string | null = null;
-    if (runId) {
-      const run = await getJobFeedRunAdmin(user.id, runId);
-      if (!run) {
-        return NextResponse.json({ error: 'Feed run not found for this account.' }, { status: 404 });
-      }
-      validatedRunId = run.id;
-    }
+    const { job, rankedItem } = authorizedItem;
+    const validatedRunId = rankedItem.run_id;
 
     const feedback = await recordJobFeedFeedbackAdmin({
       userId: user.id,
@@ -86,6 +82,7 @@ export async function POST(request: NextRequest) {
         job_id: jobId,
         company: job.company,
         title: job.title,
+        feed_run_id: validatedRunId,
       },
     });
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { createClient } from '@/lib/supabase/server';
 import { extractJobFeedSuggestionsFromCV } from '@/lib/job-feed/cv-suggestions';
+import { canAccessJobFeed } from '@/lib/job-feed/helpers';
 import type { JobFeedSettingsSuggestion } from '@/lib/job-feed/types';
 import type { StructuredCV } from '@/lib/types/cv-schema';
 
@@ -24,6 +25,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
+    const { data: profile, error: profileError } = await typedSupabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile || !canAccessJobFeed(profile.subscription_tier)) {
+      return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
+    }
+
     const url = new URL(request.url);
     const forceRefresh = url.searchParams.get('force') === 'true';
 
@@ -43,7 +54,7 @@ export async function GET(request: NextRequest) {
         .from('documents')
         .select('structured_data, updated_at')
         .eq('user_id', user.id)
-        .eq('document_type', 'primary_cv')
+        .eq('type', 'primary_cv')
         .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
@@ -119,6 +130,16 @@ export async function POST(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+
+    const { data: profile, error: profileError } = await typedSupabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile || !canAccessJobFeed(profile.subscription_tier)) {
+      return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 
     const body = await request.json();

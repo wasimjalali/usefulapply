@@ -6,6 +6,9 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+export type SubscriptionTier = 'free' | 'plus' | 'max'
+export type JobFeedGenerationStatus = 'none' | 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled'
+
 export interface Database {
   public: {
     Tables: {
@@ -23,7 +26,7 @@ export interface Database {
           website_url: string | null
           date_of_birth: string | null
           nationality: string | null
-          subscription_tier: 'free' | 'starter' | 'plus' | 'max' | 'pro' | 'enterprise'
+          subscription_tier: SubscriptionTier
           subscription_status: 'active' | 'canceled' | 'past_due' | 'trialing'
           notify_tips: boolean
           notify_updates: boolean
@@ -47,7 +50,7 @@ export interface Database {
           website_url?: string | null
           date_of_birth?: string | null
           nationality?: string | null
-          subscription_tier?: 'free' | 'starter' | 'plus' | 'max' | 'pro' | 'enterprise'
+          subscription_tier?: SubscriptionTier
           subscription_status?: 'active' | 'canceled' | 'past_due' | 'trialing'
           notify_tips?: boolean
           notify_updates?: boolean
@@ -71,7 +74,7 @@ export interface Database {
           website_url?: string | null
           date_of_birth?: string | null
           nationality?: string | null
-          subscription_tier?: 'free' | 'starter' | 'plus' | 'max' | 'pro' | 'enterprise'
+          subscription_tier?: SubscriptionTier
           subscription_status?: 'active' | 'canceled' | 'past_due' | 'trialing'
           notify_tips?: boolean
           notify_updates?: boolean
@@ -180,6 +183,12 @@ export interface Database {
           raw_jobs_fetched: number
           jobs_after_prefilter: number
           ranked_jobs_count: number
+          ranking_mode: 'sync' | 'batch'
+          batch_id: string | null
+          batch_input_file_id: string | null
+          batch_status: string | null
+          batch_submitted_at: string | null
+          batch_completed_at: string | null
           metadata: Json
           created_at: string
           updated_at: string
@@ -200,6 +209,12 @@ export interface Database {
           raw_jobs_fetched?: number
           jobs_after_prefilter?: number
           ranked_jobs_count?: number
+          ranking_mode?: 'sync' | 'batch'
+          batch_id?: string | null
+          batch_input_file_id?: string | null
+          batch_status?: string | null
+          batch_submitted_at?: string | null
+          batch_completed_at?: string | null
           metadata?: Json
           created_at?: string
           updated_at?: string
@@ -220,6 +235,12 @@ export interface Database {
           raw_jobs_fetched?: number
           jobs_after_prefilter?: number
           ranked_jobs_count?: number
+          ranking_mode?: 'sync' | 'batch'
+          batch_id?: string | null
+          batch_input_file_id?: string | null
+          batch_status?: string | null
+          batch_submitted_at?: string | null
+          batch_completed_at?: string | null
           metadata?: Json
           created_at?: string
           updated_at?: string
@@ -395,7 +416,14 @@ export interface Database {
           opened_at: string | null
           saved_at: string | null
           dismissed_at: string | null
+          apply_started_at: string | null
           applied_at: string | null
+          generation_status: JobFeedGenerationStatus
+          generation_error: string | null
+          generation_started_at: string | null
+          generation_completed_at: string | null
+          generation_failed_at: string | null
+          generation_cancelled_at: string | null
           metadata: Json
           created_at: string
           updated_at: string
@@ -409,7 +437,14 @@ export interface Database {
           opened_at?: string | null
           saved_at?: string | null
           dismissed_at?: string | null
+          apply_started_at?: string | null
           applied_at?: string | null
+          generation_status?: JobFeedGenerationStatus
+          generation_error?: string | null
+          generation_started_at?: string | null
+          generation_completed_at?: string | null
+          generation_failed_at?: string | null
+          generation_cancelled_at?: string | null
           metadata?: Json
           created_at?: string
           updated_at?: string
@@ -423,7 +458,14 @@ export interface Database {
           opened_at?: string | null
           saved_at?: string | null
           dismissed_at?: string | null
+          apply_started_at?: string | null
           applied_at?: string | null
+          generation_status?: JobFeedGenerationStatus
+          generation_error?: string | null
+          generation_started_at?: string | null
+          generation_completed_at?: string | null
+          generation_failed_at?: string | null
+          generation_cancelled_at?: string | null
           metadata?: Json
           created_at?: string
           updated_at?: string
@@ -576,6 +618,12 @@ export interface Database {
           cover_letter_language: string
           fit_assessment: Json | null
           generation_completed: boolean
+          generation_status: JobFeedGenerationStatus
+          generation_error: string | null
+          generation_started_at: string | null
+          generation_completed_at: string | null
+          generation_failed_at: string | null
+          generation_cancelled_at: string | null
           follow_up_email: Json | null
           created_at: string
           updated_at: string
@@ -609,6 +657,12 @@ export interface Database {
           cover_letter_language?: string
           fit_assessment?: Json | null
           generation_completed?: boolean
+          generation_status?: JobFeedGenerationStatus
+          generation_error?: string | null
+          generation_started_at?: string | null
+          generation_completed_at?: string | null
+          generation_failed_at?: string | null
+          generation_cancelled_at?: string | null
           follow_up_email?: Json | null
           created_at?: string
           updated_at?: string
@@ -642,6 +696,12 @@ export interface Database {
           cover_letter_language?: string
           fit_assessment?: Json | null
           generation_completed?: boolean
+          generation_status?: JobFeedGenerationStatus
+          generation_error?: string | null
+          generation_started_at?: string | null
+          generation_completed_at?: string | null
+          generation_failed_at?: string | null
+          generation_cancelled_at?: string | null
           follow_up_email?: Json | null
           created_at?: string
           updated_at?: string
@@ -680,7 +740,7 @@ export interface Database {
         Row: {
           id: string
           user_id: string
-          tier: 'free' | 'starter' | 'plus' | 'max' | 'pro' | 'enterprise'
+          tier: SubscriptionTier
           status: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete'
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -699,7 +759,7 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
-          tier: 'free' | 'starter' | 'plus' | 'max' | 'pro' | 'enterprise'
+          tier: SubscriptionTier
           status?: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete'
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -718,7 +778,7 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string
-          tier?: 'free' | 'starter' | 'plus' | 'max' | 'pro' | 'enterprise'
+          tier?: SubscriptionTier
           status?: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete'
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -826,7 +886,7 @@ export interface Database {
           monthly_credits: number
           rollover_credits: number
           addon_credits: number
-          plan_tier: 'free' | 'starter' | 'plus' | 'max' | 'pro'
+          plan_tier: SubscriptionTier
           last_reset_date: string | null
           next_reset_date: string | null
           stripe_customer_id: string | null
@@ -841,7 +901,7 @@ export interface Database {
           monthly_credits?: number
           rollover_credits?: number
           addon_credits?: number
-          plan_tier?: 'free' | 'starter' | 'plus' | 'max' | 'pro'
+          plan_tier?: SubscriptionTier
           last_reset_date?: string | null
           next_reset_date?: string | null
           stripe_customer_id?: string | null
@@ -856,7 +916,7 @@ export interface Database {
           monthly_credits?: number
           rollover_credits?: number
           addon_credits?: number
-          plan_tier?: 'free' | 'starter' | 'plus' | 'max' | 'pro'
+          plan_tier?: SubscriptionTier
           last_reset_date?: string | null
           next_reset_date?: string | null
           stripe_customer_id?: string | null
@@ -907,7 +967,7 @@ export interface Database {
       subscription_plans: {
         Row: {
           id: string
-          tier: 'free' | 'starter' | 'plus' | 'max' | 'pro'
+          tier: SubscriptionTier
           name: string
           description: string | null
           price_monthly: number
@@ -924,7 +984,7 @@ export interface Database {
         }
         Insert: {
           id?: string
-          tier: 'free' | 'starter' | 'plus' | 'max' | 'pro'
+          tier: SubscriptionTier
           name: string
           description?: string | null
           price_monthly?: number
@@ -941,7 +1001,7 @@ export interface Database {
         }
         Update: {
           id?: string
-          tier?: 'free' | 'starter' | 'plus' | 'max' | 'pro'
+          tier?: SubscriptionTier
           name?: string
           description?: string | null
           price_monthly?: number

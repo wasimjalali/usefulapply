@@ -21,8 +21,6 @@ function getSupabaseAdmin() {
  */
 async function syncProfileTier(userId: string, tier: string) {
   const supabase = getSupabaseAdmin();
-  // Map to the profiles table CHECK constraint values
-  // profiles uses 'free'|'pro'|'enterprise' but we also need 'starter'|'plus'
   const { error } = await supabase
     .from('profiles')
     .update({
@@ -57,8 +55,8 @@ async function upsertSubscription(opts: {
 }) {
   const supabase = getSupabaseAdmin();
 
-  // Map internal tier names to the subscriptions table tier values
-  const tierMap: Record<string, string> = { free: 'free', starter: 'free', plus: 'plus', max: 'max', pro: 'max' };
+  // Map internal tier names to the supported subscription table tier values.
+  const tierMap: Record<string, string> = { free: 'free', plus: 'plus', max: 'max' };
   const tier = tierMap[opts.tier] || opts.tier;
 
   // Try to find existing subscription for this user
@@ -279,12 +277,12 @@ async function handleCheckoutCompleted(session: any) {
 
   // Handle subscription checkout
   const subscriptionId = session.subscription;
-  const planTier = session.metadata?.planTier || 'starter';
+  const planTier = session.metadata?.planTier || 'free';
 
-  // Map plan tier to credits (handle both old and new tier names)
+  // Map plan tier to credits.
   let planCredits = 10;
   if (planTier === 'plus') planCredits = 100;
-  else if (planTier === 'max' || planTier === 'pro') planCredits = 200;
+  else if (planTier === 'max') planCredits = 200;
 
   console.log(`[Stripe Webhook] checkout.session.completed: userId=${userId}, planTier=${planTier}, credits=${planCredits}`);
 
@@ -392,7 +390,7 @@ async function handleSubscriptionUpdate(subscription: any) {
   if (priceId === process.env.STRIPE_PRICE_ID_PLUS) {
     planTier = 'plus';
     newPlanCredits = 100;
-  } else if (priceId === process.env.STRIPE_PRICE_ID_MAX || priceId === process.env.STRIPE_PRICE_ID_PRO) {
+  } else if (priceId === process.env.STRIPE_PRICE_ID_MAX) {
     planTier = 'max';
     newPlanCredits = 200;
   }
@@ -400,7 +398,7 @@ async function handleSubscriptionUpdate(subscription: any) {
   // Handle mid-cycle plan changes:
   // - Upgrade (e.g. Plus→Max): give full new plan credits (rewards upgrading)
   // - Downgrade (e.g. Max→Plus): cap at new plan limit so users can't gain credits
-  const oldPlanCredits = (userCredits.plan_tier === 'max' || userCredits.plan_tier === 'pro') ? 200 : userCredits.plan_tier === 'plus' ? 100 : 10;
+  const oldPlanCredits = userCredits.plan_tier === 'max' ? 200 : userCredits.plan_tier === 'plus' ? 100 : 10;
   const isDowngrade = newPlanCredits < oldPlanCredits;
   const monthlyCredits = isDowngrade
     ? Math.min(userCredits.monthly_credits, newPlanCredits)
@@ -522,10 +520,10 @@ async function handlePaymentSucceeded(invoice: any) {
   }
 
   // Determine base credits for the plan
-  const baseCredits = userCredits.plan_tier === 'plus' ? 100 : (userCredits.plan_tier === 'max' || userCredits.plan_tier === 'pro') ? 200 : 10;
+  const baseCredits = userCredits.plan_tier === 'plus' ? 100 : userCredits.plan_tier === 'max' ? 200 : 10;
 
   // Rollover unused monthly credits (capped per plan)
-  const maxRollover = userCredits.plan_tier === 'plus' ? 50 : (userCredits.plan_tier === 'max' || userCredits.plan_tier === 'pro') ? 100 : 0;
+  const maxRollover = userCredits.plan_tier === 'plus' ? 50 : userCredits.plan_tier === 'max' ? 100 : 0;
   const newRollover = Math.min(
     (userCredits.rollover_credits || 0) + (userCredits.monthly_credits || 0),
     maxRollover
@@ -588,7 +586,7 @@ async function handleChargeRefunded(charge: any) {
 
   if (isSubscription) {
     // Subscription refund: remove the plan's monthly credits
-    const planCredits = (userCredits.plan_tier === 'max' || userCredits.plan_tier === 'pro') ? 200 : userCredits.plan_tier === 'plus' ? 100 : 10;
+    const planCredits = userCredits.plan_tier === 'max' ? 200 : userCredits.plan_tier === 'plus' ? 100 : 10;
 
     if (refundedAmountCents >= totalAmountCents) {
       // Full refund — remove all plan credits

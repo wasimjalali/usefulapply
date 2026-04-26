@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       .eq('user_id', userId)
       .single();
 
-    if (!userCredits || userCredits.plan_tier === 'free' || userCredits.plan_tier === 'starter') {
+    if (!userCredits || userCredits.plan_tier === 'free') {
       return NextResponse.json(
         { error: 'Add-on credits are only available for Plus and Max subscribers' },
         { status: 403 }
