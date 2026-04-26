@@ -374,17 +374,9 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
           console.error('Error saving master CV to Supabase:', saveError);
         } else if (savedDoc) {
           setSupabaseDocs(prev => ({ ...prev, master: savedDoc }));
-
-          // Refresh the cached job-feed suggestions so the wizard picks up
-          // the richer master CV content next time it opens. Fire-and-forget:
-          // a failure here only means the next GET will re-derive on demand.
-          if (result.structuredCV) {
-            fetch('/api/job-feed/settings/suggest', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ structured_data: result.structuredCV }),
-            }).catch(() => {});
-          }
+          // Deliberately NOT refreshing job-feed suggestions from the
+          // master CV. Master CV is too long and skill-dense for feed
+          // prefill — the primary CV is the single source of truth.
         }
       }
     } catch (error) {

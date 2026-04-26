@@ -1319,34 +1319,31 @@ export async function stageJobFeedRunForBatch(params: {
 }
 
 /**
- * Derive the user's total years of professional experience from their CV
- * start/end dates. Used as an extra signal for the ranker to skip jobs that
+ * Derive the user's total years of professional experience from their
+ * primary CV. Used as an extra signal for the ranker to skip jobs that
  * require dramatically more experience than the candidate has.
  *
- * Prefers the master CV (richer, longer history) when present; falls back
- * to the most recent primary CV. Returns null when no CV exists or the CV
- * has no dated experience entries.
+ * Primary CV only — master CVs are too dense and broad to use as the
+ * source of truth for job-feed signals. Returns null when no primary CV
+ * exists or the CV has no dated experience entries.
  */
 export async function getUserYearsExperienceAdmin(userId: string): Promise<number | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the documents table here.
   const admin = createAdminClient() as any;
 
-  const candidates: Array<'master_cv' | 'primary_cv'> = ['master_cv', 'primary_cv'];
-  for (const docType of candidates) {
-    const { data } = await admin
-      .from('documents')
-      .select('structured_data')
-      .eq('user_id', userId)
-      .eq('document_type', docType)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+  const { data } = await admin
+    .from('documents')
+    .select('structured_data')
+    .eq('user_id', userId)
+    .eq('document_type', 'primary_cv')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-    const structured = data?.structured_data;
-    if (structured && typeof structured === 'object') {
-      const years = estimateTotalExperienceYears(structured as StructuredCV);
-      if (years > 0) return years;
-    }
+  const structured = data?.structured_data;
+  if (structured && typeof structured === 'object') {
+    const years = estimateTotalExperienceYears(structured as StructuredCV);
+    if (years > 0) return years;
   }
 
   return null;

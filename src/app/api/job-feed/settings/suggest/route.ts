@@ -27,9 +27,13 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const forceRefresh = url.searchParams.get('force') === 'true';
 
-    // Load the cached suggestion (if any) and the latest CV document in
-    // parallel so we can decide whether the cache is fresh.
-    const [cachedResult, primaryDoc, masterDoc] = await Promise.all([
+    // Load the cached suggestion and the latest primary CV in parallel so
+    // we can decide whether the cache is fresh. We deliberately ONLY look
+    // at the primary CV here — master CVs are too long and skill-dense
+    // for feed prefill, which would overwhelm the form and hurt ranking
+    // quality. Primary CV is the single source of truth for job-feed
+    // settings.
+    const [cachedResult, primaryDoc] = await Promise.all([
       typedSupabase
         .from('user_cv_suggestions')
         .select('suggestion, updated_at')
@@ -43,25 +47,15 @@ export async function GET(request: NextRequest) {
         .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
-      typedSupabase
-        .from('documents')
-        .select('structured_data, updated_at')
-        .eq('user_id', user.id)
-        .eq('document_type', 'master_cv')
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
     ]);
 
     // Surface Supabase errors so RLS / network problems don't silently
     // present as "no CV found" to the client.
     if (cachedResult.error) console.error('[job-feed/settings/suggest] cache fetch error:', cachedResult.error.message);
     if (primaryDoc.error) console.error('[job-feed/settings/suggest] primary CV fetch error:', primaryDoc.error.message);
-    if (masterDoc.error) console.error('[job-feed/settings/suggest] master CV fetch error:', masterDoc.error.message);
 
     const cached = cachedResult.data;
-    // Prefer the master CV when available — it carries richer history.
-    const sourceDoc = masterDoc.data?.structured_data ? masterDoc.data : primaryDoc.data;
+    const sourceDoc = primaryDoc.data;
 
     const cachedUpdatedAt = cached?.updated_at ? Date.parse(cached.updated_at) : 0;
     const docUpdatedAt = sourceDoc?.updated_at ? Date.parse(sourceDoc.updated_at) : 0;
