@@ -52,6 +52,7 @@ export interface BatchSubmissionInput {
   settings: JobFeedSettings;
   candidates: JobFeedRankingCandidate[];
   visibleCap: number;
+  yearsExperience: number | null;
 }
 
 export interface BatchSubmissionResult {
@@ -82,6 +83,7 @@ export async function submitJobFeedBatch(
       settings: input.settings,
       candidates: input.candidates,
       visibleCap: input.visibleCap,
+      yearsExperience: input.yearsExperience,
     });
 
     return JSON.stringify({

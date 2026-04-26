@@ -51,6 +51,7 @@ interface StagedRun {
   settings: JobFeedSettings;
   candidates: JobFeedRankingCandidate[];
   visibleCap: number;
+  yearsExperience: number | null;
 }
 
 /**
@@ -68,6 +69,7 @@ export async function submitJobFeedBatchForStagedRuns(
     settings: item.settings,
     candidates: item.candidates,
     visibleCap: item.visibleCap,
+    yearsExperience: item.yearsExperience,
   }));
 
   const submission = await submitJobFeedBatch(batchInputs);

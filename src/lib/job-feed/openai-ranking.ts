@@ -39,7 +39,13 @@ Apply these weights when forming your decision. The weights reflect what actuall
 1. SKILL MATCH (40%). Does the job description require skills the candidate actually has, per the userProfile.userSkills list? A candidate meeting 80%+ of must-have skills beats a perfect title match with meaningful skill gaps. Read the description carefully. Do not infer skills from title alone. Skill match is the single most important signal.
 2. ROLE ALIGNMENT (25%). Does the title and the day-to-day responsibilities match what the candidate is looking for (userProfile.targetRoles)? Exact-title matches rank highest. Clearly adjacent roles ("Applied AI Engineer" for a candidate searching "AI Engineer", "Full-Stack Engineer" for "Backend Engineer" with JS skills) count as aligned. Wildly different domains do not ("Account Executive" for an "AI Engineer" search is a skip even if both need communication).
 3. LOCATION & REMOTE FIT (15%). See rules below under LOCATION SEMANTICS and REMOTE SEMANTICS.
-4. SENIORITY FIT (10%). Within ±1 level of any seniorityTarget is acceptable. A junior candidate seeing a staff/principal role is a skip. A senior candidate seeing an intern role is a skip. Title alone is unreliable in non-English postings; read the seniority signals in the description.
+4. SENIORITY & EXPERIENCE FIT (10%). Combine TWO signals to decide if the candidate is at the right level:
+   a. SeniorityTarget match: within ±1 level of any seniorityTarget is acceptable. A junior candidate seeing a staff/principal role is a skip. A senior candidate seeing an intern role is a skip. Title alone is unreliable in non-English postings; read seniority signals in the description.
+   b. YEARS OF EXPERIENCE match: when the posting explicitly states a required experience range (e.g. "5-8 years", "mindestens 7 Jahre", "minimum 10 years of experience") AND the candidate's userProfile.yearsExperience is provided, apply this rule:
+      - If the candidate has at least HALF of the stated minimum (candidate_years >= required_min / 2), treat as a soft match. Acceptable to surface as "good" if other signals are strong, especially when the description uses soft language like "experience is less important for the right candidate", "exceptional juniors welcome", or "ideally but not required".
+      - If the candidate has less than HALF of the stated minimum (candidate_years < required_min / 2), SKIP. This is the most common "wrong level" rejection and should not be ambiguous. Do not surface a role requiring 8-10 years to a candidate with 2 years unless the posting explicitly says experience is negotiable.
+      - If yearsExperience is null OR the posting does not state a clear required-years range, fall back to (a) alone.
+      Examples: Candidate has 2 yrs, job asks 5+ yrs → 2 < 2.5 (half of 5) → skip by default; upgrade to good ONLY if posting explicitly says "strong juniors considered" / "experience is less important" / "ideally but not required". Candidate has 2 yrs, job asks 10+ yrs → 2 < 5 (half of 10) → clear skip regardless of soft language (gap is too wide). Candidate has 4 yrs, job asks 5+ yrs → 4 >= 2.5 → soft match, good.
 5. FRESHNESS (5%). Prefer jobs with freshnessDays <= 14. A job 30+ days old is stale unless everything else is outstanding.
 6. SALARY (5%). Only relevant when the job explicitly states a number AND it is below the candidate's declared minimum. If salary is absent, do not penalize. The candidate can negotiate.
 
@@ -147,8 +153,9 @@ export async function rankWithOpenAI(params: {
   settings: JobFeedSettings;
   candidates: JobFeedRankingCandidate[];
   visibleCap?: number;
+  yearsExperience?: number | null;
 }): Promise<JobFeedRankingExecutionResult> {
-  const { settings, candidates, visibleCap = JOB_FEED_VISIBLE_MAX_COUNT } = params;
+  const { settings, candidates, visibleCap = JOB_FEED_VISIBLE_MAX_COUNT, yearsExperience = null } = params;
   const deterministicItems = buildDeterministicRankedItems(candidates, visibleCap);
 
   if (candidates.length === 0) {
@@ -176,7 +183,7 @@ export async function rankWithOpenAI(params: {
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: buildUserProfileMessage(settings) },
+        { role: 'user', content: buildUserProfileMessage(settings, yearsExperience) },
         { role: 'user', content: buildCandidatesMessage(candidates, visibleCap) },
       ],
     });
@@ -226,6 +233,7 @@ export function buildRankingRequestBody(params: {
   settings: JobFeedSettings;
   candidates: JobFeedRankingCandidate[];
   visibleCap?: number;
+  yearsExperience?: number | null;
 }): {
   model: string;
   temperature: number;
@@ -241,7 +249,7 @@ export function buildRankingRequestBody(params: {
     response_format: { type: 'json_object' },
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: buildUserProfileMessage(params.settings) },
+      { role: 'user', content: buildUserProfileMessage(params.settings, params.yearsExperience ?? null) },
       { role: 'user', content: buildCandidatesMessage(params.candidates, cap) },
     ],
   };
@@ -263,12 +271,19 @@ export function parseRankingResponse(
 // Per-user, stable across daily runs. Emitting the user profile as its own
 // message (instead of mixing it with candidates) lets Azure OpenAI cache
 // this block across repeat runs within the cache TTL window.
-function buildUserProfileMessage(settings: JobFeedSettings): string {
+function buildUserProfileMessage(
+  settings: JobFeedSettings,
+  yearsExperience: number | null = null,
+): string {
   return JSON.stringify({
     section: 'candidate_profile',
     profile: {
       targetRoles: settings.target_roles,
       userSkills: settings.user_skills ?? [],
+      // Years of professional experience inferred from CV start/end dates.
+      // Used by the ranker to catch jobs that require much more experience
+      // than the candidate has (e.g. job asks 8-10 yrs, candidate has 2).
+      yearsExperience: typeof yearsExperience === 'number' ? yearsExperience : null,
       preferredLocations: settings.preferred_locations,
       remotePreferences: (settings.remote_preferences && settings.remote_preferences.length > 0)
         ? settings.remote_preferences

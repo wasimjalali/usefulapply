@@ -428,9 +428,20 @@ export default function Dashboard() {
   }, []);
 
   const handleTabChange = useCallback((tab: ApplicationTab) => {
-    setActiveTab(tab);
-    lastApplicationTabRef.current = tab;
-  }, [setActiveTab]);
+    // Only switch the active tab when the user is already inside the
+    // Application Kit workspace. If they are on the Job Feed or the Tracker,
+    // generation completing in the background should NOT hijack their view.
+    // The chat panel remains visible across all tabs, so progress and the
+    // "✅ Application package ready" message still surface inline.
+    if (activeWorkspace === 'application-kit') {
+      setActiveTab(tab);
+      lastApplicationTabRef.current = tab;
+    } else {
+      // Still remember the last tab the user would want to land on when
+      // they DO open the Application Kit later.
+      lastApplicationTabRef.current = tab;
+    }
+  }, [activeWorkspace, setActiveTab]);
 
   const handleWorkspaceChange = useCallback((workspace: Workspace) => {
     if (workspace === 'application-kit') {
@@ -520,6 +531,7 @@ export default function Dashboard() {
     }
   }, [activeTab, isApplicationTab]);
 
+  const processedWorkspaceRef = useRef<string | null>(null);
   useEffect(() => {
     const {
       workspace: requestedWorkspace,
@@ -531,6 +543,16 @@ export default function Dashboard() {
     if (!requestedWorkspace && !requestedSessionId && !requestedTab && !autostart) {
       return;
     }
+
+    // Guard against re-firing when the deps array churns (session-id change
+    // after loadSession, sessions array change after setSessions). Without
+    // this the effect re-reads the still-present URL params and re-switches
+    // the tab away from wherever the user has since navigated.
+    const navKey = `${requestedWorkspace ?? ''}|${requestedSessionId ?? ''}|${requestedTab ?? ''}|${autostart ?? ''}`;
+    if (processedWorkspaceRef.current === navKey) {
+      return;
+    }
+    processedWorkspaceRef.current = navKey;
 
     if (requestedSessionId && currentSession?.id !== requestedSessionId && sessions.some((session) => session.id === requestedSessionId)) {
       loadSession(requestedSessionId);

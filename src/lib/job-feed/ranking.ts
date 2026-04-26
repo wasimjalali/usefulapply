@@ -9,6 +9,7 @@ export async function rankJobFeedCandidates(params: {
   settings: JobFeedSettings;
   candidates: JobFeedRankingCandidate[];
   visibleCap?: number;
+  yearsExperience?: number | null;
 }): Promise<JobFeedRankingExecutionResult> {
   return rankWithOpenAI(params);
 }

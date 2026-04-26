@@ -573,6 +573,7 @@ export function FeedResultsCard({
   const visibleCount = isShowingAllJobs ? JOB_FEED_VISIBLE_MAX_COUNT : JOB_FEED_VISIBLE_DEFAULT_COUNT;
   const visibleJobs = jobs.slice(0, visibleCount);
   const hasMore = jobs.length > JOB_FEED_VISIBLE_DEFAULT_COUNT;
+  const remainingCount = Math.max(0, Math.min(jobs.length, JOB_FEED_VISIBLE_MAX_COUNT) - JOB_FEED_VISIBLE_DEFAULT_COUNT);
 
   return (
     <Card className="rounded-[24px] border-cream-200 bg-white/92 p-6 shadow-sm">
@@ -596,7 +597,9 @@ export function FeedResultsCard({
             className="inline-flex items-center gap-1 text-sm font-medium text-navy-600 hover:text-navy-700"
           >
             {isShowingAllJobs ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            {isShowingAllJobs ? `Show top ${JOB_FEED_VISIBLE_DEFAULT_COUNT}` : `Show all ${Math.min(jobs.length, JOB_FEED_VISIBLE_MAX_COUNT)}`}
+            {isShowingAllJobs
+              ? `Show less`
+              : `Load more (${remainingCount})`}
           </button>
         )}
       </div>

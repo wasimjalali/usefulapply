@@ -26,6 +26,8 @@ import { ingestJobFeedRunJobs } from '@/lib/job-feed/ingestion';
 import { prepareJobFeedRankingCandidates, prefilterJobFeedJobs } from '@/lib/job-feed/prefilter';
 import { rankJobFeedCandidates } from '@/lib/job-feed/ranking';
 import type { JobFeedRankingCandidate } from '@/lib/job-feed/types';
+import { estimateTotalExperienceYears } from '@/lib/job-feed/cv-suggestions';
+import type { StructuredCV } from '@/lib/types/cv-schema';
 
 type JobFeedRunUpdate = Partial<Pick<JobFeedRun,
   | 'status'
@@ -573,10 +575,12 @@ export async function runJobFeedFoundationWorkflow(params: {
       settings,
       jobs: prefilter.survivors,
     });
+    const yearsExperience = await getUserYearsExperienceAdmin(userId);
     const rankingResult = await rankJobFeedCandidates({
       settings,
       candidates: rankingPrep.candidates,
       visibleCap: tierLimits.visibleCount,
+      yearsExperience,
     });
     const rankedPreviewItems = rankingResult.items.map(toRankedPreviewRecord);
     const materializedRanking = await persistJobFeedRankedItemsForRunAdmin({
@@ -1204,6 +1208,7 @@ export async function stageJobFeedRunForBatch(params: {
   settings: JobFeedSettings;
   candidates: JobFeedRankingCandidate[];
   visibleCap: number;
+  yearsExperience: number | null;
 } | null> {
   const { userId, triggerSource = 'scheduled', now = new Date(), force = false } = params;
   const settings = await getJobFeedSettingsAdmin(userId);
@@ -1302,10 +1307,47 @@ export async function stageJobFeedRunForBatch(params: {
     return null;
   }
 
+  const yearsExperience = await getUserYearsExperienceAdmin(userId);
+
   return {
     run,
     settings,
     candidates: rankingPrep.candidates,
     visibleCap: tierLimits.visibleCount,
+    yearsExperience,
   };
+}
+
+/**
+ * Derive the user's total years of professional experience from their CV
+ * start/end dates. Used as an extra signal for the ranker to skip jobs that
+ * require dramatically more experience than the candidate has.
+ *
+ * Prefers the master CV (richer, longer history) when present; falls back
+ * to the most recent primary CV. Returns null when no CV exists or the CV
+ * has no dated experience entries.
+ */
+export async function getUserYearsExperienceAdmin(userId: string): Promise<number | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the documents table here.
+  const admin = createAdminClient() as any;
+
+  const candidates: Array<'master_cv' | 'primary_cv'> = ['master_cv', 'primary_cv'];
+  for (const docType of candidates) {
+    const { data } = await admin
+      .from('documents')
+      .select('structured_data')
+      .eq('user_id', userId)
+      .eq('document_type', docType)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const structured = data?.structured_data;
+    if (structured && typeof structured === 'object') {
+      const years = estimateTotalExperienceYears(structured as StructuredCV);
+      if (years > 0) return years;
+    }
+  }
+
+  return null;
 }

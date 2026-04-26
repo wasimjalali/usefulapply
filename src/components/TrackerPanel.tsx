@@ -33,7 +33,10 @@ interface TrackerSession {
   created_at: string;
 }
 
-const PAGE_SIZE = 25;
+// Keeps the initial render light. "Load more" fetches the next page from
+// Supabase on demand so the Tracker stays responsive for power users with
+// many applications.
+const PAGE_SIZE = 10;
 
 const STATUS_CONFIG: Record<ApplicationStatus, { label: string; bg: string; text: string; dot: string }> = {
   applied: { label: 'Applied', bg: 'bg-gold-100', text: 'text-gold-700', dot: 'bg-gold-400' },
