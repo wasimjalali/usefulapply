@@ -24,8 +24,13 @@ export interface JobFeedTierLimits {
 
 export const JOB_FEED_TIER_LIMITS: Record<JobFeedTier, JobFeedTierLimits> = {
   plus: {
+    // maxDailyQueries = SerpAPI calls per run (paid per call). 2 calls x
+    // ~10 results each = up to 20 raw jobs. Do not raise without explicit
+    // approval — each call has a real cash cost.
     maxDailyQueries: 2,
-    maxRawJobsPerRun: 30,
+    maxRawJobsPerRun: 20,
+    // prefilterHardCap is in-memory only (no API cost). Sized to match
+    // the raw cap so we never drop a raw job before the LLM sees it.
     prefilterHardCap: 20,
     // Daily visible cap. The LLM may surface fewer when fewer genuinely
     // qualify ("quality over quantity" is explicit in its system prompt),
@@ -34,7 +39,7 @@ export const JOB_FEED_TIER_LIMITS: Record<JobFeedTier, JobFeedTierLimits> = {
   },
   max: {
     maxDailyQueries: 4,
-    maxRawJobsPerRun: 50,
+    maxRawJobsPerRun: 40,
     prefilterHardCap: 30,
     visibleCount: 25,
   },

@@ -1128,15 +1128,24 @@ function JobFeedOnboardingWizard({
     });
   }, [onFormChange]);
 
-  const handleTakeFromCV = useCallback(async () => {
+  // When true, the user's CV on file has been updated more recently than
+  // the cached suggestion. Surfaced as a banner so users can refresh their
+  // feed settings without hunting for the button.
+  const [cvNewerThanCache, setCvNewerThanCache] = useState(false);
+
+  const handleTakeFromCV = useCallback(async (options: { force?: boolean } = {}) => {
     setIsLoadingCVSuggestions(true);
     try {
-      const response = await fetch('/api/job-feed/settings/suggest');
+      const url = options.force
+        ? '/api/job-feed/settings/suggest?force=true'
+        : '/api/job-feed/settings/suggest';
+      const response = await fetch(url);
       const data = await response.json();
       if (!response.ok || !data.suggestion) return;
 
       applyCVSuggestion(data.suggestion as JobFeedSettingsSuggestion);
       setCVSuggestionApplied(true);
+      setCvNewerThanCache(false);
     } catch {
       // silently ignore — user can still fill manually
     } finally {
@@ -1148,13 +1157,28 @@ function JobFeedOnboardingWizard({
   // Only fills fields that are currently empty, so we never overwrite choices.
   const autoPrefillAttemptedRef = useRef(false);
   useEffect(() => {
-    if (isEditing) return;
     if (autoPrefillAttemptedRef.current) return;
-    if (form.target_roles.length > 0) return;
 
     autoPrefillAttemptedRef.current = true;
 
     (async () => {
+      // Even when the user already has saved settings (isEditing), we
+      // still want to hit the endpoint once to detect whether their CV has
+      // changed since the last time we cached suggestions. The `onlyIfEmpty`
+      // guard below keeps us from overwriting saved values.
+      const shouldAutoApply = !isEditing && form.target_roles.length === 0;
+      if (!shouldAutoApply) {
+        try {
+          const response = await fetch('/api/job-feed/settings/suggest');
+          if (!response.ok) return;
+          const data = await response.json();
+          if (data.cvNewerThanCache) setCvNewerThanCache(true);
+        } catch {
+          // ignore
+        }
+        return;
+      }
+
       setIsLoadingCVSuggestions(true);
       try {
         const response = await fetch('/api/job-feed/settings/suggest');
@@ -1164,6 +1188,7 @@ function JobFeedOnboardingWizard({
 
         applyCVSuggestion(data.suggestion as JobFeedSettingsSuggestion, { onlyIfEmpty: true });
         setCVSuggestionApplied(true);
+        if (data.cvNewerThanCache) setCvNewerThanCache(true);
       } catch {
         // ignore — form stays editable
       } finally {
@@ -1228,6 +1253,26 @@ function JobFeedOnboardingWizard({
           </div>
         </div>
       </div>
+
+      {cvNewerThanCache && (
+        <div className="border-b border-gold-200 bg-gold-50/80 px-6 py-3 sm:px-8">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-charcoal">
+              <span className="font-semibold">Your CV was updated.</span>
+              <span className="ml-1 text-warm-gray">Refresh your feed settings to reflect the latest roles and skills?</span>
+            </p>
+            <button
+              type="button"
+              onClick={() => void handleTakeFromCV({ force: true })}
+              disabled={isLoadingCVSuggestions}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-gold-300 bg-white px-3 py-1.5 text-xs font-semibold text-charcoal transition-colors hover:border-gold-400 disabled:opacity-50"
+            >
+              {isLoadingCVSuggestions ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+              Refresh from my CV
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-0 divide-y divide-cream-200">
         {/* Step 1: Roles + Countries */}
