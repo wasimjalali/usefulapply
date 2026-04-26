@@ -25,6 +25,7 @@ import type {
 import { ingestJobFeedRunJobs } from '@/lib/job-feed/ingestion';
 import { prepareJobFeedRankingCandidates, prefilterJobFeedJobs } from '@/lib/job-feed/prefilter';
 import { rankJobFeedCandidates } from '@/lib/job-feed/ranking';
+import type { JobFeedRankingCandidate } from '@/lib/job-feed/types';
 
 type JobFeedRunUpdate = Partial<Pick<JobFeedRun,
   | 'status'
@@ -1180,4 +1181,131 @@ function toJson(value: unknown): Json {
   }
 
   return String(value);
+}
+
+/**
+ * Prepare a per-user run for Azure OpenAI Batch API submission.
+ * Runs ingestion + prefilter synchronously (~2s), then stashes the canonical
+ * job IDs we want ranked in run.metadata so the batch reconciler can rebuild
+ * the ranking candidate set when the JSONL output arrives. Does NOT call the
+ * LLM — that happens via the Batch API in bulk.
+ *
+ * Returns the ranking inputs the caller should bundle into a JSONL payload
+ * along with other staged runs. Returns null when the user has no jobs to
+ * rank (feed runs completes immediately with zero items).
+ */
+export async function stageJobFeedRunForBatch(params: {
+  userId: string;
+  triggerSource?: string;
+  now?: Date;
+  force?: boolean;
+}): Promise<{
+  run: JobFeedRun;
+  settings: JobFeedSettings;
+  candidates: JobFeedRankingCandidate[];
+  visibleCap: number;
+} | null> {
+  const { userId, triggerSource = 'scheduled', now = new Date(), force = false } = params;
+  const settings = await getJobFeedSettingsAdmin(userId);
+
+  if (!settings) throw new Error('Job feed settings were not found for this user.');
+  if (!settings.enabled) throw new Error('Job feed is paused for this user.');
+  if (!isJobFeedConfigured(settings)) throw new Error('Job feed settings are incomplete.');
+
+  const localDate = getLocalDateKey(now, settings.user_timezone);
+  const existingRun = await getJobFeedRunByDate(userId, localDate);
+
+  if (existingRun?.status === 'completed' && !force) {
+    return null;
+  }
+  if (existingRun?.status === 'running' && !force) {
+    return null;
+  }
+  if (force && existingRun) {
+    await resetJobFeedRunArtifactsForRerun(existingRun.id);
+  }
+
+  const run = existingRun ?? await createJobFeedRun({
+    user_id: userId,
+    local_date: localDate,
+    local_timezone: settings.user_timezone,
+    delivery_hour_local: settings.delivery_hour_local,
+    trigger_source: triggerSource,
+    idempotency_key: `${userId}:${localDate}`,
+    metadata: {
+      stage: 'phase_4_ranking',
+      foundation_mode: true,
+      target_market: settings.target_market,
+      orchestrator: 'inngest',
+      ranking_mode: 'batch',
+    },
+  });
+
+  const subscriptionTier = await getUserSubscriptionTierAdmin(userId);
+  const tierLimits = getJobFeedTierLimits(subscriptionTier);
+
+  const ingestion = await ingestJobFeedRunJobs({
+    runId: run.id,
+    userId,
+    settings,
+    maxQueries: tierLimits.maxDailyQueries,
+    maxRawJobs: tierLimits.maxRawJobsPerRun,
+  });
+
+  const prefilter = prefilterJobFeedJobs({
+    settings,
+    jobs: ingestion.canonicalJobs,
+    hardCap: tierLimits.prefilterHardCap,
+  });
+
+  const rankingPrep = prepareJobFeedRankingCandidates({
+    settings,
+    jobs: prefilter.survivors,
+  });
+
+  await updateJobFeedRun(run.id, {
+    status: 'running',
+    started_at: new Date().toISOString(),
+    raw_jobs_fetched: ingestion.rawJobsFetched,
+    jobs_after_prefilter: prefilter.survivors.length,
+    metadata: mergeMetadata(run.metadata, {
+      stage: 'phase_4_ranking',
+      workflow_status: 'awaiting_batch',
+      orchestrator: 'inngest',
+      ranking_mode: 'batch',
+      subscription_tier: subscriptionTier,
+      batch_ranking_candidate_ids: toJson(prefilter.survivors.map((job) => job.id)),
+      canonical_jobs_count: ingestion.canonicalJobs.length,
+      prefilter_survivors_count: prefilter.survivors.length,
+      prefilter_rejected_count: prefilter.rejectedCount,
+      prefilter_rejections_by_reason: toJson(prefilter.rejectionsByReason),
+      search_plan: toJson(ingestion.searchPlan),
+      raw_fetch_ids: toJson(ingestion.rawFetchIds),
+      ingestion_preview_jobs: toJson(ingestion.previewJobs),
+      failed_fetches: toJson(ingestion.failedFetches),
+    }),
+  });
+
+  if (rankingPrep.candidates.length === 0) {
+    // No candidates — close the run immediately with zero ranked items.
+    await updateJobFeedRun(run.id, {
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+      ranked_jobs_count: 0,
+      result_summary: 'Karko checked the current searches, but no jobs matched these settings yet.',
+      metadata: mergeMetadata(run.metadata, {
+        workflow_status: 'completed',
+        ranking_status: 'no_candidates',
+        ranked_items_materialized: true,
+      }),
+    });
+    return null;
+  }
+
+  return {
+    run,
+    settings,
+    candidates: rankingPrep.candidates,
+    visibleCap: tierLimits.visibleCount,
+  };
 }

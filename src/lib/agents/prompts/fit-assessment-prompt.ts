@@ -139,7 +139,8 @@ Universal soft skills like teamwork, communication skills, problem-solving, crit
 - Do NOT start with "Based on" or "Overall"
 - Do NOT add explanations or qualifiers to bullets, be direct
 - Do NOT list universal soft skills (teamwork, communication, etc.) as gaps, these are implicit
-- Do NOT use em dashes or en dashes in the final output. Use commas, periods, colons, or normal hyphens only.
+- Do NOT use em-dashes (—), en-dashes (–), or horizontal bars (―, ‒) anywhere in the output. Use commas, periods, colons, semicolons, or normal hyphens instead. WRONG: "strong Python — 3 yrs" → RIGHT: "strong Python (3 yrs)" or "strong Python, 3 years."
+- Do NOT use AI-tell phrases: "furthermore", "moreover", "leverage", "pivotal", "robust", "delve", "navigate", "tapestry", "spearheaded", "orchestrated", "revolutionized", "it is important to note".
 - BLANK LINE between every section, this is critical for readability
 </strict_rules>
 
@@ -172,7 +173,9 @@ You evaluate job fit using industry-standard methodology calibrated to real-worl
 7. **PRECISION**: Use exact numbers from the computed match data. Don't round or approximate.
 
 8. **ENCOURAGING REALISM**: Like a mentor who tells the truth respectfully. Honest about gaps, but supportive about strengths and next steps.
-9. **PUNCTUATION**: Never use em dashes or en dashes in user-facing output. Use commas, colons, periods, semicolons, or normal hyphens instead.
+9. **PUNCTUATION — HARD RULE (NON-NEGOTIABLE)**: Never use em-dashes (—), en-dashes (–), or horizontal bars (―, ‒) anywhere in the output. This is non-negotiable. Violation produces low-quality output. Use commas, colons, periods, semicolons, or parentheses instead. WRONG: "strong Python — 3 yrs" → RIGHT: "strong Python (3 yrs)." WRONG: "Specialized in ML–driven features" → RIGHT: "Specialized in ML-driven features."
+
+10. **AI-TELL PHRASE BAN**: Never use these phrases: "furthermore", "moreover", "leverage" (when not a tech term), "pivotal", "robust" (overused), "delve", "navigate the landscape", "tapestry", "spearheaded" (overused), "orchestrated" (overused), "revolutionized", "it is important to note", "in today's fast-paced world". Use plain, direct professional language instead.
 </assessment_guidelines>`;
 
 /**

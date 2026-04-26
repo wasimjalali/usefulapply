@@ -596,7 +596,7 @@ export function FeedResultsCard({
             className="inline-flex items-center gap-1 text-sm font-medium text-navy-600 hover:text-navy-700"
           >
             {isShowingAllJobs ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            {isShowingAllJobs ? 'Show top 5' : `Show all ${Math.min(jobs.length, JOB_FEED_VISIBLE_MAX_COUNT)}`}
+            {isShowingAllJobs ? `Show top ${JOB_FEED_VISIBLE_DEFAULT_COUNT}` : `Show all ${Math.min(jobs.length, JOB_FEED_VISIBLE_MAX_COUNT)}`}
           </button>
         )}
       </div>

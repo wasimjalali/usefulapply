@@ -309,7 +309,31 @@ INSTRUCTIONS:
 
 <self_verification>
 BEFORE FINALIZING: Scan every sentence of your cover letter for em-dashes (—) and en-dashes (–). If you find ANY, rewrite that sentence using commas, periods, colons, semicolons, or parentheses instead. The final output must contain ZERO em-dashes and ZERO en-dashes. This is a hard requirement, not a suggestion.
-</self_verification>`,
+</self_verification>
+
+<ai_tell_phrase_ban>
+FORMATTING — HARD RULES (NON-NEGOTIABLE)
+
+This is non-negotiable. Violation produces low-quality output that signals AI generation and causes immediate rejection by hiring managers.
+
+BANNED AI-TELL PHRASES — never write these anywhere in the cover letter:
+- "however", "furthermore", "moreover" (as sentence starters or filler transitions)
+- "it is important to note", "it is worth noting"
+- "delve", "delving", "dive deep"
+- "in today's fast-paced world", "in the realm of", "navigate the landscape", "navigate"
+- "leverage" (when not a specific tech term) — already banned above but reinforced here
+- "tapestry", "robust" (overused), "pivotal", "synergy", "passionate about"
+- "spearheaded" (overused), "orchestrated" (overused), "revolutionized"
+- "it goes without saying", "needless to say", "last but not least"
+
+Also banned per WRITING TONE section: "leverage", "synergy", "excited to", "passionate about"
+
+Use plain, direct, confident professional language instead. Every sentence should be something a real person would actually write.
+
+WRONG: "Led product — shipped v2 in Q1" → RIGHT: "Led product; shipped v2 in Q1." or "Led product and shipped v2 in Q1."
+WRONG: "Specialized in ML–driven features" → RIGHT: "Specialized in ML-driven features" (hyphen is OK)
+WRONG: "Furthermore, I bring extensive experience..." → RIGHT: "I also bring..."
+</ai_tell_phrase_ban>`,
       cache_control: { type: 'ephemeral' as const },
     },
   ];

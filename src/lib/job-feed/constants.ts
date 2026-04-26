@@ -4,8 +4,13 @@ export const JOB_FEED_MAX_DAILY_QUERIES = 4;
 export const JOB_FEED_MAX_RAW_JOBS_PER_RUN = 40;
 export const JOB_FEED_PREFILTER_TARGET_MIN = 8;
 export const JOB_FEED_PREFILTER_HARD_CAP = 15;
-export const JOB_FEED_VISIBLE_DEFAULT_COUNT = 5;
-export const JOB_FEED_VISIBLE_MAX_COUNT = 10;
+// Default visible jobs when the feed panel first renders (pre-"show all" toggle).
+// Kept conservative for scanability; users can "Show all N" to expand.
+export const JOB_FEED_VISIBLE_DEFAULT_COUNT = 8;
+// Absolute upper bound the LLM is allowed to surface in a single day's feed.
+// Matches the Max tier's visibleCount so the ranker's instruction respects
+// the highest tier cap.
+export const JOB_FEED_VISIBLE_MAX_COUNT = 15;
 
 export type JobFeedTier = 'plus' | 'max';
 
@@ -21,13 +26,16 @@ export const JOB_FEED_TIER_LIMITS: Record<JobFeedTier, JobFeedTierLimits> = {
     maxDailyQueries: 2,
     maxRawJobsPerRun: 20,
     prefilterHardCap: 10,
-    visibleCount: 5,
+    // Daily visible cap. The LLM may surface fewer when fewer genuinely
+    // qualify ("quality over quantity" is explicit in its system prompt),
+    // but we give it headroom when the day is strong.
+    visibleCount: 8,
   },
   max: {
     maxDailyQueries: 4,
     maxRawJobsPerRun: 40,
     prefilterHardCap: 15,
-    visibleCount: 10,
+    visibleCount: 15,
   },
 };
 

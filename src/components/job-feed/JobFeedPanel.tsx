@@ -1380,7 +1380,7 @@ function JobFeedOnboardingWizard({
                 {isAdvancedOpen ? <ChevronUp className="h-4 w-4 text-navy-600" /> : <ChevronDown className="h-4 w-4 text-navy-600" />}
                 <div className="text-left">
                   <p className="text-sm font-semibold text-charcoal">Step 4 — Fine-tune your feed</p>
-                  <p className="text-xs text-warm-gray">Seniority, skills, salary floor and a few more details to improve matches.</p>
+                  <p className="text-xs text-warm-gray">Seniority, skills, minimum salary and a few more details to improve matches.</p>
                 </div>
               </div>
               <span className="shrink-0 rounded-full bg-navy-600 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
@@ -1449,16 +1449,21 @@ function JobFeedOnboardingWizard({
                 </div>
 
                 <div className="space-y-4">
-                  <InputField
-                    label="Salary floor"
-                    type="number"
-                    value={form.salary_floor === null ? '' : String(form.salary_floor)}
-                    onChange={(salary_floor) => onFormChange((prev) => ({
-                      ...prev,
-                      salary_floor: salary_floor ? Number(salary_floor) : null,
-                    }))}
-                    placeholder="120000"
-                  />
+                  <FieldGroup
+                    label="Minimum salary (non-negotiable)"
+                    help="Jobs that clearly state a salary below this number are dropped before ranking. Leave blank if you are open to negotiation. Enter an annual amount in your local currency."
+                  >
+                    <InputField
+                      label=""
+                      type="number"
+                      value={form.salary_floor === null ? '' : String(form.salary_floor)}
+                      onChange={(salary_floor) => onFormChange((prev) => ({
+                        ...prev,
+                        salary_floor: salary_floor ? Number(salary_floor) : null,
+                      }))}
+                      placeholder="e.g. 80000"
+                    />
+                  </FieldGroup>
 
                   <FieldGroup label="Your skills" help="Used to match you with jobs that need what you bring. Imported from your CV or add manually.">
                     <ChipField

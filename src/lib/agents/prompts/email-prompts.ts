@@ -95,7 +95,7 @@ ${isGerman ? `CRITICAL: Write the ENTIRE email in GERMAN.
 - Subject line in German format
 - Professional German business email style` : 'Write the email in English.'}
 
-PUNCTUATION: Never use em-dashes (—) or en-dashes (–). Use commas, periods, colons, or parentheses instead.
+PUNCTUATION (HARD RULE): Never use em-dashes (—), en-dashes (–), or horizontal bars (―). Use commas, periods, colons, semicolons, or parentheses instead. Never use AI-tell phrases: "furthermore", "moreover", "leverage", "pivotal", "robust", "delve", "navigate the landscape".
 
 EMAIL SIGNATURE REQUIREMENT:
 The email MUST end with a professional closing and the applicant's full name on a separate line.
@@ -160,6 +160,28 @@ ATTACHMENT REFERENCE (MANDATORY):
 - Vary the phrasing — do not use the same wording across emails
 - Place BEFORE the closing/availability sentence
 - NEVER skip the attachment reference
+
+FORMATTING — HARD RULES (NON-NEGOTIABLE):
+
+This is non-negotiable. Violation produces low-quality output that signals AI generation and causes the email to be ignored.
+
+BANNED PUNCTUATION:
+- Em-dashes (—), en-dashes (–), horizontal bars (―, ‒) — NEVER anywhere in the email
+- Use commas, periods, colons, semicolons, or parentheses instead
+
+WRONG: "Led product — shipped v2 in Q1" → RIGHT: "Led product; shipped v2 in Q1." or "Led product and shipped v2 in Q1."
+WRONG: "Experience with Python, TypeScript — both production-grade" → RIGHT: "Experience with production-grade Python and TypeScript."
+
+BANNED AI-TELL PHRASES — never write these anywhere in the email:
+- "however", "furthermore", "moreover" (as sentence starters or filler transitions)
+- "it is important to note", "it is worth noting"
+- "delve", "delving", "dive deep"
+- "in today's fast-paced world", "in the realm of", "navigate the landscape"
+- "leverage" (when not a specific tech term)
+- "tapestry", "robust" (overused), "pivotal", "synergy", "passionate about"
+- "spearheaded" (overused), "orchestrated" (overused), "revolutionized"
+
+Hyphens (-) are allowed in compound words, job titles, and date ranges only.
 
 PROHIBITIONS:
 - "I am writing to express my interest..."
@@ -273,7 +295,8 @@ TONE RULES:
 - German market: Formal Sie-form throughout. Address a specific person by name if known from the JD; otherwise use a standard formal German greeting
 - Professional but warm, not stiff, not casual
 - Confident, not desperate
-- NO em-dashes anywhere in the text
+- NO em-dashes (—), en-dashes (–), or horizontal bars (―) anywhere. Use commas, periods, semicolons, or parentheses instead.
+- NO AI-tell phrases: "furthermore", "moreover", "leverage", "pivotal", "robust", "delve", "navigate the landscape", "tapestry", "spearheaded", "orchestrated"
 - NO "just checking in", "I know you're busy", "I haven't heard back"
 - NO re-attachment references, they already have the documents
 
@@ -317,12 +340,27 @@ export function buildFollowUpEmailSystemPrompt(context: MasterContext): string {
 
   return `You are the follow-up email writer for Karko AI. You generate a brief, professional follow-up email that the applicant will send ${recommendedDelay} business days after their initial application.
 
+FORMATTING — HARD RULES (NON-NEGOTIABLE):
+This is non-negotiable. Violation produces low-quality output that signals AI generation.
+
+BANNED PUNCTUATION:
+- Em-dashes (—), en-dashes (–), horizontal bars (―, ‒) — NEVER anywhere in the email
+- Use commas, periods, colons, semicolons, or parentheses instead
+WRONG: "Led product — shipped v2" → RIGHT: "Led product; shipped v2."
+
+BANNED AI-TELL PHRASES — never write these:
+- "however", "furthermore", "moreover" (as sentence starters or transitions)
+- "it is important to note", "it is worth noting"
+- "delve", "delving", "dive deep"
+- "in today's fast-paced world", "in the realm of", "navigate the landscape"
+- "leverage" (when not a specific tech term), "tapestry", "robust", "pivotal", "synergy"
+- "spearheaded" (overused), "orchestrated" (overused), "revolutionized"
+
 CRITICAL RULES:
 - The follow-up must highlight a DIFFERENT strength than the primary email
 - Keep the body under 80 words (excluding greeting and sign-off)
 - Be specific about the company (reference something from the JD)
 - Sound human and confident, not desperate or generic
-- NO em-dashes
 - ${isGerman ? 'Write entirely in German with formal Sie-form. Use a professional German closing appropriate to the JD tone.' : 'Write in English.'}
 
 Return ONLY valid JSON. No explanation or preamble.`;

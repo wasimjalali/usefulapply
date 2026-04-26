@@ -181,6 +181,10 @@ function getEffectiveRemotePreferences(settings: JobFeedSettings): Array<JobFeed
 }
 
 function hasSalaryMismatch(job: JobFeedCanonicalJob, settings: JobFeedSettings): boolean {
+  // salary_floor is the user's non-negotiable MINIMUM salary. Only reject
+  // when the job explicitly advertises a salary AND its top-of-range is
+  // still below that minimum — i.e. no realistic negotiation will bridge
+  // the gap. Absent salary data = do not reject (candidate can negotiate).
   if (!settings.salary_floor) return false;
   if (job.salary_max === null) return false;
   return job.salary_max < settings.salary_floor;

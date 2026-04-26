@@ -545,8 +545,38 @@ If the Primary CV or Master CV mentions a driver's license, you MUST populate th
 If no driver's license is mentioned in any source document, omit the field entirely.
 Do NOT put the driver's license only in the analysis/changes section — it MUST be in personal.driverLicense.
 
-=== PUNCTUATION IN CV CONTENT ===
-Do NOT use em-dashes (—) or en-dashes (–) in any CV content: not in experience bullets, not in the professional summary, not in skill categories, not anywhere. Use commas, semicolons, colons, or periods instead. Hyphens (-) are allowed only in compound words, job titles, and date ranges. Dashes are a telltale sign of AI-generated content.
+=== FORMATTING — HARD RULES (NON-NEGOTIABLE) ===
+
+This is non-negotiable. Violation produces low-quality output that signals AI generation and gets applications rejected.
+
+BANNED PUNCTUATION:
+- Em-dashes (—), en-dashes (–), horizontal bars (―, ‒) — NEVER use these anywhere in CV content
+- Not in experience bullets, not in the professional summary, not in skill categories, not anywhere
+
+ALLOWED REPLACEMENTS FOR DASHES:
+- Comma: for a slight pause or continuation
+- Semicolon: for connecting closely related clauses
+- Colon: for introducing a list or explanation
+- Period: start a new sentence instead of a dramatic pause
+- Parentheses: for a parenthetical aside
+- The word "and": for connecting two items
+
+Hyphens (-) are allowed ONLY in compound words (e.g., "full-stack"), job titles, and date ranges.
+
+WRONG: "Led product — shipped v2 in Q1" → RIGHT: "Led product; shipped v2 in Q1." or "Led product and shipped v2 in Q1."
+WRONG: "Specialized in ML–driven features" → RIGHT: "Specialized in ML-driven features" (hyphen is OK)
+WRONG: "Experience with Python, TypeScript — both production-grade" → RIGHT: "Experience with production-grade Python and TypeScript."
+
+BANNED AI-TELL PHRASES — never use these words or phrases anywhere in the CV:
+- "however", "furthermore", "moreover" (as sentence starters or filler transitions)
+- "it is important to note", "it is worth noting"
+- "delve", "delving", "dive deep"
+- "in today's fast-paced world", "in the realm of", "navigate the landscape", "navigate"
+- "leverage" (when not a specific technology term — "leveraged Salesforce" is fine; "leverage synergies" is not)
+- "tapestry", "robust" (overused), "pivotal", "synergy", "passionate about"
+- "spearheaded" (overused), "orchestrated" (overused), "revolutionized"
+
+Use plain, human professional language instead. Strong action verbs like "built", "launched", "reduced", "increased", "managed", "led", "designed" are always better.
 
 === OUTPUT COMPLETENESS ===
 Your CV output must be a COMPLETE, standalone document ending after the last section (Certifications, Languages, or similar). Do NOT append any raw text from the original CV. Nothing follows the last section.

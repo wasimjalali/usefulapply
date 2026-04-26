@@ -2,7 +2,14 @@ import { cleanupHistoricalJobFeedData } from '@/lib/job-feed/cleanup';
 import {
   listDueJobFeedUsers,
   runJobFeedFoundationWorkflow,
+  stageJobFeedRunForBatch,
 } from '@/lib/job-feed/server';
+import {
+  listPendingBatchIds,
+  reconcileJobFeedBatch,
+  submitJobFeedBatchForStagedRuns,
+} from '@/lib/job-feed/batch-workflow';
+import { isBatchRankingEnabled } from '@/lib/job-feed/batch-ranker';
 import {
   inngest,
   JOB_FEED_RUN_REQUESTED_EVENT,
@@ -51,6 +58,50 @@ export const jobFeedSweepRequestedFunction = inngest.createFunction(
       return listDueJobFeedUsers(requestedAt);
     });
 
+    // Batch path: stage every due user in one pass, then submit a single
+    // Batch API job containing all of their ranking payloads. One JSONL
+    // file, one batch_id, 50% cost vs sync. The batch reconciler (cron
+    // every 10min) hydrates ranked_items once Azure finishes the batch.
+    if (isBatchRankingEnabled() && dueUsers.length > 0) {
+      const stagedCount = await step.run('stage-and-submit-batch', async () => {
+        const staged: Array<Awaited<ReturnType<typeof stageJobFeedRunForBatch>>> = [];
+        for (const dueUser of dueUsers) {
+          try {
+            const stagedRun = await stageJobFeedRunForBatch({
+              userId: dueUser.userId,
+              triggerSource: 'scheduled',
+              now: requestedAt,
+              force: false,
+            });
+            if (stagedRun) staged.push(stagedRun);
+          } catch (error) {
+            console.error('[job-feed] stage failed for', dueUser.userId, error);
+          }
+        }
+
+        const stagedNonNull = staged.filter((item): item is NonNullable<typeof item> => item !== null);
+        if (stagedNonNull.length === 0) return 0;
+
+        const submission = await submitJobFeedBatchForStagedRuns(stagedNonNull);
+        return submission?.submittedRunIds.length ?? 0;
+      });
+
+      const cleanup = await step.run('cleanup-historical-job-feed-data', async () => {
+        return cleanupHistoricalJobFeedData({ now: requestedAt });
+      });
+
+      return {
+        triggerSource: data.triggerSource,
+        requestedAt: data.requestedAt,
+        dueUsers: dueUsers.length,
+        rankingMode: 'batch',
+        batchStagedRuns: stagedCount,
+        cleanup,
+      };
+    }
+
+    // Sync path (default): fan out per-user events, each runs the full sync
+    // workflow independently.
     const runEvents = dueUsers.map((dueUser) => ({
       name: JOB_FEED_RUN_REQUESTED_EVENT,
       data: {
@@ -73,6 +124,7 @@ export const jobFeedSweepRequestedFunction = inngest.createFunction(
       triggerSource: data.triggerSource,
       requestedAt: data.requestedAt,
       dueUsers: dueUsers.length,
+      rankingMode: 'sync',
       queuedRunEvents: queued.ids.length,
       cleanup,
     };
@@ -111,10 +163,61 @@ export const jobFeedRunRequestedFunction = inngest.createFunction(
   }
 );
 
+// Poll pending Azure Batch API submissions every 10 minutes. The scheduled
+// overnight path may create batches with status='validating' or 'in_progress';
+// this reconciler walks each pending batch, fetches status, and if completed
+// downloads the JSONL output and hydrates job_feed_ranked_items.
+// Skipped entirely when JOB_FEED_BATCH_RANKING_ENABLED is not 'true'.
+export const jobFeedBatchReconcilerFunction = inngest.createFunction(
+  {
+    id: 'job-feed-batch-reconciler',
+    name: 'Job Feed Batch Reconciler',
+    triggers: [{ cron: '*/10 * * * *' }],
+  },
+  async ({ step }) => {
+    if (!isBatchRankingEnabled()) {
+      return { skipped: true, reason: 'Batch ranking is disabled.' };
+    }
+
+    const pendingIds = await step.run('list-pending-batch-ids', async () => {
+      return listPendingBatchIds();
+    });
+
+    if (pendingIds.length === 0) {
+      return { skipped: false, reconciledBatches: 0, runsReconciled: 0, runsFailed: 0 };
+    }
+
+    let reconciledBatches = 0;
+    let runsReconciled = 0;
+    let runsFailed = 0;
+
+    for (const batchId of pendingIds) {
+      const result = await step.run(`reconcile-batch-${batchId}`, async () => {
+        return reconcileJobFeedBatch(batchId);
+      });
+
+      if (result.status === 'completed' || result.status === 'failed' || result.status === 'expired' || result.status === 'cancelled') {
+        reconciledBatches += 1;
+      }
+      runsReconciled += result.runsReconciled;
+      runsFailed += result.runsFailed;
+    }
+
+    return {
+      skipped: false,
+      pendingBatches: pendingIds.length,
+      reconciledBatches,
+      runsReconciled,
+      runsFailed,
+    };
+  }
+);
+
 export const jobFeedFunctions = [
   jobFeedSchedulerTickFunction,
   jobFeedSweepRequestedFunction,
   jobFeedRunRequestedFunction,
+  jobFeedBatchReconcilerFunction,
 ];
 
 function parseSweepRequestedEventData(value: unknown): JobFeedSweepRequestedEventData {
