@@ -55,7 +55,6 @@ import type {
 } from '@/lib/job-feed/types';
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore, type ApplicationSession as StoreApplicationSession } from '@/store/useSessionStore';
-import { useUIStore } from '@/store/useUIStore';
 import {
   type JobFeedPreviewMode,
   getJobFeedPreviewMode,
@@ -518,15 +517,11 @@ export function JobFeedPanel() {
       syncApplicationSession(typedPayload.session);
       setSelectedJob(null);
 
-      // Fire the autostart signal BEFORE navigation so the agent workflow
-      // begins even if the user stays on the Job Feed tab. The ChatPanel
-      // (always mounted on /dashboard) consumes and clears this flag on
-      // its next render.
-      if (currentCV) {
-        useUIStore.getState().setPendingJobFeedAutostart({
-          sessionId: typedPayload.session.id,
-        });
-      }
+      // NOTE: We no longer set pendingJobFeedAutostart here.
+      // The URL-param autostart (?autostart=job-feed-apply) handles the
+      // workflow trigger. Setting both caused a race condition where both
+      // the store-driven effect and URL-param effect in ChatPanel would
+      // fire, resulting in double JD paste and double LLM generation.
 
       posthog?.capture('job_feed_item_applied', {
         foundation_mode: true,
