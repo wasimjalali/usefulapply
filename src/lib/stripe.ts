@@ -32,8 +32,6 @@ export const stripe = typeof process !== 'undefined' && process.env.STRIPE_SECRE
 export const STRIPE_PRICES = {
   PLUS: process.env.STRIPE_PRICE_ID_PLUS || '',
   MAX: process.env.STRIPE_PRICE_ID_MAX || '',
-  /** @deprecated Use MAX instead */
-  PRO: process.env.STRIPE_PRICE_ID_MAX || process.env.STRIPE_PRICE_ID_PRO || '',
 } as const;
 
 /**

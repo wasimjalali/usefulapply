@@ -1,4 +1,5 @@
 import { getSupabase } from './client';
+import type { JobFeedGenerationStatus } from './types';
 
 // Get untyped supabase client for tables not in generated types
 const getUntypedSupabase = () => getSupabase() as any;
@@ -33,6 +34,12 @@ export interface ApplicationSession {
   cover_letter_language?: string;
   fit_assessment?: any;
   generation_completed?: boolean;
+  generation_status?: JobFeedGenerationStatus;
+  generation_error?: string;
+  generation_started_at?: string;
+  generation_completed_at?: string;
+  generation_failed_at?: string;
+  generation_cancelled_at?: string;
   created_at: string;
   updated_at: string;
 }

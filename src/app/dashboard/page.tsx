@@ -86,7 +86,7 @@ function DashboardProfileMenu({ profile, onSignOut }: DashboardProfileMenuProps)
   ];
 
   const subscriptionTier = profile?.subscription_tier;
-  const tierBadge = subscriptionTier === 'max' || subscriptionTier === 'pro'
+  const tierBadge = subscriptionTier === 'max'
     ? 'MAX'
     : subscriptionTier === 'plus'
       ? 'PLUS'
@@ -103,7 +103,7 @@ function DashboardProfileMenu({ profile, onSignOut }: DashboardProfileMenuProps)
       >
         <div className="relative">
           <div className={`w-[30px] h-[30px] rounded-full bg-gradient-to-br from-navy-500 to-navy-700 flex items-center justify-center overflow-hidden ring-2 ring-offset-1 ring-offset-white/90 ${
-            subscriptionTier === 'max' || subscriptionTier === 'pro'
+            subscriptionTier === 'max'
               ? 'ring-navy-600'
               : subscriptionTier === 'plus'
                 ? 'ring-gold-400'
@@ -117,7 +117,7 @@ function DashboardProfileMenu({ profile, onSignOut }: DashboardProfileMenuProps)
             )}
           </div>
           <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full leading-none whitespace-nowrap ${
-            subscriptionTier === 'max' || subscriptionTier === 'pro'
+            subscriptionTier === 'max'
               ? 'bg-navy-600 text-white'
               : subscriptionTier === 'plus'
                 ? 'bg-gold-400 text-white'
@@ -232,7 +232,7 @@ export default function Dashboard() {
   // Job Feed nav badge + first-open popup. The badge number tracks unprocessed
   // jobs (not acted on yet) and only clears when the user applies, saves,
   // dismisses, or rates a job. The popup fires once per new run per day.
-  const jobFeedBadge = useJobFeedBadge(Boolean(user));
+  const jobFeedBadge = useJobFeedBadge(Boolean(user), user?.id ?? null);
   const [showJobFeedPopup, setShowJobFeedPopup] = useState(false);
   const popupShownForRunRef = useRef<string | null>(null);
   useEffect(() => {
@@ -779,7 +779,7 @@ export default function Dashboard() {
         <div className="flex-1" />
 
         {/* Upgrade CTA — shown for free and plus plans */}
-        {user && profile && (profile.subscription_tier === 'free' || profile.subscription_tier === 'starter') && (
+        {user && profile?.subscription_tier === 'free' && (
           <DashboardUpgradeButton tier="plus" />
         )}
         {user && profile?.subscription_tier === 'plus' && (
@@ -823,7 +823,7 @@ export default function Dashboard() {
           <KarkoLogo variant="full" size="xs" theme="light" />
         </button>
         <div className="flex-1" />
-        {user && profile && (profile.subscription_tier === 'free' || profile.subscription_tier === 'starter') && (
+        {user && profile?.subscription_tier === 'free' && (
           <DashboardUpgradeButton tier="plus" mobile />
         )}
         {user && profile?.subscription_tier === 'plus' && (

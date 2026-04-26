@@ -21,6 +21,13 @@ export async function DELETE(request: NextRequest) {
     // Order matters due to foreign key constraints
     const tablesWithUserId = [
       'chat_messages',
+      'job_feed_feedback',
+      'job_feed_ranked_items',
+      'job_feed_raw_fetches',
+      'job_feed_runs',
+      'job_feed_settings',
+      'user_cv_suggestions',
+      'user_job_preferences',
       'application_sessions',
       'documents',
       'profile_photos',

@@ -11,6 +11,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePostHog } from 'posthog-js/react';
 import { hasUsedFreeGeneration, markFreeGenerationUsed } from '@/components/SignUpWallModal';
+import { notifyJobFeedBadgeRefresh } from '@/hooks/useJobFeedBadge';
 
 // AgentStepData type for V2 progress tracking
 export interface AgentStepData {
@@ -131,11 +132,47 @@ export function useAgentWorkflow(options?: {
 
   const messages = currentSession?.chatMessages || [];
 
+  const syncJobFeedGenerationStatus = async (
+    status: 'running' | 'succeeded' | 'failed' | 'cancelled',
+    errorMessage?: string,
+    sessionId = currentSession?.id,
+  ) => {
+    if (!user || !sessionId) return;
+
+    if (currentSession?.id === sessionId) {
+      const now = new Date().toISOString();
+      useAppStore.getState().updateCurrentSession({
+        generationStatus: status,
+        generationError: status === 'failed' || status === 'cancelled' ? errorMessage ?? null : null,
+        generationStartedAt: status === 'running' ? now : currentSession.generationStartedAt ?? null,
+        generationCompletedAt: status === 'succeeded' ? now : currentSession.generationCompletedAt ?? null,
+        generationFailedAt: status === 'failed' ? now : currentSession.generationFailedAt ?? null,
+        generationCancelledAt: status === 'cancelled' ? now : currentSession.generationCancelledAt ?? null,
+      });
+    }
+
+    try {
+      await fetch('/api/job-feed/apply/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          status,
+          errorMessage,
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to sync job feed generation status:', error);
+    }
+  };
+
   const handleStopGeneration = () => {
+    const stoppedSessionId = currentSession?.id;
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
+    void syncJobFeedGenerationStatus('cancelled', 'Generation stopped by the user.', stoppedSessionId);
     setIsAgentWorking(false);
     setAgentWorkflowPhase(null);
     setIsTyping(false);
@@ -445,6 +482,7 @@ export function useAgentWorkflow(options?: {
 
   const runAgentWorkflow = async (jobDescription: string, contextId?: string, overrideContextData?: FitAnalysisContextData) => {
     if (!currentCV) return;
+    const workflowSessionId = currentSession?.id;
 
     setIsAgentWorking(true);
     setAgentWorkflowPhase('full_generation');
@@ -457,6 +495,7 @@ export function useAgentWorkflow(options?: {
       const { masterCV } = useAppStore.getState();
 
       abortControllerRef.current = new AbortController();
+      void syncJobFeedGenerationStatus('running', undefined, workflowSessionId);
 
       const contextData = overrideContextData || fitAnalysisContextData;
       const response = await fetch('/api/agent-v2', {
@@ -549,6 +588,8 @@ export function useAgentWorkflow(options?: {
                 
               case 'workflow_complete':
                 const ctx = data.results;
+                void syncJobFeedGenerationStatus('succeeded', undefined, workflowSessionId);
+                notifyJobFeedBadgeRefresh();
                 posthog?.capture('application_generated', {
                   mode: contextId ? 'analyze_first' : 'apply_directly',
                   job_title: ctx?.job?.title,
@@ -682,6 +723,7 @@ export function useAgentWorkflow(options?: {
                 break;
                 
               case 'error':
+                void syncJobFeedGenerationStatus('failed', data.message || 'Application generation failed.', workflowSessionId);
                 if (data.code === 'ANONYMOUS_LIMIT_REACHED') {
                   options?.onAnonymousLimitReached?.();
                 } else if (data.code === 'INSUFFICIENT_CREDITS') {
@@ -707,6 +749,11 @@ export function useAgentWorkflow(options?: {
         return;
       }
       console.error('Agent workflow error:', error);
+      void syncJobFeedGenerationStatus(
+        'failed',
+        error instanceof Error ? error.message : 'Application generation failed.',
+        workflowSessionId,
+      );
       addChatMessage({
         role: 'assistant',
         content: '❌ Sorry, the analysis failed. Please try again.',

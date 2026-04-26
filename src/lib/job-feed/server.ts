@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import type {
   ApplicationSession as SupabaseApplicationSession,
+  JobFeedGenerationStatus,
   JobFeedCanonicalJob,
   JobFeedFeedback,
   JobFeedRankedItem as SupabaseJobFeedRankedItem,
@@ -130,6 +131,48 @@ export async function getJobFeedCanonicalJobAdmin(jobId: string): Promise<JobFee
   return (data ?? null) as JobFeedCanonicalJob | null;
 }
 
+export async function authorizeJobFeedJobActionAdmin(params: {
+  userId: string;
+  jobId: string;
+  runId?: string | null;
+}): Promise<{ job: JobFeedCanonicalJob; rankedItem: SupabaseJobFeedRankedItem } | null> {
+  const { userId, jobId, runId } = params;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+
+  const loadRankedItem = async (preferredRunId?: string | null) => {
+    let query = admin
+      .from('job_feed_ranked_items')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('canonical_job_id', jobId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (preferredRunId) {
+      query = query.eq('run_id', preferredRunId);
+    }
+
+    const { data, error } = await query.maybeSingle();
+    if (error) {
+      throw new Error(`Failed to authorize job feed item: ${error.message}`);
+    }
+    return (data ?? null) as SupabaseJobFeedRankedItem | null;
+  };
+
+  const rankedItem = await loadRankedItem(runId) ?? await loadRankedItem(null);
+  if (!rankedItem) {
+    return null;
+  }
+
+  const job = await getJobFeedCanonicalJobAdmin(jobId);
+  if (!job) {
+    return null;
+  }
+
+  return { job, rankedItem };
+}
+
 export async function getJobFeedFeedbackAdmin(userId: string, jobId: string): Promise<JobFeedFeedback | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
   const admin = createAdminClient() as any;
@@ -186,6 +229,8 @@ export async function createJobFeedApplicationSessionAdmin(params: {
       missing_skills: [],
       suggestions: [],
       cv_edits: [],
+      generation_status: 'pending',
+      generation_completed: false,
     })
     .select('*')
     .single();
@@ -197,6 +242,102 @@ export async function createJobFeedApplicationSessionAdmin(params: {
   return data as SupabaseApplicationSession;
 }
 
+export async function updateJobFeedApplicationGenerationStatusAdmin(params: {
+  userId: string;
+  sessionId: string;
+  status: Exclude<JobFeedGenerationStatus, 'none' | 'pending'>;
+  errorMessage?: string | null;
+}): Promise<void> {
+  const { userId, sessionId, status, errorMessage = null } = params;
+  const now = new Date().toISOString();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added columns here.
+  const admin = createAdminClient() as any;
+
+  const sessionPatch: Record<string, Json | string | boolean | null> = {
+    generation_status: status,
+    generation_error: status === 'failed' || status === 'cancelled' ? errorMessage : null,
+    updated_at: now,
+  };
+
+  if (status === 'running') {
+    sessionPatch.generation_started_at = now;
+  } else if (status === 'succeeded') {
+    sessionPatch.generation_completed = true;
+    sessionPatch.generation_completed_at = now;
+  } else if (status === 'failed') {
+    sessionPatch.generation_completed = false;
+    sessionPatch.generation_failed_at = now;
+  } else if (status === 'cancelled') {
+    sessionPatch.generation_completed = false;
+    sessionPatch.generation_cancelled_at = now;
+  }
+
+  const { data: updatedSession, error: sessionError } = await admin
+    .from('application_sessions')
+    .update(sessionPatch)
+    .eq('user_id', userId)
+    .eq('id', sessionId)
+    .select('id')
+    .maybeSingle();
+
+  if (sessionError) {
+    throw new Error(`Failed to update application generation status: ${sessionError.message}`);
+  }
+
+  if (!updatedSession) {
+    throw new Error('Application session was not found for this account.');
+  }
+
+  const { data: existingFeedback, error: feedbackLoadError } = await admin
+    .from('job_feed_feedback')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('application_session_id', sessionId)
+    .maybeSingle();
+
+  if (feedbackLoadError) {
+    throw new Error(`Failed to load job feed feedback for generation status: ${feedbackLoadError.message}`);
+  }
+
+  if (!existingFeedback) {
+    return;
+  }
+
+  const typedFeedback = existingFeedback as JobFeedFeedback;
+  const feedbackPatch: Record<string, Json | string | null> = {
+    generation_status: status,
+    generation_error: status === 'failed' || status === 'cancelled' ? errorMessage : null,
+    metadata: mergeMetadata(typedFeedback.metadata ?? null, {
+      generation_status: status,
+      generation_status_at: now,
+      generation_error: errorMessage ?? null,
+    }),
+    updated_at: now,
+  };
+
+  if (status === 'running') {
+    feedbackPatch.generation_started_at = typedFeedback.generation_started_at ?? now;
+  } else if (status === 'succeeded') {
+    feedbackPatch.applied_at = typedFeedback.applied_at ?? now;
+    feedbackPatch.generation_completed_at = typedFeedback.generation_completed_at ?? now;
+  } else if (status === 'failed') {
+    feedbackPatch.applied_at = null;
+    feedbackPatch.generation_failed_at = now;
+  } else if (status === 'cancelled') {
+    feedbackPatch.applied_at = null;
+    feedbackPatch.generation_cancelled_at = now;
+  }
+
+  const { error: feedbackError } = await admin
+    .from('job_feed_feedback')
+    .update(feedbackPatch)
+    .eq('id', typedFeedback.id);
+
+  if (feedbackError) {
+    throw new Error(`Failed to update job feed generation feedback: ${feedbackError.message}`);
+  }
+}
+
 export async function recordJobFeedFeedbackAdmin(params: {
   userId: string;
   jobId: string;
@@ -206,6 +347,14 @@ export async function recordJobFeedFeedbackAdmin(params: {
 }): Promise<JobFeedFeedback> {
   const { userId, jobId, action, latestRunId = null, applicationSessionId = null } = params;
   const existing = await getJobFeedFeedbackAdmin(userId, jobId);
+  if (existing && isJobFeedbackBlocked(existing)) {
+    if (existing.applied_at && action === 'apply_started' && existing.application_session_id) {
+      return existing;
+    }
+
+    throw new Error('This job feed item has already reached a terminal state.');
+  }
+
   const now = new Date().toISOString();
   const metadataPatch: Record<string, Json> = {
     last_action: action,
@@ -227,6 +376,14 @@ export async function recordJobFeedFeedbackAdmin(params: {
       break;
     case 'dismissed':
       basePatch.dismissed_at = existing?.dismissed_at ?? now;
+      break;
+    case 'apply_started':
+      basePatch.opened_at = existing?.opened_at ?? now;
+      basePatch.apply_started_at = existing?.apply_started_at ?? now;
+      basePatch.application_session_id = applicationSessionId ?? existing?.application_session_id ?? null;
+      basePatch.generation_status = 'pending';
+      basePatch.generation_error = null;
+      basePatch.dismissed_at = null;
       break;
     case 'applied':
       basePatch.opened_at = existing?.opened_at ?? now;
@@ -284,17 +441,20 @@ export async function recordJobFeedFeedbackAdmin(params: {
     user_id: userId,
     canonical_job_id: jobId,
     latest_run_id: latestRunId,
-    application_session_id: action === 'applied' ? applicationSessionId : null,
-    opened_at: action === 'opened' || action === 'applied' || isRatingAction ? now : null,
+    application_session_id: action === 'applied' || action === 'apply_started' ? applicationSessionId : null,
+    opened_at: action === 'opened' || action === 'applied' || action === 'apply_started' || isRatingAction ? now : null,
     saved_at: action === 'saved' ? now : null,
     dismissed_at: action === 'dismissed' ? now : null,
+    apply_started_at: action === 'apply_started' ? now : null,
     applied_at: action === 'applied' ? now : null,
+    generation_status: action === 'apply_started' ? 'pending' : 'none',
+    generation_error: null,
     metadata: mergeMetadata(null, metadataPatch),
   };
 
   const { data, error } = await admin
     .from('job_feed_feedback')
-    .insert(insertPayload)
+    .upsert(insertPayload, { onConflict: 'user_id,canonical_job_id' })
     .select('*')
     .single();
 
@@ -315,8 +475,11 @@ export function toJobFeedFeedbackState(feedback: JobFeedFeedback | null): JobFee
     openedAt: feedback?.opened_at ?? null,
     savedAt: feedback?.saved_at ?? null,
     dismissedAt: feedback?.dismissed_at ?? null,
+    applyStartedAt: feedback?.apply_started_at ?? null,
     appliedAt: feedback?.applied_at ?? null,
     applicationSessionId: feedback?.application_session_id ?? null,
+    generationStatus: feedback?.generation_status ?? 'none',
+    generationError: feedback?.generation_error ?? null,
     matchRating,
   };
 }
@@ -1052,7 +1215,7 @@ async function getJobFeedFeedbackMapAdmin(userId: string, jobIds: string[]): Pro
  */
 export function isJobFeedbackBlocked(feedback: JobFeedFeedback | null | undefined): boolean {
   if (!feedback) return false;
-  if (feedback.applied_at) return true;
+  if (feedback.applied_at || feedback.generation_status === 'succeeded') return true;
   if (feedback.dismissed_at) return true;
   const metadata = (feedback.metadata ?? null) as Record<string, unknown> | null;
   if (metadata && typeof metadata === 'object' && metadata.match_rating === 'not_relevant') {
@@ -1153,12 +1316,21 @@ function extractApplyOptions(value: Json | undefined): JobFeedFeedItem['applyOpt
 
     const title = typeof item.title === 'string' ? item.title.trim() : '';
     const link = typeof item.link === 'string' ? item.link.trim() : '';
-    if (!title || !link) continue;
+    if (!title || !isSafeExternalUrl(link)) continue;
 
     options.push({ title, link });
   }
 
   return options;
+}
+
+function isSafeExternalUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
 }
 
 function isJsonRecord(value: Json): value is Record<string, Json> {
@@ -1471,7 +1643,7 @@ export async function getUserYearsExperienceAdmin(userId: string): Promise<numbe
     .from('documents')
     .select('structured_data')
     .eq('user_id', userId)
-    .eq('document_type', 'primary_cv')
+    .eq('type', 'primary_cv')
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();

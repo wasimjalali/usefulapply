@@ -1,5 +1,6 @@
 import type {
   ApplicationSession as SupabaseApplicationSession,
+  JobFeedGenerationStatus,
   JobFeedCanonicalJob,
   JobFeedRun,
   JobFeedSettings,
@@ -19,7 +20,7 @@ export type JobFeedOverviewState =
 export type JobFeedCanonicalWorkMode = JobFeedCanonicalJob['work_mode'];
 export type JobFeedEmploymentType = NonNullable<JobFeedCanonicalJob['employment_type']>;
 export type JobFeedFitLabel = 'strong' | 'good';
-export type JobFeedFeedbackAction = 'opened' | 'saved' | 'dismissed' | 'applied' | 'rated_helpful' | 'rated_not_relevant';
+export type JobFeedFeedbackAction = 'opened' | 'saved' | 'dismissed' | 'apply_started' | 'applied' | 'rated_helpful' | 'rated_not_relevant';
 export type JobFeedMatchRating = 'helpful' | 'not_relevant';
 export type JobFeedPipelineStage = 'shortlisted' | 'ranked';
 export type JobFeedRankingSource = 'deterministic' | 'llm';
@@ -28,8 +29,11 @@ export interface JobFeedItemFeedbackState {
   openedAt: string | null;
   savedAt: string | null;
   dismissedAt: string | null;
+  applyStartedAt: string | null;
   appliedAt: string | null;
   applicationSessionId: string | null;
+  generationStatus: JobFeedGenerationStatus;
+  generationError: string | null;
   // Per-job match-quality rating supplied by the user via the details modal.
   // Stored inside job_feed_feedback.metadata so the ranking pipeline can learn
   // from it without a schema change.

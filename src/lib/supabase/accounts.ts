@@ -1,4 +1,5 @@
 import { getSupabase } from './client';
+import type { SubscriptionTier } from './types';
 
 // Get untyped supabase client for tables not in generated types
 const getUntypedSupabase = () => getSupabase() as any;
@@ -16,7 +17,7 @@ export interface ConnectedAccount {
 export interface Subscription {
   id: string;
   user_id: string;
-  tier: 'free' | 'starter' | 'plus' | 'max' | 'pro' | 'enterprise';
+  tier: SubscriptionTier;
   status: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete';
   stripe_customer_id?: string;
   stripe_subscription_id?: string;
@@ -136,8 +137,8 @@ export async function canCreateApplication(userId: string): Promise<boolean> {
     return true; // Allow for now, will create subscription on first use
   }
 
-  // Pro and Enterprise have unlimited
-  if (subscription.tier === 'pro' || subscription.tier === 'enterprise') {
+  // Paid plans have full application access; free plans keep the legacy limit.
+  if (subscription.tier === 'plus' || subscription.tier === 'max') {
     return true;
   }
 

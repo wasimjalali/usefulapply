@@ -324,8 +324,11 @@ export function JobFeedPanel() {
         case 'applied':
           return {
             ...feedback,
+            applyStartedAt: feedback.applyStartedAt ?? now,
             appliedAt: feedback.appliedAt ?? now,
             applicationSessionId: feedback.applicationSessionId ?? 'preview-session',
+            generationStatus: 'succeeded' as const,
+            generationError: null,
           };
         case 'rated_helpful':
           return {
@@ -587,18 +590,11 @@ export function JobFeedPanel() {
 
       const typedPayload = payload as JobFeedApplyResponse;
       updateJobFeedbackState(job.id, typedPayload.feedback);
-      notifyJobFeedBadgeRefresh();
       syncApplicationSession(typedPayload.session);
       setSelectedJob(null);
 
-      // Applied jobs belong on the Tracker, not the daily feed. Hide from
-      // the feed immediately so the user sees a fresh list and we don't
-      // confuse "Application started" badging with "still open work".
-      removeJobFromOverview(job.id);
-
-      // Fire the autostart signal synchronously so ChatPanel's effect picks
-      // it up on the very next render. This is the single source of truth
-      // for job feed autostart — do NOT also pass ?autostart in the URL.
+      // Fire the in-memory signal for the current tab. The URL carries the
+      // same autostart intent so refresh/new-tab recovery can still work.
       if (currentCV) {
         useUIStore.getState().setPendingJobFeedAutostart({
           sessionId: typedPayload.session.id,
@@ -620,10 +616,6 @@ export function JobFeedPanel() {
           : `${job.title} at ${job.company} — upload your CV to continue`
       );
 
-      // The `autostart` URL param is used ONLY by dashboard/page.tsx to
-      // switch to the chat view on mobile. ChatPanel itself uses the
-      // `pendingJobFeedAutostart` store flag (set above) as the single
-      // source of truth — it does NOT read this URL param.
       router.push(buildJobFeedApplyPath({
         sessionId: typedPayload.session.id,
         autostart: Boolean(currentCV),
@@ -633,7 +625,7 @@ export function JobFeedPanel() {
     } finally {
       setPendingJobAction(null);
     }
-  }, [applyPreviewFeedback, currentCV, isPreviewing, overview?.feedRun?.id, posthog, removeJobFromOverview, router, syncApplicationSession, updateJobFeedbackState]);
+  }, [applyPreviewFeedback, currentCV, isPreviewing, overview?.feedRun?.id, posthog, router, syncApplicationSession, updateJobFeedbackState]);
 
   const handleExternalApply = useCallback((job: JobFeedFeedItem) => {
     if (isPreviewing) {
@@ -1288,7 +1280,9 @@ function InlineStateMessage({
     },
     generating: {
       icon: Loader2,
-      message: 'Karko is finding your jobs right now. This usually takes a few minutes.',
+      message: overview?.jobs?.length
+        ? 'Karko is finding your latest jobs right now. The cards below are from your most recent completed feed.'
+        : 'Karko is finding your jobs right now. This usually takes a few minutes.',
       tone: 'neutral',
     },
     empty: {
@@ -1996,6 +1990,7 @@ function canSaveJobFeedSettings(form: JobFeedSettingsInput, hasRecordedConsent =
   const consentReady = form.consent_accepted || hasRecordedConsent;
 
   return form.target_roles.length > 0
+    && form.remote_preferences.length > 0
     && form.employment_types.length > 0
     && isValidTimeZone(form.user_timezone)
     && (!form.enabled || consentReady);

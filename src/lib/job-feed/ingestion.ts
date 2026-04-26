@@ -45,12 +45,16 @@ interface AggregatedNormalizedJob {
 }
 
 export function buildJobFeedSearchPlan(settings: JobFeedSettings, maxQueries: number = JOB_FEED_MAX_DAILY_QUERIES): JobFeedSearchPlanItem[] {
+  if (maxQueries <= 0) {
+    return [];
+  }
+
   // Prefer the new target_countries multi-select; fall back to the legacy
   // market enum if a row hasn't been migrated yet.
   const selectedCountries = (settings.target_countries && settings.target_countries.length > 0)
     ? settings.target_countries
     : Array.from(JOB_FEED_MARKET_COUNTRIES[settings.target_market] || JOB_FEED_MARKET_COUNTRIES.us_canada);
-  const countries = selectedCountries.length > 0 ? selectedCountries : ['us'];
+  const countries = (selectedCountries.length > 0 ? selectedCountries : ['us']).slice(0, maxQueries);
 
   const maxRoles = Math.max(1, Math.floor(maxQueries / countries.length));
 
@@ -268,7 +272,7 @@ export async function ingestJobFeedRunJobs(params: {
       }
 
       rawJobsFetched += jobsToStore.length;
-      if (rawJobsFetched >= JOB_FEED_MAX_RAW_JOBS_PER_RUN) {
+      if (rawJobsFetched >= maxRawJobs) {
         break;
       }
     } catch (error) {

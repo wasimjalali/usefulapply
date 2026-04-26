@@ -15,6 +15,7 @@ import {
   getDocumentByType,
   getProfilePhotoUrl,
 } from '@/lib/supabase';
+import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
 
 // Type for Supabase application_sessions row
 interface SupabaseSessionRow {
@@ -47,6 +48,12 @@ interface SupabaseSessionRow {
   cover_letter_language: string | null;
   fit_assessment: any | null;
   generation_completed: boolean | null;
+  generation_status: JobFeedGenerationStatus | null;
+  generation_error: string | null;
+  generation_started_at: string | null;
+  generation_completed_at: string | null;
+  generation_failed_at: string | null;
+  generation_cancelled_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -254,6 +261,12 @@ export function useSupabaseSync() {
             } : null,
             status: row.status ?? 'applied',
             fitAssessment: row.fit_assessment ?? null,
+            generationStatus: row.generation_status ?? 'none',
+            generationError: row.generation_error ?? null,
+            generationStartedAt: row.generation_started_at ?? null,
+            generationCompletedAt: row.generation_completed_at ?? null,
+            generationFailedAt: row.generation_failed_at ?? null,
+            generationCancelledAt: row.generation_cancelled_at ?? null,
             cvEdits: row.cv_edits || [],
             optimizedPdfRef: row.optimized_pdf_path ? { 
               id: row.id, 
@@ -477,6 +490,8 @@ export function useSupabaseSync() {
                   company_research: currentSession.companyResearch,
                   fit_assessment: currentSession.fitAssessment ?? null,
                   generation_completed: currentSession.generatedCV ? true : false,
+                  generation_status: currentSession.generatedCV ? 'succeeded' : currentSession.generationStatus,
+                  generation_error: currentSession.generatedCV ? undefined : currentSession.generationError ?? undefined,
                 }, user.id);
                 if (updateErr) {
                   console.error('[SupabaseSync] Error updating new session with full data:', updateErr);
@@ -546,6 +561,8 @@ export function useSupabaseSync() {
             company_contact_person: currentSession.companyResearch?.contactPerson,
             fit_assessment: currentSession.fitAssessment ?? null,
             generation_completed: currentSession.generatedCV ? true : false,
+            generation_status: currentSession.generatedCV ? 'succeeded' : currentSession.generationStatus,
+            generation_error: currentSession.generatedCV ? undefined : currentSession.generationError ?? undefined,
           }, user.id);
           
           if (error) {

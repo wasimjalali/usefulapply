@@ -50,8 +50,8 @@ export function SubscriptionSection({
     ? userCredits.monthly_credits + userCredits.rollover_credits + userCredits.addon_credits 
     : 10;
   
-  const maxCredits = userCredits?.plan_tier === 'starter' || userCredits?.plan_tier === 'free' ? 10 : userCredits?.plan_tier === 'plus' ? 100 : 200;
-  const isFreeTier = subscriptionTier === 'starter' || subscriptionTier === 'free';
+  const maxCredits = userCredits?.plan_tier === 'free' ? 10 : userCredits?.plan_tier === 'plus' ? 100 : 200;
+  const isFreeTier = subscriptionTier === 'free';
 
   return (
     <div className="space-y-6">
@@ -218,7 +218,7 @@ export function SubscriptionSection({
                     </span>
                   </div>
                   <div className={`rounded-2xl px-3 py-4 ${
-                    subscriptionTier === 'max' || subscriptionTier === 'pro'
+                    subscriptionTier === 'max'
                       ? 'bg-navy-50 ring-2 ring-navy-500'
                       : 'bg-navy-50 ring-1 ring-navy-200'
                   }`}>
@@ -272,7 +272,7 @@ export function SubscriptionSection({
                   </td>
 
                   <td className={`py-2.5 px-3 text-center text-xs rounded-r-lg ${
-                    subscriptionTier === 'max' || subscriptionTier === 'pro' ? 'bg-navy-50/60' : 'bg-navy-50/30'
+                    subscriptionTier === 'max' ? 'bg-navy-50/60' : 'bg-navy-50/30'
                   }`}>
                     {typeof row.max === 'boolean'
                       ? row.max
@@ -301,7 +301,7 @@ export function SubscriptionSection({
                     <div className="text-center text-xs text-navy-600 font-semibold py-2 rounded-lg border-2 border-navy-200 bg-white">
                       Current
                     </div>
-                  ) : (subscriptionTier === 'max' || subscriptionTier === 'pro') && onManageBilling ? (
+                  ) : subscriptionTier === 'max' && onManageBilling ? (
                     <Button variant="outline" size="sm" className="w-full text-xs py-2" onClick={onManageBilling}>
                       Downgrade
                     </Button>
@@ -315,7 +315,7 @@ export function SubscriptionSection({
                   ) : null}
                 </td>
                 <td className="pt-4 px-3">
-                  {subscriptionTier === 'max' || subscriptionTier === 'pro' ? (
+                  {subscriptionTier === 'max' ? (
                     <div className="text-center text-xs text-navy-600 font-semibold py-2 rounded-lg border-2 border-navy-200 bg-white">
                       Current
                     </div>

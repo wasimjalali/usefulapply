@@ -1,4 +1,5 @@
 import { getSupabase } from './client';
+import type { SubscriptionTier } from './types';
 
 // Get untyped supabase client for tables not in generated types
 const getUntypedSupabase = () => getSupabase() as any;
@@ -17,7 +18,7 @@ export interface UserCredits {
   monthly_credits: number;
   rollover_credits: number;
   addon_credits: number;
-  plan_tier: 'free' | 'starter' | 'plus' | 'max' | 'pro';
+  plan_tier: SubscriptionTier;
   last_reset_date: string;
   next_reset_date: string;
   stripe_customer_id?: string;
@@ -42,7 +43,7 @@ export interface CreditTransaction {
 
 export interface SubscriptionPlan {
   id: string;
-  tier: 'free' | 'starter' | 'plus' | 'max' | 'pro';
+  tier: SubscriptionTier;
   name: string;
   description?: string;
   price_monthly: number;
@@ -624,7 +625,7 @@ export async function processMonthlyReset(userId: string): Promise<{
   if (plan.max_rollover_credits > 0) {
     newRollover = Math.min(newRollover, plan.max_rollover_credits);
   } else {
-    newRollover = 0; // No rollover for starter
+    newRollover = 0; // No rollover for free
   }
 
   // Calculate next reset date
@@ -758,7 +759,7 @@ export async function processAddonPurchase(
     return { success: false, creditsAdded: 0, error: creditsError || new Error('Credits not found') };
   }
 
-  if (credits.plan_tier === 'free' || credits.plan_tier === 'starter') {
+  if (credits.plan_tier === 'free') {
     return { success: false, creditsAdded: 0, error: new Error('Add-ons not available for Free plan') };
   }
 

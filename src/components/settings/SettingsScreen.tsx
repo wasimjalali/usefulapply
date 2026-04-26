@@ -165,7 +165,7 @@ export function SettingsScreen({ forcedSection }: SettingsScreenProps) {
         if (creditsResult.credits) {
           setUserCredits(creditsResult.credits);
           const tier = creditsResult.credits.plan_tier;
-          if (isSuccess && (tier !== 'free' && tier !== 'starter')) return;
+          if (isSuccess && tier !== 'free') return;
           if (isAddonSuccess && creditsResult.credits.addon_credits > initialAddonCredits) return;
           if (attempts >= maxAttempts) return;
         }

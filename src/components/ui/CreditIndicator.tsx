@@ -88,7 +88,7 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
   const totalCredits = credits 
     ? credits.monthly_credits + credits.rollover_credits + credits.addon_credits 
     : 0;
-  const maxCredits = (credits?.plan_tier === 'starter' || credits?.plan_tier === 'free') ? 10 : credits?.plan_tier === 'plus' ? 100 : 200;
+  const maxCredits = credits?.plan_tier === 'free' ? 10 : credits?.plan_tier === 'plus' ? 100 : 200;
   const percentRemaining = Math.min((totalCredits / maxCredits) * 100, 100);
   const formattedCredits = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(totalCredits);
 

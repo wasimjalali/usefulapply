@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Plan gate: screening answers require Max or Pro plan
+    // Plan gate: screening answers require Max plan
     if (isScreeningMode) {
       const { data: profile } = await supabase
         .from('profiles')
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
         .single() as { data: { subscription_tier: string } | null };
 
       const tier = profile?.subscription_tier;
-      if (tier !== 'max' && tier !== 'pro') {
+      if (tier !== 'max') {
         return NextResponse.json(
           { error: 'Screening question answers are available on the Max plan.' },
           { status: 403 }
