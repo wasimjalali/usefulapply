@@ -258,14 +258,17 @@ export function JobFeedCard({
   isApplying,
   onOpenDetails,
   onApplyWithKarko,
+  onExternalApply,
 }: {
   job: JobFeedFeedItem;
   isApplying: boolean;
   onOpenDetails: () => void;
   onApplyWithKarko: () => void;
+  onExternalApply: () => void;
 }) {
   const isSaved = Boolean(job.feedback.savedAt);
   const isApplied = Boolean(job.feedback.appliedAt);
+  const employerLink = job.applyUrl || job.sourceUrl;
 
   return (
     <div className={`rounded-[24px] border p-5 transition-colors duration-200 ${
@@ -315,6 +318,18 @@ export function JobFeedCard({
             {isApplying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isApplying ? 'Opening...' : isApplied ? 'Continue in Karko' : 'Apply with Karko'}
           </Button>
+          {employerLink && (
+            <a
+              href={employerLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onExternalApply}
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-cream-300 bg-white px-4 py-2 text-sm font-medium text-charcoal transition-colors hover:border-navy-300 hover:text-navy-700"
+            >
+              Employer site
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          )}
           <button
             type="button"
             onClick={onOpenDetails}
@@ -554,6 +569,7 @@ export function FeedResultsCard({
   onToggleShowAll,
   onOpenDetails,
   onApplyWithKarko,
+  onExternalApply,
 }: {
   jobs: JobFeedFeedItem[];
   isShowingAllJobs: boolean;
@@ -562,6 +578,7 @@ export function FeedResultsCard({
   onToggleShowAll: () => void;
   onOpenDetails: (job: JobFeedFeedItem) => void;
   onApplyWithKarko: (job: JobFeedFeedItem) => void;
+  onExternalApply: (job: JobFeedFeedItem) => void;
 }) {
   const visibleCount = isShowingAllJobs ? JOB_FEED_VISIBLE_MAX_COUNT : JOB_FEED_VISIBLE_DEFAULT_COUNT;
   const visibleJobs = jobs.slice(0, visibleCount);
@@ -595,6 +612,7 @@ export function FeedResultsCard({
             isApplying={pendingJobAction?.jobId === job.id && pendingJobAction.action === 'apply'}
             onOpenDetails={() => onOpenDetails(job)}
             onApplyWithKarko={() => onApplyWithKarko(job)}
+            onExternalApply={() => onExternalApply(job)}
           />
         ))}
       </div>

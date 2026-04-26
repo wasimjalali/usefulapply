@@ -12,6 +12,7 @@ import { AgentProgressV2 } from './AgentProgressV2';
 import { useAgentWorkflow } from './chat/useAgentWorkflow';
 import { useAppStore } from '@/store/useAppStore';
 import { useSessionStore } from '@/store/useSessionStore';
+import { useUIStore } from '@/store/useUIStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { submitMessageFeedback, getChatMessages } from '@/lib/supabase';
 import {
@@ -29,23 +30,11 @@ import { SignUpWallModal, hasUsedFreeGeneration } from '@/components/SignUpWallM
 import { InsufficientCreditsModal } from '@/components/InsufficientCreditsModal';
 import { usePostHog } from 'posthog-js/react';
 
-function readChatQuery() {
-  if (typeof window === 'undefined') {
-    return {
-      autostart: null,
-      session: null,
-      search: '',
-    };
-  }
-
-  const search = window.location.search;
-  const searchParams = new URLSearchParams(search);
-  return {
-    autostart: searchParams.get('autostart'),
-    session: searchParams.get('session'),
-    search,
-  };
-}
+// Module-level dedupe set: shared across ALL mounted ChatPanel instances
+// (desktop wrapper is `hidden md:flex`, mobile is `md:hidden` — both can be
+// mounted simultaneously in the DOM). Ensures Apply-with-Karko autostart
+// fires exactly once per session regardless of how many panels are mounted.
+const autostartedApplySessionIds = new Set<string>();
 
 interface ChatPanelProps {
   onTabChange?: (tab: 'cv' | 'cover-letter' | 'email') => void;
@@ -224,34 +213,36 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     return () => window.clearInterval(interval);
   }, []);
 
+  // Job Feed autostart — single source of truth.
+  // JobFeedPanel sets `pendingJobFeedAutostart` synchronously before navigating.
+  // The module-level `autostartedApplySessionIds` set dedupes across multiple
+  // mounted ChatPanel instances (desktop + mobile can both be in the DOM).
+  const pendingJobFeedAutostart = useUIStore((state) => state.pendingJobFeedAutostart);
+  const setPendingJobFeedAutostart = useUIStore((state) => state.setPendingJobFeedAutostart);
   useEffect(() => {
-    const {
-      autostart,
-      session: requestedSessionId,
-      search,
-    } = readChatQuery();
+    if (!pendingJobFeedAutostart) return;
+    if (!currentSession || currentSession.id !== pendingJobFeedAutostart.sessionId) return;
 
-    if (autostart !== 'job-feed-apply' || !currentSession || currentSession.id !== requestedSessionId) {
+    // Module-level dedupe: once any ChatPanel instance has autostarted this
+    // session, no other instance (or re-run of this effect) should fire again.
+    if (autostartedApplySessionIds.has(currentSession.id)) {
+      setPendingJobFeedAutostart(null);
       return;
     }
 
-    const clearAutostartParam = () => {
-      const nextParams = new URLSearchParams(search);
-      nextParams.delete('autostart');
-      const nextQuery = nextParams.toString();
-      router.replace(nextQuery ? `/dashboard?${nextQuery}` : '/dashboard');
-    };
+    // Also respect the per-instance ref for "New Application" resets.
+    autostartedApplySessionRef.current = currentSession.id;
 
+    // If the session already has progress (messages, CV, or running agent),
+    // don't re-trigger — just consume the flag.
     const alreadyInProgress =
       currentSession.chatMessages.length > 0 ||
       !!currentSession.generatedCV ||
       !!currentSession.pendingFitAnalysis ||
       isAgentWorking;
     if (alreadyInProgress) {
-      if (autostartedApplySessionRef.current !== currentSession.id) {
-        autostartedApplySessionRef.current = currentSession.id;
-        clearAutostartParam();
-      }
+      autostartedApplySessionIds.add(currentSession.id);
+      setPendingJobFeedAutostart(null);
       return;
     }
 
@@ -260,40 +251,33 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
       return;
     }
 
-    if (autostartedApplySessionRef.current === currentSession.id) {
-      return;
-    }
+    // Claim the session BEFORE firing — any concurrent render will bail out.
+    autostartedApplySessionIds.add(currentSession.id);
+    setPendingJobFeedAutostart(null);
 
-    autostartedApplySessionRef.current = currentSession.id;
-    clearAutostartParam();
-
-    // Seed the chat with the JD so the user sees what Karko is working on, then
-    // kick off Apply Directly. Bypass handleSend's heuristic routing — we know
-    // this is a JD coming from the Job Feed.
     addChatMessage({ role: 'user', content: jobDescription });
     setJobDescription(jobDescription);
     setApplicationMode('apply_directly');
     setAwaitingJobDescription(false);
-    posthog?.capture('jd_pasted', { jd_length: jobDescription.length, mode: 'apply_directly', source: 'job_feed_autostart' });
+    posthog?.capture('jd_pasted', {
+      jd_length: jobDescription.length,
+      mode: 'apply_directly',
+      source: 'job_feed_autostart',
+    });
     void runAgentWorkflow(jobDescription);
   }, [
     addChatMessage,
     currentCV,
     currentSession,
     isAgentWorking,
+    pendingJobFeedAutostart,
     posthog,
-    router,
     runAgentWorkflow,
     setApplicationMode,
     setAwaitingJobDescription,
     setJobDescription,
+    setPendingJobFeedAutostart,
   ]);
-
-  // NOTE: The store-driven autostart effect was removed. It caused a race
-  // condition with the URL-param effect above — both would fire when
-  // currentSession changed, leading to double JD paste and double LLM calls.
-  // The URL-param path (?autostart=job-feed-apply) is now the single source
-  // of truth for job feed autostart.
 
   const handleFeedbackClick = (messageId: string, content: string, type: 'positive' | 'negative') => {
     setFeedbackModal({ messageId, content, type });

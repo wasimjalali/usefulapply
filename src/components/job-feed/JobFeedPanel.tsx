@@ -55,6 +55,7 @@ import type {
 } from '@/lib/job-feed/types';
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore, type ApplicationSession as StoreApplicationSession } from '@/store/useSessionStore';
+import { useUIStore } from '@/store/useUIStore';
 import {
   type JobFeedPreviewMode,
   getJobFeedPreviewMode,
@@ -517,11 +518,14 @@ export function JobFeedPanel() {
       syncApplicationSession(typedPayload.session);
       setSelectedJob(null);
 
-      // NOTE: We no longer set pendingJobFeedAutostart here.
-      // The URL-param autostart (?autostart=job-feed-apply) handles the
-      // workflow trigger. Setting both caused a race condition where both
-      // the store-driven effect and URL-param effect in ChatPanel would
-      // fire, resulting in double JD paste and double LLM generation.
+      // Fire the autostart signal synchronously so ChatPanel's effect picks
+      // it up on the very next render. This is the single source of truth
+      // for job feed autostart — do NOT also pass ?autostart in the URL.
+      if (currentCV) {
+        useUIStore.getState().setPendingJobFeedAutostart({
+          sessionId: typedPayload.session.id,
+        });
+      }
 
       posthog?.capture('job_feed_item_applied', {
         foundation_mode: true,
@@ -538,6 +542,10 @@ export function JobFeedPanel() {
           : `${job.title} at ${job.company} — upload your CV to continue`
       );
 
+      // The `autostart` URL param is used ONLY by dashboard/page.tsx to
+      // switch to the chat view on mobile. ChatPanel itself uses the
+      // `pendingJobFeedAutostart` store flag (set above) as the single
+      // source of truth — it does NOT read this URL param.
       router.push(buildJobFeedApplyPath({
         sessionId: typedPayload.session.id,
         autostart: Boolean(currentCV),
@@ -774,6 +782,7 @@ export function JobFeedPanel() {
                 feedSummary={buildFeedSummary(shellForm)}
                 onOpenDetails={handleOpenDetails}
                 onApplyWithKarko={handleApplyWithKarko}
+                onExternalApply={handleExternalApply}
               />
             )}
 
