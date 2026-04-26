@@ -546,10 +546,16 @@ export default function Dashboard() {
       setMobileApplicationTab(resolvedTab);
 
       if (autostart === 'job-feed-apply') {
-        setMobileView('chat');
+        // Only force the mobile chat view on an actual mobile viewport. On
+        // desktop the md:hidden mobile ChatPanel would still mount when
+        // mobileView flipped to 'chat', causing a second instance of the
+        // autostart effect to fire and duplicate the generation.
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+          setMobileView('chat');
+        } else {
+          setMobileView('application-kit');
+        }
         setIsChatCollapsed(false);
-        // Ensure the leaving-full-width effect also keeps chat open, so the
-        // autostart flow never races a collapse from an earlier jobs-tab visit.
         chatCollapsedBeforeFullWidthRef.current = false;
       } else {
         setMobileView('application-kit');

@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Briefcase,
   Building2,
   Calendar,
+  Check,
   ChevronDown,
   ChevronUp,
+  Copy,
   DollarSign,
   ExternalLink,
   Globe,
@@ -186,6 +188,71 @@ export function JobFeedDescription({ text }: { text: string }) {
   return <div className="space-y-0.5">{elements}</div>;
 }
 
+function formatJobForClipboard(job: JobFeedFeedItem): string {
+  const lines = [
+    job.title,
+    job.company,
+  ];
+
+  const metaParts: string[] = [];
+  if (job.location) metaParts.push(job.location);
+  if (job.workMode !== 'unknown') metaParts.push(workModeLabel(job.workMode));
+  if (job.employmentType) metaParts.push(employmentTypeLabel(job.employmentType));
+  if (job.salaryText) metaParts.push(job.salaryText);
+  if (metaParts.length > 0) lines.push(metaParts.join(' · '));
+
+  if (job.postedAtText) lines.push(`Posted: ${job.postedAtText}`);
+  if (job.via) lines.push(`Via: ${job.via}`);
+
+  const link = job.applyUrl || job.sourceUrl;
+  if (link) lines.push(`Apply: ${link}`);
+
+  if (job.description) {
+    lines.push('', 'JOB DESCRIPTION', job.description.trim());
+  }
+
+  return lines.join('\n');
+}
+
+function CopyJobButton({
+  job,
+  variant = 'card',
+}: {
+  job: JobFeedFeedItem;
+  variant?: 'card' | 'modal';
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async (event: React.MouseEvent) => {
+    event.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(formatJobForClipboard(job));
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard blocked (e.g. http context) — fail silently; user can use
+      // the "Details" view and select-all manually as a fallback.
+    }
+  };
+
+  const baseClass = variant === 'modal'
+    ? 'inline-flex items-center gap-1.5 rounded-lg border border-cream-300 bg-white px-3 py-1.5 text-xs font-medium text-charcoal transition-colors hover:border-navy-300 hover:text-navy-700'
+    : 'inline-flex items-center gap-1 rounded-full border border-cream-200 bg-white/80 px-2.5 py-1 text-xs font-medium text-warm-gray transition-colors hover:border-navy-200 hover:text-navy-700';
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      aria-label={copied ? 'Copied' : 'Copy job details'}
+      title={copied ? 'Copied' : 'Copy job details'}
+      className={baseClass}
+    >
+      {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+      {copied ? 'Copied' : 'Copy'}
+    </button>
+  );
+}
+
 export function JobFeedCard({
   job,
   isApplying,
@@ -248,13 +315,17 @@ export function JobFeedCard({
             {isApplying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isApplying ? 'Opening...' : isApplied ? 'Continue in Karko' : 'Apply with Karko'}
           </Button>
-          <button
-            type="button"
-            onClick={onOpenDetails}
-            className="py-1 text-center text-sm font-medium text-navy-600 hover:text-navy-700"
-          >
-            Details
-          </button>
+          <div className="flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={onOpenDetails}
+              className="py-1 text-sm font-medium text-navy-600 hover:text-navy-700"
+            >
+              Details
+            </button>
+            <span className="text-cream-300">·</span>
+            <CopyJobButton job={job} />
+          </div>
         </div>
       </div>
     </div>
@@ -433,7 +504,8 @@ export function JobFeedDetailModal({
         </div>
 
         <div className="flex flex-col gap-3 border-t border-cream-200 bg-cream-50 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <CopyJobButton job={job} variant="modal" />
             {directApplyLink && (
               <a
                 href={directApplyLink}

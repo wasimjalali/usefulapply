@@ -19,6 +19,12 @@ interface UIState {
   // UI state
   activeTab: 'cv' | 'cover-letter' | 'email' | 'tracker' | 'jobs';
   error: string | null;
+
+  // Cross-component autostart signal for Apply-with-Karko from the Job Feed.
+  // Set by JobFeedPanel on click; ChatPanel picks it up and starts the agent
+  // workflow immediately — even if the user does not navigate to the
+  // Application Kit tab. Consumed-then-cleared by ChatPanel.
+  pendingJobFeedAutostart: { sessionId: string } | null;
 }
 
 interface UIActions {
@@ -32,7 +38,10 @@ interface UIActions {
   // UI state setters
   setActiveTab: (tab: 'cv' | 'cover-letter' | 'email' | 'tracker' | 'jobs') => void;
   setError: (error: string | null) => void;
-  
+
+  // Autostart signal
+  setPendingJobFeedAutostart: (value: { sessionId: string } | null) => void;
+
   // Reset
   resetUI: () => void;
 }
@@ -45,6 +54,7 @@ const initialState: UIState = {
   agentWorkflowPhase: null,
   activeTab: 'cv',
   error: null,
+  pendingJobFeedAutostart: null,
 };
 
 /**
@@ -64,6 +74,9 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
   // UI state setters
   setActiveTab: (tab) => set({ activeTab: tab }),
   setError: (error) => set({ error }),
+
+  // Autostart signal
+  setPendingJobFeedAutostart: (value) => set({ pendingJobFeedAutostart: value }),
 
   // Reset
   resetUI: () => set(initialState),

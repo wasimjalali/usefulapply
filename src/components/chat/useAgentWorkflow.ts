@@ -798,7 +798,12 @@ export function useAgentWorkflow(options?: {
       const jobKeywords = /\b(responsibilities|requirements|qualifications|experience required|skills required|about the role|job description|we are looking for|you will|must have|nice to have|salary|benefits|apply|candidate|position|vacancy)\b/i;
       const isLikelyJobDescription = !isScreeningMode && messageContent.length > 200 && jobKeywords.test(messageContent);
       const isShortJobPost = !isScreeningMode && messageContent.length > 100 && (messageContent.match(jobKeywords) || []).length >= 2;
-      const isNewJobDescription = isLikelyJobDescription || isShortJobPost;
+      // If the session already has a completed application, treat any
+      // meaningfully long paste as a fresh JD. Matches the no-session
+      // heuristic so users aren't trapped in general-chat after one run.
+      const sessionHasCompletedApplication = Boolean(currentSession.generatedCV);
+      const isFollowUpJobDescription = !isScreeningMode && sessionHasCompletedApplication && messageContent.length > 100;
+      const isNewJobDescription = isLikelyJobDescription || isShortJobPost || isFollowUpJobDescription;
 
       if (isNewJobDescription) {
         setFitAnalysisContextId(null);

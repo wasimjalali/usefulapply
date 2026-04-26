@@ -12,6 +12,7 @@ import { AgentProgressV2 } from './AgentProgressV2';
 import { useAgentWorkflow } from './chat/useAgentWorkflow';
 import { useAppStore } from '@/store/useAppStore';
 import { useSessionStore } from '@/store/useSessionStore';
+import { useUIStore } from '@/store/useUIStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { submitMessageFeedback, getChatMessages } from '@/lib/supabase';
 import {
@@ -289,6 +290,59 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     setJobDescription,
   ]);
 
+  // Store-driven autostart: fires the moment the Job Feed's Apply button is
+  // clicked, so generation begins even if the user does not switch tabs.
+  // This piggy-backs on the same autostartedApplySessionRef guard to stay
+  // idempotent with the URL-based effect above.
+  const pendingJobFeedAutostart = useUIStore((state) => state.pendingJobFeedAutostart);
+  const setPendingJobFeedAutostart = useUIStore((state) => state.setPendingJobFeedAutostart);
+  useEffect(() => {
+    if (!pendingJobFeedAutostart) return;
+    if (!currentSession || currentSession.id !== pendingJobFeedAutostart.sessionId) return;
+    if (autostartedApplySessionRef.current === currentSession.id) {
+      setPendingJobFeedAutostart(null);
+      return;
+    }
+
+    const alreadyInProgress =
+      currentSession.chatMessages.length > 0 ||
+      !!currentSession.generatedCV ||
+      !!currentSession.pendingFitAnalysis ||
+      isAgentWorking;
+    if (alreadyInProgress) {
+      autostartedApplySessionRef.current = currentSession.id;
+      setPendingJobFeedAutostart(null);
+      return;
+    }
+
+    const jobDescription = currentSession.jobDescription?.trim();
+    if (!currentCV || !jobDescription) {
+      return;
+    }
+
+    autostartedApplySessionRef.current = currentSession.id;
+    setPendingJobFeedAutostart(null);
+
+    addChatMessage({ role: 'user', content: jobDescription });
+    setJobDescription(jobDescription);
+    setApplicationMode('apply_directly');
+    setAwaitingJobDescription(false);
+    posthog?.capture('jd_pasted', { jd_length: jobDescription.length, mode: 'apply_directly', source: 'job_feed_autostart_store' });
+    void runAgentWorkflow(jobDescription);
+  }, [
+    addChatMessage,
+    currentCV,
+    currentSession,
+    isAgentWorking,
+    pendingJobFeedAutostart,
+    posthog,
+    runAgentWorkflow,
+    setApplicationMode,
+    setAwaitingJobDescription,
+    setJobDescription,
+    setPendingJobFeedAutostart,
+  ]);
+
   const handleFeedbackClick = (messageId: string, content: string, type: 'positive' | 'negative') => {
     setFeedbackModal({ messageId, content, type });
   };
@@ -448,6 +502,14 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     }
     useAppStore.getState().clearCurrentSession();
     useAppStore.getState().resetGenerated();
+    // Reset workflow-local state so the new session starts with a clean slate.
+    // Without these, flags set by the previous run (e.g. autostart setting
+    // awaitingJobDescription=false) leak into the next session and break
+    // JD detection on the first paste.
+    setAwaitingJobDescription(false);
+    setApplicationMode('apply_directly');
+    setAgentSteps([]);
+    autostartedApplySessionRef.current = null;
     setShowHistory(false);
   };
 

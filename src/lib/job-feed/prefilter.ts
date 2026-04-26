@@ -165,6 +165,19 @@ function hasRemoteMismatch(job: JobFeedCanonicalJob, settings: JobFeedSettings):
   // flexible = open to everything
   if (preferences.includes('flexible')) return false;
 
+  // "unknown" work mode means SerpAPI didn't hand us enough signal to infer
+  // remote/hybrid/onsite. Rather than drop these (losing good listings), keep
+  // them whenever the user is open to any physical work mode. The LLM ranker
+  // then reads the description and can still downgrade false-positive remote
+  // listings. Only remote_only is strict enough to benefit from dropping
+  // unknowns (remote jobs almost always advertise themselves as remote).
+  if (
+    job.work_mode === 'unknown'
+    && !preferences.every((preference) => preference === 'remote_only')
+  ) {
+    return false;
+  }
+
   // User is happy if the job matches ANY of the chosen work modes.
   const matchesAny = preferences.some((preference) => matchesRemotePreference(preference, job, settings));
   return !matchesAny;

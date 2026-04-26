@@ -55,6 +55,7 @@ import type {
 } from '@/lib/job-feed/types';
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore, type ApplicationSession as StoreApplicationSession } from '@/store/useSessionStore';
+import { useUIStore } from '@/store/useUIStore';
 import {
   type JobFeedPreviewMode,
   getJobFeedPreviewMode,
@@ -517,6 +518,16 @@ export function JobFeedPanel() {
       syncApplicationSession(typedPayload.session);
       setSelectedJob(null);
 
+      // Fire the autostart signal BEFORE navigation so the agent workflow
+      // begins even if the user stays on the Job Feed tab. The ChatPanel
+      // (always mounted on /dashboard) consumes and clears this flag on
+      // its next render.
+      if (currentCV) {
+        useUIStore.getState().setPendingJobFeedAutostart({
+          sessionId: typedPayload.session.id,
+        });
+      }
+
       posthog?.capture('job_feed_item_applied', {
         foundation_mode: true,
         job_id: job.id,
@@ -528,7 +539,7 @@ export function JobFeedPanel() {
 
       toast.success(
         currentCV
-          ? `${job.title} at ${job.company} — opening your application`
+          ? `${job.title} at ${job.company} — Karko is generating your application`
           : `${job.title} at ${job.company} — upload your CV to continue`
       );
 
