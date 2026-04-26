@@ -779,7 +779,6 @@ export function JobFeedPanel() {
                 feedSummary={buildFeedSummary(shellForm)}
                 onOpenDetails={handleOpenDetails}
                 onApplyWithKarko={handleApplyWithKarko}
-                onEditSettings={openSetupWizard}
               />
             )}
 
@@ -848,27 +847,28 @@ function SignedOutStage() {
         <div className="mb-6 flex justify-center">
           <KarkoIcon theme="light" size="lg" />
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight text-charcoal sm:text-4xl">
+        <h1 className="font-serif text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
           Jobs picked for you, every day
         </h1>
-        <p className="mx-auto mt-4 max-w-md text-base leading-relaxed text-warm-gray">
-          Tell Karko what you're looking for. Each morning, your best matches are ready when you open this page.
+        <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-warm-gray">
+          Tell Karko what you&apos;re looking for. Each morning, your best matches are ready when you open this page.
         </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
+        <div className="mt-8 flex flex-col items-center gap-3">
           <Link href="/auth/signup" className="inline-flex">
-            <Button variant="gold" className="px-6 py-3 text-base">
+            <Button variant="gold" className="px-7 py-3 text-base">
               Sign up free
             </Button>
           </Link>
-          <Link href="/auth/login" className="inline-flex">
-            <Button variant="outline" className="px-6 py-3 text-base">
-              Sign in
-            </Button>
+          <Link
+            href="/auth/login"
+            className="text-sm font-medium text-navy-600 transition-colors hover:text-navy-700"
+          >
+            Already have an account? Sign in
           </Link>
         </div>
       </div>
 
-      <div className="mt-12 w-full max-w-2xl">
+      <div className="mt-14 w-full max-w-2xl">
         <FeedPreviewCards />
       </div>
     </div>
@@ -882,23 +882,40 @@ function UpgradeStage() {
         <div className="mb-6 flex justify-center">
           <KarkoIcon theme="dark" size="lg" />
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight text-charcoal sm:text-4xl">
+        <h1 className="font-serif text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
           Get jobs picked for you, every morning
         </h1>
-        <p className="mx-auto mt-4 max-w-md text-base leading-relaxed text-warm-gray">
+        <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-warm-gray">
           Upgrade to Plus and Karko will search for jobs while you sleep. When you open this page, your top matches are already here.
         </p>
-        <div className="mt-8">
+
+        <ul className="mx-auto mt-6 flex max-w-sm flex-col gap-2 text-left text-sm text-charcoal">
+          <li className="flex items-start gap-2">
+            <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gold-400" />
+            Fresh picks delivered at your chosen hour
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gold-400" />
+            Search across roles, countries, and cities
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gold-400" />
+            Up to 15 ranked matches visible per day on Plus
+          </li>
+        </ul>
+
+        <div className="mt-8 flex flex-col items-center gap-2">
           <Link href="/pricing" className="inline-flex">
             <Button variant="gold" className="px-8 py-3 text-base">
               Upgrade to Plus
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>
+          <p className="text-xs text-warm-gray">Plus plan · Cancel anytime</p>
         </div>
       </div>
 
-      <div className="mt-12 w-full max-w-2xl">
+      <div className="mt-14 w-full max-w-2xl">
         <FeedPreviewCards />
       </div>
     </div>
@@ -913,21 +930,26 @@ function FeedPreviewCards() {
   ];
 
   return (
-    <div className="space-y-3 opacity-50 select-none" aria-hidden>
-      {previewJobs.map((job) => (
-        <div key={job.title} className="flex items-center gap-4 rounded-2xl border border-cream-200 bg-white/80 px-5 py-4 shadow-sm blur-[1px]">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cream-100">
-            <Building2 className="h-5 w-5 text-warm-gray" />
+    <div className="relative select-none" aria-hidden>
+      <div className="space-y-3">
+        {previewJobs.map((job) => (
+          <div key={job.title} className="flex items-center gap-4 rounded-2xl border border-cream-200 bg-cream-50 px-5 py-4 shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white border border-cream-200">
+              <Building2 className="h-5 w-5 text-navy-600" />
+            </div>
+            <div className="min-w-0 flex-1 text-left">
+              <p className="text-sm font-semibold text-charcoal">{job.title}</p>
+              <p className="text-xs text-warm-gray">{job.company} · {job.location}</p>
+            </div>
+            <span className="inline-flex items-center gap-1.5 shrink-0">
+              <span className={`h-1.5 w-1.5 rounded-full ${job.fit === 'Strong' ? 'bg-sage-500' : 'bg-navy-400'}`} />
+              <span className="text-xs font-medium text-charcoal">{job.fit} match</span>
+            </span>
           </div>
-          <div className="min-w-0 flex-1 text-left">
-            <p className="text-sm font-semibold text-charcoal">{job.title}</p>
-            <p className="text-xs text-warm-gray">{job.company} · {job.location}</p>
-          </div>
-          <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-            {job.fit}
-          </span>
-        </div>
-      ))}
+        ))}
+      </div>
+      {/* Soft bottom fade so the list teases more without a hard blur wall */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-cream-100 to-transparent" />
     </div>
   );
 }
@@ -969,12 +991,17 @@ function FeedPageHeader({
     ? `${summarizeList(form.target_roles)} · ${summarizeCountries(form.target_countries, form.target_market)}`
     : null;
 
+  const deliveredAt = isReady && latestRun?.completed_at ? formatDeliveredAtLabel(latestRun.completed_at) : null;
+
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-charcoal">{headline}</h1>
+        <h1 className="font-serif text-3xl font-semibold tracking-tight text-charcoal">{headline}</h1>
         {subtitle && (
           <p className="mt-1 text-sm text-warm-gray">{subtitle}</p>
+        )}
+        {deliveredAt && (
+          <p className="mt-0.5 text-xs text-warm-gray">Delivered {deliveredAt}</p>
         )}
       </div>
       <div className="flex items-center gap-2">
@@ -1011,34 +1038,51 @@ function InlineStateMessage({
   overview: JobFeedOverviewResponse | null;
   onStartSetup: () => void;
 }) {
-  const config: Record<string, { icon: typeof Sparkles; message: string; action?: string }> = {
+  type Tone = 'neutral' | 'warning' | 'primary';
+  const config: Record<string, {
+    icon: typeof Sparkles;
+    message: string;
+    action?: string;
+    tone: Tone;
+    ctaVariant?: 'gold' | 'outline';
+  }> = {
     setup_required: {
       icon: Settings2,
       message: 'Add your roles and delivery time so Karko knows what to look for.',
       action: 'Start setup',
+      tone: 'primary',
+      ctaVariant: 'gold',
     },
     paused: {
       icon: PauseCircle,
       message: 'Your settings are saved. Turn the feed back on when you\'re ready.',
       action: 'Edit settings',
+      tone: 'neutral',
+      ctaVariant: 'outline',
     },
     awaiting_first_run: {
       icon: CalendarClock,
       message: 'Everything is set. Your first jobs will arrive at your chosen delivery time.',
+      tone: 'neutral',
     },
     generating: {
       icon: Loader2,
       message: 'Karko is finding your jobs right now. This usually takes a few minutes.',
+      tone: 'neutral',
     },
     empty: {
       icon: AlertCircle,
-      message: 'Nothing looked strong enough today. Try widening a filter for better results tomorrow.',
+      message: 'Nothing matched today. Try broadening your countries, loosening seniority, or removing a minimum salary to improve tomorrow\'s results.',
       action: 'Adjust settings',
+      tone: 'warning',
+      ctaVariant: 'outline',
     },
     error: {
       icon: AlertCircle,
       message: overview?.latestRun?.error_message || 'Something went wrong with the latest run. Try refreshing or checking your settings.',
       action: 'Review settings',
+      tone: 'warning',
+      ctaVariant: 'outline',
     },
   };
 
@@ -1048,16 +1092,28 @@ function InlineStateMessage({
   const Icon = stateConfig.icon;
   const isAnimated = state === 'generating';
 
+  const toneClasses: Record<Tone, { tile: string; icon: string }> = {
+    neutral: { tile: 'bg-navy-50', icon: 'text-navy-600' },
+    warning: { tile: 'bg-gold-50 border border-gold-200', icon: 'text-gold-700' },
+    primary: { tile: 'bg-gold-50 border border-gold-200', icon: 'text-gold-700' },
+  };
+  const tone = toneClasses[stateConfig.tone];
+
   return (
-    <div className="flex items-start gap-4 rounded-2xl border border-cream-200 bg-white/90 px-5 py-4 shadow-sm">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-navy-50">
-        <Icon className={`h-5 w-5 text-navy-600 ${isAnimated ? 'animate-spin' : ''}`} />
+    <div className="flex items-start gap-4 rounded-2xl border border-cream-200 bg-cream-50 px-5 py-4 shadow-sm">
+      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tone.tile}`}>
+        <Icon className={`h-5 w-5 ${tone.icon} ${isAnimated ? 'animate-spin' : ''}`} />
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm leading-relaxed text-charcoal">{stateConfig.message}</p>
       </div>
       {stateConfig.action && (
-        <Button variant="outline" size="sm" onClick={onStartSetup} className="shrink-0">
+        <Button
+          variant={stateConfig.ctaVariant ?? 'outline'}
+          size="sm"
+          onClick={onStartSetup}
+          className="shrink-0"
+        >
           {stateConfig.action}
         </Button>
       )}
@@ -1220,17 +1276,40 @@ function JobFeedOnboardingWizard({
     }
   }, [form.user_timezone, onFormChange]);
 
+  const currentStep = !chunk1Done
+    ? 1
+    : form.remote_preferences.length === 0
+      ? 2
+      : !isValidTimeZone(form.user_timezone)
+        ? 3
+        : 4;
+
   return (
-    <Card className="overflow-hidden rounded-[32px] border-cream-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.985),rgba(248,244,234,0.94))] p-0 shadow-[0_28px_80px_-42px_rgba(30,58,95,0.35)]">
+    <Card className="overflow-hidden rounded-[24px] border-cream-200 bg-cream-50 p-0 shadow-[0_20px_48px_-24px_rgba(30,58,95,0.18)]">
       <div className="border-b border-cream-200 px-6 py-5 sm:px-8">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-xl font-semibold tracking-tight text-charcoal">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <h2 className="font-serif text-xl font-semibold tracking-tight text-charcoal">
               {isEditing ? 'Edit your feed settings' : 'Set up your daily feed'}
             </h2>
             <p className="mt-1 text-sm text-warm-gray">
               {isEditing ? 'Changes save when you press save below.' : 'Fill in the basics and your first feed will be ready by tomorrow.'}
             </p>
+            {!isEditing && (
+              <div className="mt-4 flex items-center gap-1.5" aria-label={`Step ${currentStep} of 4`}>
+                {[1, 2, 3, 4].map((step) => (
+                  <span
+                    key={step}
+                    className={`h-1.5 rounded-full transition-all duration-200 ${
+                      step <= currentStep
+                        ? 'w-8 bg-navy-600'
+                        : 'w-4 bg-cream-300'
+                    }`}
+                  />
+                ))}
+                <span className="ml-2 text-xs font-medium text-warm-gray">Step {currentStep} of 4</span>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {!isEditing && !cvSuggestionApplied && (
@@ -1277,8 +1356,7 @@ function JobFeedOnboardingWizard({
       <div className="space-y-0 divide-y divide-cream-200">
         {/* Step 1: Roles + Countries */}
         <div className="px-6 py-6 sm:px-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy-500">Step 1 of 4</p>
-          <p className="mt-1 text-sm font-semibold text-charcoal">What jobs are you looking for?</p>
+          <p className="text-sm font-semibold text-charcoal">What jobs are you looking for?</p>
           <div className="mt-4 space-y-4">
             <FieldGroup
               label="Roles"
@@ -1345,8 +1423,7 @@ function JobFeedOnboardingWizard({
         {/* Step 2: Work mode */}
         {showChunk2 && (
           <div className="px-6 py-6 sm:px-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy-500">Step 2 of 4</p>
-            <p className="mt-1 text-sm font-semibold text-charcoal">How do you want to work?</p>
+            <p className="text-sm font-semibold text-charcoal">How do you want to work?</p>
             <div className="mt-4 space-y-4">
               <FieldGroup
                 label="Work modes"
@@ -1419,16 +1496,16 @@ function JobFeedOnboardingWizard({
             <button
               type="button"
               onClick={() => setIsAdvancedOpen((prev) => !prev)}
-              className="flex w-full items-center justify-between gap-3 rounded-[18px] border border-navy-200 bg-navy-50/60 px-4 py-3 transition-colors hover:bg-navy-50"
+              className="flex w-full items-center justify-between gap-3 rounded-2xl border border-cream-200 bg-white px-4 py-3 transition-colors hover:border-navy-200"
             >
               <div className="flex items-center gap-3">
                 {isAdvancedOpen ? <ChevronUp className="h-4 w-4 text-navy-600" /> : <ChevronDown className="h-4 w-4 text-navy-600" />}
                 <div className="text-left">
-                  <p className="text-sm font-semibold text-charcoal">Step 4 — Fine-tune your feed</p>
+                  <p className="text-sm font-semibold text-charcoal">Fine-tune your feed</p>
                   <p className="text-xs text-warm-gray">Seniority, skills, minimum salary and a few more details to improve matches.</p>
                 </div>
               </div>
-              <span className="shrink-0 rounded-full bg-navy-600 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+              <span className="shrink-0 rounded-full border border-navy-200 bg-navy-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-navy-700">
                 Recommended
               </span>
             </button>
@@ -1550,7 +1627,7 @@ function JobFeedOnboardingWizard({
           <div className="px-6 py-6 sm:px-8">
             <div className="flex flex-col items-center gap-4 text-center">
               {!isEditing && !hasRecordedConsent && (
-                <label className="flex items-start justify-center gap-3 text-left">
+                <label className="flex max-w-md items-start justify-center gap-3 text-left">
                   <input
                     type="checkbox"
                     checked={form.consent_accepted}
@@ -1558,7 +1635,7 @@ function JobFeedOnboardingWizard({
                     className="mt-1 h-4 w-4 rounded border-cream-300 text-navy-600 focus:ring-navy-500"
                   />
                   <span className="text-sm leading-relaxed text-charcoal">
-                    Karko will search for jobs for you once a day.
+                    I agree to let Karko search for jobs on my behalf once a day, using the preferences above.
                   </span>
                 </label>
               )}
@@ -1622,7 +1699,7 @@ function buildFeedSummary(form: JobFeedSettingsInput): string {
   const roles = summarizeTargetRoles(form.target_roles);
   const countries = summarizeCountries(form.target_countries, form.target_market);
   const delivery = formatDeliveryHourLabel(form.delivery_hour_local);
-  return `Roles: ${roles} | Countries: ${countries} | Delivery: ${delivery} ${form.user_timezone}`;
+  return `${roles}  ·  ${countries}  ·  Delivered at ${delivery}`;
 }
 
 function OperationalSnapshotCard({
@@ -1809,4 +1886,17 @@ function getBrowserTimeZone(): string {
   } catch {
     return 'UTC';
   }
+}
+
+function formatDeliveredAtLabel(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const now = new Date();
+  const sameDay = date.getFullYear() === now.getFullYear()
+    && date.getMonth() === now.getMonth()
+    && date.getDate() === now.getDate();
+  if (sameDay) {
+    return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+  }
+  return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }

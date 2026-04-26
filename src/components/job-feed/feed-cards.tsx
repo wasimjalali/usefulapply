@@ -93,15 +93,15 @@ export function MetaPill({
 }: {
   icon: typeof MapPin;
   label: string;
-  tone?: 'default' | 'emerald';
+  tone?: 'default' | 'sage';
 }) {
-  const classes = tone === 'emerald'
-    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-    : 'border-cream-200 bg-cream-50 text-charcoal';
+  const classes = tone === 'sage'
+    ? 'border-sage-200 bg-sage-50 text-sage-700'
+    : 'border-cream-200 bg-white text-charcoal';
 
   return (
-    <span className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${classes}`}>
-      <Icon className={`h-4 w-4 ${tone === 'emerald' ? 'text-emerald-600' : 'text-warm-gray'}`} />
+    <span className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm ${classes}`}>
+      <Icon className={`h-4 w-4 ${tone === 'sage' ? 'text-sage-600' : 'text-warm-gray'}`} />
       {label}
     </span>
   );
@@ -268,43 +268,43 @@ export function JobFeedCard({
   const isApplied = Boolean(job.feedback.appliedAt);
 
   return (
-    <div className={`rounded-[24px] border p-5 shadow-sm transition-colors duration-200 ${
+    <div className={`rounded-[24px] border p-5 transition-colors duration-200 ${
       isApplying
-        ? 'border-gold-300 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(212,168,83,0.08))] ring-1 ring-gold-200'
-        : 'border-cream-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,244,234,0.82))]'
+        ? 'border-gold-300 bg-gold-50/40 ring-1 ring-gold-200'
+        : 'border-cream-200 bg-cream-50 hover:border-navy-200'
     }`}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-1.5">
-              <span className={`h-2 w-2 flex-shrink-0 rounded-full ${job.fitLabel === 'strong' ? 'bg-emerald-500' : 'bg-sky-400'}`} />
+              <span className={`h-2 w-2 flex-shrink-0 rounded-full ${job.fitLabel === 'strong' ? 'bg-sage-500' : 'bg-navy-400'}`} />
               <span className="text-sm font-semibold text-charcoal">
                 {job.fitLabel === 'strong' ? 'Strong match' : job.fitLabel === 'good' ? 'Good match' : 'Promising match'}
               </span>
             </span>
-            {isSaved && !isApplied && (
-              <span className="inline-flex items-center gap-2 rounded-full border border-gold-200 bg-gold-50 px-3 py-1 text-xs font-medium text-gold-700">
-                Saved
-              </span>
-            )}
-            {isApplied && (
+            {isApplied ? (
               <span className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-medium text-navy-700">
                 Application started
               </span>
-            )}
+            ) : isSaved ? (
+              <span className="inline-flex items-center gap-2 rounded-full border border-gold-200 bg-gold-50 px-3 py-1 text-xs font-medium text-gold-700">
+                Saved
+              </span>
+            ) : null}
           </div>
 
-          <h3 className="mt-3 text-xl font-semibold text-charcoal">{job.title}</h3>
+          <h3 className="mt-3 font-serif text-xl font-semibold tracking-tight text-charcoal">{job.title}</h3>
           <p className="mt-1 text-base text-warm-gray">{job.company}</p>
 
           <div className="mt-3 flex flex-wrap gap-2">
             <MetaPill icon={MapPin} label={job.location || 'Location not specified'} />
             <MetaPill icon={Globe} label={workModeLabel(job.workMode)} />
-            {job.salaryText && <MetaPill icon={DollarSign} label={job.salaryText} tone="emerald" />}
+            {job.salaryText && <MetaPill icon={DollarSign} label={job.salaryText} tone="sage" />}
+            {job.postedAtText && <MetaPill icon={Calendar} label={job.postedAtText} />}
           </div>
 
           {job.description && (
-            <p className="mt-3 text-sm leading-6 text-charcoal/85 line-clamp-2">
+            <p className="mt-3 text-sm leading-6 text-charcoal line-clamp-2">
               {job.description.replace(/\s+/g, ' ').trim()}
             </p>
           )}
@@ -315,17 +315,13 @@ export function JobFeedCard({
             {isApplying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isApplying ? 'Opening...' : isApplied ? 'Continue in Karko' : 'Apply with Karko'}
           </Button>
-          <div className="flex items-center justify-center gap-2">
-            <button
-              type="button"
-              onClick={onOpenDetails}
-              className="py-1 text-sm font-medium text-navy-600 hover:text-navy-700"
-            >
-              Details
-            </button>
-            <span className="text-cream-300">·</span>
-            <CopyJobButton job={job} />
-          </div>
+          <button
+            type="button"
+            onClick={onOpenDetails}
+            className="py-1 text-center text-sm font-medium text-navy-600 transition-colors hover:text-navy-700"
+          >
+            View details
+          </button>
         </div>
       </div>
     </div>
@@ -374,35 +370,34 @@ export function JobFeedDetailModal({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 md:p-6" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy-900/55 p-4 md:p-6" onClick={onClose}>
       <div
-        className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl"
+        className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-[24px] bg-white shadow-[0_24px_80px_-24px_rgba(15,25,41,0.45)]"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start gap-4 border-b border-cream-200 bg-cream-50 px-6 py-5">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-cream-200 bg-white text-navy-600">
-            <Building2 className="h-8 w-8" />
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-cream-200 bg-white text-navy-600">
+            <Building2 className="h-7 w-7" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5">
-                <span className={`h-2 w-2 flex-shrink-0 rounded-full ${job.fitLabel === 'strong' ? 'bg-emerald-500' : 'bg-sky-400'}`} />
+                <span className={`h-2 w-2 flex-shrink-0 rounded-full ${job.fitLabel === 'strong' ? 'bg-sage-500' : 'bg-navy-400'}`} />
                 <span className="text-sm font-semibold text-charcoal">
                   {job.fitLabel === 'strong' ? 'Strong match' : job.fitLabel === 'good' ? 'Good match' : 'Promising match'}
                 </span>
               </span>
-              {isSaved && !isApplied && (
-                <span className="inline-flex items-center gap-2 rounded-full border border-gold-200 bg-gold-50 px-3 py-1 text-xs font-medium text-gold-700">
-                  Saved
-                </span>
-              )}
-              {isApplied && (
+              {isApplied ? (
                 <span className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-medium text-navy-700">
                   Application started
                 </span>
-              )}
+              ) : isSaved ? (
+                <span className="inline-flex items-center gap-2 rounded-full border border-gold-200 bg-gold-50 px-3 py-1 text-xs font-medium text-gold-700">
+                  Saved
+                </span>
+              ) : null}
             </div>
-            <h2 className="mt-3 text-2xl font-semibold text-charcoal">{job.title}</h2>
+            <h2 className="mt-2 font-serif text-2xl font-semibold tracking-tight text-charcoal">{job.title}</h2>
             <p className="mt-1 text-lg text-warm-gray">{job.company}</p>
           </div>
           <button
@@ -411,15 +406,15 @@ export function JobFeedDetailModal({
             className="rounded-lg p-2 text-warm-gray transition-colors hover:bg-cream-100 hover:text-charcoal"
             aria-label="Close job details"
           >
-            <X className="h-5 w-5" />
+            <X className="h-6 w-6" />
           </button>
         </div>
 
         <div className="flex-1 overflow-auto px-6 py-6">
-          <div className="mb-6 flex flex-wrap gap-3">
+          <div className="mb-6 flex flex-wrap gap-2">
             <MetaPill icon={MapPin} label={job.location || 'Location not specified'} />
             <MetaPill icon={Globe} label={workModeLabel(job.workMode)} />
-            {job.salaryText && <MetaPill icon={DollarSign} label={job.salaryText} tone="emerald" />}
+            {job.salaryText && <MetaPill icon={DollarSign} label={job.salaryText} tone="sage" />}
             {job.employmentType && <MetaPill icon={Briefcase} label={employmentTypeLabel(job.employmentType)} />}
             {job.postedAtText && <MetaPill icon={Calendar} label={job.postedAtText} />}
           </div>
@@ -430,8 +425,8 @@ export function JobFeedDetailModal({
 
           {job.description ? (
             <div className="mb-6">
-              <h3 className="mb-3 text-base font-semibold text-charcoal">Role details</h3>
-              <div className="text-sm leading-7 text-charcoal/90">
+              <h3 className="mb-3 font-serif text-base font-semibold text-charcoal">Role details</h3>
+              <div className="text-sm leading-7 text-charcoal">
                 <JobFeedDescription text={job.description} />
               </div>
             </div>
@@ -443,7 +438,7 @@ export function JobFeedDetailModal({
 
           {job.applyOptions.length > 0 && (
             <div>
-              <h3 className="mb-3 text-base font-semibold text-charcoal">Apply via</h3>
+              <h3 className="mb-3 font-serif text-base font-semibold text-charcoal">Apply via</h3>
               <div className="flex flex-wrap gap-2">
                 {job.applyOptions.map((option) => (
                   <a
@@ -463,7 +458,7 @@ export function JobFeedDetailModal({
 
           {/* Match-quality feedback. Signal is stored on job_feed_feedback so
               the ranking pipeline can consume it later to tune the user's feed. */}
-          <div className="mt-6 rounded-2xl border border-cream-200 bg-cream-50/70 px-4 py-3">
+          <div className="mt-6 rounded-2xl border border-cream-200 bg-cream-50 px-4 py-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-semibold text-charcoal">How does this match feel?</p>
@@ -477,8 +472,8 @@ export function JobFeedDetailModal({
                   aria-pressed={matchRating === 'helpful'}
                   className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-60 ${
                     matchRating === 'helpful'
-                      ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-                      : 'border-cream-300 bg-white text-warm-gray hover:border-emerald-200 hover:text-emerald-700'
+                      ? 'border-sage-300 bg-sage-50 text-sage-700'
+                      : 'border-cream-300 bg-white text-warm-gray hover:border-sage-300 hover:text-sage-700'
                   }`}
                 >
                   <ThumbsUp className="h-3.5 w-3.5" />
@@ -491,8 +486,8 @@ export function JobFeedDetailModal({
                   aria-pressed={matchRating === 'not_relevant'}
                   className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-60 ${
                     matchRating === 'not_relevant'
-                      ? 'border-rose-300 bg-rose-50 text-rose-700'
-                      : 'border-cream-300 bg-white text-warm-gray hover:border-rose-200 hover:text-rose-700'
+                      ? 'border-navy-200 bg-navy-50 text-navy-700'
+                      : 'border-cream-300 bg-white text-warm-gray hover:border-navy-200 hover:text-navy-700'
                   }`}
                 >
                   <ThumbsDown className="h-3.5 w-3.5" />
@@ -503,21 +498,8 @@ export function JobFeedDetailModal({
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-cream-200 bg-cream-50 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-3">
-            <CopyJobButton job={job} variant="modal" />
-            {directApplyLink && (
-              <a
-                href={directApplyLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={onExternalApply}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-navy-700 transition-colors hover:text-navy-900"
-              >
-                Employer site
-                <ExternalLink className="h-3.5 w-3.5" />
-              </a>
-            )}
+        <div className="flex flex-col gap-3 border-t border-cream-200 bg-cream-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-4">
             {!isApplied && (
               <>
                 <button
@@ -540,6 +522,19 @@ export function JobFeedDetailModal({
                 </button>
               </>
             )}
+            <CopyJobButton job={job} variant="modal" />
+            {directApplyLink && (
+              <a
+                href={directApplyLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onExternalApply}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-navy-600 transition-colors hover:text-navy-700"
+              >
+                Employer site
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            )}
           </div>
           <Button variant="gold" onClick={onApplyWithKarko} disabled={isApplying}>
             {isApplying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -559,7 +554,6 @@ export function FeedResultsCard({
   onToggleShowAll,
   onOpenDetails,
   onApplyWithKarko,
-  onEditSettings,
 }: {
   jobs: JobFeedFeedItem[];
   isShowingAllJobs: boolean;
@@ -568,7 +562,6 @@ export function FeedResultsCard({
   onToggleShowAll: () => void;
   onOpenDetails: (job: JobFeedFeedItem) => void;
   onApplyWithKarko: (job: JobFeedFeedItem) => void;
-  onEditSettings: () => void;
 }) {
   const visibleCount = isShowingAllJobs ? JOB_FEED_VISIBLE_MAX_COUNT : JOB_FEED_VISIBLE_DEFAULT_COUNT;
   const visibleJobs = jobs.slice(0, visibleCount);
@@ -576,19 +569,9 @@ export function FeedResultsCard({
   const remainingCount = Math.max(0, Math.min(jobs.length, JOB_FEED_VISIBLE_MAX_COUNT) - JOB_FEED_VISIBLE_DEFAULT_COUNT);
 
   return (
-    <Card className="rounded-[24px] border-cream-200 bg-white/92 p-6 shadow-sm">
+    <Card className="rounded-[24px] border-cream-200 bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-warm-gray">
-          {feedSummary}
-          {' · '}
-          <button
-            type="button"
-            onClick={onEditSettings}
-            className="font-medium text-navy-600 hover:text-navy-700"
-          >
-            Edit
-          </button>
-        </p>
+        <p className="text-sm text-warm-gray">{feedSummary}</p>
 
         {hasMore && (
           <button
