@@ -15,6 +15,7 @@ Specialist agents are the **preferred** way to handle bug investigations, extern
 - **`supabase-dba`** — When writing or reviewing migrations in `supabase/migrations/`, changing RLS policies, touching schema, or when a query looks suspicious. Will not run migrations itself.
 - **`integration-tester`** — Before every commit touching components, hooks, API routes, or job-feed files. Runs tsc + lint + narrow spot-checks. Cheap and fast — uses Haiku 4.5.
 - **`job-feed-specialist`** — When editing anything under `src/lib/job-feed/**`, `src/inngest/job-feed.ts`, `src/app/api/job-feed/**`, or `src/components/job-feed/**`. Owns ingestion, prefilter, LLM ranker, batch reconcile, and settings flows.
+- **`karko-ui-designer`** — For UI/UX audits, redesigns, and visual polish. Carries brand tokens (navy/cream/gold), typography (Georgia+Arial), and anti-AI-slop rules in its system prompt. Can audit AND implement. Does NOT touch backend, API routes, data fetching, or Zustand stores.
 
 ### Global-scope agents (all projects — from `~/.claude/CLAUDE.md`)
 - **`reviewer`** — BEFORE any git commit with non-trivial changes (>30 lines), when touching security-sensitive code (auth, API routes, DB, Stripe webhooks, credits), or when user says "review this / check this / any issues?".
