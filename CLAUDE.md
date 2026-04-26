@@ -11,6 +11,10 @@ Specialist agents are the **preferred** way to handle bug investigations, extern
 ### Project-scope agents (this repo)
 - **`agent-expert`** — When editing anything in `src/lib/agents/`, `src/lib/agents/prompts/`, `src/lib/models/`, `src/app/api/agent-v2/`, or the `useAgentV2` / `useAgentWorkflow` hooks. Also for anti-hallucination rule changes, SSE event debugging, context-builder work, CV pipeline, fit-assessment prompts.
 - **`ui-tester`** — After any UI change to `/dashboard`, `/applications`, `/documents`, `/` (landing), or shared components (ChatPanel, CVPanel, CoverLetterPanel, EmailPanel, JobFeedPanel). Uses Playwright MCP. Run before calling a UI task done.
+- **`karko-architect`** — For cross-cutting design decisions, refactors, and "where should this state live" questions. Use for anything that spans 3+ files or has non-obvious tradeoffs. Returns a plan with ordered steps; does not modify code itself.
+- **`supabase-dba`** — When writing or reviewing migrations in `supabase/migrations/`, changing RLS policies, touching schema, or when a query looks suspicious. Will not run migrations itself.
+- **`integration-tester`** — Before every commit touching components, hooks, API routes, or job-feed files. Runs tsc + lint + narrow spot-checks. Cheap and fast — uses Haiku 4.5.
+- **`job-feed-specialist`** — When editing anything under `src/lib/job-feed/**`, `src/inngest/job-feed.ts`, `src/app/api/job-feed/**`, or `src/components/job-feed/**`. Owns ingestion, prefilter, LLM ranker, batch reconcile, and settings flows.
 
 ### Global-scope agents (all projects — from `~/.claude/CLAUDE.md`)
 - **`reviewer`** — BEFORE any git commit with non-trivial changes (>30 lines), when touching security-sensitive code (auth, API routes, DB, Stripe webhooks, credits), or when user says "review this / check this / any issues?".
