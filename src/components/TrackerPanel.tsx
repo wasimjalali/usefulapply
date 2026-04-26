@@ -197,7 +197,7 @@ function PipelineStage({
       className={`relative flex-1 min-w-[100px] flex flex-col items-center justify-center px-3 py-3.5 cursor-pointer transition-all ${
         active
           ? 'bg-gradient-to-r from-navy-600 to-navy-700 text-white shadow-sm'
-          : 'bg-transparent text-charcoal hover:bg-white/75'
+          : 'bg-transparent text-charcoal hover:bg-cream-50'
       } ${isFirst ? 'rounded-l-[18px]' : ''} ${isLast ? 'rounded-r-[18px]' : ''}`}
     >
       <span className={`text-xl font-bold leading-none ${active ? 'text-white' : 'text-navy-700'}`}>
@@ -703,7 +703,7 @@ export function TrackerPanel() {
     <div className="h-full overflow-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Pipeline Status Bar */}
-        <div className="flex rounded-[24px] border border-cream-200 bg-white/90 p-1 shadow-[0_18px_42px_-32px_rgba(30,58,95,0.2)] backdrop-blur-sm">
+        <div className="flex rounded-[24px] border border-cream-200 bg-cream-50 p-1 shadow-[0_18px_42px_-32px_rgba(30,58,95,0.2)]">
           <PipelineStage
             label="All"
             count={totalCount}
@@ -776,7 +776,7 @@ export function TrackerPanel() {
             <div className="inline-flex p-6 bg-cream-100 rounded-3xl mb-6">
               <Briefcase className="w-12 h-12 text-warm-gray/60" />
             </div>
-            <h3 className="text-xl font-bold text-navy-700 mb-2">No jobs tracked yet</h3>
+            <h3 className="text-xl font-serif font-semibold tracking-tight text-navy-700 mb-2">No jobs tracked yet</h3>
             <p className="text-base text-warm-gray mb-8 max-w-sm mx-auto leading-relaxed">
               Start your first job application and it will appear here automatically.
             </p>
@@ -793,7 +793,7 @@ export function TrackerPanel() {
             <div className="inline-flex p-6 bg-cream-100 rounded-3xl mb-6">
               <Search className="w-12 h-12 text-warm-gray/60" />
             </div>
-            <h3 className="text-xl font-bold text-navy-700 mb-2">No jobs match this view</h3>
+            <h3 className="text-xl font-serif font-semibold tracking-tight text-navy-700 mb-2">No jobs match this view</h3>
             <p className="text-base text-warm-gray mb-6 max-w-sm mx-auto">
               Try adjusting your search or filter criteria.
             </p>
@@ -854,10 +854,10 @@ export function TrackerPanel() {
 
             {/* Desktop Table */}
             <div className="hidden md:block mt-4">
-              <div className="overflow-hidden rounded-[24px] border border-cream-200 bg-white/95 shadow-[0_22px_56px_-38px_rgba(30,58,95,0.24)] backdrop-blur-sm">
+              <div className="overflow-hidden rounded-[24px] border border-cream-200 bg-cream-50 shadow-[0_22px_56px_-38px_rgba(30,58,95,0.24)]">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-cream-200 bg-gradient-to-r from-cream-50 to-white">
+                    <tr className="border-b border-cream-200 bg-cream-100">
                       <th className="w-12 px-4 py-4" />
                       <th className="text-left px-6 py-4 text-xs font-semibold text-warm-gray uppercase tracking-wider">Job Position</th>
                       <th className="text-left px-6 py-4 text-xs font-semibold text-warm-gray uppercase tracking-wider">Company</th>
@@ -874,7 +874,7 @@ export function TrackerPanel() {
                       return (
                         <tr
                           key={app.id}
-                          className={`group transition-colors ${navigatingSessionId === app.id ? 'bg-cream-50 opacity-70' : 'hover:bg-cream-50/50'}`}
+                          className={`group transition-colors ${navigatingSessionId === app.id ? 'bg-cream-50 opacity-70' : 'hover:bg-cream-100'}`}
                         >
                           <td className="w-12 px-4 py-5">
                             <input
@@ -1001,7 +1001,7 @@ export function TrackerPanel() {
                 return (
                   <div
                     key={app.id}
-                    className={`rounded-[24px] border border-cream-200 bg-white/95 p-5 shadow-[0_18px_40px_-32px_rgba(30,58,95,0.22)] transition-all ${navigatingSessionId === app.id ? 'opacity-70' : 'hover:border-cream-300 hover:shadow-[0_22px_48px_-32px_rgba(30,58,95,0.26)]'}`}
+                    className={`rounded-[24px] border border-cream-200 bg-cream-50 p-5 shadow-[0_18px_40px_-32px_rgba(30,58,95,0.22)] transition-all ${navigatingSessionId === app.id ? 'opacity-70' : 'hover:border-cream-300 hover:shadow-[0_22px_48px_-32px_rgba(30,58,95,0.26)]'}`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <input

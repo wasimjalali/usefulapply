@@ -65,7 +65,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream-100 via-cream-50 to-cream-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-cream-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">

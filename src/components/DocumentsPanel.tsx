@@ -448,7 +448,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
       <div className="h-full overflow-auto px-5 py-5">
         <div className="max-w-3xl mx-auto">
           {/* Auto-save notice */}
-          <div className="mb-6 p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-cream-200 shadow-sm">
+          <div className="mb-6 p-4 bg-cream-50 rounded-xl border border-cream-200 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-navy-50 rounded-lg">
                 <Sparkles className="w-4 h-4 text-gold-500" />
@@ -471,7 +471,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                     <FileText className="w-5 h-5 text-gold-300" />
                   </div>
                   <div className="flex-1">
-                    <h2 className="text-base font-semibold text-charcoal">CV</h2>
+                    <h2 className="text-base font-serif font-semibold tracking-tight text-charcoal">CV</h2>
                     <p className="text-sm text-warm-gray mt-0.5">
                       Your main CV that will be optimized for each job application.
                     </p>
@@ -567,7 +567,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                     <Camera className="w-5 h-5 text-gold-300" />
                   </div>
                   <div className="flex-1">
-                    <h2 className="text-base font-semibold text-charcoal">Profile Photo</h2>
+                    <h2 className="text-base font-serif font-semibold tracking-tight text-charcoal">Profile Photo</h2>
                     <p className="text-sm text-warm-gray mt-0.5">
                       Upload a professional photo for European CV templates.
                       <span className="text-navy-600 font-medium"> Required for EU/German templates.</span>
@@ -638,7 +638,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                       <FileText className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h2 className="text-base font-semibold text-charcoal">Master CV <span className="text-sm font-normal text-warm-gray">(Optional)</span></h2>
+                      <h2 className="text-base font-serif font-semibold tracking-tight text-charcoal">Master CV <span className="text-sm font-normal text-warm-gray">(Optional)</span></h2>
                       <p className="text-sm text-warm-gray mt-0.5">
                         A comprehensive document with ALL your skills, experiences, and achievements.
                       </p>
@@ -751,7 +751,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
               <FolderOpen className="w-7 h-7 text-gold-300" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-charcoal">Your Documents</h1>
+              <h1 className="text-2xl font-serif font-semibold tracking-tight text-charcoal">Your Documents</h1>
               <p className="text-sm text-warm-gray mt-1">
                 Manage your CV and profile photo
               </p>
@@ -783,7 +783,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
       </div>
 
       {/* Auto-save notice */}
-      <div className="mb-8 p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-cream-200 shadow-sm">
+      <div className="mb-8 p-4 bg-cream-50 rounded-xl border border-cream-200 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-navy-50 rounded-lg">
             <Sparkles className="w-4 h-4 text-gold-500" />
@@ -806,7 +806,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                 <FileText className="w-5 h-5 text-gold-300" />
               </div>
               <div className="flex-1">
-                <h2 className="text-base font-semibold text-charcoal">CV</h2>
+                <h2 className="text-base font-serif font-semibold tracking-tight text-charcoal">CV</h2>
                 <p className="text-sm text-warm-gray mt-0.5">
                   Your main CV that will be optimized for each job application.
                 </p>
@@ -901,7 +901,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                 <Camera className="w-5 h-5 text-gold-300" />
               </div>
               <div className="flex-1">
-                <h2 className="text-base font-semibold text-charcoal">Profile Photo</h2>
+                <h2 className="text-base font-serif font-semibold tracking-tight text-charcoal">Profile Photo</h2>
                 <p className="text-sm text-warm-gray mt-0.5">
                   Upload a professional photo for European CV templates.
                   <span className="text-navy-600 font-medium"> Required for EU/German templates.</span>
@@ -972,7 +972,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                   <FileText className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-base font-semibold text-charcoal">Master CV <span className="text-sm font-normal text-warm-gray">(Optional)</span></h2>
+                  <h2 className="text-base font-serif font-semibold tracking-tight text-charcoal">Master CV <span className="text-sm font-normal text-warm-gray">(Optional)</span></h2>
                   <p className="text-sm text-warm-gray mt-0.5">
                     A comprehensive document with ALL your skills, experiences, and achievements.
                   </p>
@@ -1062,7 +1062,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
       </div>
 
       {/* Continue Button */}
-      <div className="mt-10 p-5 bg-white/80 backdrop-blur-sm rounded-2xl border border-cream-200 shadow-sm">
+      <div className="mt-10 p-5 bg-cream-50 rounded-2xl border border-cream-200 shadow-sm">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
             {currentCV ? (

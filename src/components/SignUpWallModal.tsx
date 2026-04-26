@@ -96,7 +96,7 @@ export function SignUpWallModal({ isOpen, onClose, trigger }: SignUpWallModalPro
           <div className="w-16 h-16 bg-gold-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Mail className="w-8 h-8 text-gold-600" />
           </div>
-          <h2 className="text-xl font-semibold text-charcoal mb-2">Check your email</h2>
+          <h2 className="text-xl font-serif font-semibold tracking-tight text-charcoal mb-2">Check your email</h2>
           <p className="text-warm-gray mb-6">
             We&apos;ve sent a confirmation link to <strong>{email}</strong>.
             Please click the link to verify your account.
@@ -133,7 +133,7 @@ export function SignUpWallModal({ isOpen, onClose, trigger }: SignUpWallModalPro
           <div className="flex justify-center mb-4">
             <KarkoLogo variant="icon" size="md" theme="light" />
           </div>
-          <h2 className="text-xl font-bold text-navy-700 mb-1">{title}</h2>
+          <h2 className="text-xl font-serif font-semibold tracking-tight text-navy-700 mb-1">{title}</h2>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-cream-50 rounded-lg border border-cream-200 mt-2">
             <Sparkles className="w-3.5 h-3.5 text-gold-500" />
             <span className="text-sm text-charcoal font-medium">{subtitle}</span>

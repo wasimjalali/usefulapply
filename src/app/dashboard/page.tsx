@@ -97,7 +97,7 @@ function DashboardProfileMenu({ profile, onSignOut }: DashboardProfileMenuProps)
       <button
         type="button"
         onClick={() => setIsOpen(prev => !prev)}
-        className="group flex items-center gap-1.5 rounded-full border border-cream-200 bg-white/90 px-1.5 py-1 shadow-sm transition-all hover:border-gold-200 hover:shadow-md cursor-pointer"
+        className="group flex items-center gap-1.5 rounded-full border border-cream-200 bg-cream-50 px-1.5 py-1 shadow-sm transition-all hover:border-gold-200 hover:shadow-md cursor-pointer"
         aria-haspopup="menu"
         aria-expanded={isOpen}
       >
@@ -131,7 +131,7 @@ function DashboardProfileMenu({ profile, onSignOut }: DashboardProfileMenuProps)
 
       {isOpen && (
         <div
-          className="absolute right-0 top-full mt-3 w-[280px] rounded-[28px] border border-cream-200 bg-white/95 p-2 shadow-[0_24px_70px_-32px_rgba(30,58,95,0.35)] backdrop-blur-md z-[80]"
+          className="absolute right-0 top-full mt-3 w-[280px] rounded-[28px] border border-cream-200 bg-cream-50 p-2 shadow-[0_24px_70px_-32px_rgba(30,58,95,0.35)] z-[80]"
           role="menu"
         >
           <div className="px-3 py-3 border-b border-cream-200">
@@ -644,7 +644,7 @@ export default function Dashboard() {
 
   return (
     <div className="h-screen flex flex-col bg-cream-100">
-      <div className="hidden md:flex items-center gap-3 px-4 py-1.5 bg-white/95 backdrop-blur-sm border-b border-cream-200 flex-shrink-0 z-50">
+      <div className="hidden md:flex items-center gap-3 px-4 py-1.5 bg-cream-50 border-b border-cream-200 flex-shrink-0 z-50">
         <button
           type="button"
           onClick={() => handleWorkspaceChange('application-kit')}
@@ -655,7 +655,7 @@ export default function Dashboard() {
           <KarkoLogo variant="full" size="xs" theme="light" />
         </button>
 
-        <div className="flex items-center bg-cream-100/80 rounded-full p-0.5">
+        <div className="flex items-center rounded-full border border-cream-200 bg-cream-50 p-0.5">
           <button
             type="button"
             onClick={() => handleWorkspaceChange('application-kit')}
@@ -743,7 +743,7 @@ export default function Dashboard() {
         ) : null}
       </div>
 
-      <div className="md:hidden flex items-center px-3 py-1.5 bg-white/95 backdrop-blur-sm border-b border-cream-200 flex-shrink-0 z-50">
+      <div className="md:hidden flex items-center px-3 py-1.5 bg-cream-50 border-b border-cream-200 flex-shrink-0 z-50">
         <button
           type="button"
           onClick={() => handleWorkspaceChange('application-kit')}
@@ -774,8 +774,8 @@ export default function Dashboard() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {activeWorkspace === 'application-kit' && currentCV && (
             <>
-              <div className="bg-white/90 border-b border-cream-200 px-4 sm:px-5 py-2.5">
-                <div id="tour-doc-tabs" className="inline-flex items-center bg-cream-100/80 rounded-[18px] p-0.5">
+              <div className="bg-cream-50 border-b border-cream-200 px-4 sm:px-5 py-2.5">
+                <div id="tour-doc-tabs" className="inline-flex items-center rounded-[18px] border border-cream-200 bg-cream-50 p-0.5">
                   <button
                     type="button"
                     onClick={() => handleTabChange('cv')}
@@ -835,7 +835,7 @@ export default function Dashboard() {
                     <div className="inline-flex mb-5">
                       <KarkoIcon size="lg" theme="light" />
                     </div>
-                    <h2 className="text-2xl font-bold text-charcoal mb-2">Welcome to Karko AI</h2>
+                    <h2 className="text-2xl font-serif font-semibold tracking-tight text-charcoal mb-2">Welcome to Karko AI</h2>
                     <p className="text-warm-gray max-w-sm mx-auto">
                       Upload your CV to get started. We&apos;ll tailor it for every job you apply to.
                     </p>
@@ -1021,7 +1021,7 @@ export default function Dashboard() {
                   <div className="inline-flex mb-4">
                     <KarkoIcon size="md" theme="light" />
                   </div>
-                  <h2 className="text-xl font-bold text-charcoal mb-1.5">Upload your CV</h2>
+                  <h2 className="text-xl font-serif font-semibold tracking-tight text-charcoal mb-1.5">Upload your CV</h2>
                   <p className="text-sm text-warm-gray">
                     Get started by uploading your CV. We&apos;ll optimize it for every job.
                   </p>
@@ -1142,7 +1142,7 @@ export default function Dashboard() {
                   <Target className="w-3.5 h-3.5" />
                   ATS Insights
                 </div>
-                <h2 className="text-xl font-semibold text-charcoal">CV optimization details</h2>
+                <h2 className="text-xl font-serif font-semibold tracking-tight text-charcoal">CV optimization details</h2>
                 <p className="text-sm text-warm-gray mt-1">
                   {atsScore !== null
                     ? `Review the ${atsScore}% ATS score, optimization strategy, and exact improvements applied to this CV.`

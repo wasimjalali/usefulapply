@@ -481,7 +481,7 @@ export function SettingsScreen({ forcedSection }: SettingsScreenProps) {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream-50 via-cream-100 to-cream-50">
+    <div className="min-h-screen bg-cream-100">
       <header className="bg-white/95 backdrop-blur-md border-b border-cream-200 sticky top-0 z-50 shadow-sm">
         <div className={`${isStandalone ? 'max-w-4xl' : 'max-w-6xl'} mx-auto px-4 sm:px-6 lg:px-8`}>
           <div className="flex items-center justify-between h-14">

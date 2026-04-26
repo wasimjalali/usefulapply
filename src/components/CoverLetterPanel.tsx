@@ -462,7 +462,7 @@ ${letter.signatureName}`;
           <div className="w-16 h-16 rounded-2xl bg-navy-50 flex items-center justify-center mx-auto mb-5">
             <Mail className="w-8 h-8 text-navy-400" />
           </div>
-          <h3 className="text-lg font-semibold text-charcoal mb-2">Generate Cover Letter</h3>
+          <h3 className="text-lg font-serif font-semibold tracking-tight text-charcoal mb-2">Generate Cover Letter</h3>
           <p className="text-sm text-warm-gray mb-6 leading-relaxed">
             Create a personalized cover letter tailored to this job application.
           </p>
@@ -488,7 +488,7 @@ ${letter.signatureName}`;
           <div className="w-16 h-16 rounded-2xl bg-cream-100 flex items-center justify-center mx-auto mb-5">
             <Mail className="w-8 h-8 text-cream-400" />
           </div>
-          <h3 className="text-lg font-semibold text-charcoal mb-2">No cover letter yet</h3>
+          <h3 className="text-lg font-serif font-semibold tracking-tight text-charcoal mb-2">No cover letter yet</h3>
           <p className="text-sm text-warm-gray leading-relaxed">
             Analyze a job to generate a personalized cover letter
           </p>
@@ -660,7 +660,7 @@ ${letter.signatureName}`;
         </div>
       )}
 
-      <div className="flex-1 overflow-auto bg-gradient-to-b from-cream-100 to-cream-50 px-3 pb-4 pt-1 sm:px-6 sm:pb-6 sm:pt-3">
+      <div className="flex-1 overflow-auto bg-cream-100 px-3 pb-4 pt-1 sm:px-6 sm:pb-6 sm:pt-3">
         {isGenerating || isLoadingCoverLetter || isAgentWorking ? (
           <KarkoAIStepIndicator
             stepType="cover_letter"
@@ -679,7 +679,7 @@ ${letter.signatureName}`;
                 <button
                   type="button"
                   onClick={() => setShowFullPreview(true)}
-                  className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full border border-cream-200 bg-white/92 px-3 py-1.5 text-xs font-semibold text-navy-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md cursor-pointer"
+                  className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full border border-cream-200 bg-cream-50 px-3 py-1.5 text-xs font-semibold text-navy-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md cursor-pointer"
                 >
                   <Maximize2 className="w-3.5 h-3.5" />
                   Full Preview
@@ -720,10 +720,10 @@ ${letter.signatureName}`;
 
       {showFullPreview && activeCoverLetter && createPortal(
         <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">
-          <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-[30px] border border-cream-200 bg-gradient-to-b from-cream-100 to-cream-50 shadow-[0_36px_100px_-38px_rgba(30,58,95,0.45)]">
-            <div className="flex items-center justify-between border-b border-cream-200 bg-cream-50/95 px-5 py-3">
+          <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-[30px] border border-cream-200 bg-cream-100 shadow-[0_36px_100px_-38px_rgba(30,58,95,0.45)]">
+            <div className="flex items-center justify-between border-b border-cream-200 bg-cream-50 px-5 py-3">
               <div>
-                <p className="text-sm font-semibold text-charcoal">Cover Letter Full Preview</p>
+                <h2 className="text-sm font-serif font-semibold tracking-tight text-charcoal">Cover Letter Full Preview</h2>
                 <p className="text-xs text-warm-gray">Focused reading mode with the surrounding dashboard hidden.</p>
               </div>
               <button
@@ -735,7 +735,7 @@ ${letter.signatureName}`;
               </button>
             </div>
 
-            <div className="flex-1 overflow-auto bg-gradient-to-b from-cream-100 to-cream-50 p-4 sm:p-6">
+            <div className="flex-1 overflow-auto bg-cream-100 p-4 sm:p-6">
               <Card className="mx-auto w-full max-w-3xl p-8 sm:p-10 shadow-[0_30px_60px_-40px_rgba(30,58,95,0.3)]">
                 {renderCoverLetterContent(activeCoverLetter)}
               </Card>

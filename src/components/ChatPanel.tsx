@@ -631,7 +631,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                   <>
                     <div className="flex items-center justify-center gap-3 mb-3">
                       <KarkoIcon size="md" theme="light" />
-                      <h2 className="text-lg font-bold text-navy-800">
+                      <h2 className="text-lg font-serif font-semibold tracking-tight text-navy-800">
                         {user ? 'Ready to apply?' : 'Your AI Job Application Assistant'}
                       </h2>
                     </div>
@@ -665,7 +665,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                   <>
                     <div className="flex items-center justify-center gap-3 mb-3">
                       <KarkoIcon size="md" theme="light" />
-                      <h2 className="text-lg font-bold text-navy-800">
+                      <h2 className="text-lg font-serif font-semibold tracking-tight text-navy-800">
                         {user ? 'Upload your CV to get started' : 'Your AI Job Application Assistant'}
                       </h2>
                     </div>
@@ -878,7 +878,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
         )}
 
         {/* Input Area */}
-        <div className={isDesktopDocked ? 'border-t border-gold-100/80 bg-cream-50/90 px-3 pt-2.5 pb-3 backdrop-blur-sm' : ''}>
+        <div className={isDesktopDocked ? 'border-t border-cream-200 bg-cream-50 px-3 pt-2.5 pb-3' : ''}>
           <ChatInput
             value={inputValue}
             onChange={setInputValue}

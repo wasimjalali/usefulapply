@@ -169,6 +169,41 @@ Before writing any migration, read `supabase/migrations/` to check for conflicts
 
 ---
 
+## Design System (authoritative — this overrides any older spec)
+
+The product has three visual layers. Every panel, card, and document must pick a role and stick to it.
+
+### Surface roles
+| Layer | Token | Hex | Use for |
+|-------|-------|-----|---------|
+| **Canvas** | `cream-100` | `#FAF7F2` | Page canvas only: dashboard shell, every panel shell, modal backdrop fallback |
+| **Surface** | `cream-50` | `#FEFDFB` | Everything cards live in: cards, grids, pills, inputs, state messages, wizard body, tab tracks, tracker rows, job cards, empty-state tiles |
+| **Document** | `white` | `#FFFFFF` | Only printable/sendable documents: CV page, cover letter body, email body, modal inner scroll area when it holds a document |
+
+Rules:
+- **No gradients on canvas or surface layers.** No `bg-gradient-to-b from-cream-100 to-cream-50` shells, no custom `bg-[radial-gradient(...)]` canvases. Gradients are reserved for CTAs (gold/navy buttons), nothing else.
+- **No translucent whites over cream.** `bg-white/85`, `bg-white/90`, `bg-white/95` on a cream canvas create subtle tint shifts the eye can feel but not name. Use solid `bg-cream-50` or solid `bg-white` — decide which role the surface is playing.
+- **Borders on surfaces:** `border-cream-200`. Darker cream borders (`cream-300`, `cream-400`) are for dingy; do not reach for them on new work.
+- **Avoid `cream-300` and `cream-400` on large fills.** They read as aged paper / dingy. Keep them for dividers and scrollbar thumbs only.
+
+### Typography
+- **Headings that anchor the user's eye** → `font-serif` (Georgia via Tailwind `font-serif`, semi-bold): page title `h1`, panel/section `h2`, modal title, wizard title. These are "where am I" moments.
+- **Everything smaller** → default sans (Inter, set in `globals.css` as `--font-sans`): `h3`, body, labels, buttons, chips, form fields. These are scanning-text, not anchoring-text.
+- **Do not apply `font-serif` to chat messages, job cards, tracker rows, form labels, or button text.** It looks Victorian.
+- **`font-semibold` not `font-bold`** on serif headings — bold Georgia reads as AI-slop.
+
+### Motion + Elevation
+- `transition-colors duration-200` default.
+- Elevation lift (`-translate-y-0.5 hover:shadow-md`) reserved for elevated CTAs only — not on every card.
+- Shadows: prefer `shadow-sm` for cards, `shadow-md` for elevated elements, `shadow-[0_20px_48px_-24px_rgba(30,58,95,0.18)]` for modals/wizards. Avoid inventing new shadow strings.
+
+### Iconography
+- Lucide-react only. Sizes: `w-3.5` (chrome), `w-4` (inline text), `w-5` (headers), `w-6` (modal close, empty-state tiles).
+
+**When in doubt, read this section before touching any visual code.**
+
+---
+
 ## Integrations Summary
 - **PostHog** — analytics + error tracking + LLM cost tracking; see `.claude/rules/posthog.md`
 - **Resend** — transactional email (signup confirmation, contact form); `from: 'KarKo AI <noreply@karkoai.com>'`

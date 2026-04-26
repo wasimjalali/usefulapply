@@ -726,7 +726,7 @@ export function JobFeedPanel() {
     && !isLoading
     && Boolean(overview?.jobs && overview.jobs.length > 0);
   return (
-    <div className="min-h-full bg-[radial-gradient(circle_at_top_left,rgba(215,180,58,0.12),transparent_32%),linear-gradient(180deg,#fbfaf6_0%,#f5f0e4_100%)]">
+    <div className="min-h-full bg-cream-100">
       <div className={`mx-auto flex flex-col gap-5 px-4 py-4 sm:px-6 ${setupOpen ? 'max-w-5xl' : 'max-w-7xl'}`}>
         {isLoading ? (
           <LoadingState />

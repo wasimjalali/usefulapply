@@ -913,7 +913,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
           <div className="w-16 h-16 rounded-2xl bg-cream-100 flex items-center justify-center mx-auto mb-5">
             <FileText className="w-8 h-8 text-cream-400" />
           </div>
-          <h3 className="text-lg font-semibold text-charcoal mb-2">No CV uploaded</h3>
+          <h3 className="text-lg font-serif font-semibold tracking-tight text-charcoal mb-2">No CV uploaded</h3>
           <p className="text-sm text-warm-gray mb-6 leading-relaxed">
             Upload your CV from the Documents library to get started with AI-powered optimization.
           </p>
@@ -935,7 +935,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
     <>
       {/* Original/Optimized Toggle */}
       {generatedCV && (
-        <div className="flex items-center bg-white/85 border border-cream-200 rounded-[20px] p-0.5 shadow-sm flex-shrink-0">
+        <div className="flex items-center bg-cream-50 border border-cream-200 rounded-[20px] p-0.5 shadow-sm flex-shrink-0">
           <button
             onClick={() => { setShowOptimized(false); setEditedCVData(null); }}
             className={`px-3.5 py-2 text-sm font-medium rounded-[14px] transition-all cursor-pointer ${
@@ -1150,7 +1150,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
           <div className="h-full flex flex-col">
 
             {/* CV Content - View Mode or Edit Mode */}
-            <div className="flex-1 overflow-auto bg-gradient-to-b from-cream-100 to-cream-50 p-2 sm:p-6">
+            <div className="flex-1 overflow-auto bg-cream-100 p-2 sm:p-6">
               {isEditMode && cvData ? (
                 /* Edit Mode - Editable Canvas */
                 <div className="flex flex-col h-full">
@@ -1214,7 +1214,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
                     <button
                       type="button"
                       onClick={() => setShowFullPreview(true)}
-                      className="absolute right-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-full border border-cream-200 bg-white/92 px-3 py-1.5 text-xs font-semibold text-navy-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md cursor-pointer"
+                      className="absolute right-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-full border border-cream-200 bg-cream-50 px-3 py-1.5 text-xs font-semibold text-navy-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md cursor-pointer"
                     >
                       <Maximize2 className="w-3.5 h-3.5" />
                       Full Preview
@@ -1284,10 +1284,10 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
 
       {showFullPreview && previewCVData && createPortal(
         <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">
-          <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-[30px] border border-cream-200 bg-gradient-to-b from-cream-100 to-cream-50 shadow-[0_36px_100px_-38px_rgba(30,58,95,0.45)]">
-            <div className="flex items-center justify-between border-b border-cream-200 bg-cream-50/95 px-5 py-3">
+          <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-[30px] border border-cream-200 bg-cream-100 shadow-[0_36px_100px_-38px_rgba(30,58,95,0.45)]">
+            <div className="flex items-center justify-between border-b border-cream-200 bg-cream-50 px-5 py-3">
               <div>
-                <p className="text-sm font-semibold text-charcoal">CV Full Preview</p>
+                <h2 className="text-sm font-serif font-semibold tracking-tight text-charcoal">CV Full Preview</h2>
                 <p className="text-xs text-warm-gray">Focused reading mode with the surrounding dashboard hidden.</p>
               </div>
               <button
@@ -1299,7 +1299,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
               </button>
             </div>
 
-            <div className="flex-1 overflow-auto bg-gradient-to-b from-cream-100 to-cream-50 p-4 sm:p-6">
+            <div className="flex-1 overflow-auto bg-cream-100 p-4 sm:p-6">
               <div className="mx-auto w-fit bg-white shadow-[0_30px_60px_-40px_rgba(30,58,95,0.3)]">
                 <CVTemplateRenderer data={previewCVData} templateId={selectedTemplateId} />
               </div>
