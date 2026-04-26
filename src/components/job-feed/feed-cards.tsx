@@ -592,22 +592,7 @@ export function FeedResultsCard({
 
   return (
     <Card className="rounded-[24px] border-cream-200 bg-white p-6 shadow-sm">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-warm-gray">{feedSummary}</p>
-
-        {hasMore && (
-          <button
-            type="button"
-            onClick={onToggleShowAll}
-            className="inline-flex items-center gap-1 text-sm font-medium text-navy-600 hover:text-navy-700"
-          >
-            {isShowingAllJobs ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            {isShowingAllJobs
-              ? `Show less`
-              : `Load more (${remainingCount})`}
-          </button>
-        )}
-      </div>
+      <p className="text-sm text-warm-gray">{feedSummary}</p>
 
       <div className="mt-5 space-y-4">
         {visibleJobs.map((job) => (
@@ -621,6 +606,21 @@ export function FeedResultsCard({
           />
         ))}
       </div>
+
+      {hasMore && (
+        <div className="mt-6 flex justify-center">
+          <button
+            type="button"
+            onClick={onToggleShowAll}
+            className="inline-flex items-center gap-1.5 rounded-full border border-cream-300 bg-white px-5 py-2 text-sm font-semibold text-navy-700 shadow-sm transition-colors hover:border-navy-300 hover:bg-cream-50"
+          >
+            {isShowingAllJobs ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            {isShowingAllJobs
+              ? `Show less`
+              : `Load more (${remainingCount})`}
+          </button>
+        </div>
+      )}
     </Card>
   );
 }

@@ -100,6 +100,7 @@ export const RATE_LIMITS = {
   'signup':             { limit: 3,  windowMs: 60_000 },
   'job-feed-settings':  { limit: 10, windowMs: 60_000 },
   'job-feed-overview':  { limit: 15, windowMs: 60_000 },
+  'job-feed-saved':     { limit: 15, windowMs: 60_000 },
   'job-feed-feedback':  { limit: 20, windowMs: 60_000 },
   'job-feed-apply':     { limit: 10, windowMs: 60_000 },
   'job-feed-dev-run':   { limit: 3,  windowMs: 60_000 },

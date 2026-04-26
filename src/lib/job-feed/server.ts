@@ -370,6 +370,61 @@ export async function listLatestJobFeedItemsAdmin(params: {
   };
 }
 
+/**
+ * Return canonical jobs the user has saved (saved_at IS NOT NULL) and has NOT
+ * since rejected (applied / dismissed / rated_not_relevant). Ordered by
+ * saved_at DESC so the most recently saved item appears first. Used by the
+ * "Saved jobs" view inside the Job Feed panel.
+ */
+export async function listSavedJobFeedItemsAdmin(params: {
+  userId: string;
+}): Promise<JobFeedFeedItem[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand job_feed_feedback here.
+  const admin = createAdminClient() as any;
+
+  const { data: feedbackRows, error: feedbackError } = await admin
+    .from('job_feed_feedback')
+    .select('*')
+    .eq('user_id', params.userId)
+    .not('saved_at', 'is', null)
+    .order('saved_at', { ascending: false });
+
+  if (feedbackError) {
+    throw new Error(`Failed to load saved job feed items: ${feedbackError.message}`);
+  }
+
+  const typedRows = ((feedbackRows ?? []) as JobFeedFeedback[])
+    .filter((row) => !isJobFeedbackBlocked(row));
+
+  if (typedRows.length === 0) {
+    return [];
+  }
+
+  const jobIds = typedRows.map((row) => row.canonical_job_id);
+
+  const { data: jobRows, error: jobsError } = await admin
+    .from('job_feed_canonical_jobs')
+    .select('*')
+    .in('id', jobIds);
+
+  if (jobsError) {
+    throw new Error(`Failed to load saved canonical jobs: ${jobsError.message}`);
+  }
+
+  const jobsById = new Map(
+    ((jobRows ?? []) as JobFeedCanonicalJob[]).map((row) => [row.id, row])
+  );
+
+  // Preserve the saved_at DESC order from the feedback query.
+  return typedRows
+    .map((row) => {
+      const job = jobsById.get(row.canonical_job_id);
+      if (!job) return null;
+      return toFeedItem(job, row);
+    })
+    .filter((item): item is JobFeedFeedItem => item !== null);
+}
+
 export async function listDueJobFeedUsers(now = new Date()): Promise<DueJobFeedUser[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
   const admin = createAdminClient() as any;

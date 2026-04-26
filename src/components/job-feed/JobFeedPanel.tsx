@@ -7,6 +7,7 @@ import { usePostHog } from 'posthog-js/react';
 import {
   AlertCircle,
   ArrowRight,
+  Bookmark,
   Building2,
   CalendarClock,
   ChevronDown,
@@ -114,10 +115,26 @@ export function JobFeedPanel() {
   const [selectedJob, setSelectedJob] = useState<JobFeedFeedItem | null>(null);
   const [pendingJobAction, setPendingJobAction] = useState<PendingJobAction>(null);
   const [form, setForm] = useState<JobFeedSettingsInput>(() => createDefaultJobFeedInput(getBrowserTimeZone()));
+
+  // Tab state: "today" shows today's ranked feed, "saved" shows bookmarked jobs.
+  // Saved jobs are fetched lazily on first switch so the default view stays fast.
+  const [activeTab, setActiveTab] = useState<'today' | 'saved'>('today');
+  const [savedJobs, setSavedJobs] = useState<JobFeedFeedItem[] | null>(null);
+  const [isLoadingSavedJobs, setIsLoadingSavedJobs] = useState(false);
   const lastTrackedState = useRef<string | null>(null);
   const setupWizardRef = useRef<HTMLDivElement | null>(null);
   const isPreviewing = previewMode !== 'off';
   const isSignedIn = isPreviewing ? previewMode !== 'signed_out' : Boolean(user);
+
+  // Stable ref to the toast API. The `toast` object returned by useToast()
+  // is a fresh literal on every ToastProvider render, which would otherwise
+  // invalidate every useCallback that depends on it and re-run the effects
+  // that depend on those callbacks — causing the Job Feed to re-fetch on
+  // every toast anywhere in the app.
+  const toastRef = useRef(toast);
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   const showDebugActions = !isPreviewing && process.env.NEXT_PUBLIC_ENABLE_JOB_FEED_DEBUG === 'true';
 
@@ -149,12 +166,50 @@ export function JobFeedPanel() {
       setForm(toJobFeedInput(payload.settings, getBrowserTimeZone()));
       setDraftForm(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to load Job Feed.');
+      toastRef.current.error(error instanceof Error ? error.message : 'Failed to load Job Feed.');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [isPreviewing, toast]);
+  }, [isPreviewing]);
+
+  const loadSavedJobs = useCallback(async () => {
+    if (isPreviewing) {
+      setSavedJobs([]);
+      return;
+    }
+    setIsLoadingSavedJobs(true);
+    try {
+      const response = await fetch('/api/job-feed/saved', {
+        method: 'GET',
+        cache: 'no-store',
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to load saved jobs.');
+      }
+      setSavedJobs((payload.jobs ?? []) as JobFeedFeedItem[]);
+    } catch (error) {
+      toastRef.current.error(error instanceof Error ? error.message : 'Failed to load saved jobs.');
+      setSavedJobs([]);
+    } finally {
+      setIsLoadingSavedJobs(false);
+    }
+  }, [isPreviewing]);
+
+  const handleShowSavedJobs = useCallback(() => {
+    setActiveTab('saved');
+    // Collapse "show all" state when switching tabs so each view starts clean.
+    setIsShowingAllJobs(false);
+    if (savedJobs === null) {
+      void loadSavedJobs();
+    }
+  }, [loadSavedJobs, savedJobs]);
+
+  const handleShowTodayFeed = useCallback(() => {
+    setActiveTab('today');
+    setIsShowingAllJobs(false);
+  }, []);
 
   useEffect(() => {
     if (isPreviewing) {
@@ -322,6 +377,9 @@ export function JobFeedPanel() {
         }),
       };
     });
+    // Also drop it from the saved list if present — applying or rating a job
+    // as not relevant is a terminal action that hides it from both views.
+    setSavedJobs((prev) => (prev ? prev.filter((job) => job.id !== jobId) : prev));
   }, []);
 
   const syncApplicationSession = useCallback((session: JobFeedApplyResponse['session']) => {
@@ -387,7 +445,7 @@ export function JobFeedPanel() {
     try {
       if (isPreviewing) {
         applyPreviewFeedback(job.id, 'saved');
-        toast.success('Preview updated locally.');
+        toastRef.current.success('Preview updated locally.');
         return;
       }
 
@@ -399,13 +457,15 @@ export function JobFeedPanel() {
         company: job.company,
         feed_run_id: overview?.feedRun?.id ?? null,
       });
-      toast.success('Saved to your feed decisions so you can come back to it.');
+      // Invalidate the cached Saved list so it refetches fresh on next open.
+      setSavedJobs(null);
+      toastRef.current.success('Saved. Find it later under the Saved tab.');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to save this job.');
+      toastRef.current.error(error instanceof Error ? error.message : 'Failed to save this job.');
     } finally {
       setPendingJobAction(null);
     }
-  }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback, toast]);
+  }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback]);
 
   const handleDismissJob = useCallback(async (job: JobFeedFeedItem) => {
     setPendingJobAction({ jobId: job.id, action: 'dismiss' });
@@ -417,7 +477,7 @@ export function JobFeedPanel() {
         if (selectedJob?.id === job.id) {
           setSelectedJob(null);
         }
-        toast.success('Preview updated locally.');
+        toastRef.current.success('Preview updated locally.');
         return;
       }
 
@@ -434,13 +494,13 @@ export function JobFeedPanel() {
         company: job.company,
         feed_run_id: overview?.feedRun?.id ?? null,
       });
-      toast.success('Dismissed from your current feed.');
+      toastRef.current.success('Dismissed from your current feed.');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to dismiss this job.');
+      toastRef.current.error(error instanceof Error ? error.message : 'Failed to dismiss this job.');
     } finally {
       setPendingJobAction(null);
     }
-  }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback, removeJobFromOverview, selectedJob?.id, toast]);
+  }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback, removeJobFromOverview, selectedJob?.id]);
 
   const handleRateMatch = useCallback(async (job: JobFeedFeedItem, rating: 'helpful' | 'not_relevant') => {
     // If the user clicks the same rating twice in a row, treat as no-op so we
@@ -455,7 +515,7 @@ export function JobFeedPanel() {
     try {
       if (isPreviewing) {
         applyPreviewFeedback(job.id, action);
-        toast.success('Thanks — preview updated locally.');
+        toastRef.current.success('Thanks — preview updated locally.');
         return;
       }
 
@@ -484,17 +544,17 @@ export function JobFeedPanel() {
         }
       }
 
-      toast.success(
+      toastRef.current.success(
         rating === 'helpful'
           ? 'Thanks — we\'ll keep sending roles like this.'
           : 'Got it — we\'ll tune your feed away from this.'
       );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to save your rating.');
+      toastRef.current.error(error instanceof Error ? error.message : 'Failed to save your rating.');
     } finally {
       setPendingJobAction(null);
     }
-  }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback, removeJobFromOverview, selectedJob?.id, toast]);
+  }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback, removeJobFromOverview, selectedJob?.id]);
 
   const handleApplyWithKarko = useCallback(async (job: JobFeedFeedItem) => {
     setPendingJobAction({ jobId: job.id, action: 'apply' });
@@ -502,7 +562,7 @@ export function JobFeedPanel() {
     try {
       if (isPreviewing) {
         applyPreviewFeedback(job.id, 'applied');
-        toast.success('Preview updated locally. This local preview does not create an application session.');
+        toastRef.current.success('Preview updated locally. This local preview does not create an application session.');
         return;
       }
 
@@ -550,7 +610,7 @@ export function JobFeedPanel() {
         created_session: typedPayload.created,
       });
 
-      toast.success(
+      toastRef.current.success(
         currentCV
           ? `${job.title} at ${job.company} — Karko is generating your application`
           : `${job.title} at ${job.company} — upload your CV to continue`
@@ -565,11 +625,11 @@ export function JobFeedPanel() {
         autostart: Boolean(currentCV),
       }));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to start the Karko AI application handoff.');
+      toastRef.current.error(error instanceof Error ? error.message : 'Failed to start the Karko AI application handoff.');
     } finally {
       setPendingJobAction(null);
     }
-  }, [applyPreviewFeedback, currentCV, isPreviewing, overview?.feedRun?.id, posthog, removeJobFromOverview, router, syncApplicationSession, toast, updateJobFeedbackState]);
+  }, [applyPreviewFeedback, currentCV, isPreviewing, overview?.feedRun?.id, posthog, removeJobFromOverview, router, syncApplicationSession, updateJobFeedbackState]);
 
   const handleExternalApply = useCallback((job: JobFeedFeedItem) => {
     if (isPreviewing) {
@@ -758,14 +818,18 @@ export function JobFeedPanel() {
                 currentState={currentState}
                 form={shellForm}
                 jobsCount={overview?.jobs.length ?? 0}
+                savedJobsCount={savedJobs?.length ?? null}
+                activeTab={activeTab}
                 latestRun={overview?.latestRun ?? null}
-                isRefreshing={isRefreshing}
+                isRefreshing={isRefreshing || isLoadingSavedJobs}
                 onEditSettings={openSetupWizard}
-                onRefresh={() => loadOverview({ quiet: true })}
+                onRefresh={() => activeTab === 'saved' ? loadSavedJobs() : loadOverview({ quiet: true })}
+                onShowTodayFeed={handleShowTodayFeed}
+                onShowSavedJobs={handleShowSavedJobs}
               />
             )}
 
-            {showStateSupportCard && (
+            {showStateSupportCard && activeTab === 'today' && (
               <InlineStateMessage state={overview?.state ?? 'setup_required'} overview={overview} onStartSetup={openSetupWizard} />
             )}
 
@@ -787,7 +851,7 @@ export function JobFeedPanel() {
               </div>
             )}
 
-            {showFeedResults && overview && (
+            {activeTab === 'today' && showFeedResults && overview && (
               <FeedResultsCard
                 jobs={overview.jobs}
                 isShowingAllJobs={isShowingAllJobs}
@@ -797,6 +861,20 @@ export function JobFeedPanel() {
                 onOpenDetails={handleOpenDetails}
                 onApplyWithKarko={handleApplyWithKarko}
                 onExternalApply={handleExternalApply}
+              />
+            )}
+
+            {activeTab === 'saved' && (
+              <SavedJobsView
+                jobs={savedJobs}
+                isLoading={isLoadingSavedJobs}
+                isShowingAllJobs={isShowingAllJobs}
+                onToggleShowAll={() => setIsShowingAllJobs((prev) => !prev)}
+                pendingJobAction={pendingJobAction}
+                onOpenDetails={handleOpenDetails}
+                onApplyWithKarko={handleApplyWithKarko}
+                onExternalApply={handleExternalApply}
+                onBackToFeed={handleShowTodayFeed}
               />
             )}
 
@@ -972,26 +1050,99 @@ function FeedPreviewCards() {
   );
 }
 
+function SavedJobsView({
+  jobs,
+  isLoading,
+  isShowingAllJobs,
+  onToggleShowAll,
+  pendingJobAction,
+  onOpenDetails,
+  onApplyWithKarko,
+  onExternalApply,
+  onBackToFeed,
+}: {
+  jobs: JobFeedFeedItem[] | null;
+  isLoading: boolean;
+  isShowingAllJobs: boolean;
+  onToggleShowAll: () => void;
+  pendingJobAction: PendingJobAction;
+  onOpenDetails: (job: JobFeedFeedItem) => void;
+  onApplyWithKarko: (job: JobFeedFeedItem) => void;
+  onExternalApply: (job: JobFeedFeedItem) => void;
+  onBackToFeed: () => void;
+}) {
+  if (isLoading && jobs === null) {
+    return (
+      <Card className="rounded-[24px] border-cream-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-3 text-navy-600">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span className="text-sm font-medium">Loading your saved jobs…</span>
+        </div>
+      </Card>
+    );
+  }
+
+  if (!jobs || jobs.length === 0) {
+    return (
+      <Card className="rounded-[24px] border-cream-200 bg-cream-50 p-8 text-center shadow-sm">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm">
+          <Bookmark className="h-5 w-5 text-warm-gray" />
+        </div>
+        <h2 className="font-serif text-xl font-semibold tracking-tight text-charcoal">No saved jobs yet</h2>
+        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-warm-gray">
+          Open a job from your feed and click <span className="font-medium text-charcoal">Save</span> to bookmark it — you&apos;ll find all your saved jobs here.
+        </p>
+        <div className="mt-5">
+          <Button variant="outline" size="sm" onClick={onBackToFeed}>
+            Back to today&apos;s feed
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <FeedResultsCard
+      jobs={jobs}
+      isShowingAllJobs={isShowingAllJobs}
+      onToggleShowAll={onToggleShowAll}
+      pendingJobAction={pendingJobAction}
+      feedSummary={`${jobs.length} saved ${jobs.length === 1 ? 'job' : 'jobs'}`}
+      onOpenDetails={onOpenDetails}
+      onApplyWithKarko={onApplyWithKarko}
+      onExternalApply={onExternalApply}
+    />
+  );
+}
+
 function FeedPageHeader({
   currentState,
   form,
   jobsCount,
+  savedJobsCount,
+  activeTab,
   latestRun,
   isRefreshing,
   onEditSettings,
   onRefresh,
+  onShowTodayFeed,
+  onShowSavedJobs,
 }: {
   currentState: string;
   form: JobFeedSettingsInput;
   jobsCount: number;
+  savedJobsCount: number | null;
+  activeTab: 'today' | 'saved';
   latestRun: JobFeedOverviewResponse['latestRun'];
   isRefreshing: boolean;
   onEditSettings: () => void;
   onRefresh: () => void;
+  onShowTodayFeed: () => void;
+  onShowSavedJobs: () => void;
 }) {
   const isReady = currentState === 'ready' || currentState === 'thin_feed';
 
-  const headline = isReady
+  const todayHeadline = isReady
     ? jobsCount > 0
       ? `${jobsCount} ${jobsCount === 1 ? 'job' : 'jobs'} for you today`
       : 'Your feed for today'
@@ -1005,44 +1156,93 @@ function FeedPageHeader({
             ? 'Preparing your jobs...'
             : 'Daily Job Feed';
 
-  const subtitle = isReady && form.target_roles.length > 0
+  const headline = activeTab === 'saved'
+    ? savedJobsCount !== null && savedJobsCount > 0
+      ? `${savedJobsCount} saved ${savedJobsCount === 1 ? 'job' : 'jobs'}`
+      : 'Saved jobs'
+    : todayHeadline;
+
+  const todaySubtitle = isReady && form.target_roles.length > 0
     ? `${summarizeList(form.target_roles)} · ${summarizeCountries(form.target_countries, form.target_market)}`
     : null;
 
-  const deliveredAt = isReady && latestRun?.completed_at ? formatDeliveredAtLabel(latestRun.completed_at) : null;
+  const subtitle = activeTab === 'saved'
+    ? 'Jobs you bookmarked to revisit later.'
+    : todaySubtitle;
+
+  const deliveredAt = activeTab === 'today' && isReady && latestRun?.completed_at
+    ? formatDeliveredAtLabel(latestRun.completed_at)
+    : null;
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 className="font-serif text-3xl font-semibold tracking-tight text-charcoal">{headline}</h1>
-        {subtitle && (
-          <p className="mt-1 text-sm text-warm-gray">{subtitle}</p>
-        )}
-        {deliveredAt && (
-          <p className="mt-0.5 text-xs text-warm-gray">Delivered {deliveredAt}</p>
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        {currentState !== 'setup_required' && (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="font-serif text-3xl font-semibold tracking-tight text-charcoal">{headline}</h1>
+          {subtitle && (
+            <p className="mt-1 text-sm text-warm-gray">{subtitle}</p>
+          )}
+          {deliveredAt && (
+            <p className="mt-0.5 text-xs text-warm-gray">Delivered {deliveredAt}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {currentState !== 'setup_required' && (
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-warm-gray transition-colors hover:bg-cream-100 hover:text-navy-600 disabled:opacity-50"
+              title="Refresh"
+            >
+              {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            </button>
+          )}
           <button
             type="button"
-            onClick={onRefresh}
-            disabled={isRefreshing}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-warm-gray transition-colors hover:bg-cream-100 hover:text-navy-600 disabled:opacity-50"
-            title="Refresh"
+            onClick={onEditSettings}
+            className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-4 py-2 text-sm font-semibold text-navy-700 shadow-sm transition-colors hover:border-navy-300 hover:bg-navy-50"
           >
-            {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            <Settings2 className="h-4 w-4" />
+            Edit feed
           </button>
-        )}
-        <button
-          type="button"
-          onClick={onEditSettings}
-          className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-4 py-2 text-sm font-semibold text-navy-700 shadow-sm transition-colors hover:border-navy-300 hover:bg-navy-50"
-        >
-          <Settings2 className="h-4 w-4" />
-          Edit feed
-        </button>
+        </div>
       </div>
+
+      {currentState !== 'setup_required' && (
+        <div className="inline-flex items-center self-start rounded-full border border-cream-200 bg-white p-0.5 shadow-sm">
+          <button
+            type="button"
+            onClick={onShowTodayFeed}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+              activeTab === 'today'
+                ? 'bg-navy-600 text-white shadow-sm'
+                : 'text-warm-gray hover:text-navy-700'
+            }`}
+          >
+            Today
+          </button>
+          <button
+            type="button"
+            onClick={onShowSavedJobs}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+              activeTab === 'saved'
+                ? 'bg-navy-600 text-white shadow-sm'
+                : 'text-warm-gray hover:text-navy-700'
+            }`}
+          >
+            <Bookmark className="h-3.5 w-3.5" />
+            Saved
+            {savedJobsCount !== null && savedJobsCount > 0 && (
+              <span className={`ml-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold ${
+                activeTab === 'saved' ? 'bg-white/20 text-white' : 'bg-cream-100 text-charcoal'
+              }`}>
+                {savedJobsCount}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
