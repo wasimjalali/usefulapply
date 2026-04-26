@@ -164,7 +164,7 @@ export function AgentProgressV2({
 
       {/* Company Research Card */}
       {companyResearch && (
-        <div className="mt-3 p-4 rounded-xl border border-navy-200 bg-gradient-to-br from-navy-50 to-cream-50">
+        <div className="mt-3 p-4 rounded-2xl border border-navy-200 bg-gradient-to-br from-navy-50 to-cream-50">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-7 h-7 rounded-lg bg-navy-100 flex items-center justify-center">
               <Building2 className="w-4 h-4 text-navy-600" />

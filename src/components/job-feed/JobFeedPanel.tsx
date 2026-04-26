@@ -934,7 +934,7 @@ function FeedPreviewCards() {
       <div className="space-y-3">
         {previewJobs.map((job) => (
           <div key={job.title} className="flex items-center gap-4 rounded-2xl border border-cream-200 bg-cream-50 px-5 py-4 shadow-sm">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white border border-cream-200">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white border border-cream-200">
               <Building2 className="h-5 w-5 text-navy-600" />
             </div>
             <div className="min-w-0 flex-1 text-left">
@@ -1101,7 +1101,7 @@ function InlineStateMessage({
 
   return (
     <div className="flex items-start gap-4 rounded-2xl border border-cream-200 bg-cream-50 px-5 py-4 shadow-sm">
-      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tone.tile}`}>
+      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${tone.tile}`}>
         <Icon className={`h-5 w-5 ${tone.icon} ${isAnimated ? 'animate-spin' : ''}`} />
       </div>
       <div className="min-w-0 flex-1">
@@ -1285,7 +1285,7 @@ function JobFeedOnboardingWizard({
         : 4;
 
   return (
-    <Card className="overflow-hidden rounded-[24px] border-cream-200 bg-cream-50 p-0 shadow-[0_20px_48px_-24px_rgba(30,58,95,0.18)]">
+    <Card className="overflow-hidden rounded-[24px] border-cream-200 bg-cream-50 p-0 shadow-md">
       <div className="border-b border-cream-200 px-6 py-5 sm:px-8">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">

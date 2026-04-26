@@ -192,10 +192,37 @@ Rules:
 - **Do not apply `font-serif` to chat messages, job cards, tracker rows, form labels, or button text.** It looks Victorian.
 - **`font-semibold` not `font-bold`** on serif headings — bold Georgia reads as AI-slop.
 
-### Motion + Elevation
+### Radius scale (3 + 1)
+Pick one role per element. Everything else is deprecated.
+| Role | Class | Use for |
+|------|-------|---------|
+| **Pill** | `rounded-full` | Chips, status pills, icon buttons, avatar rings |
+| **Control** | `rounded-lg` | Inputs, dropdowns, small buttons, tooltips |
+| **Card** | `rounded-2xl` | Cards, panels, grids, wizards, preview tiles |
+| **Modal** *(reserved)* | `rounded-[24px]` | Full-screen / centered modals only |
+
+Do NOT use: `rounded-md`, `rounded-xl`, `rounded-3xl`, `rounded-[14px]`, `rounded-[16px]`, `rounded-[18px]`, `rounded-[20px]`, `rounded-[22px]`, `rounded-[28px]`, `rounded-[30px]`, `rounded-[32px]`. Collapse all of those to the nearest role above.
+
+### CTA treatments (one each — no gradients)
+| CTA | Class | Use |
+|-----|-------|-----|
+| **Primary (Gold)** | `bg-gold-400 hover:bg-gold-500 text-navy-900` | Main action per surface ("Apply with Karko", "Start my daily feed", "Upgrade to Plus") |
+| **Primary (Navy)** | `bg-navy-600 hover:bg-navy-700 text-white` | Secondary primary ("Sign up", "Save changes", sidebar highlights) |
+
+Do NOT use: `bg-gradient-to-r from-gold-400 to-gold-500`, `bg-gradient-to-r from-navy-600 to-navy-700`, `bg-gold-500` / `bg-navy-700` as default base. Gradients on CTAs read as AI-slop; flat brand colors read as confident.
+
+### Shadow scale (3 values)
+| Depth | Class | Use |
+|-------|-------|-----|
+| **Resting** | `shadow-sm` | Cards, pills, tab tracks — everything that sits on the canvas |
+| **Elevated** | `shadow-md` | Hover state on cards, dropdowns, popovers |
+| **Floating** | `shadow-lg` | Modals, full-preview overlays, toasts |
+
+Do NOT invent bespoke drop-shadow strings like `shadow-[0_24px_60px_-20px_rgba(30,58,95,0.35)]`. If `shadow-lg` isn't dramatic enough for a modal, use `shadow-xl` (last resort). Never `shadow-2xl`.
+
+### Motion
 - `transition-colors duration-200` default.
 - Elevation lift (`-translate-y-0.5 hover:shadow-md`) reserved for elevated CTAs only — not on every card.
-- Shadows: prefer `shadow-sm` for cards, `shadow-md` for elevated elements, `shadow-[0_20px_48px_-24px_rgba(30,58,95,0.18)]` for modals/wizards. Avoid inventing new shadow strings.
 
 ### Iconography
 - Lucide-react only. Sizes: `w-3.5` (chrome), `w-4` (inline text), `w-5` (headers), `w-6` (modal close, empty-state tiles).

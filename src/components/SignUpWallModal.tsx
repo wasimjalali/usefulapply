@@ -92,7 +92,7 @@ export function SignUpWallModal({ isOpen, onClose, trigger }: SignUpWallModalPro
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-        <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
+        <div className="relative w-full max-w-md bg-white rounded-2xl shadow-lg p-8 text-center">
           <div className="w-16 h-16 bg-gold-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Mail className="w-8 h-8 text-gold-600" />
           </div>
@@ -118,7 +118,7 @@ export function SignUpWallModal({ isOpen, onClose, trigger }: SignUpWallModalPro
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-md bg-white rounded-2xl shadow-lg overflow-hidden">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -158,7 +158,7 @@ export function SignUpWallModal({ isOpen, onClose, trigger }: SignUpWallModalPro
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Full Name"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 border border-cream-300 rounded-xl focus:border-navy-500 focus:ring-1 focus:ring-navy-500 focus:outline-none transition-colors text-sm"
+                  className="w-full pl-10 pr-4 py-2.5 border border-cream-300 rounded-lg focus:border-navy-500 focus:ring-1 focus:ring-navy-500 focus:outline-none transition-colors text-sm"
                 />
               </div>
             )}
@@ -171,7 +171,7 @@ export function SignUpWallModal({ isOpen, onClose, trigger }: SignUpWallModalPro
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Email"
                 required
-                className="w-full pl-10 pr-4 py-2.5 border border-cream-300 rounded-xl focus:border-navy-500 focus:ring-1 focus:ring-navy-500 focus:outline-none transition-colors text-sm"
+                className="w-full pl-10 pr-4 py-2.5 border border-cream-300 rounded-lg focus:border-navy-500 focus:ring-1 focus:ring-navy-500 focus:outline-none transition-colors text-sm"
               />
             </div>
 
@@ -183,7 +183,7 @@ export function SignUpWallModal({ isOpen, onClose, trigger }: SignUpWallModalPro
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password (min. 6 characters)"
                 required
-                className="w-full pl-10 pr-10 py-2.5 border border-cream-300 rounded-xl focus:border-navy-500 focus:ring-1 focus:ring-navy-500 focus:outline-none transition-colors text-sm"
+                className="w-full pl-10 pr-10 py-2.5 border border-cream-300 rounded-lg focus:border-navy-500 focus:ring-1 focus:ring-navy-500 focus:outline-none transition-colors text-sm"
               />
               <button
                 type="button"
@@ -198,7 +198,7 @@ export function SignUpWallModal({ isOpen, onClose, trigger }: SignUpWallModalPro
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full mt-4 px-4 py-2.5 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-md disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+            className="w-full mt-4 px-4 py-2.5 bg-gold-400 text-white font-semibold rounded-2xl hover:bg-gold-500 transition-all shadow-md disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />

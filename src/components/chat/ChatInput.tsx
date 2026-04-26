@@ -71,12 +71,12 @@ export function ChatInput({
 
   const isEmbedded = surface === 'embedded';
   const inputShellClassName = isEmbedded
-    ? `relative rounded-[22px] border bg-white transition-all duration-200 ${
+    ? `relative rounded-2xl border bg-white transition-all duration-200 ${
         isWorking
-          ? 'border-gold-400 shadow-[0_18px_34px_-28px_rgba(212,175,55,0.45)]'
-          : 'border-cream-200 shadow-[0_16px_30px_-28px_rgba(30,58,95,0.24)] focus-within:border-gold-300'
+          ? 'border-gold-400 shadow-sm'
+          : 'border-cream-200 shadow-sm focus-within:border-gold-300'
       }`
-    : `relative glass-input ${compact ? 'rounded-2xl' : 'rounded-3xl'} border-2 shadow-lg overflow-hidden transition-all duration-200 ${
+    : `relative glass-input rounded-2xl border-2 shadow-md overflow-hidden transition-all duration-200 ${
         isWorking
           ? 'border-gold-400 shadow-gold-200/50'
           : 'border-gold-300/60 shadow-gold-100/40 focus-within:border-gold-400 focus-within:shadow-gold-200/50'
@@ -106,7 +106,7 @@ export function ChatInput({
                   onClick={onStop}
                   title="Stop generation"
                   aria-label="Stop generation"
-                  className="flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 flex items-center justify-center shadow-md transition-all duration-200 hover:shadow-lg animate-pulse cursor-pointer"
+                  className="flex-shrink-0 w-9 h-9 rounded-full bg-gold-400 hover:bg-gold-500 flex items-center justify-center shadow-md transition-all duration-200 hover:shadow-lg animate-pulse cursor-pointer"
                 >
                   <Square className="w-3.5 h-3.5 text-white fill-white" />
                 </button>
@@ -116,7 +116,7 @@ export function ChatInput({
                   disabled={!value.trim() || disabled}
                   title="Send message"
                   aria-label="Send message"
-                  className="flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 disabled:from-cream-300 disabled:to-cream-400 disabled:cursor-not-allowed flex items-center justify-center shadow-md transition-all duration-200 hover:shadow-lg hover:scale-105 disabled:hover:scale-100"
+                  className="flex-shrink-0 w-9 h-9 rounded-full bg-gold-400 hover:bg-gold-500 disabled:bg-cream-300 disabled:cursor-not-allowed flex items-center justify-center shadow-md transition-all duration-200 hover:shadow-lg hover:scale-105 disabled:hover:scale-100"
                 >
                   <Send className="w-4 h-4 text-white" />
                 </button>

@@ -153,15 +153,15 @@ export function ChatMessage({
     isCompletionMessage ||
     actionItems.length > 0;
   const surfaceClassName = message.role === 'user'
-    ? 'rounded-[22px] border border-cream-200 bg-cream-100 px-4 py-3 shadow-[0_12px_24px_-22px_rgba(30,58,95,0.22)]'
+    ? 'rounded-2xl border border-cream-200 bg-cream-100 px-4 py-3 shadow-sm'
     : useElevatedSurface
-      ? 'rounded-[22px] border border-cream-200 bg-white px-4 py-3 shadow-[0_16px_30px_-24px_rgba(30,58,95,0.18)]'
+      ? 'rounded-2xl border border-cream-200 bg-white px-4 py-3 shadow-sm'
       : 'px-1 py-1.5';
 
   return (
     <div className="group/msg flex gap-3">
       {message.role === 'user' ? (
-        <div className="p-2 rounded-xl h-fit flex-shrink-0 bg-cream-200">
+        <div className="p-2 rounded-lg h-fit flex-shrink-0 bg-cream-200">
           <User className="w-4 h-4 text-charcoal" />
         </div>
       ) : (
@@ -189,7 +189,7 @@ export function ChatMessage({
                 </button>
               </div>
               {screeningAnswers.map((qa, idx) => (
-                <div key={idx} className="bg-cream-50 border border-cream-200 rounded-xl p-3 space-y-2">
+                <div key={idx} className="bg-cream-50 border border-cream-200 rounded-2xl p-3 space-y-2">
                   {qa.question && (
                     <p className="text-xs font-medium text-warm-gray">{qa.question}</p>
                   )}
@@ -200,7 +200,7 @@ export function ChatMessage({
                   <div className="flex justify-end">
                     <button
                       onClick={() => handleCopyAnswer(idx, qa.answer)}
-                      className="flex items-center gap-1 px-2 py-1 text-xs text-warm-gray hover:text-navy-600 hover:bg-cream-100 rounded-md transition-colors cursor-pointer"
+                      className="flex items-center gap-1 px-2 py-1 text-xs text-warm-gray hover:text-navy-600 hover:bg-cream-100 rounded-lg transition-colors cursor-pointer"
                     >
                       {copiedAnswerIdx === idx ? (
                         <><Check className="w-3 h-3 text-gold-600" /> Copied!</>

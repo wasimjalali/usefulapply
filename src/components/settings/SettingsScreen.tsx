@@ -519,9 +519,9 @@ export function SettingsScreen({ forcedSection }: SettingsScreenProps) {
                   <button
                     key={item.id}
                     onClick={() => handleSectionSelect(item.id)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all cursor-pointer ${
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-medium whitespace-nowrap transition-all cursor-pointer ${
                       activeSection === item.id
-                        ? 'bg-gradient-to-r from-navy-600 to-navy-700 text-white shadow-md'
+                        ? 'bg-navy-600 text-white shadow-md'
                         : 'bg-white text-charcoal border border-cream-200 hover:shadow-sm'
                     }`}
                   >
@@ -531,7 +531,7 @@ export function SettingsScreen({ forcedSection }: SettingsScreenProps) {
                 ))}
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap text-red-500 bg-white border border-cream-200 hover:bg-red-50 transition-all cursor-pointer"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-medium whitespace-nowrap text-red-500 bg-white border border-cream-200 hover:bg-red-50 transition-all cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
                   Log Out
@@ -546,9 +546,9 @@ export function SettingsScreen({ forcedSection }: SettingsScreenProps) {
                     <button
                       key={item.id}
                       onClick={() => handleSectionSelect(item.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all cursor-pointer ${
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-all cursor-pointer ${
                         activeSection === item.id
-                          ? 'bg-gradient-to-r from-navy-600 to-navy-700 text-white shadow-md'
+                          ? 'bg-navy-600 text-white shadow-md'
                           : 'text-charcoal hover:bg-white hover:shadow-sm'
                       }`}
                     >
@@ -566,7 +566,7 @@ export function SettingsScreen({ forcedSection }: SettingsScreenProps) {
                 <div className="mt-8 pt-8 border-t border-cream-200">
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600 transition-all cursor-pointer"
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-red-500 hover:bg-red-50 hover:text-red-600 transition-all cursor-pointer"
                   >
                     <LogOut className="w-5 h-5" />
                     <span className="font-medium text-sm">Log Out</span>

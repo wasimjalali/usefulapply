@@ -143,7 +143,7 @@ function StatusDropdown({
           <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setIsOpen(false); }} />
           <div
             ref={menuRef}
-            className="fixed z-50 w-48 bg-white rounded-xl shadow-xl border border-cream-200 py-1.5"
+            className="fixed z-50 w-48 bg-white rounded-2xl shadow-lg border border-cream-200 py-1.5"
             style={{ top: menuStyle.top, left: menuStyle.left }}
             onClick={(e) => e.stopPropagation()}
             role="menu"
@@ -198,7 +198,7 @@ function PipelineStage({
         active
           ? 'bg-gradient-to-r from-navy-600 to-navy-700 text-white shadow-sm'
           : 'bg-transparent text-charcoal hover:bg-cream-50'
-      } ${isFirst ? 'rounded-l-[18px]' : ''} ${isLast ? 'rounded-r-[18px]' : ''}`}
+      } ${isFirst ? 'rounded-l-2xl' : ''} ${isLast ? 'rounded-r-2xl' : ''}`}
     >
       <span className={`text-xl font-bold leading-none ${active ? 'text-white' : 'text-navy-700'}`}>
         {count}
@@ -265,7 +265,7 @@ function InlineEditableCompany({
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={isSaving}
-          className="px-1.5 py-0.5 text-sm font-semibold text-navy-700 border border-gold-400 rounded-md bg-white focus:outline-none w-[160px] transition-colors"
+          className="px-1.5 py-0.5 text-sm font-semibold text-navy-700 border border-gold-400 rounded-lg bg-white focus:outline-none w-[160px] transition-colors"
         />
         {isSaving ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin text-gold-500" />
@@ -703,7 +703,7 @@ export function TrackerPanel() {
     <div className="h-full overflow-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Pipeline Status Bar */}
-        <div className="flex rounded-[24px] border border-cream-200 bg-cream-50 p-1 shadow-[0_18px_42px_-32px_rgba(30,58,95,0.2)]">
+        <div className="flex rounded-[24px] border border-cream-200 bg-cream-50 p-1 shadow-sm">
           <PipelineStage
             label="All"
             count={totalCount}
@@ -773,7 +773,7 @@ export function TrackerPanel() {
         {/* Applications List */}
         {totalCount === 0 ? (
           <div className="mt-16 text-center">
-            <div className="inline-flex p-6 bg-cream-100 rounded-3xl mb-6">
+            <div className="inline-flex p-6 bg-cream-100 rounded-2xl mb-6">
               <Briefcase className="w-12 h-12 text-warm-gray/60" />
             </div>
             <h3 className="text-xl font-serif font-semibold tracking-tight text-navy-700 mb-2">No jobs tracked yet</h3>
@@ -782,7 +782,7 @@ export function TrackerPanel() {
             </p>
             <button
               onClick={() => setActiveTab('cv')}
-              className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-gold-400 to-gold-500 rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm cursor-pointer"
+              className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-gold-400 rounded-2xl hover:bg-gold-500 transition-all shadow-sm cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               Add a New Job
@@ -790,7 +790,7 @@ export function TrackerPanel() {
           </div>
         ) : matchingCount === 0 ? (
           <div className="mt-16 text-center">
-            <div className="inline-flex p-6 bg-cream-100 rounded-3xl mb-6">
+            <div className="inline-flex p-6 bg-cream-100 rounded-2xl mb-6">
               <Search className="w-12 h-12 text-warm-gray/60" />
             </div>
             <h3 className="text-xl font-serif font-semibold tracking-tight text-navy-700 mb-2">No jobs match this view</h3>
@@ -809,7 +809,7 @@ export function TrackerPanel() {
           <>
             {/* Bulk Action Bar */}
             {selectedIds.size > 0 && (
-              <div className="mt-4 flex items-center justify-between px-5 py-3 bg-navy-50 border border-navy-200 rounded-xl">
+              <div className="mt-4 flex items-center justify-between px-5 py-3 bg-navy-50 border border-navy-200 rounded-2xl">
                 <span className="text-sm font-semibold text-navy-700">
                   {selectedIds.size} job{selectedIds.size !== 1 ? 's' : ''} selected
                 </span>
@@ -854,7 +854,7 @@ export function TrackerPanel() {
 
             {/* Desktop Table */}
             <div className="hidden md:block mt-4">
-              <div className="overflow-hidden rounded-[24px] border border-cream-200 bg-cream-50 shadow-[0_22px_56px_-38px_rgba(30,58,95,0.24)]">
+              <div className="overflow-hidden rounded-[24px] border border-cream-200 bg-cream-50 shadow-md">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-cream-200 bg-cream-100">
@@ -899,7 +899,7 @@ export function TrackerPanel() {
                             onClick={() => navigatingSessionId ? undefined : handleRowClick(app.id)}
                           >
                             <div className="flex items-center gap-3">
-                              <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br from-navy-100 to-navy-200 flex items-center justify-center">
+                              <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-navy-100 flex items-center justify-center">
                                 <Briefcase className="w-4 h-4 text-navy-600" />
                               </div>
                               <InlineEditableCompany
@@ -964,13 +964,13 @@ export function TrackerPanel() {
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleDelete(app.id); }}
-                                  className="px-2.5 py-1 text-xs font-semibold text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors cursor-pointer"
+                                  className="px-2.5 py-1 text-xs font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors cursor-pointer"
                                 >
                                   Yes
                                 </button>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
-                                  className="px-2.5 py-1 text-xs font-semibold text-warm-gray bg-cream-100 rounded-md hover:bg-cream-200 transition-colors cursor-pointer"
+                                  className="px-2.5 py-1 text-xs font-semibold text-warm-gray bg-cream-100 rounded-lg hover:bg-cream-200 transition-colors cursor-pointer"
                                 >
                                   No
                                 </button>
@@ -1001,7 +1001,7 @@ export function TrackerPanel() {
                 return (
                   <div
                     key={app.id}
-                    className={`rounded-[24px] border border-cream-200 bg-cream-50 p-5 shadow-[0_18px_40px_-32px_rgba(30,58,95,0.22)] transition-all ${navigatingSessionId === app.id ? 'opacity-70' : 'hover:border-cream-300 hover:shadow-[0_22px_48px_-32px_rgba(30,58,95,0.26)]'}`}
+                    className={`rounded-[24px] border border-cream-200 bg-cream-50 p-5 shadow-sm transition-all ${navigatingSessionId === app.id ? 'opacity-70' : 'hover:border-cream-300 hover:shadow-md'}`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <input
@@ -1020,7 +1020,7 @@ export function TrackerPanel() {
                           {app.job_title || 'Untitled Position'}
                         </p>
                         <div className="flex items-center gap-2">
-                          <div className="flex-shrink-0 w-6 h-6 rounded-md bg-gradient-to-br from-navy-100 to-navy-200 flex items-center justify-center">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-lg bg-navy-100 flex items-center justify-center">
                             <Briefcase className="w-3 h-3 text-navy-600" />
                           </div>
                           <InlineEditableCompany
@@ -1083,7 +1083,7 @@ export function TrackerPanel() {
                       ) : (
                         <button
                           onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(app.id); }}
-                          className="p-2 rounded-xl text-warm-gray hover:text-red-500 hover:bg-red-50 transition-all cursor-pointer"
+                          className="p-2 rounded-lg text-warm-gray hover:text-red-500 hover:bg-red-50 transition-all cursor-pointer"
                           title="Delete application"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1101,7 +1101,7 @@ export function TrackerPanel() {
                 <button
                   onClick={handleLoadMore}
                   disabled={isLoadingMore}
-                  className="flex items-center gap-2 px-6 py-3 text-sm font-semibold text-navy-700 bg-white border border-cream-200 rounded-xl hover:bg-cream-50 hover:border-gold-300 transition-all shadow-sm cursor-pointer disabled:opacity-60"
+                  className="flex items-center gap-2 px-6 py-3 text-sm font-semibold text-navy-700 bg-white border border-cream-200 rounded-2xl hover:bg-cream-50 hover:border-gold-300 transition-all shadow-sm cursor-pointer disabled:opacity-60"
                 >
                   {isLoadingMore ? (
                     <>

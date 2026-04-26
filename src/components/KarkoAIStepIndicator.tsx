@@ -61,7 +61,7 @@ export function KarkoAIStepIndicator({
         </div>
 
         {/* Step indicator card */}
-        <div className={`p-5 rounded-xl transition-all duration-300 ${
+        <div className={`p-5 rounded-2xl transition-all duration-300 ${
           isComplete
             ? 'bg-gold-50 border border-gold-200 step-complete-pulse'
             : 'bg-gradient-to-br from-cream-50 to-cream-100 border border-cream-300/80'

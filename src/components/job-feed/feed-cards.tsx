@@ -372,7 +372,7 @@ export function JobFeedDetailModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy-900/55 p-4 md:p-6" onClick={onClose}>
       <div
-        className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-[24px] bg-white shadow-[0_24px_80px_-24px_rgba(15,25,41,0.45)]"
+        className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-[24px] bg-white shadow-lg"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start gap-4 border-b border-cream-200 bg-cream-50 px-6 py-5">

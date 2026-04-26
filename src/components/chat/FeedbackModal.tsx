@@ -29,7 +29,7 @@ export function FeedbackModal({ type, onSubmit, onCancel, isSuccess = false }: F
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-label="Submit feedback">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-lg max-w-md w-full overflow-hidden">
         {/* Modal Header */}
         <div className={`px-6 py-4 ${type === 'positive' ? 'bg-gold-50' : 'bg-red-50'}`}>
           <div className="flex items-center gap-3">
@@ -67,7 +67,7 @@ export function FeedbackModal({ type, onSubmit, onCancel, isSuccess = false }: F
                   ? "Tell us what was helpful about this response..." 
                   : "Tell us how we can make this better..."
                 }
-                className="w-full h-32 px-4 py-3 text-sm border border-cream-200 rounded-xl focus:outline-none focus:border-gold-400 resize-none placeholder:text-warm-gray transition-colors"
+                className="w-full h-32 px-4 py-3 text-sm border border-cream-200 rounded-lg focus:outline-none focus:border-gold-400 resize-none placeholder:text-warm-gray transition-colors"
                 autoFocus
               />
             </div>
@@ -82,7 +82,7 @@ export function FeedbackModal({ type, onSubmit, onCancel, isSuccess = false }: F
               </button>
               <button
                 onClick={handleSubmit}
-                className="px-5 py-2 text-sm font-medium bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-lg hover:from-gold-500 hover:to-gold-600 shadow-md transition-all"
+                className="px-5 py-2 text-sm font-medium bg-gold-400 text-white rounded-lg hover:bg-gold-500 shadow-md transition-all"
               >
                 Submit Feedback
               </button>

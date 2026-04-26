@@ -448,7 +448,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
       <div className="h-full overflow-auto px-5 py-5">
         <div className="max-w-3xl mx-auto">
           {/* Auto-save notice */}
-          <div className="mb-6 p-4 bg-cream-50 rounded-xl border border-cream-200 shadow-sm">
+          <div className="mb-6 p-4 bg-cream-50 rounded-2xl border border-cream-200 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-navy-50 rounded-lg">
                 <Sparkles className="w-4 h-4 text-gold-500" />
@@ -467,7 +467,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
             <div className="bg-white rounded-2xl border border-cream-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
               <div className="p-5">
                 <div className="flex items-start gap-4">
-                  <div className="p-3 bg-gradient-to-br from-navy-600 to-navy-700 rounded-xl shadow-sm">
+                  <div className="p-3 bg-gradient-to-br from-navy-600 to-navy-700 rounded-lg shadow-sm">
                     <FileText className="w-5 h-5 text-gold-300" />
                   </div>
                   <div className="flex-1">
@@ -480,14 +480,14 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
 
                 <div className="mt-4 ml-14">
                   {uploadError && (
-                    <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2">
+                    <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 text-red-500" />
                       <p className="text-sm text-red-600">{uploadError}</p>
                     </div>
                   )}
 
                   {isUploadingCV ? (
-                    <div className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-navy-300 rounded-xl bg-navy-50/50">
+                    <div className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-navy-300 rounded-2xl bg-navy-50/50">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="animate-spin rounded-full h-5 w-5 border-2 border-navy-600 border-t-transparent"></div>
                         <p className="text-sm text-navy-600 font-medium">Parsing your CV...</p>
@@ -496,7 +496,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                     </div>
                   ) : currentCV ? (
                     <div>
-                      <div className="flex items-center justify-between p-3 bg-gold-50 rounded-xl border border-gold-200">
+                      <div className="flex items-center justify-between p-3 bg-gold-50 rounded-2xl border border-gold-200">
                         <div className="flex items-center gap-3">
                           <div className="p-1.5 bg-gold-100 rounded-lg">
                             <CheckCircle2 className="w-4 h-4 text-gold-600" />
@@ -563,7 +563,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
             <div className="bg-white rounded-2xl border border-cream-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
               <div className="p-5">
                 <div className="flex items-start gap-4">
-                  <div className="p-3 bg-gradient-to-br from-navy-500 to-navy-600 rounded-xl shadow-sm">
+                  <div className="p-3 bg-gradient-to-br from-navy-500 to-navy-600 rounded-lg shadow-sm">
                     <Camera className="w-5 h-5 text-gold-300" />
                   </div>
                   <div className="flex-1">
@@ -577,9 +577,9 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
 
                 <div className="mt-4 ml-14">
                   {profilePhoto ? (
-                    <div className="flex items-center justify-between p-3 bg-navy-50 rounded-xl border border-navy-200">
+                    <div className="flex items-center justify-between p-3 bg-navy-50 rounded-2xl border border-navy-200">
                       <div className="flex items-center gap-3">
-                        <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 ring-2 ring-gold-200">
+                        <div className="w-14 h-14 rounded-2xl overflow-hidden bg-gray-100 ring-2 ring-gold-200">
                           <img
                             src={profilePhoto.dataUrl}
                             alt="Profile"
@@ -606,7 +606,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                     </div>
                   ) : (
                     <label className="block">
-                      <div className="border-2 border-dashed border-navy-200 rounded-xl p-6 text-center cursor-pointer hover:border-gold-300 hover:bg-cream-50 transition-all">
+                      <div className="border-2 border-dashed border-navy-200 rounded-2xl p-6 text-center cursor-pointer hover:border-gold-300 hover:bg-cream-50 transition-all">
                         <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-navy-50 flex items-center justify-center">
                           <User className="w-6 h-6 text-navy-500" />
                         </div>
@@ -634,7 +634,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
               <div className="bg-white rounded-2xl border border-cream-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
                 <div className="p-5">
                   <div className="flex items-start gap-4">
-                    <div className="p-3 bg-gradient-to-br from-gold-400 to-gold-500 rounded-xl shadow-sm">
+                    <div className="p-3 bg-gradient-to-br from-gold-400 to-gold-500 rounded-lg shadow-sm">
                       <FileText className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1">
@@ -647,14 +647,14 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
 
                   <div className="mt-4 ml-14">
                     {masterCVUploadError && (
-                      <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2">
+                      <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-2">
                         <AlertCircle className="w-4 h-4 text-red-500" />
                         <p className="text-sm text-red-600">{masterCVUploadError}</p>
                       </div>
                     )}
 
                     {isUploadingMasterCV ? (
-                      <div className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-gold-300 rounded-xl bg-gold-50/50">
+                      <div className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-gold-300 rounded-2xl bg-gold-50/50">
                         <div className="flex items-center gap-3 mb-2">
                           <div className="animate-spin rounded-full h-5 w-5 border-2 border-gold-600 border-t-transparent"></div>
                           <p className="text-sm text-gold-700 font-medium">Parsing your Master CV...</p>
@@ -663,7 +663,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                       </div>
                     ) : masterCV ? (
                       <div>
-                        <div className="flex items-center justify-between p-3 bg-gold-50 rounded-xl border border-gold-200">
+                        <div className="flex items-center justify-between p-3 bg-gold-50 rounded-2xl border border-gold-200">
                           <div className="flex items-center gap-3">
                             <div className="p-1.5 bg-gold-100 rounded-lg">
                               <CheckCircle2 className="w-4 h-4 text-gold-600" />
@@ -747,7 +747,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
 
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-gradient-to-br from-navy-600 to-navy-700 rounded-xl shadow-lg">
+            <div className="p-3 bg-gradient-to-br from-navy-600 to-navy-700 rounded-lg shadow-md">
               <FolderOpen className="w-7 h-7 text-gold-300" />
             </div>
             <div>
@@ -783,7 +783,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
       </div>
 
       {/* Auto-save notice */}
-      <div className="mb-8 p-4 bg-cream-50 rounded-xl border border-cream-200 shadow-sm">
+      <div className="mb-8 p-4 bg-cream-50 rounded-2xl border border-cream-200 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-navy-50 rounded-lg">
             <Sparkles className="w-4 h-4 text-gold-500" />
@@ -802,7 +802,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
         <div className="bg-white rounded-2xl border border-cream-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
           <div className="p-5">
             <div className="flex items-start gap-4">
-              <div className="p-3 bg-gradient-to-br from-navy-600 to-navy-700 rounded-xl shadow-sm">
+              <div className="p-3 bg-gradient-to-br from-navy-600 to-navy-700 rounded-lg shadow-sm">
                 <FileText className="w-5 h-5 text-gold-300" />
               </div>
               <div className="flex-1">
@@ -815,14 +815,14 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
 
             <div className="mt-4 ml-14">
               {uploadError && (
-                <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2">
+                <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-red-500" />
                   <p className="text-sm text-red-600">{uploadError}</p>
                 </div>
               )}
 
               {isUploadingCV ? (
-                <div className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-navy-300 rounded-xl bg-navy-50/50">
+                <div className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-navy-300 rounded-2xl bg-navy-50/50">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="animate-spin rounded-full h-5 w-5 border-2 border-navy-600 border-t-transparent"></div>
                     <p className="text-sm text-navy-600 font-medium">Parsing your CV...</p>
@@ -831,7 +831,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                 </div>
               ) : currentCV ? (
                 <div>
-                  <div className="flex items-center justify-between p-3 bg-gold-50 rounded-xl border border-gold-200">
+                  <div className="flex items-center justify-between p-3 bg-gold-50 rounded-2xl border border-gold-200">
                     <div className="flex items-center gap-3">
                       <div className="p-1.5 bg-gold-100 rounded-lg">
                         <CheckCircle2 className="w-4 h-4 text-gold-600" />
@@ -897,7 +897,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
         <div className="bg-white rounded-2xl border border-cream-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
           <div className="p-5">
             <div className="flex items-start gap-4">
-              <div className="p-3 bg-gradient-to-br from-navy-500 to-navy-600 rounded-xl shadow-sm">
+              <div className="p-3 bg-gradient-to-br from-navy-500 to-navy-600 rounded-lg shadow-sm">
                 <Camera className="w-5 h-5 text-gold-300" />
               </div>
               <div className="flex-1">
@@ -911,9 +911,9 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
 
             <div className="mt-4 ml-14">
               {profilePhoto ? (
-                <div className="flex items-center justify-between p-3 bg-navy-50 rounded-xl border border-navy-200">
+                <div className="flex items-center justify-between p-3 bg-navy-50 rounded-2xl border border-navy-200">
                   <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 ring-2 ring-gold-200">
+                    <div className="w-14 h-14 rounded-2xl overflow-hidden bg-gray-100 ring-2 ring-gold-200">
                       <img
                         src={profilePhoto.dataUrl}
                         alt="Profile"
@@ -940,7 +940,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                 </div>
               ) : (
                 <label className="block">
-                  <div className="border-2 border-dashed border-navy-200 rounded-xl p-6 text-center cursor-pointer hover:border-gold-300 hover:bg-cream-50 transition-all">
+                  <div className="border-2 border-dashed border-navy-200 rounded-2xl p-6 text-center cursor-pointer hover:border-gold-300 hover:bg-cream-50 transition-all">
                     <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-navy-50 flex items-center justify-center">
                       <User className="w-6 h-6 text-navy-500" />
                     </div>
@@ -968,7 +968,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
           <div className="bg-white rounded-2xl border border-cream-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
             <div className="p-5">
               <div className="flex items-start gap-4">
-                <div className="p-3 bg-gradient-to-br from-gold-400 to-gold-500 rounded-xl shadow-sm">
+                <div className="p-3 bg-gradient-to-br from-gold-400 to-gold-500 rounded-lg shadow-sm">
                   <FileText className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1">
@@ -981,14 +981,14 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
 
               <div className="mt-4 ml-14">
                 {masterCVUploadError && (
-                  <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2">
+                  <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 text-red-500" />
                     <p className="text-sm text-red-600">{masterCVUploadError}</p>
                   </div>
                 )}
 
                 {isUploadingMasterCV ? (
-                  <div className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-gold-300 rounded-xl bg-gold-50/50">
+                  <div className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-gold-300 rounded-2xl bg-gold-50/50">
                     <div className="flex items-center gap-3 mb-2">
                       <div className="animate-spin rounded-full h-5 w-5 border-2 border-gold-600 border-t-transparent"></div>
                       <p className="text-sm text-gold-700 font-medium">Parsing your Master CV...</p>
@@ -997,7 +997,7 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                   </div>
                 ) : masterCV ? (
                   <div>
-                    <div className="flex items-center justify-between p-3 bg-gold-50 rounded-xl border border-gold-200">
+                    <div className="flex items-center justify-between p-3 bg-gold-50 rounded-2xl border border-gold-200">
                       <div className="flex items-center gap-3">
                         <div className="p-1.5 bg-gold-100 rounded-lg">
                           <CheckCircle2 className="w-4 h-4 text-gold-600" />

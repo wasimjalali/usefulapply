@@ -155,7 +155,7 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
               onClick={() => setIsExpanded(false)}
               onTouchStart={() => setIsExpanded(false)}
             />
-            <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl border border-cream-200 p-5 z-[201]">
+            <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-lg border border-cream-200 p-5 z-[201]">
               <div className="space-y-3">
                 <div>
                   <div className="flex justify-between text-sm mb-1">
@@ -235,7 +235,7 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
 
           {/* Desktop: Fixed positioned popup with backdrop */}
           <div className="hidden md:block fixed inset-0 z-[199]" onClick={() => setIsExpanded(false)} />
-          <div className="hidden md:block absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-cream-200 p-4 z-[200]">
+          <div className="hidden md:block absolute top-full right-0 mt-2 w-64 bg-white rounded-2xl shadow-lg border border-cream-200 p-4 z-[200]">
             <div className="space-y-3">
               <div>
                 <div className="flex justify-between text-sm mb-1">

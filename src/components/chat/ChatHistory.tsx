@@ -37,7 +37,7 @@ export function ChatHistory({ sessions, currentSessionId, onSelectSession, onClo
       <>
         {/* Backdrop */}
         <div className="absolute inset-0 z-10" onClick={onClose} />
-        <div className="absolute top-0 left-0 right-0 z-20 bg-white rounded-b-xl shadow-lg border border-cream-200 border-t-0">
+        <div className="absolute top-0 left-0 right-0 z-20 bg-white rounded-b-2xl shadow-lg border border-cream-200 border-t-0">
           <div className="p-3">
             <p className="text-xs font-medium text-warm-gray mb-2">Recent Applications</p>
             <p className="text-xs text-warm-gray py-2">No applications yet</p>
@@ -51,7 +51,7 @@ export function ChatHistory({ sessions, currentSessionId, onSelectSession, onClo
     <>
       {/* Backdrop — click outside to close */}
       <div className="absolute inset-0 z-10" onClick={onClose} />
-      <div className="absolute top-0 left-0 right-0 z-20 bg-white rounded-b-xl shadow-lg border border-cream-200 border-t-0 max-h-72 overflow-auto">
+      <div className="absolute top-0 left-0 right-0 z-20 bg-white rounded-b-2xl shadow-lg border border-cream-200 border-t-0 max-h-72 overflow-auto">
         <div className="p-3">
           <p className="text-xs font-medium text-warm-gray mb-2">Recent Applications</p>
           <div className="space-y-0.5">

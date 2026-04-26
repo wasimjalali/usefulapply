@@ -642,7 +642,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                       <button
                         onClick={() => handleModeSelect('apply_directly')}
                         title="Generates your optimized CV, cover letter, and email immediately (2 credits)."
-                        className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold bg-gradient-to-r from-navy-600 to-navy-700 text-white rounded-xl hover:from-navy-700 hover:to-navy-800 transition-all shadow-md hover:shadow-lg cursor-pointer"
+                        className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold bg-navy-600 text-white rounded-2xl hover:bg-navy-700 transition-all shadow-md cursor-pointer"
                       >
                         <Zap className="w-4 h-4" />
                         Apply Directly
@@ -650,7 +650,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                       <button
                         onClick={() => handleModeSelect('analyze_first')}
                         title="Shows your match score and skill gaps first, then you decide whether to generate the full application (0.5 credits, then +2 if you continue)."
-                        className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium bg-white text-charcoal border border-cream-300 rounded-xl hover:bg-cream-50 hover:border-gold-300 hover:shadow-sm transition-all cursor-pointer"
+                        className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium bg-white text-charcoal border border-cream-300 rounded-2xl hover:bg-cream-50 hover:border-gold-300 hover:shadow-sm transition-all cursor-pointer"
                       >
                         <Search className="w-4 h-4 text-warm-gray" />
                         Analyze Fit First
@@ -680,7 +680,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                   <div className="mt-6 pt-5 border-t border-cream-200">
                     <button
                       onClick={() => { setSignUpWallTrigger('general'); setShowSignUpWall(true); }}
-                      className="w-full px-4 py-2.5 text-sm font-semibold bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-md cursor-pointer"
+                      className="w-full px-4 py-2.5 text-sm font-semibold bg-gold-400 text-white rounded-2xl hover:bg-gold-500 transition-all shadow-md cursor-pointer"
                     >
                       Sign Up Free
                     </button>
@@ -794,7 +794,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
               <div className="flex-shrink-0 h-fit">
                 <KarkoIcon size="xs" theme="light" />
               </div>
-              <div className="flex items-center gap-2 px-4 py-3 bg-white rounded-xl border border-cream-200 shadow-sm">
+              <div className="flex items-center gap-2 px-4 py-3 bg-white rounded-2xl border border-cream-200 shadow-sm">
                 <div className="flex gap-1">
                   <span className="w-2 h-2 bg-gold-400 rounded-full animate-bounce typing-dot-1" />
                   <span className="w-2 h-2 bg-gold-500 rounded-full animate-bounce typing-dot-2" />
@@ -869,7 +869,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
           <div className="flex justify-center -mt-12 relative z-10 pointer-events-none">
             <button
               onClick={() => scrollToBottom(true)}
-              className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white text-navy-600 rounded-full shadow-lg border border-cream-200 hover:bg-cream-50 hover:shadow-xl transition-all cursor-pointer"
+              className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white text-navy-600 rounded-full shadow-lg border border-cream-200 hover:bg-cream-50 hover:shadow-lg transition-all cursor-pointer"
             >
               <ArrowDown className="w-3 h-3" />
               New messages

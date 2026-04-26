@@ -571,13 +571,13 @@ ${letter.signatureName}`;
       {isEditMode && (
         <>
           <span className="text-sm font-semibold text-navy-600 flex-shrink-0">Editing</span>
-          <Button variant="primary" size="sm" onClick={handleSaveEdits} className="flex-shrink-0 rounded-[20px] shadow-sm">
+          <Button variant="primary" size="sm" onClick={handleSaveEdits} className="flex-shrink-0 rounded-2xl shadow-sm">
             <Check className="w-4 h-4 mr-1" />
             Save
           </Button>
           <button
             onClick={() => { setIsEditMode(false); setEditedCoverLetter(coverLetter); }}
-            className="px-3.5 py-2 text-sm font-medium text-warm-gray hover:text-charcoal rounded-[20px] hover:bg-cream-100 transition-all cursor-pointer flex-shrink-0"
+            className="px-3.5 py-2 text-sm font-medium text-warm-gray hover:text-charcoal rounded-2xl hover:bg-cream-100 transition-all cursor-pointer flex-shrink-0"
           >
             Cancel
           </button>
@@ -588,7 +588,7 @@ ${letter.signatureName}`;
       {!isEditMode && coverLetter && (
         <button
           onClick={() => setIsEditMode(true)}
-          className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium bg-white border border-cream-200 rounded-[20px] hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0 shadow-sm"
+          className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium bg-white border border-cream-200 rounded-2xl hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0 shadow-sm"
         >
           <Edit3 className="w-4 h-4 text-navy-500" />
           <span>Edit</span>
@@ -603,12 +603,12 @@ ${letter.signatureName}`;
             size="sm"
             onClick={handleGenerateCoverLetter}
             isLoading={isLoadingCoverLetter}
-            className="flex-shrink-0 rounded-[20px] bg-white shadow-sm"
+            className="flex-shrink-0 rounded-2xl bg-white shadow-sm"
           >
             <RefreshCw className="w-4 h-4 mr-1" />
             <span>Regenerate</span>
           </Button>
-          <Button variant="outline" size="sm" onClick={handleCopy} className="flex-shrink-0 rounded-[20px] bg-white shadow-sm">
+          <Button variant="outline" size="sm" onClick={handleCopy} className="flex-shrink-0 rounded-2xl bg-white shadow-sm">
             {copied ? <Check className="w-4 h-4 text-gold-600" /> : <Copy className="w-4 h-4" />}
             <span className="ml-1">{copied ? 'Copied!' : 'Copy'}</span>
           </Button>
@@ -624,7 +624,7 @@ ${letter.signatureName}`;
             onClick={handleDownloadPDF}
             isLoading={downloadFormat === 'pdf'}
             disabled={downloadFormat !== null}
-            className="flex-shrink-0 rounded-[20px] shadow-sm"
+            className="flex-shrink-0 rounded-2xl shadow-sm"
           >
             {downloadFormat !== 'pdf' && <Download className="w-4 h-4 mr-1" />}
             <span>Download PDF</span>
@@ -635,7 +635,7 @@ ${letter.signatureName}`;
             onClick={handleDownloadDOCX}
             isLoading={downloadFormat === 'docx'}
             disabled={downloadFormat !== null}
-            className="flex-shrink-0 rounded-[20px] bg-white shadow-sm"
+            className="flex-shrink-0 rounded-2xl bg-white shadow-sm"
           >
             {downloadFormat !== 'docx' && <FileText className="w-4 h-4 mr-1" />}
             <span>Download DOCX</span>
@@ -720,7 +720,7 @@ ${letter.signatureName}`;
 
       {showFullPreview && activeCoverLetter && createPortal(
         <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">
-          <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-[30px] border border-cream-200 bg-cream-100 shadow-[0_36px_100px_-38px_rgba(30,58,95,0.45)]">
+          <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-[24px] border border-cream-200 bg-cream-100 shadow-lg">
             <div className="flex items-center justify-between border-b border-cream-200 bg-cream-50 px-5 py-3">
               <div>
                 <h2 className="text-sm font-serif font-semibold tracking-tight text-charcoal">Cover Letter Full Preview</h2>
@@ -736,7 +736,7 @@ ${letter.signatureName}`;
             </div>
 
             <div className="flex-1 overflow-auto bg-cream-100 p-4 sm:p-6">
-              <Card className="mx-auto w-full max-w-3xl p-8 sm:p-10 shadow-[0_30px_60px_-40px_rgba(30,58,95,0.3)]">
+              <Card className="mx-auto w-full max-w-3xl p-8 sm:p-10 shadow-md">
                 {renderCoverLetterContent(activeCoverLetter)}
               </Card>
             </div>

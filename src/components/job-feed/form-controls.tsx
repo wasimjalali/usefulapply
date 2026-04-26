@@ -133,7 +133,7 @@ export function ChoiceGrid({
 
               onChange(option.value);
             }}
-            className={`rounded-[20px] border px-4 py-3 text-left transition-colors ${
+            className={`rounded-2xl border px-4 py-3 text-left transition-colors ${
               selected
                 ? 'border-navy-300 bg-navy-50 shadow-sm'
                 : 'border-cream-200 bg-white hover:border-navy-200 hover:bg-navy-50/40'
@@ -338,7 +338,7 @@ export function MultiSelectDropdown({
       {isOpen && (
         <div
           role="listbox"
-          className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-cream-200 bg-white p-2 shadow-[0_18px_48px_-24px_rgba(30,58,95,0.35)]"
+          className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-cream-200 bg-white p-2 shadow-md"
         >
           {searchable && (
             <input
@@ -346,7 +346,7 @@ export function MultiSelectDropdown({
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search…"
-              className="mb-2 w-full rounded-xl border border-cream-200 bg-cream-50 px-3 py-2 text-sm outline-none focus:border-navy-300"
+              className="mb-2 w-full rounded-lg border border-cream-200 bg-cream-50 px-3 py-2 text-sm outline-none focus:border-navy-300"
               autoFocus
             />
           )}
@@ -366,7 +366,7 @@ export function MultiSelectDropdown({
                       aria-selected={selected}
                       onClick={() => toggleValue(option.value)}
                       disabled={disabled}
-                      className={`flex w-full items-start gap-3 rounded-xl px-3 py-2 text-left transition-colors ${
+                      className={`flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition-colors ${
                         selected ? 'bg-navy-50' : 'hover:bg-cream-50'
                       } ${disabled ? 'cursor-not-allowed opacity-40' : ''}`}
                     >
@@ -542,7 +542,7 @@ export function RoleEntryField({
   };
 
   return (
-    <div className="rounded-[24px] border border-cream-200 bg-white/96 p-4 shadow-sm">
+    <div className="rounded-2xl border border-cream-200 bg-white/96 p-4 shadow-sm">
       <div className="flex flex-wrap gap-2">
         {values.length > 0 ? (
           values.map((value) => (
@@ -653,7 +653,7 @@ export function InlineNotice({
       : 'border-navy-100 bg-navy-50/70 text-charcoal';
 
   return (
-    <div className={`rounded-[20px] border px-4 py-4 ${classes}`}>
+    <div className={`rounded-2xl border px-4 py-4 ${classes}`}>
       <p className="text-sm font-semibold">{title}</p>
       <p className="mt-1 text-sm leading-6">{children}</p>
     </div>
@@ -680,7 +680,7 @@ export function ActivationChoiceCard({
       type="button"
       aria-pressed={selected}
       onClick={onClick}
-      className={`w-full rounded-[22px] border px-4 py-4 text-left transition-colors ${
+      className={`w-full rounded-2xl border px-4 py-4 text-left transition-colors ${
         selected
           ? 'border-navy-300 bg-white shadow-sm'
           : 'border-cream-200 bg-cream-50/55 hover:border-navy-200 hover:bg-white'

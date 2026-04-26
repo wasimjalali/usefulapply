@@ -131,7 +131,7 @@ function DashboardProfileMenu({ profile, onSignOut }: DashboardProfileMenuProps)
 
       {isOpen && (
         <div
-          className="absolute right-0 top-full mt-3 w-[280px] rounded-[28px] border border-cream-200 bg-cream-50 p-2 shadow-[0_24px_70px_-32px_rgba(30,58,95,0.35)] z-[80]"
+          className="absolute right-0 top-full mt-3 w-[280px] rounded-[24px] border border-cream-200 bg-cream-50 p-2 shadow-md z-[80]"
           role="menu"
         >
           <div className="px-3 py-3 border-b border-cream-200">
@@ -198,8 +198,8 @@ function DashboardUpgradeButton({
           ? 'h-8 gap-1.5 rounded-full px-3 text-xs mr-1.5'
           : 'h-11 gap-2 rounded-full px-4 text-sm mr-2',
         isPlus
-          ? 'border border-gold-300/70 bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600'
-          : 'border border-navy-500/70 bg-gradient-to-r from-navy-600 to-navy-700 hover:from-navy-700 hover:to-navy-800',
+          ? 'border border-gold-300/70 bg-gold-400 hover:bg-gold-500'
+          : 'border border-navy-500/70 bg-navy-600 hover:bg-navy-700',
       ].join(' ')}
     >
       {mobile ? (isPlus ? 'Upgrade' : 'Go Max') : isPlus ? 'Upgrade to Plus' : 'Upgrade to Max'}
@@ -775,11 +775,11 @@ export default function Dashboard() {
           {activeWorkspace === 'application-kit' && currentCV && (
             <>
               <div className="bg-cream-50 border-b border-cream-200 px-4 sm:px-5 py-2.5">
-                <div id="tour-doc-tabs" className="inline-flex items-center rounded-[18px] border border-cream-200 bg-cream-50 p-0.5">
+                <div id="tour-doc-tabs" className="inline-flex items-center rounded-2xl border border-cream-200 bg-cream-50 p-0.5">
                   <button
                     type="button"
                     onClick={() => handleTabChange('cv')}
-                    className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-[14px] transition-all cursor-pointer whitespace-nowrap ${
+                    className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                       activeTab === 'cv'
                         ? 'bg-white text-navy-700 shadow-sm font-semibold'
                         : 'text-warm-gray hover:text-navy-600'
@@ -791,7 +791,7 @@ export default function Dashboard() {
                   <button
                     type="button"
                     onClick={() => handleTabChange('cover-letter')}
-                    className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-[14px] transition-all cursor-pointer whitespace-nowrap ${
+                    className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                       activeTab === 'cover-letter'
                         ? 'bg-white text-navy-700 shadow-sm font-semibold'
                         : 'text-warm-gray hover:text-navy-600'
@@ -803,7 +803,7 @@ export default function Dashboard() {
                   <button
                     type="button"
                     onClick={() => handleTabChange('email')}
-                    className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-[14px] transition-all cursor-pointer whitespace-nowrap ${
+                    className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                       activeTab === 'email'
                         ? 'bg-white text-navy-700 shadow-sm font-semibold'
                         : 'text-warm-gray hover:text-navy-600'
@@ -842,7 +842,7 @@ export default function Dashboard() {
                   </div>
 
                   {uploadError && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2">
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
                       <p className="text-sm text-red-600">{uploadError}</p>
                     </div>
@@ -868,21 +868,21 @@ export default function Dashboard() {
                   {/* Feature highlights */}
                   <div className="mt-8 grid grid-cols-3 gap-4">
                     <div className="text-center">
-                      <div className="inline-flex p-2 bg-navy-50 rounded-xl mb-2">
+                      <div className="inline-flex p-2 bg-navy-50 rounded-lg mb-2">
                         <FileText className="w-4 h-4 text-navy-600" />
                       </div>
                       <p className="text-xs font-medium text-charcoal">ATS-Optimized CV</p>
                       <p className="text-[10px] text-warm-gray mt-0.5">Tailored to each job description</p>
                     </div>
                     <div className="text-center">
-                      <div className="inline-flex p-2 bg-navy-50 rounded-xl mb-2">
+                      <div className="inline-flex p-2 bg-navy-50 rounded-lg mb-2">
                         <Mail className="w-4 h-4 text-navy-600" />
                       </div>
                       <p className="text-xs font-medium text-charcoal">Cover Letter</p>
                       <p className="text-[10px] text-warm-gray mt-0.5">Professional, role-specific</p>
                     </div>
                     <div className="text-center">
-                      <div className="inline-flex p-2 bg-navy-50 rounded-xl mb-2">
+                      <div className="inline-flex p-2 bg-navy-50 rounded-lg mb-2">
                         <Send className="w-4 h-4 text-navy-600" />
                       </div>
                       <p className="text-xs font-medium text-charcoal">Application Email</p>
@@ -933,7 +933,7 @@ export default function Dashboard() {
               </div>
             )}
 
-            <div className={`absolute inset-y-2 right-2 left-2 flex flex-col items-center justify-start py-2.5 border border-gold-300/90 bg-cream-50/96 rounded-[16px] shadow-[0_18px_36px_-30px_rgba(30,58,95,0.22)] transition-opacity duration-200 ${
+            <div className={`absolute inset-y-2 right-2 left-2 flex flex-col items-center justify-start py-2.5 border border-gold-300/90 bg-cream-50/96 rounded-2xl shadow-md transition-opacity duration-200 ${
               isChatCollapsed ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
             }`}>
               <button
@@ -948,7 +948,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div id="tour-chat-panel" className={`absolute inset-y-2 right-2 left-2 overflow-hidden rounded-[16px] border border-gold-300/90 bg-cream-50/96 backdrop-blur-[6px] shadow-[0_24px_54px_-40px_rgba(30,58,95,0.28)] transition-opacity duration-200 ${
+            <div id="tour-chat-panel" className={`absolute inset-y-2 right-2 left-2 overflow-hidden rounded-2xl border border-gold-300/90 bg-cream-50/96 backdrop-blur-[6px] shadow-md transition-opacity duration-200 ${
               isChatCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
             }`}>
               <ChatPanel
@@ -963,11 +963,11 @@ export default function Dashboard() {
       <div className="md:hidden flex-1 flex flex-col overflow-hidden">
         {mobileView === 'application-kit' && currentCV && (
           <div className="bg-white/90 border-b border-cream-200 px-3 py-2.5">
-            <div className="inline-flex items-center bg-cream-100/80 rounded-[18px] p-0.5 overflow-x-auto scrollbar-hide">
+            <div className="inline-flex items-center bg-cream-100/80 rounded-2xl p-0.5 overflow-x-auto scrollbar-hide">
               <button
                 type="button"
                 onClick={() => handleMobileApplicationTabChange('cv')}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-[14px] transition-all whitespace-nowrap ${
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
                   mobileApplicationTab === 'cv'
                     ? 'bg-white text-navy-700 shadow-sm font-semibold'
                     : 'text-warm-gray'
@@ -979,7 +979,7 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={() => handleMobileApplicationTabChange('cover-letter')}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-[14px] transition-all whitespace-nowrap ${
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
                   mobileApplicationTab === 'cover-letter'
                     ? 'bg-white text-navy-700 shadow-sm font-semibold'
                     : 'text-warm-gray'
@@ -991,7 +991,7 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={() => handleMobileApplicationTabChange('email')}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-[14px] transition-all whitespace-nowrap ${
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
                   mobileApplicationTab === 'email'
                     ? 'bg-white text-navy-700 shadow-sm font-semibold'
                     : 'text-warm-gray'
@@ -1028,7 +1028,7 @@ export default function Dashboard() {
                 </div>
 
                 {uploadError && (
-                  <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2">
+                  <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
                     <p className="text-sm text-red-600">{uploadError}</p>
                   </div>
@@ -1135,7 +1135,7 @@ export default function Dashboard() {
             onClick={() => setShowATSModal(false)}
             aria-label="Close ATS insights"
           />
-          <div className="relative flex h-[90vh] w-full max-w-4xl min-h-0 max-h-[90vh] flex-col overflow-hidden rounded-[32px] border border-cream-200 bg-cream-50 shadow-[0_30px_90px_-30px_rgba(30,58,95,0.45)]">
+          <div className="relative flex h-[90vh] w-full max-w-4xl min-h-0 max-h-[90vh] flex-col overflow-hidden rounded-[24px] border border-cream-200 bg-cream-50 shadow-lg">
             <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-cream-200 bg-white/90 backdrop-blur-sm">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-gold-50 px-3 py-1 text-xs font-semibold text-gold-700 border border-gold-100 mb-3">
@@ -1169,9 +1169,9 @@ export default function Dashboard() {
           visited the Job Feed tab; acknowledging stamps the run date into
           localStorage so it won't re-open until tomorrow's run lands. */}
       {showJobFeedPopup && jobFeedBadge.hasNewRun && (
-        <div className="fixed bottom-6 right-6 z-[60] max-w-sm rounded-2xl border border-gold-300/80 bg-white p-4 shadow-[0_24px_48px_-20px_rgba(30,58,95,0.35)]">
+        <div className="fixed bottom-6 right-6 z-[60] max-w-sm rounded-2xl border border-gold-300/80 bg-white p-4 shadow-md">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gold-50 text-gold-600">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gold-50 text-gold-600">
               <Briefcase className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">

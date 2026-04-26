@@ -382,11 +382,11 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   const toolbarContent = (
     <>
       {followUpEmail && (
-        <div className="flex items-center bg-cream-50 border border-cream-200 rounded-[20px] p-0.5 shadow-sm flex-shrink-0">
+        <div className="flex items-center bg-cream-50 border border-cream-200 rounded-2xl p-0.5 shadow-sm flex-shrink-0">
           <button
             type="button"
             onClick={() => setActiveEmailTab('primary')}
-            className={`px-3.5 py-2 text-sm font-medium rounded-[14px] transition-all cursor-pointer ${
+            className={`px-3.5 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
               activeEmailTab === 'primary'
                 ? 'bg-navy-700 text-white shadow-sm'
                 : 'text-warm-gray hover:text-charcoal'
@@ -397,7 +397,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
           <button
             type="button"
             onClick={() => setActiveEmailTab('follow-up')}
-            className={`px-3.5 py-2 text-sm font-medium rounded-[14px] transition-all cursor-pointer ${
+            className={`px-3.5 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
               activeEmailTab === 'follow-up'
                 ? 'bg-navy-700 text-white shadow-sm'
                 : 'text-warm-gray hover:text-charcoal'
@@ -411,7 +411,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
       {isEditMode && (
         <>
           <span className="text-sm font-semibold text-navy-600 flex-shrink-0">Editing</span>
-          <Button variant="primary" size="sm" onClick={handleSaveEdits} className="flex-shrink-0 rounded-[20px] shadow-sm">
+          <Button variant="primary" size="sm" onClick={handleSaveEdits} className="flex-shrink-0 rounded-2xl shadow-sm">
             <Check className="w-4 h-4 mr-1.5" />
             Save
           </Button>
@@ -421,7 +421,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
               setEditedEmail(null);
               setEditedFollowUp(null);
             }}
-            className="px-3.5 py-2 text-sm font-medium text-warm-gray hover:text-charcoal rounded-[20px] hover:bg-cream-100 transition-all cursor-pointer flex-shrink-0"
+            className="px-3.5 py-2 text-sm font-medium text-warm-gray hover:text-charcoal rounded-2xl hover:bg-cream-100 transition-all cursor-pointer flex-shrink-0"
           >
             Cancel
           </button>
@@ -435,7 +435,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
             if (email && !editedEmail) setEditedEmail(email);
             if (followUpEmail && !editedFollowUp) setEditedFollowUp(followUpEmail);
           }}
-          className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium bg-white border border-cream-200 rounded-[20px] hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0 shadow-sm"
+          className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium bg-white border border-cream-200 rounded-2xl hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0 shadow-sm"
         >
           <Edit3 className="w-4 h-4 text-navy-500" />
           <span>Edit</span>
@@ -445,7 +445,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
       {!isEditMode && (
         <>
           <PortalTooltip text={activeCopyTooltip}>
-            <Button variant="primary" size="sm" onClick={activeCopyHandler} className="rounded-[20px] shadow-sm flex-shrink-0">
+            <Button variant="primary" size="sm" onClick={activeCopyHandler} className="rounded-2xl shadow-sm flex-shrink-0">
               {activeCopyState ? <Check className="w-4 h-4 mr-1.5" /> : <Copy className="w-4 h-4 mr-1.5" />}
               {activeCopyLabel}
             </Button>
@@ -455,7 +455,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
             size="sm"
             onClick={activeRegenerateHandler}
             isLoading={activeRegenerateLoading}
-            className="rounded-[20px] bg-white shadow-sm flex-shrink-0"
+            className="rounded-2xl bg-white shadow-sm flex-shrink-0"
           >
             <RefreshCw className="w-4 h-4 mr-1.5" />
             {activeRegenerateLabel}
@@ -494,7 +494,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
           />
         ) : (
           <>
-            <Card padding="lg" className="max-w-3xl mx-auto rounded-[28px] border-cream-200 shadow-[0_20px_50px_-30px_rgba(30,58,95,0.28)]">
+            <Card padding="lg" className="max-w-3xl mx-auto rounded-[24px] border-cream-200 shadow-md">
               {!isFollowUpView ? (
                 <>
                   <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold mb-5" style={{ backgroundColor: 'rgba(201, 168, 76, 0.12)', color: '#b8952f' }}>

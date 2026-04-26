@@ -118,12 +118,12 @@ export function InsufficientCreditsModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-cream-50 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-cream-50 rounded-2xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Close button */}
         <button
           onClick={onClose}
           aria-label="Close"
-          className="absolute top-4 right-4 z-10 p-2 rounded-xl text-warm-gray hover:bg-cream-200 transition-colors cursor-pointer"
+          className="absolute top-4 right-4 z-10 p-2 rounded-lg text-warm-gray hover:bg-cream-200 transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -163,7 +163,7 @@ export function InsufficientCreditsModal({
               <div className="p-5">
                 {/* Plan name + tagline */}
                 <div className="flex items-center gap-3 mb-3">
-                  <div className={`p-2 rounded-xl ${plan.tier === 'plus' ? 'bg-gold-100' : 'bg-navy-50'}`}>
+                  <div className={`p-2 rounded-lg ${plan.tier === 'plus' ? 'bg-gold-100' : 'bg-navy-50'}`}>
                     {plan.tier === 'plus'
                       ? <Zap className="w-5 h-5 text-gold-500" />
                       : <Crown className="w-5 h-5 text-navy-600" />
@@ -198,7 +198,7 @@ export function InsufficientCreditsModal({
                 </ul>
 
                 {/* Hours saved */}
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium mb-4 ${plan.hoursBg}`}>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-2xl text-sm font-medium mb-4 ${plan.hoursBg}`}>
                   <Clock className="w-4 h-4 flex-shrink-0" />
                   {plan.hoursSaved}
                 </div>
@@ -207,7 +207,7 @@ export function InsufficientCreditsModal({
                 <button
                   onClick={() => handleUpgrade(plan.tier)}
                   disabled={loadingPlan !== null}
-                  className={`w-full py-3 rounded-xl font-semibold text-sm transition-all cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2 ${plan.ctaStyle}`}
+                  className={`w-full py-3 rounded-2xl font-semibold text-sm transition-all cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2 ${plan.ctaStyle}`}
                 >
                   {loadingPlan === plan.tier ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
