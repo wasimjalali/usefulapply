@@ -11,6 +11,7 @@ import {
   PREMIUM_JOB_FEED_TIERS,
   legacyMarketFromCountries,
 } from '@/lib/job-feed/constants';
+import { splitCompositeRole } from '@/lib/job-feed/cv-suggestions';
 import type { JobFeedOverviewState, JobFeedSettingsInput } from '@/lib/job-feed/types';
 import type { JobFeedRun, JobFeedSettings } from '@/lib/supabase/types';
 
@@ -259,7 +260,10 @@ export function normalizeJobFeedSettingsInput(input: unknown): { data?: JobFeedS
     return { error: 'Please choose a valid aggressiveness level.' };
   }
 
-  const targetRoles = sanitizeStringArray(payload.target_roles);
+  // Target roles get extra treatment: if a user pastes a composite string
+  // like "AI Engineer | Product Builder", split it into separate queries so
+  // SerpAPI doesn't try to match the entire literal as a job title.
+  const targetRoles = sanitizeTargetRoles(payload.target_roles);
   if (targetRoles.length === 0) {
     return { error: 'Add at least one target role so Karko knows what to look for.' };
   }
@@ -319,6 +323,32 @@ function sanitizeStringArray(value: unknown, maxItems: number = MAX_LIST_ITEMS):
     const normalized = asTrimmedString(item, MAX_ITEM_LENGTH);
     if (!normalized) continue;
     uniqueValues.add(normalized);
+    if (uniqueValues.size >= maxItems) break;
+  }
+
+  return Array.from(uniqueValues);
+}
+
+// Target roles are free-form text that users (or the CV extractor) may supply
+// as composite strings like "AI Engineer | Product Builder | Founder".
+// Split every entry on common separators before deduping so each element ends
+// up as a single searchable role.
+function sanitizeTargetRoles(value: unknown, maxItems: number = MAX_LIST_ITEMS): string[] {
+  if (!Array.isArray(value)) return [];
+
+  const uniqueValues = new Set<string>();
+  for (const item of value) {
+    const normalized = asTrimmedString(item, MAX_ITEM_LENGTH * 4);
+    if (!normalized) continue;
+    const parts = splitCompositeRole(normalized);
+    // If nothing splittable was found, keep the original (up to the normal max).
+    const candidates = parts.length > 0 ? parts : [normalized.slice(0, MAX_ITEM_LENGTH)];
+    for (const part of candidates) {
+      const trimmed = part.slice(0, MAX_ITEM_LENGTH);
+      if (!trimmed) continue;
+      uniqueValues.add(trimmed);
+      if (uniqueValues.size >= maxItems) break;
+    }
     if (uniqueValues.size >= maxItems) break;
   }
 

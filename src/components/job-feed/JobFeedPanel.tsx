@@ -1234,16 +1234,16 @@ function JobFeedOnboardingWizard({
             </FieldGroup>
 
             <FieldGroup
-              label="Locations"
-              help="Cities or regions only (e.g. Berlin, Germany). For remote, use the Work mode step below — don't add a 'Remote' location here. Leave empty to search the whole country."
+              label="Cities"
+              help="City names only (e.g. Berlin) — country is already set above. For remote jobs, use the Work mode step. Leave empty to search the whole country."
             >
               <RoleEntryField
                 values={form.preferred_locations}
                 suggestions={JOB_FEED_SUGGESTED_LOCATIONS}
-                placeholder="Type a location and press Enter (e.g. Berlin, Germany)"
-                addLabel="Add location"
+                placeholder="Type a city and press Enter (e.g. Berlin)"
+                addLabel="Add city"
                 suggestionsLabel="Examples"
-                emptyLabel="No locations added yet — we'll search the whole country."
+                emptyLabel="No cities added yet — we'll search the whole country."
                 onChange={(preferred_locations) => onFormChange((prev) => ({ ...prev, preferred_locations }))}
               />
             </FieldGroup>

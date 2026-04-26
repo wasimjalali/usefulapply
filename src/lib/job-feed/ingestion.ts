@@ -6,6 +6,7 @@ import {
   JOB_FEED_MAX_RAW_JOBS_PER_RUN,
   JOB_FEED_PROVIDER,
 } from '@/lib/job-feed/constants';
+import { splitCompositeRole } from '@/lib/job-feed/cv-suggestions';
 import {
   buildSerpApiSearchParams,
   fetchSerpApiJobs,
@@ -611,13 +612,22 @@ function dedupeRoles(values: string[]): string[] {
   const roles: string[] = [];
 
   for (const value of values) {
-    const normalized = value.trim();
-    if (!normalized) continue;
+    // Defence in depth: if a legacy DB row has a composite role string like
+    // "AI Engineer | Product Builder", split it here so SerpAPI gets one
+    // searchable title at a time. Rows saved via the settings API already
+    // go through sanitizeTargetRoles, but old rows might not have.
+    const parts = splitCompositeRole(value);
+    const candidates = parts.length > 0 ? parts : [value.trim()];
 
-    const key = normalized.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    roles.push(normalized);
+    for (const part of candidates) {
+      const normalized = part.trim();
+      if (!normalized) continue;
+
+      const key = normalized.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      roles.push(normalized);
+    }
   }
 
   return roles;

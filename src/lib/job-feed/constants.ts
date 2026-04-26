@@ -87,23 +87,22 @@ export type JobFeedCountryCode = (typeof JOB_FEED_COUNTRY_OPTIONS)[number]['valu
 // Popular cities per country. Used as quick-pick suggestions and (when the
 // user selects one) as location hints passed to SerpAPI. Users can still type
 // their own city via the chip input.
-// Locations are strictly cities / regions. Remote preference is expressed via
-// the separate "Work mode" step (JOB_FEED_REMOTE_PREFERENCE_OPTIONS), not via a
-// "Remote (Country)" location chip — otherwise the two signals overlap and
-// users can't tell which one drives the ranker.
+// City-only suggestions. The user picks the country separately in the
+// settings, so we don't duplicate the country name here. Remote preference
+// is expressed via the "Work mode" step (JOB_FEED_REMOTE_PREFERENCE_OPTIONS).
 export const JOB_FEED_CITY_SUGGESTIONS: Record<string, string[]> = {
   us: [
-    'New York, NY',
-    'San Francisco, CA',
-    'Los Angeles, CA',
-    'Seattle, WA',
-    'Austin, TX',
-    'Chicago, IL',
-    'Boston, MA',
-    'Denver, CO',
-    'Atlanta, GA',
+    'New York',
+    'San Francisco',
+    'Los Angeles',
+    'Seattle',
+    'Austin',
+    'Chicago',
+    'Boston',
+    'Denver',
+    'Atlanta',
   ],
-  ca: ['Toronto, ON', 'Vancouver, BC', 'Montreal, QC', 'Calgary, AB', 'Ottawa, ON'],
+  ca: ['Toronto', 'Vancouver', 'Montreal', 'Calgary', 'Ottawa'],
   gb: ['London', 'Manchester', 'Edinburgh', 'Bristol', 'Cambridge'],
   ie: ['Dublin', 'Cork', 'Galway'],
   de: ['Berlin', 'Munich', 'Hamburg', 'Frankfurt', 'Cologne'],
@@ -301,12 +300,14 @@ export const JOB_FEED_SUGGESTED_ROLES = [
   'AI Engineer',
 ];
 
+// City-only examples. The country is selected separately in the settings,
+// so users don't need to type it here.
 export const JOB_FEED_SUGGESTED_LOCATIONS = [
-  'New York, NY',
-  'San Francisco, CA',
-  'Toronto, ON',
-  'Berlin, Germany',
-  'London, UK',
+  'New York',
+  'San Francisco',
+  'Berlin',
+  'London',
+  'Tokyo',
 ];
 
 export const JOB_FEED_SUGGESTED_LANGUAGES = ['English', 'French'];

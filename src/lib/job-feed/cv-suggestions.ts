@@ -2,6 +2,20 @@ import { JOB_FEED_COUNTRY_OPTIONS } from '@/lib/job-feed/constants';
 import type { JobFeedSettingsSuggestion } from '@/lib/job-feed/types';
 import type { StructuredCV } from '@/lib/types/cv-schema';
 
+// CV "currentTitle" is user-authored free text. People often write composite
+// titles like "AI Engineer | Product Builder | Founder" or "PM / Growth Lead".
+// SerpAPI treats that as one literal query and returns nothing. Split on
+// common separators before we hand anything to the search plan.
+export function splitCompositeRole(rawTitle: string): string[] {
+  if (!rawTitle) return [];
+  return rawTitle
+    .split(/[|/•·;]|\s+\/\s+|\s+&\s+|\s+-\s+|,/)
+    .map((part) => part.trim())
+    // Drop filler words that show up between titles (e.g. "and", "or", "plus").
+    .map((part) => part.replace(/^(and|or|plus|&)\s+/i, '').trim())
+    .filter((part) => part.length >= 2 && part.length <= 60);
+}
+
 export function extractJobFeedSuggestionsFromCV(cv: StructuredCV): JobFeedSettingsSuggestion {
   const rawTitle = cv.personal?.currentTitle ?? cv.experience?.[0]?.position ?? '';
   const targetRoles = deriveTargetRoles(rawTitle, cv);
@@ -171,17 +185,25 @@ function deriveTargetRoles(rawTitle: string, cv: StructuredCV): string[] {
 
   const roles = new Set<string>();
 
-  // Always include the raw title from the CV first
-  roles.add(rawTitle);
-
-  // Also add the most recent experience position if different
-  const recentPosition = cv.experience?.[0]?.position;
-  if (recentPosition && recentPosition !== rawTitle) {
-    roles.add(recentPosition);
+  // Split composite CV titles (e.g. "PM | Growth Lead | Founder") into
+  // individual search terms. A single-title CV just returns one element.
+  for (const part of splitCompositeRole(rawTitle)) {
+    roles.add(part);
   }
 
-  // Look up known variants
-  const normalized = rawTitle.toLowerCase().trim();
+  // Also add the most recent experience position if different — split too,
+  // since people sometimes list "Founder & Lead Developer" as one position.
+  const recentPosition = cv.experience?.[0]?.position;
+  if (recentPosition) {
+    for (const part of splitCompositeRole(recentPosition)) {
+      roles.add(part);
+    }
+  }
+
+  // Look up known variants. Match on the first split component so composite
+  // titles still hit the variants map.
+  const primaryRole = splitCompositeRole(rawTitle)[0] ?? rawTitle;
+  const normalized = primaryRole.toLowerCase().trim();
   const variants = ROLE_VARIANTS[normalized];
   if (variants) {
     for (const v of variants.slice(0, 2)) {
@@ -202,7 +224,7 @@ function deriveTargetRoles(rawTitle: string, cv: StructuredCV): string[] {
     }
   }
 
-  return [...roles].slice(0, 4);
+  return [...roles].slice(0, 5);
 }
 
 // ---------------------------------------------------------------------------
