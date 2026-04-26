@@ -2,14 +2,18 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-// Key stores the last run date the user has acknowledged (by opening the
-// Job Feed tab or dismissing the popup). Runs newer than this count as "new".
+// Key stores the last run date the user has acknowledged — today's popup is
+// gated on this so the "X new jobs today" popup only fires once per new run.
+// The number badge on the nav uses the live unprocessed count instead, so
+// dismissing the popup does NOT clear the badge — the user still has pending
+// jobs to work through.
 const LAST_SEEN_KEY = 'karko_job_feed_last_seen_run_date';
 
 type JobFeedSummary = {
   canAccess: boolean;
   latestRunDate: string | null;
   jobCount: number;
+  unprocessedCount: number;
 };
 
 function readLastSeen(): string | null {
@@ -30,9 +34,19 @@ function writeLastSeen(value: string) {
   }
 }
 
+// Module-level event bus so any component that records job feedback can ping
+// the badge to refetch the unprocessed count immediately — avoids stale badge
+// numbers when the user saves/applies/dismisses from the Job Feed panel.
+type Listener = () => void;
+const listeners = new Set<Listener>();
+export function notifyJobFeedBadgeRefresh() {
+  for (const listener of listeners) listener();
+}
+
 export function useJobFeedBadge(enabled: boolean) {
   const [summary, setSummary] = useState<JobFeedSummary | null>(null);
   const [lastSeenDate, setLastSeenDate] = useState<string | null>(() => readLastSeen());
+  const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
     if (!enabled) return;
@@ -40,18 +54,24 @@ export function useJobFeedBadge(enabled: boolean) {
     (async () => {
       try {
         const res = await fetch('/api/job-feed/summary');
-        if (!res.ok) return;
+        if (!res.ok || cancelled) return;
         const data = (await res.json()) as JobFeedSummary;
         if (!cancelled) setSummary(data);
       } catch {
         // swallow — badge is best-effort
       }
     })();
-    return () => {
-      cancelled = true;
-    };
-  }, [enabled]);
+    return () => { cancelled = true; };
+  }, [enabled, refreshTick]);
 
+  useEffect(() => {
+    const listener = () => setRefreshTick((n) => n + 1);
+    listeners.add(listener);
+    return () => { listeners.delete(listener); };
+  }, []);
+
+  // hasNewRun gates the daily popup only — it flips when a run newer than the
+  // last acknowledged run arrives.
   const hasNewRun = Boolean(
     summary?.canAccess &&
     summary.latestRunDate &&
@@ -59,8 +79,11 @@ export function useJobFeedBadge(enabled: boolean) {
     summary.latestRunDate !== lastSeenDate
   );
 
-  // Called when the user acknowledges the new run (opens the tab or closes
-  // the popup). Subsequent badges only appear when the next run posts.
+  // The badge number on the nav uses the live unprocessed count. It persists
+  // across page loads until the user actually acts on each job.
+  const unprocessedCount = summary?.unprocessedCount ?? 0;
+  const hasPending = Boolean(summary?.canAccess && unprocessedCount > 0);
+
   const latestRunDate = summary?.latestRunDate ?? null;
   const acknowledge = useCallback(() => {
     if (!latestRunDate) return;
@@ -68,11 +91,16 @@ export function useJobFeedBadge(enabled: boolean) {
     setLastSeenDate(latestRunDate);
   }, [latestRunDate]);
 
+  const refresh = useCallback(() => setRefreshTick((n) => n + 1), []);
+
   return {
     hasNewRun,
-    jobCount: hasNewRun ? summary?.jobCount ?? 0 : 0,
-    latestRunDate: summary?.latestRunDate ?? null,
+    hasPending,
+    jobCount: summary?.jobCount ?? 0,
+    unprocessedCount,
+    latestRunDate,
     canAccess: summary?.canAccess ?? false,
     acknowledge,
+    refresh,
   };
 }

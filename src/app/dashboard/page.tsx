@@ -229,17 +229,22 @@ export default function Dashboard() {
   // First-time onboarding tour
   useDashboardTour();
 
-  // Job Feed nav badge + first-open popup. We only poll once per dashboard
-  // mount; acknowledge() clears the signal until the next daily run lands.
+  // Job Feed nav badge + first-open popup. The badge number tracks unprocessed
+  // jobs (not acted on yet) and only clears when the user applies, saves,
+  // dismisses, or rates a job. The popup fires once per new run per day.
   const jobFeedBadge = useJobFeedBadge(Boolean(user));
   const [showJobFeedPopup, setShowJobFeedPopup] = useState(false);
+  const popupShownForRunRef = useRef<string | null>(null);
   useEffect(() => {
-    if (jobFeedBadge.hasNewRun && activeTab !== 'jobs') {
-      setShowJobFeedPopup(true);
-    }
-  }, [jobFeedBadge.hasNewRun, activeTab]);
-  // Acknowledge as soon as the user actually lands on the Job Feed tab
-  // (covers click, URL nav, autostart flows — not just the button onClick).
+    if (!jobFeedBadge.hasNewRun || !jobFeedBadge.latestRunDate) return;
+    if (popupShownForRunRef.current === jobFeedBadge.latestRunDate) return;
+    if (activeTab === 'jobs') return;
+    popupShownForRunRef.current = jobFeedBadge.latestRunDate;
+    setShowJobFeedPopup(true);
+  }, [jobFeedBadge.hasNewRun, jobFeedBadge.latestRunDate, activeTab]);
+  // Landing on the Job Feed tab acknowledges today's run (popup won't reopen)
+  // but does NOT clear the unprocessed badge count — that only drops as the
+  // user acts on individual jobs.
   useEffect(() => {
     if (activeTab === 'jobs' && jobFeedBadge.hasNewRun) {
       jobFeedBadge.acknowledge();
@@ -683,12 +688,12 @@ export default function Dashboard() {
           >
             <Briefcase className={`w-4 h-4 ${activeWorkspace === 'job-feed' ? 'text-gold-500' : ''}`} />
             Job Feed
-            {jobFeedBadge.hasNewRun && jobFeedBadge.jobCount > 0 && (
+            {jobFeedBadge.hasPending && (
               <span
-                aria-label={`${jobFeedBadge.jobCount} new jobs today`}
+                aria-label={`${jobFeedBadge.unprocessedCount} jobs waiting for your review`}
                 className="ml-1 inline-flex min-w-[20px] items-center justify-center rounded-full bg-gold-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white"
               >
-                {jobFeedBadge.jobCount > 99 ? '99+' : jobFeedBadge.jobCount}
+                {jobFeedBadge.unprocessedCount > 99 ? '99+' : jobFeedBadge.unprocessedCount}
               </span>
             )}
           </button>
@@ -1107,9 +1112,9 @@ export default function Dashboard() {
             >
               <Briefcase className={`w-5 h-5 ${mobileView === 'job-feed' ? 'text-gold-500' : ''}`} />
               <span className="text-[10px] font-medium">Feed</span>
-              {jobFeedBadge.hasNewRun && jobFeedBadge.jobCount > 0 && (
+              {jobFeedBadge.hasPending && (
                 <span className="absolute top-0 right-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-gold-500 px-1 py-0.5 text-[9px] font-semibold leading-none text-white">
-                  {jobFeedBadge.jobCount > 99 ? '99+' : jobFeedBadge.jobCount}
+                  {jobFeedBadge.unprocessedCount > 99 ? '99+' : jobFeedBadge.unprocessedCount}
                 </span>
               )}
             </button>
@@ -1177,11 +1182,11 @@ export default function Dashboard() {
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-charcoal">
                 {jobFeedBadge.jobCount === 1
-                  ? '1 new job for you today'
-                  : `${jobFeedBadge.jobCount} new jobs for you today`}
+                  ? 'Your daily feed is ready — 1 new role is waiting'
+                  : `Your daily feed is ready — ${jobFeedBadge.jobCount} new roles are waiting`}
               </p>
               <p className="mt-1 text-xs leading-5 text-warm-gray">
-                Your daily feed just landed. Open it to review your matches.
+                Karko hand-picked today&apos;s matches based on your profile. Take a look while they&apos;re fresh.
               </p>
               <div className="mt-3 flex items-center gap-2">
                 <button
@@ -1191,7 +1196,7 @@ export default function Dashboard() {
                     jobFeedBadge.acknowledge();
                     setShowJobFeedPopup(false);
                   }}
-                  className="rounded-lg bg-gold-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-gold-600"
+                  className="rounded-lg bg-gold-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-gold-600 cursor-pointer"
                 >
                   Open Job Feed
                 </button>
@@ -1201,7 +1206,7 @@ export default function Dashboard() {
                     jobFeedBadge.acknowledge();
                     setShowJobFeedPopup(false);
                   }}
-                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-warm-gray transition-colors hover:text-charcoal"
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-warm-gray transition-colors hover:text-charcoal cursor-pointer"
                 >
                   Later
                 </button>
@@ -1213,7 +1218,7 @@ export default function Dashboard() {
                 jobFeedBadge.acknowledge();
                 setShowJobFeedPopup(false);
               }}
-              className="rounded-lg p-1 text-warm-gray transition-colors hover:bg-cream-100 hover:text-charcoal"
+              className="rounded-lg p-1 text-warm-gray transition-colors hover:bg-cream-100 hover:text-charcoal cursor-pointer"
               aria-label="Dismiss new jobs notification"
             >
               <X className="h-4 w-4" />

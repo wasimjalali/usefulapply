@@ -237,8 +237,8 @@ function CopyJobButton({
   };
 
   const baseClass = variant === 'modal'
-    ? 'inline-flex items-center gap-1.5 rounded-lg border border-cream-300 bg-white px-3 py-1.5 text-xs font-medium text-charcoal transition-colors hover:border-navy-300 hover:text-navy-700'
-    : 'inline-flex items-center gap-1 rounded-full border border-cream-200 bg-white/80 px-2.5 py-1 text-xs font-medium text-warm-gray transition-colors hover:border-navy-200 hover:text-navy-700';
+    ? 'inline-flex items-center gap-1.5 rounded-lg border border-cream-300 bg-white px-3 py-1.5 text-xs font-medium text-charcoal transition-colors hover:border-navy-300 hover:text-navy-700 cursor-pointer'
+    : 'inline-flex items-center gap-1 rounded-full border border-cream-200 bg-white/80 px-2.5 py-1 text-xs font-medium text-warm-gray transition-colors hover:border-navy-200 hover:text-navy-700 cursor-pointer';
 
   return (
     <button
@@ -334,7 +334,7 @@ export function JobFeedCard({
           <button
             type="button"
             onClick={onOpenDetails}
-            className="py-1 text-center text-sm font-medium text-navy-600 transition-colors hover:text-navy-700"
+            className="py-1 text-center text-sm font-medium text-navy-600 transition-colors hover:text-navy-700 cursor-pointer"
           >
             View details
           </button>
@@ -419,7 +419,7 @@ export function JobFeedDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-warm-gray transition-colors hover:bg-cream-100 hover:text-charcoal"
+            className="rounded-lg p-2 text-warm-gray transition-colors hover:bg-cream-100 hover:text-charcoal cursor-pointer"
             aria-label="Close job details"
           >
             <X className="h-6 w-6" />
@@ -486,7 +486,7 @@ export function JobFeedDetailModal({
                   onClick={() => onRateMatch('helpful')}
                   disabled={isRating}
                   aria-pressed={matchRating === 'helpful'}
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-60 ${
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed ${
                     matchRating === 'helpful'
                       ? 'border-sage-300 bg-sage-50 text-sage-700'
                       : 'border-cream-300 bg-white text-warm-gray hover:border-sage-300 hover:text-sage-700'
@@ -500,7 +500,7 @@ export function JobFeedDetailModal({
                   onClick={() => onRateMatch('not_relevant')}
                   disabled={isRating}
                   aria-pressed={matchRating === 'not_relevant'}
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-60 ${
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed ${
                     matchRating === 'not_relevant'
                       ? 'border-navy-200 bg-navy-50 text-navy-700'
                       : 'border-cream-300 bg-white text-warm-gray hover:border-navy-200 hover:text-navy-700'
@@ -522,7 +522,7 @@ export function JobFeedDetailModal({
                   type="button"
                   onClick={onSave}
                   disabled={isSaved || isApplying || isDismissing}
-                  className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
+                  className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed ${
                     isSaved
                       ? 'border-gold-300 bg-gold-50 text-gold-700'
                       : 'border-cream-300 bg-white text-charcoal hover:border-gold-300 hover:text-gold-700'
@@ -535,7 +535,7 @@ export function JobFeedDetailModal({
                   type="button"
                   onClick={onDismiss}
                   disabled={isApplying || isDismissing}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-cream-300 bg-white px-3 py-1.5 text-xs font-medium text-charcoal transition-colors hover:border-navy-300 hover:text-navy-700 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-cream-300 bg-white px-3 py-1.5 text-xs font-medium text-charcoal transition-colors hover:border-navy-300 hover:text-navy-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {isDismissing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
                   Dismiss
@@ -612,7 +612,7 @@ export function FeedResultsCard({
           <button
             type="button"
             onClick={onToggleShowAll}
-            className="inline-flex items-center gap-1.5 rounded-full border border-cream-300 bg-white px-5 py-2 text-sm font-semibold text-navy-700 shadow-sm transition-colors hover:border-navy-300 hover:bg-cream-50"
+            className="inline-flex items-center gap-1.5 rounded-full border border-cream-300 bg-white px-5 py-2 text-sm font-semibold text-navy-700 shadow-sm transition-colors hover:border-navy-300 hover:bg-cream-50 cursor-pointer"
           >
             {isShowingAllJobs ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             {isShowingAllJobs

@@ -54,6 +54,7 @@ import type {
   JobFeedSettingsInput,
   JobFeedSettingsSuggestion,
 } from '@/lib/job-feed/types';
+import { notifyJobFeedBadgeRefresh } from '@/hooks/useJobFeedBadge';
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore, type ApplicationSession as StoreApplicationSession } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -415,6 +416,8 @@ export function JobFeedPanel() {
 
     const typedPayload = payload as JobFeedFeedbackResponse;
     updateJobFeedbackState(job.id, typedPayload.feedback);
+    // Ping the dashboard badge so the unprocessed count refetches.
+    notifyJobFeedBadgeRefresh();
     return typedPayload.feedback;
   }, [overview?.feedRun?.id, updateJobFeedbackState]);
 
@@ -584,6 +587,7 @@ export function JobFeedPanel() {
 
       const typedPayload = payload as JobFeedApplyResponse;
       updateJobFeedbackState(job.id, typedPayload.feedback);
+      notifyJobFeedBadgeRefresh();
       syncApplicationSession(typedPayload.session);
       setSelectedJob(null);
 
@@ -1175,71 +1179,70 @@ function FeedPageHeader({
     : null;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="font-serif text-3xl font-semibold tracking-tight text-charcoal">{headline}</h1>
-          {subtitle && (
-            <p className="mt-1 text-sm text-warm-gray">{subtitle}</p>
-          )}
-          {deliveredAt && (
-            <p className="mt-0.5 text-xs text-warm-gray">Delivered {deliveredAt}</p>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {currentState !== 'setup_required' && (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0">
+        <h1 className="font-serif text-3xl font-semibold tracking-tight text-charcoal">{headline}</h1>
+        {subtitle && (
+          <p className="mt-1 text-sm text-warm-gray">{subtitle}</p>
+        )}
+        {deliveredAt && (
+          <p className="mt-0.5 text-xs text-warm-gray">Delivered {deliveredAt}</p>
+        )}
+      </div>
+
+      {currentState !== 'setup_required' && (
+        <div className="flex flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
+          <div className="inline-flex items-center rounded-full border border-cream-200 bg-white p-0.5 shadow-sm">
             <button
               type="button"
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-warm-gray transition-colors hover:bg-cream-100 hover:text-navy-600 disabled:opacity-50"
-              title="Refresh"
+              onClick={onShowTodayFeed}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
+                activeTab === 'today'
+                  ? 'bg-navy-600 text-white shadow-sm'
+                  : 'text-warm-gray hover:text-navy-700'
+              }`}
             >
-              {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              Today
             </button>
-          )}
+            <button
+              type="button"
+              onClick={onShowSavedJobs}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
+                activeTab === 'saved'
+                  ? 'bg-navy-600 text-white shadow-sm'
+                  : 'text-warm-gray hover:text-navy-700'
+              }`}
+            >
+              <Bookmark className="h-3.5 w-3.5" />
+              Saved
+              {savedJobsCount !== null && savedJobsCount > 0 && (
+                <span className={`ml-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold ${
+                  activeTab === 'saved' ? 'bg-white/20 text-white' : 'bg-cream-100 text-charcoal'
+                }`}>
+                  {savedJobsCount}
+                </span>
+              )}
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={onEditSettings}
-            className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-4 py-2 text-sm font-semibold text-navy-700 shadow-sm transition-colors hover:border-navy-300 hover:bg-navy-50"
+            className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-4 py-2 text-sm font-semibold text-navy-700 shadow-sm transition-colors hover:border-navy-300 hover:bg-navy-50 cursor-pointer"
           >
             <Settings2 className="h-4 w-4" />
             Edit feed
           </button>
-        </div>
-      </div>
 
-      {currentState !== 'setup_required' && (
-        <div className="inline-flex items-center self-start rounded-full border border-cream-200 bg-white p-0.5 shadow-sm">
           <button
             type="button"
-            onClick={onShowTodayFeed}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              activeTab === 'today'
-                ? 'bg-navy-600 text-white shadow-sm'
-                : 'text-warm-gray hover:text-navy-700'
-            }`}
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-warm-gray transition-colors hover:bg-cream-100 hover:text-navy-600 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+            title="Refresh"
+            aria-label="Refresh feed"
           >
-            Today
-          </button>
-          <button
-            type="button"
-            onClick={onShowSavedJobs}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              activeTab === 'saved'
-                ? 'bg-navy-600 text-white shadow-sm'
-                : 'text-warm-gray hover:text-navy-700'
-            }`}
-          >
-            <Bookmark className="h-3.5 w-3.5" />
-            Saved
-            {savedJobsCount !== null && savedJobsCount > 0 && (
-              <span className={`ml-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold ${
-                activeTab === 'saved' ? 'bg-white/20 text-white' : 'bg-cream-100 text-charcoal'
-              }`}>
-                {savedJobsCount}
-              </span>
-            )}
+            {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
           </button>
         </div>
       )}
@@ -1535,7 +1538,7 @@ function JobFeedOnboardingWizard({
                 type="button"
                 onClick={() => void handleTakeFromCV()}
                 disabled={isLoadingCVSuggestions}
-                className="flex items-center gap-1.5 rounded-full border border-navy-200 bg-navy-50 px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:bg-navy-100 disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-full border border-navy-200 bg-navy-50 px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:bg-navy-100 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
                 {isLoadingCVSuggestions ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
                 Take from my CV
@@ -1544,7 +1547,7 @@ function JobFeedOnboardingWizard({
             {cvSuggestionApplied && (
               <span className="text-xs text-green-600">CV data applied</span>
             )}
-            <button type="button" onClick={onClose} className="rounded-full p-2 text-warm-gray hover:bg-cream-100 hover:text-charcoal">
+            <button type="button" onClick={onClose} className="rounded-full p-2 text-warm-gray hover:bg-cream-100 hover:text-charcoal cursor-pointer">
               <X className="h-5 w-5" />
             </button>
           </div>
@@ -1562,7 +1565,7 @@ function JobFeedOnboardingWizard({
               type="button"
               onClick={() => void handleTakeFromCV({ force: true })}
               disabled={isLoadingCVSuggestions}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-gold-300 bg-white px-3 py-1.5 text-xs font-semibold text-charcoal transition-colors hover:border-gold-400 disabled:opacity-50"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-gold-300 bg-white px-3 py-1.5 text-xs font-semibold text-charcoal transition-colors hover:border-gold-400 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             >
               {isLoadingCVSuggestions ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
               Refresh from my CV
@@ -1696,7 +1699,7 @@ function JobFeedOnboardingWizard({
                   <button
                     type="button"
                     onClick={() => onFormChange((prev) => ({ ...prev, user_timezone: browserTimeZone }))}
-                    className="mt-2 text-xs font-medium text-navy-600 hover:text-navy-700"
+                    className="mt-2 text-xs font-medium text-navy-600 hover:text-navy-700 cursor-pointer"
                   >
                     Use my browser timezone ({getJobFeedTimeZoneLabel(browserTimeZone)})
                   </button>
@@ -1714,7 +1717,7 @@ function JobFeedOnboardingWizard({
             <button
               type="button"
               onClick={() => setIsAdvancedOpen((prev) => !prev)}
-              className="flex w-full items-center justify-between gap-3 rounded-2xl border border-cream-200 bg-white px-4 py-3 transition-colors hover:border-navy-200"
+              className="flex w-full items-center justify-between gap-3 rounded-2xl border border-cream-200 bg-white px-4 py-3 transition-colors hover:border-navy-200 cursor-pointer"
             >
               <div className="flex items-center gap-3">
                 {isAdvancedOpen ? <ChevronUp className="h-4 w-4 text-navy-600" /> : <ChevronDown className="h-4 w-4 text-navy-600" />}
@@ -1786,6 +1789,16 @@ function JobFeedOnboardingWizard({
                       onChange={(languages) => onFormChange((prev) => ({ ...prev, languages }))}
                     />
                   </FieldGroup>
+
+                  <SelectField
+                    label="Work authorization"
+                    value={form.work_authorization_status ?? ''}
+                    onChange={(work_authorization_status) => onFormChange((prev) => ({
+                      ...prev,
+                      work_authorization_status: (work_authorization_status || null) as JobFeedSettingsInput['work_authorization_status'],
+                    }))}
+                    options={[{ value: '', label: 'Keep flexible' }, ...JOB_FEED_WORK_AUTH_OPTIONS]}
+                  />
                 </div>
 
                 <div className="space-y-4">
@@ -1817,23 +1830,13 @@ function JobFeedOnboardingWizard({
                         type="button"
                         onClick={() => void handleTakeFromCV()}
                         disabled={isLoadingCVSuggestions}
-                        className="mt-2 flex items-center gap-1 text-xs font-medium text-navy-600 hover:text-navy-700 disabled:opacity-50"
+                        className="mt-2 flex items-center gap-1 text-xs font-medium text-navy-600 hover:text-navy-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                       >
                         {isLoadingCVSuggestions ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
                         Import skills from CV
                       </button>
                     )}
                   </FieldGroup>
-
-                  <SelectField
-                    label="Work authorization"
-                    value={form.work_authorization_status ?? ''}
-                    onChange={(work_authorization_status) => onFormChange((prev) => ({
-                      ...prev,
-                      work_authorization_status: (work_authorization_status || null) as JobFeedSettingsInput['work_authorization_status'],
-                    }))}
-                    options={[{ value: '', label: 'Keep flexible' }, ...JOB_FEED_WORK_AUTH_OPTIONS]}
-                  />
                 </div>
               </div>
             )}
@@ -1883,7 +1886,7 @@ function JobFeedOnboardingWizard({
                       void onSave({ ...form, enabled: false });
                     }}
                     disabled={!canSave || saveState === 'saving'}
-                    className="text-sm font-medium text-warm-gray hover:text-charcoal disabled:opacity-50"
+                    className="text-sm font-medium text-warm-gray hover:text-charcoal disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                   >
                     Save and keep paused
                   </button>

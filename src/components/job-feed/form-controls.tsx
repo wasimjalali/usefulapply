@@ -40,7 +40,7 @@ export function ChipField({
             key={value}
             type="button"
             onClick={() => onChange(values.filter((item) => item !== value))}
-            className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-navy-50 px-3 py-1.5 text-sm text-navy-700"
+            className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-navy-50 px-3 py-1.5 text-sm text-navy-700 cursor-pointer"
           >
             {value}
             <span className="text-xs text-navy-500">Remove</span>
@@ -79,7 +79,7 @@ export function ChipField({
                 className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                   selected
                     ? 'border-cream-200 bg-cream-100 text-warm-gray'
-                    : 'border-cream-300 bg-cream-50 text-charcoal hover:border-navy-300 hover:text-navy-600'
+                    : 'border-cream-300 bg-cream-50 text-charcoal hover:border-navy-300 hover:text-navy-600 cursor-pointer'
                 }`}
               >
                 {suggestion}
@@ -133,7 +133,7 @@ export function ChoiceGrid({
 
               onChange(option.value);
             }}
-            className={`rounded-2xl border px-4 py-3 text-left transition-colors ${
+            className={`rounded-2xl border px-4 py-3 text-left transition-colors cursor-pointer ${
               selected
                 ? 'border-navy-300 bg-navy-50 shadow-sm'
                 : 'border-cream-200 bg-white hover:border-navy-200 hover:bg-navy-50/40'
@@ -296,7 +296,7 @@ export function MultiSelectDropdown({
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-cream-300 bg-white px-3 py-2.5 text-left text-sm text-charcoal shadow-sm transition-colors hover:border-navy-300 focus:border-navy-400 focus:outline-none"
+        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-cream-300 bg-white px-3 py-2.5 text-left text-sm text-charcoal shadow-sm transition-colors hover:border-navy-300 focus:border-navy-400 focus:outline-none cursor-pointer"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
@@ -317,7 +317,7 @@ export function MultiSelectDropdown({
               key={chip.value}
               type="button"
               onClick={() => toggleValue(chip.value)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-navy-200 bg-navy-50 px-2.5 py-1 text-xs font-medium text-navy-700 transition-colors hover:border-navy-300"
+              className="inline-flex items-center gap-1.5 rounded-full border border-navy-200 bg-navy-50 px-2.5 py-1 text-xs font-medium text-navy-700 transition-colors hover:border-navy-300 cursor-pointer"
             >
               <span>{chip.label}</span>
               <X className="h-3 w-3" />
@@ -327,7 +327,7 @@ export function MultiSelectDropdown({
             <button
               type="button"
               onClick={() => onChange([])}
-              className="text-xs font-medium text-warm-gray hover:text-charcoal"
+              className="text-xs font-medium text-warm-gray hover:text-charcoal cursor-pointer"
             >
               Clear all
             </button>
@@ -368,7 +368,7 @@ export function MultiSelectDropdown({
                       disabled={disabled}
                       className={`flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition-colors ${
                         selected ? 'bg-navy-50' : 'hover:bg-cream-50'
-                      } ${disabled ? 'cursor-not-allowed opacity-40' : ''}`}
+                      } ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}`}
                     >
                       <span
                         className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
@@ -550,7 +550,7 @@ export function RoleEntryField({
               key={value}
               type="button"
               onClick={() => onChange(values.filter((item) => item !== value))}
-              className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-navy-50 px-3 py-1.5 text-sm text-navy-700"
+              className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-navy-50 px-3 py-1.5 text-sm text-navy-700 cursor-pointer"
             >
               {value}
               <span className="text-xs text-navy-500">Remove</span>
@@ -595,7 +595,7 @@ export function RoleEntryField({
                 className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
                   selected
                     ? 'border-cream-200 bg-cream-100 text-warm-gray'
-                    : 'border-cream-300 bg-cream-50 text-charcoal hover:border-navy-300 hover:text-navy-600'
+                    : 'border-cream-300 bg-cream-50 text-charcoal hover:border-navy-300 hover:text-navy-600 cursor-pointer'
                 }`}
               >
                 {suggestion}
@@ -680,7 +680,7 @@ export function ActivationChoiceCard({
       type="button"
       aria-pressed={selected}
       onClick={onClick}
-      className={`w-full rounded-2xl border px-4 py-4 text-left transition-colors ${
+      className={`w-full rounded-2xl border px-4 py-4 text-left transition-colors cursor-pointer ${
         selected
           ? 'border-navy-300 bg-white shadow-sm'
           : 'border-cream-200 bg-cream-50/55 hover:border-navy-200 hover:bg-white'
