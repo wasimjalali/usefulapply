@@ -9,7 +9,7 @@ import type { StructuredCV } from '@/lib/types/cv-schema';
 export function splitCompositeRole(rawTitle: string): string[] {
   if (!rawTitle) return [];
   return rawTitle
-    .split(/[|/•·;]|\s+\/\s+|\s+&\s+|\s+-\s+|,/)
+    .split(/[|/•·;]|\s+\/\s+|\s+&\s+|\s+and\s+|\s+-\s+|,/i)
     .map((part) => part.trim())
     // Drop filler words that show up between titles (e.g. "and", "or", "plus").
     .map((part) => part.replace(/^(and|or|plus|&)\s+/i, '').trim())

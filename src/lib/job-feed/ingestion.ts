@@ -56,33 +56,46 @@ export function buildJobFeedSearchPlan(settings: JobFeedSettings, maxQueries: nu
 
   const selectedRoles = dedupeRoles(settings.target_roles).slice(0, maxRoles);
   const language = pickQueryLanguage(settings);
-  const locationByCountry = indexLocationsByCountry(
+  const locationsByCountry = indexLocationsByCountry(
     [...(settings.preferred_locations ?? []), ...(settings.target_cities ?? [])],
     countries,
   );
 
-  return selectedRoles
-    .flatMap((role) => countries.map((country) => ({
-      query: role,
-      targetRole: role,
-      isAdjacentRole: false,
-      market: settings.target_market,
-      country: country as JobFeedSearchPlanItem['country'],
-      language,
-      // Prefer a user-typed location in that country as the SerpAPI `location`
-      // hint. If none, leave null and let the country-level search run.
-      location: locationByCountry.get(country) ?? null,
-    })))
-    .slice(0, maxQueries);
+  const plan: JobFeedSearchPlanItem[] = [];
+  for (let roleIndex = 0; roleIndex < selectedRoles.length; roleIndex += 1) {
+    const role = selectedRoles[roleIndex];
+    for (const country of countries) {
+      const cities = locationsByCountry.get(country) ?? [];
+      // Rotate through the user's cities so each query targets a different
+      // city. With more roles than cities we cycle; with more cities than
+      // roles the later ones are dropped naturally when we hit maxQueries.
+      const location = cities.length > 0
+        ? cities[roleIndex % cities.length]
+        : null;
+
+      plan.push({
+        query: role,
+        targetRole: role,
+        isAdjacentRole: false,
+        market: settings.target_market,
+        country: country as JobFeedSearchPlanItem['country'],
+        language,
+        location,
+      });
+    }
+  }
+
+  return plan.slice(0, maxQueries);
 }
 
-function indexLocationsByCountry(locations: string[], selectedCountries: string[]): Map<string, string> {
+function indexLocationsByCountry(locations: string[], selectedCountries: string[]): Map<string, string[]> {
   // Location strings are free-form (e.g. "Berlin, Germany", "New York, NY",
   // "Tokyo", "São Paulo"). We infer country from the string itself; if that
   // fails AND the user has only one country selected, we assume all location
-  // strings belong to that country. This keeps the feed working for any city
-  // worldwide without a global city→country table.
-  const result = new Map<string, string>();
+  // strings belong to that country. Returns every matching location per
+  // country so the search plan can rotate across cities instead of pinning
+  // every query to the first one.
+  const result = new Map<string, string[]>();
   const allowed = new Set(selectedCountries.map((c) => c.toLowerCase()));
   const singleCountry = selectedCountries.length === 1 ? selectedCountries[0].toLowerCase() : null;
 
@@ -91,8 +104,13 @@ function indexLocationsByCountry(locations: string[], selectedCountries: string[
     if (!location) continue;
     const inferred = inferCountryForLocation(location);
     const match = inferred ?? singleCountry;
-    if (match && allowed.has(match) && !result.has(match)) {
-      result.set(match, location);
+    if (!match || !allowed.has(match)) continue;
+
+    const existing = result.get(match);
+    if (existing) {
+      if (!existing.includes(location)) existing.push(location);
+    } else {
+      result.set(match, [location]);
     }
   }
   return result;
@@ -182,7 +200,7 @@ export async function ingestJobFeedRunJobs(params: {
     const requestParams = serializeSearchParams(buildSerpApiSearchParams({
       query: planItem.query,
       country: planItem.country,
-      language: planItem.language,
+      language: planItem.language ?? undefined,
       location: planItem.location ?? undefined,
     }));
 
@@ -190,7 +208,7 @@ export async function ingestJobFeedRunJobs(params: {
       const { data } = await fetchSerpApiJobs({
         query: planItem.query,
         country: planItem.country,
-        language: planItem.language,
+        language: planItem.language ?? undefined,
         location: planItem.location ?? undefined,
       });
 
@@ -600,11 +618,11 @@ function isJsonRecord(value: Json): value is Record<string, Json> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function pickQueryLanguage(settings: JobFeedSettings): string {
-  const normalizedLanguages = settings.languages.map((language) => language.toLowerCase());
-  return normalizedLanguages.includes('french') && normalizedLanguages.length === 1
-    ? 'fr'
-    : 'en';
+function pickQueryLanguage(_settings: JobFeedSettings): string | null {
+  // Return null so buildSerpApiSearchParams falls through to
+  // COUNTRY_LANGUAGES[countryCode], picking the correct language for
+  // each target country (e.g. 'de' for Germany, 'fr' for France).
+  return null;
 }
 
 function dedupeRoles(values: string[]): string[] {

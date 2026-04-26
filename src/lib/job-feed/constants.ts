@@ -31,6 +31,37 @@ export const JOB_FEED_TIER_LIMITS: Record<JobFeedTier, JobFeedTierLimits> = {
   },
 };
 
+// The backend runs one SerpAPI query per (role × country) combo, capped at
+// `maxDailyQueries`. The UI uses these soft caps so users don't input more
+// roles/countries/cities than the backend can actually search in a run.
+// Going above these is allowed — we just warn the user that the extras will
+// be ignored for today's feed but kept for future runs.
+export interface JobFeedInputCaps {
+  maxRoles: number;
+  maxCountries: number;
+  maxCitiesPerCountry: number;
+}
+
+export const JOB_FEED_INPUT_CAPS: Record<JobFeedTier, JobFeedInputCaps> = {
+  plus: {
+    // 2 queries total. 1 country → 2 roles. 2 countries → 1 role each.
+    maxRoles: 2,
+    maxCountries: 2,
+    maxCitiesPerCountry: 2,
+  },
+  max: {
+    // 4 queries total. 1 country → 4 roles. 2 countries → 2 roles each.
+    maxRoles: 4,
+    maxCountries: 4,
+    maxCitiesPerCountry: 4,
+  },
+};
+
+export function getJobFeedInputCaps(subscriptionTier: string): JobFeedInputCaps {
+  if (subscriptionTier === 'max') return JOB_FEED_INPUT_CAPS.max;
+  return JOB_FEED_INPUT_CAPS.plus;
+}
+
 export function getJobFeedTierLimits(subscriptionTier: string): JobFeedTierLimits {
   if (subscriptionTier === 'max') return JOB_FEED_TIER_LIMITS.max;
   return JOB_FEED_TIER_LIMITS.plus;

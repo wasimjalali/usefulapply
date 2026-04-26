@@ -37,8 +37,10 @@ import {
   JOB_FEED_TIMEZONE_LOOKUP,
   JOB_FEED_WORK_AUTH_OPTIONS,
   formatDeliveryHourLabel,
+  getJobFeedInputCaps,
   getJobFeedTimeZoneLabel,
   legacyMarketFromCountries,
+  type JobFeedInputCaps,
 } from '@/lib/job-feed/constants';
 import { createDefaultJobFeedInput, getJobFeedOverviewState, isValidTimeZone, toJobFeedInput } from '@/lib/job-feed/helpers';
 import type {
@@ -696,6 +698,7 @@ export function JobFeedPanel() {
     ? toJobFeedInput(overview.settings, getBrowserTimeZone())
     : form;
   const wizardForm = draftForm ?? form;
+  const inputCaps = getJobFeedInputCaps(profile?.subscription_tier ?? 'plus');
   const showStateSupportCard = isSignedIn
     && !setupOpen
     && currentState !== 'upgrade_required'
@@ -738,6 +741,7 @@ export function JobFeedPanel() {
                   form={wizardForm}
                   overview={overview}
                   saveState={saveState}
+                  inputCaps={inputCaps}
                   onFormChange={updateDraftForm}
                   onSave={handleSave}
                   onClose={() => {
@@ -1042,6 +1046,7 @@ function JobFeedOnboardingWizard({
   form,
   overview,
   saveState,
+  inputCaps,
   onFormChange,
   onSave,
   onClose,
@@ -1049,6 +1054,7 @@ function JobFeedOnboardingWizard({
   form: JobFeedSettingsInput;
   overview: JobFeedOverviewResponse | null;
   saveState: SaveState;
+  inputCaps: JobFeedInputCaps;
   onFormChange: React.Dispatch<React.SetStateAction<JobFeedSettingsInput>>;
   onSave: (form: JobFeedSettingsInput) => void;
   onClose: () => void;
@@ -1206,36 +1212,49 @@ function JobFeedOnboardingWizard({
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy-500">Step 1 of 4</p>
           <p className="mt-1 text-sm font-semibold text-charcoal">What jobs are you looking for?</p>
           <div className="mt-4 space-y-4">
-            <FieldGroup label="Roles" help="Type your own or pick from the list.">
+            <FieldGroup
+              label="Roles"
+              help={`Type your own or pick from the list. We'll run one search per (role × country) each day, up to ${inputCaps.maxRoles} ${inputCaps.maxRoles === 1 ? 'search' : 'searches'} on your plan.`}
+            >
               <RoleEntryField
                 values={form.target_roles}
                 suggestions={JOB_FEED_SUGGESTED_ROLES}
                 placeholder="Type a role and press Enter"
                 onChange={(target_roles) => onFormChange((prev) => ({ ...prev, target_roles }))}
               />
+              {form.target_roles.length > inputCaps.maxRoles && (
+                <p className="mt-2 text-xs text-amber-700">
+                  Your plan searches up to {inputCaps.maxRoles} {inputCaps.maxRoles === 1 ? 'role' : 'roles'} per day. The first {inputCaps.maxRoles} in this list will be used each run — extras are kept for future runs.
+                </p>
+              )}
             </FieldGroup>
 
             <FieldGroup
               label="Countries to search"
-              help="Pick one or more. We’ll look for jobs in each country you choose."
+              help={`Pick one or more. The daily budget is ${inputCaps.maxRoles} ${inputCaps.maxRoles === 1 ? 'search' : 'searches'} total, split across all countries you choose.`}
             >
               <MultiSelectDropdown
                 values={form.target_countries}
                 options={[...JOB_FEED_COUNTRY_OPTIONS]}
                 placeholder="Choose countries (e.g. United States, Germany, United Kingdom)"
                 searchable
-                maxSelections={6}
+                maxSelections={inputCaps.maxCountries}
                 onChange={(target_countries) => onFormChange((prev) => ({
                   ...prev,
                   target_countries,
                   target_market: legacyMarketFromCountries(target_countries),
                 }))}
               />
+              {form.target_countries.length > 1 && form.target_roles.length > 0 && (
+                <p className="mt-2 text-xs text-warm-gray">
+                  With {form.target_countries.length} countries and a budget of {inputCaps.maxRoles}, each country gets {Math.max(1, Math.floor(inputCaps.maxRoles / form.target_countries.length))} {Math.max(1, Math.floor(inputCaps.maxRoles / form.target_countries.length)) === 1 ? 'role' : 'roles'} searched per day.
+                </p>
+              )}
             </FieldGroup>
 
             <FieldGroup
               label="Cities"
-              help="City names only (e.g. Berlin) — country is already set above. For remote jobs, use the Work mode step. Leave empty to search the whole country."
+              help={`City names only (e.g. Berlin). We rotate through up to ${inputCaps.maxCitiesPerCountry} cities per country so each search targets a different city. Leave empty to search the whole country.`}
             >
               <RoleEntryField
                 values={form.preferred_locations}
@@ -1246,6 +1265,11 @@ function JobFeedOnboardingWizard({
                 emptyLabel="No cities added yet — we'll search the whole country."
                 onChange={(preferred_locations) => onFormChange((prev) => ({ ...prev, preferred_locations }))}
               />
+              {form.preferred_locations.length > inputCaps.maxCitiesPerCountry * Math.max(1, form.target_countries.length) && (
+                <p className="mt-2 text-xs text-amber-700">
+                  Only the first {inputCaps.maxCitiesPerCountry} cities per country are rotated through each day. Extras are kept in your profile but not searched in a single run.
+                </p>
+              )}
             </FieldGroup>
           </div>
         </div>

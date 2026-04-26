@@ -106,7 +106,8 @@ export interface JobFeedSearchPlanItem {
   market: JobFeedSettings['target_market'];
   /** ISO 3166-1 alpha-2 country code (lowercase). */
   country: string;
-  language: string;
+  /** Null means "let SerpAPI derive from country" (via COUNTRY_LANGUAGES). */
+  language: string | null;
   location: string | null;
 }
 
