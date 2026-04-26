@@ -1,4 +1,5 @@
 import { JOB_FEED_PROVIDER } from '@/lib/job-feed/constants';
+import { captureJobFeedEvent } from '@/lib/job-feed/analytics';
 import type { JobFeedCanonicalJob, Json } from '@/lib/supabase/types';
 
 export interface SerpApiJob {
@@ -545,13 +546,41 @@ function extractApplyUrl(job: SerpApiJob): string | null {
 function sanitizeApplyOptions(options?: SerpApiJob['apply_options']): Array<{ title: string; link: string }> {
   if (!Array.isArray(options)) return [];
 
-  return options
-    .map((option) => ({
-      title: normalizeOptionalText(option.title) ?? 'Apply',
-      link: normalizeOptionalText(option.link) ?? '',
-    }))
-    .filter((option) => option.title.length > 0 && isHttpUrl(option.link))
-    .slice(0, 8);
+  const safeOptions: Array<{ title: string; link: string }> = [];
+
+  for (const option of options) {
+    const title = normalizeOptionalText(option.title) ?? 'Apply';
+    const link = normalizeOptionalText(option.link) ?? '';
+    if (!title) continue;
+
+    if (!isHttpUrl(link)) {
+      captureJobFeedEvent({
+        event: 'job_feed_unsafe_external_link_dropped',
+        logLevel: 'warn',
+        properties: {
+          provider: JOB_FEED_PROVIDER,
+          source: 'serpapi_apply_options',
+          link_protocol: readUrlProtocol(link),
+          link_length: link.length,
+        },
+      });
+      continue;
+    }
+
+    safeOptions.push({ title, link });
+    if (safeOptions.length >= 8) break;
+  }
+
+  return safeOptions;
+}
+
+function readUrlProtocol(value: string): string | null {
+  try {
+    return new URL(value).protocol.replace(':', '') || null;
+  } catch {
+    const separatorIndex = value.indexOf(':');
+    return separatorIndex > 0 ? value.slice(0, separatorIndex).toLowerCase() : null;
+  }
 }
 
 function estimateFreshnessDays(value?: string | null): number | null {

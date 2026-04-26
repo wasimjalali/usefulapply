@@ -118,26 +118,49 @@ Scope:
 - Repeat save, dismiss, rate, and apply rapidly from one tab and two tabs.
 - Delete account and verify user-owned Job Feed rows are gone.
 
-## Missing Logs And Analytics To Add
+## Missing Logs And Analytics
 
-Status: Parked until confirmed bugs are fixed
+Status: Implemented in code, pending production telemetry verification
 
-Events to add:
-- `job_feed_action_rejected`
-- `job_feed_apply_session_created`
-- `job_feed_generation_started`
-- `job_feed_generation_succeeded`
-- `job_feed_generation_failed`
-- `job_feed_generation_cancelled`
-- `job_feed_retry_clicked`
-- `job_feed_feedback_conflict`
-- `job_feed_scheduler_due_users`
-- `job_feed_run_idempotency_conflict`
-- `job_feed_unsafe_external_link_dropped`
+Implemented events:
+- `job_feed_action_rejected`: emitted from Job Feed feedback, apply, and generation status routes for auth, access, validation, rate-limit, missing-session, and ranked-feed authorization rejects.
+- `job_feed_apply_session_created`: emitted when Apply with Karko creates a new durable `application_sessions` row.
+- `job_feed_generation_started`, `job_feed_generation_succeeded`, `job_feed_generation_failed`, `job_feed_generation_cancelled`: emitted from `/api/job-feed/apply/status` with session, job, feed run, title/company, error presence, and tier properties.
+- `job_feed_retry_clicked`: emitted client-side when a failed/cancelled Job Feed application is retried.
+- `job_feed_feedback_conflict`: emitted when terminal feedback state blocks a new feedback/apply mutation.
+- `job_feed_scheduler_due_users`: emitted by the Inngest sweep after due-user selection.
+- `job_feed_run_idempotency_conflict`: emitted when an existing completed/running run blocks duplicate run creation.
+- `job_feed_unsafe_external_link_dropped`: emitted when unsafe external apply option links are sanitized out.
+
+Implementation notes:
+- Shared server helper: `src/lib/job-feed/analytics.ts`.
+- Existing `job_feed_applied` remains for backward-compatible reporting.
+- Server events also write structured console logs so production incidents can be diagnosed even when PostHog is unavailable.
+
+Verification:
+- `npx tsc --noEmit --incremental false` passed.
+- `npm run build` passed.
 
 ## Architectural Decision To Revisit
 
-Status: Parked until confirmed bugs are fixed
+Status: Design drafted, not implemented
 
 Recommendation:
 - Move Job Feed application generation to a durable database-backed state machine. The database should be the source of truth for every transition, and the UI/chat/notifications should reflect that state instead of relying on transient client-only state.
+
+Proposed durable state machine:
+- Entity: create a dedicated `job_feed_application_generations` table keyed by `id`, with `user_id`, `canonical_job_id`, `ranked_item_id`, `run_id`, `application_session_id`, `status`, `attempt`, timestamps, `error_code`, `error_message`, and JSON `metadata`.
+- Statuses: `intent_created`, `queued`, `running`, `succeeded`, `failed`, `cancelled`, `expired`. Keep `application_sessions.generation_status` only as a denormalized read model until the UI fully migrates.
+- Transitions: all writes go through one server-side transition function that validates `from_status -> to_status`, increments attempts for retry, protects terminal states, and records transition rows in `job_feed_application_generation_events`.
+- Workers: Apply with Karko should create or reuse a generation row and enqueue work. The chat/SSE flow should claim the row with a lease before running generation, then heartbeat while running.
+- Recovery: a scheduled reconciler marks stale `queued`/`running` rows as `failed` or `expired` after lease timeout, allowing a safe retry without guessing from client state.
+- UI contract: the Job Feed card, ChatPanel autostart, tracker, badge, and notifications should poll/subscribe to the generation row status. URL autostart becomes an instruction to resume/claim a durable generation, not the source of truth.
+- Observability: each transition emits one analytics event and one transition row. PostHog becomes derived telemetry; the database event log remains canonical for debugging and refunds.
+
+Suggested implementation order:
+- Add tables, constraints, transition enum/checks, indexes, and RLS/service-role access in a migration.
+- Add `transitionJobFeedApplicationGenerationAdmin()` and route `/api/job-feed/apply/generation`.
+- Change `/api/job-feed/apply` to create an `intent_created` generation instead of relying on only `application_sessions`.
+- Update ChatPanel to claim/resume generation by ID and write `running/succeeded/failed/cancelled` through the transition API.
+- Add stale-generation reconciler and retry endpoint.
+- Migrate UI reads from `job_feed_feedback.generation_status` to the new generation row, then remove duplicated state when stable.

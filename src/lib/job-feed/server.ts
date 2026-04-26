@@ -26,6 +26,7 @@ import type {
 import { ingestJobFeedRunJobs } from '@/lib/job-feed/ingestion';
 import { prepareJobFeedRankingCandidates, prefilterJobFeedJobs } from '@/lib/job-feed/prefilter';
 import { rankJobFeedCandidates } from '@/lib/job-feed/ranking';
+import { captureJobFeedEvent } from '@/lib/job-feed/analytics';
 import type { JobFeedRankingCandidate } from '@/lib/job-feed/types';
 import { estimateTotalExperienceYears } from '@/lib/job-feed/cv-suggestions';
 import type { StructuredCV } from '@/lib/types/cv-schema';
@@ -51,6 +52,11 @@ export interface DueJobFeedUser {
 interface LatestJobFeedItemsResult {
   run: JobFeedRun | null;
   items: JobFeedFeedItem[];
+}
+
+export interface JobFeedGenerationStatusUpdateResult {
+  session: Pick<SupabaseApplicationSession, 'id' | 'job_title' | 'company' | 'generation_status'>;
+  feedback: JobFeedFeedback | null;
 }
 
 async function getUserSubscriptionTierAdmin(userId: string): Promise<string> {
@@ -247,7 +253,7 @@ export async function updateJobFeedApplicationGenerationStatusAdmin(params: {
   sessionId: string;
   status: Exclude<JobFeedGenerationStatus, 'none' | 'pending'>;
   errorMessage?: string | null;
-}): Promise<void> {
+}): Promise<JobFeedGenerationStatusUpdateResult> {
   const { userId, sessionId, status, errorMessage = null } = params;
   const now = new Date().toISOString();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added columns here.
@@ -277,7 +283,7 @@ export async function updateJobFeedApplicationGenerationStatusAdmin(params: {
     .update(sessionPatch)
     .eq('user_id', userId)
     .eq('id', sessionId)
-    .select('id')
+    .select('id, job_title, company, generation_status')
     .maybeSingle();
 
   if (sessionError) {
@@ -300,7 +306,10 @@ export async function updateJobFeedApplicationGenerationStatusAdmin(params: {
   }
 
   if (!existingFeedback) {
-    return;
+    return {
+      session: updatedSession as JobFeedGenerationStatusUpdateResult['session'],
+      feedback: null,
+    };
   }
 
   const typedFeedback = existingFeedback as JobFeedFeedback;
@@ -336,6 +345,14 @@ export async function updateJobFeedApplicationGenerationStatusAdmin(params: {
   if (feedbackError) {
     throw new Error(`Failed to update job feed generation feedback: ${feedbackError.message}`);
   }
+
+  return {
+    session: updatedSession as JobFeedGenerationStatusUpdateResult['session'],
+    feedback: {
+      ...typedFeedback,
+      ...feedbackPatch,
+    } as JobFeedFeedback,
+  };
 }
 
 export async function recordJobFeedFeedbackAdmin(params: {
@@ -718,10 +735,26 @@ export async function runJobFeedFoundationWorkflow(params: {
   const existingRun = await getJobFeedRunByDate(userId, localDate);
 
   if (existingRun?.status === 'completed' && !force) {
+    captureJobFeedRunIdempotencyConflict({
+      userId,
+      run: existingRun,
+      localDate,
+      triggerSource,
+      force,
+      reason: 'completed_run_exists',
+    });
     return { run: existingRun, created: false, skipped: true };
   }
 
   if (existingRun?.status === 'running') {
+    captureJobFeedRunIdempotencyConflict({
+      userId,
+      run: existingRun,
+      localDate,
+      triggerSource,
+      force,
+      reason: force ? 'running_run_blocks_force' : 'running_run_exists',
+    });
     if (force) {
       throw new Error('Cannot force-rerun a job feed run while it is still running.');
     }
@@ -1300,12 +1333,12 @@ function toFeedItem(
     fitLabel: ranking?.fitLabel ?? null,
     pipelineStage: ranking?.pipelineStage ?? 'shortlisted',
     rankingSource: ranking?.rankingSource ?? null,
-    applyOptions: extractApplyOptions(sourceIdentifiers.apply_options),
+    applyOptions: extractApplyOptions(sourceIdentifiers.apply_options, job),
     feedback: toJobFeedFeedbackState(feedback),
   };
 }
 
-function extractApplyOptions(value: Json | undefined): JobFeedFeedItem['applyOptions'] {
+function extractApplyOptions(value: Json | undefined, job: JobFeedCanonicalJob): JobFeedFeedItem['applyOptions'] {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -1316,7 +1349,21 @@ function extractApplyOptions(value: Json | undefined): JobFeedFeedItem['applyOpt
 
     const title = typeof item.title === 'string' ? item.title.trim() : '';
     const link = typeof item.link === 'string' ? item.link.trim() : '';
-    if (!title || !isSafeExternalUrl(link)) continue;
+    if (!title) continue;
+    if (!isSafeExternalUrl(link)) {
+      captureJobFeedEvent({
+        event: 'job_feed_unsafe_external_link_dropped',
+        logLevel: 'warn',
+        properties: {
+          job_id: job.id,
+          company: job.company,
+          title: job.title,
+          link_protocol: readUrlProtocol(link),
+          link_length: link.length,
+        },
+      });
+      continue;
+    }
 
     options.push({ title, link });
   }
@@ -1331,6 +1378,38 @@ function isSafeExternalUrl(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+function readUrlProtocol(value: string): string | null {
+  try {
+    return new URL(value).protocol.replace(':', '') || null;
+  } catch {
+    const separatorIndex = value.indexOf(':');
+    return separatorIndex > 0 ? value.slice(0, separatorIndex).toLowerCase() : null;
+  }
+}
+
+function captureJobFeedRunIdempotencyConflict(params: {
+  userId: string;
+  run: JobFeedRun;
+  localDate: string;
+  triggerSource: string;
+  force: boolean;
+  reason: string;
+}): void {
+  captureJobFeedEvent({
+    distinctId: params.userId,
+    event: 'job_feed_run_idempotency_conflict',
+    logLevel: 'warn',
+    properties: {
+      run_id: params.run.id,
+      run_status: params.run.status,
+      local_date: params.localDate,
+      trigger_source: params.triggerSource,
+      force: params.force,
+      reason: params.reason,
+    },
+  });
 }
 
 function isJsonRecord(value: Json): value is Record<string, Json> {

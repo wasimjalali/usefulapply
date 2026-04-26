@@ -563,6 +563,9 @@ export function JobFeedPanel() {
   }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback, removeJobFromOverview, selectedJob?.id]);
 
   const handleApplyWithKarko = useCallback(async (job: JobFeedFeedItem) => {
+    const isRetry =
+      job.feedback.generationStatus === 'failed' ||
+      job.feedback.generationStatus === 'cancelled';
     setPendingJobAction({ jobId: job.id, action: 'apply' });
 
     try {
@@ -570,6 +573,18 @@ export function JobFeedPanel() {
         applyPreviewFeedback(job.id, 'applied');
         toastRef.current.success('Preview updated locally. This local preview does not create an application session.');
         return;
+      }
+
+      if (isRetry) {
+        posthog?.capture('job_feed_retry_clicked', {
+          foundation_mode: true,
+          job_id: job.id,
+          job_title: job.title,
+          company: job.company,
+          feed_run_id: overview?.feedRun?.id ?? null,
+          previous_generation_status: job.feedback.generationStatus,
+          session_id: job.feedback.applicationSessionId,
+        });
       }
 
       const response = await fetch('/api/job-feed/apply', {
