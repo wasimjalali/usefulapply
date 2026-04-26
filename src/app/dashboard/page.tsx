@@ -673,30 +673,94 @@ export default function Dashboard() {
             <FileText className={`w-4 h-4 ${activeWorkspace === 'application-kit' ? 'text-gold-500' : ''}`} />
             Application Kit
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              handleWorkspaceChange('job-feed');
-              jobFeedBadge.acknowledge();
-              setShowJobFeedPopup(false);
-            }}
-            className={`relative flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
-              activeWorkspace === 'job-feed'
-                ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
-                : 'text-warm-gray hover:text-navy-600'
-            }`}
-          >
-            <Briefcase className={`w-4 h-4 ${activeWorkspace === 'job-feed' ? 'text-gold-500' : ''}`} />
-            Job Feed
-            {jobFeedBadge.hasPending && (
-              <span
-                aria-label={`${jobFeedBadge.unprocessedCount} jobs waiting for your review`}
-                className="ml-1 inline-flex min-w-[20px] items-center justify-center rounded-full bg-gold-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white"
-              >
-                {jobFeedBadge.unprocessedCount > 99 ? '99+' : jobFeedBadge.unprocessedCount}
-              </span>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                handleWorkspaceChange('job-feed');
+                jobFeedBadge.acknowledge();
+                setShowJobFeedPopup(false);
+              }}
+              className={`relative flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
+                activeWorkspace === 'job-feed'
+                  ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
+                  : 'text-warm-gray hover:text-navy-600'
+              }`}
+            >
+              <Briefcase className={`w-4 h-4 ${activeWorkspace === 'job-feed' ? 'text-gold-500' : ''}`} />
+              Job Feed
+              {jobFeedBadge.hasPending && (
+                <span
+                  aria-label={`${jobFeedBadge.unprocessedCount} jobs waiting for your review`}
+                  className="ml-1 inline-flex min-w-[20px] items-center justify-center rounded-full bg-gold-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white"
+                >
+                  {jobFeedBadge.unprocessedCount > 99 ? '99+' : jobFeedBadge.unprocessedCount}
+                </span>
+              )}
+            </button>
+
+            {/* Daily feed popup — anchored below the Job Feed nav button so the
+                user's eye goes straight from the badge to the popup. Shown
+                once per new run per day, dismissed by clicking Open / Later /
+                close, or by landing on the Job Feed tab. */}
+            {showJobFeedPopup && jobFeedBadge.hasNewRun && (
+              <>
+                {/* Arrow pointing up to the Job Feed button */}
+                <div className="absolute left-1/2 top-full z-[60] mt-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-l border-t border-gold-300/80 bg-white" />
+                <div className="absolute left-1/2 top-full z-[60] mt-2 w-80 -translate-x-1/2 rounded-2xl border border-gold-300/80 bg-white p-4 shadow-md">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gold-50 text-gold-600">
+                      <Briefcase className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-charcoal">
+                        {jobFeedBadge.jobCount === 1
+                          ? 'Your daily feed is ready — 1 new role is waiting'
+                          : `Your daily feed is ready — ${jobFeedBadge.jobCount} new roles are waiting`}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-warm-gray">
+                        Karko hand-picked today&apos;s matches based on your profile. Take a look while they&apos;re fresh.
+                      </p>
+                      <div className="mt-3 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleWorkspaceChange('job-feed');
+                            jobFeedBadge.acknowledge();
+                            setShowJobFeedPopup(false);
+                          }}
+                          className="rounded-lg bg-gold-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-gold-600 cursor-pointer"
+                        >
+                          Open Job Feed
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            jobFeedBadge.acknowledge();
+                            setShowJobFeedPopup(false);
+                          }}
+                          className="rounded-lg px-3 py-1.5 text-xs font-medium text-warm-gray transition-colors hover:text-charcoal cursor-pointer"
+                        >
+                          Later
+                        </button>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        jobFeedBadge.acknowledge();
+                        setShowJobFeedPopup(false);
+                      }}
+                      className="rounded-lg p-1 text-warm-gray transition-colors hover:bg-cream-100 hover:text-charcoal cursor-pointer"
+                      aria-label="Dismiss new jobs notification"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </>
             )}
-          </button>
+          </div>
           <button
             id="tour-tracker"
             type="button"
@@ -1170,62 +1234,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* New-jobs popup. Shows once per daily run when the user has not yet
-          visited the Job Feed tab; acknowledging stamps the run date into
-          localStorage so it won't re-open until tomorrow's run lands. */}
-      {showJobFeedPopup && jobFeedBadge.hasNewRun && (
-        <div className="fixed bottom-6 right-6 z-[60] max-w-sm rounded-2xl border border-gold-300/80 bg-white p-4 shadow-md">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gold-50 text-gold-600">
-              <Briefcase className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-charcoal">
-                {jobFeedBadge.jobCount === 1
-                  ? 'Your daily feed is ready — 1 new role is waiting'
-                  : `Your daily feed is ready — ${jobFeedBadge.jobCount} new roles are waiting`}
-              </p>
-              <p className="mt-1 text-xs leading-5 text-warm-gray">
-                Karko hand-picked today&apos;s matches based on your profile. Take a look while they&apos;re fresh.
-              </p>
-              <div className="mt-3 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleWorkspaceChange('job-feed');
-                    jobFeedBadge.acknowledge();
-                    setShowJobFeedPopup(false);
-                  }}
-                  className="rounded-lg bg-gold-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-gold-600 cursor-pointer"
-                >
-                  Open Job Feed
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    jobFeedBadge.acknowledge();
-                    setShowJobFeedPopup(false);
-                  }}
-                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-warm-gray transition-colors hover:text-charcoal cursor-pointer"
-                >
-                  Later
-                </button>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                jobFeedBadge.acknowledge();
-                setShowJobFeedPopup(false);
-              }}
-              className="rounded-lg p-1 text-warm-gray transition-colors hover:bg-cream-100 hover:text-charcoal cursor-pointer"
-              aria-label="Dismiss new jobs notification"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
