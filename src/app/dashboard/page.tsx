@@ -715,11 +715,11 @@ export default function Dashboard() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-charcoal">
                         {jobFeedBadge.jobCount === 1
-                          ? 'Your daily feed is ready — 1 new role is waiting'
-                          : `Your daily feed is ready — ${jobFeedBadge.jobCount} new roles are waiting`}
+                          ? '1 new role for you today'
+                          : `${jobFeedBadge.jobCount} new roles for you today`}
                       </p>
                       <p className="mt-1 text-xs leading-5 text-warm-gray">
-                        Karko hand-picked today&apos;s matches based on your profile. Take a look while they&apos;re fresh.
+                        Fresh matches, hand-picked for you.
                       </p>
                       <div className="mt-3 flex items-center gap-2">
                         <button
