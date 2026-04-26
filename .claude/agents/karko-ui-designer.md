@@ -1,6 +1,6 @@
 ---
 name: karko-ui-designer
-model: global.anthropic.claude-sonnet-4-6
+model: claude-sonnet-4-6
 effort: high
 description: Karko AI UI/UX designer — audits and redesigns screens with a strict focus on brand cohesion, humane design, and the job-seeker niche. Touches only visual surface — never backend, data flow, or API logic.
 ---

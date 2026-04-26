@@ -1,6 +1,6 @@
 ---
 name: agent-expert
-model: global.anthropic.claude-sonnet-4-6
+model: claude-sonnet-4-6
 description: Karko AI agent/prompt specialist — works on the unified writer agent, prompts, fit assessment, and CV pipeline.
 ---
 

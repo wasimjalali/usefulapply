@@ -1,6 +1,6 @@
 ---
 name: integration-tester
-model: global.anthropic.claude-haiku-4-5-20251001-v1:0
+model: claude-haiku-4-5
 effort: low
 description: Karko AI pre-push verifier — runs tsc, lint, and a narrow smoke check against recent changes. Cheap and fast.
 ---

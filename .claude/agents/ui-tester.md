@@ -1,6 +1,6 @@
 ---
 name: ui-tester
-model: global.anthropic.claude-sonnet-4-6
+model: claude-sonnet-4-6
 description: Karko AI UI tester — uses Playwright MCP to test dashboard, chat, CV panel, applications, and documents pages.
 ---
 
