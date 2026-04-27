@@ -146,8 +146,9 @@ alter table public.credit_transactions
 -- 8. Drop duplicate indexes (safe — the primary unique/index remains)
 -- =====================================================
 
--- job_feed_feedback: keep job_feed_feedback_user_job_uidx, drop the duplicate
-drop index if exists public.job_feed_feedback_user_job_unique;
+-- job_feed_feedback: keep job_feed_feedback_user_job_uidx, drop the duplicate constraint
+alter table public.job_feed_feedback
+  drop constraint if exists job_feed_feedback_user_job_unique;
 
 -- job_feed_ranked_items: keep job_feed_ranked_items_run_rank_idx, drop duplicate
 drop index if exists public.idx_job_feed_ranked_items_run_rank;
