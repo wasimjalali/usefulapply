@@ -640,17 +640,17 @@ async function handleChargeRefunded(charge: any) {
   } else {
     // Add-on refund: remove from addon_credits
     // Map refund amount to credit count
-    // Current: 25 credits = $19.99; Legacy: 60 credits = $14.99, 120 credits = $29.99
+    // Current: 50 credits = $19.99; Legacy: 60 credits = $14.99, 120 credits = $29.99
     // Use the charge amount to determine which pack was purchased
     if (totalAmountCents === 1999) {
-      creditsToRemove = 25;
+      creditsToRemove = 50;
     } else if (totalAmountCents === 1499) {
       creditsToRemove = 60;
     } else if (totalAmountCents === 2999) {
       creditsToRemove = 120;
     } else {
-      // Fallback: proportional based on $0.80/credit
-      creditsToRemove = Math.round(refundedAmountCents / 80);
+      // Fallback: proportional based on $0.40/credit
+      creditsToRemove = Math.round(refundedAmountCents / 40);
     }
 
     // For partial refunds, scale proportionally

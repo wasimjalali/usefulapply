@@ -32,4 +32,4 @@ paths:
 | Free | 4 | $0 |
 | Plus | 50 | $19.99 |
 | Max | 200 | $79.99 |
-| Add-on Pack | 25 | $19.99 |
+| Add-on Pack | 50 | $19.99 |

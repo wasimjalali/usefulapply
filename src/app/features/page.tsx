@@ -228,7 +228,7 @@ const faqs = [
   {
     question: 'Can I buy more credits?',
     answer:
-      'Yes, if you\'re on Plus or Max. You can purchase add-on credit packs ($19.99 for 25 credits). Purchased credits roll over as long as your subscription is active.',
+      'Yes, if you\'re on Plus or Max. You can purchase add-on credit packs ($19.99 for 50 credits, 25 applications). Purchased credits roll over as long as your subscription is active.',
   },
   {
     question: 'What AI model do you use?',

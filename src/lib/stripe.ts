@@ -50,7 +50,7 @@ export const STRIPE_ADDON_PRICES = {
  * Map addon price IDs to credit amounts
  */
 export const ADDON_CREDIT_MAP: Record<string, number> = {
-  [STRIPE_ADDON_PRICES.CREDIT_PACK]: 25,
+  [STRIPE_ADDON_PRICES.CREDIT_PACK]: 50,
   // Legacy mappings for existing purchases
   [STRIPE_ADDON_PRICES.MEDIUM]: 60,
   [STRIPE_ADDON_PRICES.LARGE]: 120,

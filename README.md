@@ -45,7 +45,7 @@ All templates use Arial body + Georgia headers (ATS-compliant system fonts).
 | Free | 4 | — |
 | Plus | 50 | $19.99/mo |
 | Max | 200 | $79.99/mo |
-| Add-on Credit Pack | +25 | $19.99 |
+| Add-on Credit Pack | +50 | $19.99 |
 
 ### Credit Costs
 

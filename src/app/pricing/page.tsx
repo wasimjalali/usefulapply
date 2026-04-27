@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 // Single add-on credit pack
 // TODO: Replace priceId value with actual Stripe Price ID
 const addonPacks = [
-  { name: 'Credit Pack', credits: 25, applications: 12, price: 19.99, perCredit: '$0.80', priceId: 'price_addon_credit_pack' },
+  { name: 'Credit Pack', credits: 50, applications: 25, price: 19.99, perCredit: '$0.40', priceId: 'price_addon_credit_pack' },
 ];
 
 // Time savings data for interactive calculator
@@ -53,7 +53,7 @@ const faqs = [
   },
   {
     question: 'What happens if I run out of credits?',
-    answer: 'Plus and Max subscribers can purchase add-on credit packs anytime ($19.99 for 25 credits). Purchased credits roll over while your subscription is active. Free tier credits reset monthly. You can also upgrade your plan for immediate access to more credits.',
+    answer: 'Plus and Max subscribers can purchase add-on credit packs anytime ($19.99 for 50 credits, 25 applications). Purchased credits roll over while your subscription is active. Free tier credits reset monthly. You can also upgrade your plan for immediate access to more credits.',
   },
   {
     question: 'Do unused credits expire?',

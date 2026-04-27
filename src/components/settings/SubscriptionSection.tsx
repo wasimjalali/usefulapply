@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/Card';
 // Single add-on credit pack (must match pricing page)
 // TODO: Replace priceId value with actual Stripe Price ID
 const addonPacks = [
-  { name: 'Credit Pack', credits: 25, applications: 12, price: 19.99, priceId: 'price_addon_credit_pack' },
+  { name: 'Credit Pack', credits: 50, applications: 25, price: 19.99, priceId: 'price_addon_credit_pack' },
 ];
 
 export interface UserCredits {
