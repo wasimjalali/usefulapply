@@ -130,22 +130,22 @@ export default function Home() {
 
             <ScrollReveal delay={100}>
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-navy-600 mb-6 leading-[1.08] tracking-tight">
-              Your Entire Job Application{' '}
-              <span className="bg-gradient-to-r from-gold-400 via-gold-500 to-gold-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-shimmer">in 90 Seconds</span>
+              Find your next job and apply{' '}
+              <span className="bg-gradient-to-r from-gold-400 via-gold-500 to-gold-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-shimmer">in 90 seconds</span>
             </h1>
             </ScrollReveal>
             <ScrollReveal delay={300}>
             <p className="text-xl md:text-2xl text-warm-gray mb-10 max-w-2xl mx-auto leading-relaxed">
-              Paste any job description. Get a tailored CV, cover letter, emails, screening question answers, and more. All generated from your real experience.
+              Karko finds hand-picked roles for you every morning, then writes a tailored CV, cover letter and emails for each one. All in one place.
             </p>
             </ScrollReveal>
             <ScrollReveal delay={450}>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/dashboard"
-                className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-lg cta-glow"
+                className="w-full sm:w-auto px-10 py-4 bg-gold-400 hover:bg-gold-500 text-navy-900 font-semibold rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-lg"
               >
-                Try It Free, No Sign Up
+                Start free, no credit card
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <Link
@@ -160,16 +160,16 @@ export default function Home() {
             <ScrollReveal delay={600}>
             <div className="mt-14 grid grid-cols-3 gap-4 max-w-lg mx-auto">
               <div className="text-center">
-                <div className="text-2xl font-bold text-navy-600">&lt;90s</div>
-                <div className="text-xs text-warm-gray mt-1">Per application</div>
+                <div className="text-2xl font-bold text-navy-600">15-25</div>
+                <div className="text-xs text-warm-gray mt-1">Jobs picked daily</div>
               </div>
               <div className="text-center border-x border-cream-300">
-                <div className="text-2xl font-bold text-gold-500">4 Docs</div>
-                <div className="text-xs text-warm-gray mt-1">Ready to send</div>
+                <div className="text-2xl font-bold text-gold-500">&lt;90s</div>
+                <div className="text-xs text-warm-gray mt-1">Per application</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-navy-600">100%</div>
-                <div className="text-xs text-warm-gray mt-1">From your real CV</div>
+                <div className="text-2xl font-bold text-navy-600">4 Docs</div>
+                <div className="text-xs text-warm-gray mt-1">Per job</div>
               </div>
             </div>
             </ScrollReveal>
@@ -201,88 +201,124 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Two Pillars */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
+        <div className="max-w-5xl mx-auto">
+          <ScrollReveal>
+          <div className="text-center mb-12">
+            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">What Karko Does</p>
+            <h2 className="text-3xl md:text-4xl font-serif font-semibold text-navy-600">
+              Two problems. One app.
+            </h2>
+          </div>
+          </ScrollReveal>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            <ScrollReveal delay={100}>
+            <div className="bg-white rounded-2xl border border-cream-200 shadow-sm p-8 h-full">
+              <Image
+                src="/images/two-pillar-job-feed.webp"
+                alt="Smart Job Feed illustration"
+                width={280}
+                height={280}
+                className="w-full max-w-[240px] mx-auto mb-6"
+              />
+              <h3 className="text-xl font-semibold text-navy-600 mb-3">Jobs picked for you, every morning.</h3>
+              <p className="text-warm-gray text-[15px] leading-relaxed">
+                Tell Karko the roles, cities and countries you want. Every morning, you open the app to a feed of hand-picked jobs ranked by real fit. Save the good ones. Dismiss the rest. Apply with one click.
+              </p>
+            </div>
+            </ScrollReveal>
+
+            <ScrollReveal delay={200}>
+            <div className="bg-white rounded-2xl border border-cream-200 shadow-sm p-8 h-full">
+              <Image
+                src="/images/two-pillar-application-kit.webp"
+                alt="Application Kit illustration"
+                width={280}
+                height={280}
+                className="w-full max-w-[240px] mx-auto mb-6"
+              />
+              <h3 className="text-xl font-semibold text-navy-600 mb-3">A full application in 90 seconds.</h3>
+              <p className="text-warm-gray text-[15px] leading-relaxed">
+                Paste or pick a job. Karko writes a tailored CV, cover letter, application email and follow-up email from your real experience. All ATS-safe, all from the truth in your Master CV.
+              </p>
+            </div>
+            </ScrollReveal>
+          </div>
+        </div>
+      </section>
+
       {/* How It Works */}
-      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
-        <SectionBackground variant={0} sectionColor="#FEFDFB" />
+      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-100 relative overflow-hidden">
+        <SectionBackground variant={0} sectionColor="#FAF7F2" />
         <div className="max-w-6xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-14">
             <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">How It Works</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
-              Three Steps. One Complete Application.
+            <h2 className="text-3xl md:text-4xl font-serif font-semibold text-navy-600 mb-4">
+              Five steps. One complete application.
             </h2>
             <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-              From CV upload to ready-to-send application in under 90 seconds.
+              From your CV to a full application package, with hand-picked jobs in between.
             </p>
           </div>
           </ScrollReveal>
 
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {[
               {
                 step: '01',
                 icon: FileText,
-                title: 'Upload Your CV',
-                description: 'Upload your master CV once. Karko AI reads your entire professional history and builds a complete profile of your skills and experience.',
-                gradient: 'from-navy-600 to-navy-700',
-                iconBg: 'from-navy-50 to-navy-100',
-                iconColor: 'text-navy-600',
+                title: 'Upload your CV once',
+                description: 'Your source of truth. Karko reads your real experience and stores it as your Master CV.',
               },
               {
                 step: '02',
-                icon: Target,
-                title: 'Paste the Job Description',
-                description: 'Copy and paste the job posting. Karko AI analyzes the requirements, matches your skills, and gives you an honest fit score.',
-                gradient: 'from-gold-400 to-gold-500',
-                iconBg: 'from-gold-50 to-gold-100',
-                iconColor: 'text-gold-500',
+                icon: Search,
+                title: 'Get jobs picked for you',
+                description: 'The Smart Job Feed searches across your roles, countries and cities. Every morning your best matches are ready.',
               },
               {
                 step: '03',
+                icon: Target,
+                title: 'See how well you fit',
+                description: 'An honest match score and skill-gap read, so you know where to focus before spending credits.',
+              },
+              {
+                step: '04',
                 icon: Zap,
-                title: 'Get Your Entire Application',
-                description: 'Receive a tailored CV, cover letter, application email, follow-up email, and screening question answers. All in 90 seconds.',
-                gradient: 'from-navy-600 to-navy-700',
-                iconBg: 'from-navy-50 to-navy-100',
-                iconColor: 'text-navy-600',
+                title: 'Get your complete application',
+                description: 'Tailored CV, cover letter, application email and follow-up email in under 90 seconds.',
+              },
+              {
+                step: '05',
+                icon: CheckCircle,
+                title: 'Track everything in one place',
+                description: 'Every application stored with match score, status and company context. No spreadsheet needed.',
               },
             ].map((card, i) => {
               const Icon = card.icon;
+              const isGold = i === 1 || i === 3;
               return (
-                <ScrollReveal key={i} delay={i * 150}>
-                <div className="group relative bg-white rounded-2xl border border-cream-200 shadow-md overflow-hidden card-hover-lift h-full">
-                  <div className={`h-1 bg-gradient-to-r ${card.gradient}`} />
-                  <div className="p-8">
-                    <div className="flex items-center gap-4 mb-5">
-                      <div className={`w-14 h-14 bg-gradient-to-br ${card.iconBg} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
-                        <Icon className={`w-7 h-7 ${card.iconColor}`} />
+                <ScrollReveal key={i} delay={i * 100}>
+                <div className="group relative bg-white rounded-2xl border border-cream-200 shadow-sm overflow-hidden h-full">
+                  <div className={`h-1 ${isGold ? 'bg-gold-400' : 'bg-navy-600'}`} />
+                  <div className="p-5">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={`w-10 h-10 ${isGold ? 'bg-gold-50' : 'bg-navy-50'} rounded-lg flex items-center justify-center`}>
+                        <Icon className={`w-5 h-5 ${isGold ? 'text-gold-500' : 'text-navy-600'}`} />
                       </div>
-                      <span className="text-4xl font-bold text-cream-300 group-hover:text-cream-400 transition-colors">{card.step}</span>
+                      <span className="text-2xl font-bold text-cream-300">{card.step}</span>
                     </div>
-                    <h3 className="text-xl font-bold text-navy-600 mb-3">{card.title}</h3>
-                    <p className="text-warm-gray leading-relaxed text-[15px]">{card.description}</p>
+                    <h3 className="text-base font-semibold text-navy-600 mb-2">{card.title}</h3>
+                    <p className="text-warm-gray text-sm leading-relaxed">{card.description}</p>
                   </div>
                 </div>
                 </ScrollReveal>
               );
             })}
           </div>
-
-          <ScrollReveal delay={500}>
-          <div className="group relative bg-white rounded-2xl border border-cream-200 shadow-md overflow-hidden card-hover-lift max-w-md mx-auto">
-            <div className="h-1 bg-gradient-to-r from-gold-400 to-gold-500" />
-            <div className="p-8 text-center">
-              <div className="flex items-center justify-center gap-4 mb-5">
-                <div className="w-14 h-14 bg-gradient-to-br from-gold-50 to-gold-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <Search className="w-7 h-7 text-gold-500" />
-                </div>
-                <span className="text-4xl font-bold text-cream-300 group-hover:text-cream-400 transition-colors">04</span>
-              </div>
-              <h3 className="text-xl font-bold text-navy-600 mb-3">Track All Your Applications</h3>
-              <p className="text-warm-gray leading-relaxed text-[15px]">Track every application with match scores, statuses, and company details inside Karko AI. Never lose track of where you applied.</p>
-            </div>
-          </div>
-          </ScrollReveal>
         </div>
       </section>
 
