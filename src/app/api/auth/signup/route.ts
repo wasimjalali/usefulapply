@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
               Thanks for signing up for KarKo AI. One quick step to get started:
             </p>
             <p style="color: #555; line-height: 1.6; margin: 0 0 28px 0;">
-              Click the button below to confirm your email address and activate your free account (10 credits included).
+              Click the button below to confirm your email address and activate your free account (4 credits included).
             </p>
 
             <div style="text-align: center; margin: 0 0 28px 0;">

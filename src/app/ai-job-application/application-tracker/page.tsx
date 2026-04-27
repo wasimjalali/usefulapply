@@ -404,7 +404,7 @@ export default function ApplicationTrackerPage() {
                 Start Tracking Your Applications Automatically
               </h2>
               <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
-                Try Karko AI free for your first 5 applications. Every application you generate
+                Try Karko AI free for your first 2 applications. Every application you generate
                 is automatically saved to your tracker. No manual logging. Stay organized from day
                 one.
               </p>

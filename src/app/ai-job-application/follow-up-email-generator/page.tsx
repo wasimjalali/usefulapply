@@ -447,7 +447,7 @@ export default function FollowUpEmailGeneratorPage() {
                 Get Your Follow-Up Email in 90 Seconds
               </h2>
               <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
-                Try Karko AI free for your first 5 applications. Get a complete package:
+                Try Karko AI free for your first 2 applications. Get a complete package:
                 tailored CV, cover letter, application email, and follow-up email. No credit card
                 required.
               </p>

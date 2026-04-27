@@ -691,7 +691,7 @@ export default function Home() {
             <span className="text-gold-400">90 Seconds Away</span>
           </h2>
           <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Start with 5 free applications. No credit card required.
+            Start with 2 free applications. No credit card required.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link

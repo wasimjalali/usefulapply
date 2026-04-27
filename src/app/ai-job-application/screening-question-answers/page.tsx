@@ -407,7 +407,7 @@ export default function ScreeningQuestionAnswersPage() {
                 Stop Writing Screening Answers by Hand
               </h2>
               <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
-                Try Karko AI free for your first 5 applications. Get a tailored CV, cover letter,
+                Try Karko AI free for your first 2 applications. Get a tailored CV, cover letter,
                 emails, and screening question answers. No credit card required.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

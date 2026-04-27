@@ -59,7 +59,7 @@ export default function Footer() {
               href="/dashboard"
               className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm hover:shadow-md"
             >
-              Try It Free - 5 Applications, No Credit Card
+              Try It Free - 2 Applications, No Credit Card
             </Link>
           </div>
 

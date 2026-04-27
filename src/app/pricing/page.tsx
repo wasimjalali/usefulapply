@@ -616,7 +616,7 @@ export default function PricingPage() {
             Ready to Transform Your Job Search?
           </h2>
           <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
-            Start with 5 free applications. No credit card required. See why job seekers are switching to KarKo AI.
+            Start with 2 free applications. No credit card required. See why job seekers are switching to KarKo AI.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link

@@ -299,7 +299,7 @@ export default function FeaturesPage() {
                   href="/dashboard"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-md"
                 >
-                  Try It Free - 5 Applications, No Credit Card
+                  Try It Free - 2 Applications, No Credit Card
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
