@@ -1002,7 +1002,7 @@ export default function Dashboard() {
               </div>
             )}
 
-            <div className={`absolute inset-y-2 right-2 left-2 flex flex-col items-center justify-start py-2.5 border border-gold-300/90 bg-cream-50/96 rounded-2xl shadow-md transition-opacity duration-200 ${
+            <div className={`absolute inset-0 flex flex-col items-center justify-start py-2.5 border-l border-gold-300/70 bg-cream-50/96 transition-opacity duration-200 ${
               isChatCollapsed ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
             }`}>
               <button
@@ -1017,7 +1017,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div id="tour-chat-panel" className={`absolute inset-y-2 right-2 left-2 overflow-hidden rounded-2xl border border-gold-300/90 bg-cream-50/96 backdrop-blur-[6px] shadow-md transition-opacity duration-200 ${
+            <div id="tour-chat-panel" className={`absolute inset-0 overflow-hidden border-l border-gold-300/70 bg-cream-50/96 backdrop-blur-[6px] transition-opacity duration-200 ${
               isChatCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
             }`}>
               <ChatPanel
