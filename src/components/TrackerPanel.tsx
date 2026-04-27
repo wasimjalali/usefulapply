@@ -2,11 +2,14 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
 import { updateSession, getSession, deleteSession, getChatMessages } from '@/lib/supabase/sessions';
 import { getSupabase } from '@/lib/supabase/client';
+import { KarkoIcon } from '@/components/KarkoLogo';
+import { Button } from '@/components/ui/Button';
 import {
   Search,
   ChevronDown,
@@ -20,6 +23,7 @@ import {
   Pencil,
   Check,
   X,
+  CheckCircle2,
 } from 'lucide-react';
 
 type ApplicationStatus = 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up';
@@ -680,6 +684,50 @@ export function TrackerPanel() {
     setActiveTab('cv');
   };
 
+  if (!user) {
+    return (
+      <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center">
+        <div className="max-w-lg">
+          <div className="mb-6 flex justify-center">
+            <KarkoIcon theme="light" size="lg" />
+          </div>
+          <h1 className="font-serif text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
+            Every application, in one place
+          </h1>
+          <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-warm-gray">
+            No spreadsheets. No lost follow-ups. Karko saves every application you send and keeps your pipeline organised automatically.
+          </p>
+          <ul className="mx-auto mt-7 max-w-sm space-y-3 text-left">
+            {[
+              'Company, role and match score saved automatically',
+              'Track status from applied to offer in one click',
+              'Resume the conversation for any application anytime',
+              'Never lose track of a deadline or follow-up again',
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-3 text-sm text-charcoal">
+                <CheckCircle2 className="mt-0.5 w-4 h-4 flex-shrink-0 text-gold-500" />
+                {item}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-8 flex flex-col items-center gap-3">
+            <Link href="/auth/signup" className="inline-flex">
+              <Button variant="gold" className="px-7 py-3 text-base">
+                Sign up free
+              </Button>
+            </Link>
+            <Link
+              href="/auth/login"
+              className="text-sm font-medium text-navy-600 transition-colors hover:text-navy-700"
+            >
+              Already have an account? Sign in
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoadingInitial) {
     return (
       <div className="flex items-center justify-center h-full p-8">
@@ -687,14 +735,6 @@ export function TrackerPanel() {
           <Loader2 className="w-8 h-8 animate-spin text-navy-600" />
           <p className="text-sm text-warm-gray">Loading your applications...</p>
         </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center h-full p-8">
-        <p className="text-sm text-warm-gray">Sign in to track your applications.</p>
       </div>
     );
   }
