@@ -326,12 +326,12 @@ export default function PricingPage() {
                   </div>
                   <ul className="space-y-3 mb-5">
                     {[
+                      { text: 'Smart Job Feed: up to 15 jobs/day', bold: true },
                       { text: '25 complete applications/month', bold: true },
-                      { text: 'Everything in Free, plus:' },
+                      { text: 'Everything in Free' },
                       { text: 'Unlimited application history' },
                       { text: 'Add-on credit packs (rollover)' },
                       { text: 'Priority email support' },
-                      { text: 'Powered by Claude Sonnet 4.6' },
                     ].map((f, i) => (
                       <li key={i} className="flex items-start gap-2.5">
                         <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-gold-500" />
@@ -418,19 +418,16 @@ export default function PricingPage() {
                 <ul className="space-y-3 mb-5">
                   {[
                     { text: '100 complete applications/month', bold: true },
-                    { text: 'Everything in Plus, plus:' },
-                    { text: 'Chrome Extension: auto-fill ATS forms', bold: true, comingSoon: true },
+                    { text: 'Smart Job Feed: up to 25 jobs/day', bold: true },
                     { text: 'AI Screening Question Answers', bold: true },
+                    { text: 'Everything in Plus' },
                     { text: 'Premium dedicated support' },
                     { text: 'Powered by Claude Sonnet 4.6' },
-                  ].map((f: { text: string; bold?: boolean; comingSoon?: boolean }, i: number) => (
+                  ].map((f: { text: string; bold?: boolean }, i: number) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-gold-500" />
                       <span className={`text-sm text-charcoal ${f.bold ? 'font-semibold' : ''}`}>
                         {f.text}
-                        {f.comingSoon && (
-                          <span className="ml-1.5 inline-flex items-center bg-navy-600/10 text-navy-600 text-[10px] font-medium px-2 py-0.5 rounded-full">Coming Soon</span>
-                        )}
                       </span>
                     </li>
                   ))}

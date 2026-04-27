@@ -78,7 +78,7 @@ export const PLANS = {
     price: 79.99,
     priceId: STRIPE_PRICES.MAX,
     credits: 200,
-    features: ['100 applications/month', 'Add-on credits', 'Chrome Extension (Coming Soon)', 'Premium support'],
+    features: ['100 applications/month', 'Smart Job Feed: 25 jobs/day', 'AI Screening Answers', 'Premium support'],
   },
 } as const;
 

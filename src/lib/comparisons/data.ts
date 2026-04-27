@@ -25,7 +25,8 @@ export const comparisons: ComparisonData[] = [
       { feature: 'Cover Letter', karkoValue: 'Personalized', competitorValue: 'Generic' },
       { feature: 'Application Email', karkoValue: true, competitorValue: false, karkoWins: true },
       { feature: 'Follow-Up Email', karkoValue: true, competitorValue: false, karkoWins: true },
-      { feature: 'Job Tracking', karkoValue: 'Roadmap', competitorValue: 'Strong' },
+      { feature: 'Job Tracking', karkoValue: true, competitorValue: 'Strong' },
+      { feature: 'Smart Job Feed', karkoValue: true, competitorValue: false, karkoWins: true },
       { feature: 'Fit Analysis', karkoValue: true, competitorValue: false, karkoWins: true },
       { feature: 'Pricing', karkoValue: '$19.99-79.99/mo', competitorValue: 'Freemium (hidden)' },
       { feature: 'AI Model', karkoValue: 'Claude Sonnet 4.6', competitorValue: 'Generic AI' },
@@ -52,14 +53,15 @@ export const comparisons: ComparisonData[] = [
       pros: [
         'Only tool that generates application + follow-up emails',
         'Fit analysis helps focus on good matches',
+        'Smart Job Feed: hand-picked jobs delivered daily',
         'Latest AI (Claude Sonnet 4.6) for highest quality content',
         'Complete application package in one workflow',
+        'Built-in application tracker',
         'Transparent credit-based pricing',
         'ATS-optimized by default (all templates)',
         'German templates for EU market',
       ],
       cons: [
-        'No job tracking (yet - on roadmap)',
         'No Chrome extension for one-click job saving',
         'Newer platform (less established than Teal)',
       ],
@@ -139,12 +141,24 @@ export const comparisons: ComparisonData[] = [
         description:
           'Tracking applications helps you follow up at the right time and avoid applying to the same role twice.',
         karkoDetails:
-          'Job tracking is on the roadmap but not yet available. Currently focuses on application content generation.',
+          'Built-in application tracker stores every application with match score, status, and company context. Update status as you progress through interviews.',
         competitorDetails:
           'Excellent job tracking system with Chrome extension. Save jobs from any board, track application status, set reminders, and manage your entire pipeline in one dashboard.',
-        winner: 'competitor',
+        winner: 'tie',
         reasoning:
-          'Teal\'s job tracking is best-in-class with a seamless Chrome extension. This is their core strength. Karko doesn\'t offer this yet.',
+          'Both platforms now offer solid tracking. Teal has the Chrome extension for saving jobs from any board; Karko has tighter integration with its application workflow.',
+      },
+      {
+        title: 'Job Discovery',
+        description:
+          'Finding the right jobs to apply to is half the battle. Manual searching across job boards is time-consuming.',
+        karkoDetails:
+          'Smart Job Feed delivers up to 15-25 hand-picked jobs daily, ranked by fit against your CV. Jobs come to you instead of endless searching.',
+        competitorDetails:
+          'No job discovery feature. You find jobs elsewhere and save them via the Chrome extension.',
+        winner: 'karko',
+        reasoning:
+          'Karko eliminates the job search step entirely. Teal helps you organize jobs you find yourself. Fundamentally different approaches.',
       },
       {
         title: 'ATS Optimization',
@@ -245,7 +259,7 @@ export const comparisons: ComparisonData[] = [
       {
         question: 'Does Karko track applications?',
         answer:
-          'Not yet. Job tracking is on the roadmap but currently unavailable. If you need tracking now, use Teal or use Karko for content + Teal for tracking.',
+          'Yes. Karko has a built-in application tracker that stores every application with match score, status, and company context. Plus, the Smart Job Feed delivers hand-picked jobs to you daily.',
       },
       {
         question: 'Which is better for international job seekers?',
@@ -261,7 +275,7 @@ export const comparisons: ComparisonData[] = [
 
     // Verdict
     verdict:
-      'Karko AI and Teal solve different problems. Teal excels at job tracking and organization - perfect if you\'re applying to many jobs and need project management. Karko AI excels at content quality and completeness - perfect if you want winning applications with personalized emails. The best approach? Use both: Karko for content, Teal for tracking. But if you can only choose one: pick Karko if you prioritize quality and emails, pick Teal if you prioritize organization and volume.',
+      'Karko AI and Teal have converged. Both now offer tracking, but Karko goes further with Smart Job Feed (daily hand-picked jobs) and complete application packages (CV, cover letter, emails). Teal still wins on their Chrome extension for saving jobs from any board. Pick Karko if you want jobs delivered to you and complete application packages. Pick Teal if you prefer finding jobs yourself and organizing them.',
 
     // CTA
     ctaText: 'Try Karko AI Free - 2 Complete Applications with Emails',
