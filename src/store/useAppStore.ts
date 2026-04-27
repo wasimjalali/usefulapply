@@ -89,7 +89,7 @@ useAppStore.getState = () => ({
   ...useUIStore.getState(),
   resetAll: () => {
     useCVStore.getState().resetCVData();
-    useSessionStore.getState().resetGenerated();
+    useSessionStore.getState().resetSessionData();
     useUIStore.getState().resetUI();
   },
 });

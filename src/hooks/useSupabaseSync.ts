@@ -68,9 +68,6 @@ interface SupabaseSessionRow {
 export function useSupabaseSync() {
   const { user } = useAuth();
   const {
-    currentCV,
-    masterCV,
-    profilePhoto,
     setCurrentCV,
     setStructuredCV,
     setMasterCV,
@@ -125,8 +122,9 @@ export function useSupabaseSync() {
           getProfilePhotoUrl(user.id),
         ]);
         
-        // Load primary CV if exists in Supabase but not in local store
-        if (primaryDoc && !currentCV) {
+        // Supabase is authoritative for authenticated users. Always replace
+        // cached browser CV state so switching accounts cannot show stale data.
+        if (primaryDoc) {
           console.log('[SupabaseSync] Loading primary CV from Supabase:', primaryDoc.file_name);
           setCurrentCV({
             rawText: primaryDoc.raw_text || '',
@@ -140,11 +138,16 @@ export function useSupabaseSync() {
             if (primaryDoc.structured_data._editedCVData) {
               useCVStore.getState().setEditedOriginalCVData(primaryDoc.structured_data._editedCVData);
             }
+          } else {
+            setStructuredCV(null);
           }
+        } else {
+          setCurrentCV(null);
+          setStructuredCV(null);
+          useCVStore.getState().setEditedOriginalCVData(null);
         }
         
-        // Load master CV if exists in Supabase but not in local store
-        if (masterDoc && !masterCV) {
+        if (masterDoc) {
           console.log('[SupabaseSync] Loading master CV from Supabase:', masterDoc.file_name);
           setMasterCV({
             rawText: masterDoc.raw_text || '',
@@ -155,6 +158,8 @@ export function useSupabaseSync() {
             allExperiences: masterDoc.all_experiences || [],
             allEducation: masterDoc.all_education || [],
           });
+        } else {
+          setMasterCV(null);
         }
         
         // Load or refresh profile photo signed URL from Supabase
@@ -170,6 +175,8 @@ export function useSupabaseSync() {
             dataUrl: photoResult.url,
             uploadedAt: new Date().toISOString(),
           });
+        } else if (!photoResult.url && !isBase64) {
+          setProfilePhoto(null);
         }
         
         console.log('[SupabaseSync] Documents loaded:', {

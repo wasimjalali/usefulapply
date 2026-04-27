@@ -186,8 +186,9 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
           master: masterDoc || undefined,
         });
 
-        // Sync with local store if Supabase has data but local doesn't
-        if (primaryDoc && !currentCV) {
+        // Supabase is the source of truth for signed-in users. Always replace
+        // cached browser state so account switches cannot show another user's CV.
+        if (primaryDoc) {
           setCurrentCV({
             rawText: primaryDoc.raw_text || '',
             sections: primaryDoc.sections || {},
@@ -196,10 +197,16 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
           });
           if (primaryDoc.structured_data) {
             setStructuredCV(primaryDoc.structured_data);
+          } else {
+            setStructuredCV(null);
           }
+        } else {
+          setCurrentCV(null);
+          setStructuredCV(null);
+          useCVStore.getState().setEditedOriginalCVData(null);
         }
 
-        if (masterDoc && !masterCV) {
+        if (masterDoc) {
           setMasterCV({
             rawText: masterDoc.raw_text || '',
             sections: masterDoc.sections || {},
@@ -209,6 +216,8 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
             allExperiences: masterDoc.all_experiences || [],
             allEducation: masterDoc.all_education || [],
           });
+        } else {
+          setMasterCV(null);
         }
       } catch (error) {
         console.error('Error loading documents:', error);
@@ -509,6 +518,8 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                         <button
                           onClick={async () => {
                             setCurrentCV(null);
+                            setStructuredCV(null);
+                            useCVStore.getState().setEditedOriginalCVData(null);
                             if (supabaseDocs.primary) {
                               await deleteSupabaseDocument(supabaseDocs.primary.id);
                               setSupabaseDocs(prev => ({ ...prev, primary: undefined }));
@@ -844,6 +855,8 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                     <button
                       onClick={async () => {
                         setCurrentCV(null);
+                        setStructuredCV(null);
+                        useCVStore.getState().setEditedOriginalCVData(null);
                         if (supabaseDocs.primary) {
                           await deleteSupabaseDocument(supabaseDocs.primary.id);
                           setSupabaseDocs(prev => ({ ...prev, primary: undefined }));

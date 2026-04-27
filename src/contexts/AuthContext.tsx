@@ -4,6 +4,9 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef } f
 import { User, Session, AuthError, SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase } from '@/lib/supabase/client';
 import type { Profile } from '@/lib/supabase/types';
+import { useCVStore } from '@/store/useCVStore';
+import { useSessionStore } from '@/store/useSessionStore';
+import { useUIStore } from '@/store/useUIStore';
 import posthog from 'posthog-js';
 
 /**
@@ -13,6 +16,9 @@ import posthog from 'posthog-js';
  */
 function clearPersistedStores() {
   try {
+    useCVStore.getState().resetCVData();
+    useSessionStore.getState().resetSessionData();
+    useUIStore.getState().resetUI();
     localStorage.removeItem('session-store');
     localStorage.removeItem('cv-store');
   } catch (e) {
@@ -108,9 +114,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ]) as Awaited<typeof sessionPromise>;
         
         if (initialSession) {
-          // If a different user is now logged in, clear stale stores
+          // Persisted stores are not keyed by user id. Clear them before
+          // hydrating an authenticated session; Supabase reloads the user's
+          // own documents/sessions after auth settles.
           const storedUserId = prevUserIdRef.current;
-          if (storedUserId && storedUserId !== initialSession.user.id) {
+          if (storedUserId !== initialSession.user.id) {
             clearPersistedStores();
           }
           prevUserIdRef.current = initialSession.user.id;
@@ -137,7 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Detect user switch: clear stale persisted data before setting new user
         if (newSession?.user) {
           const prevId = prevUserIdRef.current;
-          if (prevId && prevId !== newSession.user.id) {
+          if (prevId !== newSession.user.id) {
             clearPersistedStores();
           }
           prevUserIdRef.current = newSession.user.id;

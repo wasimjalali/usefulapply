@@ -3,6 +3,9 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useCVStore } from '@/store/useCVStore';
+import { useSessionStore } from '@/store/useSessionStore';
+import { useUIStore } from '@/store/useUIStore';
 import { Loader2 } from 'lucide-react';
 
 function CallbackHandler() {
@@ -18,6 +21,9 @@ function CallbackHandler() {
       // session. This prevents cross-user data leakage when a new user
       // confirms their email on a browser that had a different user's session.
       try {
+        useCVStore.getState().resetCVData();
+        useSessionStore.getState().resetSessionData();
+        useUIStore.getState().resetUI();
         localStorage.removeItem('session-store');
         localStorage.removeItem('cv-store');
       } catch { /* ignore */ }

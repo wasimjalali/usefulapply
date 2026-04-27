@@ -251,6 +251,7 @@ interface SessionActions {
   
   // Reset
   resetGenerated: () => void;
+  resetSessionData: () => void;
 }
 
 const initialState: SessionState = {
@@ -456,6 +457,7 @@ export const useSessionStore = create<SessionState & SessionActions>()(
         requirements: null,
         gaps: null,
       }),
+      resetSessionData: () => set(initialState),
     }),
     {
       name: 'session-store',
