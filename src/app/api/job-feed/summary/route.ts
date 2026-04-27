@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     const { data: profile } = await typedSupabase
       .from('profiles')
-      .select('subscription_tier')
+      .select('subscription_tier, job_feed_last_seen_run_date')
       .eq('id', user.id)
       .single();
 
@@ -51,9 +51,46 @@ export async function GET(request: NextRequest) {
       latestRunDate: run?.local_date ?? null,
       jobCount: items.length,
       unprocessedCount,
+      lastSeenRunDate: profile?.job_feed_last_seen_run_date ?? null,
     });
   } catch (error) {
     console.error('[job-feed/summary] unexpected error:', error);
     return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, unprocessedCount: 0 }, { status: 200 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const ip = getClientIP(request);
+    const { allowed } = checkRateLimit(`job-feed-overview:${ip}`, RATE_LIMITS['job-feed-overview']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
+    }
+
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const typedSupabase = supabase as any;
+    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const date = typeof body?.lastSeenRunDate === 'string' ? body.lastSeenRunDate.trim() : null;
+
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return NextResponse.json({ error: 'Invalid date format.' }, { status: 400 });
+    }
+
+    await typedSupabase
+      .from('profiles')
+      .update({ job_feed_last_seen_run_date: date })
+      .eq('id', user.id);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[job-feed/summary] PATCH error:', error);
+    return NextResponse.json({ error: 'Failed to update.' }, { status: 500 });
   }
 }

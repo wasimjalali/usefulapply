@@ -6,6 +6,7 @@ import {
   runJobFeedFoundationWorkflow,
   stageJobFeedRunForBatch,
 } from '@/lib/job-feed/server';
+import { releaseStaleReservations } from '@/lib/supabase/credit-reservations';
 import {
   listPendingBatchIds,
   reconcileJobFeedBatch,
@@ -239,12 +240,26 @@ export const jobFeedApplicationGenerationReconcilerFunction = inngest.createFunc
   }
 );
 
+export const creditReservationReconcilerFunction = inngest.createFunction(
+  {
+    id: 'credit-reservation-reconciler',
+    name: 'Credit Reservation Reconciler',
+    triggers: [{ cron: '*/10 * * * *' }],
+  },
+  async ({ step }) => {
+    return step.run('release-stale-credit-reservations', async () => {
+      return releaseStaleReservations({ maxAgeMs: 30 * 60 * 1000, limit: 50 });
+    });
+  }
+);
+
 export const jobFeedFunctions = [
   jobFeedSchedulerTickFunction,
   jobFeedSweepRequestedFunction,
   jobFeedRunRequestedFunction,
   jobFeedBatchReconcilerFunction,
   jobFeedApplicationGenerationReconcilerFunction,
+  creditReservationReconcilerFunction,
 ];
 
 function parseSweepRequestedEventData(value: unknown): JobFeedSweepRequestedEventData {

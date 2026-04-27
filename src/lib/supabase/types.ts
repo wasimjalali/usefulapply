@@ -35,6 +35,7 @@ export interface Database {
           notify_marketing: boolean
           job_searches_used: number
           job_searches_reset_at: string
+          job_feed_last_seen_run_date: string | null
           created_at: string
           updated_at: string
         }
@@ -59,6 +60,7 @@ export interface Database {
           notify_marketing?: boolean
           job_searches_used?: number
           job_searches_reset_at?: string
+          job_feed_last_seen_run_date?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -83,6 +85,7 @@ export interface Database {
           notify_marketing?: boolean
           job_searches_used?: number
           job_searches_reset_at?: string
+          job_feed_last_seen_run_date?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -190,6 +193,7 @@ export interface Database {
           batch_status: string | null
           batch_submitted_at: string | null
           batch_completed_at: string | null
+          settings_snapshot: Json | null
           metadata: Json
           created_at: string
           updated_at: string
@@ -216,6 +220,7 @@ export interface Database {
           batch_status?: string | null
           batch_submitted_at?: string | null
           batch_completed_at?: string | null
+          settings_snapshot?: Json | null
           metadata?: Json
           created_at?: string
           updated_at?: string
@@ -242,6 +247,7 @@ export interface Database {
           batch_status?: string | null
           batch_submitted_at?: string | null
           batch_completed_at?: string | null
+          settings_snapshot?: Json | null
           metadata?: Json
           created_at?: string
           updated_at?: string
@@ -744,6 +750,7 @@ export interface Database {
           generation_failed_at: string | null
           generation_cancelled_at: string | null
           follow_up_email: Json | null
+          generated_artifacts: Json | null
           created_at: string
           updated_at: string
         }
@@ -783,6 +790,7 @@ export interface Database {
           generation_failed_at?: string | null
           generation_cancelled_at?: string | null
           follow_up_email?: Json | null
+          generated_artifacts?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -822,6 +830,7 @@ export interface Database {
           generation_failed_at?: string | null
           generation_cancelled_at?: string | null
           follow_up_email?: Json | null
+          generated_artifacts?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -1264,6 +1273,94 @@ export interface Database {
           updated_at?: string
         }
       }
+      credit_reservations: {
+        Row: {
+          id: string
+          user_id: string
+          generation_id: string | null
+          session_id: string | null
+          action: string
+          amount: number
+          status: 'reserved' | 'captured' | 'released' | 'refunded'
+          reserved_at: string
+          captured_at: string | null
+          released_at: string | null
+          refunded_at: string | null
+          idempotency_key: string
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          generation_id?: string | null
+          session_id?: string | null
+          action: string
+          amount: number
+          status?: 'reserved' | 'captured' | 'released' | 'refunded'
+          reserved_at?: string
+          captured_at?: string | null
+          released_at?: string | null
+          refunded_at?: string | null
+          idempotency_key: string
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          generation_id?: string | null
+          session_id?: string | null
+          action?: string
+          amount?: number
+          status?: 'reserved' | 'captured' | 'released' | 'refunded'
+          reserved_at?: string
+          captured_at?: string | null
+          released_at?: string | null
+          refunded_at?: string | null
+          idempotency_key?: string
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      user_notifications: {
+        Row: {
+          id: string
+          user_id: string
+          event_type: string
+          title: string
+          body: string | null
+          payload: Json
+          read_at: string | null
+          dismissed_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          event_type: string
+          title: string
+          body?: string | null
+          payload?: Json
+          read_at?: string | null
+          dismissed_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          event_type?: string
+          title?: string
+          body?: string | null
+          payload?: Json
+          read_at?: string | null
+          dismissed_at?: string | null
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -1276,6 +1373,8 @@ export interface Database {
     }
   }
 }
+
+export type CreditReservationStatus = 'reserved' | 'captured' | 'released' | 'refunded'
 
 // Helper types
 export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
@@ -1305,3 +1404,5 @@ export type CreditTransaction = Tables<'credit_transactions'>
 export type SubscriptionPlan = Tables<'subscription_plans'>
 export type AddonCreditPack = Tables<'addon_credit_packs'>
 export type MessageFeedback = Tables<'message_feedback'>
+export type CreditReservation = Tables<'credit_reservations'>
+export type UserNotification = Tables<'user_notifications'>

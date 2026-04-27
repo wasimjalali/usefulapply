@@ -288,6 +288,7 @@ export function buildPreviewJobFeedRun({
     batch_status: null,
     batch_submitted_at: null,
     batch_completed_at: null,
+    settings_snapshot: null,
     metadata: {},
     created_at: now,
     updated_at: now,

@@ -1262,6 +1262,7 @@ export async function runJobFeedFoundationWorkflow(params: {
     delivery_hour_local: settings.delivery_hour_local,
     trigger_source: triggerSource,
     idempotency_key: `${userId}:${localDate}`,
+    settings_snapshot: settings as unknown as Json,
     metadata: {
       stage: 'phase_4_ranking',
       foundation_mode: true,
@@ -1427,6 +1428,7 @@ async function createJobFeedRun(insert: {
   trigger_source: string;
   idempotency_key: string;
   metadata: Json;
+  settings_snapshot?: Json | null;
 }): Promise<JobFeedRun> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
   const admin = createAdminClient() as any;
@@ -2106,6 +2108,7 @@ export async function stageJobFeedRunForBatch(params: {
     delivery_hour_local: settings.delivery_hour_local,
     trigger_source: triggerSource,
     idempotency_key: `${userId}:${localDate}`,
+    settings_snapshot: settings as unknown as Json,
     metadata: {
       stage: 'phase_4_ranking',
       foundation_mode: true,
