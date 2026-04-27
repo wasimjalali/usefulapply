@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { unifiedWriterAgent } from '@/lib/agents/unified-writer-agent';
 import { type MasterContext } from '@/lib/agents/types';
 import { createClient } from '@/lib/supabase/server';
-import { checkAndDeductCredits, formatCreditErrorResponse, CREDIT_COSTS } from '@/lib/middleware/creditCheck';
+import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
+import { reserveCredits, captureReservation, releaseReservation } from '@/lib/supabase/credit-reservations';
 import { detectLanguage } from '@/lib/utils/language-detector';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { randomUUID } from 'crypto';
@@ -13,6 +14,8 @@ import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateL
  * Uses the Unified Writer Agent (single agent architecture)
  */
 export async function POST(request: NextRequest) {
+  let activeReservationKey: string | null = null;
+  let activeReservationUserId: string | null = null;
   try {
     // Rate limiting
     const clientIP = getClientIP(request);
@@ -46,19 +49,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine credit action based on type
-    const creditAction = type === 'cover-letter' ? 'COVER_LETTER_REGEN' 
-      : type === 'follow_up_email' ? 'FOLLOW_UP_REGEN' 
-      : 'EMAIL_REGEN';
-    
-    // Check and deduct credits (follow-up regen is free, others cost credits)
-    const creditResult = await checkAndDeductCredits(user.id, creditAction, undefined, supabase);
-    
-    if (!creditResult.success) {
+    const creditAction = type === 'cover-letter' ? 'COVER_LETTER_REGEN' as const
+      : type === 'follow_up_email' ? 'FOLLOW_UP_REGEN' as const
+      : 'EMAIL_REGEN' as const;
+
+    const reservationKey = `${creditAction.toLowerCase()}:${user.id}:${Date.now()}`;
+    activeReservationKey = reservationKey;
+    activeReservationUserId = user.id;
+    const reserveResult = await reserveCredits({
+      userId: user.id,
+      action: creditAction,
+      idempotencyKey: reservationKey,
+      sessionId: context.sessionId || null,
+    });
+
+    if (!reserveResult.success) {
       return NextResponse.json(
-        { 
-          error: creditResult.error || 'Insufficient credits',
+        {
+          error: reserveResult.error || 'Insufficient credits',
           code: 'INSUFFICIENT_CREDITS',
-          details: formatCreditErrorResponse(creditResult),
+          details: { required: CREDIT_COSTS[creditAction], available: 0, upgradeRequired: true },
         },
         { status: 402 }
       );
@@ -158,35 +168,35 @@ export async function POST(request: NextRequest) {
     if (type === 'cover-letter') {
       const { result: coverLetter, tokens } = await unifiedWriterAgent.generateCoverLetter(masterContext);
       trackRegenLLM('regen_cover_letter', tokens);
-      return NextResponse.json({ 
+      await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
+      return NextResponse.json({
         coverLetter,
         creditsDeducted: CREDIT_COSTS.COVER_LETTER_REGEN,
-        remainingCredits: creditResult.remainingCredits,
         tokens,
       });
     } else if (type === 'email') {
       const { result: email, tokens } = await unifiedWriterAgent.generateApplicationEmail(masterContext);
       trackRegenLLM('regen_email', tokens);
-      return NextResponse.json({ 
+      await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
+      return NextResponse.json({
         email,
         creditsDeducted: CREDIT_COSTS.EMAIL_REGEN,
-        remainingCredits: creditResult.remainingCredits,
         tokens,
       });
     } else if (type === 'follow_up_email') {
-      // Set applicationEmail on masterContext from the request context so follow-up can reference it
       if (context.applicationEmail) {
         masterContext.applicationEmail = context.applicationEmail;
       }
       const { result: followUpEmail, tokens } = await unifiedWriterAgent.generateFollowUpEmail(masterContext);
       trackRegenLLM('regen_follow_up_email', tokens);
-      return NextResponse.json({ 
+      await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
+      return NextResponse.json({
         followUpEmail,
         creditsDeducted: CREDIT_COSTS.FOLLOW_UP_REGEN,
-        remainingCredits: creditResult.remainingCredits,
         tokens,
       });
     } else {
+      await releaseReservation({ idempotencyKey: reservationKey, userId: user.id, reason: 'invalid_type' });
       return NextResponse.json(
         { error: 'Invalid type. Must be "cover-letter", "email", or "follow_up_email"' },
         { status: 400 }
@@ -194,6 +204,15 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('[Regenerate API] Error:', error);
+    if (activeReservationKey && activeReservationUserId) {
+      try {
+        await releaseReservation({
+          idempotencyKey: activeReservationKey,
+          userId: activeReservationUserId,
+          reason: error instanceof Error ? error.message : 'regen_error',
+        });
+      } catch (_releaseErr) { /* best-effort refund */ }
+    }
     // Track regeneration error in PostHog
     try {
       const posthog = getPostHogServer();

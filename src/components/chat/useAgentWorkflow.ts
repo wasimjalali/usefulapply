@@ -377,6 +377,7 @@ export function useAgentWorkflow(options?: {
           currentCV: currentCV.rawText,
           masterCV: masterCV?.rawText,
           action: 'fit_analysis',
+          sessionId: currentSession?.id,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -546,6 +547,7 @@ export function useAgentWorkflow(options?: {
           action: contextId ? 'generate_with_context' : 'full_optimization',
           contextId,
           cachedContextData: contextId ? contextData : undefined,
+          sessionId: workflowSessionId,
         }),
         signal: abortControllerRef.current.signal,
       });

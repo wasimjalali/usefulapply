@@ -21,7 +21,9 @@ import {
 } from '@/lib/agents';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
-import { checkAndDeductCredits, formatCreditErrorResponse, CREDIT_COSTS } from '@/lib/middleware/creditCheck';
+import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
+import { reserveCredits, captureReservation, releaseReservation } from '@/lib/supabase/credit-reservations';
+import { transitionJobFeedApplicationGenerationAdmin } from '@/lib/job-feed/server';
 import {
   extractOriginalExperience,
   extractOriginalHeadline,
@@ -77,6 +79,54 @@ function removeCachedContext(contextId: string): void {
   contextCache.delete(contextId);
 }
 
+// Server-side artifact persistence — writes generated output to
+// application_sessions.generated_artifacts so results survive browser crashes.
+async function persistGeneratedArtifacts(
+  sessionId: string | undefined,
+  userId: string,
+  results: Record<string, unknown>,
+): Promise<boolean> {
+  if (!sessionId || sessionId.startsWith('session-') || sessionId.startsWith('fit-')) return false;
+  try {
+    const adminClient = getSupabaseAdmin();
+    const { error } = await adminClient
+      .from('application_sessions')
+      .update({ generated_artifacts: results })
+      .eq('id', sessionId)
+      .eq('user_id', userId);
+    if (error) {
+      console.error('[agent-v2] Failed to persist artifacts:', error.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error('[agent-v2] Artifact persistence error:', e);
+    return false;
+  }
+}
+
+// Best-effort server-side generation status transition for job-feed sessions.
+// The browser also reports status, but the server transition is authoritative.
+async function tryTransitionGeneration(
+  sessionId: string | undefined,
+  userId: string,
+  status: 'running' | 'succeeded' | 'failed',
+  errorMessage?: string,
+): Promise<void> {
+  if (!sessionId || sessionId.startsWith('session-') || sessionId.startsWith('fit-')) return;
+  try {
+    await transitionJobFeedApplicationGenerationAdmin({
+      userId,
+      sessionId,
+      status,
+      errorMessage: errorMessage?.slice(0, 1000) ?? null,
+      transitionReason: `server_agent_v2_${status}`,
+    });
+  } catch {
+    // Generation row may not exist if this isn't a job-feed session — silently skip.
+  }
+}
+
 // Input length limits
 const MAX_JOB_DESCRIPTION_LENGTH = 30_000;
 const MAX_CV_LENGTH = 20_000;
@@ -125,6 +175,7 @@ interface AgentRequest {
     detectedLanguage?: string;
     fitAnalysis?: MasterContext['fitAnalysis'];
   };
+  sessionId?: string;
   emailType?: 'application' | 'followup' | 'thankyou';
   enableWebSearch?: boolean;
 }
@@ -210,6 +261,10 @@ export async function POST(request: NextRequest) {
         }
       };
 
+      let activeReservationKey: string | null = null;
+      let activeReservationUserId: string | null = null;
+      let resolvedSessionId: string | undefined;
+
       try {
         // Rate limiting
         const clientIP = getClientIP(request);
@@ -258,8 +313,10 @@ export async function POST(request: NextRequest) {
           action,
           contextId,
           cachedContextData,
+          sessionId: clientSessionId,
           enableWebSearch,
         } = body;
+        resolvedSessionId = clientSessionId;
         currentAction = action;
 
         // Input length validation
@@ -390,24 +447,30 @@ export async function POST(request: NextRequest) {
             return;
           }
 
-          // Deduct 0.5 credits for fit analysis (skip for anonymous users — free generation)
+          // Reserve 0.5 credits for fit analysis (skip for anonymous users — free generation)
           if (!isAnonymous) {
-            const creditResult = await checkAndDeductCredits(user!.id, 'FIT_ANALYSIS', undefined, supabase);
-            if (!creditResult.success) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-                type: 'error', 
+            const reservationKey = `fit_analysis:${user!.id}:${Date.now()}`;
+            const reserveResult = await reserveCredits({
+              userId: user!.id,
+              action: 'FIT_ANALYSIS',
+              idempotencyKey: reservationKey,
+            });
+            if (!reserveResult.success) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'error',
                 code: 'INSUFFICIENT_CREDITS',
-                message: creditResult.error || 'Insufficient credits',
-                details: formatCreditErrorResponse(creditResult),
+                message: reserveResult.error || 'Insufficient credits',
+                details: { required: CREDIT_COSTS.FIT_ANALYSIS, available: 0, upgradeRequired: true },
               })}\n\n`));
               controller.close();
               return;
             }
+            activeReservationKey = reservationKey;
+            activeReservationUserId = user!.id;
 
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-              type: 'credits_deducted', 
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: 'credits_deducted',
               creditsUsed: CREDIT_COSTS.FIT_ANALYSIS,
-              remainingCredits: creditResult.remainingCredits,
             })}\n\n`));
           }
 
@@ -431,12 +494,18 @@ export async function POST(request: NextRequest) {
 
           if (result.success && result.data) {
             const ctx = result.data.context;
-            
+
             // Cache the context for reuse in generate_with_context
             const cachedContextId = `ctx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
             cacheContext(cachedContextId, ctx);
 
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+            // Capture reservation — fit analysis produced usable results
+            if (activeReservationKey && activeReservationUserId) {
+              await captureReservation({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
+              activeReservationKey = null;
+            }
+
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               type: 'fit_analysis_complete',
               contextId: cachedContextId,
               fitAnalysis: ctx.fitAnalysis,
@@ -450,10 +519,6 @@ export async function POST(request: NextRequest) {
           } else {
             throw new Error(result.error || 'Fit analysis failed');
           }
-
-          // Don't record anonymous generation yet — user still needs to call
-          // generate_with_context to complete the two-step flow.
-          // Recording happens after phase 2 completes.
 
           controller.close();
           return;
@@ -517,28 +582,35 @@ export async function POST(request: NextRequest) {
               console.warn('[API_AGENT_V2] Context cache miss AND no client context data, falling back to full optimization');
 
               if (!isAnonymous) {
-                const creditResult = await checkAndDeductCredits(user!.id, 'FULL_APPLICATION', undefined, supabase);
-                if (!creditResult.success) {
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-                    type: 'error', 
+                const fallbackKey = `full_application:${user!.id}:${Date.now()}`;
+                const reserveResult = await reserveCredits({
+                  userId: user!.id,
+                  action: 'FULL_APPLICATION',
+                  idempotencyKey: fallbackKey,
+                  sessionId: clientSessionId,
+                });
+                if (!reserveResult.success) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                    type: 'error',
                     code: 'INSUFFICIENT_CREDITS',
-                    message: creditResult.error || 'Insufficient credits',
-                    details: formatCreditErrorResponse(creditResult),
+                    message: reserveResult.error || 'Insufficient credits',
+                    details: { required: CREDIT_COSTS.FULL_APPLICATION, available: 0, upgradeRequired: true },
                   })}\n\n`));
                   controller.close();
                   return;
                 }
+                activeReservationKey = fallbackKey;
+                activeReservationUserId = user!.id;
 
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-                  type: 'credits_deducted', 
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                  type: 'credits_deducted',
                   creditsUsed: CREDIT_COSTS.FULL_APPLICATION,
-                  remainingCredits: creditResult.remainingCredits,
                 })}\n\n`));
               }
 
               const steps = getWorkflowSteps('full_optimization');
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-                type: 'workflow_start', 
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'workflow_start',
                 steps: steps.map((s, i) => ({ function: s.id, description: s.description, index: i })),
                 models: { analysis: 'claude-sonnet-4.6', writing: 'claude-sonnet-4.6' },
               })}\n\n`));
@@ -554,22 +626,32 @@ export async function POST(request: NextRequest) {
 
               if (result.success && result.data) {
                 const ctx = result.data.context;
-                // Record anonymous generation server-side
                 if (isAnonymous) {
                   await recordAnonymousGeneration(ipHash);
                 }
+
+                const fallbackResults = {
+                  job: ctx.job,
+                  companyResearch: ctx.companyResearch,
+                  match: ctx.match,
+                  optimizedCV: ctx.optimizedCV,
+                  optimizedCVData: ctx.optimizedCVData,
+                  coverLetter: ctx.coverLetter,
+                  applicationEmail: ctx.applicationEmail,
+                  followUpEmail: ctx.followUpEmail || null,
+                };
+
+                await persistGeneratedArtifacts(clientSessionId, user?.id ?? '', fallbackResults);
+                await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
+
+                if (activeReservationKey && activeReservationUserId) {
+                  await captureReservation({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
+                  activeReservationKey = null;
+                }
+
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                   type: 'workflow_complete',
-                  results: {
-                    job: ctx.job,
-                    companyResearch: ctx.companyResearch,
-                    match: ctx.match,
-                    optimizedCV: ctx.optimizedCV,
-                    optimizedCVData: ctx.optimizedCVData,
-                    coverLetter: ctx.coverLetter,
-                    applicationEmail: ctx.applicationEmail,
-                    followUpEmail: ctx.followUpEmail || null,
-                  },
+                  results: fallbackResults,
                 })}\n\n`));
               } else {
                 throw new Error(result.error || 'Optimization failed');
@@ -580,30 +662,37 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          // Context found - deduct 1.5 credits (fit was 0.5, total = 2.0; skip for anonymous)
+          // Context found - reserve 1.5 credits (fit was 0.5, total = 2.0; skip for anonymous)
           if (!isAnonymous) {
-            const creditResult = await checkAndDeductCredits(user!.id, 'GENERATION_AFTER_FIT', undefined, supabase);
-            if (!creditResult.success) {
+            const genKey = `generation_after_fit:${user!.id}:${Date.now()}`;
+            const reserveResult = await reserveCredits({
+              userId: user!.id,
+              action: 'GENERATION_AFTER_FIT',
+              idempotencyKey: genKey,
+              sessionId: clientSessionId,
+            });
+            if (!reserveResult.success) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                 type: 'error',
                 code: 'INSUFFICIENT_CREDITS',
-                message: creditResult.error || 'Insufficient credits',
-                details: formatCreditErrorResponse(creditResult),
+                message: reserveResult.error || 'Insufficient credits',
+                details: { required: CREDIT_COSTS.GENERATION_AFTER_FIT, available: 0, upgradeRequired: true },
               })}\n\n`));
               controller.close();
               return;
             }
+            activeReservationKey = genKey;
+            activeReservationUserId = user!.id;
 
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               type: 'credits_deducted',
               creditsUsed: CREDIT_COSTS.GENERATION_AFTER_FIT,
-              remainingCredits: creditResult.remainingCredits,
             })}\n\n`));
           }
 
           const steps = getWorkflowSteps('generate_with_context');
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-            type: 'workflow_start', 
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'workflow_start',
             steps: steps.map((s, i) => ({ function: s.id, description: s.description, index: i })),
             models: { analysis: 'claude-sonnet-4.6', writing: 'claude-sonnet-4.6' },
           })}\n\n`));
@@ -612,27 +701,36 @@ export async function POST(request: NextRequest) {
           if (jobPreferences) cachedContext.jobPreferences = jobPreferences;
           const result = await runWithContext(cachedContext, eventHandler);
 
-          // Remove cached context after use
           removeCachedContext(contextId);
 
           if (result.success && result.data) {
             const ctx = result.data.context;
-            // Record anonymous generation server-side
             if (isAnonymous) {
               await recordAnonymousGeneration(ipHash);
             }
+
+            const genResults = {
+              job: ctx.job,
+              companyResearch: ctx.companyResearch,
+              match: ctx.match,
+              optimizedCV: ctx.optimizedCV,
+              optimizedCVData: ctx.optimizedCVData,
+              coverLetter: ctx.coverLetter,
+              applicationEmail: ctx.applicationEmail,
+              followUpEmail: ctx.followUpEmail || null,
+            };
+
+            await persistGeneratedArtifacts(clientSessionId, user?.id ?? '', genResults);
+            await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
+
+            if (activeReservationKey && activeReservationUserId) {
+              await captureReservation({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
+              activeReservationKey = null;
+            }
+
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               type: 'workflow_complete',
-              results: {
-                job: ctx.job,
-                companyResearch: ctx.companyResearch,
-                match: ctx.match,
-                optimizedCV: ctx.optimizedCV,
-                optimizedCVData: ctx.optimizedCVData,
-                coverLetter: ctx.coverLetter,
-                applicationEmail: ctx.applicationEmail,
-                followUpEmail: ctx.followUpEmail || null,
-              },
+              results: genResults,
             })}\n\n`));
           } else {
             throw new Error(result.error || 'Generation failed');
@@ -654,25 +752,31 @@ export async function POST(request: NextRequest) {
           return;
         }
 
-        // Check and deduct credits for full application (skip for anonymous)
+        // Reserve credits for full application (skip for anonymous)
         if (!isAnonymous) {
-          const creditResult = await checkAndDeductCredits(user!.id, 'FULL_APPLICATION', undefined, supabase);
-          
-          if (!creditResult.success) {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-              type: 'error', 
+          const fullKey = `full_application:${user!.id}:${Date.now()}`;
+          const reserveResult = await reserveCredits({
+            userId: user!.id,
+            action: 'FULL_APPLICATION',
+            idempotencyKey: fullKey,
+            sessionId: clientSessionId,
+          });
+          if (!reserveResult.success) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: 'error',
               code: 'INSUFFICIENT_CREDITS',
-              message: creditResult.error || 'Insufficient credits',
-              details: formatCreditErrorResponse(creditResult),
+              message: reserveResult.error || 'Insufficient credits',
+              details: { required: CREDIT_COSTS.FULL_APPLICATION, available: 0, upgradeRequired: true },
             })}\n\n`));
             controller.close();
             return;
           }
+          activeReservationKey = fullKey;
+          activeReservationUserId = user!.id;
 
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-            type: 'credits_deducted', 
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'credits_deducted',
             creditsUsed: CREDIT_COSTS.FULL_APPLICATION,
-            remainingCredits: creditResult.remainingCredits,
           })}\n\n`));
         }
 
@@ -736,9 +840,16 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Record anonymous generation server-side
         if (isAnonymous) {
           await recordAnonymousGeneration(ipHash);
+        }
+
+        await persistGeneratedArtifacts(clientSessionId, user?.id ?? '', results);
+        await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
+
+        if (activeReservationKey && activeReservationUserId) {
+          await captureReservation({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
+          activeReservationKey = null;
         }
 
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({
@@ -749,9 +860,25 @@ export async function POST(request: NextRequest) {
         controller.close();
         
       } catch (error) {
-        // Track the top-level workflow error in PostHog
+        const errorMsg = error instanceof Error ? error.message : 'workflow_error';
+
+        // Server-owned: mark generation as failed
+        await tryTransitionGeneration(resolvedSessionId, activeReservationUserId ?? '', 'failed', errorMsg);
+
+        // Release credit reservation — generation failed, refund user
+        if (activeReservationKey && activeReservationUserId) {
+          try {
+            await releaseReservation({
+              idempotencyKey: activeReservationKey,
+              userId: activeReservationUserId,
+              reason: errorMsg,
+            });
+          } catch (releaseErr) {
+            console.error('[agent-v2] Failed to release reservation:', releaseErr);
+          }
+        }
+
         trackLLMError('workflow', error);
-        // Also capture as exception for Error Tracking dashboard
         try {
           const posthog = getPostHogServer();
           posthog.captureException(error as Error, distinctId, {
@@ -760,8 +887,8 @@ export async function POST(request: NextRequest) {
             workflow_action: currentAction,
           });
         } catch (_) { /* ignore PostHog errors */ }
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-          type: 'error', 
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+          type: 'error',
           message: error instanceof Error ? error.message : 'Workflow failed'
         })}\n\n`));
         controller.close();
