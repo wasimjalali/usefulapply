@@ -1114,7 +1114,8 @@ export const comparisons: ComparisonData[] = [
       { feature: 'Follow-Up Email', karkoValue: true, competitorValue: false, karkoWins: true },
       { feature: 'Fit Analysis', karkoValue: true, competitorValue: false, karkoWins: true },
       { feature: 'Multi-Language', karkoValue: 'English/German', competitorValue: '30+ languages' },
-      { feature: 'Job Tracking', karkoValue: 'Roadmap', competitorValue: 'Yes' },
+      { feature: 'Job Tracking', karkoValue: true, competitorValue: true },
+      { feature: 'Smart Job Feed', karkoValue: true, competitorValue: false, karkoWins: true },
       { feature: 'Pricing', karkoValue: '$19.99-79.99/mo', competitorValue: '$24.99/mo' },
       { feature: 'Best For', karkoValue: 'Complete applications', competitorValue: 'International job seekers' },
     ],
@@ -1136,16 +1137,16 @@ export const comparisons: ComparisonData[] = [
         'English and German support',
       ],
       pros: [
+        'Smart Job Feed: hand-picked jobs delivered daily',
         'Only tool that generates application + follow-up emails',
         'Fit analysis helps focus on good matches',
+        'Built-in application tracker',
         'Latest AI (Claude Sonnet 4.6) for highest quality',
         'Complete application package in one workflow',
         'Transparent credit-based pricing',
-        'Agent-driven workflow (guided)',
       ],
       cons: [
         'Limited to English and German (vs 30+ languages)',
-        'No job tracking (yet - on roadmap)',
         'No cloud document storage',
       ],
       bestFor:
@@ -1249,12 +1250,12 @@ export const comparisons: ComparisonData[] = [
         description:
           'Tracking applications helps you follow up at the right time and avoid applying twice.',
         karkoDetails:
-          'Job tracking is on the roadmap but not yet available. Currently focuses on application content generation.',
+          'Built-in application tracker stores every application with match score, status, and company context. Plus, Smart Job Feed delivers hand-picked jobs daily.',
         competitorDetails:
           'Job application tracker included. Pipeline management with status tracking. Helps organize multi-role job searches.',
-        winner: 'competitor',
+        winner: 'karko',
         reasoning:
-          'Enhancv\'s built-in job tracker is valuable for organization. Karko doesn\'t offer this yet.',
+          'Both have tracking. Karko adds the Smart Job Feed, which delivers jobs to you instead of manual searching. Enhancv requires you to find jobs yourself.',
       },
       {
         title: 'Pricing & Value',
@@ -1329,7 +1330,7 @@ export const comparisons: ComparisonData[] = [
       {
         question: 'Which has job tracking?',
         answer:
-          'Enhancv has built-in job application tracking. Karko doesn\'t offer tracking yet (on roadmap). If you need to track applications across multiple roles, Enhancv has it.',
+          'Both have tracking. Karko has a built-in tracker plus the Smart Job Feed, which delivers hand-picked jobs daily. Enhancv has solid tracking but no job discovery.',
       },
       {
         question: 'Which has better AI?',
