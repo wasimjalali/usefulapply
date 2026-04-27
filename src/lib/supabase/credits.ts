@@ -206,7 +206,7 @@ async function initializeUserCredits(userId: string, supabaseClient?: any): Prom
       addon_credits: 0,
       plan_tier: 'free',
       next_reset_date: nextReset.toISOString(),
-    }, { onConflict: 'user_id' })
+    }, { onConflict: 'user_id', ignoreDuplicates: true })
     .select()
     .single();
 
@@ -455,16 +455,18 @@ export async function addCredits(
   amount: number,
   creditType: 'monthly' | 'rollover' | 'addon',
   transactionType: string,
-  description?: string
+  description?: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabaseClient?: any
 ): Promise<{
   success: boolean;
   newBalance: number;
   error: Error | null;
 }> {
-  const supabase = getUntypedSupabase();
+  const supabase = getSupabaseClient(supabaseClient);
 
   // Get current credits
-  const { credits, error: fetchError } = await getUserCredits(userId);
+  const { credits, error: fetchError } = await getUserCredits(userId, supabaseClient);
   if (fetchError || !credits) {
     return {
       success: false,
@@ -510,7 +512,7 @@ export async function addCredits(
 
   // If no rows matched, concurrent modification — retry once
   if (!updateResult || updateResult.length === 0) {
-    const { credits: fresh, error: fetchErr } = await getUserCredits(userId);
+    const { credits: fresh, error: fetchErr } = await getUserCredits(userId, supabaseClient);
     if (fetchErr || !fresh) return { success: false, newBalance: 0, error: new Error('Credits not found on retry') };
     const freshField = creditType === 'monthly' ? fresh.monthly_credits : creditType === 'rollover' ? fresh.rollover_credits : fresh.addon_credits;
     const { error: retryErr } = await supabase

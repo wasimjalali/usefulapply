@@ -486,8 +486,8 @@ export function useAgentWorkflow(options?: {
                 if (data.code === 'ANONYMOUS_LIMIT_REACHED') {
                   options?.onAnonymousLimitReached?.();
                 } else if (data.code === 'INSUFFICIENT_CREDITS') {
-                  const required = data.details?.details?.required ?? 0;
-                  const available = data.details?.details?.available ?? 0;
+                  const required = data.details?.required ?? data.details?.details?.required ?? 0;
+                  const available = data.details?.available ?? data.details?.details?.available ?? 0;
                   options?.onInsufficientCredits?.(required, available);
                 } else {
                   addChatMessage({
@@ -767,8 +767,8 @@ export function useAgentWorkflow(options?: {
                 if (data.code === 'ANONYMOUS_LIMIT_REACHED') {
                   options?.onAnonymousLimitReached?.();
                 } else if (data.code === 'INSUFFICIENT_CREDITS') {
-                  const required = data.details?.details?.required ?? 0;
-                  const available = data.details?.details?.available ?? 0;
+                  const required = data.details?.required ?? data.details?.details?.required ?? 0;
+                  const available = data.details?.available ?? data.details?.details?.available ?? 0;
                   options?.onInsufficientCredits?.(required, available);
                 } else {
                   addChatMessage({

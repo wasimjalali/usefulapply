@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Zap, Crown, Check, Clock, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -85,7 +86,9 @@ export function InsufficientCreditsModal({
     }
   }, [isOpen, handleEscape]);
 
-  if (!isOpen) return null;
+  const portalRoot = typeof document !== 'undefined' ? document.body : null;
+
+  if (!isOpen || !portalRoot) return null;
 
   const handleUpgrade = async (planTier: 'plus' | 'max') => {
     if (!user) return;
@@ -109,7 +112,7 @@ export function InsufficientCreditsModal({
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Insufficient credits">
       {/* Backdrop */}
       <div
@@ -235,6 +238,7 @@ export function InsufficientCreditsModal({
           </p>
         </div>
       </div>
-    </div>
+    </div>,
+    portalRoot,
   );
 }
