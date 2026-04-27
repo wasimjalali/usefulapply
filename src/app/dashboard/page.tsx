@@ -884,7 +884,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="relative z-40 bg-cream-100 border-b border-cream-200 px-3 sm:px-5 py-2.5">
+              <div className="relative z-40 bg-cream-100 border-b border-gold-300/60 px-3 sm:px-5 py-2.5">
                 <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
                   <div ref={setToolbarNode} className="flex items-center gap-2" />
                 </div>

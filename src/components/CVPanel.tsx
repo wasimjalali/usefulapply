@@ -1122,7 +1122,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
       {/* Toolbar: portal to tab bar on desktop, inline on mobile */}
       {toolbarContent && toolbarPortal && createPortal(toolbarContent, toolbarPortal)}
       {toolbarContent && !toolbarPortal && (
-        <div className="px-3 sm:px-5 py-2.5 bg-cream-100 border-b border-cream-200 flex-shrink-0 relative">
+        <div className="px-3 sm:px-5 py-2.5 bg-cream-100 border-b border-gold-300/60 flex-shrink-0 relative">
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pr-6">
             {toolbarContent}
           </div>
