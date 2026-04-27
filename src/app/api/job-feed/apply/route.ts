@@ -160,6 +160,10 @@ export async function POST(request: NextRequest) {
         transitionReason: 'apply_intent_confirmed',
       });
     }
+    session = await getJobFeedApplicationSessionAdmin({
+      userId: user.id,
+      sessionId: session.id,
+    }) ?? session;
 
     const posthog = getPostHogServer();
     posthog.capture({
