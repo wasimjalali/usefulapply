@@ -36,18 +36,6 @@ import { usePostHog } from 'posthog-js/react';
 // fires exactly once per session regardless of how many panels are mounted.
 const autostartedApplySessionIds = new Set<string>();
 
-function buildJobFeedAutostartKey(params: {
-  sessionId: string;
-  generationId?: string | null;
-  generationAttempt?: number | null;
-}): string {
-  return [
-    params.sessionId,
-    params.generationId ?? 'no-generation',
-    params.generationAttempt ?? 0,
-  ].join(':');
-}
-
 interface ChatPanelProps {
   onTabChange?: (tab: 'cv' | 'cover-letter' | 'email') => void;
   isMobileDrawer?: boolean;
@@ -235,42 +223,21 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
   useEffect(() => {
     const urlSessionId = searchParams.get('session');
     const urlGenerationId = searchParams.get('generation');
-    const rawGenerationAttempt = searchParams.get('generationAttempt');
-    const urlGenerationAttempt = rawGenerationAttempt && Number.isFinite(Number(rawGenerationAttempt))
-      ? Number(rawGenerationAttempt)
-      : null;
     if (searchParams.get('autostart') !== 'job-feed-apply') return;
     if (!urlSessionId || currentSession?.id !== urlSessionId) return;
-    const autostartKey = buildJobFeedAutostartKey({
-      sessionId: urlSessionId,
-      generationId: urlGenerationId,
-      generationAttempt: urlGenerationAttempt ?? currentSession.jobFeedGenerationAttempt ?? null,
-    });
-    const pendingKey = pendingJobFeedAutostart
-      ? buildJobFeedAutostartKey(pendingJobFeedAutostart)
-      : null;
-    if (pendingKey === autostartKey) return;
-    if (autostartedApplySessionIds.has(autostartKey)) return;
+    if (pendingJobFeedAutostart?.sessionId === urlSessionId) return;
+    if (autostartedApplySessionIds.has(urlSessionId)) return;
 
-    setPendingJobFeedAutostart({
-      sessionId: urlSessionId,
-      generationId: urlGenerationId,
-      generationAttempt: urlGenerationAttempt ?? currentSession.jobFeedGenerationAttempt ?? null,
-    });
-  }, [currentSession, pendingJobFeedAutostart, searchParams, setPendingJobFeedAutostart]);
+    setPendingJobFeedAutostart({ sessionId: urlSessionId, generationId: urlGenerationId });
+  }, [currentSession?.id, pendingJobFeedAutostart?.sessionId, searchParams, setPendingJobFeedAutostart]);
 
   useEffect(() => {
     if (!pendingJobFeedAutostart) return;
     if (!currentSession || currentSession.id !== pendingJobFeedAutostart.sessionId) return;
-    const autostartKey = buildJobFeedAutostartKey({
-      sessionId: currentSession.id,
-      generationId: pendingJobFeedAutostart.generationId ?? currentSession.jobFeedGenerationId ?? null,
-      generationAttempt: pendingJobFeedAutostart.generationAttempt ?? currentSession.jobFeedGenerationAttempt ?? null,
-    });
 
     // Module-level dedupe: once any ChatPanel instance has autostarted this
-    // generation attempt, no other instance should fire it again.
-    if (autostartedApplySessionIds.has(autostartKey)) {
+    // session, no other instance (or re-run of this effect) should fire again.
+    if (autostartedApplySessionIds.has(currentSession.id)) {
       setPendingJobFeedAutostart(null);
       return;
     }
@@ -280,22 +247,13 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
 
     // If the session already has progress (messages, CV, or running agent),
     // don't re-trigger — just consume the flag.
-    const canRestartPendingJobFeedGeneration =
-      Boolean(pendingJobFeedAutostart.generationId) &&
-      currentSession.jobFeedGenerationId === pendingJobFeedAutostart.generationId &&
-      currentSession.generationStatus === 'pending';
     const alreadyInProgress =
-      isAgentWorking ||
-      (
-        !canRestartPendingJobFeedGeneration &&
-        (
-          currentSession.chatMessages.length > 0 ||
-          !!currentSession.generatedCV ||
-          !!currentSession.pendingFitAnalysis
-        )
-      );
+      currentSession.chatMessages.length > 0 ||
+      !!currentSession.generatedCV ||
+      !!currentSession.pendingFitAnalysis ||
+      isAgentWorking;
     if (alreadyInProgress) {
-      autostartedApplySessionIds.add(autostartKey);
+      autostartedApplySessionIds.add(currentSession.id);
       setPendingJobFeedAutostart(null);
       return;
     }
@@ -306,12 +264,11 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     }
 
     // Claim the session BEFORE firing — any concurrent render will bail out.
-    autostartedApplySessionIds.add(autostartKey);
+    autostartedApplySessionIds.add(currentSession.id);
     setPendingJobFeedAutostart(null);
     if (pendingJobFeedAutostart.generationId) {
       useAppStore.getState().updateCurrentSession({
         jobFeedGenerationId: pendingJobFeedAutostart.generationId,
-        jobFeedGenerationAttempt: pendingJobFeedAutostart.generationAttempt ?? currentSession.jobFeedGenerationAttempt ?? null,
       });
     }
 
