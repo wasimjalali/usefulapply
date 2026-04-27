@@ -5,17 +5,17 @@ import { useState, useEffect, useRef } from 'react';
 const savingsTiers = [
   {
     plan: 'Free',
-    apps: 5,
-    hoursSaved: 4,
+    apps: 2,
+    hoursSaved: 2,
     price: 'Free',
-    tagline: 'That is 4 hours you get back for free. No credit card required.',
+    tagline: 'That is 2 hours you get back for free. No credit card required.',
   },
   {
     plan: 'Plus',
-    apps: 50,
-    hoursSaved: 37,
-    price: '$39.99/mo',
-    tagline: 'That is nearly a full work week saved every month. At ~$0.80 per application.',
+    apps: 25,
+    hoursSaved: 18,
+    price: '$19.99/mo',
+    tagline: 'That is over 18 hours saved every month. At ~$0.80 per application.',
   },
   {
     plan: 'Max',

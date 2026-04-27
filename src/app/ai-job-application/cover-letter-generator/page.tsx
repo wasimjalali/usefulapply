@@ -375,7 +375,7 @@ export default function CoverLetterGeneratorPage() {
                 Generate Your First AI Cover Letter Free
               </h2>
               <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
-                Try Karko AI free for your first 5 applications. Get a personalized cover letter
+                Try Karko AI free for your first 2 applications. Get a personalized cover letter
                 in 90 seconds, plus tailored CV, application email, and follow-up email. No
                 credit card required.
               </p>

@@ -12,7 +12,6 @@ import { Document, Packer, Paragraph, TextRun } from 'docx';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import { useToast } from './ui/Toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { SignUpWallModal } from '@/components/SignUpWallModal';
 import { downloadBlob } from '@/lib/utils/download-pdf';
 import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
 
@@ -23,7 +22,6 @@ interface CoverLetterPanelProps {
 export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) {
   const { user } = useAuth();
   const { currentSession, isGenerating, isAgentWorking, agentWorkflowPhase, setCoverLetter, currentCV, structuredCV, masterCV } = useAppStore();
-  const [showSignUpWall, setShowSignUpWall] = useState(false);
   const coverLetter = currentSession?.coverLetter;
   const requirements = currentSession?.requirements;
   const jobDescription = currentSession?.jobDescription;
@@ -96,11 +94,6 @@ ${letter.signatureName}`;
   };
 
   const handleDownloadPDF = async () => {
-    // Gate: Anonymous users must sign up to download
-    if (!user) {
-      setShowSignUpWall(true);
-      return;
-    }
     const letterToDownload = editedCoverLetter || coverLetter;
     if (!letterToDownload) return;
     const showAddressReminder = hasAddressPlaceholder();
@@ -246,11 +239,6 @@ ${letter.signatureName}`;
   };
 
   const handleDownloadDOCX = async () => {
-    // Gate: Anonymous users must sign up to download
-    if (!user) {
-      setShowSignUpWall(true);
-      return;
-    }
     const letterToDownload = editedCoverLetter || coverLetter;
     if (!letterToDownload) return;
     const showAddressReminder = hasAddressPlaceholder();
@@ -711,12 +699,7 @@ ${letter.signatureName}`;
         )}
       </div>
 
-      {/* Sign Up Wall Modal */}
-      <SignUpWallModal
-        isOpen={showSignUpWall}
-        onClose={() => setShowSignUpWall(false)}
-        trigger="download"
-      />
+
 
       {showFullPreview && activeCoverLetter && createPortal(
         <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">

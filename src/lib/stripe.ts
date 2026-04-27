@@ -63,15 +63,15 @@ export const PLANS = {
   free: {
     name: 'Free',
     price: 0,
-    credits: 10,
-    features: ['5 applications/month', 'All CV templates', 'CV + Cover Letter + Email'],
+    credits: 4,
+    features: ['2 applications/month', 'All CV templates', 'CV + Cover Letter + Email'],
   },
   plus: {
     name: 'Plus',
-    price: 39.99,
+    price: 19.99,
     priceId: STRIPE_PRICES.PLUS,
-    credits: 100,
-    features: ['50 applications/month', 'Add-on credits', 'Priority email support'],
+    credits: 50,
+    features: ['25 applications/month', 'Add-on credits', 'Priority email support'],
   },
   max: {
     name: 'Max',

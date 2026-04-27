@@ -280,8 +280,8 @@ async function handleCheckoutCompleted(session: any) {
   const planTier = session.metadata?.planTier || 'free';
 
   // Map plan tier to credits.
-  let planCredits = 10;
-  if (planTier === 'plus') planCredits = 100;
+  let planCredits = 4;
+  if (planTier === 'plus') planCredits = 50;
   else if (planTier === 'max') planCredits = 200;
 
   console.log(`[Stripe Webhook] checkout.session.completed: userId=${userId}, planTier=${planTier}, credits=${planCredits}`);
@@ -385,11 +385,11 @@ async function handleSubscriptionUpdate(subscription: any) {
   // Determine plan tier from price ID (handle both old and new env var names)
   const priceId = subscription.items.data[0]?.price.id;
   let planTier = 'free';
-  let newPlanCredits = 10;
+  let newPlanCredits = 4;
 
   if (priceId === process.env.STRIPE_PRICE_ID_PLUS) {
     planTier = 'plus';
-    newPlanCredits = 100;
+    newPlanCredits = 50;
   } else if (priceId === process.env.STRIPE_PRICE_ID_MAX) {
     planTier = 'max';
     newPlanCredits = 200;
@@ -398,7 +398,7 @@ async function handleSubscriptionUpdate(subscription: any) {
   // Handle mid-cycle plan changes:
   // - Upgrade (e.g. Plus→Max): give full new plan credits (rewards upgrading)
   // - Downgrade (e.g. Max→Plus): cap at new plan limit so users can't gain credits
-  const oldPlanCredits = userCredits.plan_tier === 'max' ? 200 : userCredits.plan_tier === 'plus' ? 100 : 10;
+  const oldPlanCredits = userCredits.plan_tier === 'max' ? 200 : userCredits.plan_tier === 'plus' ? 50 : 4;
   const isDowngrade = newPlanCredits < oldPlanCredits;
   const monthlyCredits = isDowngrade
     ? Math.min(userCredits.monthly_credits, newPlanCredits)
@@ -471,7 +471,7 @@ async function handleSubscriptionDeleted(subscription: any) {
     .from('user_credits')
     .update({
       plan_tier: 'free',
-      monthly_credits: 10,
+      monthly_credits: 4,
       subscription_status: 'canceled',
       stripe_subscription_id: null,
       updated_at: new Date().toISOString(),
@@ -520,7 +520,7 @@ async function handlePaymentSucceeded(invoice: any) {
   }
 
   // Determine base credits for the plan
-  const baseCredits = userCredits.plan_tier === 'plus' ? 100 : userCredits.plan_tier === 'max' ? 200 : 10;
+  const baseCredits = userCredits.plan_tier === 'plus' ? 50 : userCredits.plan_tier === 'max' ? 200 : 4;
 
   // Rollover unused monthly credits (capped per plan)
   const maxRollover = userCredits.plan_tier === 'plus' ? 50 : userCredits.plan_tier === 'max' ? 100 : 0;
@@ -586,7 +586,7 @@ async function handleChargeRefunded(charge: any) {
 
   if (isSubscription) {
     // Subscription refund: remove the plan's monthly credits
-    const planCredits = userCredits.plan_tier === 'max' ? 200 : userCredits.plan_tier === 'plus' ? 100 : 10;
+    const planCredits = userCredits.plan_tier === 'max' ? 200 : userCredits.plan_tier === 'plus' ? 50 : 4;
 
     if (refundedAmountCents >= totalAmountCents) {
       // Full refund — remove all plan credits
@@ -640,17 +640,17 @@ async function handleChargeRefunded(charge: any) {
   } else {
     // Add-on refund: remove from addon_credits
     // Map refund amount to credit count
-    // New: 40 credits = $19.99; Legacy: 60 credits = $14.99, 120 credits = $29.99
+    // Current: 25 credits = $19.99; Legacy: 60 credits = $14.99, 120 credits = $29.99
     // Use the charge amount to determine which pack was purchased
     if (totalAmountCents === 1999) {
-      creditsToRemove = 40;
+      creditsToRemove = 25;
     } else if (totalAmountCents === 1499) {
       creditsToRemove = 60;
     } else if (totalAmountCents === 2999) {
       creditsToRemove = 120;
     } else {
-      // Fallback: proportional based on $0.50/credit
-      creditsToRemove = Math.round(refundedAmountCents / 50);
+      // Fallback: proportional based on $0.80/credit
+      creditsToRemove = Math.round(refundedAmountCents / 80);
     }
 
     // For partial refunds, scale proportionally

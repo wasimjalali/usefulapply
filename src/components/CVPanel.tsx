@@ -33,7 +33,6 @@ import type { ProfilePhoto } from '@/store/useCVStore';
 import { EditableCVCanvas, EditableCVCanvasRef } from './EditableCVCanvas';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import { useAuth } from '@/contexts/AuthContext';
-import { SignUpWallModal } from '@/components/SignUpWallModal';
 import { useToast } from './ui/Toast';
 import { downloadBlob, getCaptureScale, getIsMobileOrTablet } from '@/lib/utils/download-pdf';
 
@@ -177,8 +176,6 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
   const editedOriginalCVData = useCVStore(state => state.editedOriginalCVData);
   const { user, profile, updateProfile } = useAuth();
   const { toast } = useToast();
-  const [showSignUpWall, setShowSignUpWall] = useState(false);
-  
   const generatedCV = currentSession?.generatedCV;
   const optimizedCVData = currentSession?.optimizedCVData;  // Solution B: Structured JSON from AI
   
@@ -488,11 +485,6 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
   };
 
   const handleDownloadPDF = async () => {
-    // Gate: Anonymous users must sign up to download
-    if (!user) {
-      setShowSignUpWall(true);
-      return;
-    }
     if (!cvTemplateRef.current || !cvData) return;
 
     setIsDownloading(true);
@@ -1276,12 +1268,6 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
       </div>
 
       {/* Sign Up Wall Modal */}
-      <SignUpWallModal
-        isOpen={showSignUpWall}
-        onClose={() => setShowSignUpWall(false)}
-        trigger="download"
-      />
-
       {showFullPreview && previewCVData && createPortal(
         <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">
           <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-[24px] border border-cream-200 bg-cream-100 shadow-lg">

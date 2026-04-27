@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
     title: 'AI Application Pricing & Credits',
     description:
-      'KarKo AI pricing: Free (5 apps/month), Plus $39.99/month (50 apps), Max $79.99/month (100 apps). Transparent credit-based pricing.',
+      'KarKo AI pricing: Free (2 apps/month), Plus $19.99/month (25 apps), Max $79.99/month (100 apps). Transparent credit-based pricing.',
     canonical: '/ai-job-application/pricing-credits',
   });
 }
@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 const faqs = [
   {
     q: 'How much does Karko AI cost?',
-    a: 'Free: 5 applications/month at no cost. Plus: $39.99/month for 50 applications. Max: $79.99/month for 100 applications. All plans include the complete 4-document package (tailored CV, cover letter, application email, follow-up email).',
+    a: 'Free: 2 applications/month at no cost. Plus: $19.99/month for 25 applications. Max: $79.99/month for 100 applications. All plans include the complete 4-document package (tailored CV, cover letter, application email, follow-up email).',
   },
   {
     q: 'How many applications does 2 credits cover?',
@@ -28,7 +28,7 @@ const faqs = [
   },
   {
     q: 'Is there a free plan with no credit card?',
-    a: 'Yes. The Free plan gives 5 complete applications per month with no credit card required. The same AI quality as paid plans.',
+    a: 'Yes. The Free plan gives 2 complete applications per month with no credit card required. The same AI quality as paid plans.',
   },
   {
     q: 'What happens if I run out of credits mid-month?',
@@ -79,7 +79,7 @@ export default function PricingCreditsPage() {
     '@type': 'Article',
     headline: 'AI Job Application Pricing & Credits: How Karko AI Plans Work',
     description:
-      'Karko AI pricing: Free (5 applications), Plus $39.99/month (50 applications), Max $79.99/month (100 applications). Credit-based system with transparent cost per application.',
+      'Karko AI pricing: Free (2 applications), Plus $19.99/month (25 applications), Max $79.99/month (100 applications). Credit-based system with transparent cost per application.',
     author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
     publisher: {
       '@type': 'Organization',
@@ -144,8 +144,8 @@ export default function PricingCreditsPage() {
             <ScrollReveal delay={300}>
               <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed">
                 Karko AI uses a credit-based pricing model: each complete application package costs 2
-                credits. The Free plan gives 10 credits (5 applications) free. The Plus plan
-                ($39.99/month) gives 100 credits (50 applications). The Max plan ($79.99/month) gives
+                credits. The Free plan gives 4 credits (2 applications) free. The Plus plan
+                ($19.99/month) gives 50 credits (25 applications). The Max plan ($79.99/month) gives
                 200 credits (100 applications). All tiers generate the same four documents with no
                 quality difference between plans.
               </p>
@@ -175,10 +175,10 @@ export default function PricingCreditsPage() {
             </ScrollReveal>
             <ScrollReveal delay={150}>
             <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
-              Free: 10 credits, 5 complete applications per month, no credit card required. Good for
-              evaluating output quality before committing. Plus ($39.99/month): 100
-              credits, 50 complete applications per month. Good for active job searchers applying to
-              10 to 15 roles per week.
+              Free: 4 credits, 2 complete applications per month, no credit card required. Good for
+              evaluating output quality before committing. Plus ($19.99/month): 50
+              credits, 25 complete applications per month. Good for active job searchers applying to
+              5 to 10 roles per week.
             </p>
             <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
               Max ($79.99/month): 200 credits, 100 applications per month. Good for high-volume
@@ -221,13 +221,13 @@ export default function PricingCreditsPage() {
             </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
               The fair comparison metric is cost per complete application package, not cost per
-              month. Plus plan: $39.99 ÷ 50 applications = ~$0.80 per complete application package
+              month. Plus plan: $19.99 ÷ 25 applications = ~$0.80 per complete application package
               (CV + cover letter + 2 emails). Max plan: $79.99 ÷ 100 applications = ~$0.80 per
               application package.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              Compare this to the time cost of manual applications: at 45 to 60 minutes each, 50
-              applications is 37 to 50 hours of manual work.
+              Compare this to the time cost of manual applications: at 45 to 60 minutes each, 25
+              applications is 18 to 25 hours of manual work.
             </p>
           </div>
         </section>
@@ -243,7 +243,7 @@ export default function PricingCreditsPage() {
             </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
               Start with the Free plan to validate output quality. Move to Plus if you are
-              applying consistently and need more than 5 applications per month. Move to Max if you are in
+              applying consistently and need more than 2 applications per month. Move to Max if you are in
               an intensive job search phase: layoff, career transition, or high-volume market.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
@@ -341,7 +341,7 @@ export default function PricingCreditsPage() {
             <div className="max-w-4xl mx-auto text-center relative">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Get Started Free</h2>
               <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
-                5 complete applications at no cost. No credit card required. Same AI quality as paid
+                2 complete applications at no cost. No credit card required. Same AI quality as paid
                 plans.
               </p>
               <a

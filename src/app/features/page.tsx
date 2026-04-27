@@ -223,12 +223,12 @@ const faqs = [
   {
     question: 'Do all features work on all plans?',
     answer:
-      'Yes! Every plan (Free, Plus, Max) includes all features. The only difference is the number of monthly credits. Free gets 10 credits (~5 applications), Plus gets 100 credits (~50 applications), Max gets 200 credits (~100 applications).',
+      'Yes! Every plan (Free, Plus, Max) includes all features. The only difference is the number of monthly credits. Free gets 4 credits (~2 applications), Plus gets 50 credits (~25 applications), Max gets 200 credits (~100 applications).',
   },
   {
     question: 'Can I buy more credits?',
     answer:
-      'Yes, if you\'re on Plus or Max. You can purchase add-on credit packs ($19.99 for 40 credits). Purchased credits roll over as long as your subscription is active.',
+      'Yes, if you\'re on Plus or Max. You can purchase add-on credit packs ($19.99 for 25 credits). Purchased credits roll over as long as your subscription is active.',
   },
   {
     question: 'What AI model do you use?',
@@ -454,7 +454,7 @@ export default function FeaturesPage() {
             <div className="bg-gradient-to-br from-navy-600 to-navy-800 rounded-2xl p-10 text-white text-center">
               <h2 className="text-2xl font-bold mb-4">Try All Features Free</h2>
               <p className="text-navy-200 mb-6 leading-relaxed">
-                5 complete application packages including CV, cover letter, application email, and follow-up email. No credit card required.
+                2 complete application packages including CV, cover letter, application email, and follow-up email. No credit card required.
               </p>
               <Link
                 href="/dashboard"

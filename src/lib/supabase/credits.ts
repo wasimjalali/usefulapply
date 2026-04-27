@@ -201,7 +201,7 @@ async function initializeUserCredits(userId: string, supabaseClient?: any): Prom
     .from('user_credits')
     .upsert({
       user_id: userId,
-      monthly_credits: 10, // Free plan credits (5 applications at 2 credits each)
+      monthly_credits: 4, // Free plan credits (2 applications at 2 credits each)
       rollover_credits: 0,
       addon_credits: 0,
       plan_tier: 'free',
@@ -216,10 +216,10 @@ async function initializeUserCredits(userId: string, supabaseClient?: any): Prom
   }
 
   // Log the initial credit grant
-  await logCreditTransaction(userId, 10, 'monthly_reset', {
+  await logCreditTransaction(userId, 4, 'monthly_reset', {
     description: 'Initial free plan credits',
     balanceBefore: 0,
-    balanceAfter: 10,
+    balanceAfter: 4,
   }, supabaseClient);
 
   return { credits: data as UserCredits, error: null };

@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/Card';
 // Single add-on credit pack (must match pricing page)
 // TODO: Replace priceId value with actual Stripe Price ID
 const addonPacks = [
-  { name: 'Credit Pack', credits: 40, applications: 20, price: 19.99, priceId: 'price_addon_credit_pack' },
+  { name: 'Credit Pack', credits: 25, applications: 12, price: 19.99, priceId: 'price_addon_credit_pack' },
 ];
 
 export interface UserCredits {
@@ -46,11 +46,11 @@ export function SubscriptionSection({
       setLoadingAddon(null);
     }
   };
-  const totalCredits = userCredits 
-    ? userCredits.monthly_credits + userCredits.rollover_credits + userCredits.addon_credits 
-    : 10;
+  const totalCredits = userCredits
+    ? userCredits.monthly_credits + userCredits.rollover_credits + userCredits.addon_credits
+    : 4;
   
-  const maxCredits = userCredits?.plan_tier === 'free' ? 10 : userCredits?.plan_tier === 'plus' ? 100 : 200;
+  const maxCredits = userCredits?.plan_tier === 'free' ? 4 : userCredits?.plan_tier === 'plus' ? 50 : 200;
   const isFreeTier = subscriptionTier === 'free';
 
   return (
@@ -105,7 +105,7 @@ export function SubscriptionSection({
               <div className="flex-1">
                 <h4 className="font-semibold text-charcoal">Upgrade to Plus</h4>
                 <p className="text-sm text-warm-gray mt-1">
-                  Get 50 applications per month (100 credits), add-on packs, and priority support.
+                  Get 25 applications per month (50 credits), add-on packs, and priority support.
                 </p>
                 <Button variant="gold" size="sm" className="mt-3" onClick={() => onUpgrade?.('plus')}>
                   <Sparkles className="w-4 h-4 mr-1" />
@@ -183,7 +183,7 @@ export function SubscriptionSection({
                       <span className="text-base font-bold text-charcoal">Free</span>
                     </div>
                     <p className="text-2xl font-bold text-charcoal leading-tight">Free</p>
-                    <p className="text-xs text-warm-gray mt-1">10 credits/mo</p>
+                    <p className="text-xs text-warm-gray mt-1">4 credits/mo</p>
                   </div>
                 </th>
 
@@ -205,8 +205,8 @@ export function SubscriptionSection({
                       </div>
                       <span className="text-base font-bold text-charcoal">Plus</span>
                     </div>
-                    <p className="text-2xl font-bold text-charcoal leading-tight">$39.99</p>
-                    <p className="text-xs text-warm-gray mt-1">100 credits/mo</p>
+                    <p className="text-2xl font-bold text-charcoal leading-tight">$19.99</p>
+                    <p className="text-xs text-warm-gray mt-1">50 credits/mo</p>
                   </div>
                 </th>
 
@@ -237,7 +237,7 @@ export function SubscriptionSection({
 
             <tbody>
               {([
-                { label: 'Applications/month',            free: '5',      plus: '50',     max: '100' },
+                { label: 'Applications/month',            free: '2',      plus: '25',     max: '100' },
                 { label: 'CV + Cover Letter + Email + Follow-up', free: true, plus: true, max: true },
                 { label: 'Honest fit score',              free: true,     plus: true,     max: true },
                 { label: 'ATS-optimized templates',       free: true,     plus: true,     max: true },

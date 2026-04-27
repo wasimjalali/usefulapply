@@ -87,7 +87,7 @@ export default function SignUpPage() {
           <div className="mb-5 p-3 bg-cream-50 rounded-xl border border-cream-200">
             <div className="flex items-center gap-2 text-sm">
               <Sparkles className="w-4 h-4 text-gold-500 flex-shrink-0" />
-              <span className="text-charcoal font-medium">Free plan includes 10 credits (~5 applications/month)</span>
+              <span className="text-charcoal font-medium">Free plan includes 4 credits (~2 applications/month)</span>
             </div>
           </div>
 

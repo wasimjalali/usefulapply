@@ -13,24 +13,24 @@ import { useAuth } from '@/contexts/AuthContext';
 // Single add-on credit pack
 // TODO: Replace priceId value with actual Stripe Price ID
 const addonPacks = [
-  { name: 'Credit Pack', credits: 40, applications: 20, price: 19.99, perCredit: '$0.50', priceId: 'price_addon_credit_pack' },
+  { name: 'Credit Pack', credits: 25, applications: 12, price: 19.99, perCredit: '$0.80', priceId: 'price_addon_credit_pack' },
 ];
 
 // Time savings data for interactive calculator
 const savingsTiers = [
   {
     plan: 'Free',
-    apps: 5,
-    hoursSaved: 4,
+    apps: 2,
+    hoursSaved: 2,
     price: 'Free',
-    tagline: 'That is 4 hours you get back for free. No credit card required.',
+    tagline: 'That is 2 hours you get back for free. No credit card required.',
   },
   {
     plan: 'Plus',
-    apps: 50,
-    hoursSaved: 37,
-    price: '$39.99/mo',
-    tagline: 'That is nearly a full work week saved every month. At ~$0.80 per application.',
+    apps: 25,
+    hoursSaved: 18,
+    price: '$19.99/mo',
+    tagline: 'That is over 18 hours saved every month. At ~$0.80 per application.',
   },
   {
     plan: 'Max',
@@ -53,7 +53,7 @@ const faqs = [
   },
   {
     question: 'What happens if I run out of credits?',
-    answer: 'Plus and Max subscribers can purchase add-on credit packs anytime ($19.99 for 40 credits). Purchased credits roll over while your subscription is active. Free tier credits reset monthly. You can also upgrade your plan for immediate access to more credits.',
+    answer: 'Plus and Max subscribers can purchase add-on credit packs anytime ($19.99 for 25 credits). Purchased credits roll over while your subscription is active. Free tier credits reset monthly. You can also upgrade your plan for immediate access to more credits.',
   },
   {
     question: 'Do unused credits expire?',
@@ -73,7 +73,7 @@ const faqs = [
   },
   {
     question: 'How does Karko AI pricing compare to Teal?',
-    answer: 'Teal offers a free tier but hides its paid pricing. Karko AI is fully transparent: Free (5 apps), Plus $39.99/mo (50 apps), Max $79.99/mo (100 apps). Unlike Teal, Karko generates complete application packages with emails. See our full comparison at /compare/karko-ai-vs-teal.',
+    answer: 'Teal offers a free tier but hides its paid pricing. Karko AI is fully transparent: Free (2 apps), Plus $19.99/mo (25 apps), Max $79.99/mo (100 apps). Unlike Teal, Karko generates complete application packages with emails. See our full comparison at /compare/karko-ai-vs-teal.',
   },
   {
     question: 'How does Karko AI pricing compare to Jobscan?',
@@ -229,13 +229,13 @@ export default function PricingPage() {
                   </div>
                   <div className="mt-2">
                     <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-cream-100 text-navy-500 border border-cream-300">
-                      10 credits/month
+                      4 credits/month
                     </span>
                   </div>
                 </div>
                 <ul className="space-y-3 mb-5">
                   {[
-                    { text: '5 complete applications/month', bold: true },
+                    { text: '2 complete applications/month', bold: true },
                     { text: 'Tailored CV, cover letter, email & follow-up' },
                     { text: 'Honest fit score before you apply' },
                     { text: 'ATS-optimized, US & EU templates' },
@@ -250,7 +250,7 @@ export default function PricingPage() {
                 </ul>
                 <div className="flex items-center gap-2.5 rounded-xl px-4 py-3 bg-cream-50 border border-cream-200">
                   <Clock className="w-5 h-5 flex-shrink-0 text-navy-400" />
-                  <span className="text-sm font-semibold text-navy-600">~4 hours saved/month</span>
+                  <span className="text-sm font-semibold text-navy-600">~2 hours saved/month</span>
                 </div>
                 <div className="mt-auto pt-6">
                   <Link
@@ -270,7 +270,7 @@ export default function PricingPage() {
             <div className="relative h-full">
               <div className="animated-border rounded-2xl shadow-xl h-full flex flex-col">
                 <div className="bg-gradient-to-r from-gold-400 to-gold-500 text-white text-xs font-bold px-4 py-2 text-center rounded-t-2xl">
-                  MOST POPULAR | SAVE ~37 HOURS/MONTH
+                  MOST POPULAR | SAVE ~18 HOURS/MONTH
                 </div>
                 <div className="p-8 flex flex-col flex-1 bg-white rounded-b-2xl">
                   <div className="flex items-center gap-3 mb-5">
@@ -284,12 +284,12 @@ export default function PricingPage() {
                   </div>
                   <div className="mb-6">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-bold text-navy-600">$39.99</span>
+                      <span className="text-4xl font-bold text-navy-600">$19.99</span>
                       <span className="text-warm-gray">/month</span>
                     </div>
                     <div className="mt-2">
                       <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-gold-50 text-gold-600 border border-gold-200">
-                        100 credits/month
+                        50 credits/month
                       </span>
                     </div>
                   </div>
@@ -326,7 +326,7 @@ export default function PricingPage() {
                   </div>
                   <ul className="space-y-3 mb-5">
                     {[
-                      { text: '50 complete applications/month', bold: true },
+                      { text: '25 complete applications/month', bold: true },
                       { text: 'Everything in Free, plus:' },
                       { text: 'Unlimited application history' },
                       { text: 'Add-on credit packs (rollover)' },
