@@ -27,7 +27,7 @@ export const comparisons: ComparisonData[] = [
       { feature: 'Follow-Up Email', karkoValue: true, competitorValue: false, karkoWins: true },
       { feature: 'Job Tracking', karkoValue: 'Roadmap', competitorValue: 'Strong' },
       { feature: 'Fit Analysis', karkoValue: true, competitorValue: false, karkoWins: true },
-      { feature: 'Pricing', karkoValue: '$39.99-79.99/mo', competitorValue: 'Freemium (hidden)' },
+      { feature: 'Pricing', karkoValue: '$19.99-79.99/mo', competitorValue: 'Freemium (hidden)' },
       { feature: 'AI Model', karkoValue: 'Claude Sonnet 4.6', competitorValue: 'Generic AI' },
       { feature: 'Best For', karkoValue: 'Winning applications', competitorValue: 'Organizing search' },
     ],
@@ -38,7 +38,7 @@ export const comparisons: ComparisonData[] = [
       slug: 'karko-ai',
       description:
         'AI-powered job application assistant that generates complete application packages: CV, cover letter, application email, and follow-up email in under 90 seconds.',
-      pricing: 'Free (5 apps), Plus $39.99/mo (50 apps), Max $79.99/mo (100 apps)',
+      pricing: 'Free (2 apps), Plus $19.99/mo (25 apps), Max $79.99/mo (100 apps)',
       keyFeatures: [
         'Fit analysis before generating materials',
         'AI-tailored CV using Claude Sonnet 4.6',
@@ -163,7 +163,7 @@ export const comparisons: ComparisonData[] = [
         description:
           'Hidden pricing creates uncertainty. You should know exactly what you\'re paying before committing.',
         karkoDetails:
-          'Fully transparent credit-based pricing: Free (5 apps), Plus $39.99/mo (50 apps), Max $79.99/mo (100 apps). Add-on credit packs available ($19.99/40 credits). No hidden fees.',
+          'Fully transparent credit-based pricing: Free (2 apps), Plus $19.99/mo (25 apps), Max $79.99/mo (100 apps). Add-on credit packs available ($19.99/50 credits). No hidden fees.',
         competitorDetails:
           'Freemium model with free tier available, but paid tier pricing is not publicly disclosed. Users report "three-month subscriptions" but exact pricing is hidden.',
         winner: 'karko',
@@ -235,7 +235,7 @@ export const comparisons: ComparisonData[] = [
       {
         question: 'Which is cheaper?',
         answer:
-          'Teal has a free tier, but paid tier pricing is hidden. Karko AI is transparent: Free (5 apps), Plus $39.99/mo (50 apps), Max $79.99/mo (100 apps). For quality applications, Karko\'s pricing is competitive at ~$0.80/application.',
+          'Teal has a free tier, but paid tier pricing is hidden. Karko AI is transparent: Free (2 apps), Plus $19.99/mo (25 apps), Max $79.99/mo (100 apps). For quality applications, Karko\'s pricing is competitive at ~$0.80/application.',
       },
       {
         question: 'Does Teal generate application emails?',
@@ -264,7 +264,7 @@ export const comparisons: ComparisonData[] = [
       'Karko AI and Teal solve different problems. Teal excels at job tracking and organization - perfect if you\'re applying to many jobs and need project management. Karko AI excels at content quality and completeness - perfect if you want winning applications with personalized emails. The best approach? Use both: Karko for content, Teal for tracking. But if you can only choose one: pick Karko if you prioritize quality and emails, pick Teal if you prioritize organization and volume.',
 
     // CTA
-    ctaText: 'Try Karko AI Free - 5 Complete Applications with Emails',
+    ctaText: 'Try Karko AI Free - 2 Complete Applications with Emails',
     ctaHref: '/dashboard',
 
     // SEO
@@ -298,7 +298,7 @@ export const comparisons: ComparisonData[] = [
       { feature: 'Application Email', karkoValue: true, competitorValue: false, karkoWins: true },
       { feature: 'Keyword Analysis', karkoValue: 'Auto-applied', competitorValue: 'Detailed' },
       { feature: 'Resume Scanning', karkoValue: false, competitorValue: true },
-      { feature: 'Pricing', karkoValue: '$39.99-79.99/mo', competitorValue: 'Freemium' },
+      { feature: 'Pricing', karkoValue: '$19.99-79.99/mo', competitorValue: 'Freemium' },
       { feature: 'Best For', karkoValue: 'Creating from scratch', competitorValue: 'Optimizing existing' },
     ],
 
@@ -308,7 +308,7 @@ export const comparisons: ComparisonData[] = [
       slug: 'karko-ai',
       description:
         'AI-powered content generation platform that creates complete, ATS-optimized application packages from scratch.',
-      pricing: 'Free (5 apps), Plus $39.99/mo (50 apps), Max $79.99/mo (100 apps)',
+      pricing: 'Free (2 apps), Plus $19.99/mo (25 apps), Max $79.99/mo (100 apps)',
       keyFeatures: [
         'Generates complete application packages (CV, cover letter, emails)',
         'ATS optimization built into all templates',
@@ -523,7 +523,7 @@ export const comparisons: ComparisonData[] = [
       {
         question: 'Which is more affordable?',
         answer:
-          'Jobscan has a free tier. Karko AI is $39.99-79.99/month, but includes complete application packages with emails (not just resume checking). For quality applications at scale, Karko\'s pricing is competitive at ~$0.80/application.',
+          'Jobscan has a free tier. Karko AI is $19.99-79.99/month, but includes complete application packages with emails (not just resume checking). For quality applications at scale, Karko\'s pricing is competitive at ~$0.80/application.',
       },
       {
         question: 'Do I need both tools?',
@@ -547,7 +547,7 @@ export const comparisons: ComparisonData[] = [
       'Karko AI and Jobscan solve different problems. Jobscan is the market leader for checking existing resumes against ATS systems - perfect if you have a resume and want detailed validation. Karko AI is for creating complete, ATS-optimized application packages from scratch - perfect if you need tailored materials with emails. The best choice depends on your starting point: Have a resume? Use Jobscan to validate. Starting fresh? Use Karko to create. Want both? Generate with Karko, validate with Jobscan.',
 
     // CTA
-    ctaText: 'Generate ATS-Optimized Application in 90 Seconds - 5 Free',
+    ctaText: 'Generate ATS-Optimized Application in 90 Seconds - 2 Free',
     ctaHref: '/dashboard',
 
     // SEO
@@ -580,7 +580,7 @@ export const comparisons: ComparisonData[] = [
       { feature: 'Follow-Up Email', karkoValue: true, competitorValue: false, karkoWins: true },
       { feature: 'Fit Analysis', karkoValue: true, competitorValue: false, karkoWins: true },
       { feature: 'ATS Scoring', karkoValue: 'Built-in', competitorValue: '23-criteria' },
-      { feature: 'Pricing', karkoValue: '$39.99-79.99/mo', competitorValue: '$29/mo or $149 lifetime' },
+      { feature: 'Pricing', karkoValue: '$19.99-79.99/mo', competitorValue: '$29/mo or $149 lifetime' },
       { feature: 'AI Model', karkoValue: 'Claude Sonnet 4.6', competitorValue: 'Undisclosed' },
       { feature: 'Best For', karkoValue: 'Complete applications', competitorValue: 'Resume optimization' },
     ],
@@ -590,7 +590,7 @@ export const comparisons: ComparisonData[] = [
       slug: 'karko-ai',
       description:
         'AI-powered job application assistant that generates complete application packages: CV, cover letter, application email, and follow-up email in under 90 seconds.',
-      pricing: 'Free (5 apps), Plus $39.99/mo (50 apps), Max $79.99/mo (100 apps)',
+      pricing: 'Free (2 apps), Plus $19.99/mo (25 apps), Max $79.99/mo (100 apps)',
       keyFeatures: [
         'Fit analysis before generating materials',
         'AI-tailored CV using Claude Sonnet 4.6',
@@ -724,12 +724,12 @@ export const comparisons: ComparisonData[] = [
         description:
           'Subscription fatigue is real. Some users prefer one-time payments or flexible credits.',
         karkoDetails:
-          'Credit-based system: Free (5 apps), Plus $39.99/mo (50 apps), Max $79.99/mo (100 apps). Add-on credit packs available ($19.99/40 credits). Pay for what you use.',
+          'Credit-based system: Free (2 apps), Plus $19.99/mo (25 apps), Max $79.99/mo (100 apps). Add-on credit packs available ($19.99/50 credits). Pay for what you use.',
         competitorDetails:
           'Free (1 resume, 3 PDFs), Pro $29/mo (unlimited), Lifetime $149 (permanent Pro access). Monthly subscription or one-time payment options.',
         winner: 'tie',
         reasoning:
-          'Different needs. Rezi\'s $29/mo is cheaper than Karko\'s $39.99/mo Plus, and lifetime plan appeals to budget users. Karko\'s credits offer flexibility. Both work.',
+          'Different needs. Rezi\'s $29/mo is cheaper than Karko\'s $19.99/mo Plus, and lifetime plan appeals to budget users. Karko\'s credits offer flexibility. Both work.',
       },
     ],
 
@@ -782,7 +782,7 @@ export const comparisons: ComparisonData[] = [
       {
         question: 'Which is more affordable?',
         answer:
-          'Rezi\'s Pro plan ($29/mo) is cheaper than Karko\'s Plus ($39.99/mo). However, Karko includes email generation (Rezi doesn\'t). Rezi also offers a lifetime plan ($149 one-time) which is attractive for long-term users. Per-application cost: Karko ~$0.80, Rezi ~$0 if using lifetime plan.',
+          'Rezi\'s Pro plan ($29/mo) is cheaper than Karko\'s Plus ($19.99/mo). However, Karko includes email generation (Rezi doesn\'t). Rezi also offers a lifetime plan ($149 one-time) which is attractive for long-term users. Per-application cost: Karko ~$0.80, Rezi ~$0 if using lifetime plan.',
       },
       {
         question: 'Can Karko do fit analysis before generating materials?',
@@ -809,7 +809,7 @@ export const comparisons: ComparisonData[] = [
     verdict:
       'Karko AI and Rezi solve different problems. Rezi excels at detailed ATS scoring and interview preparation—perfect if you want granular feedback and practice features. Karko AI excels at generating complete application packages with personalized emails in 90 seconds—perfect if you need speed, emails, and fit analysis. If you can only choose one: pick Karko if you prioritize emails and speed, pick Rezi if you prioritize detailed scoring and interview practice. For power users: use both—Karko for content, Rezi for scoring and practice.',
 
-    ctaText: 'Try Karko AI Free - 5 Complete Applications with Emails',
+    ctaText: 'Try Karko AI Free - 2 Complete Applications with Emails',
     ctaHref: '/dashboard',
 
     tags: [
@@ -840,7 +840,7 @@ export const comparisons: ComparisonData[] = [
       { feature: 'Follow-Up Email', karkoValue: true, competitorValue: false, karkoWins: true },
       { feature: 'Fit Analysis', karkoValue: true, competitorValue: false, karkoWins: true },
       { feature: 'Design Templates', karkoValue: '6 ATS-optimized', competitorValue: 'Many (not all ATS-safe)' },
-      { feature: 'Free Builds', karkoValue: '5/month', competitorValue: 'Unlimited' },
+      { feature: 'Free Builds', karkoValue: '2/month', competitorValue: 'Unlimited' },
       { feature: 'AI Model', karkoValue: 'Claude Sonnet 4.6', competitorValue: 'Basic AI' },
       { feature: 'Best For', karkoValue: 'Complete applications', competitorValue: 'Design portfolios' },
     ],
@@ -850,7 +850,7 @@ export const comparisons: ComparisonData[] = [
       slug: 'karko-ai',
       description:
         'AI-powered job application assistant that generates complete application packages: CV, cover letter, application email, and follow-up email in under 90 seconds.',
-      pricing: 'Free (5 apps), Plus $39.99/mo (50 apps), Max $79.99/mo (100 apps)',
+      pricing: 'Free (2 apps), Plus $19.99/mo (25 apps), Max $79.99/mo (100 apps)',
       keyFeatures: [
         'Fit analysis before generating materials',
         'AI-tailored CV using Claude Sonnet 4.6',
@@ -972,12 +972,12 @@ export const comparisons: ComparisonData[] = [
         description:
           'Free tiers help users evaluate quality before paying. Unlimited builds vs monthly credit caps.',
         karkoDetails:
-          'Free plan: 5 complete application packages per month. Includes CV, cover letter, application email, follow-up email. No credit card required.',
+          'Free plan: 2 complete application packages per month. Includes CV, cover letter, application email, follow-up email. No credit card required.',
         competitorDetails:
           'Free plan: unlimited resume builds (limited templates). Very generous compared to competitors. No credit card required for free tier.',
         winner: 'competitor',
         reasoning:
-          'Kickresume\'s unlimited free builds are more generous than Karko\'s 5/month. If you\'re building many versions to test, Kickresume wins on free tier.',
+          'Kickresume\'s unlimited free builds are more generous than Karko\'s 2/month. If you\'re building many versions to test, Kickresume wins on free tier.',
       },
       {
         title: 'Portfolio Website',
@@ -1042,7 +1042,7 @@ export const comparisons: ComparisonData[] = [
       {
         question: 'Which has a better free tier?',
         answer:
-          'Kickresume offers unlimited resume builds on free tier (limited templates). Karko offers 5 complete application packages per month (CV + cover letter + emails). If you need many builds to test, Kickresume wins. If you need complete packages with emails, Karko wins.',
+          'Kickresume offers unlimited resume builds on free tier (limited templates). Karko offers 2 complete application packages per month (CV + cover letter + emails). If you need many builds to test, Kickresume wins. If you need complete packages with emails, Karko wins.',
       },
       {
         question: 'Can Karko generate portfolio websites?',
@@ -1069,7 +1069,7 @@ export const comparisons: ComparisonData[] = [
     verdict:
       'Karko AI and Kickresume serve different markets. Kickresume excels at design-forward templates and portfolio websites—perfect for creative professionals applying directly to hiring managers. Karko AI excels at generating complete, ATS-optimized application packages with personalized emails in 90 seconds—perfect for corporate job searches through ATS systems. If you can only choose one: pick Karko if you\'re applying to corporate roles through ATS, pick Kickresume if you\'re in a creative field and want visual appeal. For power users: use both—Karko for corporate ATS applications, Kickresume for creative portfolio applications.',
 
-    ctaText: 'Try Karko AI Free - 5 ATS-Optimized Applications',
+    ctaText: 'Try Karko AI Free - 2 ATS-Optimized Applications',
     ctaHref: '/dashboard',
 
     tags: [
@@ -1101,7 +1101,7 @@ export const comparisons: ComparisonData[] = [
       { feature: 'Fit Analysis', karkoValue: true, competitorValue: false, karkoWins: true },
       { feature: 'Multi-Language', karkoValue: 'English/German', competitorValue: '30+ languages' },
       { feature: 'Job Tracking', karkoValue: 'Roadmap', competitorValue: 'Yes' },
-      { feature: 'Pricing', karkoValue: '$39.99-79.99/mo', competitorValue: '$24.99/mo' },
+      { feature: 'Pricing', karkoValue: '$19.99-79.99/mo', competitorValue: '$24.99/mo' },
       { feature: 'Best For', karkoValue: 'Complete applications', competitorValue: 'International job seekers' },
     ],
 
@@ -1110,7 +1110,7 @@ export const comparisons: ComparisonData[] = [
       slug: 'karko-ai',
       description:
         'AI-powered job application assistant that generates complete application packages: CV, cover letter, application email, and follow-up email in under 90 seconds.',
-      pricing: 'Free (5 apps), Plus $39.99/mo (50 apps), Max $79.99/mo (100 apps)',
+      pricing: 'Free (2 apps), Plus $19.99/mo (25 apps), Max $79.99/mo (100 apps)',
       keyFeatures: [
         'Fit analysis before generating materials',
         'AI-tailored CV using Claude Sonnet 4.6',
@@ -1163,7 +1163,7 @@ export const comparisons: ComparisonData[] = [
         'One-click tailoring (fast customization)',
         'Large document storage (300 docs)',
         'Job tracker included',
-        'Lower monthly price ($24.99 vs $39.99)',
+        'Lower monthly price ($24.99 vs $19.99)',
         'Strong social proof (10M resumes, 28K interviews)',
         '1,400+ guides by certified writers',
       ],
@@ -1247,12 +1247,12 @@ export const comparisons: ComparisonData[] = [
         description:
           'Transparent pricing helps budget planning. Free trials vs free tiers, monthly costs, and value per application.',
         karkoDetails:
-          'Transparent credit-based pricing: Free (5 apps), Plus $39.99/mo (50 apps), Max $79.99/mo (100 apps). Per-application cost: ~$0.80. No trial-then-paywall.',
+          'Transparent credit-based pricing: Free (2 apps), Plus $19.99/mo (25 apps), Max $79.99/mo (100 apps). Per-application cost: ~$0.80. No trial-then-paywall.',
         competitorDetails:
           '7-day free trial (full features, then downloads locked), Pro $24.99/mo (unlimited). Lower monthly cost than Karko. Trial-then-paywall model.',
         winner: 'tie',
         reasoning:
-          'Enhancv is cheaper monthly ($24.99 vs $39.99). Karko includes emails (Enhancv doesn\'t). Depends on what you need. Different value propositions.',
+          'Enhancv is cheaper monthly ($24.99 vs $19.99). Karko includes emails (Enhancv doesn\'t). Depends on what you need. Different value propositions.',
       },
     ],
 
@@ -1305,7 +1305,7 @@ export const comparisons: ComparisonData[] = [
       {
         question: 'Which is more affordable?',
         answer:
-          'Enhancv\'s Pro plan ($24.99/mo) is cheaper than Karko\'s Plus ($39.99/mo). However, Karko includes email generation (Enhancv doesn\'t). Per-application cost: Karko ~$0.80, Enhancv unlimited for $24.99/mo. If you need many applications without emails, Enhancv is cheaper.',
+          'Enhancv\'s Pro plan ($24.99/mo) is cheaper than Karko\'s Plus ($19.99/mo). However, Karko includes email generation (Enhancv doesn\'t). Per-application cost: Karko ~$0.80, Enhancv unlimited for $24.99/mo. If you need many applications without emails, Enhancv is cheaper.',
       },
       {
         question: 'Can Karko do fit analysis?',
@@ -1332,7 +1332,7 @@ export const comparisons: ComparisonData[] = [
     verdict:
       'Karko AI and Enhancv serve different needs. Enhancv excels at multi-language support (30+ languages) and job tracking—perfect for international job seekers applying across many countries. Karko AI excels at generating complete application packages with personalized emails in 90 seconds—perfect for strategic English/German job searches. If you can only choose one: pick Karko if you need emails and latest AI in English/German markets, pick Enhancv if you need multi-language support and job tracking. For power users: use both—Karko for English/German applications with emails, Enhancv for other languages and tracking.',
 
-    ctaText: 'Try Karko AI Free - 5 Complete Applications',
+    ctaText: 'Try Karko AI Free - 2 Complete Applications',
     ctaHref: '/dashboard',
 
     tags: [
@@ -1364,7 +1364,7 @@ export const comparisons: ComparisonData[] = [
       { feature: 'Fit Analysis', karkoValue: true, competitorValue: false, karkoWins: true },
       { feature: 'Recruiter Matching', karkoValue: false, competitorValue: '50/week' },
       { feature: 'Auto-Apply Service', karkoValue: false, competitorValue: 'Yes' },
-      { feature: 'Pricing', karkoValue: '$39.99-79.99/mo', competitorValue: '€24.95/mo' },
+      { feature: 'Pricing', karkoValue: '$19.99-79.99/mo', competitorValue: '€24.95/mo' },
       { feature: 'Best For', karkoValue: 'Quality applications', competitorValue: 'Volume + ecosystem' },
     ],
 
@@ -1373,7 +1373,7 @@ export const comparisons: ComparisonData[] = [
       slug: 'karko-ai',
       description:
         'AI-powered job application assistant that generates complete application packages: CV, cover letter, application email, and follow-up email in under 90 seconds.',
-      pricing: 'Free (5 apps), Plus $39.99/mo (50 apps), Max $79.99/mo (100 apps)',
+      pricing: 'Free (2 apps), Plus $19.99/mo (25 apps), Max $79.99/mo (100 apps)',
       keyFeatures: [
         'Fit analysis before generating materials',
         'AI-tailored CV using Claude Sonnet 4.6',
@@ -1571,7 +1571,7 @@ export const comparisons: ComparisonData[] = [
       {
         question: 'Which is more affordable?',
         answer:
-          'Resume.io\'s paid plan is €24.95/month (auto-renews from €2.95 trial). Karko is $39.99-79.99/month. Resume.io is cheaper. However, Karko includes email generation (Resume.io doesn\'t) and uses latest AI. Depends on what you value.',
+          'Resume.io\'s paid plan is €24.95/month (auto-renews from €2.95 trial). Karko is $19.99-79.99/month. Resume.io is cheaper. However, Karko includes email generation (Resume.io doesn\'t) and uses latest AI. Depends on what you value.',
       },
       {
         question: 'Can Karko match me with recruiters?',
@@ -1598,7 +1598,7 @@ export const comparisons: ComparisonData[] = [
     verdict:
       'Karko AI and Resume.io represent opposite philosophies. Resume.io offers a full ecosystem (recruiter matching, auto-apply, career coaching, salary negotiation)—perfect for job seekers who want a platform to manage their entire search with a volume-focused approach. Karko AI offers focused excellence in application materials with fit analysis and personalized emails—perfect for strategic job seekers who want quality over quantity. If you can only choose one: pick Karko if you value strategic quality, control, and latest AI with emails; pick Resume.io if you want a full-service ecosystem with recruiter matching and auto-apply. For power users: use both—Karko for high-quality applications to strategic roles, Resume.io for recruiter network exposure.',
 
-    ctaText: 'Try Karko AI Free - 5 Strategic Applications',
+    ctaText: 'Try Karko AI Free - 2 Strategic Applications',
     ctaHref: '/dashboard',
 
     tags: [

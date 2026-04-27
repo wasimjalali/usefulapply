@@ -142,11 +142,11 @@ The candidates who get hired aren't always the most qualified. They're the ones 
 
 ## Try It Yourself
 
-Karko AI is free for your first 5 applications. That includes the follow-up email. No credit card. No sign-up wall.
+Karko AI is free for your first 2 applications. That includes the follow-up email. No credit card. No sign-up wall.
 
 If you're in a job search right now, you already know how much time you're spending per application. The question is whether you want to keep doing it manually, or let AI handle the heavy lifting while you focus on preparing for interviews.
 
-**[Generate Your Follow-Up Email Free — 5 Applications, No Credit Card](/dashboard)**
+**[Generate Your Follow-Up Email Free — 2 Applications, No Credit Card](/dashboard)**
 
 ---
 
@@ -171,7 +171,7 @@ If you're in a job search right now, you already know how much time you're spend
     ogImage: '/blog/follow-up-email-cover.jpg',
     cta: {
       heading: 'Generate Your Follow-Up Email in 90 Seconds',
-      description: 'Get a professional follow-up email as part of your complete application package. Free for 5 applications.',
+      description: 'Get a professional follow-up email as part of your complete application package. Free for 2 applications.',
       text: 'Generate Follow-Up Email Free',
       href: '/dashboard',
     },
@@ -324,11 +324,11 @@ Tailoring works. The question is whether you want to spend 33 hours doing it man
 
 ## Try It Yourself
 
-Karko AI is free for your first 5 applications. No credit card. No sign-up wall. Paste a job description and see what comes back.
+Karko AI is free for your first 2 applications. No credit card. No sign-up wall. Paste a job description and see what comes back.
 
 If you're in a job search, you already know how long tailoring takes. The question is whether you want to keep spending your time the same way.
 
-**[Tailor Your Resume in 90 Seconds — 5 Applications Free, No Credit Card](/dashboard)**
+**[Tailor Your Resume in 90 Seconds — 2 Applications Free, No Credit Card](/dashboard)**
 
 ---
 
@@ -353,7 +353,7 @@ If you're in a job search, you already know how long tailoring takes. The questi
     ogImage: '/blog/resume-tailoring-cover.jpg',
     cta: {
       heading: 'Tailor Your Resume in 90 Seconds',
-      description: 'Generate a tailored, ATS-optimized resume for any job description. Free for 5 applications.',
+      description: 'Generate a tailored, ATS-optimized resume for any job description. Free for 2 applications.',
       text: 'Tailor Your Resume Free',
       href: '/dashboard',
     },
@@ -571,11 +571,11 @@ The question is whether you want to spend 30 minutes per application manually ch
 
 ## Try It Yourself
 
-Karko AI is free for your first 5 applications. Every output is ATS-optimized by default. No formatting checklist to worry about. No manual reformatting.
+Karko AI is free for your first 2 applications. Every output is ATS-optimized by default. No formatting checklist to worry about. No manual reformatting.
 
 Paste a job description and see what comes back.
 
-**[Generate an ATS-Optimized Resume in 90 Seconds — 5 Applications Free, No Credit Card](/dashboard)**
+**[Generate an ATS-Optimized Resume in 90 Seconds — 2 Applications Free, No Credit Card](/dashboard)**
 
 ---
 
@@ -600,7 +600,7 @@ Paste a job description and see what comes back.
     ogImage: '/blog/ats-resume-cover.jpg',
     cta: {
       heading: 'Generate ATS-Optimized Resume in 90 Seconds',
-      description: 'All our templates pass ATS parsers by default. Free for 5 applications.',
+      description: 'All our templates pass ATS parsers by default. Free for 2 applications.',
       text: 'Generate ATS-Safe Resume Free',
       href: '/dashboard',
     },
@@ -774,11 +774,11 @@ Writing 100 cover letters manually takes 33 hours. With AI, it takes 2.5 hours.
 
 ## Try It Yourself
 
-Karko AI is free for your first 5 applications. That includes the cover letter, plus the tailored CV, application email, and follow-up email. All four documents reference the same job description and draw from the same verified source (your Master CV).
+Karko AI is free for your first 2 applications. That includes the cover letter, plus the tailored CV, application email, and follow-up email. All four documents reference the same job description and draw from the same verified source (your Master CV).
 
 No credit card. No sign-up wall. Paste a job description and see what comes back.
 
-**[Generate an AI Cover Letter in 90 Seconds — 5 Applications Free, No Credit Card](/dashboard)**
+**[Generate an AI Cover Letter in 90 Seconds — 2 Applications Free, No Credit Card](/dashboard)**
 
 ---
 
@@ -803,7 +803,7 @@ No credit card. No sign-up wall. Paste a job description and see what comes back
     ogImage: '/blog/ai-cover-letter-cover.jpg',
     cta: {
       heading: 'Generate Personalized Cover Letter in 90 Seconds',
-      description: 'AI-written cover letters with company research. Free for 5 applications.',
+      description: 'AI-written cover letters with company research. Free for 2 applications.',
       text: 'Generate Cover Letter Free',
       href: '/dashboard',
     },
@@ -860,10 +860,10 @@ Generates a complete, tailored application package: CV, cover letter, applicatio
 - **Regional support:** US, UK, Canada, Germany (including German Lebenslauf templates).
 
 **Pricing:**
-- Free: 5 applications/month
-- Plus: $39.99/month (50 applications)
+- Free: 2 applications/month
+- Plus: $19.99/month (25 applications)
 - Max: $79.99/month (100 applications)
-- Add-on: $19.99 for 40 credits
+- Add-on: $19.99 for 50 credits
 
 **Best for:** Job seekers who need volume (100+ applications) with quality, and want a complete package (not just a resume).
 
@@ -997,7 +997,7 @@ The right tool saves you time, increases your callback rate, and gets you in fro
 
 ## Try Karko AI Free
 
-Karko AI is free for your first 5 applications. Generate a complete, tailored application package (CV, cover letter, application email, follow-up email) in 90 seconds. No credit card. No sign-up wall.
+Karko AI is free for your first 2 applications. Generate a complete, tailored application package (CV, cover letter, application email, follow-up email) in 90 seconds. No credit card. No sign-up wall.
 
 **[Compare the Tools Yourself — Try Karko AI Free](/dashboard)**
 
@@ -1024,7 +1024,7 @@ Karko AI is free for your first 5 applications. Generate a complete, tailored ap
     featured: false,
     ogImage: '/blog/ai-tools-comparison-cover.jpg',
     cta: {
-      text: 'Try Karko AI Free - 5 Complete Applications',
+      text: 'Try Karko AI Free - 2 Complete Applications',
       href: '/dashboard',
     },
   },
@@ -1131,11 +1131,11 @@ The job seekers who find work fastest aren't necessarily the most qualified. The
 
 ## Try It Yourself
 
-Karko AI is free for your first 5 applications. No credit card. No sign-up wall for the free tier. Just paste a job description and see what comes back.
+Karko AI is free for your first 2 applications. No credit card. No sign-up wall for the free tier. Just paste a job description and see what comes back.
 
 If you're currently in a job search, you already know how much time you're spending. The question is whether you want to keep spending it the same way.
 
-**[Try Karko AI Free — 5 Applications, No Credit Card](/dashboard)**
+**[Try Karko AI Free — 2 Applications, No Credit Card](/dashboard)**
 
 ---
 
@@ -1159,7 +1159,7 @@ If you're currently in a job search, you already know how much time you're spend
     featured: true,
     ogImage: '/blog/time-comparison-chart.jpg',
     cta: {
-      text: 'Try Karko AI Free - 5 Applications, No Credit Card',
+      text: 'Try Karko AI Free - 2 Applications, No Credit Card',
       href: '/dashboard',
     },
   },
@@ -1470,7 +1470,7 @@ This is the practical advantage of a master CV. It turns your job search from re
 
 If you are serious about applying efficiently without sacrificing quality, build the master CV first. Then use it the right way.
 
-**[Generate From Your Master CV Free — 5 Applications, No Credit Card](/dashboard)**
+**[Generate From Your Master CV Free — 2 Applications, No Credit Card](/dashboard)**
 
 ---
 
@@ -1805,7 +1805,7 @@ Karko AI lets you generate a German or US-ready CV from the same master profile,
 
 That means less manual reformatting, fewer cultural mistakes, and a better chance of looking like you understand the market you are applying into.
 
-**[Generate Market-Specific CV Free — 5 Applications, No Credit Card](/dashboard)**
+**[Generate Market-Specific CV Free — 2 Applications, No Credit Card](/dashboard)**
 
 ---
 
@@ -2090,7 +2090,7 @@ Karko AI helps you write stronger applications without crossing the line. It is 
 
 That means you can move faster, improve your presentation, and still know the document represents what you can actually defend.
 
-**[Try Ethical AI Job Applications Free — 5 Applications, No Credit Card](/dashboard)**
+**[Try Ethical AI Job Applications Free — 2 Applications, No Credit Card](/dashboard)**
 
 ---
 
