@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePostHog } from 'posthog-js/react';
 import { hasUsedFreeGeneration, markFreeGenerationUsed } from '@/components/SignUpWallModal';
 import { notifyJobFeedBadgeRefresh } from '@/hooks/useJobFeedBadge';
+import type { JobFeedApplicationGeneration } from '@/lib/supabase/types';
 
 // AgentStepData type for V2 progress tracking
 export interface AgentStepData {
@@ -132,13 +133,29 @@ export function useAgentWorkflow(options?: {
 
   const messages = currentSession?.chatMessages || [];
 
+  const resolveJobFeedGenerationForSession = async (
+    sessionId: string
+  ): Promise<JobFeedApplicationGeneration | null> => {
+    try {
+      const params = new URLSearchParams({ sessionId });
+      const response = await fetch(`/api/job-feed/apply/generation?${params.toString()}`);
+      if (!response.ok) return null;
+
+      const data = await response.json() as { generation?: JobFeedApplicationGeneration | null };
+      return data.generation ?? null;
+    } catch (error) {
+      console.error('Failed to resolve job feed generation from session:', error);
+      return null;
+    }
+  };
+
   const syncJobFeedGenerationStatus = async (
     status: 'running' | 'succeeded' | 'failed' | 'cancelled',
     errorMessage?: string,
     sessionId = currentSession?.id,
   ) => {
     if (!user || !sessionId) return;
-    const generationId = useAppStore.getState().currentSession?.jobFeedGenerationId
+    let generationId = useAppStore.getState().currentSession?.jobFeedGenerationId
       ?? currentSession?.jobFeedGenerationId
       ?? null;
 
@@ -154,7 +171,22 @@ export function useAgentWorkflow(options?: {
       });
     }
 
-    if (!generationId) return;
+    if (!generationId) {
+      const resolvedGeneration = await resolveJobFeedGenerationForSession(sessionId);
+      generationId = resolvedGeneration?.id ?? null;
+
+      if (resolvedGeneration && useAppStore.getState().currentSession?.id === sessionId) {
+        useAppStore.getState().updateCurrentSession({
+          jobFeedGenerationId: resolvedGeneration.id,
+          jobFeedGenerationAttempt: resolvedGeneration.attempt,
+        });
+      }
+    }
+
+    if (!generationId) {
+      console.warn('[job-feed] generation status not synced because no generation row was found for session:', sessionId);
+      return;
+    }
 
     try {
       await fetch('/api/job-feed/apply/status', {
