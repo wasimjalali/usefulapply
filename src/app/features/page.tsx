@@ -1,19 +1,35 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, Zap, FileText, Mail, MailPlus, Target, Shield, Sparkles, Check, MessageSquareText } from 'lucide-react';
+import { ArrowRight, Zap, FileText, Mail, MailPlus, Target, Shield, Sparkles, Check, MessageSquareText, Compass, ClipboardList } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = buildPageMetadata({
-  title: 'Features: The Complete AI Job Application Assistant',
+  title: 'Features: Find Jobs and Apply Smarter with Karko AI',
   description:
-    'Everything you need to apply smarter: fit analysis, AI-generated CVs, cover letters, application emails, follow-up emails, and ATS optimization.',
+    'Smart Job Feed delivers hand-picked jobs daily. AI generates tailored CVs, cover letters and emails. Built-in tracker keeps everything organized. Free to try.',
   canonical: '/features',
 });
 
 const features = [
+  {
+    icon: Compass,
+    title: 'Smart Job Feed',
+    description:
+      'Tell Karko the roles, countries and cities you care about. Every morning, your top matches are waiting, ranked by fit against your CV. Save jobs you like, dismiss ones that miss, or apply with one click.',
+    benefits: [
+      'Daily delivery at your chosen hour',
+      'Ranked by real fit against your CV, not keyword match',
+      'Up to 15 jobs/day on Plus (~300/month)',
+      'Up to 25 jobs/day on Max (~500/month)',
+      'One-click "Apply with Karko" into the Application Kit',
+    ],
+    cost: 'Included with Plus and Max',
+    link: '/dashboard',
+    linkText: 'Try the Job Feed →',
+  },
   {
     icon: Target,
     title: 'Fit Analysis (Analyze First Mode)',
@@ -103,6 +119,21 @@ const features = [
     cost: 'Part of 2.0 credit package',
     link: '/blog/follow-up-email-after-job-application',
     linkText: 'When to send follow-ups →',
+  },
+  {
+    icon: ClipboardList,
+    title: 'Application Tracker',
+    description:
+      'Every application you generate is stored with its match score, status, company and role. Update status as you progress through interviews. No more spreadsheet chaos.',
+    benefits: [
+      'Automatic tracking for all Karko applications',
+      'Match score and fit analysis preserved',
+      'Status updates (applied, interview, offer, rejected)',
+      'Filter and search your application history',
+    ],
+    cost: 'Included in all plans',
+    link: '/dashboard',
+    linkText: 'See your tracker →',
   },
   {
     icon: Sparkles,
