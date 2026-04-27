@@ -23,7 +23,6 @@ import {
   Pencil,
   Check,
   X,
-  CheckCircle2,
 } from 'lucide-react';
 
 type ApplicationStatus = 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up';
@@ -697,19 +696,6 @@ export function TrackerPanel() {
           <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-warm-gray">
             No spreadsheets. No lost follow-ups. Karko saves every application you send and keeps your pipeline organised automatically.
           </p>
-          <ul className="mx-auto mt-7 max-w-sm space-y-3 text-left">
-            {[
-              'Company, role and match score saved automatically',
-              'Track status from applied to offer in one click',
-              'Resume the conversation for any application anytime',
-              'Never lose track of a deadline or follow-up again',
-            ].map((item) => (
-              <li key={item} className="flex items-start gap-3 text-sm text-charcoal">
-                <CheckCircle2 className="mt-0.5 w-4 h-4 flex-shrink-0 text-gold-500" />
-                {item}
-              </li>
-            ))}
-          </ul>
           <div className="mt-8 flex flex-col items-center gap-3">
             <Link href="/auth/signup" className="inline-flex">
               <Button variant="gold" className="px-7 py-3 text-base">
