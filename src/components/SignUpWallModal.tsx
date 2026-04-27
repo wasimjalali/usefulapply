@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Sparkles, ArrowRight, Loader2, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import KarkoLogo from '@/components/KarkoLogo';
@@ -52,7 +53,8 @@ export function SignUpWallModal({ isOpen, onClose, trigger }: SignUpWallModalPro
     }
   }, [isOpen, handleEscape]);
 
-  if (!isOpen) return null;
+  const portalRoot = typeof document !== 'undefined' ? document.body : null;
+  if (!isOpen || !portalRoot) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,7 +91,7 @@ export function SignUpWallModal({ isOpen, onClose, trigger }: SignUpWallModalPro
   };
 
   if (success) {
-    return (
+    return createPortal(
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
         <div className="relative w-full max-w-md bg-white rounded-2xl shadow-lg p-8 text-center">
@@ -108,11 +110,12 @@ export function SignUpWallModal({ isOpen, onClose, trigger }: SignUpWallModalPro
             Got it
           </button>
         </div>
-      </div>
+      </div>,
+      portalRoot,
     );
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="signup-wall-title">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
@@ -232,7 +235,8 @@ export function SignUpWallModal({ isOpen, onClose, trigger }: SignUpWallModalPro
 
         </form>
       </div>
-    </div>
+    </div>,
+    portalRoot,
   );
 }
 

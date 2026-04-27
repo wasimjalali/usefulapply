@@ -46,7 +46,7 @@ export async function reserveCredits(params: {
     return { success: true, reservation: existing as CreditReservation, error: null };
   }
 
-  const { credits, error: creditsError } = await getUserCredits(userId);
+  const { credits, error: creditsError } = await getUserCredits(userId, admin);
   if (creditsError || !credits) {
     return { success: false, reservation: null, error: creditsError?.message ?? 'Credits not found' };
   }
@@ -63,6 +63,7 @@ export async function reserveCredits(params: {
   const deductResult = await deductCredits(userId, action, {
     sessionId: sessionId ?? undefined,
     description: `Credit reservation for ${action}`,
+    supabaseClient: admin,
   });
 
   if (!deductResult.success) {
@@ -96,12 +97,12 @@ export async function reserveCredits(params: {
         .single();
 
       if (raceWinner) {
-        await addCredits(userId, amount, 'addon', 'reservation_duplicate_refund', `Duplicate reservation refund for ${idempotencyKey}`);
+        await addCredits(userId, amount, 'addon', 'reservation_duplicate_refund', `Duplicate reservation refund for ${idempotencyKey}`, admin);
         return { success: true, reservation: raceWinner as CreditReservation, error: null };
       }
     }
 
-    await addCredits(userId, amount, 'addon', 'reservation_failed_refund', `Failed reservation refund for ${idempotencyKey}`);
+    await addCredits(userId, amount, 'addon', 'reservation_failed_refund', `Failed reservation refund for ${idempotencyKey}`, admin);
     return { success: false, reservation: null, error: `Failed to create reservation: ${error.message}` };
   }
 
@@ -141,12 +142,15 @@ export async function releaseReservation(params: {
   });
 
   if (result.success && result.reservation) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin = createAdminClient() as any;
     await addCredits(
       result.reservation.user_id,
       result.reservation.amount,
       'addon',
       'reservation_released',
       `Released reservation ${result.reservation.id}${params.reason ? `: ${params.reason}` : ''}`,
+      admin,
     );
   }
 
