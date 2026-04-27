@@ -18,6 +18,8 @@ import { FileText, Mail, Send, FolderOpen, ClipboardList, Target, User, Loader2,
 import KarkoLogo, { KarkoIcon } from '@/components/KarkoLogo';
 import Link from 'next/link';
 import { CreditIndicator } from '@/components/ui/CreditIndicator';
+import { LowCreditsBanner } from '@/components/ui/LowCreditsBanner';
+import { LowCreditsModal } from '@/components/ui/LowCreditsModal';
 import { useDashboardTour } from '@/hooks/useDashboardTour';
 import { useJobFeedBadge } from '@/hooks/useJobFeedBadge';
 import type { ParsedCV } from '@/lib/types';
@@ -838,6 +840,10 @@ export default function Dashboard() {
           <DashboardProfileMenu profile={profile} onSignOut={handleSignOut} />
         ) : null}
       </div>
+
+      {/* Low-credits alerts — portal modal + slim banner for paid users */}
+      {user && <LowCreditsBanner />}
+      {user && <LowCreditsModal />}
 
       <div className="hidden md:flex flex-1 overflow-hidden">
         <div className="flex-1 flex flex-col overflow-hidden">
