@@ -138,6 +138,9 @@ export function useAgentWorkflow(options?: {
     sessionId = currentSession?.id,
   ) => {
     if (!user || !sessionId) return;
+    const generationId = useAppStore.getState().currentSession?.jobFeedGenerationId
+      ?? currentSession?.jobFeedGenerationId
+      ?? null;
 
     if (currentSession?.id === sessionId) {
       const now = new Date().toISOString();
@@ -151,12 +154,15 @@ export function useAgentWorkflow(options?: {
       });
     }
 
+    if (!generationId) return;
+
     try {
       await fetch('/api/job-feed/apply/status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId,
+          generationId,
           status,
           errorMessage,
         }),

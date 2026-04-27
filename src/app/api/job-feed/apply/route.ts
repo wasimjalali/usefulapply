@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { canAccessJobFeed } from '@/lib/job-feed/helpers';
 import {
   authorizeJobFeedJobActionAdmin,
+  createOrReuseJobFeedApplicationGenerationAdmin,
   createJobFeedApplicationSessionAdmin,
   getJobFeedApplicationSessionAdmin,
   getJobFeedFeedbackAdmin,
   recordJobFeedFeedbackAdmin,
   toJobFeedFeedbackState,
+  transitionJobFeedApplicationGenerationAdmin,
 } from '@/lib/job-feed/server';
 import { captureJobFeedActionRejected, captureJobFeedEvent } from '@/lib/job-feed/analytics';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
@@ -135,6 +137,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const generationIntent = await createOrReuseJobFeedApplicationGenerationAdmin({
+      userId: user.id,
+      jobId,
+      rankedItem,
+      applicationSessionId: session.id,
+    });
+
     const feedback = await recordJobFeedFeedbackAdmin({
       userId: user.id,
       jobId,
@@ -142,6 +151,15 @@ export async function POST(request: NextRequest) {
       latestRunId: validatedRunId,
       applicationSessionId: session.id,
     });
+    if (generationIntent.generation.status === 'intent_created') {
+      await transitionJobFeedApplicationGenerationAdmin({
+        userId: user.id,
+        sessionId: session.id,
+        generationId: generationIntent.generation.id,
+        status: 'intent_created',
+        transitionReason: 'apply_intent_confirmed',
+      });
+    }
 
     const posthog = getPostHogServer();
     posthog.capture({
@@ -154,12 +172,16 @@ export async function POST(request: NextRequest) {
         feed_run_id: validatedRunId,
         session_created: created,
         session_id: session.id,
+        generation_id: generationIntent.generation.id,
+        generation_attempt: generationIntent.generation.attempt,
+        retried: generationIntent.retried,
       },
     });
 
     return NextResponse.json({
       created,
       session,
+      generation: generationIntent.generation,
       feedback: toJobFeedFeedbackState(feedback),
     });
   } catch (error) {

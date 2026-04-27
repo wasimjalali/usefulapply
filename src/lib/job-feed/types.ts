@@ -1,5 +1,6 @@
 import type {
   ApplicationSession as SupabaseApplicationSession,
+  JobFeedApplicationGeneration,
   JobFeedGenerationStatus,
   JobFeedCanonicalJob,
   JobFeedRun,
@@ -159,6 +160,7 @@ export interface JobFeedFeedbackResponse {
 export interface JobFeedApplyResponse {
   created: boolean;
   session: SupabaseApplicationSession;
+  generation: JobFeedApplicationGeneration;
   feedback: JobFeedItemFeedbackState;
 }
 

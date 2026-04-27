@@ -141,26 +141,27 @@ Verification:
 - `npx tsc --noEmit --incremental false` passed.
 - `npm run build` passed.
 
-## Architectural Decision To Revisit
+## Durable Job Feed Application Generation State Machine
 
-Status: Design drafted, not implemented
+Status: Implemented in code, pending DB migration execution and integration verification
 
 Recommendation:
 - Move Job Feed application generation to a durable database-backed state machine. The database should be the source of truth for every transition, and the UI/chat/notifications should reflect that state instead of relying on transient client-only state.
 
-Proposed durable state machine:
-- Entity: create a dedicated `job_feed_application_generations` table keyed by `id`, with `user_id`, `canonical_job_id`, `ranked_item_id`, `run_id`, `application_session_id`, `status`, `attempt`, timestamps, `error_code`, `error_message`, and JSON `metadata`.
-- Statuses: `intent_created`, `queued`, `running`, `succeeded`, `failed`, `cancelled`, `expired`. Keep `application_sessions.generation_status` only as a denormalized read model until the UI fully migrates.
-- Transitions: all writes go through one server-side transition function that validates `from_status -> to_status`, increments attempts for retry, protects terminal states, and records transition rows in `job_feed_application_generation_events`.
-- Workers: Apply with Karko should create or reuse a generation row and enqueue work. The chat/SSE flow should claim the row with a lease before running generation, then heartbeat while running.
-- Recovery: a scheduled reconciler marks stale `queued`/`running` rows as `failed` or `expired` after lease timeout, allowing a safe retry without guessing from client state.
-- UI contract: the Job Feed card, ChatPanel autostart, tracker, badge, and notifications should poll/subscribe to the generation row status. URL autostart becomes an instruction to resume/claim a durable generation, not the source of truth.
-- Observability: each transition emits one analytics event and one transition row. PostHog becomes derived telemetry; the database event log remains canonical for debugging and refunds.
+Implemented:
+- Added migration `supabase/migrations/202604270002_job_feed_application_generation_state_machine.sql`.
+- Added canonical tables:
+  - `job_feed_application_generations`
+  - `job_feed_application_generation_events`
+- Added statuses: `intent_created`, `queued`, `running`, `succeeded`, `failed`, `cancelled`, `expired`.
+- Added server transition guard `transitionJobFeedApplicationGenerationAdmin()` with legal `from_status -> to_status` validation.
+- Apply with Karko now creates or reuses a durable generation row before autostart.
+- Failed/cancelled/expired retries increment `attempt` and reset the generation row to `intent_created`.
+- Chat generation status sync now sends `generationId`, so transitions target the durable row.
+- Existing `application_sessions.generation_status` and `job_feed_feedback.generation_status` remain denormalized read models while the UI still uses them.
+- Added `/api/job-feed/apply/generation` to read the canonical generation row by generation ID or session ID.
+- Added an Inngest reconciler that expires stale queued/running generation rows after their lease expires.
+- Each state transition writes a DB event row and emits `job_feed_application_generation_transition`.
 
-Suggested implementation order:
-- Add tables, constraints, transition enum/checks, indexes, and RLS/service-role access in a migration.
-- Add `transitionJobFeedApplicationGenerationAdmin()` and route `/api/job-feed/apply/generation`.
-- Change `/api/job-feed/apply` to create an `intent_created` generation instead of relying on only `application_sessions`.
-- Update ChatPanel to claim/resume generation by ID and write `running/succeeded/failed/cancelled` through the transition API.
-- Add stale-generation reconciler and retry endpoint.
-- Migrate UI reads from `job_feed_feedback.generation_status` to the new generation row, then remove duplicated state when stable.
+Verification:
+- `npx tsc --noEmit --incremental false` passed.

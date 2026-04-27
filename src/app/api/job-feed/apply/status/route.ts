@@ -12,6 +12,7 @@ const SUPPORTED_STATUSES = new Set<JobFeedGenerationStatus>(['running', 'succeed
 export async function POST(request: NextRequest) {
   let userId: string | null = null;
   let sessionId = '';
+  let generationId = '';
   let status: JobFeedGenerationStatus | 'none' = 'none';
   let subscriptionTier: string | null = null;
 
@@ -53,6 +54,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     sessionId = typeof body?.sessionId === 'string' ? body.sessionId.trim() : '';
+    generationId = typeof body?.generationId === 'string' ? body.generationId.trim() : '';
     status = typeof body?.status === 'string' ? body.status.trim() as JobFeedGenerationStatus : 'none';
     const errorMessage = typeof body?.errorMessage === 'string' ? body.errorMessage.trim().slice(0, 1000) : null;
 
@@ -83,6 +85,7 @@ export async function POST(request: NextRequest) {
     const result = await updateJobFeedApplicationGenerationStatusAdmin({
       userId: user.id,
       sessionId,
+      generationId: generationId || null,
       status: status as Exclude<JobFeedGenerationStatus, 'none' | 'pending'>,
       errorMessage,
     });
@@ -92,6 +95,8 @@ export async function POST(request: NextRequest) {
       event: status === 'running' ? 'job_feed_generation_started' : `job_feed_generation_${status}`,
       properties: {
         session_id: sessionId,
+        generation_id: result.generation.id,
+        generation_attempt: result.generation.attempt,
         job_id: result.feedback?.canonical_job_id ?? null,
         feed_run_id: result.feedback?.latest_run_id ?? null,
         company: result.session.company,
@@ -103,6 +108,18 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof Error && error.message.includes('generation was not found')) {
+      captureJobFeedActionRejected({
+        userId,
+        route: 'apply/status',
+        action: 'generation_status_update',
+        reason: 'generation_not_found',
+        status: 404,
+        subscriptionTier,
+      });
+      return NextResponse.json({ error: 'Application generation not found.' }, { status: 404 });
+    }
+
     if (error instanceof Error && error.message.includes('session was not found')) {
       captureJobFeedActionRejected({
         userId,

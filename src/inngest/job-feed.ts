@@ -1,6 +1,7 @@
 import { cleanupHistoricalJobFeedData } from '@/lib/job-feed/cleanup';
 import { captureJobFeedEvent } from '@/lib/job-feed/analytics';
 import {
+  expireStaleJobFeedApplicationGenerations,
   listDueJobFeedUsers,
   runJobFeedFoundationWorkflow,
   stageJobFeedRunForBatch,
@@ -225,11 +226,25 @@ export const jobFeedBatchReconcilerFunction = inngest.createFunction(
   }
 );
 
+export const jobFeedApplicationGenerationReconcilerFunction = inngest.createFunction(
+  {
+    id: 'job-feed-application-generation-reconciler',
+    name: 'Job Feed Application Generation Reconciler',
+    triggers: [{ cron: '*/10 * * * *' }],
+  },
+  async ({ step }) => {
+    return step.run('expire-stale-application-generations', async () => {
+      return expireStaleJobFeedApplicationGenerations();
+    });
+  }
+);
+
 export const jobFeedFunctions = [
   jobFeedSchedulerTickFunction,
   jobFeedSweepRequestedFunction,
   jobFeedRunRequestedFunction,
   jobFeedBatchReconcilerFunction,
+  jobFeedApplicationGenerationReconcilerFunction,
 ];
 
 function parseSweepRequestedEventData(value: unknown): JobFeedSweepRequestedEventData {

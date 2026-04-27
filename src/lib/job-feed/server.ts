@@ -1,6 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import type {
   ApplicationSession as SupabaseApplicationSession,
+  JobFeedApplicationGeneration,
+  JobFeedApplicationGenerationStatus,
   JobFeedGenerationStatus,
   JobFeedCanonicalJob,
   JobFeedFeedback,
@@ -57,6 +59,13 @@ interface LatestJobFeedItemsResult {
 export interface JobFeedGenerationStatusUpdateResult {
   session: Pick<SupabaseApplicationSession, 'id' | 'job_title' | 'company' | 'generation_status'>;
   feedback: JobFeedFeedback | null;
+  generation: JobFeedApplicationGeneration;
+}
+
+export interface JobFeedApplicationGenerationIntentResult {
+  generation: JobFeedApplicationGeneration;
+  created: boolean;
+  retried: boolean;
 }
 
 async function getUserSubscriptionTierAdmin(userId: string): Promise<string> {
@@ -248,34 +257,414 @@ export async function createJobFeedApplicationSessionAdmin(params: {
   return data as SupabaseApplicationSession;
 }
 
+export async function createOrReuseJobFeedApplicationGenerationAdmin(params: {
+  userId: string;
+  jobId: string;
+  rankedItem: SupabaseJobFeedRankedItem;
+  applicationSessionId: string;
+}): Promise<JobFeedApplicationGenerationIntentResult> {
+  const { userId, jobId, rankedItem, applicationSessionId } = params;
+  const now = new Date().toISOString();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+
+  const { data: existingRow, error: loadError } = await admin
+    .from('job_feed_application_generations')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('canonical_job_id', jobId)
+    .eq('application_session_id', applicationSessionId)
+    .maybeSingle();
+
+  if (loadError) {
+    throw new Error(`Failed to load job feed application generation: ${loadError.message}`);
+  }
+
+  const existing = (existingRow ?? null) as JobFeedApplicationGeneration | null;
+  if (existing) {
+    if (existing.status === 'failed' || existing.status === 'cancelled' || existing.status === 'expired') {
+      const nextAttempt = existing.attempt + 1;
+      const { data: retriedRow, error: retryError } = await admin
+        .from('job_feed_application_generations')
+        .update({
+          ranked_item_id: rankedItem.id,
+          run_id: rankedItem.run_id,
+          status: 'intent_created',
+          attempt: nextAttempt,
+          lease_owner: null,
+          lease_expires_at: null,
+          last_heartbeat_at: null,
+          error_code: null,
+          error_message: null,
+          metadata: mergeMetadata(existing.metadata, {
+            retry_requested_at: now,
+            retry_previous_status: existing.status,
+          }),
+          intent_created_at: now,
+          queued_at: null,
+          started_at: null,
+          completed_at: null,
+          failed_at: null,
+          cancelled_at: null,
+          expired_at: null,
+          updated_at: now,
+        })
+        .eq('id', existing.id)
+        .select('*')
+        .single();
+
+      if (retryError) {
+        throw new Error(`Failed to retry job feed application generation: ${retryError.message}`);
+      }
+
+      const generation = retriedRow as JobFeedApplicationGeneration;
+      await insertJobFeedApplicationGenerationEvent({
+        generation,
+        fromStatus: existing.status,
+        toStatus: generation.status,
+        transitionReason: 'retry_requested',
+        metadata: {
+          previous_attempt: existing.attempt,
+        },
+      });
+      captureJobFeedEvent({
+        distinctId: userId,
+        event: 'job_feed_application_generation_transition',
+        properties: {
+          generation_id: generation.id,
+          session_id: generation.application_session_id,
+          job_id: generation.canonical_job_id,
+          feed_run_id: generation.run_id,
+          from_status: existing.status,
+          to_status: generation.status,
+          attempt: generation.attempt,
+          transition_reason: 'retry_requested',
+          has_error: false,
+        },
+      });
+      await syncJobFeedGenerationReadModels({
+        userId,
+        sessionId: applicationSessionId,
+        generation,
+        errorMessage: null,
+      });
+
+      return { generation, created: false, retried: true };
+    }
+
+    return { generation: existing, created: false, retried: false };
+  }
+
+  const { data, error } = await admin
+    .from('job_feed_application_generations')
+    .insert({
+      user_id: userId,
+      canonical_job_id: jobId,
+      ranked_item_id: rankedItem.id,
+      run_id: rankedItem.run_id,
+      application_session_id: applicationSessionId,
+      status: 'intent_created',
+      attempt: 1,
+      metadata: {
+        source: 'job_feed_apply',
+      },
+      intent_created_at: now,
+    })
+    .select('*')
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to create job feed application generation: ${error.message}`);
+  }
+
+  const generation = data as JobFeedApplicationGeneration;
+  await insertJobFeedApplicationGenerationEvent({
+    generation,
+    fromStatus: null,
+    toStatus: generation.status,
+    transitionReason: 'apply_intent_created',
+  });
+  captureJobFeedEvent({
+    distinctId: userId,
+    event: 'job_feed_application_generation_transition',
+    properties: {
+      generation_id: generation.id,
+      session_id: generation.application_session_id,
+      job_id: generation.canonical_job_id,
+      feed_run_id: generation.run_id,
+      from_status: null,
+      to_status: generation.status,
+      attempt: generation.attempt,
+      transition_reason: 'apply_intent_created',
+      has_error: false,
+    },
+  });
+  await syncJobFeedGenerationReadModels({
+    userId,
+    sessionId: applicationSessionId,
+    generation,
+    errorMessage: null,
+  });
+
+  return { generation, created: true, retried: false };
+}
+
 export async function updateJobFeedApplicationGenerationStatusAdmin(params: {
   userId: string;
   sessionId: string;
+  generationId?: string | null;
   status: Exclude<JobFeedGenerationStatus, 'none' | 'pending'>;
   errorMessage?: string | null;
 }): Promise<JobFeedGenerationStatusUpdateResult> {
-  const { userId, sessionId, status, errorMessage = null } = params;
+  const { userId, sessionId, generationId = null, status, errorMessage = null } = params;
+  const generationStatus = mapLegacyGenerationStatusToApplicationStatus(status);
+  return transitionJobFeedApplicationGenerationAdmin({
+    userId,
+    sessionId,
+    generationId,
+    status: generationStatus,
+    errorMessage,
+    transitionReason: `client_reported_${status}`,
+  });
+}
+
+export async function transitionJobFeedApplicationGenerationAdmin(params: {
+  userId: string;
+  sessionId?: string | null;
+  generationId?: string | null;
+  status: JobFeedApplicationGenerationStatus;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  transitionReason?: string | null;
+  metadata?: Record<string, Json>;
+}): Promise<JobFeedGenerationStatusUpdateResult> {
+  const {
+    userId,
+    sessionId = null,
+    generationId = null,
+    status,
+    errorCode = null,
+    errorMessage = null,
+    transitionReason = null,
+    metadata = {},
+  } = params;
   const now = new Date().toISOString();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added columns here.
   const admin = createAdminClient() as any;
 
-  const sessionPatch: Record<string, Json | string | boolean | null> = {
-    generation_status: status,
-    generation_error: status === 'failed' || status === 'cancelled' ? errorMessage : null,
+  const generation = await getJobFeedApplicationGenerationForTransition({
+    userId,
+    generationId,
+    sessionId,
+  });
+
+  if (!generation) {
+    throw new Error('Application generation was not found for this account.');
+  }
+
+  if (generation.application_session_id !== sessionId && sessionId) {
+    throw new Error('Application generation does not belong to this application session.');
+  }
+
+  if (!isJobFeedApplicationGenerationTransitionAllowed(generation.status, status)) {
+    throw new Error(`Invalid job feed application generation transition: ${generation.status} -> ${status}`);
+  }
+
+  const statusChanged = generation.status !== status;
+  const generationPatch: Record<string, Json | string | number | null> = {
+    status,
+    error_code: status === 'failed' || status === 'cancelled' || status === 'expired' ? errorCode : null,
+    error_message: status === 'failed' || status === 'cancelled' || status === 'expired' ? errorMessage : null,
+    metadata: mergeMetadata(generation.metadata, {
+      ...metadata,
+      last_transition_reason: transitionReason,
+      last_transition_at: now,
+    }),
     updated_at: now,
   };
 
-  if (status === 'running') {
-    sessionPatch.generation_started_at = now;
+  if (status === 'queued') {
+    generationPatch.queued_at = generation.queued_at ?? now;
+  } else if (status === 'running') {
+    generationPatch.started_at = generation.started_at ?? now;
+    generationPatch.last_heartbeat_at = now;
+    generationPatch.lease_owner = 'chat_sse';
+    generationPatch.lease_expires_at = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+  } else if (status === 'succeeded') {
+    generationPatch.completed_at = generation.completed_at ?? now;
+    generationPatch.lease_owner = null;
+    generationPatch.lease_expires_at = null;
+    generationPatch.last_heartbeat_at = now;
+  } else if (status === 'failed') {
+    generationPatch.failed_at = now;
+    generationPatch.lease_owner = null;
+    generationPatch.lease_expires_at = null;
+  } else if (status === 'cancelled') {
+    generationPatch.cancelled_at = now;
+    generationPatch.lease_owner = null;
+    generationPatch.lease_expires_at = null;
+  } else if (status === 'expired') {
+    generationPatch.expired_at = now;
+    generationPatch.lease_owner = null;
+    generationPatch.lease_expires_at = null;
+  }
+
+  const { data, error } = await admin
+    .from('job_feed_application_generations')
+    .update(generationPatch)
+    .eq('id', generation.id)
+    .eq('user_id', userId)
+    .select('*')
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to transition job feed application generation: ${error.message}`);
+  }
+
+  const updatedGeneration = data as JobFeedApplicationGeneration;
+  if (statusChanged) {
+    await insertJobFeedApplicationGenerationEvent({
+      generation: updatedGeneration,
+      fromStatus: generation.status,
+      toStatus: status,
+      transitionReason,
+      errorCode,
+      errorMessage,
+      metadata,
+    });
+    captureJobFeedEvent({
+      distinctId: userId,
+      event: 'job_feed_application_generation_transition',
+      logLevel: status === 'failed' || status === 'cancelled' || status === 'expired' ? 'warn' : 'info',
+      properties: {
+        generation_id: updatedGeneration.id,
+        session_id: updatedGeneration.application_session_id,
+        job_id: updatedGeneration.canonical_job_id,
+        feed_run_id: updatedGeneration.run_id,
+        from_status: generation.status,
+        to_status: status,
+        attempt: updatedGeneration.attempt,
+        transition_reason: transitionReason,
+        has_error: Boolean(errorMessage),
+      },
+    });
+  }
+
+  return syncJobFeedGenerationReadModels({
+    userId,
+    sessionId: updatedGeneration.application_session_id,
+    generation: updatedGeneration,
+    errorMessage,
+  });
+}
+
+export async function expireStaleJobFeedApplicationGenerations(params?: {
+  now?: Date;
+  limit?: number;
+}): Promise<{ expired: number; checkedAt: string }> {
+  const now = params?.now ?? new Date();
+  const checkedAt = now.toISOString();
+  const limit = params?.limit ?? 100;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+  const { data, error } = await admin
+    .from('job_feed_application_generations')
+    .select('*')
+    .in('status', ['queued', 'running'])
+    .not('lease_expires_at', 'is', null)
+    .lt('lease_expires_at', checkedAt)
+    .order('lease_expires_at', { ascending: true })
+    .limit(limit);
+
+  if (error) {
+    throw new Error(`Failed to load stale job feed application generations: ${error.message}`);
+  }
+
+  const staleGenerations = (data ?? []) as JobFeedApplicationGeneration[];
+  let expired = 0;
+
+  for (const generation of staleGenerations) {
+    try {
+      await transitionJobFeedApplicationGenerationAdmin({
+        userId: generation.user_id,
+        generationId: generation.id,
+        sessionId: generation.application_session_id,
+        status: 'expired',
+        errorCode: 'lease_expired',
+        errorMessage: 'Application generation expired after losing its running worker lease.',
+        transitionReason: 'stale_generation_reconciler',
+      });
+      expired += 1;
+    } catch (error) {
+      console.error('[job-feed] failed to expire stale application generation:', generation.id, error);
+    }
+  }
+
+  return { expired, checkedAt };
+}
+
+async function getJobFeedApplicationGenerationForTransition(params: {
+  userId: string;
+  generationId?: string | null;
+  sessionId?: string | null;
+}): Promise<JobFeedApplicationGeneration | null> {
+  const { userId, generationId = null, sessionId = null } = params;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+  let query = admin
+    .from('job_feed_application_generations')
+    .select('*')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false })
+    .limit(1);
+
+  if (generationId) {
+    query = query.eq('id', generationId);
+  } else if (sessionId) {
+    query = query.eq('application_session_id', sessionId);
+  } else {
+    throw new Error('A generation ID or session ID is required.');
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error) {
+    throw new Error(`Failed to load job feed application generation: ${error.message}`);
+  }
+
+  return (data ?? null) as JobFeedApplicationGeneration | null;
+}
+
+async function syncJobFeedGenerationReadModels(params: {
+  userId: string;
+  sessionId: string;
+  generation: JobFeedApplicationGeneration;
+  errorMessage?: string | null;
+}): Promise<JobFeedGenerationStatusUpdateResult> {
+  const { userId, sessionId, generation, errorMessage = null } = params;
+  const status = mapApplicationGenerationStatusToLegacyStatus(generation.status);
+  const now = new Date().toISOString();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added columns here.
+  const admin = createAdminClient() as any;
+  const sessionPatch: Record<string, Json | string | boolean | null> = {
+    generation_status: status,
+    generation_error: status === 'failed' || status === 'cancelled' ? generation.error_message ?? errorMessage : null,
+    updated_at: now,
+  };
+
+  if (status === 'pending') {
+    sessionPatch.generation_completed = false;
+  } else if (status === 'running') {
+    sessionPatch.generation_started_at = generation.started_at ?? now;
+    sessionPatch.generation_completed = false;
   } else if (status === 'succeeded') {
     sessionPatch.generation_completed = true;
-    sessionPatch.generation_completed_at = now;
+    sessionPatch.generation_completed_at = generation.completed_at ?? now;
   } else if (status === 'failed') {
     sessionPatch.generation_completed = false;
-    sessionPatch.generation_failed_at = now;
+    sessionPatch.generation_failed_at = generation.failed_at ?? generation.expired_at ?? now;
   } else if (status === 'cancelled') {
     sessionPatch.generation_completed = false;
-    sessionPatch.generation_cancelled_at = now;
+    sessionPatch.generation_cancelled_at = generation.cancelled_at ?? now;
   }
 
   const { data: updatedSession, error: sessionError } = await admin
@@ -309,32 +698,39 @@ export async function updateJobFeedApplicationGenerationStatusAdmin(params: {
     return {
       session: updatedSession as JobFeedGenerationStatusUpdateResult['session'],
       feedback: null,
+      generation,
     };
   }
 
   const typedFeedback = existingFeedback as JobFeedFeedback;
   const feedbackPatch: Record<string, Json | string | null> = {
     generation_status: status,
-    generation_error: status === 'failed' || status === 'cancelled' ? errorMessage : null,
+    generation_error: status === 'failed' || status === 'cancelled' ? generation.error_message ?? errorMessage : null,
     metadata: mergeMetadata(typedFeedback.metadata ?? null, {
+      application_generation_id: generation.id,
+      application_generation_attempt: generation.attempt,
+      application_generation_status: generation.status,
       generation_status: status,
       generation_status_at: now,
-      generation_error: errorMessage ?? null,
+      generation_error: generation.error_message ?? errorMessage ?? null,
     }),
     updated_at: now,
   };
 
-  if (status === 'running') {
-    feedbackPatch.generation_started_at = typedFeedback.generation_started_at ?? now;
+  if (status === 'pending') {
+    feedbackPatch.apply_started_at = typedFeedback.apply_started_at ?? now;
+    feedbackPatch.applied_at = null;
+  } else if (status === 'running') {
+    feedbackPatch.generation_started_at = typedFeedback.generation_started_at ?? generation.started_at ?? now;
   } else if (status === 'succeeded') {
-    feedbackPatch.applied_at = typedFeedback.applied_at ?? now;
-    feedbackPatch.generation_completed_at = typedFeedback.generation_completed_at ?? now;
+    feedbackPatch.applied_at = typedFeedback.applied_at ?? generation.completed_at ?? now;
+    feedbackPatch.generation_completed_at = typedFeedback.generation_completed_at ?? generation.completed_at ?? now;
   } else if (status === 'failed') {
     feedbackPatch.applied_at = null;
-    feedbackPatch.generation_failed_at = now;
+    feedbackPatch.generation_failed_at = generation.failed_at ?? generation.expired_at ?? now;
   } else if (status === 'cancelled') {
     feedbackPatch.applied_at = null;
-    feedbackPatch.generation_cancelled_at = now;
+    feedbackPatch.generation_cancelled_at = generation.cancelled_at ?? now;
   }
 
   const { error: feedbackError } = await admin
@@ -352,7 +748,100 @@ export async function updateJobFeedApplicationGenerationStatusAdmin(params: {
       ...typedFeedback,
       ...feedbackPatch,
     } as JobFeedFeedback,
+    generation,
   };
+}
+
+async function insertJobFeedApplicationGenerationEvent(params: {
+  generation: JobFeedApplicationGeneration;
+  fromStatus: JobFeedApplicationGenerationStatus | null;
+  toStatus: JobFeedApplicationGenerationStatus;
+  transitionReason?: string | null;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  metadata?: Record<string, Json>;
+}): Promise<void> {
+  const {
+    generation,
+    fromStatus,
+    toStatus,
+    transitionReason = null,
+    errorCode = null,
+    errorMessage = null,
+    metadata = {},
+  } = params;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+  const { error } = await admin
+    .from('job_feed_application_generation_events')
+    .insert({
+      generation_id: generation.id,
+      user_id: generation.user_id,
+      from_status: fromStatus,
+      to_status: toStatus,
+      attempt: generation.attempt,
+      transition_reason: transitionReason,
+      error_code: errorCode,
+      error_message: errorMessage,
+      metadata,
+    });
+
+  if (error) {
+    throw new Error(`Failed to record job feed application generation event: ${error.message}`);
+  }
+}
+
+function isJobFeedApplicationGenerationTransitionAllowed(
+  from: JobFeedApplicationGenerationStatus,
+  to: JobFeedApplicationGenerationStatus
+): boolean {
+  if (from === to) return true;
+
+  const allowedTransitions: Record<JobFeedApplicationGenerationStatus, JobFeedApplicationGenerationStatus[]> = {
+    intent_created: ['queued', 'running', 'failed', 'cancelled', 'expired'],
+    queued: ['running', 'failed', 'cancelled', 'expired'],
+    running: ['succeeded', 'failed', 'cancelled', 'expired'],
+    succeeded: [],
+    failed: ['intent_created'],
+    cancelled: ['intent_created'],
+    expired: ['intent_created'],
+  };
+
+  return allowedTransitions[from].includes(to);
+}
+
+function mapLegacyGenerationStatusToApplicationStatus(
+  status: Exclude<JobFeedGenerationStatus, 'none' | 'pending'>
+): JobFeedApplicationGenerationStatus {
+  switch (status) {
+    case 'running':
+      return 'running';
+    case 'succeeded':
+      return 'succeeded';
+    case 'failed':
+      return 'failed';
+    case 'cancelled':
+      return 'cancelled';
+  }
+}
+
+function mapApplicationGenerationStatusToLegacyStatus(
+  status: JobFeedApplicationGenerationStatus
+): JobFeedGenerationStatus {
+  switch (status) {
+    case 'intent_created':
+    case 'queued':
+      return 'pending';
+    case 'running':
+      return 'running';
+    case 'succeeded':
+      return 'succeeded';
+    case 'failed':
+    case 'expired':
+      return 'failed';
+    case 'cancelled':
+      return 'cancelled';
+  }
 }
 
 export async function recordJobFeedFeedbackAdmin(params: {

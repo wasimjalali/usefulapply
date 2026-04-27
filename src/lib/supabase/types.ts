@@ -8,6 +8,7 @@ export type Json =
 
 export type SubscriptionTier = 'free' | 'plus' | 'max'
 export type JobFeedGenerationStatus = 'none' | 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled'
+export type JobFeedApplicationGenerationStatus = 'intent_created' | 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'expired'
 
 export interface Database {
   public: {
@@ -469,6 +470,124 @@ export interface Database {
           metadata?: Json
           created_at?: string
           updated_at?: string
+        }
+      }
+      job_feed_application_generations: {
+        Row: {
+          id: string
+          user_id: string
+          canonical_job_id: string
+          ranked_item_id: string | null
+          run_id: string | null
+          application_session_id: string
+          status: JobFeedApplicationGenerationStatus
+          attempt: number
+          lease_owner: string | null
+          lease_expires_at: string | null
+          last_heartbeat_at: string | null
+          error_code: string | null
+          error_message: string | null
+          metadata: Json
+          intent_created_at: string
+          queued_at: string | null
+          started_at: string | null
+          completed_at: string | null
+          failed_at: string | null
+          cancelled_at: string | null
+          expired_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          canonical_job_id: string
+          ranked_item_id?: string | null
+          run_id?: string | null
+          application_session_id: string
+          status?: JobFeedApplicationGenerationStatus
+          attempt?: number
+          lease_owner?: string | null
+          lease_expires_at?: string | null
+          last_heartbeat_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          metadata?: Json
+          intent_created_at?: string
+          queued_at?: string | null
+          started_at?: string | null
+          completed_at?: string | null
+          failed_at?: string | null
+          cancelled_at?: string | null
+          expired_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          canonical_job_id?: string
+          ranked_item_id?: string | null
+          run_id?: string | null
+          application_session_id?: string
+          status?: JobFeedApplicationGenerationStatus
+          attempt?: number
+          lease_owner?: string | null
+          lease_expires_at?: string | null
+          last_heartbeat_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          metadata?: Json
+          intent_created_at?: string
+          queued_at?: string | null
+          started_at?: string | null
+          completed_at?: string | null
+          failed_at?: string | null
+          cancelled_at?: string | null
+          expired_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      job_feed_application_generation_events: {
+        Row: {
+          id: string
+          generation_id: string
+          user_id: string
+          from_status: JobFeedApplicationGenerationStatus | null
+          to_status: JobFeedApplicationGenerationStatus
+          attempt: number
+          transition_reason: string | null
+          error_code: string | null
+          error_message: string | null
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          generation_id: string
+          user_id: string
+          from_status?: JobFeedApplicationGenerationStatus | null
+          to_status: JobFeedApplicationGenerationStatus
+          attempt: number
+          transition_reason?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          generation_id?: string
+          user_id?: string
+          from_status?: JobFeedApplicationGenerationStatus | null
+          to_status?: JobFeedApplicationGenerationStatus
+          attempt?: number
+          transition_reason?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          metadata?: Json
+          created_at?: string
         }
       }
       job_feed_ranked_items: {
@@ -1170,6 +1289,8 @@ export type JobFeedRun = Tables<'job_feed_runs'>
 export type JobFeedRawFetch = Tables<'job_feed_raw_fetches'>
 export type JobFeedCanonicalJob = Tables<'job_feed_canonical_jobs'>
 export type JobFeedFeedback = Tables<'job_feed_feedback'>
+export type JobFeedApplicationGeneration = Tables<'job_feed_application_generations'>
+export type JobFeedApplicationGenerationEvent = Tables<'job_feed_application_generation_events'>
 export type JobFeedRankedItem = Tables<'job_feed_ranked_items'>
 export type Document = Tables<'documents'>
 export type ProfilePhoto = Tables<'profile_photos'>
