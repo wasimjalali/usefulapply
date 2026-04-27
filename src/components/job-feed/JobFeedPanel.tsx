@@ -615,6 +615,7 @@ export function JobFeedPanel() {
         useUIStore.getState().setPendingJobFeedAutostart({
           sessionId: typedPayload.session.id,
           generationId: typedPayload.generation.id,
+          generationAttempt: typedPayload.generation.attempt,
         });
       }
 
@@ -638,6 +639,7 @@ export function JobFeedPanel() {
       router.push(buildJobFeedApplyPath({
         sessionId: typedPayload.session.id,
         generationId: typedPayload.generation.id,
+        generationAttempt: typedPayload.generation.attempt,
         autostart: shouldAutostartGeneration,
       }));
     } catch (error) {
@@ -2065,6 +2067,25 @@ function summarizeCountries(
 
 
 
+function toSessionGenerationStatus(
+  status: JobFeedApplyResponse['generation']['status']
+): StoreApplicationSession['generationStatus'] {
+  switch (status) {
+    case 'intent_created':
+    case 'queued':
+      return 'pending';
+    case 'running':
+      return 'running';
+    case 'succeeded':
+      return 'succeeded';
+    case 'failed':
+    case 'expired':
+      return 'failed';
+    case 'cancelled':
+      return 'cancelled';
+  }
+}
+
 function toStoreApplicationSession(
   session: JobFeedApplyResponse['session'],
   generation: JobFeedApplyResponse['generation']
@@ -2095,8 +2116,8 @@ function toStoreApplicationSession(
     email: session.email as unknown as StoreApplicationSession['email'],
     followUpEmail: session.follow_up_email as unknown as StoreApplicationSession['followUpEmail'],
     fitAssessment: session.fit_assessment as unknown as StoreApplicationSession['fitAssessment'],
-    generationStatus: session.generation_status,
-    generationError: session.generation_error,
+    generationStatus: toSessionGenerationStatus(generation.status),
+    generationError: generation.error_message ?? session.generation_error,
     generationStartedAt: session.generation_started_at,
     generationCompletedAt: session.generation_completed_at,
     generationFailedAt: session.generation_failed_at,
@@ -2113,6 +2134,7 @@ function toStoreApplicationSession(
 function buildJobFeedApplyPath(params: {
   sessionId: string;
   generationId: string;
+  generationAttempt: number;
   autostart: boolean;
 }): string {
   const searchParams = new URLSearchParams({
@@ -2120,6 +2142,7 @@ function buildJobFeedApplyPath(params: {
     tab: 'cv',
     session: params.sessionId,
     generation: params.generationId,
+    generationAttempt: String(params.generationAttempt),
   });
 
   if (params.autostart) {
