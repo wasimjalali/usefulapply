@@ -18,6 +18,7 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
   const [credits, setCredits] = useState<UserCredits | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [buyingCredits, setBuyingCredits] = useState(false);
   const isMountedRef = useRef(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -91,7 +92,6 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
   const maxCredits = credits?.plan_tier === 'free' ? 4 : credits?.plan_tier === 'plus' ? 50 : 200;
   const percentRemaining = Math.min((totalCredits / maxCredits) * 100, 100);
   const formattedCredits = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(totalCredits);
-  const [buyingCredits, setBuyingCredits] = useState(false);
 
   const handleBuyCredits = async () => {
     if (!user) return;
