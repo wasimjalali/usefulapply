@@ -42,10 +42,10 @@ All templates use Arial body + Georgia headers (ATS-compliant system fonts).
 
 | Tier | Credits/Month | Price |
 |------|--------------|-------|
-| Free | 10 | — |
-| Plus | 100 | $39.99/mo |
+| Free | 4 | — |
+| Plus | 50 | $19.99/mo |
 | Max | 200 | $79.99/mo |
-| Add-on Credit Pack | +40 | $19.99 |
+| Add-on Credit Pack | +25 | $19.99 |
 
 ### Credit Costs
 
