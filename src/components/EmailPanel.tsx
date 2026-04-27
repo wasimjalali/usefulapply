@@ -473,7 +473,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
     <div className="h-full flex flex-col bg-cream-50">
       {/* Inline toolbar for mobile only (no portal) */}
       {!toolbarPortal && (
-        <div className="px-3 sm:px-5 py-2.5 glass-toolbar flex-shrink-0">
+        <div className="px-3 sm:px-5 py-2.5 bg-cream-100 border-b border-cream-200 flex-shrink-0">
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
             {toolbarContent}
           </div>

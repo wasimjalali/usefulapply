@@ -843,7 +843,7 @@ export default function Dashboard() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {activeWorkspace === 'application-kit' && currentCV && (
             <>
-              <div className="bg-cream-50 border-b border-cream-200 px-4 sm:px-5 py-2.5">
+              <div className="bg-cream-100 border-b border-cream-200 px-4 sm:px-5 py-2.5">
                 <div id="tour-doc-tabs" className="inline-flex items-center rounded-2xl border border-cream-200 bg-cream-50 p-0.5">
                   <button
                     type="button"
@@ -884,7 +884,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="relative z-40 glass-toolbar px-3 sm:px-5 py-2.5">
+              <div className="relative z-40 bg-cream-100 border-b border-cream-200 px-3 sm:px-5 py-2.5">
                 <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
                   <div ref={setToolbarNode} className="flex items-center gap-2" />
                 </div>
