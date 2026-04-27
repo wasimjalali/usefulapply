@@ -97,13 +97,13 @@ Scope:
 
 ## Suspicious Edge Cases To Verify After Bug Fixes
 
-- New run in `running` state can display older completed jobs; UI now labels those cards as the most recent completed feed. Pending browser verification.
-- Settings changed while a run is active may leave the UI showing new preferences while the running job uses old preferences.
-- Large multi-country setups now cap searched countries to the query cap explicitly. Pending run-plan regression test.
-- Saved then dismissed jobs are hidden, and direct API mutation now rejects terminal feedback states. Pending manual API regression test.
-- Dashboard badge last-seen state is now user-scoped. Pending browser regression test.
-- Agent credit deduction before generation completion may need refund or recovery behavior on failure.
-- Empty, thin, ready, failed, and running feed states need manual QA after state fixes.
+Status after follow-up review:
+- Closed in code, pending browser/manual verification: legacy `starter`/`pro`/`enterprise` plan cleanup, older completed jobs during a running run are now labeled as previous-feed cards, direct save-after-dismiss mutation is blocked by terminal feedback guards, and dashboard popup last-seen state is user-scoped.
+- Closed in code, pending unit/regression verification: large multi-country setups are capped by the backend search-plan limit instead of accidentally building unlimited country queries.
+- Partially closed in code: chat generation status sync now recovers the canonical `job_feed_application_generations` row by `application_session_id` when the browser loses `jobFeedGenerationId`.
+- Still open: settings changed while a run is active can make the UI show new settings while the in-flight run was built from older settings. Recommended fix is to persist a full `settings_snapshot` on `job_feed_runs` and render run-specific labels from that snapshot, or lock settings changes while a run is active.
+- Still open: credits are deducted inside `/api/agent-v2` before generation completion and are not tied to a Job Feed generation row. Recommended fix is credit reservation/capture/refund semantics keyed by `job_feed_application_generations.id`.
+- Still open: empty, thin, ready, failed, and running feed states need manual QA after DB migrations are applied.
 
 ## Manual QA Script For The End
 
@@ -160,8 +160,25 @@ Implemented:
 - Chat generation status sync now sends `generationId`, so transitions target the durable row.
 - Existing `application_sessions.generation_status` and `job_feed_feedback.generation_status` remain denormalized read models while the UI still uses them.
 - Added `/api/job-feed/apply/generation` to read the canonical generation row by generation ID or session ID.
+- Chat generation status sync now falls back to reading the canonical generation row by session ID if local browser state lost `jobFeedGenerationId`.
 - Added an Inngest reconciler that expires stale queued/running generation rows after their lease expires.
 - Each state transition writes a DB event row and emits `job_feed_application_generation_transition`.
 
 Verification:
 - `npx tsc --noEmit --incremental false` passed.
+- `npm run build` passed after the generation-ID recovery patch.
+
+## Remaining DB-First Architecture Work
+
+Goal:
+- Make the database the source of truth for Job Feed actions, application generation, notifications, and recovery. Browser state should only render/subscribe to DB state and submit user intents.
+
+Recommended next moves:
+- Add a full immutable `settings_snapshot` JSONB column or metadata contract on every `job_feed_runs` row. This prevents confusion when settings are edited while a run is queued/running and lets the UI accurately say which roles/countries produced the visible cards.
+- Move generation execution ownership off the browser. The browser should create a generation intent; a server worker should claim `job_feed_application_generations`, heartbeat, stream or persist progress, and transition the row to terminal states. The current browser SSE workflow is better than before, but it still owns execution.
+- Replace direct browser-reported generation success/failure with server-owned transitions. `/api/job-feed/apply/status` should eventually only accept limited user intents like cancel; success/failure should come from the worker that generated and persisted the artifacts.
+- Tie credits to generation rows through a `credit_reservations` table or `credit_transactions.metadata.generation_id`. Reserve when work starts, capture on success, release/refund on retryable failure or cancellation before usable artifacts exist.
+- Persist generated artifacts server-side before marking a generation `succeeded`. Today the UI/session sync path is still a read model; success should mean the database has the application package, not merely that a browser saw `workflow_complete`.
+- Add a notification/outbox table for feed-ready, generation-started, generation-failed, generation-succeeded, retry-available, and stale-generation-expired events. UI badges/toasts/email/push should read from this outbox instead of local browser keys.
+- Add active-run protection for settings updates: either allow edits but mark them `effective_next_run`, or block/prompt while a run is `queued`/`running`.
+- Add reconciliation jobs for denormalized read models: `application_sessions.generation_status`, `job_feed_feedback.generation_status`, and `job_feed_application_generations.status` should be periodically checked for drift until the UI fully reads canonical generation rows.
