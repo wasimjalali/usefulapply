@@ -11,6 +11,7 @@ interface FooterLink {
 
 const productLinks: FooterLink[] = [
   { href: '/features', label: 'Features' },
+  { href: '/features#smart-job-feed', label: 'Smart Job Feed' },
   { href: '/#how-it-works', label: 'How It Works' },
   { href: '/master-cv', label: 'Master CV' },
   { href: '/ai-job-application/application-tracker', label: 'Application Tracker' },
@@ -53,13 +54,13 @@ export default function Footer() {
               <KarkoLogo variant="full" size="lg" theme="dark" />
             </Link>
             <p className="text-sm text-white/90 leading-relaxed max-w-[320px] mb-5">
-              Get your complete job application package in 90 seconds.
+              Find jobs. Write applications. Track progress. All in one app.
             </p>
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm hover:shadow-md"
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-gold-400 hover:bg-gold-500 text-navy-900 rounded-xl transition-all shadow-sm hover:shadow-md"
             >
-              Try It Free - 2 Applications, No Credit Card
+              Start free, no credit card
             </Link>
           </div>
 
