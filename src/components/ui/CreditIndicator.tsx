@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Coins, ChevronDown, ChevronUp } from 'lucide-react';
+import { Coins, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserCredits, type UserCredits } from '@/lib/supabase/credits';
 import Link from 'next/link';
@@ -91,6 +91,29 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
   const maxCredits = credits?.plan_tier === 'free' ? 4 : credits?.plan_tier === 'plus' ? 50 : 200;
   const percentRemaining = Math.min((totalCredits / maxCredits) * 100, 100);
   const formattedCredits = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(totalCredits);
+  const [buyingCredits, setBuyingCredits] = useState(false);
+
+  const handleBuyCredits = async () => {
+    if (!user) return;
+    setBuyingCredits(true);
+    try {
+      const res = await fetch('/api/stripe/create-addon-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || 'Could not start checkout. Please try again.');
+        setBuyingCredits(false);
+      }
+    } catch {
+      alert('Something went wrong. Please try again.');
+      setBuyingCredits(false);
+    }
+  };
 
   // Color based on remaining credits — brand palette
   const getColor = () => {
@@ -214,13 +237,13 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
                 </div>
 
                 <div className="pt-2 border-t border-cream-200 space-y-2">
-                  <Link
-                    href="/pricing#addons"
-                    className="block w-full text-center text-sm font-medium px-3 py-2.5 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors"
-                    onClick={() => setIsExpanded(false)}
+                  <button
+                    onClick={() => { setIsExpanded(false); handleBuyCredits(); }}
+                    disabled={buyingCredits}
+                    className="flex items-center justify-center gap-2 w-full text-center text-sm font-medium px-3 py-2.5 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors disabled:opacity-60 cursor-pointer"
                   >
-                    Buy More Credits
-                  </Link>
+                    {buyingCredits ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Buy More Credits'}
+                  </button>
                   <Link
                     href="/subscription"
                     className="block w-full text-center text-sm font-medium text-navy-600 hover:text-navy-700 transition-colors py-1"
