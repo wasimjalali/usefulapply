@@ -615,6 +615,7 @@ export function JobFeedPanel() {
         useUIStore.getState().setPendingJobFeedAutostart({
           sessionId: typedPayload.session.id,
           generationId: typedPayload.generation.id,
+          generationAttempt: typedPayload.generation.attempt,
         });
       }
 
@@ -638,6 +639,7 @@ export function JobFeedPanel() {
       router.push(buildJobFeedApplyPath({
         sessionId: typedPayload.session.id,
         generationId: typedPayload.generation.id,
+        generationAttempt: typedPayload.generation.attempt,
         autostart: shouldAutostartGeneration,
       }));
     } catch (error) {
@@ -2113,6 +2115,7 @@ function toStoreApplicationSession(
 function buildJobFeedApplyPath(params: {
   sessionId: string;
   generationId: string;
+  generationAttempt: number;
   autostart: boolean;
 }): string {
   const searchParams = new URLSearchParams({
@@ -2120,6 +2123,7 @@ function buildJobFeedApplyPath(params: {
     tab: 'cv',
     session: params.sessionId,
     generation: params.generationId,
+    generationAttempt: String(params.generationAttempt),
   });
 
   if (params.autostart) {
