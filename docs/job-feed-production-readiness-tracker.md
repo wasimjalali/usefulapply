@@ -118,26 +118,50 @@ Scope:
 - Repeat save, dismiss, rate, and apply rapidly from one tab and two tabs.
 - Delete account and verify user-owned Job Feed rows are gone.
 
-## Missing Logs And Analytics To Add
+## Missing Logs And Analytics
 
-Status: Parked until confirmed bugs are fixed
+Status: Implemented in code, pending production telemetry verification
 
-Events to add:
-- `job_feed_action_rejected`
-- `job_feed_apply_session_created`
-- `job_feed_generation_started`
-- `job_feed_generation_succeeded`
-- `job_feed_generation_failed`
-- `job_feed_generation_cancelled`
-- `job_feed_retry_clicked`
-- `job_feed_feedback_conflict`
-- `job_feed_scheduler_due_users`
-- `job_feed_run_idempotency_conflict`
-- `job_feed_unsafe_external_link_dropped`
+Implemented events:
+- `job_feed_action_rejected`: emitted from Job Feed feedback, apply, and generation status routes for auth, access, validation, rate-limit, missing-session, and ranked-feed authorization rejects.
+- `job_feed_apply_session_created`: emitted when Apply with Karko creates a new durable `application_sessions` row.
+- `job_feed_generation_started`, `job_feed_generation_succeeded`, `job_feed_generation_failed`, `job_feed_generation_cancelled`: emitted from `/api/job-feed/apply/status` with session, job, feed run, title/company, error presence, and tier properties.
+- `job_feed_retry_clicked`: emitted client-side when a failed/cancelled Job Feed application is retried.
+- `job_feed_feedback_conflict`: emitted when terminal feedback state blocks a new feedback/apply mutation.
+- `job_feed_scheduler_due_users`: emitted by the Inngest sweep after due-user selection.
+- `job_feed_run_idempotency_conflict`: emitted when an existing completed/running run blocks duplicate run creation.
+- `job_feed_unsafe_external_link_dropped`: emitted when unsafe external apply option links are sanitized out.
 
-## Architectural Decision To Revisit
+Implementation notes:
+- Shared server helper: `src/lib/job-feed/analytics.ts`.
+- Existing `job_feed_applied` remains for backward-compatible reporting.
+- Server events also write structured console logs so production incidents can be diagnosed even when PostHog is unavailable.
 
-Status: Parked until confirmed bugs are fixed
+Verification:
+- `npx tsc --noEmit --incremental false` passed.
+- `npm run build` passed.
+
+## Durable Job Feed Application Generation State Machine
+
+Status: Implemented in code, pending DB migration execution and integration verification
 
 Recommendation:
 - Move Job Feed application generation to a durable database-backed state machine. The database should be the source of truth for every transition, and the UI/chat/notifications should reflect that state instead of relying on transient client-only state.
+
+Implemented:
+- Added migration `supabase/migrations/202604270002_job_feed_application_generation_state_machine.sql`.
+- Added canonical tables:
+  - `job_feed_application_generations`
+  - `job_feed_application_generation_events`
+- Added statuses: `intent_created`, `queued`, `running`, `succeeded`, `failed`, `cancelled`, `expired`.
+- Added server transition guard `transitionJobFeedApplicationGenerationAdmin()` with legal `from_status -> to_status` validation.
+- Apply with Karko now creates or reuses a durable generation row before autostart.
+- Failed/cancelled/expired retries increment `attempt` and reset the generation row to `intent_created`.
+- Chat generation status sync now sends `generationId`, so transitions target the durable row.
+- Existing `application_sessions.generation_status` and `job_feed_feedback.generation_status` remain denormalized read models while the UI still uses them.
+- Added `/api/job-feed/apply/generation` to read the canonical generation row by generation ID or session ID.
+- Added an Inngest reconciler that expires stale queued/running generation rows after their lease expires.
+- Each state transition writes a DB event row and emits `job_feed_application_generation_transition`.
+
+Verification:
+- `npx tsc --noEmit --incremental false` passed.

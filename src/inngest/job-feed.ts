@@ -1,5 +1,7 @@
 import { cleanupHistoricalJobFeedData } from '@/lib/job-feed/cleanup';
+import { captureJobFeedEvent } from '@/lib/job-feed/analytics';
 import {
+  expireStaleJobFeedApplicationGenerations,
   listDueJobFeedUsers,
   runJobFeedFoundationWorkflow,
   stageJobFeedRunForBatch,
@@ -56,6 +58,17 @@ export const jobFeedSweepRequestedFunction = inngest.createFunction(
 
     const dueUsers = await step.run('load-due-job-feed-users', async () => {
       return listDueJobFeedUsers(requestedAt);
+    });
+    await step.run('capture-due-job-feed-users', async () => {
+      captureJobFeedEvent({
+        event: 'job_feed_scheduler_due_users',
+        properties: {
+          trigger_source: data.triggerSource,
+          requested_at: data.requestedAt,
+          due_users: dueUsers.length,
+          batch_ranking_enabled: isBatchRankingEnabled(),
+        },
+      });
     });
 
     // Batch path: stage every due user in one pass, then submit a single
@@ -213,11 +226,25 @@ export const jobFeedBatchReconcilerFunction = inngest.createFunction(
   }
 );
 
+export const jobFeedApplicationGenerationReconcilerFunction = inngest.createFunction(
+  {
+    id: 'job-feed-application-generation-reconciler',
+    name: 'Job Feed Application Generation Reconciler',
+    triggers: [{ cron: '*/10 * * * *' }],
+  },
+  async ({ step }) => {
+    return step.run('expire-stale-application-generations', async () => {
+      return expireStaleJobFeedApplicationGenerations();
+    });
+  }
+);
+
 export const jobFeedFunctions = [
   jobFeedSchedulerTickFunction,
   jobFeedSweepRequestedFunction,
   jobFeedRunRequestedFunction,
   jobFeedBatchReconcilerFunction,
+  jobFeedApplicationGenerationReconcilerFunction,
 ];
 
 function parseSweepRequestedEventData(value: unknown): JobFeedSweepRequestedEventData {

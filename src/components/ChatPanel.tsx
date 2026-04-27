@@ -222,12 +222,13 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
   const setPendingJobFeedAutostart = useUIStore((state) => state.setPendingJobFeedAutostart);
   useEffect(() => {
     const urlSessionId = searchParams.get('session');
+    const urlGenerationId = searchParams.get('generation');
     if (searchParams.get('autostart') !== 'job-feed-apply') return;
     if (!urlSessionId || currentSession?.id !== urlSessionId) return;
     if (pendingJobFeedAutostart?.sessionId === urlSessionId) return;
     if (autostartedApplySessionIds.has(urlSessionId)) return;
 
-    setPendingJobFeedAutostart({ sessionId: urlSessionId });
+    setPendingJobFeedAutostart({ sessionId: urlSessionId, generationId: urlGenerationId });
   }, [currentSession?.id, pendingJobFeedAutostart?.sessionId, searchParams, setPendingJobFeedAutostart]);
 
   useEffect(() => {
@@ -265,6 +266,11 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     // Claim the session BEFORE firing — any concurrent render will bail out.
     autostartedApplySessionIds.add(currentSession.id);
     setPendingJobFeedAutostart(null);
+    if (pendingJobFeedAutostart.generationId) {
+      useAppStore.getState().updateCurrentSession({
+        jobFeedGenerationId: pendingJobFeedAutostart.generationId,
+      });
+    }
 
     addChatMessage({ role: 'user', content: jobDescription });
     setJobDescription(jobDescription);

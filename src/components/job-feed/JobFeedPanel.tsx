@@ -386,8 +386,8 @@ export function JobFeedPanel() {
     setSavedJobs((prev) => (prev ? prev.filter((job) => job.id !== jobId) : prev));
   }, []);
 
-  const syncApplicationSession = useCallback((session: JobFeedApplyResponse['session']) => {
-    const mappedSession = toStoreApplicationSession(session);
+  const syncApplicationSession = useCallback((payload: Pick<JobFeedApplyResponse, 'session' | 'generation'>) => {
+    const mappedSession = toStoreApplicationSession(payload.session, payload.generation);
     const sessionStore = useSessionStore.getState();
     sessionStore.setSessions([
       mappedSession,
@@ -563,6 +563,9 @@ export function JobFeedPanel() {
   }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback, removeJobFromOverview, selectedJob?.id]);
 
   const handleApplyWithKarko = useCallback(async (job: JobFeedFeedItem) => {
+    const isRetry =
+      job.feedback.generationStatus === 'failed' ||
+      job.feedback.generationStatus === 'cancelled';
     setPendingJobAction({ jobId: job.id, action: 'apply' });
 
     try {
@@ -570,6 +573,18 @@ export function JobFeedPanel() {
         applyPreviewFeedback(job.id, 'applied');
         toastRef.current.success('Preview updated locally. This local preview does not create an application session.');
         return;
+      }
+
+      if (isRetry) {
+        posthog?.capture('job_feed_retry_clicked', {
+          foundation_mode: true,
+          job_id: job.id,
+          job_title: job.title,
+          company: job.company,
+          feed_run_id: overview?.feedRun?.id ?? null,
+          previous_generation_status: job.feedback.generationStatus,
+          session_id: job.feedback.applicationSessionId,
+        });
       }
 
       const response = await fetch('/api/job-feed/apply', {
@@ -590,14 +605,16 @@ export function JobFeedPanel() {
 
       const typedPayload = payload as JobFeedApplyResponse;
       updateJobFeedbackState(job.id, typedPayload.feedback);
-      syncApplicationSession(typedPayload.session);
+      syncApplicationSession(typedPayload);
       setSelectedJob(null);
+      const shouldAutostartGeneration = Boolean(currentCV) && typedPayload.generation.status === 'intent_created';
 
       // Fire the in-memory signal for the current tab. The URL carries the
       // same autostart intent so refresh/new-tab recovery can still work.
-      if (currentCV) {
+      if (shouldAutostartGeneration) {
         useUIStore.getState().setPendingJobFeedAutostart({
           sessionId: typedPayload.session.id,
+          generationId: typedPayload.generation.id,
         });
       }
 
@@ -611,14 +628,17 @@ export function JobFeedPanel() {
       });
 
       toastRef.current.success(
-        currentCV
+        shouldAutostartGeneration
           ? `${job.title} at ${job.company} — Karko is generating your application`
-          : `${job.title} at ${job.company} — upload your CV to continue`
+          : currentCV
+            ? `${job.title} at ${job.company} — opening your application workspace`
+            : `${job.title} at ${job.company} — upload your CV to continue`
       );
 
       router.push(buildJobFeedApplyPath({
         sessionId: typedPayload.session.id,
-        autostart: Boolean(currentCV),
+        generationId: typedPayload.generation.id,
+        autostart: shouldAutostartGeneration,
       }));
     } catch (error) {
       toastRef.current.error(error instanceof Error ? error.message : 'Failed to start the Karko AI application handoff.');
@@ -2045,7 +2065,10 @@ function summarizeCountries(
 
 
 
-function toStoreApplicationSession(session: JobFeedApplyResponse['session']): StoreApplicationSession {
+function toStoreApplicationSession(
+  session: JobFeedApplyResponse['session'],
+  generation: JobFeedApplyResponse['generation']
+): StoreApplicationSession {
   const companyResearch = session.company_research && typeof session.company_research === 'object' && !Array.isArray(session.company_research)
     ? {
         ...(session.company_research as Record<string, unknown>),
@@ -2072,6 +2095,14 @@ function toStoreApplicationSession(session: JobFeedApplyResponse['session']): St
     email: session.email as unknown as StoreApplicationSession['email'],
     followUpEmail: session.follow_up_email as unknown as StoreApplicationSession['followUpEmail'],
     fitAssessment: session.fit_assessment as unknown as StoreApplicationSession['fitAssessment'],
+    generationStatus: session.generation_status,
+    generationError: session.generation_error,
+    generationStartedAt: session.generation_started_at,
+    generationCompletedAt: session.generation_completed_at,
+    generationFailedAt: session.generation_failed_at,
+    generationCancelledAt: session.generation_cancelled_at,
+    jobFeedGenerationId: generation.id,
+    jobFeedGenerationAttempt: generation.attempt,
     companyResearch,
     screeningUsageCount: 0,
     cvEdits: Array.isArray(session.cv_edits) ? session.cv_edits as unknown as StoreApplicationSession['cvEdits'] : [],
@@ -2081,12 +2112,14 @@ function toStoreApplicationSession(session: JobFeedApplyResponse['session']): St
 
 function buildJobFeedApplyPath(params: {
   sessionId: string;
+  generationId: string;
   autostart: boolean;
 }): string {
   const searchParams = new URLSearchParams({
     workspace: 'application-kit',
     tab: 'cv',
     session: params.sessionId,
+    generation: params.generationId,
   });
 
   if (params.autostart) {

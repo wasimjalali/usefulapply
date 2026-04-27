@@ -172,6 +172,8 @@ export interface ApplicationSession {
   generationCompletedAt?: string | null;
   generationFailedAt?: string | null;
   generationCancelledAt?: string | null;
+  jobFeedGenerationId?: string | null;
+  jobFeedGenerationAttempt?: number | null;
   companyResearch: CompanyResearch | null;
   
   /** Persisted fit analysis state — survives session switches, expires after 30 min */

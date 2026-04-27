@@ -5,6 +5,7 @@ import {
   recordJobFeedFeedbackAdmin,
   toJobFeedFeedbackState,
 } from '@/lib/job-feed/server';
+import { captureJobFeedActionRejected, captureJobFeedEvent } from '@/lib/job-feed/analytics';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { createClient } from '@/lib/supabase/server';
@@ -16,10 +17,22 @@ export const runtime = 'nodejs';
 const SUPPORTED_ACTIONS = new Set(['opened', 'saved', 'dismissed', 'rated_helpful', 'rated_not_relevant']);
 
 export async function POST(request: NextRequest) {
+  let userId: string | null = null;
+  let jobId = '';
+  let action = '';
+  let runId = '';
+  let subscriptionTier: string | null = null;
+
   try {
     const ip = getClientIP(request);
     const { allowed } = checkRateLimit(`job-feed-feedback:${ip}`, RATE_LIMITS['job-feed-feedback']);
     if (!allowed) {
+      captureJobFeedActionRejected({
+        route: 'feedback',
+        action: 'unknown',
+        reason: 'rate_limited',
+        status: 429,
+      });
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
@@ -29,29 +42,63 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
 
     if (authError || !user) {
+      captureJobFeedActionRejected({
+        route: 'feedback',
+        action: 'unknown',
+        reason: 'unauthenticated',
+        status: 401,
+      });
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
+    userId = user.id;
 
     const { data: profile, error: profileError } = await typedSupabase
       .from('profiles')
       .select('subscription_tier')
       .eq('id', user.id)
       .single();
+    subscriptionTier = profile?.subscription_tier ?? null;
 
     if (profileError || !profile || !canAccessJobFeed(profile.subscription_tier)) {
+      captureJobFeedActionRejected({
+        userId,
+        route: 'feedback',
+        action: 'unknown',
+        reason: profileError ? 'profile_load_failed' : 'plan_not_allowed',
+        status: profileError ? 500 : 403,
+        subscriptionTier,
+      });
       return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 
     const body = await request.json();
-    const jobId = typeof body?.jobId === 'string' ? body.jobId.trim() : '';
-    const action = typeof body?.action === 'string' ? body.action.trim() : '';
-    const runId = typeof body?.runId === 'string' ? body.runId.trim() : '';
+    jobId = typeof body?.jobId === 'string' ? body.jobId.trim() : '';
+    action = typeof body?.action === 'string' ? body.action.trim() : '';
+    runId = typeof body?.runId === 'string' ? body.runId.trim() : '';
 
     if (!jobId) {
+      captureJobFeedActionRejected({
+        userId,
+        route: 'feedback',
+        action: action || 'unknown',
+        reason: 'missing_job_id',
+        status: 400,
+        subscriptionTier,
+      });
       return NextResponse.json({ error: 'A job ID is required.' }, { status: 400 });
     }
 
     if (!SUPPORTED_ACTIONS.has(action)) {
+      captureJobFeedActionRejected({
+        userId,
+        route: 'feedback',
+        action: action || 'unknown',
+        reason: 'unsupported_action',
+        jobId,
+        runId: runId || null,
+        status: 400,
+        subscriptionTier,
+      });
       return NextResponse.json({ error: 'Unsupported feedback action.' }, { status: 400 });
     }
 
@@ -61,6 +108,16 @@ export async function POST(request: NextRequest) {
       runId: runId || null,
     });
     if (!authorizedItem) {
+      captureJobFeedActionRejected({
+        userId,
+        route: 'feedback',
+        action,
+        reason: 'ranked_feed_item_not_found',
+        jobId,
+        runId: runId || null,
+        status: 404,
+        subscriptionTier,
+      });
       return NextResponse.json({ error: 'Job Feed item not found.' }, { status: 404 });
     }
     const { job, rankedItem } = authorizedItem;
@@ -90,6 +147,24 @@ export async function POST(request: NextRequest) {
       feedback: toJobFeedFeedbackState(feedback),
     });
   } catch (error) {
+    if (error instanceof Error && error.message.includes('terminal state')) {
+      captureJobFeedEvent({
+        distinctId: userId,
+        event: 'job_feed_feedback_conflict',
+        logLevel: 'warn',
+        properties: {
+          route: 'feedback',
+          action,
+          job_id: jobId || null,
+          feed_run_id: runId || null,
+          reason: 'terminal_state',
+          status: 409,
+          subscription_tier: subscriptionTier,
+        },
+      });
+      return NextResponse.json({ error: 'This job feed item can no longer be changed.' }, { status: 409 });
+    }
+
     console.error('[job-feed/feedback] unexpected error:', error);
     return NextResponse.json({ error: 'Failed to record job feed feedback.' }, { status: 500 });
   }
