@@ -169,6 +169,31 @@ Before writing any migration, read `supabase/migrations/` to check for conflicts
 
 ---
 
+## Copy & Voice (UI-facing text)
+
+All user-facing strings — chat messages, button labels, empty states, tooltips, toasts, onboarding copy, agent responses, error messages — must follow these rules:
+
+### No em dashes
+- **Never use `—` (em dash, U+2014).** It is the most recognizable AI writing tell.
+- Replace with: a comma, a colon, a period and new sentence, parentheses, or just a plain hyphen `-` where a dash is truly needed.
+- Bad: `Your CV is ready — check the Application Kit.`
+- Good: `Your CV is ready. Check the Application Kit.`
+
+### Human punctuation patterns
+- Use contractions where natural: "you're", "it's", "we'll", "don't" — not stiff formal language.
+- Short sentences over long compound ones. One idea per sentence.
+- No Oxford-comma abuse in UI copy (it reads clinical). Use "X, Y and Z" not "X, Y, and Z".
+- Periods at the end of standalone sentences in toasts/messages. No periods on button labels or short chips.
+
+### Tone
+- Warm and direct. Like a knowledgeable colleague, not a corporate chatbot.
+- No hollow filler: "Great!", "Sure!", "Absolutely!" — cut them.
+- No passive voice in action confirmations: "Application generated" → "Your application is ready."
+
+These rules apply to: agent completion messages, chat assistant replies, error/empty states, modal copy, tooltip text, onboarding steps, and any hardcoded string a user reads.
+
+---
+
 ## Design System (authoritative — this overrides any older spec)
 
 The product has three visual layers. Every panel, card, and document must pick a role and stick to it.

@@ -8,6 +8,7 @@
 
 import { useState, useRef } from 'react';
 import { useAppStore } from '@/store/useAppStore';
+import { useUIStore } from '@/store/useUIStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePostHog } from 'posthog-js/react';
 import { hasUsedFreeGeneration, markFreeGenerationUsed } from '@/components/SignUpWallModal';
@@ -99,6 +100,7 @@ export function useAgentWorkflow(options?: {
 }) {
   const { user, profile } = useAuth();
   const posthog = usePostHog();
+  const { setActiveTab } = useUIStore();
   const {
     currentCV,
     currentSession,
@@ -756,9 +758,10 @@ export function useAgentWorkflow(options?: {
                   markFreeGenerationUsed();
                 }
 
+                setActiveTab('cv');
                 addChatMessage({
                   role: 'assistant',
-                  content: `✅ **Application package ready**\n\nI opened the **CV** tab for you. Your **cover letter** and **email** are ready in the tabs above.\n\nIf you need ATS form answers next, use the screening-question suggestion below.`,
+                  content: `✅ **Application package ready**\n\nYour optimized CV, cover letter, and email are ready. Check the **Application Kit** panel (top left).\n\nIf you need ATS form answers next, use the screening-question suggestion below.`,
                 });
                 break;
                 
