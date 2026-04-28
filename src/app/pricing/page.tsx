@@ -212,22 +212,18 @@ export default function PricingPage() {
             {/* === FREE === */}
             <ScrollReveal delay={0} className="h-full">
             <div className="relative h-full flex flex-col bg-cream-50 rounded-2xl border border-cream-200 shadow-sm overflow-hidden">
-              {/* spacer to match Plus badge height */}
               <div className="h-[36px]" />
               <div className="p-7 pt-5 flex flex-col h-full">
-                <div className="mb-5">
+                <div className="mb-4">
                   <h3 className="font-bold text-navy-600 text-[22px] leading-tight">Free</h3>
                   <p className="text-sm text-warm-gray mt-0.5">Try Karko, no card required</p>
                 </div>
-                <h4 className="font-bold text-charcoal text-[28px] leading-[1.15] mb-5 min-h-[72px]">
-                  2 tailored applications every month
-                </h4>
                 <div className="mb-6">
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-[40px] font-bold text-navy-600 leading-none">Free</span>
                     <span className="text-warm-gray text-sm">forever</span>
                   </div>
-                  <p className="text-[13px] text-warm-gray mt-1">No credit card to start.</p>
+                  <span className="inline-block mt-2 text-[12px] font-semibold text-navy-600 bg-navy-50 border border-navy-100 rounded-full px-3 py-0.5">2 applications / month</span>
                 </div>
                 <Link
                   href="/dashboard"
@@ -258,24 +254,21 @@ export default function PricingPage() {
 
             {/* === PLUS === */}
             <ScrollReveal delay={100} className="h-full">
-            <div className="relative h-full flex flex-col bg-cream-50 rounded-2xl border border-cream-200 shadow-md overflow-hidden">
+            <div className="relative h-full flex flex-col bg-cream-50 rounded-2xl border-2 border-gold-400 shadow-xl overflow-hidden">
               <div className="h-[36px] flex items-center justify-center bg-gold-400 text-navy-900 text-[11px] font-bold tracking-[0.14em]">
                 MOST POPULAR
               </div>
-              <div className="p-7 pt-5 flex flex-col h-full border-t-2 border-gold-400 -mt-[2px]">
-                <div className="mb-5">
+              <div className="p-7 pt-5 flex flex-col h-full">
+                <div className="mb-4">
                   <h3 className="font-bold text-navy-600 text-[22px] leading-tight">Plus</h3>
                   <p className="text-sm text-warm-gray mt-0.5">For serious job seekers</p>
                 </div>
-                <h4 className="font-bold text-charcoal text-[28px] leading-[1.15] mb-5 min-h-[72px]">
-                  25 tailored applications every month
-                </h4>
                 <div className="mb-6">
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-[40px] font-bold text-navy-600 leading-none">$19.99</span>
                     <span className="text-warm-gray text-sm">/ month</span>
                   </div>
-                  <p className="text-[13px] text-warm-gray mt-1">About $0.80 per application.</p>
+                  <span className="inline-block mt-2 text-[12px] font-semibold text-gold-700 bg-gold-50 border border-gold-200 rounded-full px-3 py-0.5">25 applications / month</span>
                 </div>
                 <button
                   onClick={() => handleSubscribe('plus')}
@@ -305,31 +298,28 @@ export default function PricingPage() {
 
             {/* === MAX === */}
             <ScrollReveal delay={200} className="h-full">
-            <div className="relative h-full flex flex-col bg-cream-50 rounded-2xl border border-navy-200 shadow-sm overflow-hidden">
+            <div className="relative h-full flex flex-col bg-navy-800 rounded-2xl border border-navy-700 shadow-sm overflow-hidden">
               <div className="h-[36px]" />
               <div className="p-7 pt-5 flex flex-col h-full">
-                <div className="mb-5">
-                  <h3 className="font-bold text-navy-600 text-[22px] leading-tight">Max</h3>
-                  <p className="text-sm text-warm-gray mt-0.5">For the intense job search</p>
+                <div className="mb-4">
+                  <h3 className="font-bold text-white text-[22px] leading-tight">Max</h3>
+                  <p className="text-sm text-navy-300 mt-0.5">For the intense job search</p>
                 </div>
-                <h4 className="font-bold text-charcoal text-[28px] leading-[1.15] mb-5 min-h-[72px]">
-                  100 tailored applications every month
-                </h4>
                 <div className="mb-6">
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-[40px] font-bold text-navy-600 leading-none">$79.99</span>
-                    <span className="text-warm-gray text-sm">/ month</span>
+                    <span className="text-[40px] font-bold text-white leading-none">$79.99</span>
+                    <span className="text-navy-300 text-sm">/ month</span>
                   </div>
-                  <p className="text-[13px] text-warm-gray mt-1">About $0.80 per application.</p>
+                  <span className="inline-block mt-2 text-[12px] font-semibold text-navy-200 bg-navy-700 border border-navy-600 rounded-full px-3 py-0.5">100 applications / month</span>
                 </div>
                 <button
                   onClick={() => handleSubscribe('max')}
                   disabled={loadingPlan === 'max'}
-                  className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm bg-navy-600 hover:bg-navy-700 text-white shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-60 mb-6 group"
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-navy-900 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-60 mb-6 group"
                 >
                   {loadingPlan === 'max' ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Max <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
                 </button>
-                <p className="font-bold text-charcoal text-[15px] mb-3">Everything in Plus, plus:</p>
+                <p className="font-bold text-white text-[15px] mb-3">Everything in Plus, plus:</p>
                 <ul className="space-y-2.5 mb-5 flex-1">
                   {[
                     'Smart Job Feed, up to 25 roles a day',
@@ -338,12 +328,12 @@ export default function PricingPage() {
                     'Premium dedicated support',
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
-                      <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold-500" />
-                      <span className="text-[14px] text-charcoal leading-relaxed">{f}</span>
+                      <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold-400" />
+                      <span className="text-[14px] text-navy-100 leading-relaxed">{f}</span>
                     </li>
                   ))}
                 </ul>
-                <p className="text-[13px] italic text-warm-gray mt-auto">Saves you about 108 hours a month.</p>
+                <p className="text-[13px] italic text-navy-300 mt-auto">Saves you about 108 hours a month.</p>
               </div>
             </div>
             </ScrollReveal>
