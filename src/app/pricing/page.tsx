@@ -236,7 +236,7 @@ export default function PricingPage() {
                   Start Free
                   <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
                 </Link>
-                <p className="text-[11px] font-semibold text-warm-gray uppercase tracking-[0.12em] mb-3">Included</p>
+                <p className="font-bold text-charcoal text-[15px] mb-3">What&apos;s included:</p>
                 <ul className="space-y-2.5 mb-5 flex-1">
                   {[
                     'Tailored CV, cover letter, email and follow-up',
@@ -284,14 +284,13 @@ export default function PricingPage() {
                 >
                   {loadingPlan === 'plus' ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Plus <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
                 </button>
-                <p className="text-[11px] font-semibold text-warm-gray uppercase tracking-[0.12em] mb-3">Included</p>
+                <p className="font-bold text-charcoal text-[15px] mb-3">Everything in Free, plus:</p>
                 <ul className="space-y-2.5 mb-5 flex-1">
                   {[
                     'Smart Job Feed, up to 15 roles a day',
                     'Fit Analysis before every application',
                     'Add-on credit packs (credits roll over)',
                     'Unlimited application history',
-                    'Everything in Free',
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold-500" />
@@ -330,14 +329,13 @@ export default function PricingPage() {
                 >
                   {loadingPlan === 'max' ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Max <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
                 </button>
-                <p className="text-[11px] font-semibold text-warm-gray uppercase tracking-[0.12em] mb-3">Included</p>
+                <p className="font-bold text-charcoal text-[15px] mb-3">Everything in Plus, plus:</p>
                 <ul className="space-y-2.5 mb-5 flex-1">
                   {[
                     'Smart Job Feed, up to 25 roles a day',
                     'AI screening question answers',
                     'Add-on credit packs (credits roll over)',
                     'Premium dedicated support',
-                    'Everything in Plus',
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold-500" />

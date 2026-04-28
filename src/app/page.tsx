@@ -370,9 +370,9 @@ export default function Home() {
               </p>
               <Link
                 href="/dashboard"
-                className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg border border-navy-200 text-navy-600 hover:bg-navy-50 hover:border-navy-400 font-semibold text-sm transition-colors"
+                className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg border border-white/70 bg-white/60 hover:bg-white hover:border-white hover:shadow-md text-navy-600 font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5 group"
               >
-                Start Free <ArrowRight className="w-4 h-4" />
+                Start Free <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
               </Link>
             </div>
             </ScrollReveal>
