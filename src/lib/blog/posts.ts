@@ -130,6 +130,7 @@ The screening question section used to be where strong applications died. It doe
       'application abandonment',
     ],
     featured: false,
+    priority: 2,
     ogImage: '/blog/screening-questions-cover.jpg',
     cta: {
       heading: 'Clear the screening question wall in minutes',
@@ -243,7 +244,8 @@ If five months of searching sounds like a long time, that is because it is. Gett
       'job application tool',
       'career',
     ],
-    featured: false,
+    featured: true,
+    priority: 1,
     ogImage: '/blog/smart-job-feed-cover.jpg',
     cta: {
       heading: 'Stop scrolling, start applying',
@@ -592,6 +594,7 @@ If you're in a job search, you already know how long tailoring takes. The questi
       'job search tips',
     ],
     featured: false,
+    priority: 3,
     ogImage: '/blog/resume-tailoring-cover.jpg',
     cta: {
       heading: 'Tailor Your Resume in 90 Seconds',
@@ -1398,7 +1401,7 @@ If you're currently in a job search, you already know how much time you're spend
       'apply faster',
       'career advice',
     ],
-    featured: true,
+    featured: false,
     ogImage: '/blog/time-comparison-chart.jpg',
     cta: {
       text: 'Try Karko AI Free - 2 Applications, No Credit Card',
@@ -2364,8 +2367,12 @@ That means you can move faster, improve your presentation, and still know the do
 ];
 
 export function getAllPosts(): BlogPost[] {
-  return blogPosts
-    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+  return [...blogPosts].sort((a, b) => {
+    const aPriority = a.priority ?? Number.POSITIVE_INFINITY;
+    const bPriority = b.priority ?? Number.POSITIVE_INFINITY;
+    if (aPriority !== bPriority) return aPriority - bPriority;
+    return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+  });
 }
 
 export function getPostBySlug(slug: string): BlogPost | undefined {

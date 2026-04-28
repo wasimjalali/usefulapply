@@ -13,6 +13,12 @@ export interface BlogPost {
   category: BlogCategory;
   tags: string[];
   featured?: boolean;
+  /**
+   * Manual ranking override for the blog index page. Lower number = higher on the page.
+   * Used to pin product-launch / high-value posts to the top. Posts without a priority
+   * sort by publishedAt desc after all prioritized posts.
+   */
+   priority?: number;
   ogImage?: string;
   cta?: {
     heading?: string;
