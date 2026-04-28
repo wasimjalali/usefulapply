@@ -191,7 +191,7 @@ export function SubscriptionSection({
                 <th className="pb-5 px-2 text-center align-bottom">
                   <div className="mb-2">
                     <span className="inline-block text-[10px] font-bold bg-gold-500 text-white px-3 py-1 rounded-full tracking-wide">
-                      SAVE ~37 HOURS
+                      SAVE ~18 HOURS/MONTH
                     </span>
                   </div>
                   <div className={`rounded-2xl px-3 py-4 ${
@@ -240,12 +240,12 @@ export function SubscriptionSection({
                 { label: 'Applications/month',            free: '2',      plus: '25',     max: '100' },
                 { label: 'Smart Job Feed',                free: false,    plus: '15/day', max: '25/day' },
                 { label: 'CV + Cover Letter + Email + Follow-up', free: true, plus: true, max: true },
-                { label: 'Honest fit score',              free: true,     plus: true,     max: true },
+                { label: 'Match score',                    free: true,     plus: true,     max: true },
                 { label: 'ATS-optimized templates',       free: true,     plus: true,     max: true },
                 { label: 'Application tracker',           free: true,     plus: true,     max: true },
-                { label: 'Unlimited application history', free: false,    plus: true,     max: true },
+                { label: 'Unlimited application tracker',  free: false,    plus: true,     max: true },
                 { label: 'Add-on credit packs',           free: false,    plus: true,     max: true },
-                { label: 'AI Screening Answers',          free: false,    plus: false,    max: true },
+                { label: 'Screening question answers',     free: false,    plus: false,    max: true },
                 { label: 'Hours saved/month',             free: '~2h',    plus: '~18h',   max: '~108h' },
               ] as const).map((row, i) => (
                 <tr key={row.label} className={i % 2 === 0 ? 'bg-cream-50/60' : ''}>
