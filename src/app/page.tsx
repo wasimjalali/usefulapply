@@ -10,6 +10,7 @@ import { TimeSavingsCalculator } from '@/components/marketing/TimeSavingsCalcula
 import { PlatformScrollStack } from '@/components/marketing/PlatformScrollStack';
 import { SectionBackground } from '@/components/marketing/AnimatedBackground';
 import { HeroAurora } from '@/components/marketing/HeroAurora';
+import { PricingAurora } from '@/components/marketing/PricingAurora';
 
 export const metadata: Metadata = {
   title: {
@@ -344,8 +345,9 @@ export default function Home() {
       </section>
 
       {/* Pricing teaser — 3-tile summary, links to /pricing for full compare */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-100">
-        <div className="max-w-5xl mx-auto">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-100 relative overflow-hidden">
+        <PricingAurora />
+        <div className="max-w-5xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-10">
             <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Pricing</p>

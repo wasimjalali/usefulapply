@@ -193,7 +193,7 @@ export default function PricingPage() {
           <ScrollReveal delay={450}>
           <div className="mt-6 inline-flex items-center gap-2 px-5 py-2 rounded-full bg-cream-50 border border-cream-200">
             <span className="text-warm-gray text-[13px]">
-              Anti-hallucination guardrails · US + EU ATS templates · Cancel any time
+              Anti-hallucination guardrails · US + EU ATS templates
             </span>
           </div>
           </ScrollReveal>
