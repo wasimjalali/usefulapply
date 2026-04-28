@@ -33,11 +33,8 @@ export default function BlogPage() {
             <BookOpen className="w-4 h-4 text-gold-500" />
             <span className="font-medium">KarKo AI Blog</span>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold text-navy-700 mb-4 leading-tight">
-            Career Tips, AI Insights &{' '}
-            <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">
-              Job Search Strategies
-            </span>
+          <h1 className="font-bold text-navy-600 text-[44px] sm:text-[52px] leading-[1.05] tracking-tight mb-4">
+            Career tips and <span className="text-gold-500">job search strategies.</span>
           </h1>
           <p className="text-lg text-warm-gray max-w-2xl mx-auto mb-4">
             Practical advice to help you land your dream job faster. From CV optimization to interview prep, powered by real-world insights.
@@ -64,15 +61,15 @@ export default function BlogPage() {
               <div className="w-20 h-20 bg-cream-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <Sparkles className="w-10 h-10 text-gold-400" />
               </div>
-              <h2 className="text-2xl font-bold text-navy-700 mb-3">Coming Soon</h2>
+              <h2 className="font-bold text-navy-600 text-[22px] md:text-[28px] leading-[1.15] mb-3">Coming soon.</h2>
               <p className="text-warm-gray max-w-md mx-auto mb-8">
                 We&apos;re working on expert articles about CV optimization, AI in job search, and career strategies. Stay tuned!
               </p>
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-md"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors"
               >
-                Try KarKo AI Free
+                Try Karko AI free
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -224,16 +221,18 @@ export default function BlogPage() {
 
       {/* CTA */}
       <section className="px-4 sm:px-6 lg:px-8 pb-24">
-        <div className="max-w-3xl mx-auto text-center bg-gradient-to-br from-navy-600 to-navy-800 rounded-2xl p-10 text-white">
-          <h2 className="text-2xl font-bold mb-3">Ready to Apply Smarter?</h2>
+        <div className="max-w-3xl mx-auto text-center bg-navy-700 rounded-2xl p-10 text-white">
+          <h2 className="font-bold text-white text-[28px] leading-[1.1] mb-3">
+            Ready to apply smarter?
+          </h2>
           <p className="text-navy-200 mb-6">
-            Stop spending hours on each application. Let KarKo AI generate your complete job application in under 90 seconds.
+            Stop spending hours on each application. Karko generates your complete application in under 90 seconds.
           </p>
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-md"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors"
           >
-            Try It Free — No Sign Up Required
+            Start free, no credit card
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

@@ -108,7 +108,7 @@ export function LowCreditsBanner() {
         <button
           onClick={handleAddon}
           disabled={loadingAction !== null}
-          className="flex items-center gap-1.5 px-3 py-1 bg-gold-400 hover:bg-gold-500 text-navy-900 text-xs font-semibold rounded-full transition-colors disabled:opacity-60 cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1 bg-gold-400 hover:bg-gold-500 text-white text-xs font-semibold rounded-full transition-colors disabled:opacity-60 cursor-pointer"
         >
           {loadingAction === 'addon' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
           Buy Credits

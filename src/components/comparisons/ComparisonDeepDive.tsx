@@ -13,7 +13,7 @@ export function ComparisonDeepDive({ tool, isKarko = false }: ComparisonDeepDive
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h3 className="text-2xl font-bold text-navy-700 mb-2">{tool.name}</h3>
+          <h3 className="font-bold text-navy-600 text-[22px] leading-[1.15] mb-2">{tool.name}</h3>
           <p className="text-warm-gray">{tool.description}</p>
         </div>
         {tool.rating && (
@@ -89,7 +89,7 @@ export function ComparisonDeepDive({ tool, isKarko = false }: ComparisonDeepDive
         <div className="mt-6">
           <Link
             href="/dashboard"
-            className="inline-block w-full text-center px-6 py-3 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-md"
+            className="inline-block w-full text-center px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors"
           >
             Try Karko AI Free
           </Link>

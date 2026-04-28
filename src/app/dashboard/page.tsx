@@ -910,7 +910,7 @@ export default function Dashboard() {
                     <div className="inline-flex mb-5">
                       <KarkoIcon size="lg" theme="light" />
                     </div>
-                    <h2 className="text-2xl font-serif font-semibold tracking-tight text-charcoal mb-2">Welcome to Karko AI</h2>
+                    <h2 className="text-2xl font-bold tracking-tight text-charcoal mb-2">Welcome to Karko AI</h2>
                     <p className="text-warm-gray max-w-sm mx-auto">
                       Upload your CV to get started. We&apos;ll tailor it for every job you apply to.
                     </p>
@@ -1096,7 +1096,7 @@ export default function Dashboard() {
                   <div className="inline-flex mb-4">
                     <KarkoIcon size="md" theme="light" />
                   </div>
-                  <h2 className="text-xl font-serif font-semibold tracking-tight text-charcoal mb-1.5">Upload your CV</h2>
+                  <h2 className="text-xl font-bold tracking-tight text-charcoal mb-1.5">Upload your CV</h2>
                   <p className="text-sm text-warm-gray">
                     Get started by uploading your CV. We&apos;ll optimize it for every job.
                   </p>
@@ -1217,7 +1217,7 @@ export default function Dashboard() {
                   <Target className="w-3.5 h-3.5" />
                   ATS Insights
                 </div>
-                <h2 className="text-xl font-serif font-semibold tracking-tight text-charcoal">CV optimization details</h2>
+                <h2 className="text-xl font-bold tracking-tight text-charcoal">CV optimization details</h2>
                 <p className="text-sm text-warm-gray mt-1">
                   {atsScore !== null
                     ? `Review the ${atsScore}% ATS score, optimization strategy, and exact improvements applied to this CV.`

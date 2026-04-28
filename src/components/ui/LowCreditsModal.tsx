@@ -162,7 +162,7 @@ export function LowCreditsModal() {
               <button
                 onClick={handleAddon}
                 disabled={loadingAction !== null}
-                className="w-full py-3 rounded-2xl font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-navy-900 transition-colors disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3 rounded-2xl font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-white transition-colors disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer"
               >
                 {loadingAction === 'addon' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Buy Credits'}
               </button>

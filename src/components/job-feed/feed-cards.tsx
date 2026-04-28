@@ -304,7 +304,7 @@ export function JobFeedCard({
             ) : null}
           </div>
 
-          <h3 className="mt-3 font-serif text-xl font-semibold tracking-tight text-charcoal">{job.title}</h3>
+          <h3 className="mt-3 text-xl font-semibold tracking-tight text-charcoal">{job.title}</h3>
           <p className="mt-1 text-base text-warm-gray">{job.company}</p>
 
           <div className="mt-3 flex flex-wrap gap-2">
@@ -428,7 +428,7 @@ export function JobFeedDetailModal({
                 </span>
               ) : null}
             </div>
-            <h2 className="mt-2 font-serif text-2xl font-semibold tracking-tight text-charcoal">{job.title}</h2>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-charcoal">{job.title}</h2>
             <p className="mt-1 text-lg text-warm-gray">{job.company}</p>
           </div>
           <button
@@ -456,7 +456,7 @@ export function JobFeedDetailModal({
 
           {job.description ? (
             <div className="mb-6">
-              <h3 className="mb-3 font-serif text-base font-semibold text-charcoal">Role details</h3>
+              <h3 className="mb-3 text-base font-semibold text-charcoal">Role details</h3>
               <div className="text-sm leading-7 text-charcoal">
                 <JobFeedDescription text={job.description} />
               </div>
@@ -469,7 +469,7 @@ export function JobFeedDetailModal({
 
           {job.applyOptions.length > 0 && (
             <div>
-              <h3 className="mb-3 font-serif text-base font-semibold text-charcoal">Apply via</h3>
+              <h3 className="mb-3 text-base font-semibold text-charcoal">Apply via</h3>
               <div className="flex flex-wrap gap-2">
                 {job.applyOptions.map((option) => (
                   <a

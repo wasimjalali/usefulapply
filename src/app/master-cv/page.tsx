@@ -359,9 +359,8 @@ export default function MasterCVPage() {
           </div>
           </ScrollReveal>
           <ScrollReveal delay={150}>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-navy-600 mb-6 leading-tight">
-            Create Your{' '}
-            <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">Master CV</span>
+          <h1 className="font-bold text-navy-600 text-[44px] sm:text-[52px] lg:text-[56px] leading-[1.05] tracking-tight mb-6">
+            Create your <span className="text-gold-500">Master CV.</span>
           </h1>
           </ScrollReveal>
           <ScrollReveal delay={300}>
@@ -377,8 +376,8 @@ export default function MasterCVPage() {
         <div className="max-w-6xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-14">
-            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Understanding</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">
+            <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Understanding</p>
+            <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-4">
               What is a Master CV?
             </h2>
             <p className="text-lg text-warm-gray max-w-2xl mx-auto">
@@ -433,9 +432,9 @@ export default function MasterCVPage() {
         <div className="max-w-4xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-10">
-            <p className="text-sm font-semibold text-gold-400 uppercase tracking-widest mb-3">Get Started</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Create Your Master CV in 30 Minutes
+            <p className="text-xs font-semibold text-gold-400 uppercase tracking-[0.12em] mb-3">Get Started</p>
+            <h2 className="font-bold text-white text-[32px] md:text-[40px] leading-[1.1] mb-4">
+              Create your Master CV in 30 minutes.
             </h2>
             <p className="text-lg text-navy-200">
               Copy this prompt and paste it into Claude, ChatGPT, or Gemini. The AI will guide you through a structured interview to capture your complete professional history.
@@ -450,7 +449,7 @@ export default function MasterCVPage() {
               <span className="text-sm font-medium text-navy-200">Master CV Creation Prompt</span>
               <button
                 onClick={handleCopyPrompt}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-lg hover:from-gold-500 hover:to-gold-600 transition-all font-medium shadow-md cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2 bg-gold-400 hover:bg-gold-500 text-white rounded-lg transition-colors font-semibold shadow-sm cursor-pointer"
               >
                 {copied ? (
                   <>
@@ -480,12 +479,12 @@ export default function MasterCVPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow" />
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-navy-700 relative overflow-hidden">
+        <div className="absolute inset-0 dot-grid opacity-[0.04]" />
         <ScrollReveal>
         <div className="max-w-4xl mx-auto text-center relative">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Ready to Create Your Master CV?
+          <h2 className="font-bold text-white text-[32px] md:text-[40px] leading-[1.1] mb-4">
+            Ready to create your Master CV?
           </h2>
           <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
             Copy the prompt above, create your Master CV in about 30 minutes, then upload it to KarKo AI to supercharge your job applications.
@@ -493,17 +492,17 @@ export default function MasterCVPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={handleCopyPrompt}
-              className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg flex items-center justify-center gap-2 text-lg cursor-pointer"
+              className="w-full sm:w-auto px-8 py-3.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 text-base cursor-pointer"
             >
-              {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-              {copied ? 'Prompt Copied!' : 'Copy the Prompt'}
+              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              {copied ? 'Prompt copied!' : 'Copy the prompt'}
             </button>
             <Link
               href="/dashboard"
-              className="w-full sm:w-auto px-10 py-4 glass-dark text-white font-semibold rounded-xl hover:bg-white/30 hover:shadow-xl hover:scale-[1.02] hover:border-gold-400/50 transition-all duration-300 flex items-center justify-center gap-2 text-lg"
+              className="w-full sm:w-auto px-8 py-3.5 border border-white/30 text-white font-semibold rounded-lg hover:bg-white/10 transition-colors flex items-center justify-center gap-2 text-base"
             >
-              Upload Your CV
-              <ArrowRight className="w-5 h-5" />
+              Upload your CV
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>

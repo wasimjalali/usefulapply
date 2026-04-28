@@ -450,7 +450,7 @@ ${letter.signatureName}`;
           <div className="w-16 h-16 rounded-2xl bg-navy-50 flex items-center justify-center mx-auto mb-5">
             <Mail className="w-8 h-8 text-navy-400" />
           </div>
-          <h3 className="text-lg font-serif font-semibold tracking-tight text-charcoal mb-2">Generate Cover Letter</h3>
+          <h3 className="text-lg font-bold tracking-tight text-charcoal mb-2">Generate Cover Letter</h3>
           <p className="text-sm text-warm-gray mb-6 leading-relaxed">
             Create a personalized cover letter tailored to this job application.
           </p>
@@ -476,7 +476,7 @@ ${letter.signatureName}`;
           <div className="w-16 h-16 rounded-2xl bg-cream-100 flex items-center justify-center mx-auto mb-5">
             <Mail className="w-8 h-8 text-cream-400" />
           </div>
-          <h3 className="text-lg font-serif font-semibold tracking-tight text-charcoal mb-2">No cover letter yet</h3>
+          <h3 className="text-lg font-bold tracking-tight text-charcoal mb-2">No cover letter yet</h3>
           <p className="text-sm text-warm-gray leading-relaxed">
             Analyze a job to generate a personalized cover letter
           </p>
@@ -706,7 +706,7 @@ ${letter.signatureName}`;
           <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-[24px] border border-cream-200 bg-cream-100 shadow-lg">
             <div className="flex items-center justify-between border-b border-cream-200 bg-cream-50 px-5 py-3">
               <div>
-                <h2 className="text-sm font-serif font-semibold tracking-tight text-charcoal">Cover Letter Full Preview</h2>
+                <h2 className="text-sm font-bold tracking-tight text-charcoal">Cover Letter Full Preview</h2>
                 <p className="text-xs text-warm-gray">Focused reading mode with the surrounding dashboard hidden.</p>
               </div>
               <button

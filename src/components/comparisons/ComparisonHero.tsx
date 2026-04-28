@@ -12,7 +12,7 @@ export function ComparisonHero({ h1, description, summaryTable, competitorName }
   return (
     <section className="pt-20 pb-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-navy-700 mb-6 leading-tight">
+        <h1 className="font-bold text-navy-600 text-[44px] sm:text-[52px] lg:text-[56px] leading-[1.05] tracking-tight mb-6">
           {h1}
         </h1>
         <p className="text-lg text-warm-gray mb-10 max-w-3xl">

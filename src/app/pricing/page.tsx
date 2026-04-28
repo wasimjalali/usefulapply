@@ -4,10 +4,11 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Check, Sparkles, Zap, Crown, ArrowRight, ChevronDown, FileText, MessageSquare, BarChart3, Clock, Plus as PlusIcon, Loader2 } from 'lucide-react';
+import { Check, Zap, ArrowRight, ChevronDown, FileText, MessageSquare, BarChart3, Loader2 } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
+import { PricingAurora } from '@/components/marketing/PricingAurora';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Single add-on credit pack
@@ -112,7 +113,6 @@ export default function PricingPage() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [loadingAddon, setLoadingAddon] = useState<string | null>(null);
   const [selectedSavingsTier, setSelectedSavingsTier] = useState(1); // default Plus
-  const [expandedAddon, setExpandedAddon] = useState<string | null>(null);
   const { user } = useAuth();
   const router = useRouter();
 
@@ -175,280 +175,231 @@ export default function PricingPage() {
     <div className="min-h-screen bg-cream-100">
       <Navbar />
       <main>
+      {/* Aurora-backed first-fold: hero + pricing cards share one premium backdrop */}
+      <div className="relative overflow-hidden">
+      <PricingAurora />
       {/* Hero Section */}
-      <section className="pt-16 pb-8 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        <div className="absolute inset-0 dot-grid opacity-30" />
-        <div className="absolute top-[-100px] right-[-50px] w-[400px] h-[400px] bg-gradient-to-bl from-gold-200/30 to-transparent rounded-full blur-3xl pointer-events-none" />
+      <section className="pt-16 pb-8 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-4xl mx-auto text-center relative">
           <ScrollReveal delay={0} direction="down" distance={20}>
           <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Pricing</p>
           </ScrollReveal>
           <ScrollReveal delay={150}>
-          <h1 className="text-4xl sm:text-5xl font-bold text-navy-600 mb-4 leading-tight">
-            Simple, Transparent{' '}
-            <span className="bg-gradient-to-r from-gold-400 via-gold-500 to-gold-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-shimmer">Pricing</span>
+          <h1 className="font-bold text-navy-600 text-[40px] sm:text-[52px] leading-[1.08] mb-4">
+            Pricing that matches <span className="text-gold-500">how much you apply.</span>
           </h1>
           </ScrollReveal>
           <ScrollReveal delay={300}>
-          <p className="text-xl text-warm-gray max-w-2xl mx-auto">
-            Every plan includes the full AI agent. Upgrade for more volume and automation.
+          <p className="text-lg text-warm-gray max-w-2xl mx-auto">
+            Start free. Upgrade when you're applying every day. Cancel any time.
           </p>
           </ScrollReveal>
           <ScrollReveal delay={450}>
-          <div className="mt-6 inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/80 backdrop-blur-sm border border-gold-300/60 shadow-sm">
-            <Image src="/anthropic-icon.jpg" alt="Anthropic" width={28} height={28} className="rounded-md" />
-            <span className="text-navy-600 text-sm font-semibold">Claude Sonnet 4.6 by Anthropic</span>
-            <span className="w-px h-4 bg-cream-300" />
-            <span className="text-warm-gray text-sm">Specialized for job applications · All plans</span>
+          <div className="mt-6 inline-flex items-center gap-3 px-4 py-2 rounded-full bg-cream-50 border border-cream-200">
+            <Image src="/anthropic-icon.jpg" alt="Anthropic" width={20} height={20} className="rounded" />
+            <span className="text-warm-gray text-[13px]">
+              Every plan is powered by <span className="font-semibold text-charcoal">Claude Sonnet 4.6</span> with anti-hallucination guardrails and US + EU ATS templates.
+            </span>
           </div>
           </ScrollReveal>
         </div>
       </section>
 
-      {/* Pricing Cards */}
-      <section className="pb-20 pt-4 px-4 sm:px-6 lg:px-8">
+      {/* Pricing Cards — outcome-first layout */}
+      <section className="pb-20 pt-4 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-6 md:gap-8 items-stretch">
-            {/* Free */}
+          <div className="grid md:grid-cols-3 gap-6 items-stretch">
+            {/* === FREE === */}
             <ScrollReveal delay={0} className="h-full">
-            <div className="relative bg-white rounded-2xl border-2 border-cream-200 shadow-md overflow-hidden card-hover-lift h-full">
-              <div className="p-8 flex flex-col h-full">
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="p-2.5 rounded-xl bg-cream-100">
-                    <Sparkles className="w-6 h-6 text-navy-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-charcoal">Free</h3>
-                    <p className="text-sm text-warm-gray">Try the full AI agent</p>
-                  </div>
+            <div className="relative h-full flex flex-col bg-cream-50 rounded-2xl border border-cream-200 shadow-sm overflow-hidden">
+              {/* spacer to match Plus badge height */}
+              <div className="h-[36px]" />
+              <div className="p-7 pt-5 flex flex-col h-full">
+                <div className="mb-5">
+                  <h3 className="font-bold text-navy-600 text-[22px] leading-tight">Free</h3>
+                  <p className="text-sm text-warm-gray mt-0.5">Try Karko, no card required</p>
                 </div>
+                <h4 className="font-bold text-charcoal text-[28px] leading-[1.15] mb-5 min-h-[72px]">
+                  2 tailored applications every month
+                </h4>
                 <div className="mb-6">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-navy-600">Free</span>
-                    <span className="text-warm-gray">forever</span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-[40px] font-bold text-navy-600 leading-none">Free</span>
+                    <span className="text-warm-gray text-sm">forever</span>
                   </div>
-                  <div className="mt-2">
-                    <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-cream-100 text-navy-500 border border-cream-300">
-                      4 credits/month
-                    </span>
-                  </div>
+                  <p className="text-[13px] text-warm-gray mt-1">No credit card to start.</p>
                 </div>
-                <ul className="space-y-3 mb-5">
+                <Link
+                  href="/dashboard"
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm border border-navy-200 text-navy-600 hover:bg-navy-50 hover:border-navy-400 transition-colors mb-6"
+                >
+                  Start Free
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <p className="text-[11px] font-semibold text-warm-gray uppercase tracking-[0.12em] mb-3">Included</p>
+                <ul className="space-y-2.5 mb-5 flex-1">
                   {[
-                    { text: '2 complete applications/month', bold: true },
-                    { text: 'Tailored CV, cover letter, email & follow-up' },
-                    { text: 'Honest fit score before you apply' },
-                    { text: 'ATS-optimized, US & EU templates' },
-                    { text: 'Anti-hallucination guardrails' },
-                    { text: 'Powered by Claude Sonnet 4.6' },
+                    'Tailored CV, cover letter, email and follow-up',
+                    'Honest fit score before you apply',
+                    'US and EU ATS-optimized templates',
+                    'Anti-hallucination guardrails',
+                    'Keep your applications forever',
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
-                      <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-gold-500" />
-                      <span className={`text-sm text-charcoal ${f.bold ? 'font-semibold' : ''}`}>{f.text}</span>
+                      <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold-500" />
+                      <span className="text-[14px] text-charcoal leading-relaxed">{f}</span>
                     </li>
                   ))}
                 </ul>
-                <div className="flex items-center gap-2.5 rounded-xl px-4 py-3 bg-cream-50 border border-cream-200">
-                  <Clock className="w-5 h-5 flex-shrink-0 text-navy-400" />
-                  <span className="text-sm font-semibold text-navy-600">~2 hours saved/month</span>
-                </div>
-                <div className="mt-auto pt-6">
-                  <Link
-                    href="/dashboard"
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold transition-all border-2 border-navy-200 text-navy-600 hover:bg-navy-50 hover:border-navy-400"
-                  >
-                    Start Free
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </div>
+                <p className="text-[13px] italic text-warm-gray mt-auto">Saves you about 2 hours a month.</p>
               </div>
             </div>
             </ScrollReveal>
 
-            {/* Plus */}
-            <ScrollReveal delay={150} className="h-full">
-            <div className="relative h-full">
-              <div className="animated-border rounded-2xl shadow-xl h-full flex flex-col">
-                <div className="bg-gradient-to-r from-gold-400 to-gold-500 text-white text-xs font-bold px-4 py-2 text-center rounded-t-2xl">
-                  MOST POPULAR | SAVE ~18 HOURS/MONTH
-                </div>
-                <div className="p-8 flex flex-col flex-1 bg-white rounded-b-2xl">
-                  <div className="flex items-center gap-3 mb-5">
-                    <div className="p-2.5 rounded-xl bg-gold-100">
-                      <Zap className="w-6 h-6 text-gold-500" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-charcoal">Plus</h3>
-                      <p className="text-sm text-warm-gray">For serious job seekers</p>
-                    </div>
-                  </div>
-                  <div className="mb-6">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-bold text-navy-600">$19.99</span>
-                      <span className="text-warm-gray">/month</span>
-                    </div>
-                    <div className="mt-2">
-                      <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-gold-50 text-gold-600 border border-gold-200">
-                        50 credits/month
-                      </span>
-                    </div>
-                  </div>
-                  {/* Add-on expandable */}
-                  <div className="mb-6">
-                    <button
-                      onClick={() => setExpandedAddon(expandedAddon === 'plus' ? null : 'plus')}
-                      className="w-full flex items-center justify-between p-3 rounded-xl border border-cream-200 hover:border-gold-300 hover:bg-cream-50 transition-all cursor-pointer"
-                    >
-                      <span className="text-sm font-medium text-charcoal flex items-center gap-2">
-                        <PlusIcon className="w-4 h-4 text-gold-500" />
-                        Need more credits?
-                      </span>
-                      <ChevronDown className={`w-4 h-4 text-warm-gray transition-transform duration-200 ${expandedAddon === 'plus' ? 'rotate-180' : ''}`} />
-                    </button>
-                    {expandedAddon === 'plus' && (
-                      <div className="mt-3 p-4 bg-cream-50 rounded-xl border border-cream-200 space-y-3">
-                        <p className="text-xs font-medium text-charcoal mb-2">Buy add-on credit packs:</p>
-                        {addonPacks.map((pack) => (
-                          <div key={pack.name} className="flex items-center justify-between">
-                            <span className="text-sm text-charcoal">{pack.credits} credits ({pack.applications} apps)</span>
-                            <button
-                              onClick={() => handleBuyAddon(pack.name.split(' ')[0].toLowerCase())}
-                              disabled={loadingAddon === pack.name.split(' ')[0].toLowerCase()}
-                              className="px-3 py-1.5 bg-navy-600 text-white text-xs font-semibold rounded-lg hover:bg-navy-700 transition-colors cursor-pointer disabled:opacity-60"
-                            >
-                              {loadingAddon === pack.name.split(' ')[0].toLowerCase() ? <Loader2 className="w-3 h-3 animate-spin" /> : `$${pack.price}`}
-                            </button>
-                          </div>
-                        ))}
-                        <p className="text-xs text-warm-gray pt-1">Credits roll over while subscription is active.</p>
-                      </div>
-                    )}
-                  </div>
-                  <ul className="space-y-3 mb-5">
-                    {[
-                      { text: 'Smart Job Feed: up to 15 jobs/day', bold: true },
-                      { text: '25 complete applications/month', bold: true },
-                      { text: 'Everything in Free' },
-                      { text: 'Unlimited application history' },
-                      { text: 'Add-on credit packs (rollover)' },
-                      { text: 'Priority email support' },
-                    ].map((f, i) => (
-                      <li key={i} className="flex items-start gap-2.5">
-                        <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-gold-500" />
-                        <span className={`text-sm text-charcoal ${f.bold ? 'font-semibold' : ''}`}>{f.text}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="flex items-center gap-2.5 rounded-xl px-4 py-3 bg-gold-50 border border-gold-200">
-                    <Clock className="w-5 h-5 flex-shrink-0 text-gold-500" />
-                    <span className="text-sm font-semibold text-navy-600">Cancel anytime. No contracts.</span>
-                  </div>
-                  <div className="mt-auto pt-6">
-                    <button
-                      onClick={() => handleSubscribe('plus')}
-                      disabled={loadingPlan === 'plus'}
-                      className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold transition-all cursor-pointer disabled:opacity-60 bg-gradient-to-r from-gold-400 to-gold-500 text-white hover:from-gold-500 hover:to-gold-600 shadow-md hover:shadow-lg"
-                    >
-                      {loadingPlan === 'plus' ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Get Plus <ArrowRight className="w-4 h-4" /></>}
-                    </button>
-                  </div>
-                </div>
+            {/* === PLUS === */}
+            <ScrollReveal delay={100} className="h-full">
+            <div className="relative h-full flex flex-col bg-cream-50 rounded-2xl border border-cream-200 shadow-md overflow-hidden">
+              <div className="h-[36px] flex items-center justify-center bg-gold-400 text-navy-900 text-[11px] font-bold tracking-[0.14em]">
+                MOST POPULAR
               </div>
-            </div>
-            </ScrollReveal>
-
-            {/* Max */}
-            <ScrollReveal delay={300} className="h-full">
-            <div className="relative bg-white rounded-2xl border-2 border-navy-400 shadow-lg overflow-hidden card-hover-lift h-full flex flex-col">
-              <div className="bg-gradient-to-r from-navy-600 to-navy-700 text-white text-xs font-bold px-4 py-2 text-center">
-                SAVE ~108 HOURS EVERY MONTH
-              </div>
-              <div className="p-8 flex flex-col flex-1">
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="p-2.5 rounded-xl bg-navy-100">
-                    <Crown className="w-6 h-6 text-navy-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-charcoal">Max</h3>
-                    <p className="text-sm text-warm-gray">Full automation for power applicants</p>
-                  </div>
+              <div className="p-7 pt-5 flex flex-col h-full border-t-2 border-gold-400 -mt-[2px]">
+                <div className="mb-5">
+                  <h3 className="font-bold text-navy-600 text-[22px] leading-tight">Plus</h3>
+                  <p className="text-sm text-warm-gray mt-0.5">For serious job seekers</p>
                 </div>
+                <h4 className="font-bold text-charcoal text-[28px] leading-[1.15] mb-5 min-h-[72px]">
+                  25 tailored applications every month
+                </h4>
                 <div className="mb-6">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-navy-600">$79.99</span>
-                    <span className="text-warm-gray">/month</span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-[40px] font-bold text-navy-600 leading-none">$19.99</span>
+                    <span className="text-warm-gray text-sm">/ month</span>
                   </div>
-                  <div className="mt-2">
-                    <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-navy-50 text-navy-600 border border-navy-200">
-                      200 credits/month
-                    </span>
-                  </div>
+                  <p className="text-[13px] text-warm-gray mt-1">About $0.80 per application.</p>
                 </div>
-                {/* Add-on expandable */}
-                <div className="mb-6">
-                  <button
-                    onClick={() => setExpandedAddon(expandedAddon === 'max' ? null : 'max')}
-                    className="w-full flex items-center justify-between p-3 rounded-xl border border-cream-200 hover:border-gold-300 hover:bg-cream-50 transition-all cursor-pointer"
-                  >
-                    <span className="text-sm font-medium text-charcoal flex items-center gap-2">
-                      <PlusIcon className="w-4 h-4 text-gold-500" />
-                      Need more credits?
-                    </span>
-                    <ChevronDown className={`w-4 h-4 text-warm-gray transition-transform duration-200 ${expandedAddon === 'max' ? 'rotate-180' : ''}`} />
-                  </button>
-                  {expandedAddon === 'max' && (
-                    <div className="mt-3 p-4 bg-cream-50 rounded-xl border border-cream-200 space-y-3">
-                      <p className="text-xs font-medium text-charcoal mb-2">Buy add-on credit packs:</p>
-                      {addonPacks.map((pack) => (
-                        <div key={pack.name} className="flex items-center justify-between">
-                          <span className="text-sm text-charcoal">{pack.credits} credits ({pack.applications} apps)</span>
-                          <button
-                            onClick={() => handleBuyAddon(pack.name.split(' ')[0].toLowerCase())}
-                            disabled={loadingAddon === pack.name.split(' ')[0].toLowerCase()}
-                            className="px-3 py-1.5 bg-navy-600 text-white text-xs font-semibold rounded-lg hover:bg-navy-700 transition-colors cursor-pointer disabled:opacity-60"
-                          >
-                            {loadingAddon === pack.name.split(' ')[0].toLowerCase() ? <Loader2 className="w-3 h-3 animate-spin" /> : `$${pack.price}`}
-                          </button>
-                        </div>
-                      ))}
-                      <p className="text-xs text-warm-gray pt-1">Credits roll over while subscription is active.</p>
-                    </div>
-                  )}
-                </div>
-                <ul className="space-y-3 mb-5">
+                <button
+                  onClick={() => handleSubscribe('plus')}
+                  disabled={loadingPlan === 'plus'}
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-white shadow-sm transition-colors cursor-pointer disabled:opacity-60 mb-6"
+                >
+                  {loadingPlan === 'plus' ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Plus <ArrowRight className="w-4 h-4" /></>}
+                </button>
+                <p className="text-[11px] font-semibold text-warm-gray uppercase tracking-[0.12em] mb-3">Included</p>
+                <ul className="space-y-2.5 mb-5 flex-1">
                   {[
-                    { text: '100 complete applications/month', bold: true },
-                    { text: 'Smart Job Feed: up to 25 jobs/day', bold: true },
-                    { text: 'AI Screening Question Answers', bold: true },
-                    { text: 'Everything in Plus' },
-                    { text: 'Premium dedicated support' },
-                    { text: 'Powered by Claude Sonnet 4.6' },
-                  ].map((f: { text: string; bold?: boolean }, i: number) => (
+                    'Smart Job Feed, up to 15 roles a day',
+                    'Fit Analysis before every application',
+                    'Add-on credit packs (credits roll over)',
+                    'Unlimited application history',
+                    'Everything in Free',
+                  ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
-                      <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-gold-500" />
-                      <span className={`text-sm text-charcoal ${f.bold ? 'font-semibold' : ''}`}>
-                        {f.text}
-                      </span>
+                      <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold-500" />
+                      <span className="text-[14px] text-charcoal leading-relaxed">{f}</span>
                     </li>
                   ))}
                 </ul>
-                <div className="flex items-center gap-2.5 rounded-xl px-4 py-3 bg-navy-600">
-                  <Clock className="w-5 h-5 flex-shrink-0 text-gold-400" />
-                  <span className="text-sm font-semibold text-white">Cancel anytime. No contracts.</span>
+                <p className="text-[13px] italic text-warm-gray mt-auto">Saves you about 18 hours a month.</p>
+              </div>
+            </div>
+            </ScrollReveal>
+
+            {/* === MAX === */}
+            <ScrollReveal delay={200} className="h-full">
+            <div className="relative h-full flex flex-col bg-cream-50 rounded-2xl border border-navy-200 shadow-sm overflow-hidden">
+              <div className="h-[36px]" />
+              <div className="p-7 pt-5 flex flex-col h-full">
+                <div className="mb-5">
+                  <h3 className="font-bold text-navy-600 text-[22px] leading-tight">Max</h3>
+                  <p className="text-sm text-warm-gray mt-0.5">For the intense job search</p>
                 </div>
-                <div className="mt-auto pt-6">
-                  <button
-                    onClick={() => handleSubscribe('max')}
-                    disabled={loadingPlan === 'max'}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold transition-all cursor-pointer disabled:opacity-60 bg-navy-600 text-white hover:bg-navy-700 shadow-md"
-                  >
-                    {loadingPlan === 'max' ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Get Max <ArrowRight className="w-4 h-4" /></>}
-                  </button>
+                <h4 className="font-bold text-charcoal text-[28px] leading-[1.15] mb-5 min-h-[72px]">
+                  100 tailored applications every month
+                </h4>
+                <div className="mb-6">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-[40px] font-bold text-navy-600 leading-none">$79.99</span>
+                    <span className="text-warm-gray text-sm">/ month</span>
+                  </div>
+                  <p className="text-[13px] text-warm-gray mt-1">About $0.80 per application.</p>
                 </div>
+                <button
+                  onClick={() => handleSubscribe('max')}
+                  disabled={loadingPlan === 'max'}
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm bg-navy-600 hover:bg-navy-700 text-white shadow-sm transition-colors cursor-pointer disabled:opacity-60 mb-6"
+                >
+                  {loadingPlan === 'max' ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Max <ArrowRight className="w-4 h-4" /></>}
+                </button>
+                <p className="text-[11px] font-semibold text-warm-gray uppercase tracking-[0.12em] mb-3">Included</p>
+                <ul className="space-y-2.5 mb-5 flex-1">
+                  {[
+                    'Smart Job Feed, up to 25 roles a day',
+                    'AI screening question answers',
+                    'Add-on credit packs (credits roll over)',
+                    'Premium dedicated support',
+                    'Everything in Plus',
+                  ].map((f, i) => (
+                    <li key={i} className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold-500" />
+                      <span className="text-[14px] text-charcoal leading-relaxed">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-[13px] italic text-warm-gray mt-auto">Saves you about 108 hours a month.</p>
               </div>
             </div>
             </ScrollReveal>
           </div>
+
+          {/* Trust line under cards */}
+          <p className="mt-8 text-center text-[13px] text-warm-gray max-w-3xl mx-auto">
+            Every plan includes the full agentic workflow, anti-hallucination guardrails, US + EU ATS templates,
+            a built-in application tracker, and cancel-anytime billing.
+          </p>
+        </div>
+      </section>
+      </div>
+      {/* /Aurora-backed first-fold */}
+
+      {/* Add-on credit packs — moved out of cards into a dedicated band */}
+      <section className="pb-20 px-4 sm:px-6 lg:px-8" id="addons">
+        <div className="max-w-4xl mx-auto">
+          <ScrollReveal>
+          <div className="bg-cream-50 border border-cream-200 rounded-2xl p-6 md:p-8 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+              <div>
+                <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-2">
+                  Need more this month?
+                </p>
+                <h3 className="font-bold text-navy-600 text-[22px] leading-tight mb-1">
+                  Top up any time with a credit pack.
+                </h3>
+                <p className="text-sm text-warm-gray">
+                  Available on Plus and Max. Purchased credits roll over while your subscription is active.
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                {addonPacks.map((pack) => (
+                  <div key={pack.name} className="flex items-center gap-4 bg-white rounded-lg border border-cream-200 px-4 py-3">
+                    <div>
+                      <p className="text-[15px] font-semibold text-charcoal">{pack.credits} credits</p>
+                      <p className="text-[12px] text-warm-gray">{pack.applications} more applications</p>
+                    </div>
+                    <button
+                      onClick={() => handleBuyAddon(pack.name.split(' ')[0].toLowerCase())}
+                      disabled={loadingAddon === pack.name.split(' ')[0].toLowerCase()}
+                      className="px-4 py-2 rounded-lg bg-navy-600 hover:bg-navy-700 text-white text-sm font-semibold transition-colors cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
+                    >
+                      {loadingAddon === pack.name.split(' ')[0].toLowerCase()
+                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                        : <>${pack.price}</>}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          </ScrollReveal>
         </div>
       </section>
 
@@ -459,9 +410,9 @@ export default function PricingPage() {
         <div className="max-w-4xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-10">
-            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Time Savings</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-3">
-              How Much Time Will You Save?
+            <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Time Savings</p>
+            <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-3">
+              How much time will you save?
             </h2>
             <p className="text-warm-gray max-w-lg mx-auto">
               Each tailored application takes 45-60 minutes by hand. KarKo AI does it in under 90 seconds.
@@ -526,9 +477,9 @@ export default function PricingPage() {
         <div className="max-w-4xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-10">
-            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Credit System</p>
-            <h2 className="text-3xl font-bold text-navy-600 mb-3">
-              How Credits Work
+            <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Credit System</p>
+            <h2 className="font-bold text-navy-600 text-[32px] leading-[1.1] mb-3">
+              How credits work.
             </h2>
             <p className="text-warm-gray max-w-xl mx-auto">
               Credits are simple. Each action costs a fixed number of credits. No surprises.
@@ -567,9 +518,9 @@ export default function PricingPage() {
         <div className="max-w-3xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-10">
-            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">FAQ</p>
-            <h2 className="text-3xl font-bold text-navy-600">
-              Frequently Asked Questions
+            <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">FAQ</p>
+            <h2 className="font-bold text-navy-600 text-[32px] leading-[1.1]">
+              Frequently asked questions.
             </h2>
           </div>
           </ScrollReveal>
@@ -602,31 +553,28 @@ export default function PricingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/4 blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-gold-400/5 rounded-full translate-y-1/2 -translate-x-1/4 blur-3xl" />
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-navy-700 relative overflow-hidden">
         <div className="absolute inset-0 dot-grid opacity-[0.04]" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-400/50 to-transparent" />
         <ScrollReveal>
-        <div className="max-w-4xl mx-auto text-center relative">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Ready to Transform Your Job Search?
+        <div className="max-w-3xl mx-auto text-center relative">
+          <h2 className="font-bold text-white text-[32px] md:text-[40px] leading-[1.1] mb-4">
+            Your next interview is <span className="text-gold-400">90 seconds away.</span>
           </h2>
-          <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
-            Start with 2 free applications. No credit card required. See why job seekers are switching to KarKo AI.
+          <p className="text-[17px] text-navy-100 mb-9 max-w-xl mx-auto">
+            Start with 2 free applications. No credit card required.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             <Link
               href="/dashboard"
-              className="px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg hover:shadow-xl text-lg cta-glow"
+              className="px-8 py-3.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors flex items-center justify-center text-base"
             >
-              Try It Free
+              Start free, no credit card
             </Link>
             <Link
               href="/"
-              className="px-10 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl hover:bg-white/20 transition-all duration-300 text-lg border border-white/20 hover:border-white/40"
+              className="px-8 py-3.5 border border-white/30 text-white font-semibold rounded-lg hover:bg-white/10 transition-colors flex items-center justify-center text-base"
             >
-              Learn More
+              Back to home
             </Link>
           </div>
         </div>

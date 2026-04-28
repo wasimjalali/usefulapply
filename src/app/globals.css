@@ -1105,3 +1105,40 @@ select:focus-visible {
 .animate-cloud-drift-4 { animation: cloud-drift-4 28s ease-in-out infinite 3s; }
 .animate-cloud-drift-5 { animation: cloud-drift-5 26s ease-in-out infinite 10s; }
 .animate-golden-glow-drift { animation: golden-glow-drift 10s ease-in-out infinite; }
+
+/* ─── Premium Aurora (hero background) ─── */
+@keyframes aurora-slow-1 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33%      { transform: translate3d(4%, -3%, 0) scale(1.08); }
+  66%      { transform: translate3d(-3%, 4%, 0) scale(0.96); }
+}
+@keyframes aurora-slow-2 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(-5%, 3%, 0) scale(1.12); }
+}
+@keyframes aurora-slow-3 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.04); opacity: 0.55; }
+  50%      { transform: translate3d(3%, -2%, 0) scale(0.94); opacity: 0.8; }
+}
+@keyframes aurora-shimmer {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.55; }
+}
+@keyframes conic-sweep {
+  0%   { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.animate-aurora-slow-1 { animation: aurora-slow-1 42s ease-in-out infinite; will-change: transform; }
+.animate-aurora-slow-2 { animation: aurora-slow-2 56s ease-in-out infinite; will-change: transform; }
+.animate-aurora-slow-3 { animation: aurora-slow-3 48s ease-in-out infinite; will-change: transform, opacity; }
+.animate-aurora-shimmer { animation: aurora-shimmer 8s ease-in-out infinite; }
+.animate-conic-sweep { animation: conic-sweep 90s linear infinite; will-change: transform; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-aurora-slow-1,
+  .animate-aurora-slow-2,
+  .animate-aurora-slow-3,
+  .animate-aurora-shimmer,
+  .animate-conic-sweep { animation: none; }
+}

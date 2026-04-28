@@ -131,7 +131,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               </span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-navy-700 mb-6 leading-tight">
+            <h1 className="font-bold text-navy-600 text-[32px] sm:text-[40px] lg:text-[48px] leading-[1.1] mb-6">
               {post.title}
             </h1>
 
@@ -197,18 +197,18 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           )}
 
           {/* CTA */}
-          <div className="mt-12 bg-gradient-to-br from-navy-600 to-navy-800 rounded-2xl p-8 text-white text-center">
-            <h3 className="text-xl font-bold mb-2">
-              {post.cta?.heading || 'Ready to Apply Smarter?'}
+          <div className="mt-12 bg-navy-700 rounded-2xl p-8 text-white text-center">
+            <h3 className="font-bold text-white text-[22px] leading-[1.15] mb-2">
+              {post.cta?.heading || 'Ready to apply smarter?'}
             </h3>
             <p className="text-navy-200 mb-5 text-sm">
               {post.cta?.description || 'Generate a complete job application (optimized CV + cover letter + email) in under 90 seconds.'}
             </p>
             <Link
               href={post.cta?.href || '/dashboard'}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-md text-sm"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors text-sm"
             >
-              {post.cta?.text || 'Try It Free'}
+              {post.cta?.text || 'Try it free'}
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -216,7 +216,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           {/* Related posts */}
           {relatedPosts.length > 0 && (
             <div className="mt-16">
-              <h2 className="text-2xl font-bold text-navy-700 mb-6">Related Articles</h2>
+              <h2 className="font-bold text-navy-600 text-[22px] md:text-[28px] leading-[1.15] mb-6">Related articles.</h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {relatedPosts.map((related) => (
                   <Link key={related.slug} href={`/blog/${related.slug}`} className="group">
