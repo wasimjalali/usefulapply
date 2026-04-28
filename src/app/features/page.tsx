@@ -196,44 +196,62 @@ const features = [
 
 const planFeatures = [
   {
+    feature: 'Price',
+    free: '$0/mo',
+    plus: '$19.99/mo',
+    max: '$79.99/mo',
+  },
+  {
+    feature: 'Applications/Month',
+    free: '2',
+    plus: '25',
+    max: '100',
+  },
+  {
+    feature: 'Credits/Month',
+    free: '4',
+    plus: '50',
+    max: '200',
+  },
+  {
+    feature: 'Complete Application Package',
+    free: true,
+    plus: true,
+    max: true,
+  },
+  {
     feature: 'Fit Analysis',
     free: true,
     plus: true,
     max: true,
   },
   {
-    feature: 'CV Generation',
+    feature: 'ATS-Optimized Templates',
     free: true,
     plus: true,
     max: true,
   },
   {
-    feature: 'Cover Letter',
+    feature: 'Anti-Hallucination Guardrails',
     free: true,
     plus: true,
     max: true,
   },
   {
-    feature: 'Application Email',
+    feature: 'Application Tracker',
     free: true,
-    plus: true,
-    max: true,
+    plus: 'Unlimited',
+    max: 'Unlimited',
   },
   {
-    feature: 'Follow-Up Email',
-    free: true,
-    plus: true,
-    max: true,
+    feature: 'Smart Job Feed',
+    free: false,
+    plus: 'Up to 15/day',
+    max: 'Up to 25/day',
   },
   {
-    feature: 'ATS Templates (6)',
-    free: true,
-    plus: true,
-    max: true,
-  },
-  {
-    feature: 'Master CV Storage',
-    free: true,
+    feature: 'Add-On Credit Packs',
+    free: false,
     plus: true,
     max: true,
   },
@@ -244,16 +262,10 @@ const planFeatures = [
     max: true,
   },
   {
-    feature: 'Credits/Month',
-    free: '10',
-    plus: '100',
-    max: '200',
-  },
-  {
-    feature: 'Applications/Month',
-    free: '~5',
-    plus: '~50',
-    max: '~100',
+    feature: 'Premium Dedicated Support',
+    free: false,
+    plus: false,
+    max: true,
   },
 ];
 
@@ -264,9 +276,9 @@ const faqs = [
       'Most tools just build resumes. Karko AI generates complete application packages: CV, cover letter, AND personalized emails (application + follow-up). Nobody else offers email generation.',
   },
   {
-    question: 'Do all features work on all plans?',
+    question: 'What is the difference between Free, Plus and Max?',
     answer:
-      'Yes! Every plan (Free, Plus, Max) includes all features. The only difference is the number of monthly credits. Free gets 4 credits (~2 applications), Plus gets 50 credits (~25 applications), Max gets 200 credits (~100 applications).',
+      'Every plan includes the core application workflow: tailored CV, cover letter, application email, follow-up email, fit analysis, ATS templates and anti-hallucination guardrails. Plus adds higher volume, Smart Job Feed and add-on credit packs. Max adds the highest volume, screening question answers and premium dedicated support.',
   },
   {
     question: 'Can I buy more credits?',
@@ -408,9 +420,9 @@ export default function FeaturesPage() {
         <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-4">All features, all plans.</h2>
+              <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-4">Core workflow on every plan.</h2>
               <p className="text-warm-gray max-w-2xl mx-auto">
-                Every plan includes the full feature set. The only difference is the number of monthly credits.
+                Start free with the complete application package. Upgrade when you need more monthly applications, Smart Job Feed automation, screening answers or premium support.
               </p>
             </div>
 
