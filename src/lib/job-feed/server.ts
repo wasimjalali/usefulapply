@@ -45,6 +45,8 @@ type JobFeedRunUpdate = Partial<Pick<JobFeedRun,
   | 'metadata'
 >>;
 
+const STALE_RUNNING_JOB_FEED_RUN_MS = 15 * 60 * 1000;
+
 export interface DueJobFeedUser {
   userId: string;
   timeZone: string;
@@ -1236,22 +1238,37 @@ export async function runJobFeedFoundationWorkflow(params: {
   }
 
   if (existingRun?.status === 'running') {
+    const isStaleRunningRun = isStaleJobFeedRun(existingRun, now);
+
+    if (!force || !isStaleRunningRun) {
+      captureJobFeedRunIdempotencyConflict({
+        userId,
+        run: existingRun,
+        localDate,
+        triggerSource,
+        force,
+        reason: force ? 'running_run_blocks_force' : 'running_run_exists',
+      });
+
+      if (force) {
+        throw new Error('Cannot force-rerun a job feed run while it is still running.');
+      }
+
+      return { run: existingRun, created: false, skipped: true };
+    }
+
     captureJobFeedRunIdempotencyConflict({
       userId,
       run: existingRun,
       localDate,
       triggerSource,
       force,
-      reason: force ? 'running_run_blocks_force' : 'running_run_exists',
+      reason: 'stale_running_run_force_reset',
     });
-    if (force) {
-      throw new Error('Cannot force-rerun a job feed run while it is still running.');
-    }
-
-    return { run: existingRun, created: false, skipped: true };
+    await resetJobFeedRunArtifactsForRerun(existingRun.id);
   }
 
-  if (force && existingRun) {
+  if (force && existingRun && existingRun.status !== 'running') {
     await resetJobFeedRunArtifactsForRerun(existingRun.id);
   }
 
@@ -1493,6 +1510,16 @@ function mergeMetadata(existing: Json, patch: Record<string, Json>): Json {
     ...base,
     ...patch,
   };
+}
+
+function isStaleJobFeedRun(run: JobFeedRun, now: Date): boolean {
+  const referenceTime = run.started_at ?? run.created_at;
+  const timestamp = referenceTime ? Date.parse(referenceTime) : Number.NaN;
+  if (Number.isNaN(timestamp)) {
+    return false;
+  }
+
+  return now.getTime() - timestamp > STALE_RUNNING_JOB_FEED_RUN_MS;
 }
 
 async function buildFeedItemsForSnapshot(params: {

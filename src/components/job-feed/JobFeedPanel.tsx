@@ -748,7 +748,7 @@ export function JobFeedPanel() {
 
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error || 'Failed to run the background workflow.');
+        throw new Error(payload.detail || payload.error || 'Failed to run the background workflow.');
       }
 
       posthog?.capture('job_feed_foundation_run_requested', {
@@ -838,7 +838,7 @@ export function JobFeedPanel() {
                 jobsCount={overview?.jobs.length ?? 0}
                 savedJobsCount={savedJobs?.length ?? null}
                 activeTab={activeTab}
-                latestRun={overview?.latestRun ?? null}
+                latestRun={overview?.feedRun ?? overview?.latestRun ?? null}
                 isRefreshing={isRefreshing || isLoadingSavedJobs}
                 onEditSettings={openSetupWizard}
                 onRefresh={() => activeTab === 'saved' ? loadSavedJobs() : loadOverview({ quiet: true })}

@@ -4,8 +4,11 @@ import { canAccessJobFeed, getJobFeedOverviewState } from '@/lib/job-feed/helper
 import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
 import { getJobFeedRunDiagnostics, listLatestJobFeedItemsAdmin } from '@/lib/job-feed/server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import type { JobFeedRun } from '@/lib/supabase/types';
 
 export const runtime = 'nodejs';
+
+const STALE_OVERVIEW_RUN_MS = 15 * 60 * 1000;
 
 export async function GET(request: NextRequest) {
   try {
@@ -89,6 +92,9 @@ export async function GET(request: NextRequest) {
         };
 
     const jobs = feedItems.items;
+    const runForState = latestRun && isStaleOverviewRun(latestRun) && feedItems.run
+      ? feedItems.run
+      : latestRun;
 
     return NextResponse.json({
       canAccess,
@@ -100,7 +106,7 @@ export async function GET(request: NextRequest) {
       state: getJobFeedOverviewState({
         canAccess,
         settings: settings ?? null,
-        latestRun: latestRun ?? null,
+        latestRun: runForState ?? null,
         jobsCount: jobs.length,
       }),
       foundationMode: true,
@@ -110,4 +116,18 @@ export async function GET(request: NextRequest) {
     console.error('[job-feed/overview] unexpected error:', error);
     return NextResponse.json({ error: 'Failed to load job feed overview.' }, { status: 500 });
   }
+}
+
+function isStaleOverviewRun(run: JobFeedRun): boolean {
+  if (run.status !== 'running' && run.status !== 'queued') {
+    return false;
+  }
+
+  const referenceTime = run.started_at ?? run.created_at;
+  const timestamp = referenceTime ? Date.parse(referenceTime) : Number.NaN;
+  if (Number.isNaN(timestamp)) {
+    return false;
+  }
+
+  return Date.now() - timestamp > STALE_OVERVIEW_RUN_MS;
 }
