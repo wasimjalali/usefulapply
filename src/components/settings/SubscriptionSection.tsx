@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, X, Crown, Sparkles, Plus, Loader2, Zap, Clock } from 'lucide-react';
-import Link from 'next/link';
+import { Check, X, Crown, Sparkles, Loader2, Zap, Clock, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 
@@ -116,42 +115,45 @@ export function SubscriptionSection({
           </div>
         )}
 
-        {/* Add-on Credits — inline within the main card for paid tiers */}
+        {/* Add-on Credits — matches pricing page addon band */}
         {!isFreeTier && (
           <div className="mt-5 pt-5 border-t border-cream-200">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h4 className="text-sm font-semibold text-charcoal">Need More Credits?</h4>
-                <p className="text-xs text-warm-gray mt-0.5">Purchase add-on credit packs. Credits roll over while subscribed.</p>
-              </div>
-              <Link
-                href="/pricing#addons"
-                className="text-xs font-medium text-navy-600 hover:text-navy-700 transition-colors flex-shrink-0"
-              >
-                View all packs →
-              </Link>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {addonPacks.map((pack) => (
-                <div key={pack.name} className="flex items-center gap-3 border border-cream-200 rounded-xl px-4 py-3 hover:border-gold-300 hover:shadow-sm transition-all flex-1 min-w-[200px]">
-                  <div className="flex-1">
-                    <span className="text-lg font-bold text-charcoal">{pack.credits}</span>
-                    <span className="text-xs text-warm-gray ml-1">credits ({pack.applications} apps)</span>
-                    <div className="text-sm font-bold text-navy-600">${pack.price}</div>
-                  </div>
-                  <button
-                    onClick={() => handleBuyAddon(pack.name.toLowerCase())}
-                    disabled={loadingAddon === pack.name.toLowerCase()}
-                    className="px-4 py-2 bg-navy-600 text-white text-xs font-semibold rounded-lg hover:bg-navy-700 transition-colors cursor-pointer disabled:opacity-60"
-                  >
-                    {loadingAddon === pack.name.toLowerCase() ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <><Plus className="w-3 h-3 inline mr-1" />Buy</>
-                    )}
-                  </button>
+            <div className="bg-navy-800 border border-navy-700 rounded-2xl p-5 md:p-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+                {/* Left: label + headline + note */}
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-gold-400 uppercase tracking-[0.12em] mb-1.5">
+                    Need more this month?
+                  </p>
+                  <h4 className="font-bold text-white text-[18px] leading-tight mb-1.5">
+                    Top up any time with a credit pack.
+                  </h4>
+                  <p className="text-sm text-navy-300">
+                    Credits roll over while your subscription is active.
+                  </p>
                 </div>
-              ))}
+
+                {/* Right: credit block + buy button */}
+                {addonPacks.map((pack) => (
+                  <div key={pack.name} className="flex flex-row items-center gap-3">
+                    <div className="bg-navy-700 border border-navy-600 rounded-xl px-4 py-3 text-center">
+                      <p className="text-[24px] font-bold text-white leading-none">{pack.credits}</p>
+                      <p className="text-[12px] font-semibold text-gold-400 mt-0.5">credits</p>
+                      <p className="text-[11px] text-navy-300 mt-0.5">{pack.applications} applications</p>
+                    </div>
+                    <button
+                      onClick={() => handleBuyAddon(pack.name.toLowerCase())}
+                      disabled={loadingAddon === pack.name.toLowerCase()}
+                      className="px-5 py-3.5 rounded-xl bg-gold-400 hover:bg-gold-500 text-navy-900 font-bold text-[16px] shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-60 flex items-center gap-2 group"
+                    >
+                      {loadingAddon === pack.name.toLowerCase()
+                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                        : <>${pack.price}<ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>
+                      }
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
