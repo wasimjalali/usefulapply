@@ -84,6 +84,12 @@ type PendingJobAction = {
   jobId: string;
   action: 'apply' | 'save' | 'dismiss' | 'rate';
 } | null;
+type ManualRunNotice = {
+  kind: 'cooldown' | 'success';
+  title: string;
+  lines: string[];
+  stats?: Array<{ label: string; value: string }>;
+} | null;
 
 const MANUAL_FEED_RUN_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
@@ -117,6 +123,7 @@ export function JobFeedPanel() {
   const [isRunningDebugFlow, setIsRunningDebugFlow] = useState(false);
   const [isShowingAllJobs, setIsShowingAllJobs] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobFeedFeedItem | null>(null);
+  const [manualRunNotice, setManualRunNotice] = useState<ManualRunNotice>(null);
   const [pendingJobAction, setPendingJobAction] = useState<PendingJobAction>(null);
   const [form, setForm] = useState<JobFeedSettingsInput>(() => createDefaultJobFeedInput(getBrowserTimeZone()));
 
@@ -173,11 +180,11 @@ export function JobFeedPanel() {
     };
   }, [overview?.feedRun?.completed_at, overview?.latestRun?.completed_at, overview?.latestRun?.status]);
 
-  const loadOverview = useCallback(async (options?: { quiet?: boolean }) => {
+  const loadOverview = useCallback(async (options?: { quiet?: boolean }): Promise<JobFeedOverviewResponse | null> => {
     if (isPreviewing) {
       setIsLoading(false);
       setIsRefreshing(false);
-      return;
+      return null;
     }
 
     if (!options?.quiet) {
@@ -197,11 +204,14 @@ export function JobFeedPanel() {
         throw new Error(payload.error || 'Failed to load Job Feed.');
       }
 
-      setOverview(payload as JobFeedOverviewResponse);
-      setForm(toJobFeedInput(payload.settings, getBrowserTimeZone()));
+      const nextOverview = payload as JobFeedOverviewResponse;
+      setOverview(nextOverview);
+      setForm(toJobFeedInput(nextOverview.settings, getBrowserTimeZone()));
       setDraftForm(null);
+      return nextOverview;
     } catch (error) {
       toastRef.current.error(error instanceof Error ? error.message : 'Failed to load Job Feed.');
+      return null;
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -817,11 +827,10 @@ export function JobFeedPanel() {
   const handleRunTodayFeed = async () => {
     const availability = getManualRunAvailability();
     if (!availability.canStart) {
-      toastRef.current.info(
-        availability.reason === 'preparing'
-          ? 'Your feed is already being prepared.'
-          : `You can refresh your hand-picked jobs once every 24 hours. Try again ${formatCooldownTarget(availability.nextRunAt)}.`
-      );
+      setManualRunNotice(buildManualRunBlockedNotice({
+        reason: availability.reason,
+        nextRunAt: availability.nextRunAt,
+      }));
       return;
     }
 
@@ -844,17 +853,19 @@ export function JobFeedPanel() {
       });
 
       if (payload.cooldown) {
-        toastRef.current.info(
-          `You can refresh your hand-picked jobs once every 24 hours. Try again ${formatCooldownTarget(payload.nextRunAt ?? null)}.`
-        );
+        setManualRunNotice(buildManualRunBlockedNotice({
+          reason: 'cooldown',
+          nextRunAt: payload.nextRunAt ?? null,
+        }));
       } else if (payload.skipped) {
-        toastRef.current.info(
-          payload.status === 'completed'
-            ? 'Today’s feed already ran.'
-            : 'Today’s feed is already being prepared.'
-        );
+        setManualRunNotice(buildManualRunBlockedNotice({
+          reason: payload.status === 'completed' ? 'cooldown' : 'preparing',
+          nextRunAt: payload.nextRunAt ?? null,
+        }));
       } else {
-        toastRef.current.success(`Today’s feed is ready: ${payload.rankedJobsCount ?? 0} jobs ranked.`);
+        const nextOverview = await loadOverview({ quiet: true });
+        setManualRunNotice(buildManualRunSuccessNotice(payload, nextOverview));
+        return;
       }
 
       await loadOverview({ quiet: true });
@@ -1054,6 +1065,13 @@ export function JobFeedPanel() {
           </>
         )}
       </div>
+
+      {manualRunNotice && (
+        <ManualRunNoticeDialog
+          notice={manualRunNotice}
+          onClose={() => setManualRunNotice(null)}
+        />
+      )}
 
       {selectedJob && (
         <JobFeedDetailModal
@@ -1403,7 +1421,7 @@ function FeedPageHeader({
               }`}
               title={runButtonTitle}
             >
-              {isRunningManualFeed || isPreparingToday ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {isRunningManualFeed || isPreparingToday ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {runButtonLabel}
             </button>
           )}
@@ -1532,7 +1550,7 @@ function InlineStateMessage({
           disabled={isRunningManualFeed}
           className="mt-6 rounded-full"
         >
-          {isRunningManualFeed || isPreparingToday ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5" />}
+          {isRunningManualFeed || isPreparingToday ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
           {manualRunButtonLabel}
         </Button>
         {(isInManualRunCooldown || isPreparingToday) && (
@@ -1564,6 +1582,45 @@ function InlineStateMessage({
           {stateConfig.action}
         </Button>
       )}
+    </div>
+  );
+}
+
+function ManualRunNoticeDialog({
+  notice,
+  onClose,
+}: {
+  notice: NonNullable<ManualRunNotice>;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-navy-900/30 px-4">
+      <div className="w-full max-w-md rounded-[24px] border border-cream-200 bg-white p-6 text-center shadow-2xl">
+        <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-2xl ${
+          notice.kind === 'success' ? 'bg-sage-50 text-sage-700' : 'bg-gold-50 text-gold-700'
+        }`}>
+          {notice.kind === 'success' ? <CalendarClock className="h-6 w-6" /> : <PauseCircle className="h-6 w-6" />}
+        </div>
+        <h2 className="mt-4 text-xl font-semibold tracking-tight text-charcoal">{notice.title}</h2>
+        <div className="mt-3 space-y-1 text-sm font-medium leading-6 text-warm-gray">
+          {notice.lines.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+        </div>
+        {notice.stats && notice.stats.length > 0 && (
+          <div className="mt-5 grid grid-cols-2 gap-2 text-left">
+            {notice.stats.map((stat) => (
+              <div key={stat.label} className="rounded-2xl border border-cream-200 bg-cream-50 px-3 py-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-warm-gray">{stat.label}</p>
+                <p className="mt-0.5 text-base font-semibold text-charcoal">{stat.value}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        <Button variant="gold" onClick={onClose} className="mt-6 rounded-full px-7">
+          Got it
+        </Button>
+      </div>
     </div>
   );
 }
@@ -2392,6 +2449,69 @@ function getLocalDateKeyForTimeZone(date: Date, timeZone: string): string {
   }
 
   return date.toISOString().slice(0, 10);
+}
+
+function buildManualRunBlockedNotice(params: {
+  reason: 'preparing' | 'cooldown' | null;
+  nextRunAt: string | null;
+}): NonNullable<ManualRunNotice> {
+  if (params.reason === 'preparing') {
+    return {
+      kind: 'cooldown',
+      title: 'Your feed is already running',
+      lines: [
+        'Karko is preparing your jobs right now.',
+        'New cards will appear as soon as ranking finishes.',
+      ],
+    };
+  }
+
+  return {
+    kind: 'cooldown',
+    title: 'Daily refresh limit',
+    lines: [
+      'You can refresh hand-picked jobs once every 24 hours.',
+      `Try again ${formatCooldownTarget(params.nextRunAt)}.`,
+    ],
+  };
+}
+
+function buildManualRunSuccessNotice(
+  payload: {
+    rawJobsFetched?: number | null;
+    rankedJobsCount?: number | null;
+    duplicateCount?: number | null;
+    failedFetchCount?: number | null;
+  },
+  overview: JobFeedOverviewResponse | null
+): NonNullable<ManualRunNotice> {
+  const rawJobsFetched = toDisplayNumber(payload.rawJobsFetched);
+  const rankedJobsCount = toDisplayNumber(payload.rankedJobsCount);
+  const duplicateCount = toDisplayNumber(payload.duplicateCount);
+  const failedFetchCount = toDisplayNumber(payload.failedFetchCount);
+  const visibleJobs = overview?.jobs.length ?? rankedJobsCount;
+  const recentInboxJobs = Math.max(0, visibleJobs - rankedJobsCount);
+
+  return {
+    kind: 'success',
+    title: 'Today’s feed is ready',
+    lines: [
+      `${rawJobsFetched} jobs found and ${rankedJobsCount} hand-picked for your feed.`,
+      recentInboxJobs > 0
+        ? `${recentInboxJobs} still-active jobs from recent feeds stayed in your inbox.`
+        : 'No previous feed jobs needed to be carried over.',
+    ],
+    stats: [
+      { label: 'Found', value: String(rawJobsFetched) },
+      { label: 'Ranked', value: String(rankedJobsCount) },
+      { label: 'Duplicates', value: String(duplicateCount) },
+      { label: 'Fetch failures', value: String(failedFetchCount) },
+    ],
+  };
+}
+
+function toDisplayNumber(value: number | null | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
 function getManualRunCooldown(completedAt: string | null): { remainingMs: number; nextRunAt: string | null } {

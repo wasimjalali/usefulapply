@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { canAccessJobFeed } from '@/lib/job-feed/helpers';
-import { getLatestCompletedJobFeedRunAdmin, runJobFeedFoundationWorkflow } from '@/lib/job-feed/server';
+import { getJobFeedRunDiagnostics, getLatestCompletedJobFeedRunAdmin, runJobFeedFoundationWorkflow } from '@/lib/job-feed/server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { createClient } from '@/lib/supabase/server';
 
@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
     const latestCompletedRun = await getLatestCompletedJobFeedRunAdmin(user.id);
     const cooldown = getManualRunCooldown(latestCompletedRun?.completed_at ?? null);
     if (cooldown.remainingMs > 0) {
+      const diagnostics = getJobFeedRunDiagnostics(latestCompletedRun ?? null);
       return NextResponse.json({
         success: true,
         mode: 'direct',
@@ -53,6 +54,9 @@ export async function POST(request: NextRequest) {
         rawJobsFetched: latestCompletedRun?.raw_jobs_fetched ?? null,
         jobsAfterPrefilter: latestCompletedRun?.jobs_after_prefilter ?? null,
         rankedJobsCount: latestCompletedRun?.ranked_jobs_count ?? null,
+        duplicateCount: diagnostics?.duplicateCount ?? null,
+        rankingCandidateCount: diagnostics?.rankingCandidateCount ?? null,
+        failedFetchCount: diagnostics?.failedFetchCount ?? null,
         resultSummary: latestCompletedRun?.result_summary ?? null,
         errorMessage: latestCompletedRun?.error_message ?? null,
       });
@@ -65,6 +69,8 @@ export async function POST(request: NextRequest) {
       force: false,
       orchestrator: 'direct',
     });
+
+    const diagnostics = getJobFeedRunDiagnostics(result.run);
 
     return NextResponse.json({
       success: true,
@@ -80,6 +86,9 @@ export async function POST(request: NextRequest) {
       rawJobsFetched: result.run.raw_jobs_fetched,
       jobsAfterPrefilter: result.run.jobs_after_prefilter,
       rankedJobsCount: result.run.ranked_jobs_count,
+      duplicateCount: diagnostics?.duplicateCount ?? null,
+      rankingCandidateCount: diagnostics?.rankingCandidateCount ?? null,
+      failedFetchCount: diagnostics?.failedFetchCount ?? null,
       resultSummary: result.run.result_summary,
       errorMessage: result.run.error_message,
     });
