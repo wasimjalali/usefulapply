@@ -29,7 +29,7 @@ export default function BlogPage() {
       {/* Hero */}
       <section className="pt-20 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/70 backdrop-blur-sm rounded-full text-sm text-charcoal mb-6 shadow-sm border border-white/40">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-cream-50 rounded-full text-sm text-charcoal mb-6 shadow-sm border border-cream-200">
             <BookOpen className="w-4 h-4 text-gold-500" />
             <span className="font-medium">KarKo AI Blog</span>
           </div>
@@ -155,7 +155,7 @@ export default function BlogPage() {
                     const colors = CATEGORY_COLORS[post.category] || { bg: 'bg-cream-50', text: 'text-charcoal', border: 'border-cream-200' };
                     return (
                       <Link key={post.slug} href={`/blog/${post.slug}`} className="block group">
-                        <article className="bg-white rounded-xl border border-cream-200 h-full flex flex-col overflow-hidden hover:shadow-md hover:border-gold-300 transition-all duration-300">
+                        <article className="bg-white rounded-2xl border border-cream-200 h-full flex flex-col overflow-hidden hover:shadow-md hover:border-gold-300 transition-all duration-300">
                           {/* Image container */}
                           <div className="aspect-video relative bg-cream-100">
                             {post.ogImage ? (
