@@ -12,6 +12,134 @@ import { BlogPost } from './types';
  */
 export const blogPosts: BlogPost[] = [
   {
+    slug: 'screening-question-answers-ai-job-applications',
+    title: 'The screening question wall, and how to stop hitting it',
+    description:
+      'Screening questions are where strong applications go to die. Here is how to answer them in minutes with specificity, not generic paragraphs written under fatigue.',
+    content: `You have been working on this application for 45 minutes. The CV is tailored. The cover letter reads like you actually want this job. You are about to submit.
+
+Then you scroll down.
+
+*Please answer the following questions.*
+
+Eight fields. Some of them are behavioral: tell us about a time you led a team through a difficult change. Some are situational: describe how you would approach a stakeholder who disagrees with your proposal. One of them asks for 300 words on why you want to work at a company you first heard of two hours ago.
+
+You stare at the screen. You calculate whether you have another 30 minutes in you. And sometimes, you close the tab.
+
+![A person facing a tall application form with many stacked empty fields, illustrating the screening question wall](/blog/screening-question-wall.jpg)
+
+## The moment most applications die
+
+Recruiters have known about this for years. Research on application drop-off consistently points at form length and question volume as the biggest single predictor of candidates abandoning the process halfway. The longer the form, the lower the completion rate. Screening questions at the end are the heaviest drag of all.
+
+The painful part is who drops off. It is not the unqualified applicants. The unqualified ones were going to type something generic and click submit anyway. It is the qualified ones. People who took the CV seriously, who wrote a real cover letter, who actually thought about why they wanted the role. Those are the ones whose energy runs out at the final gate.
+
+The hiring manager never knows. From their inbox, a qualified candidate who got halfway through and closed the tab looks identical to one who never existed.
+
+## Why these questions are quietly hard
+
+The time is part of it. The harder part is the context switch.
+
+Writing a strong answer to "tell us about a time you navigated conflict within a team" requires you to reach back into your memory, pick the right example out of twenty possible ones, structure it into a clean narrative, match the tone of the company, and connect it to the role you are applying for. That is deep work. It is hard to do fresh. It is nearly impossible to do when you have just spent an hour polishing a cover letter.
+
+Most people default to one of two patterns.
+
+The first is the generic paragraph. Something about collaboration, listening, and open communication. Words that describe every professional who has ever existed. Recruiters recognize these in three seconds.
+
+The second is the specific but rushed answer. You remember one example, you type it in, you do not bother connecting it to the company or the role. It is honest but flat. It does not sell.
+
+Neither pattern moves you forward. Both feel like they should.
+
+![Two speech bubbles side by side, one nearly empty and one richly detailed, contrasting generic and specific answers](/blog/generic-vs-specific-answer.jpg)
+
+## The quality problem is real
+
+Recruiters read hundreds of screening answers a week. They develop a filter fast. Phrases like "I thrive in collaborative environments" or "I am a strong communicator with a passion for delivering results" are noise. They do not penalize you actively. They just do not register.
+
+The answers that get remembered are specific. A real project. A real number. A real conflict. A real outcome. A sentence that could only have come from you.
+
+Writing answers at that level of specificity takes time and energy you do not have left after the CV and the cover letter. That is the actual bottleneck.
+
+## What the right tool looks like
+
+Think about what would make this solvable. You would need something that already knows your CV. Not a summary of it, the whole thing. The projects, the companies, the numbers, the story arc. You would need something that also knows the cover letter you just wrote, because it has already picked out the most relevant threads from your background and matched them to this specific role. And you would need something that has already done the company research, so the answers can reference what the company actually does, not a generic stand-in.
+
+If all of that context was sitting in one place, generating specific, personalized answers becomes straightforward. The facts are right there. The positioning is already decided. The work is pattern-matching, not invention.
+
+That is how Karko's Screening Question Answers feature works.
+
+## How it actually works
+
+You generate your full application kit first. Tailored CV, cover letter, application email, follow-up email. That takes under 90 seconds and costs 2 credits. Karko does the job description analysis and the company research as part of that.
+
+Now Karko has full context. Your complete CV. The cover letter it just wrote for this specific role. The job description. The company details.
+
+You paste the screening questions from the application form into Karko. That is it. You do not need to explain anything. You do not need to retype your experience. You paste the questions.
+
+Karko writes a specific, personalized answer for every one of them. Not templates. Answers that pull from your actual experience, reference the specific company, and connect to the role you are applying for. If the question asks about leadership, it reaches for the right project from your CV. If the question asks why this company, it uses what Karko already learned about the company during the application.
+
+![Three document icons flowing into a central answer card, representing AI combining CV, cover letter, and job description context](/blog/ai-context-feeding-answer.jpg)
+
+You read the answers. You adjust a phrase if you want. You paste them into the form. You submit.
+
+The form that was going to cost you 30 more minutes costs you 5.
+
+## The time math over a real search
+
+Here is what this changes over weeks, not minutes.
+
+Say you apply to 3 jobs a week. Two of them have screening questions. At 30 minutes per screening section, that is an hour a week of pure form-filling on top of everything else. Over a 20-week search, that is 20 hours. Half a work week, spent typing variations of the same behavioral answers into text boxes that look identical from company to company.
+
+The feature cuts that to a few minutes per application. The answers are better. You submit more applications, because the last gate is no longer a gate.
+
+And the applications that used to get abandoned at the screening section now get sent.
+
+## Why the answers are actually better
+
+It is worth being specific about why the quality goes up, not just the speed.
+
+The AI has the CV in full. When it writes about your leadership example, it is not making something up. It is pulling a real project, a real team size, a real outcome that you listed yourself.
+
+The AI has the cover letter. The positioning, tone, and themes the cover letter established are preserved across the screening answers. The application reads like one coherent voice, not two different drafts.
+
+The AI did the company research. The answer to "why this company" references what the company does, how it describes itself, and what matters for the role. Not a paragraph that could apply to any company in the industry.
+
+And the AI is not tired. That is the underrated part. The 15th screening answer of a long job search is the same quality as the first.
+
+## Where to find it
+
+Screening Question Answers is available on the Max plan. Generate a full application kit for a role, then paste the screening questions into Karko. Get specific, personalized answers in under a minute.
+
+Every application is saved in your tracker with its match score and status, and if you want to vet the role before committing, Fit Analysis gives you an honest match score and the skill gaps for 0.5 credits before you commit to a full application.
+
+The screening question section used to be where strong applications died. It does not have to be anymore.`,
+    author: {
+      name: 'Wasim Jalali',
+      role: 'Founder, Karko AI',
+    },
+    publishedAt: '2026-04-28',
+    readingTime: 7,
+    category: 'Job Search',
+    tags: [
+      'screening questions',
+      'job application',
+      'ai job application',
+      'application form',
+      'behavioral questions',
+      'job search',
+      'application abandonment',
+    ],
+    featured: false,
+    ogImage: '/blog/screening-questions-cover.jpg',
+    cta: {
+      heading: 'Clear the screening question wall in minutes',
+      description:
+        'Generate your application kit, paste the screening questions, and get specific, personalized answers that reference your actual experience. Available on the Max plan.',
+      text: 'Try Karko AI free',
+      href: '/dashboard',
+    },
+  },
+  {
     slug: 'smart-job-feed-ai-curated-daily-jobs',
     title: 'A smart job feed that reads your CV, not just keywords',
     description:
