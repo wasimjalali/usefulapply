@@ -147,7 +147,7 @@ export default function Home() {
             </Link>
             <Link
               href="#how-it-works"
-              className="px-5 py-3.5 border border-navy-200 hover:border-navy-400 text-navy-600 font-semibold rounded-lg hover:bg-navy-50 transition-all duration-200 flex items-center justify-center gap-1.5 text-base group"
+              className="px-5 py-3.5 border border-white/70 bg-white/60 hover:bg-white hover:border-white hover:shadow-md text-navy-600 font-semibold rounded-lg transition-all duration-200 hover:-translate-y-0.5 flex items-center justify-center gap-1.5 text-base group"
             >
               See how it works <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
             </Link>

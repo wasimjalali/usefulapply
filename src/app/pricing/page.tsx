@@ -231,10 +231,10 @@ export default function PricingPage() {
                 </div>
                 <Link
                   href="/dashboard"
-                  className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm border border-navy-200 text-navy-600 hover:bg-navy-50 hover:border-navy-400 transition-colors mb-6"
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm border border-white/70 bg-white/60 hover:bg-white hover:border-white hover:shadow-md text-navy-600 transition-all duration-200 hover:-translate-y-0.5 mb-6 group"
                 >
                   Start Free
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
                 </Link>
                 <p className="text-[11px] font-semibold text-warm-gray uppercase tracking-[0.12em] mb-3">Included</p>
                 <ul className="space-y-2.5 mb-5 flex-1">
@@ -280,9 +280,9 @@ export default function PricingPage() {
                 <button
                   onClick={() => handleSubscribe('plus')}
                   disabled={loadingPlan === 'plus'}
-                  className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-white shadow-sm transition-colors cursor-pointer disabled:opacity-60 mb-6"
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-white shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-60 mb-6 group"
                 >
-                  {loadingPlan === 'plus' ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Plus <ArrowRight className="w-4 h-4" /></>}
+                  {loadingPlan === 'plus' ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Plus <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
                 </button>
                 <p className="text-[11px] font-semibold text-warm-gray uppercase tracking-[0.12em] mb-3">Included</p>
                 <ul className="space-y-2.5 mb-5 flex-1">
@@ -326,9 +326,9 @@ export default function PricingPage() {
                 <button
                   onClick={() => handleSubscribe('max')}
                   disabled={loadingPlan === 'max'}
-                  className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm bg-navy-600 hover:bg-navy-700 text-white shadow-sm transition-colors cursor-pointer disabled:opacity-60 mb-6"
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm bg-navy-600 hover:bg-navy-700 text-white shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-60 mb-6 group"
                 >
-                  {loadingPlan === 'max' ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Max <ArrowRight className="w-4 h-4" /></>}
+                  {loadingPlan === 'max' ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Max <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
                 </button>
                 <p className="text-[11px] font-semibold text-warm-gray uppercase tracking-[0.12em] mb-3">Included</p>
                 <ul className="space-y-2.5 mb-5 flex-1">

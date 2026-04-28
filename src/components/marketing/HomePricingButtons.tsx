@@ -39,9 +39,9 @@ export function PlusPlanButton() {
     <button
       onClick={handleClick}
       disabled={loading}
-      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium bg-gradient-to-r from-gold-400 to-gold-500 text-white hover:from-gold-500 hover:to-gold-600 transition-all shadow-md cursor-pointer disabled:opacity-70"
+      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-white shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-70 group"
     >
-      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Plus <ArrowRight className="w-4 h-4" /></>}
+      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Plus <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
     </button>
   );
 }
@@ -80,9 +80,9 @@ export function MaxPlanButton() {
     <button
       onClick={handleClick}
       disabled={loading}
-      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium bg-navy-600 text-white hover:bg-navy-700 transition-colors shadow-md cursor-pointer disabled:opacity-70"
+      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm bg-navy-600 hover:bg-navy-700 text-white shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-70 group"
     >
-      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Max <ArrowRight className="w-4 h-4" /></>}
+      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Max <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
     </button>
   );
 }
