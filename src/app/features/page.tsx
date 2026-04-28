@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Zap, FileText, Mail, MailPlus, Target, Shield, Sparkles, Check, MessageSquareText, Compass, ClipboardList } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
@@ -29,6 +30,7 @@ const features = [
     cost: 'Included with Plus and Max',
     link: '/dashboard',
     linkText: 'Try the Job Feed →',
+    image: '/images/features/smart-job-feed.jpg',
   },
   {
     icon: Target,
@@ -44,6 +46,7 @@ const features = [
     cost: '0.5 credits',
     link: '/ai-job-application/zero-fabrication',
     linkText: 'Learn about our anti-hallucination system →',
+    image: '/images/features/fit-analysis.jpg',
   },
   {
     icon: FileText,
@@ -59,6 +62,7 @@ const features = [
     cost: 'Part of 2.0 credit package',
     link: '/ai-job-application/ats-optimization',
     linkText: 'See ATS optimization guide →',
+    image: '/images/features/ai-cv-optimization.jpg',
   },
   {
     icon: Sparkles,
@@ -74,6 +78,7 @@ const features = [
     cost: 'Part of 2.0 credit package',
     link: '/blog/ai-cover-letter-generator-how-it-works',
     linkText: 'How AI cover letters work →',
+    image: '/images/features/personalized-cover-letters.jpg',
   },
   {
     icon: MessageSquareText,
@@ -89,6 +94,7 @@ const features = [
     cost: 'Max plan',
     link: '/ai-job-application/screening-question-answers',
     linkText: 'Learn about screening answers',
+    image: '/images/features/screening-question-answers.jpg',
   },
   {
     icon: Mail,
@@ -104,6 +110,7 @@ const features = [
     cost: 'Part of 2.0 credit package',
     link: '/ai-job-application/90-second-application-package',
     linkText: 'See 90-second workflow →',
+    image: '/images/features/application-email-generation.jpg',
   },
   {
     icon: MailPlus,
@@ -119,6 +126,7 @@ const features = [
     cost: 'Part of 2.0 credit package',
     link: '/blog/follow-up-email-after-job-application',
     linkText: 'When to send follow-ups →',
+    image: '/images/features/follow-up-email-generation.jpg',
   },
   {
     icon: ClipboardList,
@@ -134,6 +142,7 @@ const features = [
     cost: 'Included in all plans',
     link: '/dashboard',
     linkText: 'See your tracker →',
+    image: '/images/features/application-tracker.jpg',
   },
   {
     icon: Sparkles,
@@ -149,6 +158,7 @@ const features = [
     cost: 'Free',
     link: '/master-cv-template',
     linkText: 'Build your Master CV →',
+    image: '/images/features/master-cv-system.jpg',
   },
   {
     icon: Shield,
@@ -164,6 +174,7 @@ const features = [
     cost: 'Included in all plans',
     link: '/ai-job-application/ats-optimization',
     linkText: 'ATS optimization guide →',
+    image: '/images/features/ats-first-templates.jpg',
   },
   {
     icon: Zap,
@@ -179,6 +190,7 @@ const features = [
     cost: '2.0 credits per application',
     link: '/ai-job-application/90-second-application-package',
     linkText: 'See workflow demo →',
+    image: '/images/features/ninety-second-workflow.jpg',
   },
 ];
 
@@ -354,6 +366,16 @@ export default function FeaturesPage() {
                             {feature.cost}
                           </div>
                         </div>
+                      </div>
+
+                      <div className="relative mb-6 aspect-[16/9] overflow-hidden rounded-xl border border-cream-200 bg-cream-50">
+                        <Image
+                          src={feature.image}
+                          alt={`${feature.title} illustration`}
+                          fill
+                          sizes="(min-width: 1024px) 560px, calc(100vw - 64px)"
+                          className="object-cover"
+                        />
                       </div>
 
                       <p className="text-warm-gray mb-6 leading-relaxed">{feature.description}</p>
