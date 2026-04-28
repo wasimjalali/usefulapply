@@ -20,7 +20,6 @@ import Link from 'next/link';
 import { CreditIndicator } from '@/components/ui/CreditIndicator';
 import { LowCreditsBanner } from '@/components/ui/LowCreditsBanner';
 import { LowCreditsModal } from '@/components/ui/LowCreditsModal';
-import { useDashboardTour } from '@/hooks/useDashboardTour';
 import { useJobFeedBadge } from '@/hooks/useJobFeedBadge';
 import type { ParsedCV } from '@/lib/types';
 import type { StructuredCV } from '@/lib/types/cv-schema';
@@ -227,9 +226,6 @@ export default function Dashboard() {
 
   // Sync sessions with Supabase in background
   useSupabaseSync();
-
-  // First-time onboarding tour
-  useDashboardTour();
 
   // Job Feed nav badge + first-open popup. The badge number tracks unprocessed
   // jobs (not acted on yet) and only clears when the user applies, saves,
