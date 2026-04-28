@@ -690,7 +690,7 @@ export function TrackerPanel() {
           <div className="mb-6 flex justify-center">
             <KarkoIcon theme="light" size="lg" />
           </div>
-          <h1 className="font-serif text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
+          <h1 className="text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
             Every application, in one place
           </h1>
           <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-warm-gray">
@@ -802,7 +802,7 @@ export function TrackerPanel() {
             <div className="inline-flex p-6 bg-cream-100 rounded-2xl mb-6">
               <Briefcase className="w-12 h-12 text-warm-gray/60" />
             </div>
-            <h3 className="text-xl font-serif font-semibold tracking-tight text-navy-700 mb-2">No jobs tracked yet</h3>
+            <h3 className="text-xl font-bold tracking-tight text-navy-700 mb-2">No jobs tracked yet</h3>
             <p className="text-base text-warm-gray mb-8 max-w-sm mx-auto leading-relaxed">
               Start your first job application and it will appear here automatically.
             </p>
@@ -819,7 +819,7 @@ export function TrackerPanel() {
             <div className="inline-flex p-6 bg-cream-100 rounded-2xl mb-6">
               <Search className="w-12 h-12 text-warm-gray/60" />
             </div>
-            <h3 className="text-xl font-serif font-semibold tracking-tight text-navy-700 mb-2">No jobs match this view</h3>
+            <h3 className="text-xl font-bold tracking-tight text-navy-700 mb-2">No jobs match this view</h3>
             <p className="text-base text-warm-gray mb-6 max-w-sm mx-auto">
               Try adjusting your search or filter criteria.
             </p>

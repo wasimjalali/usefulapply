@@ -905,7 +905,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
           <div className="w-16 h-16 rounded-2xl bg-cream-100 flex items-center justify-center mx-auto mb-5">
             <FileText className="w-8 h-8 text-cream-400" />
           </div>
-          <h3 className="text-lg font-serif font-semibold tracking-tight text-charcoal mb-2">No CV uploaded</h3>
+          <h3 className="text-lg font-bold tracking-tight text-charcoal mb-2">No CV uploaded</h3>
           <p className="text-sm text-warm-gray mb-6 leading-relaxed">
             Upload your CV from the Documents library to get started with AI-powered optimization.
           </p>
@@ -1273,7 +1273,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
           <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-[24px] border border-cream-200 bg-cream-100 shadow-lg">
             <div className="flex items-center justify-between border-b border-cream-200 bg-cream-50 px-5 py-3">
               <div>
-                <h2 className="text-sm font-serif font-semibold tracking-tight text-charcoal">CV Full Preview</h2>
+                <h2 className="text-sm font-bold tracking-tight text-charcoal">CV Full Preview</h2>
                 <p className="text-xs text-warm-gray">Focused reading mode with the surrounding dashboard hidden.</p>
               </div>
               <button

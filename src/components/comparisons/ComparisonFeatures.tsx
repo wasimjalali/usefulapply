@@ -10,7 +10,7 @@ export function ComparisonFeatures({ features, competitorName }: ComparisonFeatu
   return (
     <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
       <div className="max-w-5xl mx-auto">
-        <h2 className="text-3xl font-bold text-navy-700 mb-4 text-center">Feature-by-Feature Comparison</h2>
+        <h2 className="font-bold text-navy-600 text-[32px] leading-[1.1] mb-4 text-center">Feature-by-feature comparison.</h2>
         <p className="text-warm-gray text-center mb-12 max-w-2xl mx-auto">
           We compared key capabilities to help you understand which tool fits your needs best.
         </p>
@@ -20,7 +20,7 @@ export function ComparisonFeatures({ features, competitorName }: ComparisonFeatu
             <div key={i} className="bg-white rounded-2xl border border-cream-200 p-8 shadow-sm">
               {/* Feature Title */}
               <div className="flex items-start justify-between mb-6">
-                <h3 className="text-xl font-bold text-navy-700">{feature.title}</h3>
+                <h3 className="text-xl font-semibold text-navy-600">{feature.title}</h3>
                 {feature.winner !== 'tie' && (
                   <div className="flex items-center gap-1.5 bg-gold-50 px-3 py-1.5 rounded-lg border border-gold-200">
                     <Trophy className="w-4 h-4 text-gold-600" />

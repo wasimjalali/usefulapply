@@ -51,12 +51,11 @@ export default function ContactPage() {
       <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <ScrollReveal delay={0} direction="down" distance={20}>
-          <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-4">Contact</p>
+          <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-4">Contact</p>
           </ScrollReveal>
           <ScrollReveal delay={150}>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-navy-600 mb-6 leading-tight">
-            Get in{' '}
-            <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">Touch</span>
+          <h1 className="font-bold text-navy-600 text-[44px] sm:text-[52px] leading-[1.05] tracking-tight mb-6">
+            Get in <span className="text-gold-500">touch.</span>
           </h1>
           </ScrollReveal>
           <ScrollReveal delay={300}>
@@ -105,8 +104,8 @@ export default function ContactPage() {
         <div className="max-w-2xl mx-auto">
           <ScrollReveal>
           <div className="bg-white rounded-2xl p-8 md:p-10 border border-cream-200 shadow-md">
-            <h2 className="text-2xl font-bold text-navy-600 mb-6 text-center">
-              Send Us a Message
+            <h2 className="font-bold text-navy-600 text-[22px] md:text-[28px] leading-[1.15] mb-6 text-center">
+              Send us a message.
             </h2>
 
             {submitted ? (
@@ -219,22 +218,22 @@ export default function ContactPage() {
       </section>
 
       {/* FAQ Link */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow" />
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-navy-700 relative overflow-hidden">
+        <div className="absolute inset-0 dot-grid opacity-[0.04]" />
         <ScrollReveal>
-        <div className="max-w-4xl mx-auto text-center relative">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Looking for Quick Answers?
+        <div className="max-w-3xl mx-auto text-center relative">
+          <h2 className="font-bold text-white text-[32px] md:text-[40px] leading-[1.1] mb-4">
+            Looking for quick answers?
           </h2>
-          <p className="text-lg text-navy-200 mb-8">
-            Check out our pricing page for frequently asked questions about credits, plans, and features.
+          <p className="text-[17px] text-navy-100 mb-8 max-w-xl mx-auto">
+            Check our pricing page for frequently asked questions about credits, plans and features.
           </p>
           <Link
             href="/pricing"
-            className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg"
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors text-base"
           >
-            View Pricing & FAQ
-            <ArrowRight className="w-5 h-5" />
+            View pricing and FAQ
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
         </ScrollReveal>

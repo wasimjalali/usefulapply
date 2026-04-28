@@ -1,19 +1,35 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, Zap, FileText, Mail, MailPlus, Target, Shield, Sparkles, Check, MessageSquareText } from 'lucide-react';
+import { ArrowRight, Zap, FileText, Mail, MailPlus, Target, Shield, Sparkles, Check, MessageSquareText, Compass, ClipboardList } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = buildPageMetadata({
-  title: 'Features: The Complete AI Job Application Assistant',
+  title: 'Features: Find Jobs and Apply Smarter with Karko AI',
   description:
-    'Everything you need to apply smarter: fit analysis, AI-generated CVs, cover letters, application emails, follow-up emails, and ATS optimization.',
+    'Smart Job Feed delivers hand-picked jobs daily. AI generates tailored CVs, cover letters and emails. Built-in tracker keeps everything organized. Free to try.',
   canonical: '/features',
 });
 
 const features = [
+  {
+    icon: Compass,
+    title: 'Smart Job Feed',
+    description:
+      'Tell Karko the roles, countries and cities you care about. Every morning, your top matches are waiting, ranked by fit against your CV. Save jobs you like, dismiss ones that miss, or apply with one click.',
+    benefits: [
+      'Daily delivery at your chosen hour',
+      'Ranked by real fit against your CV, not keyword match',
+      'Up to 15 jobs/day on Plus (~300/month)',
+      'Up to 25 jobs/day on Max (~500/month)',
+      'One-click "Apply with Karko" into the Application Kit',
+    ],
+    cost: 'Included with Plus and Max',
+    link: '/dashboard',
+    linkText: 'Try the Job Feed →',
+  },
   {
     icon: Target,
     title: 'Fit Analysis (Analyze First Mode)',
@@ -103,6 +119,21 @@ const features = [
     cost: 'Part of 2.0 credit package',
     link: '/blog/follow-up-email-after-job-application',
     linkText: 'When to send follow-ups →',
+  },
+  {
+    icon: ClipboardList,
+    title: 'Application Tracker',
+    description:
+      'Every application you generate is stored with its match score, status, company and role. Update status as you progress through interviews. No more spreadsheet chaos.',
+    benefits: [
+      'Automatic tracking for all Karko applications',
+      'Match score and fit analysis preserved',
+      'Status updates (applied, interview, offer, rejected)',
+      'Filter and search your application history',
+    ],
+    cost: 'Included in all plans',
+    link: '/dashboard',
+    linkText: 'See your tracker →',
   },
   {
     icon: Sparkles,
@@ -281,11 +312,8 @@ export default function FeaturesPage() {
               </div>
             </ScrollReveal>
             <ScrollReveal delay={150}>
-              <h1 className="text-4xl sm:text-5xl font-bold text-navy-700 mb-6 leading-tight">
-                Karko AI Features: The Complete{' '}
-                <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">
-                  AI Job Application Assistant
-                </span>
+              <h1 className="font-bold text-navy-600 text-[44px] sm:text-[52px] lg:text-[56px] leading-[1.05] tracking-tight mb-6">
+                Features built for how you <span className="text-gold-500">actually apply.</span>
               </h1>
             </ScrollReveal>
             <ScrollReveal delay={300}>
@@ -297,9 +325,9 @@ export default function FeaturesPage() {
               <div className="mt-8">
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-md"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors"
                 >
-                  Try It Free - 2 Applications, No Credit Card
+                  Try it free, 2 applications, no credit card
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
@@ -321,7 +349,7 @@ export default function FeaturesPage() {
                           <Icon className="w-6 h-6 text-gold-600" />
                         </div>
                         <div className="flex-1">
-                          <h3 className="text-xl font-bold text-navy-700 mb-2">{feature.title}</h3>
+                          <h3 className="text-xl font-semibold text-navy-600 mb-2">{feature.title}</h3>
                           <div className="inline-block px-2 py-0.5 bg-cream-50 border border-cream-200 rounded text-xs font-medium text-charcoal">
                             {feature.cost}
                           </div>
@@ -358,7 +386,7 @@ export default function FeaturesPage() {
         <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-navy-700 mb-4">All Features, All Plans</h2>
+              <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-4">All features, all plans.</h2>
               <p className="text-warm-gray max-w-2xl mx-auto">
                 Every plan includes the full feature set. The only difference is the number of monthly credits.
               </p>
@@ -422,9 +450,9 @@ export default function FeaturesPage() {
             <div className="text-center mt-8">
               <Link
                 href="/pricing"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-md"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-navy-600 hover:bg-navy-700 text-white font-semibold rounded-lg shadow-sm transition-colors"
               >
-                View Pricing
+                View pricing
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -434,12 +462,12 @@ export default function FeaturesPage() {
         {/* FAQ */}
         <section className="py-16 px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl font-bold text-navy-700 mb-10 text-center">Frequently Asked Questions</h2>
+            <h2 className="font-bold text-navy-600 text-[32px] leading-[1.1] mb-10 text-center">Frequently asked questions.</h2>
             <div className="space-y-6">
               {faqs.map((faq, i) => (
                 <ScrollReveal key={i} delay={i * 50}>
                   <div className="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
-                    <h3 className="text-lg font-bold text-navy-700 mb-3">{faq.question}</h3>
+                    <h3 className="text-lg font-semibold text-navy-600 mb-3">{faq.question}</h3>
                     <p className="text-charcoal leading-relaxed">{faq.answer}</p>
                   </div>
                 </ScrollReveal>
@@ -451,16 +479,18 @@ export default function FeaturesPage() {
         {/* CTA */}
         <section className="py-16 px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto">
-            <div className="bg-gradient-to-br from-navy-600 to-navy-800 rounded-2xl p-10 text-white text-center">
-              <h2 className="text-2xl font-bold mb-4">Try All Features Free</h2>
+            <div className="bg-navy-700 rounded-2xl p-10 text-white text-center">
+              <h2 className="font-bold text-white text-[28px] md:text-[32px] leading-[1.1] mb-4">
+                Your next interview is <span className="text-gold-400">90 seconds away.</span>
+              </h2>
               <p className="text-navy-200 mb-6 leading-relaxed">
-                2 complete application packages including CV, cover letter, application email, and follow-up email. No credit card required.
+                2 complete application packages: CV, cover letter, application email and follow-up. No credit card required.
               </p>
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-md"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors"
               >
-                Try Karko AI Free
+                Start free, no credit card
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>

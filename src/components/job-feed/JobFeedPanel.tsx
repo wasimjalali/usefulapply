@@ -961,7 +961,7 @@ function SignedOutStage() {
         <div className="mb-6 flex justify-center">
           <KarkoIcon theme="light" size="lg" />
         </div>
-        <h1 className="font-serif text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
+        <h1 className="text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
           Jobs picked for you, every day
         </h1>
         <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-warm-gray">
@@ -996,7 +996,7 @@ function UpgradeStage() {
         <div className="mb-6 flex justify-center">
           <KarkoIcon theme="dark" size="lg" />
         </div>
-        <h1 className="font-serif text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
+        <h1 className="text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
           Get jobs picked for you, every morning
         </h1>
         <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-warm-gray">
@@ -1106,7 +1106,7 @@ function SavedJobsView({
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm">
           <Bookmark className="h-5 w-5 text-warm-gray" />
         </div>
-        <h2 className="font-serif text-xl font-semibold tracking-tight text-charcoal">No saved jobs yet</h2>
+        <h2 className="text-xl font-semibold tracking-tight text-charcoal">No saved jobs yet</h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-warm-gray">
           Open a job from your feed and click <span className="font-medium text-charcoal">Save</span> to bookmark it — you&apos;ll find all your saved jobs here.
         </p>
@@ -1195,7 +1195,7 @@ function FeedPageHeader({
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
-        <h1 className="font-serif text-3xl font-semibold tracking-tight text-charcoal">{headline}</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-charcoal">{headline}</h1>
         {subtitle && (
           <p className="mt-1 text-sm text-warm-gray">{subtitle}</p>
         )}
@@ -1526,7 +1526,7 @@ function JobFeedOnboardingWizard({
       <div className="border-b border-cream-200 px-6 py-5 sm:px-8">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <h2 className="font-serif text-xl font-semibold tracking-tight text-charcoal">
+            <h2 className="text-xl font-semibold tracking-tight text-charcoal">
               {isEditing ? 'Edit your feed settings' : 'Set up your daily feed'}
             </h2>
             <p className="mt-1 text-sm text-warm-gray">

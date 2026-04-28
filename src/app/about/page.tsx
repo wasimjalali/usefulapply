@@ -23,12 +23,11 @@ export default function AboutPage() {
       <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <ScrollReveal delay={0} direction="down" distance={20}>
-          <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-4">About KarKo AI</p>
+          <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-4">About Karko AI</p>
           </ScrollReveal>
           <ScrollReveal delay={150}>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-navy-600 mb-6 leading-tight">
-            We Built the Job Application Tool{' '}
-            <span className="bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent">We Wished We Had</span>
+          <h1 className="font-bold text-navy-600 text-[44px] sm:text-[52px] lg:text-[56px] leading-[1.05] tracking-tight mb-6">
+            We built the tool <span className="text-gold-500">we wished we had.</span>
           </h1>
           </ScrollReveal>
           <ScrollReveal delay={300}>
@@ -44,8 +43,8 @@ export default function AboutPage() {
         <div className="max-w-6xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-14">
-            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Our Difference</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">Why KarKo AI Exists</h2>
+            <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Our Difference</p>
+            <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-4">Why Karko AI exists.</h2>
             <p className="text-lg text-warm-gray max-w-2xl mx-auto">
               Most job tools solve one piece of the puzzle. We built an end-to-end system that handles the entire application process.
             </p>
@@ -81,7 +80,7 @@ export default function AboutPage() {
                   <div className="w-14 h-14 bg-gold-100 rounded-xl flex items-center justify-center mb-5">
                     <Icon className="w-7 h-7 text-gold-500" />
                   </div>
-                  <h3 className="text-xl font-bold text-charcoal mb-3">{value.title}</h3>
+                  <h3 className="text-xl font-semibold text-charcoal mb-3">{value.title}</h3>
                   <p className="text-warm-gray leading-relaxed">{value.description}</p>
                 </div>
                 </ScrollReveal>
@@ -96,8 +95,8 @@ export default function AboutPage() {
         <div className="max-w-6xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-14">
-            <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Our Values</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-navy-600">What We Stand For</h2>
+            <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Our Values</p>
+            <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1]">What we stand for.</h2>
           </div>
           </ScrollReveal>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -130,7 +129,7 @@ export default function AboutPage() {
                   <div className="w-14 h-14 bg-navy-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                     <Icon className="w-7 h-7 text-navy-600" />
                   </div>
-                  <h3 className="text-lg font-bold text-charcoal mb-2">{value.title}</h3>
+                  <h3 className="text-lg font-semibold text-charcoal mb-2">{value.title}</h3>
                   <p className="text-warm-gray text-sm leading-relaxed">{value.description}</p>
                 </div>
                 </ScrollReveal>
@@ -162,29 +161,29 @@ export default function AboutPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow" />
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-navy-700 relative overflow-hidden">
+        <div className="absolute inset-0 dot-grid opacity-[0.04]" />
         <ScrollReveal>
-        <div className="max-w-4xl mx-auto text-center relative">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Ready to Experience the Difference?
+        <div className="max-w-3xl mx-auto text-center relative">
+          <h2 className="font-bold text-white text-[36px] md:text-[48px] leading-[1.1] mb-5">
+            Your next interview is <span className="text-gold-400">90 seconds away.</span>
           </h2>
-          <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
+          <p className="text-[17px] text-navy-100 mb-9 max-w-xl mx-auto leading-relaxed">
             Start with 2 free applications. No credit card required.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             <Link
               href="/dashboard"
-              className="px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg inline-flex items-center gap-2"
+              className="px-8 py-3.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 text-base"
             >
-              Try It Free
-              <ArrowRight className="w-5 h-5" />
+              Start free, no credit card
+              <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               href="/pricing"
-              className="px-10 py-4 glass-dark text-white font-semibold rounded-xl hover:bg-white/30 hover:shadow-xl hover:scale-[1.02] hover:border-gold-400/50 transition-all duration-300 text-lg"
+              className="px-8 py-3.5 border border-white/30 text-white font-semibold rounded-lg hover:bg-white/10 transition-colors flex items-center justify-center text-base"
             >
-              View Pricing
+              View pricing
             </Link>
           </div>
         </div>

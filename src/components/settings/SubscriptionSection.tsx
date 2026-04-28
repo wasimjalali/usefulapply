@@ -238,13 +238,15 @@ export function SubscriptionSection({
             <tbody>
               {([
                 { label: 'Applications/month',            free: '2',      plus: '25',     max: '100' },
+                { label: 'Smart Job Feed',                free: false,    plus: '15/day', max: '25/day' },
                 { label: 'CV + Cover Letter + Email + Follow-up', free: true, plus: true, max: true },
                 { label: 'Honest fit score',              free: true,     plus: true,     max: true },
                 { label: 'ATS-optimized templates',       free: true,     plus: true,     max: true },
+                { label: 'Application tracker',           free: true,     plus: true,     max: true },
                 { label: 'Unlimited application history', free: false,    plus: true,     max: true },
                 { label: 'Add-on credit packs',           free: false,    plus: true,     max: true },
-                { label: 'Chrome Extension (Coming Soon)',free: false,    plus: false,    max: true },
-                { label: 'Hours saved/month',             free: '~4h',    plus: '~37h',   max: '~108h' },
+                { label: 'AI Screening Answers',          free: false,    plus: false,    max: true },
+                { label: 'Hours saved/month',             free: '~2h',    plus: '~18h',   max: '~108h' },
               ] as const).map((row, i) => (
                 <tr key={row.label} className={i % 2 === 0 ? 'bg-cream-50/60' : ''}>
                   <td className="py-2.5 pr-4 text-xs text-warm-gray rounded-l-lg pl-1">{row.label}</td>

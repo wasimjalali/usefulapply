@@ -1,135 +1,192 @@
-import Image from 'next/image';
-import { FileText, Mail, MailCheck, Target, BarChart3, ClipboardList } from 'lucide-react';
-import { ScrollReveal } from './ScrollReveal';
+'use client';
 
-const FEATURES = [
+import { useCallback, useEffect, useState } from 'react';
+import Image from 'next/image';
+import useEmblaCarousel from 'embla-carousel-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+
+type Slide = {
+  id: string;
+  eyebrow: string;
+  title: string;
+  description: string;
+  src: string;
+  alt: string;
+};
+
+const SLIDES: Slide[] = [
   {
-    id: 'cv',
-    label: 'Tailored CV',
-    description: 'Skills reordered to match the job. Keywords optimized for ATS screening. Professional formatting for US and EU markets.',
-    icon: FileText,
-    src: '/screenshots/showcase-cv.jpg',
-    width: 4096,
-    height: 2964,
-    alt: 'KarKo AI tailored CV panel showing ATS-optimized resume',
-    accent: 'from-navy-600 to-navy-700',
-    accentLight: 'from-navy-50 to-navy-100',
-    iconColor: 'text-navy-600',
-    number: '01',
+    id: 'job-feed',
+    eyebrow: 'Morning Job Feed',
+    title: 'Jobs picked for you, daily',
+    description:
+      'Every morning Karko delivers hand-picked roles that fit your profile. No keyword wrangling, no job-board swamp.',
+    src: '/screenshots/product-01-job-feed.webp',
+    alt: 'Karko AI Smart Job Feed showing six hand-picked roles with match badges',
   },
   {
-    id: 'cover-letter',
-    label: 'Cover Letter',
-    description: 'Company-specific opening. Your achievements matched to their requirements. Tone adapted to company culture.',
-    icon: Target,
-    src: '/screenshots/showcase-cover-letter.jpg',
-    width: 4096,
-    height: 2960,
-    alt: 'KarKo AI personalized cover letter tailored to the company',
-    accent: 'from-gold-400 to-gold-500',
-    accentLight: 'from-gold-50 to-gold-100',
-    iconColor: 'text-gold-500',
-    number: '02',
+    id: 'fit-analysis',
+    eyebrow: 'Fit Analysis',
+    title: 'See why before you apply',
+    description:
+      'A quick read of your fit for each role. Strengths, gaps, and what to lead with in the cover letter.',
+    src: '/screenshots/product-05-fit-analysis.webp',
+    alt: 'Karko AI Fit Analysis panel showing strengths, gaps and a recommendation',
+  },
+  {
+    id: 'cv',
+    eyebrow: 'Optimized CV',
+    title: 'ATS-ready in seconds',
+    description:
+      'Your CV tuned to the role. Skills reordered, keywords matched, ATS score visible at the top.',
+    src: '/screenshots/product-02-cv-optimized.webp',
+    alt: 'Karko AI Optimized CV with ATS score and template controls',
   },
   {
     id: 'email',
-    label: 'Application Email',
-    description: 'Ready to send with the right subject line, professional tone, and your key qualifications highlighted.',
-    icon: Mail,
-    src: '/screenshots/showcase-email.jpg',
-    width: 4096,
-    height: 2948,
-    alt: 'KarKo AI professional application email ready to send',
-    accent: 'from-navy-600 to-navy-700',
-    accentLight: 'from-navy-50 to-navy-100',
-    iconColor: 'text-navy-600',
-    number: '03',
-  },
-  {
-    id: 'follow-up',
-    label: 'Follow-Up Email',
-    description: 'A timed follow-up email that highlights a different achievement. Sent 5 to 7 business days after your application.',
-    icon: MailCheck,
-    src: '/screenshots/showcase-follow-up.jpg',
-    width: 1888,
-    height: 1356,
-    alt: 'KarKo AI follow-up email with a different achievement highlighted',
-    accent: 'from-gold-400 to-gold-500',
-    accentLight: 'from-gold-50 to-gold-100',
-    iconColor: 'text-gold-500',
-    number: '04',
+    eyebrow: 'Application Email',
+    title: 'Ready to send',
+    description:
+      'Subject line, body, tone. Copy it, paste it, hit send. Follow-up email included.',
+    src: '/screenshots/product-03-application-email.webp',
+    alt: 'Karko AI application email with subject line and body ready to send',
   },
   {
     id: 'tracker',
-    label: 'Application Tracker',
-    description: 'Track every application with match scores, statuses, and company details in one place.',
-    icon: ClipboardList,
-    src: '/screenshots/showcase-tracker.jpg',
-    width: 1896,
-    height: 1374,
-    alt: 'KarKo AI application tracker with match scores and status tracking',
-    accent: 'from-navy-600 to-navy-700',
-    accentLight: 'from-navy-50 to-navy-100',
-    iconColor: 'text-navy-600',
-    number: '05',
-  },
-  {
-    id: 'ats-score',
-    label: 'ATS Score',
-    description: 'See exactly what was changed and why. Detailed strategy breakdown, ATS compatibility score, and key improvements.',
-    icon: BarChart3,
-    src: '/screenshots/showcase-ats-score.jpg',
-    width: 2854,
-    height: 1380,
-    alt: 'KarKo AI ATS compatibility score and optimization report',
-    accent: 'from-gold-400 to-gold-500',
-    accentLight: 'from-gold-50 to-gold-100',
-    iconColor: 'text-gold-500',
-    number: '06',
+    eyebrow: 'Tracker',
+    title: 'Every application in one place',
+    description:
+      'Statuses, match scores, follow-up timers. One view of your whole search.',
+    src: '/screenshots/product-04-tracker.webp',
+    alt: 'Karko AI Application Tracker with match scores and status pills',
   },
 ];
 
 export function ProductShowcase() {
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    loop: true,
+    align: 'start',
+    skipSnaps: false,
+  });
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const scrollTo = useCallback((i: number) => emblaApi?.scrollTo(i), [emblaApi]);
+  const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
+  const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    const onSelect = () => setSelectedIndex(emblaApi.selectedScrollSnap());
+    onSelect();
+    emblaApi.on('select', onSelect);
+    return () => {
+      emblaApi.off('select', onSelect);
+    };
+  }, [emblaApi]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') scrollPrev();
+      if (e.key === 'ArrowRight') scrollNext();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [scrollPrev, scrollNext]);
+
+  const current = SLIDES[selectedIndex];
+
   return (
-    <div className="space-y-10">
-      {FEATURES.map((feature, i) => {
-        const Icon = feature.icon;
-        return (
-          <ScrollReveal key={feature.id} delay={0} distance={40}>
-            <div className="group relative bg-white rounded-2xl border border-cream-200 shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden">
-              <div className={`h-1.5 bg-gradient-to-r ${feature.accent}`} />
+    <div className="w-full">
+      {/* Top bar: counter + chevrons */}
+      <div className="flex items-center justify-between mb-6">
+        <p className="text-xs font-semibold text-warm-gray uppercase tracking-[0.08em]">
+          {String(selectedIndex + 1).padStart(2, '0')} <span className="text-cream-300">/</span>{' '}
+          {String(SLIDES.length).padStart(2, '0')} &nbsp;·&nbsp; {current.eyebrow}
+        </p>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={scrollPrev}
+            aria-label="Previous slide"
+            className="w-10 h-10 rounded-full border border-cream-200 bg-cream-50 text-navy-600 flex items-center justify-center hover:bg-cream-100 hover:border-cream-300 transition-colors cursor-pointer"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            onClick={scrollNext}
+            aria-label="Next slide"
+            className="w-10 h-10 rounded-full border border-cream-200 bg-cream-50 text-navy-600 flex items-center justify-center hover:bg-cream-100 hover:border-cream-300 transition-colors cursor-pointer"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
 
-              {/* Label bar */}
-              <div className="px-6 py-5 flex items-center gap-4 border-b border-cream-100">
-                <div className={`w-11 h-11 bg-gradient-to-br ${feature.accentLight} rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}>
-                  <Icon className={`w-5 h-5 ${feature.iconColor}`} />
+      {/* Embla viewport */}
+      <div className="overflow-hidden rounded-2xl" ref={emblaRef}>
+        <div className="flex">
+          {SLIDES.map((slide, i) => (
+            <div
+              key={slide.id}
+              className="relative flex-[0_0_100%] min-w-0"
+              aria-roledescription="slide"
+              aria-label={`${i + 1} of ${SLIDES.length}`}
+            >
+              <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-center px-1 lg:px-2">
+                {/* LEFT: copy */}
+                <div className="lg:col-span-4 order-2 lg:order-1">
+                  <p className="text-xs font-semibold text-gold-500 uppercase tracking-[0.08em] mb-3">
+                    {slide.eyebrow}
+                  </p>
+                  <h3 className="font-bold text-charcoal text-[28px] lg:text-[32px] leading-[1.15] mb-4">
+                    {slide.title}
+                  </h3>
+                  <p className="text-warm-gray text-[17px] leading-relaxed max-w-md">
+                    {slide.description}
+                  </p>
+                  <p className="mt-6 text-xs font-medium text-warm-gray">
+                    Slide {i + 1} of {SLIDES.length}
+                  </p>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl font-bold text-cream-300">{feature.number}</span>
-                    <h3 className="text-lg font-bold text-navy-600">{feature.label}</h3>
+
+                {/* RIGHT: dominant screenshot frame */}
+                <div className="lg:col-span-8 order-1 lg:order-2">
+                  <div className="relative rounded-2xl border border-cream-200 shadow-lg bg-white overflow-hidden aspect-[16/10]">
+                    <Image
+                      src={slide.src}
+                      alt={slide.alt}
+                      fill
+                      className="object-cover object-top"
+                      sizes="(max-width: 1024px) 100vw, 66vw"
+                      quality={90}
+                      priority={i === 0}
+                    />
                   </div>
-                  <p className="text-sm text-warm-gray mt-0.5 leading-relaxed">{feature.description}</p>
                 </div>
-              </div>
-
-              {/* Full-width screenshot */}
-              <div className="relative overflow-hidden bg-cream-50">
-                <Image
-                  src={feature.src}
-                  alt={feature.alt}
-                  width={feature.width}
-                  height={feature.height}
-                  className="w-full h-auto"
-                  quality={90}
-                  sizes="(max-width: 1280px) 100vw, 1280px"
-                  priority={i === 0}
-                />
               </div>
             </div>
-          </ScrollReveal>
-        );
-      })}
+          ))}
+        </div>
+      </div>
+
+      {/* Dot nav */}
+      <div className="mt-8 flex items-center justify-center gap-2">
+        {SLIDES.map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => scrollTo(i)}
+            aria-label={`Go to slide ${i + 1}`}
+            aria-current={selectedIndex === i}
+            className={`h-2 rounded-full transition-all duration-200 ${
+              selectedIndex === i
+                ? 'w-8 bg-navy-600'
+                : 'w-2 bg-cream-300 hover:bg-cream-400'
+            }`}
+          />
+        ))}
+      </div>
     </div>
   );
 }

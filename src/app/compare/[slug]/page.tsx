@@ -131,7 +131,7 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
         {/* Tool Deep Dives */}
         <section className="py-16 px-4 sm:px-6 lg:px-8">
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-3xl font-bold text-navy-700 mb-10 text-center">Detailed Overview</h2>
+            <h2 className="font-bold text-navy-600 text-[32px] leading-[1.1] mb-10 text-center">Detailed overview.</h2>
             <div className="grid lg:grid-cols-2 gap-8">
               <ComparisonDeepDive tool={comparison.karkoOverview} isKarko={true} />
               <ComparisonDeepDive tool={comparison.competitorOverview} isKarko={false} />
@@ -157,12 +157,12 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
         {/* Verdict & CTA */}
         <section className="py-16 px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto">
-            <div className="bg-gradient-to-br from-navy-600 to-navy-800 rounded-2xl p-10 text-white text-center">
-              <h2 className="text-2xl font-bold mb-4">The Verdict</h2>
+            <div className="bg-navy-700 rounded-2xl p-10 text-white text-center">
+              <h2 className="font-bold text-white text-[28px] leading-[1.1] mb-4">The verdict.</h2>
               <p className="text-navy-200 mb-6 leading-relaxed">{comparison.verdict}</p>
               <Link
                 href={comparison.ctaHref || '/dashboard'}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-md"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors"
               >
                 {comparison.ctaText}
                 <ArrowRight className="w-4 h-4" />

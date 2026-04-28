@@ -627,7 +627,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                   <>
                     <div className="flex items-center justify-center gap-3 mb-3">
                       <KarkoIcon size="md" theme="light" />
-                      <h2 className="text-lg font-serif font-semibold tracking-tight text-navy-800">
+                      <h2 className="text-lg font-bold tracking-tight text-navy-800">
                         {user ? 'Ready to apply?' : 'Your AI Job Application Assistant'}
                       </h2>
                     </div>
@@ -661,7 +661,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                   <>
                     <div className="flex items-center justify-center gap-3 mb-3">
                       <KarkoIcon size="md" theme="light" />
-                      <h2 className="text-lg font-serif font-semibold tracking-tight text-navy-800">
+                      <h2 className="text-lg font-bold tracking-tight text-navy-800">
                         {user ? 'Upload your CV to get started' : 'Your AI Job Application Assistant'}
                       </h2>
                     </div>
