@@ -69,11 +69,11 @@ export function PlatformScrollStack() {
         {PANELS.map((panel, i) => (
           <div
             key={panel.id}
-            className="sticky top-20 lg:top-24 min-h-screen flex items-start justify-center pt-4 lg:pt-6 px-4 sm:px-6 lg:px-8"
+            className="sticky top-20 lg:top-24 min-h-screen flex items-start justify-center pt-4 lg:pt-6 px-3 sm:px-4 lg:px-5"
             style={{ zIndex: i + 1 }}
           >
             <div
-              className={`w-full max-w-[1200px] mx-auto rounded-[24px] border border-cream-200 shadow-lg bg-cream-50 overflow-hidden ${
+              className={`w-full max-w-[1440px] mx-auto rounded-[24px] border border-cream-200 shadow-lg bg-cream-50 overflow-hidden ${
                 i === 0 ? 'lg:mt-0' : ''
               }`}
             >
