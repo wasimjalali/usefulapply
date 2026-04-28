@@ -12,6 +12,120 @@ import { BlogPost } from './types';
  */
 export const blogPosts: BlogPost[] = [
   {
+    slug: 'smart-job-feed-ai-curated-daily-jobs',
+    title: 'A smart job feed that reads your CV, not just keywords',
+    description:
+      'The average job search takes 5 months. Here is how an AI-curated daily feed cuts the browsing out so you spend your time applying, not scrolling.',
+    content: `The average job search in 2024 lasted about 20.6 weeks. That is roughly five months of opening tabs, scrolling listings, copying job titles into spreadsheets, and wondering if the posting from three weeks ago is still real.
+
+Most of that time is not spent applying. It is spent *looking*. Sorting through roles that almost fit. Reading descriptions that turn out to want eight years of experience for an entry-level title. Refreshing LinkedIn at 9am, then again at lunch, then again before bed.
+
+By week six, something shifts. The applications start to blur together. You stop reading the descriptions closely. You hit "Easy Apply" on anything that looks close enough. And the response rate drops, because the fit keeps getting looser.
+
+There is data on this. Research from Zippia shows that 47% of job seekers who send 10 or fewer applications get at least one interview. For people sending 21 to 80 applications, that number drops to around 20%. More applications, fewer results. The spray-and-pray approach gets worse the longer you do it.
+
+![A laptop with dozens of browser tabs spilling out, showing the chaos of manual job searching](/blog/manual-job-hunt-chaos.jpg)
+
+## Why manual job hunting is quietly broken
+
+Job boards were built for volume, not for you. LinkedIn, Indeed, and every aggregator behind them share the same goal: show as many listings as possible and keep you scrolling. They filter by keywords and location. That is the whole mechanism.
+
+That is fine if you know exactly what you want. It is terrible if your background is specific, if you work in a niche, or if you are open to two or three adjacent roles. A senior backend engineer with machine learning experience searching "backend engineer" will see hundreds of listings. Half will be for junior roles. A quarter will be in the wrong stack. The remaining quarter will mix in DevOps, SRE, and platform roles that the algorithm thought looked close enough.
+
+The filter is doing its job. It just cannot read your CV. It has no idea you led a team of six, or that your Spanish is fluent, or that you are only open to remote work with visa sponsorship. Those details live in your resume, not in a checkbox.
+
+So the human has to do the sorting. Every morning. For five months.
+
+## What a smart job feed should actually do
+
+Imagine the opposite setup. You configure your search once. Every morning, a small list of roles shows up. Each one has been filtered for your location, seniority, salary floor, work authorization, and remote preference. Each one has been read against your CV by something that understands what your CV actually says.
+
+No duplicates. No "entry-level, 7+ years required" nonsense. No postings in the wrong country. No roles you are clearly overqualified for.
+
+Just a short list. Curated while you slept. Ready when you open your laptop.
+
+That is what the Karko Smart Job Feed does.
+
+![Three curated job cards stacked neatly, each marked with a gold star, representing a daily curated feed](/blog/curated-daily-feed.jpg)
+
+## How the feed actually works
+
+You set it up once. It takes about three minutes.
+
+You tell Karko your target roles (up to two on Plus, up to four on Max). Your locations or cities. Your seniority, from intern through manager. Your remote preference: remote-only, remote-first, hybrid, on-site, or flexible. Your employment type. A salary floor. Your work authorization status and preferred languages.
+
+Then you pick an aggressiveness. Strict shows only exact matches. Balanced covers your core criteria with some flexibility. Broad casts a wider net, including adjacent roles and nearby cities you may not have thought to search.
+
+Every morning, at the local time you chose, the feed runs. It fetches fresh roles from the live web across 22 countries: the US, Canada, the UK, Germany, the Netherlands, France, Australia, India, Singapore, the UAE, and more. It pulls roles that were posted recently, not three-week-old reposts.
+
+Then the AI takes over.
+
+## The AI reads your CV like a recruiter does
+
+This is the part that changes the experience. A keyword filter sees "Senior Product Manager, 5+ years, SaaS, Berlin." An AI reading your CV sees that you spent four years at a marketplace company, led two launches, and speak German. It knows the Berlin role is a fit. It also knows that the Munich role tagged "Senior PM" actually wants a hardware background and rules it out.
+
+The AI ranker reads every job description, end to end, against your actual CV. Your years of experience. Your industries. Your skill stack. Your track record. It scores each role for genuine fit and labels the top ones as "strong" or "good." Anything below that never hits your feed.
+
+On Plus, you get up to 15 curated roles per day. On Max, up to 25. The number is capped on purpose. The feed is not trying to show you every job that exists. It is trying to show you jobs worth your time.
+
+![A magnifying glass reading a CV next to a job posting, representing AI-powered fit matching](/blog/ai-reads-cv.jpg)
+
+If you want, you can turn on adjacent roles. The feed will also surface related titles you might not have typed into a search box. A "Product Manager" search can quietly include "Product Lead" and "Senior Product Owner" roles that fit your experience. Good matches hiding behind different labels.
+
+## The time math
+
+Say you spend 45 minutes a day browsing job boards. That is 5 hours a week, and a little over 20 hours a month. Over a five-month search, that is 100 hours of scrolling.
+
+Most of those hours are not producing applications. They are producing a shortlist that you still have to evaluate. The Smart Job Feed compresses that into the 30 seconds it takes to read a curated list with your morning coffee.
+
+The browsing step is done. You move straight to the part that actually matters: deciding which roles deserve a tailored application.
+
+![Two clocks showing a large amount of time shrinking to a small amount, representing time saved](/blog/time-comparison.jpg)
+
+## What happens once you find a role you like
+
+You click a job in the feed. From there, two honest options open up.
+
+If you are unsure about the role, you run a Fit Analysis. It costs 0.5 credits. In about 20 seconds, you get a match score, a short list of your strongest matching skills, and the gaps the job calls for that you are missing. If the gaps are too wide, you skip it. No application written, no time spent.
+
+If the Fit looks good, or if you already know the role is right, you generate a full application kit. Tailored CV, cover letter, application email, and follow-up email. It costs 2 credits, and it takes under 90 seconds.
+
+Every application you create is saved in your tracker with its match score and status. You can see at a glance where you stand: applied, interview, follow-up, rejected, or accepted. The whole search, in one place.
+
+## Worth trying if you are tired of the scroll
+
+Job hunting is already hard. It gets harder the longer it goes. The parts worth protecting are your energy, your focus, and the quality of your applications. The parts worth deleting are the 45 minutes of morning scrolling and the growing suspicion that you are missing the good roles because they are buried under the bad ones.
+
+The Smart Job Feed is the setup-once, arrives-daily version of that. You can configure it today and see your first feed tomorrow morning.
+
+If five months of searching sounds like a long time, that is because it is. Getting the browsing step out of the way is a small change that compounds fast.`,
+    author: {
+      name: 'Wasim Jalali',
+      role: 'Founder, Karko AI',
+    },
+    publishedAt: '2026-04-28',
+    readingTime: 7,
+    category: 'Job Search',
+    tags: [
+      'smart job feed',
+      'ai job matching',
+      'job search',
+      'daily jobs',
+      'ai job search',
+      'job application tool',
+      'career',
+    ],
+    featured: false,
+    ogImage: '/blog/smart-job-feed-cover.jpg',
+    cta: {
+      heading: 'Stop scrolling, start applying',
+      description:
+        'Set up your Smart Job Feed in three minutes. Tomorrow morning, a short list of roles that actually fit your CV shows up, curated while you slept.',
+      text: 'Try the Smart Job Feed',
+      href: '/dashboard',
+    },
+  },
+  {
     slug: 'follow-up-email-after-job-application',
     title: 'Follow-Up Email After Job Application: When & What to Say',
     description:
