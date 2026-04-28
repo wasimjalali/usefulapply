@@ -18,7 +18,7 @@ Shared style for replacement images:
 | Done | `screening-question-answers-ai-job-applications` | `/blog/screening-questions-cover.jpg` | 3 | Already refreshed in GPT Image-2 brand style. |
 | Done | `smart-job-feed-ai-curated-daily-jobs` | `/blog/smart-job-feed-cover.jpg` | 4 | Already refreshed in GPT Image-2 brand style. |
 | Done | `follow-up-email-after-job-application` | `/blog/follow-up-email-cover.jpg` | 4 | Replaced cover plus 4 inline legacy chart/timeline/screenshot/waiting visuals with GPT Image-2 brand illustrations. |
-| Todo | `how-to-tailor-resume-to-job-description` | `/blog/resume-tailoring-cover.jpg` | 5 | Reduce dense chart set. Likely cover + 4 inline illustrations around overlap, funnel, time saved, manual vs AI. |
+| Done | `how-to-tailor-resume-to-job-description` | `/blog/resume-tailoring-cover.jpg` | 5 | Replaced cover plus 5 inline legacy diagram/chart/manual-vs-AI visuals with GPT Image-2 brand illustrations. |
 | Todo | `ats-resume-format-guide-2026` | `/blog/ats-resume-cover.jpg` | 5 | Replace technical diagrams with cleaner visual metaphors. Likely cover + 4 inline illustrations. |
 | Todo | `ai-cover-letter-generator-how-it-works` | `/blog/ai-cover-letter-cover.jpg` | 4 | Replace flow/structure/chart images. Likely cover + 3 inline illustrations. |
 | Todo | `best-ai-job-application-tools-2026` | `/blog/ai-tools-comparison-cover.jpg` | 3 | Replace matrix/speed/decision-tree with brand-safe abstractions. Likely cover + 3 inline illustrations. |
@@ -30,8 +30,8 @@ Shared style for replacement images:
 ## Working Order
 
 1. Done: `follow-up-email-after-job-application`
-2. Next: `how-to-tailor-resume-to-job-description`
-3. `ats-resume-format-guide-2026`
+2. Done: `how-to-tailor-resume-to-job-description`
+3. Next: `ats-resume-format-guide-2026`
 4. `ai-cover-letter-generator-how-it-works`
 5. `best-ai-job-application-tools-2026`
 6. `how-long-to-apply-for-job-2026`
