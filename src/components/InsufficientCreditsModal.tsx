@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Zap, Crown, Check, Clock, Loader2 } from 'lucide-react';
+import { X, Check, Clock, Loader2, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface InsufficientCreditsModalProps {
@@ -11,55 +11,6 @@ interface InsufficientCreditsModalProps {
   required?: number;
   available?: number;
 }
-
-const PLANS = [
-  {
-    tier: 'plus' as const,
-    name: 'Plus',
-    tagline: 'For serious job seekers',
-    badge: 'SAVE ~18 HOURS/MONTH',
-    badgeStyle: 'bg-gold-500 text-white',
-    price: '$19.99',
-    priceNote: '~$0.80 per application',
-    credits: '50 credits/month',
-    creditsStyle: 'bg-gold-100 text-gold-700 border border-gold-300',
-    features: [
-      'Smart Job Feed: up to 15 curated roles per day',
-      'Full Fit Analysis with strengths and gaps',
-      'Unlimited application tracker',
-      'Add-on credit packs (credits roll over)',
-    ],
-    hoursSaved: 'Save ~18 hours every month',
-    hoursBg: 'bg-gold-50 border border-gold-200 text-gold-700',
-    cta: 'Get Plus →',
-    ctaStyle: 'bg-gold-500 hover:bg-gold-600 text-white',
-    cardStyle: 'border-2 border-gold-400 shadow-lg shadow-gold-100 scale-[1.02]',
-    headerStyle: 'bg-gold-500',
-  },
-  {
-    tier: 'max' as const,
-    name: 'Max',
-    tagline: 'For the intense job search',
-    badge: 'SAVE ~108 HOURS/MONTH',
-    badgeStyle: 'bg-navy-700 text-white',
-    price: '$79.99',
-    priceNote: '~$0.80 per application',
-    credits: '200 credits/month',
-    creditsStyle: 'bg-navy-100 text-navy-700 border border-navy-200',
-    features: [
-      'Smart Job Feed: up to 25 curated roles per day',
-      'Screening question answers',
-      'Add-on credit packs (credits roll over)',
-      'Premium dedicated support',
-    ],
-    hoursSaved: 'Save ~108 hours every month',
-    hoursBg: 'bg-navy-700/10 border border-navy-200 text-navy-700',
-    cta: 'Get Max →',
-    ctaStyle: 'bg-navy-700 hover:bg-navy-800 text-white',
-    cardStyle: 'border-2 border-navy-200',
-    headerStyle: 'bg-navy-700',
-  },
-] as const;
 
 export function InsufficientCreditsModal({
   isOpen,
@@ -70,7 +21,6 @@ export function InsufficientCreditsModal({
   const { user } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<'plus' | 'max' | null>(null);
 
-  // Escape key handler for accessibility
   const handleEscape = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose();
   }, [onClose]);
@@ -111,10 +61,7 @@ export function InsufficientCreditsModal({
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Insufficient credits">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
       <div className="relative bg-cream-50 rounded-2xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -129,12 +76,7 @@ export function InsufficientCreditsModal({
 
         {/* Header */}
         <div className="px-6 pt-8 pb-6 text-center border-b border-cream-200">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-gold-100 rounded-2xl mb-4">
-            <Zap className="w-7 h-7 text-gold-500" />
-          </div>
-          <h2 className="text-2xl font-bold text-charcoal">
-            You&apos;re out of credits
-          </h2>
+          <h2 className="text-2xl font-bold text-charcoal">You&apos;re out of credits</h2>
           {required !== undefined && available !== undefined && (
             <p className="mt-2 text-warm-gray text-sm">
               This action requires <strong>{required} credits</strong>, but you only have{' '}
@@ -142,81 +84,110 @@ export function InsufficientCreditsModal({
             </p>
           )}
           <p className="mt-2 text-warm-gray text-sm">
-            Upgrade to keep applying — your CV, cover letter, email, and follow-up,
-            all tailored for every role.
+            Upgrade to keep applying. Your CV, cover letter, email and follow-up, all tailored for every role.
           </p>
         </div>
 
-        {/* Plan cards */}
-        <div className="px-6 py-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {PLANS.map((plan) => (
-            <div
-              key={plan.tier}
-              className={`bg-white rounded-2xl overflow-hidden transition-all ${plan.cardStyle}`}
-            >
-              {/* Badge bar */}
-              <div className={`px-4 py-2 text-center text-xs font-bold tracking-wide ${plan.headerStyle} text-white`}>
-                {plan.badge}
-              </div>
+        {/* Plan cards — matches pricing page layout exactly */}
+        <div className="px-6 py-6 grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
 
-              <div className="p-5">
-                {/* Plan name + tagline */}
-                <div className="flex items-center gap-3 mb-3">
-                  <div className={`p-2 rounded-lg ${plan.tier === 'plus' ? 'bg-gold-100' : 'bg-navy-50'}`}>
-                    {plan.tier === 'plus'
-                      ? <Zap className="w-5 h-5 text-gold-500" />
-                      : <Crown className="w-5 h-5 text-navy-600" />
-                    }
-                  </div>
-                  <div>
-                    <p className="font-bold text-charcoal">{plan.name}</p>
-                    <p className="text-xs text-warm-gray">{plan.tagline}</p>
-                  </div>
-                </div>
-
-                {/* Price */}
-                <p className="text-3xl font-bold text-charcoal mb-0.5">
-                  {plan.price}
-                  <span className="text-sm font-normal text-warm-gray"> /month</span>
-                </p>
-                <p className="text-xs text-warm-gray mb-3">{plan.priceNote}</p>
-
-                {/* Credits pill */}
-                <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full mb-4 ${plan.creditsStyle}`}>
-                  {plan.credits}
-                </span>
-
-                {/* Features */}
-                <ul className="space-y-2 mb-4">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-charcoal">
-                      <Check className="w-4 h-4 text-gold-500 flex-shrink-0 mt-0.5" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-
-                {/* Hours saved */}
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-2xl text-sm font-medium mb-4 ${plan.hoursBg}`}>
-                  <Clock className="w-4 h-4 flex-shrink-0" />
-                  {plan.hoursSaved}
-                </div>
-
-                {/* CTA */}
-                <button
-                  onClick={() => handleUpgrade(plan.tier)}
-                  disabled={loadingPlan !== null}
-                  className={`w-full py-3 rounded-2xl font-semibold text-sm transition-all cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2 ${plan.ctaStyle}`}
-                >
-                  {loadingPlan === plan.tier ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    plan.cta
-                  )}
-                </button>
-              </div>
+          {/* === PLUS === */}
+          <div className="relative flex flex-col bg-cream-50 rounded-2xl border-2 border-gold-400 shadow-xl overflow-hidden">
+            <div className="h-[36px] flex items-center justify-center bg-gold-400 text-navy-900 text-[11px] font-bold tracking-[0.14em]">
+              MOST POPULAR
             </div>
-          ))}
+            <div className="p-6 pt-4 flex flex-col flex-1">
+              <div className="mb-4">
+                <h3 className="font-bold text-navy-600 text-[20px] leading-tight">Plus</h3>
+                <p className="text-sm text-warm-gray mt-0.5">For serious job seekers</p>
+              </div>
+              <div className="mb-4">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[36px] font-bold text-navy-600 leading-none">$19.99</span>
+                  <span className="text-warm-gray text-sm">/ month</span>
+                </div>
+                <span className="inline-block mt-2 text-[12px] font-semibold text-gold-700 bg-gold-50 border border-gold-200 rounded-full px-3 py-0.5">
+                  25 applications / month
+                </span>
+              </div>
+              <div className="flex items-center gap-2 bg-gold-50 border border-gold-200 rounded-lg px-3 py-2 mb-4">
+                <Clock className="w-4 h-4 text-gold-600 flex-shrink-0" />
+                <span className="text-[13px] font-semibold text-gold-700">Save ~18 hours every month</span>
+              </div>
+              <button
+                onClick={() => handleUpgrade('plus')}
+                disabled={loadingPlan !== null}
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-white shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-60 mb-5 group"
+              >
+                {loadingPlan === 'plus'
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <>Get Plus <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>
+                }
+              </button>
+              <p className="font-bold text-charcoal text-[14px] mb-2.5">Everything in Free, plus:</p>
+              <ul className="space-y-2 flex-1">
+                {[
+                  'Smart Job Feed: up to 15 curated roles per day',
+                  'Full Fit Analysis with strengths and gaps',
+                  'Unlimited application tracker',
+                  'Add-on credit packs (credits roll over)',
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold-500" />
+                    <span className="text-[13px] text-charcoal leading-relaxed">{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* === MAX === */}
+          <div className="relative flex flex-col bg-navy-800 rounded-2xl border border-navy-700 overflow-hidden">
+            <div className="h-[36px]" />
+            <div className="p-6 pt-4 flex flex-col flex-1">
+              <div className="mb-4">
+                <h3 className="font-bold text-white text-[20px] leading-tight">Max</h3>
+                <p className="text-sm text-navy-300 mt-0.5">For the intense job search</p>
+              </div>
+              <div className="mb-4">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[36px] font-bold text-white leading-none">$79.99</span>
+                  <span className="text-navy-300 text-sm">/ month</span>
+                </div>
+                <span className="inline-block mt-2 text-[12px] font-semibold text-navy-200 bg-navy-700 border border-navy-600 rounded-full px-3 py-0.5">
+                  100 applications / month
+                </span>
+              </div>
+              <div className="flex items-center gap-2 bg-navy-700 border border-navy-600 rounded-lg px-3 py-2 mb-4">
+                <Clock className="w-4 h-4 text-gold-400 flex-shrink-0" />
+                <span className="text-[13px] font-semibold text-gold-300">Save ~108 hours every month</span>
+              </div>
+              <button
+                onClick={() => handleUpgrade('max')}
+                disabled={loadingPlan !== null}
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-navy-900 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-60 mb-5 group"
+              >
+                {loadingPlan === 'max'
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <>Get Max <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>
+                }
+              </button>
+              <p className="font-bold text-white text-[14px] mb-2.5">Everything in Plus, plus:</p>
+              <ul className="space-y-2 flex-1">
+                {[
+                  'Smart Job Feed: up to 25 curated roles per day',
+                  'Screening question answers',
+                  'Add-on credit packs (credits roll over)',
+                  'Premium dedicated support',
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold-400" />
+                    <span className="text-[13px] text-navy-100 leading-relaxed">{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
 
         {/* Footer */}
