@@ -310,15 +310,6 @@ export default function Home() {
                   So I built Karko AI to do the entire workflow automatically. Paste a job description, get a tailored CV, cover letter, and professional email in under 90 seconds. Within about 20 applications, I got my first interview. That&apos;s when I knew every job seeker needed this.
                 </p>
               </div>
-              <div className="mt-6">
-                <Link
-                  href="/blog/how-long-to-apply-for-job-2026"
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-navy-600 hover:text-gold-600 underline underline-offset-4 decoration-cream-300 hover:decoration-gold-400 transition-colors"
-                >
-                  Read the full story
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
             </div>
           </div>
           </ScrollReveal>
