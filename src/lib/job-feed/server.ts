@@ -51,6 +51,7 @@ export interface DueJobFeedUser {
   userId: string;
   timeZone: string;
   deliveryHourLocal: number;
+  targetRunAt: string;
 }
 
 interface LatestJobFeedItemsResult {
@@ -1158,7 +1159,12 @@ export async function listSavedJobFeedItemsAdmin(params: {
     .filter((item): item is JobFeedFeedItem => item !== null);
 }
 
-export async function listDueJobFeedUsers(now = new Date()): Promise<DueJobFeedUser[]> {
+export async function listDueJobFeedUsers(
+  now = new Date(),
+  options?: { leadHours?: number }
+): Promise<DueJobFeedUser[]> {
+  const leadHours = Math.max(0, options?.leadHours ?? 0);
+  const targetRunAt = new Date(now.getTime() + leadHours * 60 * 60 * 1000);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
   const admin = createAdminClient() as any;
 
@@ -1195,13 +1201,14 @@ export async function listDueJobFeedUsers(now = new Date()): Promise<DueJobFeedU
       if (!isJobFeedConfigured(settings)) return false;
       if (!canAccessJobFeed(tierByUserId.get(settings.user_id))) return false;
 
-      const localParts = getTimeZoneParts(now, settings.user_timezone);
+      const localParts = getTimeZoneParts(targetRunAt, settings.user_timezone);
       return localParts.hour === settings.delivery_hour_local;
     })
     .map((settings) => ({
       userId: settings.user_id,
       timeZone: settings.user_timezone,
       deliveryHourLocal: settings.delivery_hour_local,
+      targetRunAt: targetRunAt.toISOString(),
     }));
 }
 
@@ -2162,6 +2169,7 @@ export async function stageJobFeedRunForBatch(params: {
   userId: string;
   triggerSource?: string;
   now?: Date;
+  targetRunAt?: Date;
   force?: boolean;
 }): Promise<{
   run: JobFeedRun;
@@ -2170,14 +2178,14 @@ export async function stageJobFeedRunForBatch(params: {
   visibleCap: number;
   yearsExperience: number | null;
 } | null> {
-  const { userId, triggerSource = 'scheduled', now = new Date(), force = false } = params;
+  const { userId, triggerSource = 'scheduled', now = new Date(), targetRunAt = now, force = false } = params;
   const settings = await getJobFeedSettingsAdmin(userId);
 
   if (!settings) throw new Error('Job feed settings were not found for this user.');
   if (!settings.enabled) throw new Error('Job feed is paused for this user.');
   if (!isJobFeedConfigured(settings)) throw new Error('Job feed settings are incomplete.');
 
-  const localDate = getLocalDateKey(now, settings.user_timezone);
+  const localDate = getLocalDateKey(targetRunAt, settings.user_timezone);
   const existingRun = await getJobFeedRunByDate(userId, localDate);
 
   if (existingRun?.status === 'completed' && !force) {

@@ -1,5 +1,6 @@
 import { cleanupHistoricalJobFeedData } from '@/lib/job-feed/cleanup';
 import { captureJobFeedEvent } from '@/lib/job-feed/analytics';
+import { getJobFeedBatchLeadHours } from '@/lib/job-feed/constants';
 import {
   expireStaleJobFeedApplicationGenerations,
   listDueJobFeedUsers,
@@ -57,9 +58,11 @@ export const jobFeedSweepRequestedFunction = inngest.createFunction(
   async ({ event, step }) => {
     const data = parseSweepRequestedEventData(event.data);
     const requestedAt = new Date(data.requestedAt);
+    const batchRankingEnabled = isBatchRankingEnabled();
+    const batchLeadHours = batchRankingEnabled ? getJobFeedBatchLeadHours() : 0;
 
     const dueUsers = await step.run('load-due-job-feed-users', async () => {
-      return listDueJobFeedUsers(requestedAt);
+      return listDueJobFeedUsers(requestedAt, { leadHours: batchLeadHours });
     });
     await step.run('capture-due-job-feed-users', async () => {
       captureJobFeedEvent({
@@ -68,7 +71,8 @@ export const jobFeedSweepRequestedFunction = inngest.createFunction(
           trigger_source: data.triggerSource,
           requested_at: data.requestedAt,
           due_users: dueUsers.length,
-          batch_ranking_enabled: isBatchRankingEnabled(),
+          batch_ranking_enabled: batchRankingEnabled,
+          batch_lead_hours: batchLeadHours,
         },
       });
     });
@@ -77,7 +81,7 @@ export const jobFeedSweepRequestedFunction = inngest.createFunction(
     // Batch API job containing all of their ranking payloads. One JSONL
     // file, one batch_id, 50% cost vs sync. The batch reconciler (cron
     // every 10min) hydrates ranked_items once Azure finishes the batch.
-    if (isBatchRankingEnabled() && dueUsers.length > 0) {
+    if (batchRankingEnabled && dueUsers.length > 0) {
       const stagedCount = await step.run('stage-and-submit-batch', async () => {
         const staged: Array<Awaited<ReturnType<typeof stageJobFeedRunForBatch>>> = [];
         for (const dueUser of dueUsers) {
@@ -86,6 +90,7 @@ export const jobFeedSweepRequestedFunction = inngest.createFunction(
               userId: dueUser.userId,
               triggerSource: 'scheduled',
               now: requestedAt,
+              targetRunAt: new Date(dueUser.targetRunAt),
               force: false,
             });
             if (stagedRun) staged.push(stagedRun);
@@ -110,6 +115,7 @@ export const jobFeedSweepRequestedFunction = inngest.createFunction(
         requestedAt: data.requestedAt,
         dueUsers: dueUsers.length,
         rankingMode: 'batch',
+        batchLeadHours,
         batchStagedRuns: stagedCount,
         cleanup,
       };
