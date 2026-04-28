@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Check, Zap, ArrowRight, ChevronDown, FileText, MessageSquare, BarChart3, Loader2 } from 'lucide-react';
+import { Check, Zap, ArrowRight, ChevronDown, FileText, MessageSquare, BarChart3, Loader2, Clock } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
@@ -211,29 +211,33 @@ export default function PricingPage() {
           <div className="grid md:grid-cols-3 gap-6 items-stretch">
             {/* === FREE === */}
             <ScrollReveal delay={0} className="h-full">
-            <div className="relative h-full flex flex-col bg-cream-50 rounded-2xl border border-cream-200 shadow-sm overflow-hidden">
+            <div className="relative h-full flex flex-col bg-cream-50 rounded-2xl border border-navy-200 shadow-sm overflow-hidden">
               <div className="h-[36px]" />
               <div className="p-7 pt-5 flex flex-col h-full">
                 <div className="mb-4">
                   <h3 className="font-bold text-navy-600 text-[22px] leading-tight">Free</h3>
                   <p className="text-sm text-warm-gray mt-0.5">Try Karko, no card required</p>
                 </div>
-                <div className="mb-6">
+                <div className="mb-5">
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-[40px] font-bold text-navy-600 leading-none">Free</span>
                     <span className="text-warm-gray text-sm">forever</span>
                   </div>
                   <span className="inline-block mt-2 text-[12px] font-semibold text-navy-600 bg-navy-50 border border-navy-100 rounded-full px-3 py-0.5">2 applications / month</span>
                 </div>
+                <div className="flex items-center gap-2 bg-navy-50 border border-navy-100 rounded-lg px-3 py-2 mb-5">
+                  <Clock className="w-4 h-4 text-navy-500 flex-shrink-0" />
+                  <span className="text-[13px] font-semibold text-navy-700">Save ~2 hours every month</span>
+                </div>
                 <Link
                   href="/dashboard"
-                  className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm border border-white/70 bg-white/60 hover:bg-white hover:border-white hover:shadow-md text-navy-600 transition-all duration-200 hover:-translate-y-0.5 mb-6 group"
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm border border-navy-300 bg-white hover:bg-navy-50 hover:border-navy-400 hover:shadow-md text-navy-600 transition-all duration-200 hover:-translate-y-0.5 mb-6 group"
                 >
                   Start Free
                   <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
                 </Link>
                 <p className="font-bold text-charcoal text-[15px] mb-3">What&apos;s included:</p>
-                <ul className="space-y-2.5 mb-5 flex-1">
+                <ul className="space-y-2.5 flex-1">
                   {[
                     'Tailored CV, cover letter, email and follow-up',
                     'Honest fit score before you apply',
@@ -247,7 +251,6 @@ export default function PricingPage() {
                     </li>
                   ))}
                 </ul>
-                <p className="text-[13px] italic text-warm-gray mt-auto">Saves you about 2 hours a month.</p>
               </div>
             </div>
             </ScrollReveal>
@@ -270,6 +273,10 @@ export default function PricingPage() {
                   </div>
                   <span className="inline-block mt-2 text-[12px] font-semibold text-gold-700 bg-gold-50 border border-gold-200 rounded-full px-3 py-0.5">25 applications / month</span>
                 </div>
+                <div className="flex items-center gap-2 bg-gold-50 border border-gold-200 rounded-lg px-3 py-2 mb-5">
+                  <Clock className="w-4 h-4 text-gold-600 flex-shrink-0" />
+                  <span className="text-[13px] font-semibold text-gold-700">Save ~18 hours every month</span>
+                </div>
                 <button
                   onClick={() => handleSubscribe('plus')}
                   disabled={loadingPlan === 'plus'}
@@ -291,7 +298,6 @@ export default function PricingPage() {
                     </li>
                   ))}
                 </ul>
-                <p className="text-[13px] italic text-warm-gray mt-auto">Saves you about 18 hours a month.</p>
               </div>
             </div>
             </ScrollReveal>
@@ -311,6 +317,10 @@ export default function PricingPage() {
                     <span className="text-navy-300 text-sm">/ month</span>
                   </div>
                   <span className="inline-block mt-2 text-[12px] font-semibold text-navy-200 bg-navy-700 border border-navy-600 rounded-full px-3 py-0.5">100 applications / month</span>
+                </div>
+                <div className="flex items-center gap-2 bg-navy-700 border border-navy-600 rounded-lg px-3 py-2 mb-5">
+                  <Clock className="w-4 h-4 text-gold-400 flex-shrink-0" />
+                  <span className="text-[13px] font-semibold text-gold-300">Save ~108 hours every month</span>
                 </div>
                 <button
                   onClick={() => handleSubscribe('max')}
@@ -333,7 +343,6 @@ export default function PricingPage() {
                     </li>
                   ))}
                 </ul>
-                <p className="text-[13px] italic text-navy-300 mt-auto">Saves you about 108 hours a month.</p>
               </div>
             </div>
             </ScrollReveal>

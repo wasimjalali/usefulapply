@@ -361,16 +361,14 @@ export default function Home() {
           <div className="grid md:grid-cols-3 gap-4">
             {/* Free tile */}
             <ScrollReveal delay={0}>
-            <div className="bg-cream-50 border border-cream-200 rounded-2xl p-6 shadow-sm h-full flex flex-col">
+            <div className="bg-cream-50 border border-navy-200 rounded-2xl p-6 shadow-sm h-full flex flex-col">
               <div className="h-[22px]" />
               <p className="text-sm font-semibold text-navy-600">Free</p>
               <p className="text-[22px] font-bold text-charcoal mt-1">Free forever</p>
-              <p className="text-[18px] text-charcoal leading-snug mt-4 mb-6 flex-1">
-                2 tailored applications every month.
-              </p>
+              <p className="text-[15px] text-warm-gray mt-2 mb-5 flex-1">2 applications / month. Save ~2 hrs.</p>
               <Link
                 href="/dashboard"
-                className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg border border-white/70 bg-white/60 hover:bg-white hover:border-white hover:shadow-md text-navy-600 font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5 group"
+                className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg border border-navy-300 bg-white hover:bg-navy-50 hover:border-navy-400 hover:shadow-md text-navy-600 font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5 group"
               >
                 Start Free <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
               </Link>
@@ -379,28 +377,24 @@ export default function Home() {
 
             {/* Plus tile (highlighted) */}
             <ScrollReveal delay={100}>
-            <div className="bg-cream-50 border border-cream-200 rounded-2xl p-6 shadow-md h-full flex flex-col border-t-2 border-t-gold-400 relative">
+            <div className="bg-cream-50 border-2 border-gold-400 rounded-2xl p-6 shadow-xl h-full flex flex-col relative">
               <div className="h-[22px] flex items-center">
                 <span className="text-[10px] font-bold tracking-[0.14em] text-gold-600 uppercase">Most popular</span>
               </div>
               <p className="text-sm font-semibold text-navy-600">Plus</p>
               <p className="text-[22px] font-bold text-charcoal mt-1">$19.99<span className="text-sm font-normal text-warm-gray"> / month</span></p>
-              <p className="text-[18px] text-charcoal leading-snug mt-4 mb-6 flex-1">
-                25 tailored applications every month.
-              </p>
+              <p className="text-[15px] text-warm-gray mt-2 mb-5 flex-1">25 applications / month. Save ~18 hrs.</p>
               <PlusPlanButton />
             </div>
             </ScrollReveal>
 
             {/* Max tile */}
             <ScrollReveal delay={200}>
-            <div className="bg-cream-50 border border-cream-200 rounded-2xl p-6 shadow-sm h-full flex flex-col">
+            <div className="bg-navy-800 border border-navy-700 rounded-2xl p-6 shadow-sm h-full flex flex-col">
               <div className="h-[22px]" />
-              <p className="text-sm font-semibold text-navy-600">Max</p>
-              <p className="text-[22px] font-bold text-charcoal mt-1">$79.99<span className="text-sm font-normal text-warm-gray"> / month</span></p>
-              <p className="text-[18px] text-charcoal leading-snug mt-4 mb-6 flex-1">
-                100 tailored applications every month.
-              </p>
+              <p className="text-sm font-semibold text-navy-300">Max</p>
+              <p className="text-[22px] font-bold text-white mt-1">$79.99<span className="text-sm font-normal text-navy-300"> / month</span></p>
+              <p className="text-[15px] text-navy-300 mt-2 mb-5 flex-1">100 applications / month. Save ~108 hrs.</p>
               <MaxPlanButton />
             </div>
             </ScrollReveal>
