@@ -20,24 +20,24 @@ Shared style for replacement images:
 | Done | `follow-up-email-after-job-application` | `/blog/follow-up-email-cover.jpg` | 4 | Replaced cover plus 4 inline legacy chart/timeline/screenshot/waiting visuals with GPT Image-2 brand illustrations. |
 | Done | `how-to-tailor-resume-to-job-description` | `/blog/resume-tailoring-cover.jpg` | 5 | Replaced cover plus 5 inline legacy diagram/chart/manual-vs-AI visuals with GPT Image-2 brand illustrations. |
 | Done | `ats-resume-format-guide-2026` | `/blog/ats-resume-cover.jpg` | 5 | Replaced cover plus 5 inline parser/layout/checklist/keyword/manual-vs-AI visuals with GPT Image-2 brand illustrations. |
-| Todo | `ai-cover-letter-generator-how-it-works` | `/blog/ai-cover-letter-cover.jpg` | 4 | Replace flow/structure/chart images. Likely cover + 3 inline illustrations. |
-| Todo | `best-ai-job-application-tools-2026` | `/blog/ai-tools-comparison-cover.jpg` | 3 | Replace matrix/speed/decision-tree with brand-safe abstractions. Likely cover + 3 inline illustrations. |
-| Todo | `how-long-to-apply-for-job-2026` | `/blog/time-comparison-chart.jpg` | 4 | Current cover duplicates inline time chart. Replace with dedicated cover + 3 inline illustrations. |
-| Todo | `what-is-a-master-cv` | `/blog/master-cv-cover.jpg` | 3 | Replace master CV concept/build/tailored comparison. Likely cover + 3 inline illustrations. |
-| Todo | `german-cv-vs-american-resume` | `/blog/german-vs-american-cv-cover.jpg` | 3 | Avoid flags/text-heavy differences. Use abstract document comparison visuals. Likely cover + 3 inline illustrations. |
-| Todo | `is-it-ethical-to-use-ai-for-job-applications` | `/blog/ai-ethics-cover.jpg` | 3 | Replace spectrum/balance/safeguards diagrams with calmer trust/safeguard metaphors. Likely cover + 3 inline illustrations. |
+| Done | `ai-cover-letter-generator-how-it-works` | `/blog/ai-cover-letter-cover.jpg` | 4 | Replaced cover plus 4 inline flow/structure/time/callback visuals with GPT Image-2 brand illustrations. |
+| Done | `best-ai-job-application-tools-2026` | `/blog/ai-tools-comparison-cover.jpg` | 3 | Replaced cover plus 3 inline matrix/speed/decision visuals with logo-free GPT Image-2 brand illustrations. |
+| Done | `how-long-to-apply-for-job-2026` | `/blog/time-comparison-chart.jpg` | 4 | Replaced 4 legacy time/application visuals, including the shared cover/inline image, with GPT Image-2 brand illustrations. |
+| Done | `what-is-a-master-cv` | `/blog/master-cv-cover.jpg` | 3 | Replaced cover plus 3 inline master/source/process/comparison visuals with GPT Image-2 brand illustrations. |
+| Done | `german-cv-vs-american-resume` | `/blog/german-vs-american-cv-cover.jpg` | 3 | Replaced cover plus 3 inline market-difference/checklist/decision visuals with flag-free GPT Image-2 brand illustrations. |
+| Done | `is-it-ethical-to-use-ai-for-job-applications` | `/blog/ai-ethics-cover.jpg` | 3 | Replaced cover plus 3 inline spectrum/balance/safeguards visuals with calm GPT Image-2 trust illustrations. |
 
 ## Working Order
 
 1. Done: `follow-up-email-after-job-application`
 2. Done: `how-to-tailor-resume-to-job-description`
 3. Done: `ats-resume-format-guide-2026`
-4. Next: `ai-cover-letter-generator-how-it-works`
-5. `best-ai-job-application-tools-2026`
-6. `how-long-to-apply-for-job-2026`
-7. `what-is-a-master-cv`
-8. `german-cv-vs-american-resume`
-9. `is-it-ethical-to-use-ai-for-job-applications`
+4. Done: `ai-cover-letter-generator-how-it-works`
+5. Done: `best-ai-job-application-tools-2026`
+6. Done: `how-long-to-apply-for-job-2026`
+7. Done: `what-is-a-master-cv`
+8. Done: `german-cv-vs-american-resume`
+9. Done: `is-it-ethical-to-use-ai-for-job-applications`
 
 ## Per-Post Checklist
 
