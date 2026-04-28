@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Check, Zap, ArrowRight, ChevronDown, FileText, MessageSquare, BarChart3, Loader2, Clock } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
@@ -181,12 +180,9 @@ export default function PricingPage() {
       {/* Hero Section */}
       <section className="pt-16 pb-8 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-4xl mx-auto text-center relative">
-          <ScrollReveal delay={0} direction="down" distance={20}>
-          <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Pricing</p>
-          </ScrollReveal>
           <ScrollReveal delay={150}>
           <h1 className="font-bold text-navy-600 text-[40px] sm:text-[52px] leading-[1.08] mb-4">
-            Pricing that matches <span className="text-gold-500">how much you apply.</span>
+            Plans that scale with <span className="text-gold-500">your job search.</span>
           </h1>
           </ScrollReveal>
           <ScrollReveal delay={300}>
@@ -195,10 +191,9 @@ export default function PricingPage() {
           </p>
           </ScrollReveal>
           <ScrollReveal delay={450}>
-          <div className="mt-6 inline-flex items-center gap-3 px-4 py-2 rounded-full bg-cream-50 border border-cream-200">
-            <Image src="/anthropic-icon.jpg" alt="Anthropic" width={20} height={20} className="rounded" />
+          <div className="mt-6 inline-flex items-center gap-2 px-5 py-2 rounded-full bg-cream-50 border border-cream-200">
             <span className="text-warm-gray text-[13px]">
-              Every plan is powered by <span className="font-semibold text-charcoal">Claude Sonnet 4.6</span> with anti-hallucination guardrails and US + EU ATS templates.
+              Anti-hallucination guardrails · US + EU ATS templates · Cancel any time
             </span>
           </div>
           </ScrollReveal>
@@ -240,10 +235,10 @@ export default function PricingPage() {
                 <ul className="space-y-2.5 flex-1">
                   {[
                     'Tailored CV, cover letter, email and follow-up',
-                    'Honest fit score before you apply',
+                    'Match score before you apply',
                     'US and EU ATS-optimized templates',
                     'Anti-hallucination guardrails',
-                    'Keep your applications forever',
+                    'Application tracker',
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold-500" />
@@ -287,10 +282,10 @@ export default function PricingPage() {
                 <p className="font-bold text-charcoal text-[15px] mb-3">Everything in Free, plus:</p>
                 <ul className="space-y-2.5 mb-5 flex-1">
                   {[
-                    'Smart Job Feed, up to 15 roles a day',
-                    'Fit Analysis before every application',
+                    'Smart Job Feed: up to 15 curated roles per day',
+                    'Full Fit Analysis with strengths and gaps',
+                    'Unlimited application tracker',
                     'Add-on credit packs (credits roll over)',
-                    'Unlimited application history',
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold-500" />
@@ -332,8 +327,8 @@ export default function PricingPage() {
                 <p className="font-bold text-white text-[15px] mb-3">Everything in Plus, plus:</p>
                 <ul className="space-y-2.5 mb-5 flex-1">
                   {[
-                    'Smart Job Feed, up to 25 roles a day',
-                    'AI screening question answers',
+                    'Smart Job Feed: up to 25 curated roles per day',
+                    'Screening question answers',
                     'Add-on credit packs (credits roll over)',
                     'Premium dedicated support',
                   ].map((f, i) => (
@@ -350,8 +345,7 @@ export default function PricingPage() {
 
           {/* Trust line under cards */}
           <p className="mt-8 text-center text-[13px] text-warm-gray max-w-3xl mx-auto">
-            Every plan includes the full agentic workflow, anti-hallucination guardrails, US + EU ATS templates,
-            a built-in application tracker, and cancel-anytime billing.
+            Cancel anytime. No hidden fees, no lock-in contracts.
           </p>
         </div>
       </section>
