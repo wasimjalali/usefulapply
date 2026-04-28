@@ -85,6 +85,8 @@ type PendingJobAction = {
   action: 'apply' | 'save' | 'dismiss' | 'rate';
 } | null;
 
+const MANUAL_FEED_RUN_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
 const JOB_FEED_DELIVERY_HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) => ({
   value: String(hour),
   label: formatDeliveryHourLabel(hour),
@@ -139,6 +141,37 @@ export function JobFeedPanel() {
   }, [toast]);
 
   const showDebugActions = !isPreviewing && process.env.NEXT_PUBLIC_ENABLE_JOB_FEED_DEBUG === 'true';
+  const getManualRunAvailability = useCallback(() => {
+    const latestCompletedAt = overview?.latestRun?.status === 'completed'
+      ? overview.latestRun.completed_at
+      : overview?.feedRun?.completed_at ?? null;
+    const cooldown = getManualRunCooldown(latestCompletedAt);
+
+    if (overview?.latestRun?.status === 'queued' || overview?.latestRun?.status === 'running') {
+      return {
+        canStart: false,
+        reason: 'preparing' as const,
+        remainingMs: cooldown.remainingMs,
+        nextRunAt: cooldown.nextRunAt,
+      };
+    }
+
+    if (cooldown.remainingMs > 0) {
+      return {
+        canStart: false,
+        reason: 'cooldown' as const,
+        remainingMs: cooldown.remainingMs,
+        nextRunAt: cooldown.nextRunAt,
+      };
+    }
+
+    return {
+      canStart: true,
+      reason: null,
+      remainingMs: 0,
+      nextRunAt: cooldown.nextRunAt,
+    };
+  }, [overview?.feedRun?.completed_at, overview?.latestRun?.completed_at, overview?.latestRun?.status]);
 
   const loadOverview = useCallback(async (options?: { quiet?: boolean }) => {
     if (isPreviewing) {
@@ -782,6 +815,16 @@ export function JobFeedPanel() {
   };
 
   const handleRunTodayFeed = async () => {
+    const availability = getManualRunAvailability();
+    if (!availability.canStart) {
+      toastRef.current.info(
+        availability.reason === 'preparing'
+          ? 'Your feed is already being prepared.'
+          : `You can refresh your hand-picked jobs once every 24 hours. Try again ${formatCooldownTarget(availability.nextRunAt)}.`
+      );
+      return;
+    }
+
     setIsRunningManualFeed(true);
 
     try {
@@ -800,7 +843,11 @@ export function JobFeedPanel() {
         status: payload.status ?? null,
       });
 
-      if (payload.skipped) {
+      if (payload.cooldown) {
+        toastRef.current.info(
+          `You can refresh your hand-picked jobs once every 24 hours. Try again ${formatCooldownTarget(payload.nextRunAt ?? null)}.`
+        );
+      } else if (payload.skipped) {
         toastRef.current.info(
           payload.status === 'completed'
             ? 'Today’s feed already ran.'
@@ -851,13 +898,21 @@ export function JobFeedPanel() {
   const todayLocalDate = getLocalDateKeyForTimeZone(new Date(), userTimeZone);
   const latestRunIsToday = overview?.latestRun?.local_date === todayLocalDate;
   const completedToday = latestRunIsToday && overview?.latestRun?.status === 'completed';
+  const latestCompletedAt = overview?.latestRun?.status === 'completed'
+    ? overview.latestRun.completed_at
+    : overview?.feedRun?.completed_at ?? null;
+  const manualRunCooldown = getManualRunCooldown(latestCompletedAt);
+  const isInManualRunCooldown = manualRunCooldown.remainingMs > 0;
   const isPreparingToday = latestRunIsToday && (overview?.latestRun?.status === 'queued' || overview?.latestRun?.status === 'running');
-  const canRunTodayFeed = activeTab === 'today'
+  const canUseManualRun = activeTab === 'today'
     && canAccess
     && Boolean(overview?.settings)
     && currentState !== 'setup_required'
     && currentState !== 'paused'
     && currentState !== 'upgrade_required';
+  const hasFeedCards = Boolean(overview?.jobs && overview.jobs.length > 0);
+  const showHeaderRunButton = canUseManualRun && hasFeedCards;
+  const showCenteredRunButton = canUseManualRun && !hasFeedCards;
   const wizardForm = draftForm ?? form;
   const inputCaps = getJobFeedInputCaps(profile?.subscription_tier ?? 'plus');
   const showStateSupportCard = isSignedIn
@@ -889,10 +944,11 @@ export function JobFeedPanel() {
                 activeTab={activeTab}
                 latestRun={overview?.feedRun ?? overview?.latestRun ?? null}
                 isRefreshing={isRefreshing || isLoadingSavedJobs}
-                canRunTodayFeed={canRunTodayFeed}
-                hasCompletedToday={completedToday}
+                canRunTodayFeed={showHeaderRunButton}
+                hasCompletedToday={completedToday || isInManualRunCooldown}
                 isPreparingToday={isPreparingToday}
                 isRunningManualFeed={isRunningManualFeed}
+                nextManualRunAt={manualRunCooldown.nextRunAt}
                 onEditSettings={openSetupWizard}
                 onRunTodayFeed={handleRunTodayFeed}
                 onRefresh={() => activeTab === 'saved' ? loadSavedJobs() : loadOverview({ quiet: true })}
@@ -902,7 +958,17 @@ export function JobFeedPanel() {
             )}
 
             {showStateSupportCard && activeTab === 'today' && (
-              <InlineStateMessage state={overview?.state ?? 'setup_required'} overview={overview} onStartSetup={openSetupWizard} />
+              <InlineStateMessage
+                state={overview?.state ?? 'setup_required'}
+                overview={overview}
+                showManualRunAction={showCenteredRunButton}
+                isRunningManualFeed={isRunningManualFeed}
+                isPreparingToday={isPreparingToday}
+                isInManualRunCooldown={isInManualRunCooldown}
+                nextManualRunAt={manualRunCooldown.nextRunAt}
+                onStartSetup={openSetupWizard}
+                onRunTodayFeed={handleRunTodayFeed}
+              />
             )}
 
             {setupOpen && (
@@ -1199,6 +1265,7 @@ function FeedPageHeader({
   hasCompletedToday,
   isPreparingToday,
   isRunningManualFeed,
+  nextManualRunAt,
   onEditSettings,
   onRunTodayFeed,
   onRefresh,
@@ -1216,6 +1283,7 @@ function FeedPageHeader({
   hasCompletedToday: boolean;
   isPreparingToday: boolean;
   isRunningManualFeed: boolean;
+  nextManualRunAt: string | null;
   onEditSettings: () => void;
   onRunTodayFeed: () => void;
   onRefresh: () => void;
@@ -1223,12 +1291,17 @@ function FeedPageHeader({
   onShowSavedJobs: () => void;
 }) {
   const isReady = currentState === 'ready' || currentState === 'thin_feed';
-  const runButtonDisabled = hasCompletedToday || isPreparingToday || isRunningManualFeed;
+  const runButtonDisabled = isRunningManualFeed;
   const runButtonLabel = hasCompletedToday
     ? 'Updated today'
     : isPreparingToday
       ? 'Preparing'
       : 'Run today';
+  const runButtonTitle = hasCompletedToday
+    ? `Available again ${formatCooldownTarget(nextManualRunAt)}`
+    : isPreparingToday
+      ? 'Today’s feed is already being prepared'
+      : 'Run today’s feed now';
 
   const todayHeadline = isReady
     ? jobsCount > 0
@@ -1328,7 +1401,7 @@ function FeedPageHeader({
                   ? 'border border-cream-300 bg-white text-warm-gray'
                   : 'border border-gold-500 bg-gold-500 text-white hover:bg-gold-600'
               }`}
-              title={hasCompletedToday ? 'Today’s feed already ran' : 'Run today’s feed now'}
+              title={runButtonTitle}
             >
               {isRunningManualFeed || isPreparingToday ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               {runButtonLabel}
@@ -1354,11 +1427,23 @@ function FeedPageHeader({
 function InlineStateMessage({
   state,
   overview,
+  showManualRunAction,
+  isRunningManualFeed,
+  isPreparingToday,
+  isInManualRunCooldown,
+  nextManualRunAt,
   onStartSetup,
+  onRunTodayFeed,
 }: {
   state: JobFeedOverviewState | 'setup_required';
   overview: JobFeedOverviewResponse | null;
+  showManualRunAction: boolean;
+  isRunningManualFeed: boolean;
+  isPreparingToday: boolean;
+  isInManualRunCooldown: boolean;
+  nextManualRunAt: string | null;
   onStartSetup: () => void;
+  onRunTodayFeed: () => void;
 }) {
   type Tone = 'neutral' | 'warning' | 'primary';
   const config: Record<string, {
@@ -1422,6 +1507,44 @@ function InlineStateMessage({
     primary: { tile: 'bg-gold-50 border border-gold-200', icon: 'text-gold-700' },
   };
   const tone = toneClasses[stateConfig.tone];
+  const manualRunButtonLabel = isInManualRunCooldown
+    ? 'Updated today'
+    : isPreparingToday
+      ? 'Preparing'
+      : 'Find jobs now';
+
+  if (showManualRunAction && (state === 'awaiting_first_run' || state === 'empty')) {
+    return (
+      <Card className="flex min-h-[320px] flex-col items-center justify-center rounded-[24px] border-cream-200 bg-white px-6 py-10 text-center shadow-sm">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gold-50 text-gold-700">
+          <Sparkles className="h-7 w-7" />
+        </div>
+        <h2 className="mt-5 max-w-xl text-2xl font-semibold tracking-tight text-charcoal">
+          Click to let Karko hand-pick jobs for today
+        </h2>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-warm-gray">
+          Karko will search live, rank the strongest matches, and keep the results in your 7-day feed.
+        </p>
+        <Button
+          variant="gold"
+          size="lg"
+          onClick={onRunTodayFeed}
+          disabled={isRunningManualFeed}
+          className="mt-6 rounded-full"
+        >
+          {isRunningManualFeed || isPreparingToday ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5" />}
+          {manualRunButtonLabel}
+        </Button>
+        {(isInManualRunCooldown || isPreparingToday) && (
+          <p className="mt-3 text-xs text-warm-gray">
+            {isPreparingToday
+              ? 'Your feed is already being prepared.'
+              : `Available again ${formatCooldownTarget(nextManualRunAt)}.`}
+          </p>
+        )}
+      </Card>
+    );
+  }
 
   return (
     <div className="flex items-start gap-4 rounded-2xl border border-cream-200 bg-cream-50 px-5 py-4 shadow-sm">
@@ -2269,6 +2392,41 @@ function getLocalDateKeyForTimeZone(date: Date, timeZone: string): string {
   }
 
   return date.toISOString().slice(0, 10);
+}
+
+function getManualRunCooldown(completedAt: string | null): { remainingMs: number; nextRunAt: string | null } {
+  if (!completedAt) {
+    return { remainingMs: 0, nextRunAt: null };
+  }
+
+  const completedTime = Date.parse(completedAt);
+  if (Number.isNaN(completedTime)) {
+    return { remainingMs: 0, nextRunAt: null };
+  }
+
+  const nextRunTime = completedTime + MANUAL_FEED_RUN_COOLDOWN_MS;
+  return {
+    remainingMs: Math.max(0, nextRunTime - Date.now()),
+    nextRunAt: new Date(nextRunTime).toISOString(),
+  };
+}
+
+function formatCooldownTarget(value: string | null): string {
+  if (!value) {
+    return 'after 24 hours';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return 'after 24 hours';
+  }
+
+  return date.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }
 
 function formatDeliveredAtLabel(value: string): string {

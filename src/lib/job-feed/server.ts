@@ -1250,7 +1250,7 @@ export function getJobFeedRunDiagnostics(run: JobFeedRun | null): JobFeedRunDiag
   };
 }
 
-async function getLatestCompletedJobFeedRunAdmin(userId: string): Promise<JobFeedRun | null> {
+export async function getLatestCompletedJobFeedRunAdmin(userId: string): Promise<JobFeedRun | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
   const admin = createAdminClient() as any;
   const { data, error } = await admin
