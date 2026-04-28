@@ -103,6 +103,7 @@ export const RATE_LIMITS = {
   'job-feed-saved':     { limit: 15, windowMs: 60_000 },
   'job-feed-feedback':  { limit: 20, windowMs: 60_000 },
   'job-feed-apply':     { limit: 10, windowMs: 60_000 },
+  'job-feed-run':       { limit: 2,  windowMs: 60_000 },
   'job-feed-dev-run':   { limit: 3,  windowMs: 60_000 },
 } as const;
 

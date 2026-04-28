@@ -111,6 +111,7 @@ export function JobFeedPanel() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSetupWizardOpen, setIsSetupWizardOpen] = useState(false);
   const [draftForm, setDraftForm] = useState<JobFeedSettingsInput | null>(null);
+  const [isRunningManualFeed, setIsRunningManualFeed] = useState(false);
   const [isRunningDebugFlow, setIsRunningDebugFlow] = useState(false);
   const [isShowingAllJobs, setIsShowingAllJobs] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobFeedFeedItem | null>(null);
@@ -780,6 +781,43 @@ export function JobFeedPanel() {
     }
   };
 
+  const handleRunTodayFeed = async () => {
+    setIsRunningManualFeed(true);
+
+    try {
+      const response = await fetch('/api/job-feed/run', {
+        method: 'POST',
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.detail || payload.error || 'Failed to run today\'s Job Feed.');
+      }
+
+      posthog?.capture('job_feed_manual_run_requested', {
+        foundation_mode: true,
+        skipped: Boolean(payload.skipped),
+        status: payload.status ?? null,
+      });
+
+      if (payload.skipped) {
+        toastRef.current.info(
+          payload.status === 'completed'
+            ? 'Today’s feed already ran.'
+            : 'Today’s feed is already being prepared.'
+        );
+      } else {
+        toastRef.current.success(`Today’s feed is ready: ${payload.rankedJobsCount ?? 0} jobs ranked.`);
+      }
+
+      await loadOverview({ quiet: true });
+    } catch (error) {
+      toastRef.current.error(error instanceof Error ? error.message : 'Failed to run today\'s Job Feed.');
+    } finally {
+      setIsRunningManualFeed(false);
+    }
+  };
+
   const openSetupWizard = useCallback(() => {
     setDraftForm(toJobFeedInput(overview?.settings ?? null, getBrowserTimeZone()));
     setIsEditing(true);
@@ -809,6 +847,17 @@ export function JobFeedPanel() {
   const shellForm = isSignedIn && overview?.settings
     ? toJobFeedInput(overview.settings, getBrowserTimeZone())
     : form;
+  const userTimeZone = overview?.settings?.user_timezone ?? shellForm.user_timezone;
+  const todayLocalDate = getLocalDateKeyForTimeZone(new Date(), userTimeZone);
+  const latestRunIsToday = overview?.latestRun?.local_date === todayLocalDate;
+  const completedToday = latestRunIsToday && overview?.latestRun?.status === 'completed';
+  const isPreparingToday = latestRunIsToday && (overview?.latestRun?.status === 'queued' || overview?.latestRun?.status === 'running');
+  const canRunTodayFeed = activeTab === 'today'
+    && canAccess
+    && Boolean(overview?.settings)
+    && currentState !== 'setup_required'
+    && currentState !== 'paused'
+    && currentState !== 'upgrade_required';
   const wizardForm = draftForm ?? form;
   const inputCaps = getJobFeedInputCaps(profile?.subscription_tier ?? 'plus');
   const showStateSupportCard = isSignedIn
@@ -840,7 +889,12 @@ export function JobFeedPanel() {
                 activeTab={activeTab}
                 latestRun={overview?.feedRun ?? overview?.latestRun ?? null}
                 isRefreshing={isRefreshing || isLoadingSavedJobs}
+                canRunTodayFeed={canRunTodayFeed}
+                hasCompletedToday={completedToday}
+                isPreparingToday={isPreparingToday}
+                isRunningManualFeed={isRunningManualFeed}
                 onEditSettings={openSetupWizard}
+                onRunTodayFeed={handleRunTodayFeed}
                 onRefresh={() => activeTab === 'saved' ? loadSavedJobs() : loadOverview({ quiet: true })}
                 onShowTodayFeed={handleShowTodayFeed}
                 onShowSavedJobs={handleShowSavedJobs}
@@ -1141,7 +1195,12 @@ function FeedPageHeader({
   activeTab,
   latestRun,
   isRefreshing,
+  canRunTodayFeed,
+  hasCompletedToday,
+  isPreparingToday,
+  isRunningManualFeed,
   onEditSettings,
+  onRunTodayFeed,
   onRefresh,
   onShowTodayFeed,
   onShowSavedJobs,
@@ -1153,12 +1212,23 @@ function FeedPageHeader({
   activeTab: 'today' | 'saved';
   latestRun: JobFeedOverviewResponse['latestRun'];
   isRefreshing: boolean;
+  canRunTodayFeed: boolean;
+  hasCompletedToday: boolean;
+  isPreparingToday: boolean;
+  isRunningManualFeed: boolean;
   onEditSettings: () => void;
+  onRunTodayFeed: () => void;
   onRefresh: () => void;
   onShowTodayFeed: () => void;
   onShowSavedJobs: () => void;
 }) {
   const isReady = currentState === 'ready' || currentState === 'thin_feed';
+  const runButtonDisabled = hasCompletedToday || isPreparingToday || isRunningManualFeed;
+  const runButtonLabel = hasCompletedToday
+    ? 'Updated today'
+    : isPreparingToday
+      ? 'Preparing'
+      : 'Run today';
 
   const todayHeadline = isReady
     ? jobsCount > 0
@@ -1247,6 +1317,23 @@ function FeedPageHeader({
             <Settings2 className="h-4 w-4" />
             Edit feed
           </button>
+
+          {canRunTodayFeed && (
+            <button
+              type="button"
+              onClick={onRunTodayFeed}
+              disabled={runButtonDisabled}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 ${
+                hasCompletedToday
+                  ? 'border border-cream-300 bg-white text-warm-gray'
+                  : 'border border-gold-500 bg-gold-500 text-white hover:bg-gold-600'
+              }`}
+              title={hasCompletedToday ? 'Today’s feed already ran' : 'Run today’s feed now'}
+            >
+              {isRunningManualFeed || isPreparingToday ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {runButtonLabel}
+            </button>
+          )}
 
           <button
             type="button"
@@ -2158,6 +2245,30 @@ function getBrowserTimeZone(): string {
   } catch {
     return 'UTC';
   }
+}
+
+function getLocalDateKeyForTimeZone(date: Date, timeZone: string): string {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const parts = formatter.formatToParts(date);
+    const lookup = new Map(parts.map((part) => [part.type, part.value]));
+    const year = lookup.get('year');
+    const month = lookup.get('month');
+    const day = lookup.get('day');
+
+    if (year && month && day) {
+      return `${year}-${month}-${day}`;
+    }
+  } catch {
+    // Fall through to UTC if the browser rejects the stored timezone.
+  }
+
+  return date.toISOString().slice(0, 10);
 }
 
 function formatDeliveredAtLabel(value: string): string {
