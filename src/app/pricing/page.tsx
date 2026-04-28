@@ -362,38 +362,42 @@ export default function PricingPage() {
       <section className="pb-20 px-4 sm:px-6 lg:px-8" id="addons">
         <div className="max-w-4xl mx-auto">
           <ScrollReveal>
-          <div className="bg-cream-50 border border-cream-200 rounded-2xl p-6 md:p-8 shadow-sm">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-              <div>
-                <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-2">
+          <div className="bg-navy-800 border border-navy-700 rounded-2xl p-6 md:p-8 shadow-md">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+              {/* Left: label + headline + note */}
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-gold-400 uppercase tracking-[0.12em] mb-2">
                   Need more this month?
                 </p>
-                <h3 className="font-bold text-navy-600 text-[22px] leading-tight mb-1">
+                <h3 className="font-bold text-white text-[24px] leading-tight mb-2">
                   Top up any time with a credit pack.
                 </h3>
-                <p className="text-sm text-warm-gray">
-                  Available on Plus and Max. Purchased credits roll over while your subscription is active.
+                <p className="text-sm text-navy-300">
+                  Available on Plus and Max. Credits roll over while your subscription is active.
                 </p>
               </div>
-              <div className="flex items-center gap-4">
-                {addonPacks.map((pack) => (
-                  <div key={pack.name} className="flex items-center gap-4 bg-white rounded-lg border border-cream-200 px-4 py-3">
-                    <div>
-                      <p className="text-[15px] font-semibold text-charcoal">{pack.credits} credits</p>
-                      <p className="text-[12px] text-warm-gray">{pack.applications} more applications</p>
-                    </div>
-                    <button
-                      onClick={() => handleBuyAddon(pack.name.split(' ')[0].toLowerCase())}
-                      disabled={loadingAddon === pack.name.split(' ')[0].toLowerCase()}
-                      className="px-4 py-2 rounded-lg bg-navy-600 hover:bg-navy-700 text-white text-sm font-semibold transition-colors cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
-                    >
-                      {loadingAddon === pack.name.split(' ')[0].toLowerCase()
-                        ? <Loader2 className="w-4 h-4 animate-spin" />
-                        : <>${pack.price}</>}
-                    </button>
+
+              {/* Right: credit info + buy button */}
+              {addonPacks.map((pack) => (
+                <div key={pack.name} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                  {/* Credit count block */}
+                  <div className="bg-navy-700 border border-navy-600 rounded-xl px-5 py-4 text-center sm:text-left">
+                    <p className="text-[28px] font-bold text-white leading-none">{pack.credits}</p>
+                    <p className="text-[13px] font-semibold text-gold-400 mt-0.5">credits</p>
+                    <p className="text-[12px] text-navy-300 mt-1">{pack.applications} more applications</p>
                   </div>
-                ))}
-              </div>
+                  {/* Buy button */}
+                  <button
+                    onClick={() => handleBuyAddon(pack.name.split(' ')[0].toLowerCase())}
+                    disabled={loadingAddon === pack.name.split(' ')[0].toLowerCase()}
+                    className="px-6 py-4 rounded-xl bg-gold-400 hover:bg-gold-500 text-navy-900 font-bold text-[18px] shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2 group"
+                  >
+                    {loadingAddon === pack.name.split(' ')[0].toLowerCase()
+                      ? <Loader2 className="w-5 h-5 animate-spin" />
+                      : <>${pack.price}<ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
           </ScrollReveal>
