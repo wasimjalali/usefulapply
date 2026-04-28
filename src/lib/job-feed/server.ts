@@ -58,6 +58,8 @@ interface LatestJobFeedItemsResult {
   items: JobFeedFeedItem[];
 }
 
+const JOB_FEED_INBOX_RETENTION_DAYS = 7;
+
 export interface JobFeedGenerationStatusUpdateResult {
   session: Pick<SupabaseApplicationSession, 'id' | 'job_title' | 'company' | 'generation_status'>;
   feedback: JobFeedFeedback | null;
@@ -1007,6 +1009,17 @@ export async function listLatestJobFeedItemsAdmin(params: {
     };
   }
 
+  const inboxItems = await listRecentJobFeedInboxItemsAdmin({
+    userId: params.userId,
+    latestCompletedRun: run,
+  });
+  if (inboxItems.length > 0) {
+    return {
+      run,
+      items: inboxItems,
+    };
+  }
+
   const rankedRows = await listJobFeedRankedItemsForRunAdmin(run.id);
   if (rankedRows.length > 0) {
     return {
@@ -1039,6 +1052,55 @@ export async function listLatestJobFeedItemsAdmin(params: {
     run,
     items,
   };
+}
+
+async function listRecentJobFeedInboxItemsAdmin(params: {
+  userId: string;
+  latestCompletedRun: JobFeedRun;
+}): Promise<JobFeedFeedItem[]> {
+  const since = new Date(Date.now() - JOB_FEED_INBOX_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand joined ranked feed rows.
+  const admin = createAdminClient() as any;
+  const { data, error } = await admin
+    .from('job_feed_ranked_items')
+    .select(`
+      *,
+      job_feed_runs!inner(id, user_id, status, completed_at, created_at)
+    `)
+    .eq('user_id', params.userId)
+    .eq('job_feed_runs.user_id', params.userId)
+    .eq('job_feed_runs.status', 'completed')
+    .gte('job_feed_runs.completed_at', since)
+    .order('created_at', { referencedTable: 'job_feed_runs', ascending: false })
+    .order('rank_position', { ascending: true });
+
+  if (error) {
+    if (isMissingRankedItemsRelationError(error)) {
+      return [];
+    }
+
+    throw new Error(`Failed to load recent job feed inbox items: ${error.message}`);
+  }
+
+  const rankedRows = ((data ?? []) as SupabaseJobFeedRankedItem[])
+    .filter((row) => row.run_id !== params.latestCompletedRun.id);
+  const seenJobIds = new Set<string>();
+  const dedupedRows = [
+    ...await listJobFeedRankedItemsForRunAdmin(params.latestCompletedRun.id),
+    ...rankedRows,
+  ].filter((row) => {
+    if (seenJobIds.has(row.canonical_job_id)) {
+      return false;
+    }
+
+    seenJobIds.add(row.canonical_job_id);
+    return true;
+  });
+
+  return buildFeedItemsForSnapshot({
+    userId: params.userId,
+    rankedPreview: dedupedRows.map(toRankedPreviewItem),
+  });
 }
 
 /**

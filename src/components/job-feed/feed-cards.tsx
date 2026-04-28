@@ -21,10 +21,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import {
-  JOB_FEED_VISIBLE_DEFAULT_COUNT,
-  JOB_FEED_VISIBLE_MAX_COUNT,
-} from '@/lib/job-feed/constants';
+import { JOB_FEED_VISIBLE_DEFAULT_COUNT } from '@/lib/job-feed/constants';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 
 type PendingJobAction = {
@@ -600,10 +597,10 @@ export function FeedResultsCard({
   onApplyWithKarko: (job: JobFeedFeedItem) => void;
   onExternalApply: (job: JobFeedFeedItem) => void;
 }) {
-  const visibleCount = isShowingAllJobs ? JOB_FEED_VISIBLE_MAX_COUNT : JOB_FEED_VISIBLE_DEFAULT_COUNT;
+  const visibleCount = isShowingAllJobs ? jobs.length : JOB_FEED_VISIBLE_DEFAULT_COUNT;
   const visibleJobs = jobs.slice(0, visibleCount);
   const hasMore = jobs.length > JOB_FEED_VISIBLE_DEFAULT_COUNT;
-  const remainingCount = Math.max(0, Math.min(jobs.length, JOB_FEED_VISIBLE_MAX_COUNT) - JOB_FEED_VISIBLE_DEFAULT_COUNT);
+  const remainingCount = Math.max(0, jobs.length - JOB_FEED_VISIBLE_DEFAULT_COUNT);
 
   return (
     <Card className="rounded-[24px] border-cream-200 bg-white p-6 shadow-sm">
