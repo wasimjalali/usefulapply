@@ -37,7 +37,6 @@ import {
   JOB_FEED_TIMEZONE_GROUPS,
   JOB_FEED_TIMEZONE_LOOKUP,
   JOB_FEED_WORK_AUTH_OPTIONS,
-  formatDeliveryHourLabel,
   getJobFeedInputCaps,
   getJobFeedTimeZoneLabel,
   legacyMarketFromCountries,
@@ -92,11 +91,6 @@ type ManualRunNotice = {
 } | null;
 
 const MANUAL_FEED_RUN_COOLDOWN_MS = 24 * 60 * 60 * 1000;
-
-const JOB_FEED_DELIVERY_HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) => ({
-  value: String(hour),
-  label: formatDeliveryHourLabel(hour),
-}));
 
 function normalizeTimeZoneValue(value: string): string {
   if (JOB_FEED_TIMEZONE_LOOKUP.has(value)) {
@@ -765,7 +759,7 @@ export function JobFeedPanel() {
 
       setForm(nextForm);
       setDraftForm(null);
-      toast.success(nextForm.enabled && consentReady ? 'Daily feed is on and scheduled.' : 'Job Feed settings saved.');
+      toast.success(nextForm.enabled && consentReady ? 'Daily feed is ready.' : 'Job Feed settings saved.');
       setIsEditing(false);
       setIsSetupWizardOpen(false);
       await loadOverview({ quiet: true });
@@ -1473,7 +1467,7 @@ function InlineStateMessage({
   }> = {
     setup_required: {
       icon: Settings2,
-      message: 'Add your roles and delivery time so Karko knows what to look for.',
+      message: 'Add your roles and timezone so Karko knows what to look for.',
       action: 'Start setup',
       tone: 'primary',
       ctaVariant: 'gold',
@@ -1487,7 +1481,7 @@ function InlineStateMessage({
     },
     awaiting_first_run: {
       icon: CalendarClock,
-      message: 'Everything is set. Your first jobs will arrive at your chosen delivery time.',
+      message: 'Everything is set. Run today’s feed when you’re ready.',
       tone: 'neutral',
     },
     generating: {
@@ -1650,7 +1644,6 @@ function JobFeedOnboardingWizard({
   const hasRecordedConsent = Boolean(overview?.settings?.consent_accepted_at);
   const canSave = canSaveJobFeedSettings(form, hasRecordedConsent);
   const consentReady = form.consent_accepted || hasRecordedConsent;
-  const deliveryLabel = `${formatDeliveryHourLabel(form.delivery_hour_local)} in ${form.user_timezone}`;
   const isEditing = Boolean(overview?.settings);
 
   const applyCVSuggestion = useCallback((
@@ -1955,21 +1948,12 @@ function JobFeedOnboardingWizard({
           </div>
         )}
 
-        {/* Step 3: Delivery timing */}
+        {/* Step 3: Timezone */}
         {showChunk3 && (
           <div className="px-6 py-6 sm:px-8">
-            <p className="text-sm font-semibold text-charcoal">When should we deliver your jobs?</p>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <FieldGroup label="Delivery time" help="Karko prepares your feed at this hour in your local time.">
-                <SelectField
-                  label=""
-                  value={String(form.delivery_hour_local)}
-                  options={JOB_FEED_DELIVERY_HOUR_OPTIONS}
-                  onChange={(value) => onFormChange((prev) => ({ ...prev, delivery_hour_local: Number(value) }))}
-                />
-              </FieldGroup>
-
-              <FieldGroup label="Your timezone" help="Needed so we schedule and rank jobs for your local day.">
+            <p className="text-sm font-semibold text-charcoal">Your timezone</p>
+            <div className="mt-4 max-w-xl">
+              <FieldGroup label="Timezone" help="Used for your local feed day and 24-hour refresh window.">
                 <GroupedSelectField
                   label=""
                   value={normalizeTimeZoneValue(form.user_timezone)}
@@ -2145,7 +2129,7 @@ function JobFeedOnboardingWizard({
               )}
               {isEditing && (
                 <p className="text-sm text-warm-gray">
-                  Next delivery: {deliveryLabel}
+                  Timezone: {getJobFeedTimeZoneLabel(form.user_timezone)}
                 </p>
               )}
 
@@ -2202,8 +2186,7 @@ function LoadingState() {
 function buildFeedSummary(form: JobFeedSettingsInput): string {
   const roles = summarizeTargetRoles(form.target_roles);
   const countries = summarizeCountries(form.target_countries, form.target_market);
-  const delivery = formatDeliveryHourLabel(form.delivery_hour_local);
-  return `${roles}  ·  ${countries}  ·  Delivered at ${delivery}`;
+  return `${roles}  ·  ${countries}`;
 }
 
 function OperationalSnapshotCard({
