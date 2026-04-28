@@ -191,7 +191,7 @@ export default function Home() {
               Five steps. One complete application.
             </h2>
             <p className="text-warm-gray text-lg max-w-xl mx-auto">
-              From your CV to a tracked application, with hand-picked jobs in between.
+              Upload your CV once. Pick a role from your daily feed. Get a complete application in 90 seconds.
             </p>
           </div>
           </ScrollReveal>
@@ -202,7 +202,8 @@ export default function Home() {
                 step: 1,
                 title: 'Upload your CV once',
                 description: 'Your source of truth. Karko reads your real experience and keeps it ready for every application.',
-                accent: null,
+                accent: '/images/_archive/brand-cv-upload.webp',
+                accentAlt: 'CV upload brand illustration',
               },
               {
                 step: 2,
@@ -215,7 +216,8 @@ export default function Home() {
                 step: 3,
                 title: 'See how well you fit',
                 description: 'An honest match score and skill-gap read, so you know where to focus before spending credits.',
-                accent: null,
+                accent: '/images/_archive/brand-fit-analysis.webp',
+                accentAlt: 'Fit analysis brand illustration',
               },
               {
                 step: 4,
