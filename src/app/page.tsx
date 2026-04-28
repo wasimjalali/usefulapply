@@ -364,7 +364,7 @@ export default function Home() {
             <div className="bg-cream-50 border border-navy-200 rounded-2xl p-6 shadow-sm h-full flex flex-col">
               <div className="h-[22px]" />
               <p className="text-sm font-semibold text-navy-600">Free</p>
-              <p className="text-[22px] font-bold text-charcoal mt-1">Free forever</p>
+              <p className="text-[22px] font-bold text-charcoal mt-1">$0 / month</p>
               <p className="text-[15px] text-warm-gray mt-2 mb-5 flex-1">2 applications / month. Save ~2 hrs.</p>
               <Link
                 href="/dashboard"

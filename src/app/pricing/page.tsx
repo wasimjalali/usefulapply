@@ -220,8 +220,8 @@ export default function PricingPage() {
                 </div>
                 <div className="mb-5">
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-[40px] font-bold text-navy-600 leading-none">Free</span>
-                    <span className="text-warm-gray text-sm">forever</span>
+                    <span className="text-[40px] font-bold text-navy-600 leading-none">$0</span>
+                    <span className="text-warm-gray text-sm">/ month</span>
                   </div>
                   <span className="inline-block mt-2 text-[12px] font-semibold text-navy-600 bg-navy-50 border border-navy-100 rounded-full px-3 py-0.5">2 applications / month</span>
                 </div>
