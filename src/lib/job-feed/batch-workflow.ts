@@ -54,6 +54,8 @@ interface StagedRun {
   yearsExperience: number | null;
 }
 
+const STALE_AWAITING_BATCH_RUN_MS = 30 * 60 * 1000;
+
 /**
  * Submit one Batch API job containing every due user's ranking payload.
  * The Inngest scheduled sweep calls this instead of runJobFeedFoundationWorkflow
@@ -164,6 +166,60 @@ export async function reconcileJobFeedBatch(batchId: string): Promise<BatchRecon
     runsReconciled: reconciled,
     runsFailed: failed,
   };
+}
+
+export async function reconcileStaleJobFeedBatchRuns(params?: {
+  now?: Date;
+  limit?: number;
+}): Promise<{ runsReconciled: number; runsFailed: number }> {
+  const now = params?.now ?? new Date();
+  const cutoffMs = now.getTime() - STALE_AWAITING_BATCH_RUN_MS;
+  const admin = createAdminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not understand job_feed_runs here.
+  const typedAdmin = admin as any;
+  const { data, error } = await typedAdmin
+    .from('job_feed_runs')
+    .select('id, started_at, created_at, metadata')
+    .eq('status', 'running')
+    .eq('ranking_mode', 'batch')
+    .order('created_at', { ascending: true })
+    .limit(params?.limit ?? 50);
+
+  if (error) {
+    throw new Error(`Failed to load stale batch job feed runs: ${error.message}`);
+  }
+
+  const staleRuns = ((data ?? []) as Array<{ id: string; started_at: string | null; created_at: string; metadata: Json }>)
+    .filter((run) => {
+      const metadata = isRecord(run.metadata) ? run.metadata : {};
+      if (metadata.workflow_status !== 'awaiting_batch') return false;
+
+      const referenceTime = run.started_at ?? run.created_at;
+      const timestamp = referenceTime ? Date.parse(referenceTime) : Number.NaN;
+      return !Number.isNaN(timestamp) && timestamp < cutoffMs;
+    });
+
+  let runsReconciled = 0;
+  let runsFailed = 0;
+
+  for (const run of staleRuns) {
+    try {
+      await applyBatchEntryToRun(admin, {
+        runId: run.id,
+        success: false,
+        content: null,
+        inputTokens: 0,
+        outputTokens: 0,
+        errorMessage: 'Stale batch run exceeded the awaiting-batch recovery window; deterministic fallback applied.',
+      });
+      runsReconciled += 1;
+    } catch (error) {
+      runsFailed += 1;
+      console.error('[BatchReconcile] stale batch fallback failed for run', run.id, error);
+    }
+  }
+
+  return { runsReconciled, runsFailed };
 }
 
 /**

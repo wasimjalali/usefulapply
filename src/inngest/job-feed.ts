@@ -10,6 +10,7 @@ import { releaseStaleReservations } from '@/lib/supabase/credit-reservations';
 import {
   listPendingBatchIds,
   reconcileJobFeedBatch,
+  reconcileStaleJobFeedBatchRuns,
   submitJobFeedBatchForStagedRuns,
 } from '@/lib/job-feed/batch-workflow';
 import { isBatchRankingEnabled } from '@/lib/job-feed/batch-ranker';
@@ -189,8 +190,16 @@ export const jobFeedBatchReconcilerFunction = inngest.createFunction(
     triggers: [{ cron: '*/10 * * * *' }],
   },
   async ({ step }) => {
+    const staleRuns = await step.run('reconcile-stale-batch-runs', async () => {
+      return reconcileStaleJobFeedBatchRuns();
+    });
+
     if (!isBatchRankingEnabled()) {
-      return { skipped: true, reason: 'Batch ranking is disabled.' };
+      return {
+        skipped: true,
+        reason: 'Batch ranking is disabled.',
+        staleRuns,
+      };
     }
 
     const pendingIds = await step.run('list-pending-batch-ids', async () => {
@@ -198,7 +207,13 @@ export const jobFeedBatchReconcilerFunction = inngest.createFunction(
     });
 
     if (pendingIds.length === 0) {
-      return { skipped: false, reconciledBatches: 0, runsReconciled: 0, runsFailed: 0 };
+      return {
+        skipped: false,
+        reconciledBatches: 0,
+        runsReconciled: staleRuns.runsReconciled,
+        runsFailed: staleRuns.runsFailed,
+        staleRuns,
+      };
     }
 
     let reconciledBatches = 0;
@@ -221,8 +236,9 @@ export const jobFeedBatchReconcilerFunction = inngest.createFunction(
       skipped: false,
       pendingBatches: pendingIds.length,
       reconciledBatches,
-      runsReconciled,
-      runsFailed,
+      runsReconciled: runsReconciled + staleRuns.runsReconciled,
+      runsFailed: runsFailed + staleRuns.runsFailed,
+      staleRuns,
     };
   }
 );
