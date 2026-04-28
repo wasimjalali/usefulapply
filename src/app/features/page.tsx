@@ -273,12 +273,12 @@ const faqs = [
   {
     question: 'What makes Karko different from resume builders?',
     answer:
-      'Most tools just build resumes. Karko AI generates complete application packages: CV, cover letter, AND personalized emails (application + follow-up). Nobody else offers email generation.',
+      'Most tools build resumes. Karko AI generates a complete application package: tailored CV, cover letter, application email and follow-up email. It also delivers a daily Smart Job Feed of hand-picked roles ranked by fit against your CV, and on Max it drafts answers to ATS screening questions. No other tool does all of this.',
   },
   {
     question: 'What is the difference between Free, Plus and Max?',
     answer:
-      'Every plan includes the core application workflow: tailored CV, cover letter, application email, follow-up email, fit analysis, ATS templates and anti-hallucination guardrails. Plus adds higher volume, Smart Job Feed and add-on credit packs. Max adds the highest volume, screening question answers and premium dedicated support.',
+      'Every plan includes the core application workflow: tailored CV, cover letter, application email, follow-up email, fit analysis, ATS templates, anti-hallucination guardrails and an application tracker. Plus adds Smart Job Feed (up to 15 jobs/day) and add-on credit packs. Max adds Smart Job Feed (up to 25 jobs/day), screening question answers and premium dedicated support.',
   },
   {
     question: 'Can I buy more credits?',
