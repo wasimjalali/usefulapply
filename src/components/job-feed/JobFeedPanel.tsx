@@ -1240,7 +1240,7 @@ function SavedJobsView({
         </div>
         <h2 className="text-xl font-semibold tracking-tight text-charcoal">No saved jobs yet</h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-warm-gray">
-          Open a job from your feed and click <span className="font-medium text-charcoal">Save</span> to bookmark it — you&apos;ll find all your saved jobs here.
+          Open a job from your feed and click <span className="font-medium text-charcoal">Save</span> to bookmark it. You will find your saved jobs here.
         </p>
         <div className="mt-5">
           <Button variant="outline" size="sm" onClick={onBackToFeed}>
