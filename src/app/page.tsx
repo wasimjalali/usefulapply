@@ -14,10 +14,10 @@ import { PricingAurora } from '@/components/marketing/PricingAurora';
 
 export const metadata: Metadata = {
   title: {
-    absolute: 'KarKo AI | AI-Powered Job Application Assistant',
+    absolute: 'Karko AI | Your entire job search, in one app',
   },
   description:
-    'AI-powered job application assistant: Generate ATS-optimized CV, cover letter, and application emails in 90 seconds. Free for 2 applications. Try now.',
+    'Karko is the AI job application agent that replaces the seven tools job seekers stitch together. Find roles, see the fit, and get a tailored CV, cover letter, emails, and screening answers in 90 seconds. Every word traces back to your real CV.',
   alternates: { canonical: '/' },
 };
 
@@ -39,14 +39,18 @@ export default function Home() {
             applicationCategory: 'BusinessApplication',
             operatingSystem: 'Web',
             description:
-              'AI-powered job application assistant that generates a tailored CV, cover letter, and application email from any job description in under 90 seconds.',
+              'AI-powered job application assistant with a Smart Job Feed, fit analysis, tailored CVs, cover letters, emails, screening question answers, and application tracking.',
             url: SITE_URL,
-            image: `${SITE_URL}/karko-ai.png`,
+            image: `${SITE_URL}/favicon-512x512.png`,
             featureList: [
+              'Smart Job Feed',
               'AI CV Optimization',
               'Tailored Cover Letter Generation',
               'Professional Application Email Drafting',
+              'Follow-Up Email Drafting',
+              'AI Screening Question Answers',
               'Smart Fit Analysis',
+              'Application Tracker',
               'ATS-Friendly Output',
               'Multi-Language Support',
               'Master CV Support',
@@ -128,13 +132,13 @@ export default function Home() {
         <div className="max-w-4xl mx-auto text-center relative">
           <ScrollReveal delay={100}>
           <h1 className="font-bold text-navy-600 text-[44px] sm:text-[56px] lg:text-[64px] leading-[1.05] tracking-tight mb-6">
-            Your whole job search,{' '}
-            <span className="text-gold-500">in one place.</span>
+            Your entire job search,{' '}
+            <span className="text-gold-500">in one app.</span>
           </h1>
           </ScrollReveal>
           <ScrollReveal delay={250}>
           <p className="text-lg lg:text-xl text-warm-gray mb-9 max-w-2xl mx-auto leading-relaxed">
-            Karko finds hand-picked jobs every morning, writes your CV, cover letter and emails in 90 seconds, and tracks every application. From search to interview, one app.
+            Find the role. See the fit. Get a tailored CV, cover letter, emails, and screening answers in 90 seconds. Every word traces back to your real CV. Nothing invented.
           </p>
           </ScrollReveal>
           <ScrollReveal delay={400}>
@@ -161,7 +165,7 @@ export default function Home() {
       <section className="py-6 px-4 sm:px-6 lg:px-8 bg-white border-y border-cream-200 overflow-hidden">
         <div className="max-w-7xl mx-auto">
           <ScrollReveal direction="none">
-          <p className="text-center text-xs font-medium text-warm-gray uppercase tracking-widest mb-5">Optimized for the tools recruiters use</p>
+          <p className="text-center text-xs font-medium text-warm-gray uppercase tracking-widest mb-5">Built to pass the systems every recruiter uses</p>
           </ScrollReveal>
           <div className="relative overflow-hidden">
             <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
@@ -188,10 +192,10 @@ export default function Home() {
           <div className="text-center mb-14">
             <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">How It Works</p>
             <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-3">
-              Five steps. One complete application.
+              Seven tools, collapsed into one flow.
             </h2>
             <p className="text-warm-gray text-lg max-w-xl mx-auto">
-              Upload your CV once. Pick a role from your daily feed. Get a complete application in 90 seconds.
+              Job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, tracker. One app instead of seven.
             </p>
           </div>
           </ScrollReveal>
@@ -201,35 +205,35 @@ export default function Home() {
               {
                 step: 1,
                 title: 'Upload your CV once',
-                description: 'Your source of truth. Karko reads your real experience and keeps it ready for every application.',
+                description: 'Your source of truth. Karko reads it, structures it, and uses only what is actually there.',
                 accent: '/images/_archive/brand-cv-upload.webp',
                 accentAlt: 'CV upload brand illustration',
               },
               {
                 step: 2,
-                title: 'Get jobs picked for you',
-                description: 'Every morning, hand-picked roles arrive in your feed, matched to your profile.',
+                title: 'Skip the job boards',
+                description: 'Every morning, up to 25 roles picked for you. Matched to your CV, your goals, your location. No keyword searches.',
                 accent: '/images/gpt-03-compass-card.webp',
                 accentAlt: 'Compass brand illustration',
               },
               {
                 step: 3,
-                title: 'See how well you fit',
-                description: 'An honest match score and skill-gap read, so you know where to focus before spending credits.',
+                title: 'See the fit before you commit',
+                description: 'A match score, the skills that line up, and the gaps. You decide before you spend the credits.',
                 accent: '/images/_archive/brand-fit-analysis.webp',
                 accentAlt: 'Fit analysis brand illustration',
               },
               {
                 step: 4,
-                title: 'Get your complete application',
-                description: 'Tailored CV, cover letter, application email and follow-up email in under 90 seconds.',
+                title: 'Full application in 90 seconds',
+                description: 'Tailored CV, cover letter, application email, follow-up, and screening answers. All from your real experience. Nothing invented.',
                 accent: '/images/gpt-04-email-seal.webp',
                 accentAlt: 'Email seal brand illustration',
               },
               {
                 step: 5,
-                title: 'Track and follow up',
-                description: 'Every application stored with match score, status and a ready-to-send follow-up email.',
+                title: 'Track everything',
+                description: 'Every application saves automatically with company, role, match score, status, and a ready follow-up.',
                 accent: '/images/gpt-05-checklist-tracker.webp',
                 accentAlt: 'Checklist brand illustration',
               },
@@ -304,10 +308,10 @@ export default function Home() {
               </h2>
               <div className="border-l-2 border-gold-400 pl-6 space-y-4">
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  I ran out of money building a startup in Germany. No savings, no degree to fall back on. Generic job applications got me zero interviews. Tailoring each one by hand took 45 to 60 minutes, and it still was not fast enough.
+                  I ran out of money building a startup in Germany. No savings, no degree to fall back on. Generic applications got me zero interviews. Tailoring each one by hand took 45 to 60 minutes, and it still was not working.
                 </p>
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  So I built Karko AI to do the entire workflow automatically. Paste a job description, get a tailored CV, cover letter, and professional email in under 90 seconds. Within about 20 applications, I got my first interview. That&apos;s when I knew every job seeker needed this.
+                  So I built Karko to do the whole workflow automatically. Over 50 applications, I got 5 interviews. That is roughly 10 percent, against an industry baseline of 2 to 3 percent. First-time job seeker, no formal background. That is when I knew every job seeker needed this.
                 </p>
               </div>
             </div>
@@ -327,7 +331,7 @@ export default function Home() {
               How much time will you save?
             </h2>
             <p className="text-warm-gray max-w-lg mx-auto">
-              Each tailored application takes 45 to 60 minutes by hand. Karko does it in under 90 seconds.
+              One tailored application takes an hour by hand. Karko does it in 90 seconds. That is roughly 40x faster, without dropping quality.
             </p>
           </div>
           </ScrollReveal>
@@ -345,7 +349,7 @@ export default function Home() {
           <div className="text-center mb-10">
             <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Pricing</p>
             <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-3">
-              Pricing made simple.
+              Every plan, every feature. Pick your volume.
             </h2>
             <p className="text-warm-gray text-lg max-w-xl mx-auto">
               Start free. Upgrade when you&apos;re applying every day.
@@ -416,7 +420,7 @@ export default function Home() {
             Your next interview is <span className="text-gold-400">90 seconds away.</span>
           </h2>
           <p className="text-[17px] text-navy-100 mb-9 max-w-xl mx-auto leading-relaxed">
-            Start with 2 free applications. No credit card required.
+            Upload your CV. Pick a role from your feed. Send your first full application before your coffee gets cold.
           </p>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             <Link

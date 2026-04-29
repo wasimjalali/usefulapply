@@ -23,21 +23,21 @@ const savingsTiers = [
     apps: 2,
     hoursSaved: 2,
     price: 'Free',
-    tagline: 'That is 2 hours you get back for free. No credit card required.',
+    tagline: 'Two hours back, at zero cost. No card required.',
   },
   {
     plan: 'Plus',
     apps: 25,
     hoursSaved: 18,
     price: '$19.99/mo',
-    tagline: 'That is over 18 hours saved every month. At ~$0.80 per application.',
+    tagline: 'Two full workdays back every month. Roughly 80 cents per application.',
   },
   {
     plan: 'Max',
     apps: 100,
     hoursSaved: 108,
     price: '$79.99/mo',
-    tagline: 'That is over two and a half work weeks saved. Full automation at ~$0.80 per application.',
+    tagline: 'Two and a half work weeks back every month. Roughly 80 cents per application.',
   },
 ];
 
@@ -45,31 +45,39 @@ const savingsTiers = [
 const faqs = [
   {
     question: 'What exactly do I get with each application?',
-    answer: 'Each application generates a complete package: an AI-optimized CV tailored to the job description, a personalized cover letter with company research, and a professional application email, all in under 90 seconds.',
+    answer: 'One application gives you a CV rewritten for the specific role, a cover letter, an application email, a follow-up email, and answers to any screening questions. Every word is pulled from your real CV. All of it in under 90 seconds.',
   },
   {
     question: 'Are all features the same across plans?',
-    answer: 'Yes! Every plan includes the full agentic AI workflow: AI company analysis, fit analysis, skill gap analysis, ATS-optimized templates, AI self-refinement, and PDF export. The only difference between plans is the number of monthly credits.',
+    answer: 'Yes. Every plan gets the full workflow: Smart Job Feed, fit analysis, tailored CV, cover letter, emails, screening answers, and the application tracker. The only difference between plans is how many applications you can generate per month.',
   },
   {
     question: 'What happens if I run out of credits?',
-    answer: 'Plus and Max subscribers can purchase add-on credit packs anytime ($19.99 for 50 credits, 25 applications). Purchased credits roll over while your subscription is active. Free tier credits reset monthly. You can also upgrade your plan for immediate access to more credits.',
+    answer: 'Plus and Max subscribers can buy add-on credit packs any time ($19.99 for 50 credits, 25 more applications). Add-on credits roll over while your subscription is active. Free tier credits reset monthly. You can also upgrade your plan for immediate access to more credits.',
   },
   {
     question: 'Do unused credits expire?',
-    answer: 'Monthly credits reset each billing cycle. Add-on credits roll over as long as your subscription is active. Upgrade to Plus or Max for add-on credit packs.',
+    answer: 'Monthly credits reset at each billing cycle. Add-on credits roll over as long as your subscription is active. Upgrade to Plus or Max to unlock add-on credit packs.',
   },
   {
     question: 'Can I change or cancel my plan?',
-    answer: 'Absolutely. Upgrade anytime for immediate access to more credits. Downgrade or cancel at the end of your billing cycle. No hidden fees, no lock-in contracts.',
+    answer: 'Yes. Upgrade any time for immediate access to more credits. Downgrade or cancel at the end of your billing cycle. No hidden fees, no lock-in contracts.',
   },
   {
-    question: 'How is KarKo different from other resume builders?',
-    answer: 'Most tools just help you format a resume. KarKo AI is an agentic system that analyzes the job description, extracts company insights, runs a fit analysis, generates a tailored CV, writes a personalized cover letter, and drafts professional application emails and follow-up emails — a feature no other tool offers. The entire process takes under 90 seconds.',
+    question: 'Why Karko is not a resume builder.',
+    answer: 'Resume builders help you format one CV. Karko runs your entire job search. The feed finds the roles. The fit analysis tells you if it is worth applying. The generator writes the CV, cover letter, emails, and screening answers tailored to each role. The tracker keeps the list. It replaces seven separate tools with one loop.',
   },
   {
-    question: 'What AI model does KarKo use?',
-    answer: 'KarKo AI runs on Claude Sonnet 4.6 by Anthropic, one of the most capable AI models available for writing and agentic tasks. Unlike competitors who use cheaper open-source models, we use the same US-based, frontier-grade AI trusted by leading enterprises. On top of that, we have built a specialized system and agentic workflow designed specifically for job applications, so the model is not just powerful, it is precisely tuned to produce professional, ATS-optimized, role-specific documents.',
+    question: 'Why Karko is not an auto-apply bot.',
+    answer: 'Auto-apply bots blast hundreds of generic applications. Recruiters spot them, ATS systems flag them, and candidates get embarrassed in interviews. Karko does the opposite: fewer applications, all tailored to the real role, all traceable to your real experience. You stay in control of what gets sent.',
+  },
+  {
+    question: 'How does Karko keep its output honest?',
+    answer: 'Every CV rewrite, cover letter, email, and screening answer is built from the CV you upload. Karko will not invent job titles, skills, or experience you do not have. The job description is used for keyword alignment and tone, never as a source of facts about you. This is the one rule the product refuses to break.',
+  },
+  {
+    question: 'What AI model powers Karko?',
+    answer: 'Karko runs on Claude Sonnet 4.6 by Anthropic, one of the most capable models available for writing. Most competitors use cheaper open-source models. We pay for the better model because the output has to survive both an ATS scan and a recruiter’s read. On top of that, the workflow around the model is tuned specifically for job applications.',
   },
   {
     question: 'How does Karko AI pricing compare to Teal?',
@@ -182,18 +190,18 @@ export default function PricingPage() {
         <div className="max-w-4xl mx-auto text-center relative">
           <ScrollReveal delay={150}>
           <h1 className="font-bold text-navy-600 text-[40px] sm:text-[52px] leading-[1.08] mb-4">
-            Plans that scale with <span className="text-gold-500">your job search.</span>
+            Every plan, every feature.<br /><span className="text-gold-500">Pick your volume.</span>
           </h1>
           </ScrollReveal>
           <ScrollReveal delay={300}>
           <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-            Start free. Upgrade when you're applying every day. Cancel any time.
+            Start free. Upgrade when you&apos;re applying every day. Cancel any time.
           </p>
           </ScrollReveal>
           <ScrollReveal delay={450}>
           <div className="mt-6 inline-flex items-center gap-2 px-5 py-2 rounded-full bg-cream-50 border border-cream-200">
             <span className="text-warm-gray text-[13px]">
-              Anti-hallucination guardrails · US + EU ATS templates
+              Every word traces back to your real CV · US + EU ATS templates
             </span>
           </div>
           </ScrollReveal>
@@ -211,7 +219,7 @@ export default function PricingPage() {
               <div className="p-7 pt-5 flex flex-col h-full">
                 <div className="mb-4">
                   <h3 className="font-bold text-navy-600 text-[22px] leading-tight">Free</h3>
-                  <p className="text-sm text-warm-gray mt-0.5">Try Karko, no card required</p>
+                  <p className="text-sm text-warm-gray mt-0.5">For testing the waters</p>
                 </div>
                 <div className="mb-5">
                   <div className="flex items-baseline gap-1.5">
@@ -259,7 +267,7 @@ export default function PricingPage() {
               <div className="p-7 pt-5 flex flex-col h-full">
                 <div className="mb-4">
                   <h3 className="font-bold text-navy-600 text-[22px] leading-tight">Plus</h3>
-                  <p className="text-sm text-warm-gray mt-0.5">For serious job seekers</p>
+                  <p className="text-sm text-warm-gray mt-0.5">For applying every week</p>
                 </div>
                 <div className="mb-6">
                   <div className="flex items-baseline gap-1.5">
@@ -304,7 +312,7 @@ export default function PricingPage() {
               <div className="p-7 pt-5 flex flex-col h-full">
                 <div className="mb-4">
                   <h3 className="font-bold text-white text-[22px] leading-tight">Max</h3>
-                  <p className="text-sm text-navy-300 mt-0.5">For the intense job search</p>
+                  <p className="text-sm text-navy-300 mt-0.5">For applying every day</p>
                 </div>
                 <div className="mb-6">
                   <div className="flex items-baseline gap-1.5">
@@ -410,7 +418,7 @@ export default function PricingPage() {
               How much time will you save?
             </h2>
             <p className="text-warm-gray max-w-lg mx-auto">
-              Each tailored application takes 45-60 minutes by hand. KarKo AI does it in under 90 seconds.
+              One tailored application takes an hour by hand. Karko does it in 90 seconds. Roughly 40x faster, without dropping quality.
             </p>
           </div>
           </ScrollReveal>
@@ -556,7 +564,7 @@ export default function PricingPage() {
             Your next interview is <span className="text-gold-400">90 seconds away.</span>
           </h2>
           <p className="text-[17px] text-navy-100 mb-9 max-w-xl mx-auto">
-            Start with 2 free applications. No credit card required.
+            Upload your CV. Pick a role from your feed. Send your first full application before your coffee gets cold.
           </p>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             <Link
