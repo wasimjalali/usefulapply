@@ -16,30 +16,30 @@ const PANELS: Panel[] = [
   {
     id: 'job-feed',
     eyebrow: 'Smart Job Feed',
-    title: 'Up to 25 hand-picked jobs,',
-    titleAccent: 'delivered daily to your feed.',
+    title: 'Up to 25 hand-picked roles,',
+    titleAccent: 'delivered to your feed every morning.',
     description:
-      "While you sleep, Karko searches the web and picks roles that actually fit you. Open the app in the morning to a feed of jobs worth applying to. No keyword juggling, no job-board swamp.",
+      'While you sleep, Karko searches the web and picks roles that actually fit you. Matched to your CV, your goals, your location. No keyword searches, no six-tab job-board marathon. Open the app and start applying.',
     image: '/screenshots/01b-job-feed-left-only.webp',
     imageAlt: 'Karko Smart Job Feed with six hand-picked roles and match scores',
   },
   {
     id: 'application-kit',
-    eyebrow: 'Application Kit',
-    title: 'A complete application package,',
+    eyebrow: 'Full Application',
+    title: 'CV, cover letter, emails, and screening answers,',
     titleAccent: 'in 90 seconds.',
     description:
-      'Tailored CV, cover letter, application email and follow-up email. Personalized to you and the role, generated in one click, ready to send.',
+      'A fit score and ATS check first, so you know where you stand. Then the full application: tailored CV, cover letter, application email, follow-up, and answers to every screening question. All pulled from your real CV. Nothing invented.',
     image: '/screenshots/03-application-kit-generated.webp',
-    imageAlt: 'Karko Application Kit showing tailored CV with Cover Letter and Email tabs',
+    imageAlt: 'Karko Application Kit showing tailored CV with Cover Letter, Email, and Screening Answers tabs',
   },
   {
     id: 'tracker',
     eyebrow: 'Application Tracker',
-    title: 'Track every application and its status,',
-    titleAccent: 'in one place.',
+    title: 'Every application tracked,',
+    titleAccent: 'nothing falls through the cracks.',
     description:
-      'Statuses, match scores, follow-up timers and company context. One view of your whole search, so nothing falls through the cracks.',
+      'Company, role, match score, status, date, and a ready-to-send follow-up. One view of your whole job search, so you always know where each application stands.',
     image: '/screenshots/11-job-feed-empty-upsell.webp',
     imageAlt: 'Karko Application Tracker with match scores and status pills',
   },
@@ -55,10 +55,10 @@ export function PlatformScrollStack() {
             The Platform
           </p>
           <h2 className="font-bold text-navy-600 text-[32px] md:text-[44px] lg:text-[52px] leading-[1.08] max-w-3xl mx-auto">
-            All in one platform for job seekers.
+            Find. Apply. Track. One app for the whole loop.
           </h2>
           <p className="mt-4 text-warm-gray text-lg max-w-xl mx-auto">
-            Three panels. One flow. Find roles, apply in 90 seconds, track everything.
+            Roles matched to your CV. A full application in 90 seconds. Every application tracked.
           </p>
         </div>
       </div>

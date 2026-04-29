@@ -1,8 +1,24 @@
 # Karko AI — Product Positioning & Framing
 
-The canonical positioning document. Source of truth for the README, CLAUDE.md product thesis, homepage copy, investor decks, and every pitch.
+**The canonical positioning document.** Single source of truth for the README, CLAUDE.md product thesis, homepage copy, pricing page, investor decks, sales emails, and every marketing surface.
 
-Updated: April 2026
+If any part of the website or any pitch drifts from this document, fix the surface, not this document. If the product changes materially, update this first, then update every surface downstream.
+
+Last updated: April 2026.
+
+---
+
+## 0. How to use this document (for future sessions and other models)
+
+This file is written to be loaded cold. A model or person opening it for the first time should be able to:
+
+1. Read sections 1-4 and understand what Karko is, why it exists, and what makes it different.
+2. Read section 5 to know exactly what framing we had before and why it was wrong.
+3. Read sections 6-10 to have all the copy primitives (headlines, pitches, voice rules, proof points) needed to write or audit any surface.
+4. Read section 11 to know which surface pulls from which part of this doc.
+5. Read section 12 to run any new copy through three self-checks before it ships.
+
+**If you are auditing an existing page against this doc:** compare the page to sections 6 (headlines), 7 (user pitch), 8 (voice rules), 13 (what Karko is NOT). Anything that conflicts with those four sections is stale and should be rewritten.
 
 ---
 
@@ -11,42 +27,44 @@ Updated: April 2026
 **One-liner (for users):**
 > Your entire job search in one app. Every application in under two minutes. Never a word you didn't earn.
 
-**Elevator (for users, 25 words):**
+**Elevator (for users, ~25 words):**
 > Karko AI replaces the seven tools job seekers stitch together. Find the role, run a fit check, generate the full application, track everything. One loop.
 
-**Elevator (for investors, 25 words):**
+**Elevator (for investors, ~25 words):**
 > Karko is the AI job application agent. It replaces the seven-tool workflow job seekers use today with one loop: search, fit, tailor, screen, track.
 
-**Category:** AI Job Application Agent. Not a resume builder. Not an auto-apply bot. Not a cover letter tool. The agent that runs the full application workflow, grounded in the candidate's real experience.
+**Category:** **AI Job Application Agent.** Not a resume builder. Not an auto-apply bot. Not a cover letter tool. Not a job board. The agent that runs the full application workflow, grounded in the candidate's real experience.
 
 ---
 
 ## 2. The Thesis
 
-**The market forces a false choice: speed OR quality.**
+### The market forces a false choice between speed and quality
 
-Every current tool sits in one of three dead quadrants:
+Every current tool sits in one of three dead quadrants. Karko is the only product in the fourth.
 
-| Quadrant | Who's there | Why it's dead |
+| | **Low quality** | **High quality** |
 |---|---|---|
-| **Fast + Low Quality** | Auto-apply bots (LazyApply, Sonara, "apply to 200 jobs") | Candidates get flagged, ghosted, and embarrassed in interviews. ATS vendors are hardening against them. |
-| **Slow + High Quality** | Resume writers, career coaches, $100-500/CV services | Too expensive. Too slow. Doesn't scale past one or two applications per week. |
-| **Slow + Low Quality** | Generic AI (ChatGPT prompts, Zety), manual rewriting at midnight | The default for most job seekers. Hours of work. Output that sounds like AI. |
+| **High speed** | Auto-apply bots (LazyApply, Sonara, "apply to 200 jobs") | **Karko AI** |
+| **Low speed** | ChatGPT prompts, Zety, manual rewriting at midnight | Resume writers, career coaches ($100-500/CV, days) |
 
-**Karko is the only product in the fourth quadrant: fast AND quality.** 90-second application generation, but every word is traceable, ATS-optimized, and sounds human.
+- **Fast + low quality:** Auto-apply bots spray generic applications. Candidates get flagged, ghosted, and embarrassed in interviews. ATS vendors are actively hardening against them in 2026.
+- **Slow + high quality:** Human resume writers and career coaches. Expensive. Slow. Doesn't scale past one or two applications per week.
+- **Slow + low quality:** Generic AI tools and manual rewriting. The default for most job seekers. Hours of work. Output that sounds like ChatGPT.
+- **Fast + high quality = Karko.** 90-second application generation with ATS-optimized templates, keyword alignment, and every word traceable to the user's real CV.
 
-**Why now (2026):**
+### Why now (2026)
 
 1. **Agentic AI moment.** Foundation models are finally reliable enough for full-workflow agents, not just chat. Karko is what happens when the agentic wave hits consumer job search.
-2. **Auto-apply backlash.** Spray-and-pray tools are losing candidate trust. ATS vendors are starting to flag them. Anti-hallucination becomes the defensible, trusted posture.
-3. **AI copy fatigue.** Recruiters can now spot ChatGPT cover letters in one read. Generic AI is a liability, not an advantage. Human-sounding, traceable output is the new bar.
+2. **Auto-apply backlash.** Spray tools are losing candidate trust. ATS vendors are flagging them. Anti-hallucination becomes the defensible posture.
+3. **AI copy fatigue.** Recruiters now spot ChatGPT cover letters in one read. Generic AI is a liability, not an advantage. Human-sounding, traceable output is the new bar.
 4. **Job market compression.** Candidates apply to more roles than ever, for longer. They need compression, not more tools.
 
 ---
 
 ## 3. What Karko Replaces
 
-Job seekers today stitch together seven to eight separate tools:
+Job seekers today stitch together seven to eight separate tools to run a search:
 
 | The seven-tool stack | Karko replaces with |
 |---|---|
@@ -59,9 +77,9 @@ Job seekers today stitch together seven to eight separate tools:
 | ChatGPT for screening questions | **Screening Question Answers** (STAR for behavioral, direct for factual) |
 | Notion / spreadsheet tracker | **Application Tracker** (auto-saved, status tracking) |
 
-**Compression ratio: 7-8 tools → 1 loop. ~90% time savings.**
+**Compression ratio: 7-8 tools → 1 loop. Roughly 90% time savings.**
 
-The reason Karko can do this: **the outputs share a single source of truth** (the candidate's real CV). Every module feeds every other module. No tool-hopping, no re-entering information, no context loss.
+The reason Karko can do this: **every module shares one source of truth** (the candidate's real CV). No tool-hopping, no re-entering information, no context loss.
 
 ---
 
@@ -69,29 +87,125 @@ The reason Karko can do this: **the outputs share a single source of truth** (th
 
 Everything Karko does rests on four product pillars. Every feature, headline, and pitch should trace to one of these.
 
-### Pillar 1: Anti-hallucination (Trust)
+### Pillar 1 — Anti-hallucination (Trust)
 Every CV rewrite, cover letter, email, and screening answer traces back to the candidate's real CV. Karko will not invent experience the user doesn't have. This is the moat. It's why recruiters still trust the applications. It's why candidates don't get embarrassed in interviews.
 
-**The line:** *Never a word you didn't earn.*
+**Line:** *Never a word you didn't earn.*
 
-### Pillar 2: Personalization at every layer (Quality)
-Not "AI for job applications" (generic). Every output is personalized three ways: to the user's CV, to the specific role, and to the user's voice. The feed is personal. The fit score is personal. The rewrite is personal. The screening answers are personal.
+### Pillar 2 — Personalization at every layer (Quality)
+Every output is personalized three ways: to the user's CV, to the specific role, and to the user's voice. The feed is personal. The fit score is personal. The rewrite is personal. The screening answers are personal.
 
-**The line:** *Tailored to this exact role, from your exact experience.*
+**Line:** *Tailored to this exact role, from your exact experience.*
 
-### Pillar 3: Full workflow, one loop (Compression)
-The reason Karko saves 90% of the time is that the full job application workflow lives inside one app, sharing one source of truth. Seven tools, zero tool-switching, zero data re-entry.
+### Pillar 3 — Full workflow, one loop (Compression)
+The reason Karko saves 90% of the time is the full job application workflow lives in one app, sharing one source of truth. Seven tools, zero tool-switching, zero data re-entry.
 
-**The line:** *One app for your entire job search.*
+**Line:** *One app for your entire job search.*
 
-### Pillar 4: Human-sounding, ATS-optimized (The unlock)
-The output has to survive both the ATS scan AND the human recruiter's read. Most tools optimize for one or the other. Karko does both: ATS-compliant templates, keyword injection with a measurable score, and writing that doesn't scream ChatGPT.
+### Pillar 4 — Human-sounding and ATS-optimized (The unlock)
+The output has to survive both the ATS scan AND the recruiter's read. Most tools optimize for one or the other. Karko does both: ATS-compliant templates, keyword injection with a measurable score, and writing that doesn't scream ChatGPT.
 
-**The line:** *Sounds like you. Reads like a real application.*
+**Line:** *Sounds like you. Reads like a real application.*
 
 ---
 
-## 5. The User Pitch (60 seconds, ~155 words)
+## 5. Old framing vs. current framing (what changed and why)
+
+This section exists so any future session can immediately see the drift and fix it. If you encounter copy that matches the left column, rewrite it to match the right column.
+
+### Category / one-liners
+
+| Old (wrong) framing | Current (correct) framing | Why we changed |
+|---|---|---|
+| "AI-powered job application assistant" | "AI job application agent" | "Assistant" is a commodity category (every SaaS tool claims this). "Agent" signals the 2026 agentic moment and maps to the actual architecture. |
+| "Your whole job search, in one place" | "Your entire job search, in one app" | "In one place" is generic (Google is a place). "In one app" is specific to the category we're creating. |
+| "Complete application kit" / "application package" | "Full application" / "complete application" | Users don't say "kit." They say CV and cover letter. "Kit" sounded like corporate packaging. |
+| "Build tailored CVs, cover letters, emails" | "Replaces the seven tools you use to apply for a job" | Feature list vs category-defining claim. The second frames Karko as a workflow replacement. |
+
+### Headlines / product positioning
+
+| Old (wrong) framing | Current (correct) framing | Why we changed |
+|---|---|---|
+| "Pricing made simple" | "Every plan, every feature. Pick your volume." | Generic SaaS line vs an unusual product truth (every tier gets every feature). |
+| "Plans that scale with your job search" | "Every plan, every feature. Pick your volume." | Same reason. Specificity over template. |
+| "Five steps. One complete application." (homepage H2) | "Seven tools, collapsed into one flow." | The old line describes mechanics. The new line names the category insight. |
+| "See how well you fit" | "See the fit before you commit" | Adds the decision moment, which is the real value (don't waste credits on bad-fit roles). |
+| "Get jobs picked for you" | "Skip the job boards" | Problem-first framing (job boards) beats feature-first framing (Karko picks jobs). |
+| "Get your complete application" | "Full application in 90 seconds" | Concrete time beats generic "get." |
+
+### Tier descriptions (pricing page)
+
+| Old (wrong) framing | Current (correct) framing | Why we changed |
+|---|---|---|
+| "Try Karko, no card required" | "For testing the waters" | Parallel structure across tiers. |
+| "For serious job seekers" | "For applying every week" | Specificity (behavior) beats adjective ("serious"). |
+| "For the intense job search" | "For applying every day" | Same reason. Measurable behavior beats adjective. |
+
+### FAQ framing
+
+| Old (wrong) framing | Current (correct) framing | Why we changed |
+|---|---|---|
+| "How is Karko different from other resume builders?" | "Why Karko is not a resume builder" + "Why Karko is not an auto-apply bot" | The old question concedes we are in the resume-builder category. The new question defines the category. |
+| "Karko AI is an agentic system that analyzes the job description..." | "Karko runs your entire job search. The feed finds the roles. The fit analysis tells you if it is worth applying..." | Jargon ("agentic system," "self-refinement") replaced with outcome-first plain English. |
+
+### Founder story
+
+| Old (wrong) framing | Current (correct) framing | Why we changed |
+|---|---|---|
+| "Within about 20 applications, I got my first interview" | "Over 50 applications, I got 5 interviews. Roughly 10%, against an industry baseline of 2-3%" | The old number is softer and doesn't prove the thesis. The new number is the actual result, with a benchmark that makes the 10% number mean something. |
+
+### Voice
+
+| Old (wrong) | Current (correct) |
+|---|---|
+| Em dashes everywhere (`—`) | Never. Use commas, periods, colons, or plain hyphens. Em dashes are the AI writing tell. |
+| "Leverage," "empower," "utilize," "seamless," "robust" | "Use," "help," "make," "clean," "clear." Cut buzzwords. |
+| Third-person hooks ("Most people...") | Second-person hooks ("You...") |
+| "AI-powered," "next-generation," "revolutionary" | Describe what Karko actually does. Cut marketing puff. |
+
+---
+
+## 6. Messaging Hierarchy (copy primitives)
+
+### Hero / H1 options
+- *Your entire job search in one app.* ← **canonical**
+- *Ninety seconds per application. Never a word you didn't earn.*
+- *Find the job. Apply. Track. In one loop.*
+- *The AI that applies for jobs without lying on your CV.*
+
+### Subheads (for below H1)
+- *Smart job feed, fit analysis, tailored CV, cover letter, emails, screening answers, and a tracker. One app, one loop, under two minutes per application.*
+- *Karko collapses the seven tools you use for job hunting into one workflow. Every word traces back to your real experience.*
+- *Find the role. See the fit. Get a tailored CV, cover letter, emails, and screening answers in 90 seconds. Every word traces back to your real CV. Nothing invented.*
+
+### Section headlines (homepage blocks)
+- *Seven tools, collapsed into one flow.* (The compression frame — current "How It Works")
+- *Every plan, every feature. Pick your volume.* (Pricing frame)
+- *Find. Apply. Track. One app for the whole loop.* (Platform scroll frame)
+- *The job hunt, compressed.*
+- *Your real CV. Their exact role. One matched application.*
+- *Every word traces back to you.*
+- *The part most people quit at, handled.* (Screening frame)
+- *Every application tracked, nothing forgotten.* (Tracker frame)
+
+### Primary CTAs
+- *Start free*
+- *Start free, no credit card*
+- *Apply to your first job*
+- *Upload your CV*
+
+### Secondary CTAs
+- *See a sample application*
+- *How the fit score works*
+- *See pricing*
+
+### Final-section CTA copy
+- *Upload your CV. Pick a role from your feed. Send your first full application before your coffee gets cold.*
+- *Ten hours of searching, gone. The screening wall, gone. Start free at karkoai.com.*
+
+---
+
+## 7. The User Pitch (60 seconds, ~155 words)
 
 *For the homepage, onboarding, sales page, and any user-facing surface.*
 
@@ -103,16 +217,16 @@ The output has to survive both the ATS scan AND the human recruiter's read. Most
 >
 > Spend one hour setting up your CV. Then apply to five strong jobs before lunch.
 
-**What this pitch does:**
+**Why this works:**
 - Opens with the user's current reality, not the product.
-- Specific tool stack they recognize.
-- Compression framing (7 tools → 1).
-- Time math anyone can feel.
-- Ends on Pillar 1 (trust) + a concrete outcome.
+- Lists the six-tool stack they already recognize using.
+- Compresses to one.
+- Specific numbers (25, 2 minutes, 5 jobs).
+- Ends on Pillar 1 (trust) and a concrete outcome.
 
 ---
 
-## 6. The Investor Pitch (60 seconds, ~160 words)
+## 8. The Investor Pitch (60 seconds, ~160 words)
 
 *For investor meetings, pitch decks, and any capital-raise context.*
 
@@ -126,8 +240,8 @@ The output has to survive both the ATS scan AND the human recruiter's read. Most
 >
 > Credit-based SaaS. Twenty to eighty dollars a month. High gross margin via prompt caching. Founder hit a ten percent interview rate using the product, versus a two to three percent industry baseline. We're the category replacing the resume builder and the auto-apply bot.
 
-**What this pitch does:**
-- Names a seven-tool stack they can map instantly.
+**Why this works:**
+- Opens with a market frame (seven-tool stack) they can map instantly.
 - Defines the category in one sentence.
 - Two specific moats (trust + data flywheel).
 - 2026-specific timing (auto-apply backlash).
@@ -136,41 +250,10 @@ The output has to survive both the ATS scan AND the human recruiter's read. Most
 
 ---
 
-## 7. Messaging Hierarchy (for website, ads, social)
-
-### Headlines (hero / H1 options)
-- *Your entire job search in one app.*
-- *Ninety seconds per application. Never a word you didn't earn.*
-- *Find the job. Apply. Track. In one loop.*
-- *The AI that applies for jobs without lying on your CV.*
-
-### Subheads (below H1)
-- *Smart job feed, fit analysis, tailored CV, cover letter, emails, screening answers, and a tracker. One app, one loop, under two minutes per application.*
-- *Karko collapses the seven tools you use for job hunting into one workflow. Every word traces back to your real experience.*
-
-### Section headlines (homepage blocks)
-- *The job hunt, compressed.* (The compression frame)
-- *Your real CV. Their exact role. One matched application.* (The personalization frame)
-- *Every word traces back to you.* (The anti-hallucination frame)
-- *The part most people quit at, handled.* (The screening frame)
-- *Every application tracked, nothing forgotten.* (The tracker frame)
-
-### Primary CTAs
-- *Start free*
-- *Apply to your first job*
-- *Upload your CV*
-
-### Secondary CTAs
-- *See a sample application*
-- *How the fit score works*
-- *Pricing*
-
----
-
-## 8. Voice & Language Rules
+## 9. Voice & Language Rules
 
 ### Do
-- **Use second person.** "You" not "users," not "candidates," not "job seekers."
+- **Use second person.** "You," not "users," "candidates," or "job seekers."
 - **Use specific numbers.** 25 jobs, 90 seconds, 7 tools, 10 percent. Specifics beat adjectives.
 - **Use contractions.** "You're," "it's," "we'll," "don't."
 - **Short sentences. One idea per sentence.**
@@ -180,58 +263,56 @@ The output has to survive both the ATS scan AND the human recruiter's read. Most
 ### Don't
 - **No em dashes.** Ever. They're the AI tell. Replace with commas, colons, periods, or plain hyphens.
 - **No hollow fillers.** "Great!", "Absolutely!", "Elevate your career!", "Unlock your potential!" — all cut.
-- **No buzzword categories.** Avoid "AI-powered," "next-generation," "revolutionary," "game-changing," "seamless."
+- **No buzzword categories.** Avoid "AI-powered," "next-generation," "revolutionary," "game-changing," "seamless," "agentic system."
 - **No "leverage," "utilize," "empower."** Say "use" or cut the sentence.
 - **No third-person hooks.** "Most people..." is weak. "You..." is strong.
 - **No claims you can't back.** Don't fabricate conversion rates or time saves. Use the founder's real numbers.
 
 ### Words that earn their keep
-- Grounded. Traceable. Tailored. Real. Full workflow. Loop. Compressed. Matched. Honest.
+Grounded. Traceable. Tailored. Real. Full workflow. Loop. Compressed. Matched. Honest.
 
 ### Words to avoid
-- Leverage. Empower. Utilize. Seamless. Revolutionary. Next-gen. AI-powered. Unlock. Elevate. Supercharge. Game-changer. Robust. Cutting-edge.
+Leverage. Empower. Utilize. Seamless. Revolutionary. Next-gen. AI-powered. Unlock. Elevate. Supercharge. Game-changer. Robust. Cutting-edge. Agentic system. Synergy. Streamline.
 
 ---
 
-## 9. Proof Points (use where possible)
+## 10. Proof Points
 
-- **Founder dogfood:** 5 interviews from 50+ applications as a first-time job seeker with a founder background. Roughly 10% conversion rate vs 2-3% industry baseline. (User-facing: "Built by a founder who used it to land interviews at a 10% rate.")
-- **Tool replacement count:** 7-8 tools replaced by 1 workflow.
-- **Time per application:** Under 2 minutes (90 seconds generation + review).
-- **Daily role discovery:** Up to 25 personalized roles per day.
-- **ATS compliance:** 6 ATS-ready templates, ATS score included in every generation.
-- **Anti-hallucination:** Architectural guardrail. Every claim traces to the uploaded CV.
-- **Multi-language:** English, German, other European languages supported natively.
+Use these wherever credibility matters. They're ranked by strength.
 
----
-
-## 10. Positioning Statement (internal, classic format)
-
-> **For** active job seekers who want quality applications without spending their evenings rewriting CVs,
-> **Karko AI** is an AI job application agent
-> **that** collapses the seven-tool job search workflow into one loop, from matched role discovery to tracked application, in under two minutes per job.
-> **Unlike** auto-apply bots that sacrifice quality for volume, or resume writers that cost hundreds and take days,
-> **Karko** gives you speed AND quality, grounded in your real experience, with every word traceable to your actual CV.
+1. **Founder dogfood:** 5 interviews from 50+ applications as a first-time job seeker with a founder background. Roughly 10% conversion rate vs 2-3% industry baseline. *(User-facing: "Built by a founder who used it to land interviews at a 10% rate, against an industry baseline of 2-3%.")*
+2. **Tool replacement count:** 7-8 tools replaced by 1 workflow.
+3. **Time per application:** Under 2 minutes (90 seconds generation + review). Roughly 40x faster than manual tailoring.
+4. **Daily role discovery:** Up to 25 personalized roles per day.
+5. **ATS compliance:** 6 ATS-ready templates, ATS score included in every generation.
+6. **Anti-hallucination:** Architectural guardrail. Every claim traces to the uploaded CV.
+7. **Multi-language:** English, German, other European languages supported natively.
 
 ---
 
-## 11. What to Use Where
+## 11. What to use where (surface → source map)
 
 | Surface | Pull from |
 |---|---|
-| **README.md** top | §1 one-liner + §3 seven-tool table + §7 section headlines |
-| **CLAUDE.md** product thesis | §2 thesis + §4 four pillars + §8 voice rules |
-| **Homepage hero** | §7 hero headlines + §5 shortened user pitch |
-| **Homepage sections** | §7 section headlines + §4 pillars |
-| **Pricing page intro** | §1 one-liner + §5 user pitch (trimmed) |
-| **About page** | §2 thesis + §9 founder proof |
-| **Investor deck** | §2 thesis + §6 investor pitch + §9 proof points + §10 positioning |
-| **Sales emails** | §5 user pitch + §7 CTAs |
+| **README.md** top | §1 one-liner + §3 seven-tool table + §6 section headlines |
+| **CLAUDE.md** product thesis | §2 thesis + §4 four pillars + §9 voice rules |
+| **Homepage hero** | §6 hero headlines + §7 shortened user pitch |
+| **Homepage "How It Works"** | §3 seven-tool table + §6 section headlines |
+| **Platform scroll stack** | §4 Pillar 3 (compression) + §6 "Find. Apply. Track." section headline |
+| **Founder story section** | §10 proof point #1 |
+| **Pricing page hero** | §6 "Every plan, every feature. Pick your volume." |
+| **Pricing tier taglines** | §5 parallel structure (testing / weekly / daily) |
+| **Pricing FAQ** | §13 "Why Karko is not..." question framing |
+| **Final CTA** | §6 final-CTA copy options |
+| **About page** | §2 thesis + §10 founder proof |
+| **Investor deck** | §2 thesis + §8 investor pitch + §10 proof points + §14 positioning statement |
+| **Sales emails** | §7 user pitch + §6 CTAs |
 | **Social bio** | *"AI job application agent. Your entire job search in one app. Every application in under two minutes. Never a word you didn't earn."* |
+| **Meta description (SEO)** | "Karko is the AI job application agent that replaces the seven tools job seekers stitch together. Find roles, see the fit, get a tailored CV, cover letter, emails, and screening answers in 90 seconds. Every word traces back to your real CV." |
 
 ---
 
-## 12. The Test
+## 12. The Test (run before shipping any new copy)
 
 Any new piece of copy should pass three questions before it ships:
 
@@ -243,14 +324,51 @@ If all three pass, ship it.
 
 ---
 
-## 13. What Karko is NOT (for internal clarity)
+## 13. What Karko is NOT (for internal clarity and FAQ framing)
+
+These are the five categories people might file Karko under that are all wrong. Every time a competitor ships a feature and you feel pressure to add something, re-read this section before committing engineering time.
 
 - **Not a resume builder.** Builders assume you start with a blank page. Karko starts with your real CV and tailors it per role.
-- **Not an auto-apply bot.** Bots optimize for volume. Karko optimizes for quality and traceability. The user stays in control.
+- **Not an auto-apply bot.** Bots optimize for volume. Karko optimizes for quality and traceability. The user stays in control. Auto-apply bots are dying in 2026 because ATS vendors flag them and candidates get burned in interviews.
 - **Not a generic AI writer.** Generic AI produces generic output. Karko produces output grounded in the specific user and specific role.
 - **Not a career coach.** Coaches help with strategy and long-term positioning. Karko handles the execution loop once the user knows what they want.
-- **Not ChatGPT with a job search UI.** Karko is a workflow product. The AI is the engine, not the interface.
+- **Not ChatGPT with a job-search UI.** Karko is a workflow product. The AI is the engine, not the interface.
 
 ---
 
-*This document is the canonical source. If the website, README, or any pitch drifts from this, fix the surface, not this document. If the product changes materially, update this first, then update every surface downstream.*
+## 14. Positioning Statement (classic format, for internal use)
+
+> **For** active job seekers who want quality applications without spending their evenings rewriting CVs,
+> **Karko AI** is an AI job application agent
+> **that** collapses the seven-tool job search workflow into one loop, from matched role discovery to tracked application, in under two minutes per job.
+> **Unlike** auto-apply bots that sacrifice quality for volume, or resume writers that cost hundreds and take days,
+> **Karko** gives you speed AND quality, grounded in your real experience, with every word traceable to your actual CV.
+
+---
+
+## 15. Current state of the website (as of April 2026)
+
+Reference snapshot so future sessions know what's already been aligned and what hasn't.
+
+### Aligned with this doc
+- Homepage hero H1 + sub-head
+- Homepage "How It Works" section (seven-tool framing, tightened step copy)
+- Homepage founder story (real numbers)
+- Homepage Platform scroll stack (three panels: feed, full application, tracker)
+- Homepage pricing teaser and final CTA
+- Pricing page hero, tier taglines, FAQ, final CTA
+
+### Probably still drifting
+- `/ai-job-application/*` SEO landing pages (individual feature pages, may still use old "application kit" language)
+- `/compare/*` competitor comparison pages
+- `/blog/*` blog posts
+- `/master-cv/*` pages
+- README.md (may not reflect current framing)
+- Onboarding flow inside the app
+- Empty states and tooltips across the dashboard
+
+If you audit any of these, use §5 (old vs new framing) to spot-fix, and §12 (the test) to validate.
+
+---
+
+*If this document conflicts with any marketing surface, the surface is wrong. Fix the surface.*
