@@ -261,6 +261,72 @@ This section exists so any future session can immediately see the drift and fix 
 
 ---
 
+## 6.5. Founder Bios (locked)
+
+All bios use the two-tagline system: "Founder, Karko AI" as the anchor, then the right tagline for the platform. Update these if the taglines change, and nowhere else.
+
+### YouTube (channel About, video description, "About this creator")
+
+**Short version (character-limited fields, under 160 chars):**
+> Founder, Karko AI. Your entire job search, in one app. I make videos for job seekers who want better answers from AI, not more of it.
+
+**Long version (full About section / About this creator panel):**
+> I'm Wasim, founder of Karko AI, the AI job application agent. Your entire job search, in one app.
+>
+> I build products for job seekers. After running out of money on a startup in Germany, I spent months applying to jobs by hand, generic CVs, templated cover letters, hours on LinkedIn every day. It was brutal. So I built Karko to do the whole workflow: find the role, check the fit, write the full application, track everything.
+>
+> On this channel, I share what I learn about job hunting in the AI era: how to tailor applications that actually get read, how to use AI without sounding like ChatGPT, what works in 2026 and what doesn't, and how Karko fits into that.
+>
+> If you're in a job search right now, subscribe. You'll save yourself some late nights.
+>
+> Try Karko free: karkoai.com
+
+### LinkedIn
+
+**Headline (under 220 chars, the line under your name):**
+> Founder, Karko AI | The AI job application agent. Your entire job search, in one app.
+
+**Alternative headline (more active voice):**
+> Building Karko AI. The AI job application agent helping job seekers apply smarter, not just faster.
+
+**About section (2,600-char limit, aim for ~1,200):**
+> Founder of Karko AI, the AI job application agent.
+>
+> Your entire job search, in one app.
+>
+> Karko replaces the seven tools job seekers stitch together today (job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, tracker) with one loop: find the role, check the fit, write the full application, track everything. Every word traces back to your real CV. Nothing invented.
+>
+> I built Karko because I needed it myself. First-time job seeker with a founder background, no degree, applying in Germany. Generic applications got me zero interviews. Tailoring each one by hand took an hour and still did not work. So I built the thing. Over 50 applications through Karko, I got 5 interviews, roughly 10% versus a 2-3% industry baseline. That's when I knew every job seeker needed this.
+>
+> I post about AI, job search strategy, and what actually works in 2026. If you're in the middle of a search, follow along.
+>
+> Try Karko free: karkoai.com
+
+### Instagram (if you activate it later)
+
+**Bio (150 chars):**
+> Founder, Karko AI
+> The AI job application agent
+> Your entire job search, in one app
+> 🔗 karkoai.com
+
+### Short bio for guest appearances, podcasts, press asks (30-60 words)
+
+> Wasim Jalali is the founder of Karko AI, the AI job application agent. Karko replaces the seven tools job seekers juggle today with one app: find the role, check the fit, write the full application, track everything. Every word traces back to the user's real CV. Nothing invented.
+
+### One-line bio (for email signatures, Slack, Telegram bios)
+
+> Wasim Jalali, Founder of Karko AI. Your entire job search, in one app. karkoai.com
+
+### Rules for updating bios
+
+- If the taglines in §1.5 change, update every bio in this section to match. Tagline changes must cascade everywhere.
+- Never add buzzwords ("passionate," "visionary," "disruptor," "game-changer") to any bio. The founder dogfood stat (5 interviews from 50+ applications, ~10% vs 2-3%) is the credibility, not adjectives.
+- Platforms where you actively post (YouTube and LinkedIn as of April 2026) get full content. Platforms you do not focus on (X, Facebook) do not need bios; add them only when you decide to activate.
+- The YouTube long bio and LinkedIn About both include the founder origin story because those platforms reward narrative. The short bios do not, because those platforms reward brevity.
+
+---
+
 ## 7. The User Pitch (60 seconds, ~155 words)
 
 *For the homepage, onboarding, sales page, and any user-facing surface.*
@@ -435,7 +501,8 @@ Use these wherever credibility matters. They're ranked by strength.
 | **Short-form videos (TikTok, Reels, Shorts)** | §9.5 short-form playbook + §1.5 Tagline A as end-card |
 | **Long-form videos (YouTube, demo, walkthrough)** | §9.5 long-form playbook + `Karko_AI_Video_Scripts_v4.html` |
 | **Sales emails** | §7 user pitch + §6 CTAs |
-| **Social bio (Twitter, IG, LinkedIn personal)** | §1.5 Tagline A or combined two-line |
+| **Founder bios (YouTube, LinkedIn, guest spots, email signature)** | **§6.5 Founder Bios** — platform-specific locked versions |
+| **Social bio (Twitter, IG, general)** | §1.5 Tagline A or combined two-line |
 | **Meta description (SEO)** | "Karko is the AI job application agent that replaces the seven tools job seekers stitch together. Find roles, see the fit, get a tailored CV, cover letter, emails, and screening answers in 90 seconds. Every word traces back to your real CV." |
 
 ---
