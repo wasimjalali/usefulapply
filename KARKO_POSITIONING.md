@@ -357,15 +357,26 @@ Reference snapshot so future sessions know what's already been aligned and what 
 - Homepage Platform scroll stack (three panels: feed, full application, tracker)
 - Homepage pricing teaser and final CTA
 - Pricing page hero, tier taglines, FAQ, final CTA
+- **Features page** (`/features`) — hero, full feature grid (reordered to real user workflow, every fabricated stat removed), comparison table H2 + rows, FAQ (now "Why Karko is not..." framing), final CTA, metadata
 
 ### Probably still drifting
-- `/ai-job-application/*` SEO landing pages (individual feature pages, may still use old "application kit" language)
+- `/ai-job-application/*` SEO landing pages (individual feature pages, may still use old "application kit" language and fabricated stats)
 - `/compare/*` competitor comparison pages
 - `/blog/*` blog posts
 - `/master-cv/*` pages
 - README.md (may not reflect current framing)
 - Onboarding flow inside the app
 - Empty states and tooltips across the dashboard
+
+### Stats to never use again
+These appeared on the features page and were removed because they cannot be defended:
+- "50%+ higher callback rate than templates" (cover letter)
+- "40% higher response rate" / "40% increase in callback rate" (email, follow-up)
+- "97% time savings" (90-second workflow)
+- "Sending application emails increases response rates by up to 40%"
+- Any phrasing like "Nobody else offers this" or "Unique feature (only Karko AI offers this)" — absolute claims that are either untrue or unfalsifiable
+
+Acceptable substitutes: "another thing the other tools do not do," "roughly 40x faster" (math-defensible: 60 min manual ÷ 90 sec Karko ≈ 40x), "10% interview rate vs 2-3% industry baseline" (founder's real number).
 
 If you audit any of these, use §5 (old vs new framing) to spot-fix, and §12 (the test) to validate.
 
