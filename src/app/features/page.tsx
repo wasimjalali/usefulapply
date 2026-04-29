@@ -8,88 +8,151 @@ import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = buildPageMetadata({
-  title: 'Features: Find Jobs and Apply Smarter with Karko AI',
+  title: 'Features: One app for your entire job search | Karko AI',
   description:
-    'Smart Job Feed delivers hand-picked jobs daily. AI generates tailored CVs, cover letters and emails. Built-in tracker keeps everything organized. Free to try.',
+    'Karko is the AI job application agent that replaces the seven tools you use to apply for a job. Smart Job Feed, fit analysis, tailored CV, cover letter, emails, screening answers, and tracker. Every word traces back to your real CV.',
   canonical: '/features',
 });
 
 const features = [
   {
+    icon: Sparkles,
+    title: 'Master CV',
+    description:
+      'Upload your CV once. Karko reads it, structures every section, and keeps it as your single source of truth. Every CV rewrite, cover letter, email, and screening answer you generate pulls from this document. Karko will not invent experience you do not have.',
+    benefits: [
+      'Upload a PDF or paste plain text',
+      'Parsed into structured sections you can edit inline',
+      'Every output traces back to what is in here',
+      'Free to store, across every plan',
+    ],
+    cost: 'Free',
+    link: '/master-cv-template',
+    linkText: 'Build your Master CV',
+    image: '/images/features/master-cv-system.jpg',
+  },
+  {
     icon: Compass,
     title: 'Smart Job Feed',
     description:
-      'Tell Karko the roles, countries and cities you care about. Every morning, your top matches are waiting, ranked by fit against your CV. Save jobs you like, dismiss ones that miss, or apply with one click.',
+      'Most people start their search by bouncing between LinkedIn, Indeed, and company career pages. That is ten hours a week you do not need to spend. Karko delivers up to 25 roles every morning, matched to your CV, your goals, and your location. Tap any card to start your application.',
     benefits: [
-      'Daily delivery at your chosen hour',
+      'Delivered every morning at your chosen hour',
       'Ranked by real fit against your CV, not keyword match',
-      'Up to 15 jobs/day on Plus (~300/month)',
-      'Up to 25 jobs/day on Max (~500/month)',
-      'One-click "Apply with Karko" into the Application Kit',
+      'Up to 15 roles a day on Plus, up to 25 on Max',
+      'Save roles, dismiss misses, or apply with one click',
     ],
     cost: 'Included with Plus and Max',
     link: '/dashboard',
-    linkText: 'Try the Job Feed →',
+    linkText: 'Try the Job Feed',
     image: '/images/features/smart-job-feed.jpg',
   },
   {
     icon: Target,
-    title: 'Fit Analysis (Analyze First Mode)',
+    title: 'Fit Analysis',
     description:
-      'Know if a job is worth applying to before spending credits. Our AI analyzes the job description against your Master CV and provides a match percentage, skill gaps, and strategic recommendations.',
+      'Before you write a single word, see where you stand. Karko reads the job description against your CV and gives you a match score, the skills that line up, and the gaps. You decide whether to apply before spending credits on the full application.',
     benefits: [
-      'Saves time on bad matches',
-      'Focuses your efforts on good fits',
+      'Match score with strengths and gaps',
+      'Clear recommendation on whether to apply',
+      'A checkpoint, not a commitment',
       'Costs only 0.5 credits',
-      'Provides actionable gap analysis',
     ],
     cost: '0.5 credits',
     link: '/ai-job-application/zero-fabrication',
-    linkText: 'Learn about our anti-hallucination system →',
+    linkText: 'How the fit score works',
     image: '/images/features/fit-analysis.jpg',
   },
   {
     icon: FileText,
-    title: 'AI CV Optimization',
+    title: 'Tailored CV',
     description:
-      'Generate a tailored, ATS-optimized resume from your Master CV and any job description. Keywords are automatically extracted and applied where you have relevant experience.',
+      'Karko rewrites your CV for this exact role. The facts do not change. The framing does. The most relevant experience gets more weight. Role-specific keywords land where you already have real experience. No invented skills, no filler, no stuffing.',
     benefits: [
-      'ATS-safe by default (passes Workday, Greenhouse, Lever)',
-      'Role-specific prioritization',
-      'Keyword-rich without stuffing',
-      'Choose from 6 professional templates',
+      'Rewritten per role, never a one-size-fits-all CV',
+      'Keywords placed where you have real experience',
+      'Editable inline if anything needs a human touch',
+      'Every line traces back to your real CV',
     ],
-    cost: 'Part of 2.0 credit package',
+    cost: 'Part of 2.0 credit application',
     link: '/ai-job-application/ats-optimization',
-    linkText: 'See ATS optimization guide →',
+    linkText: 'See how ATS optimization works',
     image: '/images/features/ai-cv-optimization.jpg',
   },
   {
-    icon: Sparkles,
-    title: 'Personalized Cover Letters',
+    icon: Shield,
+    title: 'ATS-Optimized Templates',
     description:
-      'Not generic "I am excited to apply" templates. Our AI researches the company, references specific details, and crafts a tailored narrative that highlights your relevant achievements.',
+      'Six professional templates, all built to pass the systems every recruiter uses. Single-column layouts, standard section headings, system fonts, and consistent date formats. Compatible with Workday, Greenhouse, Lever, and every major ATS.',
     benefits: [
-      'Company-specific research included',
-      'Opens with achievement, not cliché',
-      'Consistent voice with your CV',
-      '50%+ higher callback rate than templates',
+      'Six professional designs, US and German included',
+      'Single-column, ATS-parseable by default',
+      'System fonts (Arial and Georgia) for maximum compatibility',
+      'Clean output that reads well for humans too',
     ],
-    cost: 'Part of 2.0 credit package',
+    cost: 'Included in all plans',
+    link: '/ai-job-application/ats-optimization',
+    linkText: 'ATS optimization guide',
+    image: '/images/features/ats-first-templates.jpg',
+  },
+  {
+    icon: Sparkles,
+    title: 'Tailored Cover Letter',
+    description:
+      'Not the generic "I am excited to apply" template everyone else sends. Karko opens with a relevant achievement from your real CV, references the company, and writes in a voice that matches yours, not ChatGPT. Reads like an application, not a form letter.',
+    benefits: [
+      'Opens with a real achievement, not a cliché',
+      'References the company and role specifically',
+      'Consistent voice with your CV',
+      'Editable inline for any final touch-ups',
+    ],
+    cost: 'Part of 2.0 credit application',
     link: '/blog/ai-cover-letter-generator-how-it-works',
-    linkText: 'How AI cover letters work →',
+    linkText: 'How AI cover letters work',
     image: '/images/features/personalized-cover-letters.jpg',
   },
   {
-    icon: MessageSquareText,
-    title: 'AI Screening Question Answers',
+    icon: Mail,
+    title: 'Application Email',
     description:
-      'Paste your screening questions from Workday, Greenhouse, Lever, or any ATS portal. Karko AI drafts concise, role-specific answers using your CV and the job description. Supports yes/no, behavioral (STAR format), situational, and free-text questions.',
+      'A professional email to send with your CV and cover letter attached. Subject line, body, and a clear reference to the role. Most tools skip this entirely. Karko writes it for you, ready to copy into the portal or your email client.',
     benefits: [
-      'Answers up to 7 questions per session',
-      'Compressed STAR format for behavioral questions',
-      'Stays within ATS character limits (under 750 chars)',
-      'Anti-hallucination: only references your real experience',
+      'Subject line, body, and formatting',
+      'References the specific role and company',
+      'Ready to paste into any portal or email client',
+      'Writing that does not sound like AI',
+    ],
+    cost: 'Part of 2.0 credit application',
+    link: '/ai-job-application/90-second-application-package',
+    linkText: 'See the 90-second workflow',
+    image: '/images/features/application-email-generation.jpg',
+  },
+  {
+    icon: MailPlus,
+    title: 'Follow-Up Email',
+    description:
+      'Most candidates never follow up. Karko drafts one for you, ready to send 7 to 10 days after applying. Polite, reinforces why you are a fit, and keeps you visible during the decision window. Another thing the other tools do not do.',
+    benefits: [
+      'Pre-drafted for the 7-to-10-day window',
+      'Reinforces fit without sounding pushy',
+      'Saved on your tracker next to the original application',
+      'Editable inline before you send',
+    ],
+    cost: 'Part of 2.0 credit application',
+    link: '/blog/follow-up-email-after-job-application',
+    linkText: 'When to send follow-ups',
+    image: '/images/features/follow-up-email-generation.jpg',
+  },
+  {
+    icon: MessageSquareText,
+    title: 'Screening Question Answers',
+    description:
+      'Screening questions are where most applications die. Karko reads your CV and drafts an answer for every question. Behavioral questions get a STAR structure. Factual questions get a direct answer. You keep control, you review, you submit. What used to take 20 minutes now takes two.',
+    benefits: [
+      'STAR structure for behavioral questions',
+      'Direct answers for factual questions',
+      'Stays within ATS character limits',
+      'Every answer built from your real CV',
     ],
     cost: 'Max plan',
     link: '/ai-job-application/screening-question-answers',
@@ -97,99 +160,35 @@ const features = [
     image: '/images/features/screening-question-answers.jpg',
   },
   {
-    icon: Mail,
-    title: 'Application Email Generation',
-    description:
-      'Nobody else offers this. Professional emails to send with your CV and cover letter. Includes subject line, body copy, and attachment references. Sending application emails increases response rates by up to 40%.',
-    benefits: [
-      'Unique feature (only Karko AI offers this)',
-      'Subject line + body + formatting',
-      'References specific role and company',
-      '40% higher response rate',
-    ],
-    cost: 'Part of 2.0 credit package',
-    link: '/ai-job-application/90-second-application-package',
-    linkText: 'See 90-second workflow →',
-    image: '/images/features/application-email-generation.jpg',
-  },
-  {
-    icon: MailPlus,
-    title: 'Follow-Up Email Generation',
-    description:
-      'Most candidates never follow up. Get a professional follow-up email ready to send 7-10 days after applying. Polite, reinforces fit, and keeps you visible during the decision window.',
-    benefits: [
-      'Unique feature (only Karko AI offers this)',
-      'Timed for optimal impact (7-10 days)',
-      'Reinforces interest without being pushy',
-      '40% increase in callback rate',
-    ],
-    cost: 'Part of 2.0 credit package',
-    link: '/blog/follow-up-email-after-job-application',
-    linkText: 'When to send follow-ups →',
-    image: '/images/features/follow-up-email-generation.jpg',
-  },
-  {
     icon: ClipboardList,
     title: 'Application Tracker',
     description:
-      'Every application you generate is stored with its match score, status, company and role. Update status as you progress through interviews. No more spreadsheet chaos.',
+      'Every application you generate saves to your tracker automatically. Company, role, match score, status, date, and a ready follow-up. Update the status as things move. No more spreadsheet chaos, no more "which company was that one again?"',
     benefits: [
-      'Automatic tracking for all Karko applications',
-      'Match score and fit analysis preserved',
+      'Automatic save for every application you generate',
+      'Match score, status, and date on one row',
       'Status updates (applied, interview, offer, rejected)',
-      'Filter and search your application history',
+      'Filter and search across your whole history',
     ],
     cost: 'Included in all plans',
     link: '/dashboard',
-    linkText: 'See your tracker →',
+    linkText: 'See your tracker',
     image: '/images/features/application-tracker.jpg',
   },
   {
-    icon: Sparkles,
-    title: 'Master CV System',
-    description:
-      'Upload your complete work history once. Store it as your single source of truth. Use it for every job application. No more rewriting experience for each role.',
-    benefits: [
-      'Upload once, use everywhere',
-      'Structured format ensures consistency',
-      'All claims traced to this document',
-      'Free to store',
-    ],
-    cost: 'Free',
-    link: '/master-cv-template',
-    linkText: 'Build your Master CV →',
-    image: '/images/features/master-cv-system.jpg',
-  },
-  {
-    icon: Shield,
-    title: 'ATS-First Templates',
-    description:
-      'All 6 professional templates are engineered to pass ATS parsers. Single-column layouts, standard section headings, system fonts, and consistent date formats. Compatible with Workday, Greenhouse, Lever, and all major ATS platforms.',
-    benefits: [
-      'Pass ATS by default (no manual checking)',
-      '6 professional designs',
-      'US and German templates included',
-      'System fonts for maximum compatibility',
-    ],
-    cost: 'Included in all plans',
-    link: '/ai-job-application/ats-optimization',
-    linkText: 'ATS optimization guide →',
-    image: '/images/features/ats-first-templates.jpg',
-  },
-  {
     icon: Zap,
-    title: '90-Second Workflow',
+    title: '90-Second Application',
     description:
-      'Complete application package (CV, cover letter, application email, follow-up email) generated in under 90 seconds. One unified AI agent creates all materials with consistent voice.',
+      'One tailored application takes roughly an hour by hand. Karko does it in 90 seconds. CV, cover letter, application email, follow-up, and screening answers, all generated together with a consistent voice. Roughly 40x faster, without dropping quality.',
     benefits: [
-      '100 applications in 2.5 hours vs 75 hours manually',
-      '97% time savings',
-      'Unified voice across all documents',
-      'Context cached for speed',
+      'CV, cover letter, email, follow-up, screening answers in one flow',
+      'Consistent voice across every document',
+      'Under two minutes per application',
+      'Roughly 40x faster than manual tailoring',
     ],
     cost: '2.0 credits per application',
     link: '/ai-job-application/90-second-application-package',
-    linkText: 'See workflow demo →',
+    linkText: 'See the workflow',
     image: '/images/features/ninety-second-workflow.jpg',
   },
 ];
@@ -214,7 +213,7 @@ const planFeatures = [
     max: '200',
   },
   {
-    feature: 'Complete Application Package',
+    feature: 'Full application in 90 seconds',
     free: true,
     plus: true,
     max: true,
@@ -232,7 +231,7 @@ const planFeatures = [
     max: true,
   },
   {
-    feature: 'Anti-Hallucination Guardrails',
+    feature: 'Every word traces back to your CV',
     free: true,
     plus: true,
     max: true,
@@ -271,34 +270,44 @@ const planFeatures = [
 
 const faqs = [
   {
-    question: 'What makes Karko different from resume builders?',
+    question: 'Why Karko is not a resume builder.',
     answer:
-      'Most tools build resumes. Karko AI generates a complete application package: tailored CV, cover letter, application email and follow-up email. It also delivers a daily Smart Job Feed of hand-picked roles ranked by fit against your CV, and on Max it drafts answers to ATS screening questions. No other tool does all of this.',
+      'Resume builders help you format one CV. Karko runs your entire job search. The Smart Job Feed finds the roles. Fit Analysis tells you if the role is worth applying to. The generator writes the CV, cover letter, application email, follow-up, and screening answers tailored to each role. The tracker keeps the list. It replaces seven separate tools with one loop.',
+  },
+  {
+    question: 'Why Karko is not an auto-apply bot.',
+    answer:
+      'Auto-apply bots blast hundreds of generic applications. Recruiters spot them, ATS systems flag them, and candidates get embarrassed in interviews. Karko does the opposite: fewer applications, all tailored to the real role, all traceable to your real experience. You stay in control of what gets sent.',
+  },
+  {
+    question: 'How does Karko keep its output honest?',
+    answer:
+      'Every CV rewrite, cover letter, email, and screening answer is built from the CV you upload. Karko will not invent job titles, skills, or experience you do not have. The job description is used for keyword alignment and tone, never as a source of facts about you. This is the one rule the product refuses to break.',
   },
   {
     question: 'What is the difference between Free, Plus and Max?',
     answer:
-      'Every plan includes the core application workflow: tailored CV, cover letter, application email, follow-up email, fit analysis, ATS templates, anti-hallucination guardrails and an application tracker. Plus adds Smart Job Feed (up to 15 jobs/day) and add-on credit packs. Max adds Smart Job Feed (up to 25 jobs/day), screening question answers and premium dedicated support.',
-  },
-  {
-    question: 'Can I buy more credits?',
-    answer:
-      'Yes, if you\'re on Plus or Max. You can purchase add-on credit packs ($19.99 for 50 credits, 25 applications). Purchased credits roll over as long as your subscription is active.',
-  },
-  {
-    question: 'What AI model do you use?',
-    answer:
-      'Claude Sonnet 4.6 by Anthropic. It\'s the latest and most capable AI model for writing tasks. We use it via Amazon Bedrock with context caching for speed and consistency.',
-  },
-  {
-    question: 'Are all templates ATS-safe?',
-    answer:
-      'Yes. All 6 templates are designed ATS-first: single-column layouts, standard section headings, system fonts (Arial/Georgia), and consistent date formats. They pass Workday, Greenhouse, Lever, and all major ATS platforms.',
+      'Every plan gets the full workflow: tailored CV, cover letter, application email, follow-up, fit analysis, ATS templates, and the application tracker. Plus adds the Smart Job Feed (up to 15 roles a day) and add-on credit packs. Max adds the Smart Job Feed at 25 roles a day, screening question answers, and premium support. The only difference between plans is how much you can generate per month.',
   },
   {
     question: 'How does fit analysis work?',
     answer:
-      'Upload your Master CV and paste a job description. Our AI extracts required skills, compares them to your experience, calculates a match percentage, identifies gaps, and recommends whether to apply. Costs 0.5 credits.',
+      'Paste any job description. Karko reads it against your CV and gives you a match score, the skills that line up, and the gaps. You see where you stand before spending credits on the full application. If the score is strong, you generate the kit. If it is weak, the gaps tell you whether the role is wrong for you or your CV is just not surfacing the right experience.',
+  },
+  {
+    question: 'Can I buy more credits?',
+    answer:
+      'Yes, on Plus or Max. Add-on credit packs are $19.99 for 50 credits (25 more applications). Credits from add-on packs roll over as long as your subscription is active. Free tier credits reset monthly.',
+  },
+  {
+    question: 'Are all templates ATS-safe?',
+    answer:
+      'Yes. All six templates are built ATS-first: single-column layouts, standard section headings, system fonts (Arial and Georgia), and consistent date formats. They pass Workday, Greenhouse, Lever, and every major ATS platform.',
+  },
+  {
+    question: 'What AI model powers Karko?',
+    answer:
+      'Karko runs on Claude Sonnet 4.6 by Anthropic, one of the most capable models available for writing. Most competitors use cheaper open-source models. We pay for the better model because the output has to survive both an ATS scan and a recruiter’s read. The workflow around the model is tuned specifically for job applications.',
   },
 ];
 
@@ -332,17 +341,17 @@ export default function FeaturesPage() {
             <ScrollReveal delay={0}>
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-gold-50 rounded-full border border-gold-200 mb-6">
                 <Sparkles className="w-4 h-4 text-gold-600" />
-                <span className="text-sm font-semibold text-gold-700">All Features, All Plans</span>
+                <span className="text-sm font-semibold text-gold-700">Seven tools, one loop</span>
               </div>
             </ScrollReveal>
             <ScrollReveal delay={150}>
               <h1 className="font-bold text-navy-600 text-[44px] sm:text-[52px] lg:text-[56px] leading-[1.05] tracking-tight mb-6">
-                Features built for how you <span className="text-gold-500">actually apply.</span>
+                Everything you use to apply for a job, <span className="text-gold-500">in one app.</span>
               </h1>
             </ScrollReveal>
             <ScrollReveal delay={300}>
               <p className="text-lg text-warm-gray max-w-3xl mx-auto leading-relaxed">
-                Everything you need to apply smarter: fit analysis, AI-generated application materials, personalized emails, and ATS optimization. All powered by Claude Sonnet 4.6.
+                Job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, tracker. Karko replaces all of them with one flow. Every word traces back to your real CV. Nothing invented.
               </p>
             </ScrollReveal>
             <ScrollReveal delay={450}>
@@ -351,7 +360,7 @@ export default function FeaturesPage() {
                   href="/dashboard"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors"
                 >
-                  Try it free, 2 applications, no credit card
+                  Start free, no credit card
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
@@ -420,9 +429,9 @@ export default function FeaturesPage() {
         <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-4">Core workflow on every plan.</h2>
+              <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-4">Every plan, every feature. Pick your volume.</h2>
               <p className="text-warm-gray max-w-2xl mx-auto">
-                Start free with the complete application package. Upgrade when you need more monthly applications, Smart Job Feed automation, screening answers or premium support.
+                Start free with the full workflow. Upgrade when you want more monthly applications, the Smart Job Feed, or screening answers on top.
               </p>
             </div>
 
@@ -518,7 +527,7 @@ export default function FeaturesPage() {
                 Your next interview is <span className="text-gold-400">90 seconds away.</span>
               </h2>
               <p className="text-navy-200 mb-6 leading-relaxed">
-                2 complete application packages: CV, cover letter, application email and follow-up. No credit card required.
+                Upload your CV. Pick a role from your feed. Send your first full application before your coffee gets cold.
               </p>
               <Link
                 href="/dashboard"
