@@ -13,10 +13,12 @@ Last updated: April 2026.
 This file is written to be loaded cold. A model or person opening it for the first time should be able to:
 
 1. Read sections 1-4 and understand what Karko is, why it exists, and what makes it different.
-2. Read section 5 to know exactly what framing we had before and why it was wrong.
-3. Read sections 6-10 to have all the copy primitives (headlines, pitches, voice rules, proof points) needed to write or audit any surface.
-4. Read section 11 to know which surface pulls from which part of this doc.
-5. Read section 12 to run any new copy through three self-checks before it ships.
+2. **Read section 1.5** to see the two locked taglines and where each one is used. These are the most important copy decisions in the document and the ones most likely to be silently broken by new work.
+3. Read section 5 to know exactly what framing we had before and why it was wrong.
+4. Read sections 6-10 to have all the copy primitives (headlines, pitches, voice rules, proof points) needed to write or audit any surface.
+5. **Read section 9.5** for content-creation framing rules: short-form videos work differently from long-form, and both need consistent end-cards.
+6. Read section 11 to know which surface pulls from which part of this doc.
+7. Read section 12 to run any new copy through three self-checks before it ships.
 
 **If you are auditing an existing page against this doc:** compare the page to sections 6 (headlines), 7 (user pitch), 8 (voice rules), 13 (what Karko is NOT). Anything that conflicts with those four sections is stale and should be rewritten.
 
@@ -34,6 +36,60 @@ This file is written to be loaded cold. A model or person opening it for the fir
 > Karko is the AI job application agent. It replaces the seven-tool workflow job seekers use today with one loop: search, fit, tailor, screen, track.
 
 **Category:** **AI Job Application Agent.** Not a resume builder. Not an auto-apply bot. Not a cover letter tool. Not a job board. The agent that runs the full application workflow, grounded in the candidate's real experience.
+
+---
+
+## 1.5. Locked Taglines (do not swap without founder decision)
+
+These two taglines are locked as of April 2026. They are the single source of truth. Use them exactly as written. Do not A/B test variants on-site for at least 6 months.
+
+### Tagline A — For job seekers (simple, outcome-first)
+
+> **Your entire job search, in one app.**
+
+**Where to use:**
+- Homepage H1
+- Paid social ad creative (Meta, TikTok, LinkedIn, Google)
+- Short video end-cards and stingers
+- Hat, t-shirt, sticker, swag
+- Twitter/X bio, Instagram bio, YouTube channel banner
+- App store listings (future)
+- Every job-seeker-facing surface
+
+**Why it wins:** six words, human sentence, outcome-first. "Entire" does the compression work without having to say "seven tools." No AI buzzword, which is itself a differentiator in 2026 when every SaaS leads with "AI-powered."
+
+### Tagline B — For investors and press (category-first)
+
+> **The AI job application agent.**
+
+**Where to use:**
+- Investor deck cover slide and one-pager
+- Press kit and boilerplate ("Karko AI is the AI job application agent...")
+- About page subhead
+- YC-style one-liner
+- Founder LinkedIn bio and headline
+- Any context where someone is asking "what is it?" as a category question
+
+**Why it wins:** claims a defensible category. "Agent" signals the 2026 agentic-AI era and separates Karko from the resume-builder commodity pool. Investors buy categories; this tagline stakes the claim in four words.
+
+### Combined two-line pitch (when you want both at once)
+
+> **The AI job application agent.**
+> **Your entire job search, in one app.**
+
+Use this combination on the About page, in pitch decks, and in any context where one line needs to hook and the second needs to explain.
+
+### What NOT to use as a tagline (rejected alternatives)
+
+| Rejected | Why |
+|---|---|
+| "All-in-one job application tool" | "Tool" is commodity. Zapier is a tool. Grammarly is a tool. Too generic. |
+| "AI agent for job seekers" | Vague. Any AI startup can claim this. No compression or outcome. |
+| "All-in-one agent for job seekers" | Better than the above but still uses "agent" without naming what the agent does. |
+| "Seven tools, one app" | Too clever without visual support. Works as a body headline (e.g., homepage "How It Works" section), not as the tagline. |
+| "AI-Powered Job Application Assistant" | Banned. Commodity category, the default positioning every competitor uses. |
+
+If anyone proposes a new tagline, they should be able to explain why it beats both A and B in a specific context where the current ones fall short. Otherwise do not swap.
 
 ---
 
@@ -276,6 +332,72 @@ Leverage. Empower. Utilize. Seamless. Revolutionary. Next-gen. AI-powered. Unloc
 
 ---
 
+## 9.5. Content Framing by Format
+
+Different formats earn attention differently. The category frame ("seven tools, one app") works in long content. It fails in short content, where you have 3 seconds to hook before the viewer scrolls. This section locks how to frame Karko across every content format.
+
+### The core rule
+
+> **Long content sells the category. Short content sells one pain, then stamps the category.**
+
+You cannot sell "all-in-one" in 15 seconds. You can sell one pain and reveal the product is bigger than that one feature. That is the short-content move.
+
+### Framing by format
+
+| Format | Length | Hook strategy | End-stamp |
+|---|---|---|---|
+| **TikTok / Instagram Reels / YouTube Shorts** | 15-30s | ONE feature + ONE pain. Open with a vivid moment ("8 essay questions in the portal"), not a feature name. | "Part of Karko. Your entire job search, in one app." |
+| **Twitter/X video** | 30-60s | Stack TWO pains. Bridge to Karko. | Tagline at end, or "Karko. One app for all of it." |
+| **LinkedIn video** | 45-90s | Full compression story ("the seven tools you juggle today..."). Category frame works here. | Tagline A or tagline B depending on audience. |
+| **YouTube long-form, demo, podcast, walkthrough** | 60s-10min+ | Full category story. All features. "Seven tools → one app" lands because you have runway. | Both taglines. Demo script v4 is the canonical example. |
+| **Homepage hero video** | 85-90s | Full story. YC-standard demo length. | Tagline A on the end-card. |
+| **Investor pitch video / deck** | 2-3 min | Lead with category ("Karko is the AI job application agent"). Name the seven tools. Name the two moats. Founder dogfood stat. | Tagline B on the cover slide. |
+
+### Short-form content playbook (the 10 videos to build first)
+
+Build a library of 10 short videos. Each one picks ONE feature and ONE pain. All end with the same stamp. Consistency is the lever.
+
+1. **Screening questions** — Hook: "You found the job. Then you hit 8 essay questions." Reveal: Karko drafts them from your real CV in 2 minutes.
+2. **Smart Job Feed** — Hook: "You're spending 10 hours a week on LinkedIn. Stop." Reveal: 25 hand-picked roles delivered every morning.
+3. **Fit analysis** — Hook: "Stop wasting an hour on jobs you'll never get." Reveal: Half a credit shows match score + gaps before you write.
+4. **Anti-hallucination** — Hook: "Your AI cover letter is lying about your experience." Reveal: Karko will not invent experience you do not have.
+5. **Cover letter speed** — Hook: "You're writing cover letters at midnight." Reveal: 90 seconds, tailored to the role.
+6. **Follow-up email** — Hook: "Most candidates never follow up." Reveal: Karko pre-drafts the follow-up for 7 to 10 days after you apply.
+7. **Tracker** — Hook: "Which company was that one again?" Reveal: Every application saves automatically with match score and status.
+8. **ATS templates** — Hook: "76% of resumes get rejected by robots." Reveal: Every Karko template is ATS-safe by default.
+9. **Founder story** — Hook: "I ran out of money in Germany building a startup." Reveal: 10% interview rate using Karko vs 2-3% industry baseline.
+10. **Real output** — Screen-record a 90-second generation end to end. No voice, just text overlays and the product. Pure proof.
+
+**Every one of the 10 ends with:** a 2-second end card showing the Karko logo + the tagline **"Your entire job search, in one app."**
+
+### Long-form content playbook
+
+For long-form (YouTube walkthroughs, podcasts, demo videos, webinars), follow the v4 demo/walkthrough scripts (`Karko_AI_Video_Scripts_v4.html` on the founder's desktop). Those are the canonical templates.
+
+Key structural move for long content:
+1. Open with a pain-stab hook (same as short form).
+2. **Bridge beat:** "Karko replaces the seven tools you use to apply for a job. One app, one loop." (This is the sentence you cannot fit into 15 seconds.)
+3. Walk through the loop: Feed → Upload → Fit → Full Application → Screening → Tracker.
+4. Close with a concrete first action ("Pick one role, run it through") + tagline.
+
+### Platform-specific taglines at the end
+
+Always end with the right tagline for the audience:
+
+| Audience | Tagline to use |
+|---|---|
+| Job seekers (consumer platforms) | Tagline A: "Your entire job search, in one app." |
+| Investors, press, career pages, recruiter-facing content | Tagline B: "The AI job application agent." |
+| Mixed (LinkedIn videos that reach both) | Both, in the two-line format |
+
+### The one thing that multiplies this strategy
+
+**Consistency across platforms.** A job seeker who sees one 15-second screening video on TikTok, one smart-feed post on LinkedIn, and lands on a homepage that says the same tagline all three places will remember the brand. Fragmentation kills positioning.
+
+Pick the taglines. Pick the end-card. Ship every piece of content with both. Do not let any single video or ad skip the end-card stamp.
+
+---
+
 ## 10. Proof Points
 
 Use these wherever credibility matters. They're ranked by strength.
@@ -294,9 +416,11 @@ Use these wherever credibility matters. They're ranked by strength.
 
 | Surface | Pull from |
 |---|---|
-| **README.md** top | §1 one-liner + §3 seven-tool table + §6 section headlines |
+| **Any tagline usage (anywhere)** | **§1.5 Locked Taglines.** Tagline A for job seekers, Tagline B for investors. |
+| **Any video or content creation** | **§9.5 Content Framing by Format.** Short vs long, platform-specific, end-card rules. |
+| **README.md** top | §1 one-liner + §1.5 taglines + §3 seven-tool table + §6 section headlines |
 | **CLAUDE.md** product thesis | §2 thesis + §4 four pillars + §9 voice rules |
-| **Homepage hero** | §6 hero headlines + §7 shortened user pitch |
+| **Homepage hero** | §1.5 Tagline A (H1) + §6 hero headlines + §7 shortened user pitch |
 | **Homepage "How It Works"** | §3 seven-tool table + §6 section headlines |
 | **Platform scroll stack** | §4 Pillar 3 (compression) + §6 "Find. Apply. Track." section headline |
 | **Founder story section** | §10 proof point #1 |
@@ -304,10 +428,14 @@ Use these wherever credibility matters. They're ranked by strength.
 | **Pricing tier taglines** | §5 parallel structure (testing / weekly / daily) |
 | **Pricing FAQ** | §13 "Why Karko is not..." question framing |
 | **Final CTA** | §6 final-CTA copy options |
-| **About page** | §2 thesis + §10 founder proof |
-| **Investor deck** | §2 thesis + §8 investor pitch + §10 proof points + §14 positioning statement |
+| **About page subhead** | §1.5 Tagline B ("The AI job application agent") |
+| **About page body** | §2 thesis + §10 founder proof |
+| **Investor deck cover slide** | §1.5 Tagline B |
+| **Investor deck body** | §2 thesis + §8 investor pitch + §10 proof points + §14 positioning statement |
+| **Short-form videos (TikTok, Reels, Shorts)** | §9.5 short-form playbook + §1.5 Tagline A as end-card |
+| **Long-form videos (YouTube, demo, walkthrough)** | §9.5 long-form playbook + `Karko_AI_Video_Scripts_v4.html` |
 | **Sales emails** | §7 user pitch + §6 CTAs |
-| **Social bio** | *"AI job application agent. Your entire job search in one app. Every application in under two minutes. Never a word you didn't earn."* |
+| **Social bio (Twitter, IG, LinkedIn personal)** | §1.5 Tagline A or combined two-line |
 | **Meta description (SEO)** | "Karko is the AI job application agent that replaces the seven tools job seekers stitch together. Find roles, see the fit, get a tailored CV, cover letter, emails, and screening answers in 90 seconds. Every word traces back to your real CV." |
 
 ---
