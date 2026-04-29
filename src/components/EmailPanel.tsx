@@ -13,6 +13,7 @@ import { PortalTooltip } from './ui/PortalTooltip';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePostHog } from 'posthog-js/react';
 import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
+import { generateRequestId } from '@/lib/utils/requestId';
 
 interface EmailPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -124,7 +125,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
       // Use new regenerate API with Writer Agent
       const response = await fetch('/api/regenerate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-request-id': generateRequestId() },
         body: JSON.stringify({
           type: 'email',
           context,
@@ -236,7 +237,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
 
       const response = await fetch('/api/regenerate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-request-id': generateRequestId() },
         body: JSON.stringify({
           type: 'follow_up_email',
           context,

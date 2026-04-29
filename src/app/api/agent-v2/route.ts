@@ -319,6 +319,13 @@ export async function POST(request: NextRequest) {
         resolvedSessionId = clientSessionId;
         currentAction = action;
 
+        // Stable per-workflow idempotency key from the client. Reconnects
+        // or network retries within the same workflow send the same
+        // x-request-id, so reserveCredits dedupes instead of double-
+        // deducting. Fall back to Date.now() if a client misses it.
+        const clientRequestId = request.headers.get('x-request-id')
+          ?? `req-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
         // Input length validation
         if (jobDescription && jobDescription.length > MAX_JOB_DESCRIPTION_LENGTH) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
@@ -449,7 +456,7 @@ export async function POST(request: NextRequest) {
 
           // Reserve 0.5 credits for fit analysis (skip for anonymous users — free generation)
           if (!isAnonymous) {
-            const reservationKey = `fit_analysis:${user!.id}:${Date.now()}`;
+            const reservationKey = `fit_analysis:${user!.id}:${clientRequestId}`;
             const reserveResult = await reserveCredits({
               userId: user!.id,
               action: 'FIT_ANALYSIS',
@@ -582,7 +589,7 @@ export async function POST(request: NextRequest) {
               console.warn('[API_AGENT_V2] Context cache miss AND no client context data, falling back to full optimization');
 
               if (!isAnonymous) {
-                const fallbackKey = `full_application:${user!.id}:${Date.now()}`;
+                const fallbackKey = `full_application:${user!.id}:${clientRequestId}`;
                 const reserveResult = await reserveCredits({
                   userId: user!.id,
                   action: 'FULL_APPLICATION',
@@ -664,7 +671,7 @@ export async function POST(request: NextRequest) {
 
           // Context found - reserve 1.5 credits (fit was 0.5, total = 2.0; skip for anonymous)
           if (!isAnonymous) {
-            const genKey = `generation_after_fit:${user!.id}:${Date.now()}`;
+            const genKey = `generation_after_fit:${user!.id}:${clientRequestId}`;
             const reserveResult = await reserveCredits({
               userId: user!.id,
               action: 'GENERATION_AFTER_FIT',
@@ -754,7 +761,7 @@ export async function POST(request: NextRequest) {
 
         // Reserve credits for full application (skip for anonymous)
         if (!isAnonymous) {
-          const fullKey = `full_application:${user!.id}:${Date.now()}`;
+          const fullKey = `full_application:${user!.id}:${clientRequestId}`;
           const reserveResult = await reserveCredits({
             userId: user!.id,
             action: 'FULL_APPLICATION',

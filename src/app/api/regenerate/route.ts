@@ -53,7 +53,11 @@ export async function POST(request: NextRequest) {
       : type === 'follow_up_email' ? 'FOLLOW_UP_REGEN' as const
       : 'EMAIL_REGEN' as const;
 
-    const reservationKey = `${creditAction.toLowerCase()}:${user.id}:${Date.now()}`;
+    // Prefer client-sent request id so retries of the same regeneration
+    // (e.g. transient network failure) dedupe instead of double-deducting.
+    const clientRequestId = request.headers.get('x-request-id')
+      ?? `req-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const reservationKey = `${creditAction.toLowerCase()}:${user.id}:${clientRequestId}`;
     activeReservationKey = reservationKey;
     activeReservationUserId = user.id;
     const reserveResult = await reserveCredits({

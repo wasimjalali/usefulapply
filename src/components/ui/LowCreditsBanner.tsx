@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Zap, Crown, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { CREDIT_UPDATE_EVENT } from './CreditIndicator';
@@ -15,32 +15,35 @@ export function LowCreditsBanner() {
     () => typeof window !== 'undefined' && sessionStorage.getItem(BANNER_DISMISSED_KEY) === '1'
   );
   const [loadingAction, setLoadingAction] = useState<'addon' | 'max' | null>(null);
-  const isMountedRef = useRef(false);
-
-  const fetchCredits = useCallback(async () => {
-    if (!user) return;
-    try {
-      const response = await fetch('/api/credits/balance', { cache: 'no-store' });
-      if (!response.ok) return;
-      const payload = await response.json() as { total: number; planTier: string | null };
-      if (isMountedRef.current) {
-        setTotalCredits(payload.total);
-        setPlanTier(payload.planTier ?? null);
-      }
-    } catch {
-      // silent
-    }
-  }, [user]);
 
   useEffect(() => {
-    isMountedRef.current = true;
-    fetchCredits();
+    if (!user) return;
+    let cancelled = false;
+
+    const fetchCredits = async () => {
+      try {
+        const response = await fetch('/api/credits/balance', { cache: 'no-store' });
+        if (!response.ok || cancelled) return;
+        const payload = await response.json() as { total: number; planTier: string | null };
+        if (cancelled) return;
+        setTotalCredits(payload.total);
+        setPlanTier(payload.planTier ?? null);
+      } catch {
+        // silent
+      }
+    };
+
+    // First fetch scheduled via microtask so the setState calls land after
+    // the effect body returns (satisfies react-hooks/set-state-in-effect
+    // and matches how the CREDIT_UPDATE_EVENT-triggered calls behave).
+    queueMicrotask(fetchCredits);
     window.addEventListener(CREDIT_UPDATE_EVENT, fetchCredits);
+
     return () => {
-      isMountedRef.current = false;
+      cancelled = true;
       window.removeEventListener(CREDIT_UPDATE_EVENT, fetchCredits);
     };
-  }, [fetchCredits]);
+  }, [user]);
 
   const handleDismiss = () => {
     sessionStorage.setItem(BANNER_DISMISSED_KEY, '1');

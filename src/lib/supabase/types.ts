@@ -187,12 +187,6 @@ export interface Database {
           raw_jobs_fetched: number
           jobs_after_prefilter: number
           ranked_jobs_count: number
-          ranking_mode: 'sync' | 'batch'
-          batch_id: string | null
-          batch_input_file_id: string | null
-          batch_status: string | null
-          batch_submitted_at: string | null
-          batch_completed_at: string | null
           settings_snapshot: Json | null
           metadata: Json
           created_at: string
@@ -214,12 +208,6 @@ export interface Database {
           raw_jobs_fetched?: number
           jobs_after_prefilter?: number
           ranked_jobs_count?: number
-          ranking_mode?: 'sync' | 'batch'
-          batch_id?: string | null
-          batch_input_file_id?: string | null
-          batch_status?: string | null
-          batch_submitted_at?: string | null
-          batch_completed_at?: string | null
           settings_snapshot?: Json | null
           metadata?: Json
           created_at?: string
@@ -241,12 +229,6 @@ export interface Database {
           raw_jobs_fetched?: number
           jobs_after_prefilter?: number
           ranked_jobs_count?: number
-          ranking_mode?: 'sync' | 'batch'
-          batch_id?: string | null
-          batch_input_file_id?: string | null
-          batch_status?: string | null
-          batch_submitted_at?: string | null
-          batch_completed_at?: string | null
           settings_snapshot?: Json | null
           metadata?: Json
           created_at?: string

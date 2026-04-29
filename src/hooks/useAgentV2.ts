@@ -12,6 +12,7 @@
 
 import { useState, useCallback } from 'react';
 import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
+import { generateRequestId } from '@/lib/utils/requestId';
 
 export interface AgentV2Step {
   id: string;
@@ -221,10 +222,18 @@ export function useAgentV2(): UseAgentV2Return {
     reset();
     setIsWorking(true);
 
+    // Client-generated request id. The server uses this as the
+    // idempotency-key suffix so transient reconnects on the same
+    // workflow don't create duplicate reservations.
+    const requestId = generateRequestId();
+
     try {
       const response = await fetch('/api/agent-v2', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-request-id': requestId,
+        },
         body: JSON.stringify({
           jobDescription,
           currentCV,

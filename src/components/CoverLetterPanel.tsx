@@ -14,6 +14,7 @@ import { useToast } from './ui/Toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { downloadBlob } from '@/lib/utils/download-pdf';
 import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
+import { generateRequestId } from '@/lib/utils/requestId';
 
 interface CoverLetterPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -394,7 +395,7 @@ ${letter.signatureName}`;
       // Use new regenerate API with Writer Agent
       const response = await fetch('/api/regenerate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-request-id': generateRequestId() },
         body: JSON.stringify({
           type: 'cover-letter',
           context,
