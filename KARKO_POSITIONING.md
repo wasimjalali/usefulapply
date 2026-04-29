@@ -381,12 +381,13 @@ Reference snapshot so future sessions know what's already been aligned and what 
 - **All 6 comparison pages** (`/compare/karko-ai-vs-teal`, `-jobscan`, `-rezi`, `-kickresume`, `-enhancv`, `-resume-io`) — full rewrites with the new framing. Every page now opens with the "one app for the whole job search vs [what the competitor actually is]" frame, summary tables lead with job discovery and fit analysis, use cases are written around real user scenarios, FAQs use the "Is Karko a [X] replacement?" shape, verdicts name what each tool actually is rather than pretending they are comparable.
 
 ### Probably still drifting
-- `/ai-job-application/*` SEO landing pages (individual feature pages, may still use old "application kit" language and fabricated stats)
 - `/blog/*` blog posts
 - `/master-cv` page (intentionally kept as "Master CV Guide", separate from the Primary CV concept in the product)
 - README.md (may not reflect current framing)
-- Onboarding flow inside the app
 - Empty states and tooltips across the dashboard
+
+### No longer in scope
+- Legacy in-app onboarding tour: already removed from the codebase. Zero tour libraries (no react-joyride, driver.js, shepherd, etc.) and no tour components. Replaced by the walkthrough video (`Karko_AI_Video_Scripts_v4.html` on founder's desktop).
 
 ### Terminology note (Primary CV vs Master CV)
 

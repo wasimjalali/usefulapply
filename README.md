@@ -1,18 +1,21 @@
 # Karko AI
 
-**AI-Powered Job Application Assistant** — Optimizes your CV, generates cover letters, application emails, and follow-up emails tailored to each job posting.
+**The AI job application agent.** Your entire job search in one app. Find roles, check the fit, generate the full application in 90 seconds, and track everything. Every word traces back to your real CV. Nothing invented.
+
+> Karko replaces the seven tools job seekers stitch together: job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, and tracker. One app, one loop.
 
 ## Features
 
-- **AI-Optimized CV** — Tailors your CV to each job description using ATS-friendly formatting
-- **Cover Letter Generation** — Role-specific cover letters grounded in your actual experience
-- **Application & Follow-Up Emails** — Professional emails ready to send
-- **ATS Score Panel** — Instant fit score between your CV and the job description
-- **Application Tracker** — Track your job applications and their statuses in-dashboard
-- **Documents Panel** — Manage your primary CV and master CV
-- **6 CV Templates** — Including German market templates (see below)
+- **Smart Job Feed** — Up to 25 hand-picked roles per day, matched to your CV, goals, and location (Plus and Max)
+- **Fit Analysis** — Match score, strengths, and gaps before you spend credits on the full application. A checkpoint, not a commitment.
+- **Tailored CV** — Rewritten for each role from your real CV, in an ATS-optimized template
+- **Cover Letter** — Grounded in your real experience, written for the specific role and company
+- **Application Email + Follow-Up** — Ready-to-send emails, with the follow-up pre-drafted for 7 to 10 days later
+- **Screening Question Answers** — STAR structure for behavioral questions, direct answers for factual ones (Plus and Max)
+- **Application Tracker** — Every application saves automatically with company, role, match score, status, and date
+- **6 CV Templates** — All single-column and ATS-safe by default, including German market templates (see below)
 - **PDF & DOCX Export** — Download generated CVs in PDF or DOCX format
-- **Anti-Hallucination** — Every skill and claim traces back to your CV; the JD is for keyword matching only
+- **Anti-Hallucination (the moat)** — Every skill, metric, and claim traces back to your uploaded CV. The job description is for keyword alignment and tone, never a source of facts about you.
 
 ## AI Models
 
