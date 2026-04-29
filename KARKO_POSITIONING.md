@@ -378,14 +378,9 @@ Reference snapshot so future sessions know what's already been aligned and what 
 - **Time Savings Calculator** — single source of truth (40x faster stat, synced taglines, honest "an hour" disclaimer)
 - **Screening question answers on Plus + Max** (backend gate, UI, settings matrix, comparison data, SEO pages, blog, FEATURES.md — all aligned)
 - **Footer** — Master CV moved out of the prominent Product column into Resources as "Master CV Guide"
-- **`/compare/karko-ai-vs-teal`** — full rewrite with the new framing (headline, summary table, overview, features, use cases, FAQ, verdict, CTA). First of six comparison pages. **Five remaining still drift.**
+- **All 6 comparison pages** (`/compare/karko-ai-vs-teal`, `-jobscan`, `-rezi`, `-kickresume`, `-enhancv`, `-resume-io`) — full rewrites with the new framing. Every page now opens with the "one app for the whole job search vs [what the competitor actually is]" frame, summary tables lead with job discovery and fit analysis, use cases are written around real user scenarios, FAQs use the "Is Karko a [X] replacement?" shape, verdicts name what each tool actually is rather than pretending they are comparable.
 
 ### Probably still drifting
-- `/compare/karko-ai-vs-jobscan` (old framing)
-- `/compare/karko-ai-vs-rezi` (old framing)
-- `/compare/karko-ai-vs-kickresume` (old framing)
-- `/compare/karko-ai-vs-enhancv` (old framing)
-- `/compare/karko-ai-vs-resume-io` (old framing)
 - `/ai-job-application/*` SEO landing pages (individual feature pages, may still use old "application kit" language and fabricated stats)
 - `/blog/*` blog posts
 - `/master-cv` page (intentionally kept as "Master CV Guide", separate from the Primary CV concept in the product)
