@@ -143,10 +143,9 @@ export function JobFeedPanel() {
 
   const showDebugActions = !isPreviewing && process.env.NEXT_PUBLIC_ENABLE_JOB_FEED_DEBUG === 'true';
   const getManualRunAvailability = useCallback(() => {
-    const latestCompletedAt = overview?.latestRun?.status === 'completed'
-      ? overview.latestRun.completed_at
-      : overview?.feedRun?.completed_at ?? null;
-    const cooldown = getManualRunCooldown(latestCompletedAt);
+    // Cooldown is driven by the last *manual* run only. Scheduled/system
+    // runs must never lock the button.
+    const cooldown = getManualRunCooldown(overview?.latestManualRun?.completed_at ?? null);
 
     if (overview?.latestRun?.status === 'queued' || overview?.latestRun?.status === 'running') {
       return {
@@ -172,7 +171,7 @@ export function JobFeedPanel() {
       remainingMs: 0,
       nextRunAt: cooldown.nextRunAt,
     };
-  }, [overview?.feedRun?.completed_at, overview?.latestRun?.completed_at, overview?.latestRun?.status]);
+  }, [overview?.latestManualRun?.completed_at, overview?.latestRun?.status]);
 
   const loadOverview = useCallback(async (options?: { quiet?: boolean }): Promise<JobFeedOverviewResponse | null> => {
     if (isPreviewing) {
@@ -770,9 +769,8 @@ export function JobFeedPanel() {
     }
   };
 
-  const handleDebugRun = async (options?: { force?: boolean; direct?: boolean }) => {
+  const handleDebugRun = async (options?: { force?: boolean }) => {
     const force = options?.force === true;
-    const direct = options?.direct === true;
     setIsRunningDebugFlow(true);
 
     try {
@@ -781,38 +779,27 @@ export function JobFeedPanel() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ force, direct }),
+        body: JSON.stringify({ force }),
       });
 
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.detail || payload.error || 'Failed to run the background workflow.');
+        throw new Error(payload.error || 'Failed to run the diagnostics workflow.');
       }
 
       posthog?.capture('job_feed_foundation_run_requested', {
         foundation_mode: true,
         forced: force,
-        direct,
       });
 
-      const toastMessage = direct
-        ? payload.skipped
-          ? 'Today already has a completed run. Use "Force rerun" to recompute.'
-          : `Direct run completed: ${payload.rawJobsFetched ?? 0} raw jobs → ${payload.jobsAfterPrefilter ?? 0} after filter → ${payload.rankedJobsCount ?? 0} ranked.`
-        : payload.workflow?.skipped
-          ? 'A feed run already exists for today, so no new run was started.'
-          : payload.execution === 'inline'
-            ? force
-              ? 'Background rerun completed for this account.'
-              : 'Background run completed for this account.'
-            : force
-              ? 'Background rerun queued for this account.'
-              : 'Background run queued for this account.';
+      const toastMessage = payload.skipped
+        ? 'Today already has a completed run. Use "Force rerun" to recompute.'
+        : `Direct run completed: ${payload.rawJobsFetched ?? 0} raw jobs → ${payload.jobsAfterPrefilter ?? 0} after filter → ${payload.rankedJobsCount ?? 0} ranked.`;
 
       toast.success(toastMessage);
       await loadOverview({ quiet: true });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to run the background workflow.');
+      toast.error(error instanceof Error ? error.message : 'Failed to run the diagnostics workflow.');
     } finally {
       setIsRunningDebugFlow(false);
     }
@@ -1034,21 +1021,15 @@ export function JobFeedPanel() {
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-600">Diagnostics</p>
                 <h2 className="mt-2 text-lg font-semibold text-charcoal">Run feed diagnostics for this account</h2>
                 <p className="mt-2 text-sm leading-6 text-warm-gray">
-                  Live runs call SerpAPI right now and block on the result. Background runs queue via Inngest and may not execute in dev. Use the live buttons when you need to verify the pipeline end-to-end.
+                  Diagnostic runs call SerpAPI now and block on the result. Use them to verify the pipeline end-to-end without affecting the daily cooldown.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Button variant="gold" onClick={() => handleDebugRun({ direct: true, force: true })} disabled={isRunningDebugFlow}>
+                  <Button variant="gold" onClick={() => handleDebugRun({ force: true })} disabled={isRunningDebugFlow}>
                     {isRunningDebugFlow ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
                     Run live now (force rerun)
                   </Button>
-                  <Button variant="outline" onClick={() => handleDebugRun({ direct: true })} disabled={isRunningDebugFlow}>
+                  <Button variant="outline" onClick={() => handleDebugRun()} disabled={isRunningDebugFlow}>
                     Run live now (skip if done)
-                  </Button>
-                  <Button variant="ghost" onClick={() => handleDebugRun()} disabled={isRunningDebugFlow}>
-                    Queue background (async)
-                  </Button>
-                  <Button variant="ghost" onClick={() => handleDebugRun({ force: true })} disabled={isRunningDebugFlow}>
-                    Force async rerun
                   </Button>
                   <Button variant="ghost" onClick={() => loadOverview({ quiet: true })} disabled={isRefreshing}>
                     Refresh status

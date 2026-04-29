@@ -12,7 +12,6 @@ export const JOB_FEED_VISIBLE_DEFAULT_COUNT = 10;
 // Matches the Max tier's visibleCount so the ranker's instruction respects
 // the highest tier cap.
 export const JOB_FEED_VISIBLE_MAX_COUNT = 25;
-export const JOB_FEED_DEFAULT_BATCH_LEAD_HOURS = 2;
 
 export type JobFeedTier = 'plus' | 'max';
 
@@ -82,19 +81,6 @@ export function getJobFeedTierLimits(subscriptionTier: string): JobFeedTierLimit
   return JOB_FEED_TIER_LIMITS.plus;
 }
 
-export function getJobFeedBatchLeadHours(): number {
-  const rawValue = process.env.JOB_FEED_BATCH_LEAD_HOURS;
-  if (!rawValue) {
-    return JOB_FEED_DEFAULT_BATCH_LEAD_HOURS;
-  }
-
-  const parsed = Number.parseInt(rawValue, 10);
-  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 12) {
-    return JOB_FEED_DEFAULT_BATCH_LEAD_HOURS;
-  }
-
-  return parsed;
-}
 export const JOB_FEED_ALLOWED_FIT_LABELS = ['strong', 'good'] as const;
 export const JOB_FEED_RAW_PAYLOAD_RETENTION_DAYS = 14;
 export const JOB_FEED_RUN_METADATA_RETENTION_DAYS = 30;

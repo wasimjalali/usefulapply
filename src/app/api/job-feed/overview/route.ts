@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { canAccessJobFeed, getJobFeedOverviewState } from '@/lib/job-feed/helpers';
 import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
-import { getJobFeedRunDiagnostics, listLatestJobFeedItemsAdmin } from '@/lib/job-feed/server';
+import { getJobFeedRunDiagnostics, getLatestManualCompletedJobFeedRunAdmin, listLatestJobFeedItemsAdmin } from '@/lib/job-feed/server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import type { JobFeedRun } from '@/lib/supabase/types';
 
@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
         canAccess: false,
         settings: null,
         latestRun: null,
+        latestManualRun: null,
         feedRun: null,
         latestRunDiagnostics: null,
         jobs: [],
@@ -81,15 +82,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to load job feed overview.' }, { status: 500 });
     }
 
-    const feedItems = latestRun
-      ? await listLatestJobFeedItemsAdmin({
-          userId: user.id,
-          latestRun: latestRun ?? null,
-        })
-      : {
-          run: null,
-          items: [],
-        };
+    const [feedItems, latestManualRun] = await Promise.all([
+      latestRun
+        ? listLatestJobFeedItemsAdmin({
+            userId: user.id,
+            latestRun: latestRun ?? null,
+          })
+        : Promise.resolve({ run: null, items: [] }),
+      getLatestManualCompletedJobFeedRunAdmin(user.id),
+    ]);
 
     const jobs = feedItems.items;
     const runForState = latestRun && isStaleOverviewRun(latestRun) && feedItems.run
@@ -100,6 +101,7 @@ export async function GET(request: NextRequest) {
       canAccess,
       settings: settings ?? null,
       latestRun: latestRun ?? null,
+      latestManualRun: latestManualRun ?? null,
       feedRun: feedItems.run,
       latestRunDiagnostics: getJobFeedRunDiagnostics(latestRun ?? null),
       jobs,

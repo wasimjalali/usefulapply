@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { canAccessJobFeed } from '@/lib/job-feed/helpers';
-import { getJobFeedRunDiagnostics, getLatestCompletedJobFeedRunAdmin, runJobFeedFoundationWorkflow } from '@/lib/job-feed/server';
+import { canAccessJobFeed, getLocalDateKey } from '@/lib/job-feed/helpers';
+import {
+  getJobFeedRunDiagnostics,
+  getLatestManualCompletedJobFeedRunAdmin,
+  runJobFeedFoundationWorkflow,
+} from '@/lib/job-feed/server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -36,37 +41,44 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 
-    const latestCompletedRun = await getLatestCompletedJobFeedRunAdmin(user.id);
-    const cooldown = getManualRunCooldown(latestCompletedRun?.completed_at ?? null);
+    // Cooldown is measured from the user's last *manual* run only. Scheduled
+    // or debug sweeps must never lock the button.
+    const latestManualRun = await getLatestManualCompletedJobFeedRunAdmin(user.id);
+    const cooldown = getManualRunCooldown(latestManualRun?.completed_at ?? null);
     if (cooldown.remainingMs > 0) {
-      const diagnostics = getJobFeedRunDiagnostics(latestCompletedRun ?? null);
+      const diagnostics = getJobFeedRunDiagnostics(latestManualRun ?? null);
       return NextResponse.json({
         success: true,
         mode: 'direct',
-        runId: latestCompletedRun?.id ?? null,
-        status: latestCompletedRun?.status ?? null,
-        localDate: latestCompletedRun?.local_date ?? null,
+        runId: latestManualRun?.id ?? null,
+        status: latestManualRun?.status ?? null,
+        localDate: latestManualRun?.local_date ?? null,
         created: false,
         skipped: true,
         cooldown: true,
         nextRunAt: cooldown.nextRunAt,
         remainingMs: cooldown.remainingMs,
-        rawJobsFetched: latestCompletedRun?.raw_jobs_fetched ?? null,
-        jobsAfterPrefilter: latestCompletedRun?.jobs_after_prefilter ?? null,
-        rankedJobsCount: latestCompletedRun?.ranked_jobs_count ?? null,
+        rawJobsFetched: latestManualRun?.raw_jobs_fetched ?? null,
+        jobsAfterPrefilter: latestManualRun?.jobs_after_prefilter ?? null,
+        rankedJobsCount: latestManualRun?.ranked_jobs_count ?? null,
         duplicateCount: diagnostics?.duplicateCount ?? null,
         rankingCandidateCount: diagnostics?.rankingCandidateCount ?? null,
         failedFetchCount: diagnostics?.failedFetchCount ?? null,
-        resultSummary: latestCompletedRun?.result_summary ?? null,
-        errorMessage: latestCompletedRun?.error_message ?? null,
+        resultSummary: latestManualRun?.result_summary ?? null,
+        errorMessage: latestManualRun?.error_message ?? null,
       });
     }
+
+    // If the existing same-day run came from a non-manual source, force a
+    // rerun so the user gets a real manual run. The workflow's
+    // reset-artifacts path handles this safely.
+    const shouldForce = await shouldForceManualRerun(user.id);
 
     const result = await runJobFeedFoundationWorkflow({
       userId: user.id,
       triggerSource: 'manual_user',
       now: new Date(),
-      force: false,
+      force: shouldForce,
       orchestrator: 'direct',
     });
 
@@ -96,9 +108,44 @@ export async function POST(request: NextRequest) {
     console.error('[job-feed/run] error:', error);
     return NextResponse.json({
       error: 'Failed to run Job Feed.',
-      detail: error instanceof Error ? error.message : 'Unknown error',
     }, { status: 500 });
   }
+}
+
+async function shouldForceManualRerun(userId: string): Promise<boolean> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+
+  const { data: settings } = await admin
+    .from('job_feed_settings')
+    .select('user_timezone')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  const timeZone = (settings as { user_timezone?: string } | null)?.user_timezone ?? 'UTC';
+  const today = getLocalDateKey(new Date(), timeZone);
+
+  const { data: existingRun } = await admin
+    .from('job_feed_runs')
+    .select('trigger_source, status')
+    .eq('user_id', userId)
+    .eq('local_date', today)
+    .maybeSingle();
+
+  if (!existingRun) return false;
+
+  const row = existingRun as { trigger_source: string; status: string };
+  const isManual = row.trigger_source === 'manual_user'
+    || row.trigger_source === 'manual_debug'
+    || row.trigger_source === 'manual_debug_force';
+
+  // A completed non-manual run blocks the manual workflow via its
+  // same-day idempotency check; force past it. A stale running run from
+  // any source (crashed mid-run) also needs force-reset.
+  if (row.status === 'completed' && !isManual) return true;
+  if (row.status === 'running') return true;
+
+  return false;
 }
 
 function getManualRunCooldown(completedAt: string | null): { remainingMs: number; nextRunAt: string | null } {

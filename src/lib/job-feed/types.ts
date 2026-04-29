@@ -44,7 +44,13 @@ export interface JobFeedItemFeedbackState {
 export interface JobFeedOverviewResponse {
   canAccess: boolean;
   settings: JobFeedSettings | null;
+  // Most recent run of any kind — used for display state (generating,
+  // error banner, preview items).
   latestRun: JobFeedRun | null;
+  // Most recent *manual* completed run — the only source the "Run for
+  // today" 24h cooldown should consider. Scheduled/system runs must not
+  // lock the button.
+  latestManualRun: JobFeedRun | null;
   feedRun: JobFeedRun | null;
   latestRunDiagnostics: JobFeedRunDiagnostics | null;
   jobs: JobFeedFeedItem[];

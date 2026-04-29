@@ -11,7 +11,7 @@ import type {
   JobFeedSettings,
   Json,
 } from '@/lib/supabase/types';
-import { canAccessJobFeed, getLocalDateKey, getTimeZoneParts, isJobFeedConfigured } from '@/lib/job-feed/helpers';
+import { getLocalDateKey, isJobFeedConfigured } from '@/lib/job-feed/helpers';
 import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
 import type {
   JobFeedFeedbackAction,
@@ -29,7 +29,6 @@ import { ingestJobFeedRunJobs } from '@/lib/job-feed/ingestion';
 import { prepareJobFeedRankingCandidates, prefilterJobFeedJobs } from '@/lib/job-feed/prefilter';
 import { rankJobFeedCandidates } from '@/lib/job-feed/ranking';
 import { captureJobFeedEvent } from '@/lib/job-feed/analytics';
-import type { JobFeedRankingCandidate } from '@/lib/job-feed/types';
 import { estimateTotalExperienceYears } from '@/lib/job-feed/cv-suggestions';
 import type { StructuredCV } from '@/lib/types/cv-schema';
 
@@ -43,16 +42,10 @@ type JobFeedRunUpdate = Partial<Pick<JobFeedRun,
   | 'jobs_after_prefilter'
   | 'ranked_jobs_count'
   | 'metadata'
+  | 'trigger_source'
 >>;
 
 const STALE_RUNNING_JOB_FEED_RUN_MS = 15 * 60 * 1000;
-
-export interface DueJobFeedUser {
-  userId: string;
-  timeZone: string;
-  deliveryHourLocal: number;
-  targetRunAt: string;
-}
 
 interface LatestJobFeedItemsResult {
   run: JobFeedRun | null;
@@ -1159,59 +1152,6 @@ export async function listSavedJobFeedItemsAdmin(params: {
     .filter((item): item is JobFeedFeedItem => item !== null);
 }
 
-export async function listDueJobFeedUsers(
-  now = new Date(),
-  options?: { leadHours?: number }
-): Promise<DueJobFeedUser[]> {
-  const leadHours = Math.max(0, options?.leadHours ?? 0);
-  const targetRunAt = new Date(now.getTime() + leadHours * 60 * 60 * 1000);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-
-  const { data: settingsRows, error: settingsError } = await admin
-    .from('job_feed_settings')
-    .select('*')
-    .eq('enabled', true)
-    .not('consent_accepted_at', 'is', null);
-
-  if (settingsError) {
-    throw new Error(`Failed to load job feed settings for scheduling: ${settingsError.message}`);
-  }
-
-  if (!settingsRows || settingsRows.length === 0) {
-    return [];
-  }
-
-  const typedSettingsRows = settingsRows as JobFeedSettings[];
-  const userIds = typedSettingsRows.map((row) => row.user_id);
-  const { data: profiles, error: profilesError } = await admin
-    .from('profiles')
-    .select('id, subscription_tier')
-    .in('id', userIds);
-
-  if (profilesError) {
-    throw new Error(`Failed to load profile tiers for scheduling: ${profilesError.message}`);
-  }
-
-  const typedProfiles = (profiles ?? []) as Array<{ id: string; subscription_tier: string | null }>;
-  const tierByUserId = new Map<string, string | null>(typedProfiles.map((profile) => [profile.id, profile.subscription_tier]));
-
-  return typedSettingsRows
-    .filter((settings) => {
-      if (!isJobFeedConfigured(settings)) return false;
-      if (!canAccessJobFeed(tierByUserId.get(settings.user_id))) return false;
-
-      const localParts = getTimeZoneParts(targetRunAt, settings.user_timezone);
-      return localParts.hour === settings.delivery_hour_local;
-    })
-    .map((settings) => ({
-      userId: settings.user_id,
-      timeZone: settings.user_timezone,
-      deliveryHourLocal: settings.delivery_hour_local,
-      targetRunAt: targetRunAt.toISOString(),
-    }));
-}
-
 export function getJobFeedRunDiagnostics(run: JobFeedRun | null): JobFeedRunDiagnostics | null {
   if (!run) {
     return null;
@@ -1267,6 +1207,39 @@ export async function getLatestCompletedJobFeedRunAdmin(userId: string): Promise
   }
 
   return (data ?? null) as JobFeedRun | null;
+}
+
+// The 24h "Run for today" cooldown is driven only by runs the user kicked
+// off themselves. Scheduled/system runs must not lock the manual button.
+export const MANUAL_JOB_FEED_TRIGGER_SOURCES = [
+  'manual_user',
+  'manual_debug',
+  'manual_debug_force',
+] as const;
+
+export async function getLatestManualCompletedJobFeedRunAdmin(userId: string): Promise<JobFeedRun | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+  const { data, error } = await admin
+    .from('job_feed_runs')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'completed')
+    .in('trigger_source', MANUAL_JOB_FEED_TRIGGER_SOURCES as unknown as string[])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to load latest manual job feed run: ${error.message}`);
+  }
+
+  return (data ?? null) as JobFeedRun | null;
+}
+
+export function isJobFeedRunStaleRunning(run: JobFeedRun | null, now: Date = new Date()): boolean {
+  if (!run || run.status !== 'running') return false;
+  return isStaleJobFeedRun(run, now);
 }
 
 export async function runJobFeedFoundationWorkflow(params: {
@@ -1359,6 +1332,10 @@ export async function runJobFeedFoundationWorkflow(params: {
 
   let runningRun = await updateJobFeedRun(run.id, {
     status: 'running',
+    // When a force-rerun reclaims an existing row (e.g. a user clicking
+    // "Run for today" over yesterday's scheduled row), promote the row's
+    // trigger_source so the manual-run cooldown helper sees it.
+    trigger_source: triggerSource,
     started_at: new Date().toISOString(),
     completed_at: null,
     error_message: null,
@@ -2152,146 +2129,6 @@ function toJson(value: unknown): Json {
   }
 
   return String(value);
-}
-
-/**
- * Prepare a per-user run for Azure OpenAI Batch API submission.
- * Runs ingestion + prefilter synchronously (~2s), then stashes the canonical
- * job IDs we want ranked in run.metadata so the batch reconciler can rebuild
- * the ranking candidate set when the JSONL output arrives. Does NOT call the
- * LLM — that happens via the Batch API in bulk.
- *
- * Returns the ranking inputs the caller should bundle into a JSONL payload
- * along with other staged runs. Returns null when the user has no jobs to
- * rank (feed runs completes immediately with zero items).
- */
-export async function stageJobFeedRunForBatch(params: {
-  userId: string;
-  triggerSource?: string;
-  now?: Date;
-  targetRunAt?: Date;
-  force?: boolean;
-}): Promise<{
-  run: JobFeedRun;
-  settings: JobFeedSettings;
-  candidates: JobFeedRankingCandidate[];
-  visibleCap: number;
-  yearsExperience: number | null;
-} | null> {
-  const { userId, triggerSource = 'scheduled', now = new Date(), targetRunAt = now, force = false } = params;
-  const settings = await getJobFeedSettingsAdmin(userId);
-
-  if (!settings) throw new Error('Job feed settings were not found for this user.');
-  if (!settings.enabled) throw new Error('Job feed is paused for this user.');
-  if (!isJobFeedConfigured(settings)) throw new Error('Job feed settings are incomplete.');
-
-  const localDate = getLocalDateKey(targetRunAt, settings.user_timezone);
-  const existingRun = await getJobFeedRunByDate(userId, localDate);
-
-  if (existingRun?.status === 'completed' && !force) {
-    return null;
-  }
-  if (existingRun?.status === 'running' && !force) {
-    return null;
-  }
-  if (force && existingRun) {
-    await resetJobFeedRunArtifactsForRerun(existingRun.id);
-  }
-
-  const run = existingRun ?? await createJobFeedRun({
-    user_id: userId,
-    local_date: localDate,
-    local_timezone: settings.user_timezone,
-    delivery_hour_local: settings.delivery_hour_local,
-    trigger_source: triggerSource,
-    idempotency_key: `${userId}:${localDate}`,
-    settings_snapshot: settings as unknown as Json,
-    metadata: {
-      stage: 'phase_4_ranking',
-      foundation_mode: true,
-      target_market: settings.target_market,
-      orchestrator: 'inngest',
-      ranking_mode: 'batch',
-    },
-  });
-
-  const subscriptionTier = await getUserSubscriptionTierAdmin(userId);
-  const tierLimits = getJobFeedTierLimits(subscriptionTier);
-
-  const ingestion = await ingestJobFeedRunJobs({
-    runId: run.id,
-    userId,
-    settings,
-    maxQueries: tierLimits.maxDailyQueries,
-    maxRawJobs: tierLimits.maxRawJobsPerRun,
-  });
-
-  // Exclude canonical jobs the user has already applied to, dismissed, or
-  // rated "not relevant" (mirrors the live path above).
-  const blockedIds = await getBlockedCanonicalJobIdsAdmin(userId);
-  const rankableJobs = blockedIds.size > 0
-    ? ingestion.canonicalJobs.filter((job) => !blockedIds.has(job.id))
-    : ingestion.canonicalJobs;
-
-  const prefilter = prefilterJobFeedJobs({
-    settings,
-    jobs: rankableJobs,
-    hardCap: tierLimits.prefilterHardCap,
-  });
-
-  const rankingPrep = prepareJobFeedRankingCandidates({
-    settings,
-    jobs: prefilter.survivors,
-  });
-
-  await updateJobFeedRun(run.id, {
-    status: 'running',
-    started_at: new Date().toISOString(),
-    raw_jobs_fetched: ingestion.rawJobsFetched,
-    jobs_after_prefilter: prefilter.survivors.length,
-    metadata: mergeMetadata(run.metadata, {
-      stage: 'phase_4_ranking',
-      workflow_status: 'awaiting_batch',
-      orchestrator: 'inngest',
-      ranking_mode: 'batch',
-      subscription_tier: subscriptionTier,
-      batch_ranking_candidate_ids: toJson(prefilter.survivors.map((job) => job.id)),
-      canonical_jobs_count: ingestion.canonicalJobs.length,
-      prefilter_survivors_count: prefilter.survivors.length,
-      prefilter_rejected_count: prefilter.rejectedCount,
-      prefilter_rejections_by_reason: toJson(prefilter.rejectionsByReason),
-      search_plan: toJson(ingestion.searchPlan),
-      raw_fetch_ids: toJson(ingestion.rawFetchIds),
-      ingestion_preview_jobs: toJson(ingestion.previewJobs),
-      failed_fetches: toJson(ingestion.failedFetches),
-    }),
-  });
-
-  if (rankingPrep.candidates.length === 0) {
-    // No candidates — close the run immediately with zero ranked items.
-    await updateJobFeedRun(run.id, {
-      status: 'completed',
-      completed_at: new Date().toISOString(),
-      ranked_jobs_count: 0,
-      result_summary: 'Karko checked the current searches, but no jobs matched these settings yet.',
-      metadata: mergeMetadata(run.metadata, {
-        workflow_status: 'completed',
-        ranking_status: 'no_candidates',
-        ranked_items_materialized: true,
-      }),
-    });
-    return null;
-  }
-
-  const yearsExperience = await getUserYearsExperienceAdmin(userId);
-
-  return {
-    run,
-    settings,
-    candidates: rankingPrep.candidates,
-    visibleCap: tierLimits.visibleCount,
-    yearsExperience,
-  };
 }
 
 /**
