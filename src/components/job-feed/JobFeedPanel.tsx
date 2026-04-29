@@ -115,7 +115,11 @@ export function JobFeedPanel() {
   const [draftForm, setDraftForm] = useState<JobFeedSettingsInput | null>(null);
   const [isRunningManualFeed, setIsRunningManualFeed] = useState(false);
   const [isRunningDebugFlow, setIsRunningDebugFlow] = useState(false);
-  const [isShowingAllJobs, setIsShowingAllJobs] = useState(false);
+  // Today's inbox is paginated server-side via /api/job-feed/inbox.
+  // overview returns the first page; additionalJobs holds pages 2+ the user
+  // has loaded. Reset on tab switch and on each overview reload.
+  const [additionalJobs, setAdditionalJobs] = useState<JobFeedFeedItem[]>([]);
+  const [isLoadingMoreJobs, setIsLoadingMoreJobs] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobFeedFeedItem | null>(null);
   const [manualRunNotice, setManualRunNotice] = useState<ManualRunNotice>(null);
   const [pendingJobAction, setPendingJobAction] = useState<PendingJobAction>(null);
@@ -235,10 +239,34 @@ export function JobFeedPanel() {
     }
   }, [isPreviewing]);
 
+  const handleLoadMoreJobs = useCallback(async () => {
+    if (!overview || isLoadingMoreJobs) return;
+    const already = overview.jobs.length + additionalJobs.length;
+    if (already >= (overview.jobsTotalCount ?? 0)) return;
+
+    setIsLoadingMoreJobs(true);
+    try {
+      const response = await fetch(`/api/job-feed/inbox?offset=${already}&limit=10`, {
+        method: 'GET',
+        cache: 'no-store',
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to load more jobs.');
+      }
+      const nextItems = (payload.items ?? []) as JobFeedFeedItem[];
+      setAdditionalJobs((prev) => [...prev, ...nextItems]);
+    } catch (error) {
+      toastRef.current.error(error instanceof Error ? error.message : 'Failed to load more jobs.');
+    } finally {
+      setIsLoadingMoreJobs(false);
+    }
+  }, [overview, additionalJobs.length, isLoadingMoreJobs]);
+
   const handleShowSavedJobs = useCallback(() => {
     setActiveTab('saved');
     // Collapse "show all" state when switching tabs so each view starts clean.
-    setIsShowingAllJobs(false);
+    setAdditionalJobs([]);
     if (savedJobs === null) {
       void loadSavedJobs();
     }
@@ -246,7 +274,7 @@ export function JobFeedPanel() {
 
   const handleShowTodayFeed = useCallback(() => {
     setActiveTab('today');
-    setIsShowingAllJobs(false);
+    setAdditionalJobs([]);
   }, []);
 
   useEffect(() => {
@@ -257,7 +285,7 @@ export function JobFeedPanel() {
       setIsEditing(false);
       setIsSetupWizardOpen(false);
       setDraftForm(null);
-      setIsShowingAllJobs(false);
+      setAdditionalJobs([]);
       setSelectedJob(null);
       setIsLoading(false);
       return;
@@ -294,7 +322,7 @@ export function JobFeedPanel() {
   }, [isPreviewing, overview?.state, posthog]);
 
   useEffect(() => {
-    setIsShowingAllJobs(false);
+    setAdditionalJobs([]);
   }, [overview?.feedRun?.id]);
 
   useEffect(() => {
@@ -983,11 +1011,15 @@ export function JobFeedPanel() {
 
             {activeTab === 'today' && showFeedResults && overview && (
               <FeedResultsCard
-                jobs={overview.jobs}
-                isShowingAllJobs={isShowingAllJobs}
-                onToggleShowAll={() => setIsShowingAllJobs((prev) => !prev)}
+                jobs={[...overview.jobs, ...additionalJobs]}
+                hasMore={additionalJobs.length > 0
+                  ? (additionalJobs.length + overview.jobs.length) < (overview.jobsTotalCount ?? 0)
+                  : Boolean(overview.jobsHasMore)}
+                remainingCount={Math.max(0, (overview.jobsTotalCount ?? 0) - overview.jobs.length - additionalJobs.length)}
+                isLoadingMore={isLoadingMoreJobs}
                 pendingJobAction={pendingJobAction}
                 feedSummary={buildFeedSummary(shellForm)}
+                onLoadMore={handleLoadMoreJobs}
                 onOpenDetails={handleOpenDetails}
                 onApplyWithKarko={handleApplyWithKarko}
                 onExternalApply={handleExternalApply}
@@ -998,8 +1030,6 @@ export function JobFeedPanel() {
               <SavedJobsView
                 jobs={savedJobs}
                 isLoading={isLoadingSavedJobs}
-                isShowingAllJobs={isShowingAllJobs}
-                onToggleShowAll={() => setIsShowingAllJobs((prev) => !prev)}
                 pendingJobAction={pendingJobAction}
                 onOpenDetails={handleOpenDetails}
                 onApplyWithKarko={handleApplyWithKarko}
@@ -1184,8 +1214,6 @@ function FeedPreviewCards() {
 function SavedJobsView({
   jobs,
   isLoading,
-  isShowingAllJobs,
-  onToggleShowAll,
   pendingJobAction,
   onOpenDetails,
   onApplyWithKarko,
@@ -1194,8 +1222,6 @@ function SavedJobsView({
 }: {
   jobs: JobFeedFeedItem[] | null;
   isLoading: boolean;
-  isShowingAllJobs: boolean;
-  onToggleShowAll: () => void;
   pendingJobAction: PendingJobAction;
   onOpenDetails: (job: JobFeedFeedItem) => void;
   onApplyWithKarko: (job: JobFeedFeedItem) => void;
@@ -1235,8 +1261,10 @@ function SavedJobsView({
   return (
     <FeedResultsCard
       jobs={jobs}
-      isShowingAllJobs={isShowingAllJobs}
-      onToggleShowAll={onToggleShowAll}
+      hasMore={false}
+      remainingCount={0}
+      isLoadingMore={false}
+      onLoadMore={() => {}}
       pendingJobAction={pendingJobAction}
       feedSummary={`${jobs.length} saved ${jobs.length === 1 ? 'job' : 'jobs'}`}
       onOpenDetails={onOpenDetails}
@@ -1934,7 +1962,7 @@ function JobFeedOnboardingWizard({
           <div className="px-6 py-6 sm:px-8">
             <p className="text-sm font-semibold text-charcoal">Your timezone</p>
             <div className="mt-4 max-w-xl">
-              <FieldGroup label="Timezone" help="Used for your local feed day and 24-hour refresh window.">
+              <FieldGroup label="Timezone" help="Used to group jobs by your local day so yesterday's feed doesn't mix with today's.">
                 <GroupedSelectField
                   label=""
                   value={normalizeTimeZoneValue(form.user_timezone)}

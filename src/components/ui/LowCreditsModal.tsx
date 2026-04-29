@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Zap, Crown, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserCredits } from '@/lib/supabase/credits';
 import { CREDIT_UPDATE_EVENT } from './CreditIndicator';
 
 const MODAL_SHOWN_KEY = 'karko_low_credits_modal_shown';
@@ -20,11 +19,12 @@ export function LowCreditsModal() {
   const fetchCredits = useCallback(async () => {
     if (!user) return;
     try {
-      const { credits } = await getUserCredits(user.id);
-      if (isMountedRef.current && credits) {
-        const total = credits.monthly_credits + credits.rollover_credits + credits.addon_credits;
-        setTotalCredits(total);
-        setPlanTier(credits.plan_tier ?? null);
+      const response = await fetch('/api/credits/balance', { cache: 'no-store' });
+      if (!response.ok) return;
+      const payload = await response.json() as { total: number; planTier: string | null };
+      if (isMountedRef.current) {
+        setTotalCredits(payload.total);
+        setPlanTier(payload.planTier ?? null);
       }
     } catch {
       // silent

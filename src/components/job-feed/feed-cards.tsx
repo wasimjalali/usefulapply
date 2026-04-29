@@ -8,7 +8,6 @@ import {
   Calendar,
   Check,
   ChevronDown,
-  ChevronUp,
   Copy,
   DollarSign,
   ExternalLink,
@@ -21,7 +20,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { JOB_FEED_VISIBLE_DEFAULT_COUNT } from '@/lib/job-feed/constants';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 
 type PendingJobAction = {
@@ -580,34 +578,33 @@ export function JobFeedDetailModal({
 
 export function FeedResultsCard({
   jobs,
-  isShowingAllJobs,
+  hasMore,
+  remainingCount,
+  isLoadingMore,
   pendingJobAction,
   feedSummary,
-  onToggleShowAll,
+  onLoadMore,
   onOpenDetails,
   onApplyWithKarko,
   onExternalApply,
 }: {
   jobs: JobFeedFeedItem[];
-  isShowingAllJobs: boolean;
+  hasMore: boolean;
+  remainingCount: number;
+  isLoadingMore: boolean;
   pendingJobAction: PendingJobAction;
   feedSummary: string;
-  onToggleShowAll: () => void;
+  onLoadMore: () => void;
   onOpenDetails: (job: JobFeedFeedItem) => void;
   onApplyWithKarko: (job: JobFeedFeedItem) => void;
   onExternalApply: (job: JobFeedFeedItem) => void;
 }) {
-  const visibleCount = isShowingAllJobs ? jobs.length : JOB_FEED_VISIBLE_DEFAULT_COUNT;
-  const visibleJobs = jobs.slice(0, visibleCount);
-  const hasMore = jobs.length > JOB_FEED_VISIBLE_DEFAULT_COUNT;
-  const remainingCount = Math.max(0, jobs.length - JOB_FEED_VISIBLE_DEFAULT_COUNT);
-
   return (
     <Card className="rounded-[24px] border-cream-200 bg-white p-6 shadow-sm">
       <p className="text-sm text-warm-gray">{feedSummary}</p>
 
       <div className="mt-5 space-y-4">
-        {visibleJobs.map((job) => (
+        {jobs.map((job) => (
           <JobFeedCard
             key={job.id}
             job={job}
@@ -623,13 +620,12 @@ export function FeedResultsCard({
         <div className="mt-6 flex justify-center">
           <button
             type="button"
-            onClick={onToggleShowAll}
-            className="inline-flex items-center gap-1.5 rounded-full border border-cream-300 bg-white px-5 py-2 text-sm font-semibold text-navy-700 shadow-sm transition-colors hover:border-navy-300 hover:bg-cream-50 cursor-pointer"
+            onClick={onLoadMore}
+            disabled={isLoadingMore}
+            className="inline-flex items-center gap-1.5 rounded-full border border-cream-300 bg-white px-5 py-2 text-sm font-semibold text-navy-700 shadow-sm transition-colors hover:border-navy-300 hover:bg-cream-50 disabled:opacity-60 cursor-pointer"
           >
-            {isShowingAllJobs ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            {isShowingAllJobs
-              ? `Show less`
-              : `Load more (${remainingCount})`}
+            <ChevronDown className="h-4 w-4" />
+            {isLoadingMore ? 'Loading…' : `Load more (${remainingCount})`}
           </button>
         </div>
       )}

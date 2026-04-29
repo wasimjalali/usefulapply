@@ -1052,6 +1052,28 @@ async function listRecentJobFeedInboxItemsAdmin(params: {
   userId: string;
   latestCompletedRun: JobFeedRun;
 }): Promise<JobFeedFeedItem[]> {
+  const { rows } = await loadDedupedInboxRows({
+    userId: params.userId,
+    latestCompletedRun: params.latestCompletedRun,
+  });
+
+  return buildFeedItemsForSnapshot({
+    userId: params.userId,
+    rankedPreview: rows.map(toRankedPreviewItem),
+  });
+}
+
+/**
+ * Build the full 7-day inbox row list once (ordered: today first, then older
+ * days, deduped by canonical_job_id). Returned rows are the authoritative
+ * ordering the UI paginates through. Callers supply offset/limit when
+ * rendering pages; the full list is small (tier cap × 7 days) so rebuilding
+ * per page is cheap and keeps ordering stable across requests.
+ */
+async function loadDedupedInboxRows(params: {
+  userId: string;
+  latestCompletedRun: JobFeedRun;
+}): Promise<{ rows: SupabaseJobFeedRankedItem[]; totalCount: number }> {
   const since = new Date(Date.now() - JOB_FEED_INBOX_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand joined ranked feed rows.
   const admin = createAdminClient() as any;
@@ -1070,31 +1092,61 @@ async function listRecentJobFeedInboxItemsAdmin(params: {
 
   if (error) {
     if (isMissingRankedItemsRelationError(error)) {
-      return [];
+      return { rows: [], totalCount: 0 };
     }
 
     throw new Error(`Failed to load recent job feed inbox items: ${error.message}`);
   }
 
-  const rankedRows = ((data ?? []) as SupabaseJobFeedRankedItem[])
+  const olderRows = ((data ?? []) as SupabaseJobFeedRankedItem[])
     .filter((row) => row.run_id !== params.latestCompletedRun.id);
+  const todayRows = await listJobFeedRankedItemsForRunAdmin(params.latestCompletedRun.id);
+
   const seenJobIds = new Set<string>();
-  const dedupedRows = [
-    ...await listJobFeedRankedItemsForRunAdmin(params.latestCompletedRun.id),
-    ...rankedRows,
-  ].filter((row) => {
+  const dedupedRows = [...todayRows, ...olderRows].filter((row) => {
     if (seenJobIds.has(row.canonical_job_id)) {
       return false;
     }
-
     seenJobIds.add(row.canonical_job_id);
     return true;
   });
 
-  return buildFeedItemsForSnapshot({
+  return { rows: dedupedRows, totalCount: dedupedRows.length };
+}
+
+/**
+ * Server-paginated inbox page. Used by /api/job-feed/inbox so the UI can
+ * "Load more" without the overview payload having to carry every row.
+ */
+export async function listJobFeedInboxPageAdmin(params: {
+  userId: string;
+  offset: number;
+  limit: number;
+}): Promise<{ items: JobFeedFeedItem[]; totalCount: number; hasMore: boolean } | null> {
+  const latestCompletedRun = await getLatestCompletedJobFeedRunAdmin(params.userId);
+  if (!latestCompletedRun) {
+    return { items: [], totalCount: 0, hasMore: false };
+  }
+
+  const { rows, totalCount } = await loadDedupedInboxRows({
     userId: params.userId,
-    rankedPreview: dedupedRows.map(toRankedPreviewItem),
+    latestCompletedRun,
   });
+
+  const offset = Math.max(0, Math.floor(params.offset));
+  const limit = Math.max(1, Math.min(50, Math.floor(params.limit)));
+  const pageRows = rows.slice(offset, offset + limit);
+
+  const items = await buildFeedItemsForSnapshot({
+    userId: params.userId,
+    rankedPreview: pageRows.map(toRankedPreviewItem),
+  });
+
+  return {
+    items,
+    totalCount,
+    hasMore: offset + pageRows.length < totalCount,
+  };
 }
 
 /**

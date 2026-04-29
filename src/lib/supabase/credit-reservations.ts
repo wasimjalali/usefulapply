@@ -89,6 +89,10 @@ export async function reserveCredits(params: {
     .single();
 
   if (error) {
+    // Unique-constraint race: another caller with the same idempotency_key
+    // also deducted and wrote the row first. Both parties deducted
+    // (deductCredits has optimistic-retry), so the loser must refund to
+    // keep net spend equal to one reservation.
     if (error.code === '23505') {
       const { data: raceWinner } = await admin
         .from('credit_reservations')
@@ -100,6 +104,20 @@ export async function reserveCredits(params: {
         await addCredits(userId, amount, 'addon', 'reservation_duplicate_refund', `Duplicate reservation refund for ${idempotencyKey}`, admin);
         return { success: true, reservation: raceWinner as CreditReservation, error: null };
       }
+    }
+
+    // For any other insert error, verify the row truly does not exist
+    // before refunding. The DB might have written the row and dropped the
+    // response (network flap between PG and the edge runtime); refunding
+    // in that case would create a free reservation.
+    const { data: postInsertCheck } = await admin
+      .from('credit_reservations')
+      .select('*')
+      .eq('idempotency_key', idempotencyKey)
+      .maybeSingle();
+
+    if (postInsertCheck) {
+      return { success: true, reservation: postInsertCheck as CreditReservation, error: null };
     }
 
     await addCredits(userId, amount, 'addon', 'reservation_failed_refund', `Failed reservation refund for ${idempotencyKey}`, admin);

@@ -53,7 +53,11 @@ export interface JobFeedOverviewResponse {
   latestManualRun: JobFeedRun | null;
   feedRun: JobFeedRun | null;
   latestRunDiagnostics: JobFeedRunDiagnostics | null;
+  // First page of the 7-day inbox (JOB_FEED_VISIBLE_DEFAULT_COUNT items).
+  // Subsequent pages come from /api/job-feed/inbox.
   jobs: JobFeedFeedItem[];
+  jobsTotalCount: number;
+  jobsHasMore: boolean;
   state: JobFeedOverviewState;
   foundationMode: boolean;
   feedCap: number;

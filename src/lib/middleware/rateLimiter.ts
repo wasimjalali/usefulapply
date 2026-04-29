@@ -105,6 +105,8 @@ export const RATE_LIMITS = {
   'job-feed-apply':     { limit: 10, windowMs: 60_000 },
   'job-feed-run':       { limit: 2,  windowMs: 60_000 },
   'job-feed-dev-run':   { limit: 3,  windowMs: 60_000 },
+  'job-feed-inbox':     { limit: 30, windowMs: 60_000 },
+  'credits-balance':    { limit: 30, windowMs: 60_000 },
 } as const;
 
 export type RateLimitRoute = keyof typeof RATE_LIMITS;

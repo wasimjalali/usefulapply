@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Coins, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserCredits, type UserCredits } from '@/lib/supabase/credits';
 import Link from 'next/link';
 
 interface CreditIndicatorProps {
@@ -13,9 +12,18 @@ interface CreditIndicatorProps {
 // Custom event for credit updates (fired after API calls)
 export const CREDIT_UPDATE_EVENT = 'credit-update';
 
+interface CreditBalance {
+  monthly: number;
+  rollover: number;
+  addon: number;
+  total: number;
+  planTier: 'free' | 'plus' | 'max';
+  nextResetDate: string | null;
+}
+
 export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
   const { user } = useAuth();
-  const [credits, setCredits] = useState<UserCredits | null>(null);
+  const [credits, setCredits] = useState<CreditBalance | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [buyingCredits, setBuyingCredits] = useState(false);
@@ -41,13 +49,15 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
 
   const fetchCredits = useCallback(async (silent = false) => {
     if (!user) return;
-    
+
     if (!silent) setIsLoading(true);
-    
+
     try {
-      const { credits: userCredits } = await getUserCredits(user.id);
-      if (isMountedRef.current && userCredits) {
-        setCredits(userCredits);
+      const response = await fetch('/api/credits/balance', { cache: 'no-store' });
+      if (!response.ok) return;
+      const payload = (await response.json()) as CreditBalance;
+      if (isMountedRef.current) {
+        setCredits(payload);
       }
     } catch (error) {
       console.error('Error fetching credits:', error);
@@ -86,10 +96,8 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
     return null;
   }
 
-  const totalCredits = credits 
-    ? credits.monthly_credits + credits.rollover_credits + credits.addon_credits 
-    : 0;
-  const maxCredits = credits?.plan_tier === 'free' ? 4 : credits?.plan_tier === 'plus' ? 50 : 200;
+  const totalCredits = credits?.total ?? 0;
+  const maxCredits = credits?.planTier === 'free' ? 4 : credits?.planTier === 'plus' ? 50 : 200;
   const percentRemaining = Math.min((totalCredits / maxCredits) * 100, 100);
   const formattedCredits = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(totalCredits);
 
@@ -198,18 +206,18 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
                 <div className="text-xs space-y-1 text-warm-gray">
                   <div className="flex justify-between">
                     <span>Monthly</span>
-                    <span>{credits?.monthly_credits || 0}</span>
+                    <span>{credits?.monthly || 0}</span>
                   </div>
-                  {(credits?.rollover_credits || 0) > 0 && (
+                  {(credits?.rollover || 0) > 0 && (
                     <div className="flex justify-between">
                       <span>Rollover</span>
-                      <span>{credits?.rollover_credits}</span>
+                      <span>{credits?.rollover}</span>
                     </div>
                   )}
-                  {(credits?.addon_credits || 0) > 0 && (
+                  {(credits?.addon || 0) > 0 && (
                     <div className="flex justify-between">
                       <span>Add-on</span>
-                      <span>{credits?.addon_credits}</span>
+                      <span>{credits?.addon}</span>
                     </div>
                   )}
                 </div>
@@ -278,18 +286,18 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
               <div className="text-xs space-y-1 text-warm-gray">
                 <div className="flex justify-between">
                   <span>Monthly</span>
-                  <span>{credits?.monthly_credits || 0}</span>
+                  <span>{credits?.monthly || 0}</span>
                 </div>
-                {(credits?.rollover_credits || 0) > 0 && (
+                {(credits?.rollover || 0) > 0 && (
                   <div className="flex justify-between">
                     <span>Rollover</span>
-                    <span>{credits?.rollover_credits}</span>
+                    <span>{credits?.rollover}</span>
                   </div>
                 )}
-                {(credits?.addon_credits || 0) > 0 && (
+                {(credits?.addon || 0) > 0 && (
                   <div className="flex justify-between">
                     <span>Add-on</span>
-                    <span>{credits?.addon_credits}</span>
+                    <span>{credits?.addon}</span>
                   </div>
                 )}
               </div>

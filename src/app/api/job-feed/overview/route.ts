@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { canAccessJobFeed, getJobFeedOverviewState } from '@/lib/job-feed/helpers';
 import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
-import { getJobFeedRunDiagnostics, getLatestManualCompletedJobFeedRunAdmin, listLatestJobFeedItemsAdmin } from '@/lib/job-feed/server';
+import {
+  getJobFeedRunDiagnostics,
+  getLatestManualCompletedJobFeedRunAdmin,
+  listJobFeedInboxPageAdmin,
+  listLatestJobFeedItemsAdmin,
+} from '@/lib/job-feed/server';
+import { JOB_FEED_VISIBLE_DEFAULT_COUNT } from '@/lib/job-feed/constants';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import type { JobFeedRun } from '@/lib/supabase/types';
 
@@ -51,6 +57,8 @@ export async function GET(request: NextRequest) {
         feedRun: null,
         latestRunDiagnostics: null,
         jobs: [],
+        jobsTotalCount: 0,
+        jobsHasMore: false,
         state: 'upgrade_required',
         foundationMode: true,
         feedCap: tierLimits.visibleCount,
@@ -82,19 +90,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to load job feed overview.' }, { status: 500 });
     }
 
-    const [feedItems, latestManualRun] = await Promise.all([
+    // Load the run metadata once; inbox pagination is a separate call so
+    // we can keep the overview payload small even at scale.
+    const [feedRunSummary, firstPage, latestManualRun] = await Promise.all([
       latestRun
         ? listLatestJobFeedItemsAdmin({
             userId: user.id,
             latestRun: latestRun ?? null,
-          })
-        : Promise.resolve({ run: null, items: [] }),
+          }).then((result) => ({ run: result.run }))
+        : Promise.resolve({ run: null }),
+      listJobFeedInboxPageAdmin({
+        userId: user.id,
+        offset: 0,
+        limit: JOB_FEED_VISIBLE_DEFAULT_COUNT,
+      }),
       getLatestManualCompletedJobFeedRunAdmin(user.id),
     ]);
 
-    const jobs = feedItems.items;
-    const runForState = latestRun && isStaleOverviewRun(latestRun) && feedItems.run
-      ? feedItems.run
+    const jobs = firstPage?.items ?? [];
+    const totalCount = firstPage?.totalCount ?? 0;
+    const hasMore = firstPage?.hasMore ?? false;
+    const runForState = latestRun && isStaleOverviewRun(latestRun) && feedRunSummary.run
+      ? feedRunSummary.run
       : latestRun;
 
     return NextResponse.json({
@@ -102,14 +119,16 @@ export async function GET(request: NextRequest) {
       settings: settings ?? null,
       latestRun: latestRun ?? null,
       latestManualRun: latestManualRun ?? null,
-      feedRun: feedItems.run,
+      feedRun: feedRunSummary.run,
       latestRunDiagnostics: getJobFeedRunDiagnostics(latestRun ?? null),
       jobs,
+      jobsTotalCount: totalCount,
+      jobsHasMore: hasMore,
       state: getJobFeedOverviewState({
         canAccess,
         settings: settings ?? null,
         latestRun: runForState ?? null,
-        jobsCount: jobs.length,
+        jobsCount: totalCount,
       }),
       foundationMode: true,
       feedCap: tierLimits.visibleCount,

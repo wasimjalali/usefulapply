@@ -187,7 +187,9 @@ export async function getUserCredits(userId: string, supabaseClient?: any): Prom
 }
 
 /**
- * Initialize credits for new user (free plan)
+ * Initialize credits for new user (free plan). Handles the race with
+ * the DB trigger initialize_user_credits() which may have already
+ * inserted the row between our check and this call.
  */
 async function initializeUserCredits(userId: string, supabaseClient?: any): Promise<{ credits: UserCredits | null; error: Error | null }> {
   const supabase = getSupabaseClient(supabaseClient);
@@ -195,34 +197,54 @@ async function initializeUserCredits(userId: string, supabaseClient?: any): Prom
   const nextReset = new Date();
   nextReset.setMonth(nextReset.getMonth() + 1);
 
-  // Use upsert to handle race condition with DB trigger initialize_user_credits()
-  // which may have already created the row before this client-side call runs.
+  // ignoreDuplicates:true returns data=null when the DB trigger won the
+  // race and the row already exists. That's not an error — re-read and
+  // return the canonical row.
   const { data, error } = await supabase
     .from('user_credits')
     .upsert({
       user_id: userId,
-      monthly_credits: 4, // Free plan credits (2 applications at 2 credits each)
+      monthly_credits: 4,
       rollover_credits: 0,
       addon_credits: 0,
       plan_tier: 'free',
       next_reset_date: nextReset.toISOString(),
     }, { onConflict: 'user_id', ignoreDuplicates: true })
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error('Error initializing user credits:', error);
     return { credits: null, error: new Error(error.message) };
   }
 
-  // Log the initial credit grant
-  await logCreditTransaction(userId, 4, 'monthly_reset', {
-    description: 'Initial free plan credits',
-    balanceBefore: 0,
-    balanceAfter: 4,
-  }, supabaseClient);
+  if (data) {
+    // We inserted the row — log the initial grant so the transaction
+    // ledger reflects where the credits came from.
+    await logCreditTransaction(userId, 4, 'monthly_reset', {
+      description: 'Initial free plan credits',
+      balanceBefore: 0,
+      balanceAfter: 4,
+    }, supabaseClient);
+    return { credits: data as UserCredits, error: null };
+  }
 
-  return { credits: data as UserCredits, error: null };
+  // Row already existed (trigger or concurrent caller beat us). Fetch it.
+  const { data: existing, error: fetchError } = await supabase
+    .from('user_credits')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (fetchError) {
+    return { credits: null, error: new Error(fetchError.message) };
+  }
+
+  if (!existing) {
+    return { credits: null, error: new Error('Credits row disappeared after upsert') };
+  }
+
+  return { credits: existing as UserCredits, error: null };
 }
 
 /**

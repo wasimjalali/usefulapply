@@ -277,10 +277,15 @@ export function normalizeJobFeedSettingsInput(input: unknown): { data?: JobFeedS
 
   const languages = sanitizeStringArray(payload.languages);
 
-  const deliveryHourLocal = asInteger(payload.delivery_hour_local);
-  if (deliveryHourLocal === null || deliveryHourLocal < 0 || deliveryHourLocal > 23) {
-    return { error: 'Delivery time must be an hour between 0 and 23.' };
-  }
+  // delivery_hour_local was used by the old scheduler to pick each user's
+  // daily delivery slot. The real-time on-click flow doesn't read it, but
+  // the DB column is NOT NULL, so keep a sane default when the client
+  // doesn't send one. Clients that still send a valid value (0..23) are
+  // respected so existing rows don't lose data on next save.
+  const rawDeliveryHour = asInteger(payload.delivery_hour_local);
+  const deliveryHourLocal = rawDeliveryHour !== null && rawDeliveryHour >= 0 && rawDeliveryHour <= 23
+    ? rawDeliveryHour
+    : 8;
 
   const salaryFloor = asNullableInteger(payload.salary_floor);
   if (salaryFloor !== null && salaryFloor < 0) {
