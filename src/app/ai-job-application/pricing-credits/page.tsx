@@ -24,7 +24,7 @@ const faqs = [
   },
   {
     q: 'How many applications does 2 credits cover?',
-    a: 'One complete application package. Each package generates a tailored CV, cover letter, application email, and follow-up email from a single job description. 2 credits = 1 complete package regardless of which flow you use (Analyze First or Apply Directly).',
+    a: 'One full application. Each package generates a tailored CV, cover letter, application email, and follow-up email from a single job description. 2 credits = 1 complete package regardless of which flow you use (Analyze First or Apply Directly).',
   },
   {
     q: 'Is there a free plan with no credit card?',
@@ -36,7 +36,7 @@ const faqs = [
   },
   {
     q: 'What is the cheapest plan for heavy job searching?',
-    a: 'The Max plan at $79.99/month gives 100 applications, which works out to approximately $0.80 per complete application package. For context: replacing 100 manual applications (at 45 minutes each) with Karko AI saves roughly 75 hours of work per month.',
+    a: 'The Max plan at $79.99/month gives 100 applications, which works out to approximately $0.80 per full application. For context: one tailored application takes roughly an hour by hand. Karko does it in 90 seconds, roughly 40x faster. On Max, 100 applications a month is close to 100 hours of manual work returned to you.',
   },
 ];
 
@@ -143,7 +143,7 @@ export default function PricingCreditsPage() {
             </ScrollReveal>
             <ScrollReveal delay={300}>
               <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed">
-                Karko AI uses a credit-based pricing model: each complete application package costs 2
+                Karko AI uses a credit-based pricing model: each full application costs 2
                 credits. The Free plan gives 4 credits (2 applications) free. The Plus plan
                 ($19.99/month) gives 50 credits (25 applications). The Max plan ($79.99/month) gives
                 200 credits (100 applications). All tiers generate the same four documents with no
@@ -220,14 +220,14 @@ export default function PricingCreditsPage() {
               </h2>
             </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
-              The fair comparison metric is cost per complete application package, not cost per
-              month. Plus plan: $19.99 ÷ 25 applications = ~$0.80 per complete application package
+              The fair comparison metric is cost per full application, not cost per
+              month. Plus plan: $19.99 ÷ 25 applications = ~$0.80 per full application
               (CV + cover letter + 2 emails). Max plan: $79.99 ÷ 100 applications = ~$0.80 per
-              application package.
+              full application.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              Compare this to the time cost of manual applications: at 45 to 60 minutes each, 25
-              applications is 18 to 25 hours of manual work.
+              Compare this to the time cost of manual applications: roughly an hour each, 25
+              applications is around 25 hours of manual work.
             </p>
           </div>
         </section>
@@ -264,7 +264,7 @@ export default function PricingCreditsPage() {
             <p className="text-charcoal leading-relaxed mb-4">
               Transparent credit counting makes cost predictable. Unlike tools that charge per
               &quot;AI interaction&quot; or have opaque token-based billing, Karko AI charges per
-              complete application package. One job description generates one complete set of four
+              full application. One job description generates one complete set of four
               documents for 2 credits.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">

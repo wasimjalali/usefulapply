@@ -10,9 +10,9 @@ const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
-    title: 'AI Cover Letter Generator — Personalized in 90 Seconds',
+    title: 'AI Cover Letter Generator, Tailored in 90 Seconds',
     description:
-      'Generate personalized, ATS-optimized cover letters with AI. No templates, no fabrication. Customized cover letters increase callbacks by 50%. Try free.',
+      'Generate a tailored, ATS-optimized cover letter with AI. Built from your real CV, grounded in the specific role. No templates, no fabrication. Try free.',
     canonical: '/ai-job-application/cover-letter-generator',
   });
 }
@@ -20,11 +20,11 @@ export async function generateMetadata(): Promise<Metadata> {
 const faqs = [
   {
     q: 'How does an AI cover letter generator work?',
-    a: "An AI cover letter generator analyzes the job description, extracts key requirements, maps them to your CV experience, and writes a personalized cover letter that explains your fit. Karko AI generates cover letters in 90 seconds as part of a complete application package (CV, cover letter, application email, follow-up email).",
+    a: "An AI cover letter generator analyzes the job description, extracts key requirements, maps them to your CV experience, and writes a personalized cover letter that explains your fit. Karko AI generates cover letters in 90 seconds as part of a full application (CV, cover letter, application email, follow-up email).",
   },
   {
     q: 'Are AI-generated cover letters better than templates?',
-    a: 'Yes. Templates are generic and easily recognized by hiring managers. AI-generated cover letters are personalized to the specific job description and your experience, referencing exact requirements and achievements. Research shows customized cover letters increase callback rates by over 50% compared to generic templates.',
+    a: 'Yes. Templates are generic and easily recognized by hiring managers. AI-generated cover letters are tailored to the specific job description and your experience, referencing exact requirements and achievements. A letter that reads as written for this role beats one that could have been sent to any company.',
   },
   {
     q: 'Will the AI fabricate experience I don\'t have?',
@@ -77,9 +77,9 @@ export default function CoverLetterGeneratorPage() {
   const articleJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
-    headline: 'AI Cover Letter Generator: Personalized in 90 Seconds, No Templates',
+    headline: 'AI Cover Letter Generator: Tailored in 90 Seconds, No Templates',
     description:
-      'Learn how Karko AI generates personalized, ATS-optimized cover letters without fabrication. Customized cover letters increase callbacks by 50%.',
+      'How Karko AI generates a tailored, ATS-optimized cover letter from your real CV. No fabrication, no generic templates, every word traces back to your experience.',
     author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
     publisher: {
       '@type': 'Organization',
@@ -180,11 +180,11 @@ export default function CoverLetterGeneratorPage() {
               any effort.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              Research shows that <strong>customized cover letters increase callback rates by
-              over 50% compared to generic templates.</strong> The difference isn&apos;t length
-              or writing quality. It&apos;s relevance. A personalized cover letter references
-              specific job requirements, your specific achievements, and the specific company
-              context. A template does none of that.
+              <strong>A cover letter that reads as written for this role beats one that could
+              have been sent to any company.</strong> The difference isn&apos;t length or writing
+              quality. It&apos;s relevance. A tailored cover letter references specific job
+              requirements, your specific achievements, and the specific company context. A
+              template does none of that.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
               The problem is that writing a personalized cover letter manually takes 15 to 20
@@ -211,7 +211,7 @@ export default function CoverLetterGeneratorPage() {
               letter that explains your fit using natural language and professional tone.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              <strong>Karko AI generates cover letters as part of a complete application
+              <strong>Karko AI generates cover letters as part of a full application
               package:</strong> tailored CV, cover letter, application email, and follow-up
               email. All four documents reference the same job description and draw from the same
               verified source (your Master CV), so they&apos;re consistent in tone, claims, and
@@ -316,15 +316,16 @@ export default function CoverLetterGeneratorPage() {
               jobs to get results.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              <strong>Karko AI reduces that 33 hours to 2.5 hours.</strong> Same quality. 95%
-              faster. This isn&apos;t just about speed. It&apos;s about unlocking the volume +
-              quality strategy that works: apply to every relevant role with a personalized cover
-              letter, not just the handful you have time to hand-write.
+              <strong>Karko does it in 90 seconds per role.</strong> Same quality as a hand-written
+              letter, 40 times faster. That unlocks the real win: apply to every relevant role with
+              a cover letter that is actually tailored, not just the handful you have time to write
+              by hand.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              Customized cover letters get 50% more callbacks than generic ones. That&apos;s the
-              difference between 4 interviews out of 100 applications and 6 interviews. Over a
-              3-month job search, that&apos;s the difference between 1 offer and 2 or 3 offers.
+              A cover letter that reads as written for this role is the difference between "same as
+              everyone else" and "a reason to read the CV." The specifics do the lifting. Your real
+              achievements, the role&apos;s real requirements, the company&apos;s real context.
+              Nothing invented.
             </p>
           </div>
         </section>

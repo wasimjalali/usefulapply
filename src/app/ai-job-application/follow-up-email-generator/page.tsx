@@ -10,9 +10,9 @@ const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
-    title: 'AI Follow-Up Email Generator — Increase Callbacks by 40%',
+    title: 'AI Follow-Up Email Generator for Job Applications',
     description:
-      'Generate professional follow-up emails after job applications with AI. Research shows follow-ups increase response rates by 40%. Try free.',
+      'Most candidates never follow up. Karko drafts a professional follow-up email for 7 to 10 days after applying, built from your real CV. Try free.',
     canonical: '/ai-job-application/follow-up-email-generator',
   });
 }
@@ -24,7 +24,7 @@ const faqs = [
   },
   {
     q: 'Do follow-up emails actually work?',
-    a: 'Yes. A 2023 TopResume study found that sending a follow-up email increases your chances of getting a response by 40%. Your application may have been lost in the recruiter\'s inbox (they receive 250+ applications per role on average). A follow-up brings you back to the top of the pile and signals genuine interest.',
+    a: 'Most candidates never follow up. That alone puts you ahead of the pile. Your application may have been lost in the recruiter\'s inbox (they receive 250+ applications per role on average). A polite follow-up 7 to 10 days after applying brings you back to the top and signals genuine interest. It does not guarantee a reply, but it genuinely moves the needle.',
   },
   {
     q: 'What should I include in a follow-up email?',
@@ -32,7 +32,7 @@ const faqs = [
   },
   {
     q: 'How does an AI follow-up email generator work?',
-    a: 'Karko AI generates a follow-up email as part of the complete application package (CV, cover letter, application email, follow-up email). It references the role, application date, and your top relevant achievement from your Master CV, using professional tone with no filler. You get the follow-up email upfront, so when day 7 to 10 rolls around, you already have it ready to send.',
+    a: 'Karko AI generates a follow-up email as part of the full application (CV, cover letter, application email, follow-up email). It references the role, application date, and your top relevant achievement from your Master CV, using professional tone with no filler. You get the follow-up email upfront, so when day 7 to 10 rolls around, you already have it ready to send.',
   },
   {
     q: 'How many follow-ups should I send?',
@@ -77,9 +77,9 @@ export default function FollowUpEmailGeneratorPage() {
   const articleJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
-    headline: 'AI Follow-Up Email Generator: Increase Response Rates by 40%',
+    headline: 'AI Follow-Up Email Generator for Job Applications',
     description:
-      'Learn how Karko AI generates professional follow-up emails after job applications. Follow-ups increase callbacks by 40%. Get yours in 90 seconds.',
+      'How Karko AI drafts a professional follow-up email after you apply. Built from your real CV, ready for 7 to 10 days after submission. Get it in 90 seconds.',
     author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
     publisher: {
       '@type': 'Organization',
@@ -138,16 +138,14 @@ export default function FollowUpEmailGeneratorPage() {
             </ScrollReveal>
             <ScrollReveal delay={150}>
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-navy-600 mb-6 leading-tight">
-                AI Follow-Up Email Generator: Increase Response Rates by 40%
+                AI Follow-Up Email Generator for Job Applications
               </h1>
             </ScrollReveal>
             <ScrollReveal delay={300}>
               <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed">
-                Following up after a job application increases your chances of getting a response
-                by 40%. But most job seekers either skip the follow-up entirely or don&apos;t
-                know what to write. Karko AI generates a professional follow-up email as part of
-                your application package, so when day 7 to 10 rolls around, you already have it
-                ready to send.
+                Most candidates never follow up. The ones who do stand out. Karko drafts a
+                professional follow-up email as part of your full application, grounded in your
+                real CV, so when day 7 to 10 rolls around, you already have it ready to send.
               </p>
             </ScrollReveal>
             <ScrollReveal delay={450}>
@@ -168,24 +166,21 @@ export default function FollowUpEmailGeneratorPage() {
         <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
           <div className="max-w-5xl mx-auto">
             <ScrollReveal>
-              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">The Data</p>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Why it works</p>
               <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
                 Why Follow-Up Emails Actually Work
               </h2>
             </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
-              <strong>A 2023 TopResume study found that sending a follow-up email increases your
-              chances of getting a response by 40%.</strong> That&apos;s not a marginal edge.
-              That&apos;s the difference between 2 interviews out of 100 applications and 3 or 4
-              interviews.
+              <strong>Most candidates never follow up.</strong> That alone puts the ones who do
+              ahead of the pile. No magic, just patience and a polite nudge at the right time.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              Here&apos;s why it works: Recruiters receive 250+ applications per open role on
-              average. Even if your CV is perfect, it might have been skimmed in 6 seconds during
-              a Monday morning inbox triage. <strong>A follow-up brings you back to the top of
-              the pile.</strong> It also signals genuine interest. Most candidates mass-apply and
-              move on. A thoughtful follow-up tells the hiring manager you actually care about
-              this specific role.
+              Recruiters receive 250+ applications per open role on average. Even if your CV is
+              strong, it might have been skimmed in 6 seconds during a Monday morning inbox
+              triage. <strong>A follow-up brings you back to the top.</strong> It also signals
+              genuine interest. Most candidates mass-apply and move on. A thoughtful follow-up
+              tells the hiring manager you actually care about this specific role.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
               Timing is critical. If you follow up at the right moment (we&apos;ll cover when
@@ -371,13 +366,13 @@ export default function FollowUpEmailGeneratorPage() {
           </div>
         </section>
 
-        {/* H2: The 40% Edge */}
+        {/* H2: The Edge */}
         <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
           <div className="max-w-5xl mx-auto">
             <ScrollReveal>
               <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">The Advantage</p>
               <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
-                The 40% Edge: Follow-Ups Win Interviews
+                Most candidates never follow up. The ones who do stand out.
               </h2>
             </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
@@ -385,18 +380,14 @@ export default function FollowUpEmailGeneratorPage() {
               qualified candidates. Most of them submit an application and never follow up.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              <strong>A follow-up email is a 40% increase in response rate.</strong> That&apos;s
-              massive. That&apos;s the difference between 2 interviews out of 100 applications
-              and 3 or 4 interviews. Over time, that compounds.
-            </p>
-            <p className="text-charcoal leading-relaxed mb-4">
               The candidates who get hired aren&apos;t always the most qualified. They&apos;re
               the ones who stayed visible, followed up at the right time, and made it easy for
               hiring managers to say yes.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              With Karko AI, you get the follow-up email upfront. No procrastination. No
-              overthinking. Just send it when the time is right.
+              With Karko, you get the follow-up email upfront, drafted from your real CV and
+              ready for 7 to 10 days after you applied. No procrastination, no blank-page panic.
+              Review it, send it when the time is right.
             </p>
           </div>
         </section>

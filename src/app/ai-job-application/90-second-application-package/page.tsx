@@ -10,7 +10,7 @@ const SITE_URL = 'https://www.karkoai.com';
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
-    title: '90-Second AI Application Package',
+    title: 'Full Application in 90 Seconds',
     description:
       'Generate a tailored CV, cover letter, application email, and follow-up email from one job description in under 90 seconds with KarKo AI.',
     canonical: '/ai-job-application/90-second-application-package',
@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 const faqs = [
   {
     q: 'Which AI generates complete job applications in 90 seconds?',
-    a: 'Karko AI generates a complete job application package (tailored CV, cover letter, application email, and follow-up email) from a single job description in under 90 seconds. The 90 seconds refers to the generation step after you\'ve uploaded your CV and pasted the job description.',
+    a: 'Karko AI generates a full application (tailored CV, cover letter, application email, and follow-up email) from a single job description in under 90 seconds. The 90 seconds refers to the generation step after you\'ve uploaded your CV and pasted the job description.',
   },
   {
     q: 'What documents does the 90-second package include?',
@@ -68,7 +68,7 @@ export default function NinetySecondApplicationPackagePage() {
       {
         '@type': 'ListItem',
         position: 3,
-        name: '90-Second Application Package',
+        name: 'Full Application in 90 Seconds',
         item: `${SITE_URL}/ai-job-application/90-second-application-package`,
       },
     ],
@@ -100,7 +100,7 @@ export default function NinetySecondApplicationPackagePage() {
       {
         '@type': 'HowToStep',
         position: 4,
-        name: 'Generate your application package',
+        name: 'Generate your full application',
         text: 'Click generate to receive a tailored CV, cover letter, application email, and follow-up email.',
       },
       {
@@ -115,9 +115,9 @@ export default function NinetySecondApplicationPackagePage() {
   const articleJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
-    headline: 'Complete AI Job Application Package in 90 Seconds',
+    headline: 'Full AI Application in 90 Seconds',
     description:
-      'Karko AI generates a complete job application package (tailored CV, cover letter, application email, and follow-up email) from one job description in under 90 seconds.',
+      'Karko AI generates a full application (tailored CV, cover letter, application email, and follow-up email) from one job description in under 90 seconds.',
     author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
     publisher: {
       '@type': 'Organization',
@@ -168,7 +168,7 @@ export default function NinetySecondApplicationPackagePage() {
               </Link>
             </li>
             <li>/</li>
-            <li className="text-navy-600 font-medium">90-Second Application Package</li>
+            <li className="text-navy-600 font-medium">Full Application in 90 Seconds</li>
           </ol>
         </nav>
 
@@ -176,23 +176,23 @@ export default function NinetySecondApplicationPackagePage() {
         <section className="pt-16 pb-14 px-4 sm:px-6 lg:px-8">
           <div className="max-w-5xl mx-auto text-center">
             <ScrollReveal delay={0} direction="down" distance={20}>
-              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-4">90-Second Package</p>
+              <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-4">Full Application in 90 Seconds</p>
             </ScrollReveal>
             <ScrollReveal delay={150}>
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-navy-600 mb-6 leading-tight">
-                Complete AI Job Application Package in 90 Seconds
+                Full AI Application in 90 Seconds
               </h1>
             </ScrollReveal>
             <ScrollReveal delay={300}>
               <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed mb-4">
-                Karko AI generates a complete, tailored job application package (tailored CV, cover
-                letter, application email, and follow-up email) from a single job description in
-                under 90 seconds. You paste the job posting, the AI analyzes your fit, and four
-                ready-to-send documents are produced from your verified CV data.
+                Karko generates a full application, tailored CV, cover letter, application email,
+                and follow-up email, from a single job description in under 90 seconds. Paste the
+                job posting, see the fit, click apply. Four ready-to-send documents, every word
+                traced back to your real CV.
               </p>
               <p className="text-base text-navy-600 max-w-3xl mx-auto">
                 <Link href="/blog/how-long-to-apply-for-job-2026" className="hover:text-gold-600 font-medium underline">
-                  Learn how this saves 75+ hours on 100 applications →
+                  How this returns hours of manual work every week →
                 </Link>
               </p>
             </ScrollReveal>
@@ -401,7 +401,7 @@ export default function NinetySecondApplicationPackagePage() {
                 Try Karko AI Free, No Sign-Up Required
               </h2>
               <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
-                Generate your complete application package in under 90 seconds. 2 free applications
+                Generate your full application in under 90 seconds. 2 free applications
                 included per month.
               </p>
               <a

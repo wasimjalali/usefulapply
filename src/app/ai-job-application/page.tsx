@@ -19,11 +19,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const pillars = [
   {
-    title: '90-Second AI Application Package',
+    title: 'Full Application in 90 Seconds',
     description:
       'One job description in, four tailored documents out: CV, cover letter, application email, and follow-up email, all in under 90 seconds.',
     href: '/ai-job-application/90-second-application-package',
-    linkText: '90-second AI application package →',
+    linkText: 'full application in 90 seconds →',
   },
   {
     title: 'Free Test, No Sign-Up Required',
@@ -70,14 +70,14 @@ const pillars = [
   {
     title: 'AI Cover Letter Generator',
     description:
-      'Generate personalized, ATS-optimized cover letters in 90 seconds. No templates, no fabrication. Customized cover letters get 50% more callbacks.',
+      'Generate a tailored, ATS-optimized cover letter in 90 seconds. Built from your real CV, grounded in the specific role. No templates, no fabrication.',
     href: '/ai-job-application/cover-letter-generator',
     linkText: 'AI cover letter generator →',
   },
   {
     title: 'Follow-Up Email Generator',
     description:
-      'Follow-ups increase response rates by 40%. Generate professional follow-up emails as part of your application package.',
+      'Most candidates never follow up. Karko drafts a professional follow-up email for 7 to 10 days after applying, built from your real CV.',
     href: '/ai-job-application/follow-up-email-generator',
     linkText: 'Follow-up email generator →',
   },
@@ -93,7 +93,7 @@ const pillars = [
 const faqs = [
   {
     q: 'What does "AI job application" actually mean?',
-    a: 'It means using an AI tool to generate tailored application documents from a job description and your profile. The critical element is process: you need a reliable data source (a Master CV), verify the output for accuracy, and ensure the result is readable by ATS systems. AI replaces the 45 to 60 minutes of manual work per application, not your actual facts.',
+    a: 'It means using an AI tool to generate tailored application documents from a job description and your profile. The critical element is process: you need a reliable data source (your uploaded CV), verify the output for accuracy, and ensure the result is readable by ATS systems. AI replaces the hour of manual work per application, not your actual facts.',
   },
   {
     q: 'Is an AI-generated job application professional?',
@@ -105,7 +105,7 @@ const faqs = [
   },
   {
     q: "How do I prevent AI from making up experience I don't have?",
-    a: "Work from clean source data, a Master CV that contains only verified facts, and check every generated claim before sending. Karko AI's anti-hallucination system traces every output back to your uploaded CV and refuses to invent skills, metrics, or roles that aren't documented there.",
+    a: "Work from clean source data, a CV that contains only verified facts, and check every generated claim before sending. Karko AI traces every output back to your uploaded CV and refuses to invent skills, metrics, or roles that aren't documented there. Never a word you didn't earn.",
   },
   {
     q: 'What does ATS optimization actually mean?',
@@ -113,7 +113,7 @@ const faqs = [
   },
   {
     q: 'What documents does Karko AI generate?',
-    a: "A complete package: tailored CV, cover letter, application email, and follow-up email. All four reference the same job description and draw from the same source data, so they're consistent in tone, claims, and emphasis.",
+    a: "A full application: tailored CV, cover letter, application email, and follow-up email. On Plus and Max, screening question answers as well. All reference the same job description and draw from your real CV, so they're consistent in tone, claims, and emphasis.",
   },
   {
     q: 'Does it work for jobs outside Germany?',
@@ -228,10 +228,10 @@ export default function AIJobApplicationHub() {
             </ScrollReveal>
             <ScrollReveal delay={300}>
               <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed">
-                An AI job application tool takes a single job description and generates a complete,
-                personalized application package (tailored CV, cover letter, application email, and
-                follow-up email) in under 90 seconds. The key to making it work is a reliable
-                process: clean source data, ATS-compatible output, and a final accuracy check.
+                An AI job application agent takes a single job description and generates a full
+                application, tailored CV, cover letter, application email, and follow-up email, in
+                under 90 seconds. The key to making it work is a reliable process: your real CV as
+                the source of truth, ATS-compatible output, and a final review before you send.
               </p>
             </ScrollReveal>
           </div>
@@ -397,7 +397,7 @@ export default function AIJobApplicationHub() {
                 Ready to Try AI Job Applications?
               </h2>
               <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
-                Generate a complete, tailored application package in under 90 seconds. Free tier
+                Generate a full application in under 90 seconds. Free tier
                 includes 2 applications free, no sign-up required.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

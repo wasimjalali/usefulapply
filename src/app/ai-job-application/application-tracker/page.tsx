@@ -273,7 +273,7 @@ export default function ApplicationTrackerPage() {
               don&apos;t have to manually log anything. The tracker is built into the workflow.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              When you generate an application package (CV, cover letter, email, follow-up), Karko
+              When you generate an full application (CV, cover letter, email, follow-up), Karko
               AI records:
             </p>
             <ul className="list-disc list-inside space-y-2 text-charcoal mb-4 pl-4">

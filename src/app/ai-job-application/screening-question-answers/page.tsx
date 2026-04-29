@@ -206,7 +206,7 @@ export default function ScreeningQuestionAnswersPage() {
               </h2>
             </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-6">
-              After Karko AI generates your application package (CV, cover letter, emails), a
+              After Karko AI generates your full application (CV, cover letter, emails), a
               &quot;Screening Questions&quot; button appears in the chat. Click it, paste your
               questions, and receive formatted answers ready to copy into any ATS portal.
             </p>
@@ -215,7 +215,7 @@ export default function ScreeningQuestionAnswersPage() {
                 {
                   step: '01',
                   title: 'Generate Your Application',
-                  description: 'Upload your CV, paste the job description, and generate your full application package as usual.',
+                  description: 'Upload your CV, paste the job description, and generate your full application as usual.',
                 },
                 {
                   step: '02',
