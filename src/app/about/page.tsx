@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, Users, Target, Heart, Zap, Sparkles, Shield, Globe } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
@@ -8,9 +9,9 @@ import { CountUp } from '@/components/marketing/CountUp';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = buildPageMetadata({
-  title: 'About Karko AI: The Only AI That Writes Application Emails',
+  title: 'About Karko AI: The AI Job Application Agent Built by a Job Seeker',
   description:
-    'Built by job seekers, for job seekers. Karko AI generates complete applications: CV, cover letter, email, and follow-up — all in one pass. Powered by Claude Sonnet 4.6.',
+    'Karko AI is the AI job application agent that replaces the seven tools job seekers stitch together. Find roles, check fit, write the full application, track everything. Built by a founder who got 5 interviews from 50+ applications using it.',
   canonical: '/about',
 });
 
@@ -32,7 +33,7 @@ export default function AboutPage() {
           </ScrollReveal>
           <ScrollReveal delay={300}>
           <p className="text-xl text-warm-gray max-w-2xl mx-auto leading-relaxed">
-            KarKo AI was born from a simple frustration: talented people spending hours on applications that go nowhere. We built an agentic AI system that does the work for you, so you can focus on what matters.
+            Karko AI is the AI job application agent that replaces the seven tools job seekers stitch together. Find the role, check the fit, write the full application, track everything. One app, one loop. Every word traces back to your real CV.
           </p>
           </ScrollReveal>
         </div>
@@ -46,7 +47,7 @@ export default function AboutPage() {
             <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Our Difference</p>
             <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-4">Why Karko AI exists.</h2>
             <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-              Most job tools solve one piece of the puzzle. We built an end-to-end system that handles the entire application process.
+              Most job tools solve one piece of the puzzle. Karko collapses the seven tools you use today (job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, tracker) into one loop.
             </p>
           </div>
           </ScrollReveal>
@@ -55,22 +56,22 @@ export default function AboutPage() {
               {
                 icon: Sparkles,
                 title: 'One Agent, One Loop',
-                description: 'Other tools help you format a resume. Karko is the AI job application agent that replaces the seven tools job seekers use today: find the role, check the fit, write the full application, track it. One loop.',
+                description: 'Other tools help you format a resume. Karko is the AI job application agent that replaces the seven tools job seekers use today: find the role, check the fit, write the full application, track it. One app, one loop.',
+              },
+              {
+                icon: Shield,
+                title: 'Never a Word You Did Not Earn',
+                description: 'Every CV rewrite, cover letter, email, and screening answer traces back to your real CV. Karko will not invent job titles, skills, or experience you do not have. This is the architectural rule the product refuses to break.',
               },
               {
                 icon: Target,
-                title: 'Personalization at Scale',
-                description: 'Every document is tailored to the specific job and company. We do not believe in generic templates. We believe in applications that make recruiters stop and read.',
+                title: 'Tailored to This Exact Role',
+                description: 'No generic templates. Every document is tailored to the specific role and company, pulled from your real experience. Applications that make recruiters stop and read.',
               },
               {
                 icon: Globe,
                 title: 'Built for Global Job Seekers',
-                description: 'Professional templates for US and EU markets. German Lebenslauf, US ATS-optimized formats, and region-appropriate cover letters, all built in.',
-              },
-              {
-                icon: Shield,
-                title: 'ATS-First Design',
-                description: 'Every template is engineered to pass Applicant Tracking Systems. Your application gets seen by humans, not filtered out by software.',
+                description: 'Professional templates for US and EU markets. German Lebenslauf, US ATS-optimized formats, and region-appropriate cover letters, all built in. All six templates pass ATS by default.',
               },
             ].map((value, i) => {
               const Icon = value.icon;
@@ -139,15 +140,55 @@ export default function AboutPage() {
         </div>
       </section>
 
+      {/* Founder Story */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-cream-50">
+        <div className="max-w-5xl mx-auto">
+          <ScrollReveal>
+          <div className="grid md:grid-cols-[240px_1fr] gap-10 md:gap-14 items-start">
+            <div className="flex flex-col items-center md:items-start">
+              <div className="w-[200px] h-[200px] md:w-[240px] md:h-[240px] rounded-2xl overflow-hidden border border-cream-200 shadow-sm">
+                <Image
+                  src="/wasim-founder.jpg"
+                  alt="Wasim Jalali, Founder of Karko AI"
+                  width={240}
+                  height={240}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <p className="mt-5 italic text-charcoal text-2xl leading-none">Wasim Jalali</p>
+              <p className="mt-1 text-sm text-warm-gray">Founder, Karko AI</p>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">
+                Founder&apos;s story
+              </p>
+              <h2 className="font-bold text-navy-600 text-[28px] md:text-[32px] leading-[1.15] mb-6">
+                The tool I wished I had.
+              </h2>
+              <div className="border-l-2 border-gold-400 pl-6 space-y-4">
+                <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
+                  I ran out of money building a startup in Germany. No savings, no degree to fall back on. Generic applications got me zero interviews. Tailoring each one by hand took 45 to 60 minutes, and it still was not working.
+                </p>
+                <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
+                  So I built Karko to do the whole workflow automatically. Over 50 applications, I got 5 interviews. That is roughly 10 percent, against an industry baseline of 2 to 3 percent. First-time job seeker, no formal background. That is when I knew every job seeker needed this.
+                </p>
+              </div>
+            </div>
+          </div>
+          </ScrollReveal>
+        </div>
+      </section>
+
       {/* Stats */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-navy-600">
         <div className="max-w-6xl mx-auto">
           <div className="grid sm:grid-cols-4 gap-8 text-center">
             {[
-              { value: '45-60 min', label: 'Saved Per Application' },
-              { value: '<90 sec', label: 'To Generate Full Package' },
-              { value: '3-in-1', label: 'CV + Cover Letter + Email' },
-              { value: '100%', label: 'ATS-Optimized Output' },
+              { value: '7 → 1', label: 'Tools Collapsed Into One App' },
+              { value: '90 sec', label: 'To Write Your Full Application' },
+              { value: '40x', label: 'Faster Than Writing By Hand' },
+              { value: '25 / day', label: 'Roles Picked For You (Max)' },
             ].map((stat, i) => (
               <ScrollReveal key={i} delay={i * 150}>
               <div>
@@ -169,7 +210,7 @@ export default function AboutPage() {
             Your next interview is <span className="text-gold-400">90 seconds away.</span>
           </h2>
           <p className="text-[17px] text-navy-100 mb-9 max-w-xl mx-auto leading-relaxed">
-            Start with 2 free applications. No credit card required.
+            Upload your CV. Pick a role from your feed. Send your first full application before your coffee gets cold.
           </p>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             <Link

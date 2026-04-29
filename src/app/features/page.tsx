@@ -44,7 +44,7 @@ const features = [
     ],
     cost: 'Included with Plus and Max',
     link: '/dashboard',
-    linkText: 'Try the Job Feed',
+    linkText: 'Try the Smart Job Feed',
     image: '/images/features/smart-job-feed.jpg',
   },
   {

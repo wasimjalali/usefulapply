@@ -392,6 +392,19 @@ Reference snapshot so future sessions know what's already been aligned and what 
 ### Intentionally kept as-is
 - **"Application Kit" as a dashboard panel label** — this is the internal workspace name logged-in users navigate to. Changing it would break muscle memory. Kept in `src/app/dashboard/page.tsx` (aria-labels, titles, display text), `src/store/useUIStore.ts` (code comment), `src/components/chat/useAgentWorkflow.ts:764` (chat message that refers users to the panel). Do not change these without a product decision.
 - **`/master-cv` page** — intentionally kept as "Master CV Guide", a separate concept from the Primary CV (what users upload to send to employers). The positioning doc's §15 terminology note explains the split.
+- **"Job Feed" as the in-dashboard tab label** — the dashboard tab says "Job Feed" (short, scannable). Marketing surfaces say "Smart Job Feed" (brand). Both refer to the same feature. Do not rename the dashboard tab — long labels crowd the top nav and hurt scannability. Industry convention: Stripe "Payments," LinkedIn "Jobs," Spotify "Playlists" — short internal names, descriptive marketing names. Keep both.
+
+### Terminology: "Smart Job Feed" vs "job-feed" in code
+
+When you see `job-feed`, `jobFeed`, `JobFeed`, `job_feed` in the codebase (52 files: API routes at `/api/job-feed/*`, Inngest workers in `src/inngest/job-feed.ts`, lib modules in `src/lib/job-feed/`, components in `src/components/job-feed/`, DB tables `job_feed_runs` / `job_feed_saved` / `job_feed_settings`), **this is the same feature as "Smart Job Feed" on marketing surfaces.**
+
+- **Internal / code name:** `job-feed` (short, lowercase, hyphenated per Next.js + Supabase conventions)
+- **User-facing / marketing name:** "Smart Job Feed"
+- **Dashboard tab label:** "Job Feed" (short for navigation scannability)
+
+Do NOT rename the code to `smart-job-feed`. The rename would touch 52 files including database tables, API routes, Inngest event names, and component imports. The risk-to-reward is terrible: zero user benefit (users never see the code), high risk of breaking live daily-running infrastructure and in-flight data. Keep them separate.
+
+If a future session sees `job-feed` in code, it is Smart Job Feed. That is the convention.
 
 ### No longer in scope
 - Legacy in-app onboarding tour: already removed from the codebase. Zero tour libraries (no react-joyride, driver.js, shepherd, etc.) and no tour components. Replaced by the walkthrough video (`Karko_AI_Video_Scripts_v4.html` on founder's desktop).
