@@ -364,7 +364,11 @@ export default function Home() {
               <div className="h-[22px]" />
               <p className="text-sm font-semibold text-navy-600">Free</p>
               <p className="text-[22px] font-bold text-charcoal mt-1">$0 / month</p>
-              <p className="text-[15px] text-warm-gray mt-2 mb-5 flex-1">2 applications / month. Save ~2 hrs.</p>
+              <ul className="mt-3 mb-5 flex-1 space-y-1.5 text-[14px] text-charcoal">
+                <li className="font-semibold">4 credits per month</li>
+                <li className="text-warm-gray">2 full applications</li>
+                <li className="text-warm-gray">Save ~2 hrs a month</li>
+              </ul>
               <Link
                 href="/dashboard"
                 className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg border border-navy-300 bg-white hover:bg-navy-50 hover:border-navy-400 hover:shadow-md text-navy-600 font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5 group"
@@ -382,7 +386,11 @@ export default function Home() {
               </div>
               <p className="text-sm font-semibold text-navy-600">Plus</p>
               <p className="text-[22px] font-bold text-charcoal mt-1">$19.99<span className="text-sm font-normal text-warm-gray"> / month</span></p>
-              <p className="text-[15px] text-warm-gray mt-2 mb-5 flex-1">25 applications / month. Save ~18 hrs.</p>
+              <ul className="mt-3 mb-5 flex-1 space-y-1.5 text-[14px] text-charcoal">
+                <li className="font-semibold">50 credits per month</li>
+                <li className="text-warm-gray">25 full applications</li>
+                <li className="text-warm-gray">Save ~18 hrs a month</li>
+              </ul>
               <PlusPlanButton />
             </div>
             </ScrollReveal>
@@ -393,7 +401,11 @@ export default function Home() {
               <div className="h-[22px]" />
               <p className="text-sm font-semibold text-navy-300">Max</p>
               <p className="text-[22px] font-bold text-white mt-1">$79.99<span className="text-sm font-normal text-navy-300"> / month</span></p>
-              <p className="text-[15px] text-navy-300 mt-2 mb-5 flex-1">100 applications / month. Save ~108 hrs.</p>
+              <ul className="mt-3 mb-5 flex-1 space-y-1.5 text-[14px] text-navy-100">
+                <li className="font-semibold text-white">200 credits per month</li>
+                <li className="text-navy-300">100 full applications</li>
+                <li className="text-navy-300">Save ~108 hrs a month</li>
+              </ul>
               <MaxPlanButton />
             </div>
             </ScrollReveal>

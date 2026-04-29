@@ -372,20 +372,35 @@ Reference snapshot so future sessions know what's already been aligned and what 
 - Homepage "How It Works" section (seven-tool framing, tightened step copy)
 - Homepage founder story (real numbers)
 - Homepage Platform scroll stack (three panels: feed, full application, tracker)
-- Homepage pricing teaser and final CTA
-- Pricing page hero, tier taglines, FAQ, final CTA
-- **Features page** (`/features`) — hero, full feature grid (reordered to real user workflow, every fabricated stat removed), comparison table H2 + rows, FAQ (now "Why Karko is not..." framing), final CTA, metadata
-- **Pricing cards** — credits-as-first-item ordering (SaaS convention), parallel tier taglines, screening in Plus and Max
+- Homepage pricing teaser (tiles now lead with credits, match pricing page headline)
+- Pricing page hero, tier taglines, FAQ, final CTA, cards (credit badges under price removed; credits lead feature list)
+- **Features page** (`/features`) — hero, full feature grid (reordered to real user workflow, every fabricated stat removed, Master CV card renamed to Primary CV and re-linked to /dashboard), comparison table H2 + rows, FAQ (now "Why Karko is not..." framing), final CTA, metadata
 - **Time Savings Calculator** — single source of truth (40x faster stat, synced taglines, honest "an hour" disclaimer)
+- **Screening question answers on Plus + Max** (backend gate, UI, settings matrix, comparison data, SEO pages, blog, FEATURES.md — all aligned)
+- **Footer** — Master CV moved out of the prominent Product column into Resources as "Master CV Guide"
+- **`/compare/karko-ai-vs-teal`** — full rewrite with the new framing (headline, summary table, overview, features, use cases, FAQ, verdict, CTA). First of six comparison pages. **Five remaining still drift.**
 
 ### Probably still drifting
+- `/compare/karko-ai-vs-jobscan` (old framing)
+- `/compare/karko-ai-vs-rezi` (old framing)
+- `/compare/karko-ai-vs-kickresume` (old framing)
+- `/compare/karko-ai-vs-enhancv` (old framing)
+- `/compare/karko-ai-vs-resume-io` (old framing)
 - `/ai-job-application/*` SEO landing pages (individual feature pages, may still use old "application kit" language and fabricated stats)
-- `/compare/*` competitor comparison pages
 - `/blog/*` blog posts
-- `/master-cv/*` pages
+- `/master-cv` page (intentionally kept as "Master CV Guide", separate from the Primary CV concept in the product)
 - README.md (may not reflect current framing)
 - Onboarding flow inside the app
 - Empty states and tooltips across the dashboard
+
+### Terminology note (Primary CV vs Master CV)
+
+These are **two different concepts** in the product. Do not conflate them.
+
+- **Primary CV** = the 1-2 page CV the user uploads (or pastes) to send to employers. This is the source of truth every generated output traces back to. It is the "upload your CV" moment in every flow. On the features page, this is the first card.
+- **Master CV** = an optional, 5-10 page comprehensive inventory the user builds via the guide at `/master-cv`. It is a *reference* document for users whose real experience does not fit into a 1-2 page CV. Most users will not build one. The guide lives in the footer under Resources, not in the Product column.
+
+If copy anywhere treats them as the same thing, that is a bug. Primary CV is the core product concept. Master CV is an optional power-user reference tool.
 
 ### Stats to never use again
 These appeared on the features page and were removed because they cannot be defended:

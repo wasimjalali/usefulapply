@@ -226,7 +226,6 @@ export default function PricingPage() {
                     <span className="text-[40px] font-bold text-navy-600 leading-none">$0</span>
                     <span className="text-warm-gray text-sm">/ month</span>
                   </div>
-                  <span className="inline-block mt-2 text-[12px] font-semibold text-navy-600 bg-navy-50 border border-navy-100 rounded-full px-3 py-0.5">2 applications / month</span>
                 </div>
                 <div className="flex items-center gap-2 bg-navy-50 border border-navy-100 rounded-lg px-3 py-2 mb-5">
                   <Clock className="w-4 h-4 text-navy-500 flex-shrink-0" />
@@ -275,7 +274,6 @@ export default function PricingPage() {
                     <span className="text-[40px] font-bold text-navy-600 leading-none">$19.99</span>
                     <span className="text-warm-gray text-sm">/ month</span>
                   </div>
-                  <span className="inline-block mt-2 text-[12px] font-semibold text-gold-700 bg-gold-50 border border-gold-200 rounded-full px-3 py-0.5">25 applications / month</span>
                 </div>
                 <div className="flex items-center gap-2 bg-gold-50 border border-gold-200 rounded-lg px-3 py-2 mb-5">
                   <Clock className="w-4 h-4 text-gold-600 flex-shrink-0" />
@@ -323,7 +321,6 @@ export default function PricingPage() {
                     <span className="text-[40px] font-bold text-white leading-none">$79.99</span>
                     <span className="text-navy-300 text-sm">/ month</span>
                   </div>
-                  <span className="inline-block mt-2 text-[12px] font-semibold text-navy-200 bg-navy-700 border border-navy-600 rounded-full px-3 py-0.5">100 applications / month</span>
                 </div>
                 <div className="flex items-center gap-2 bg-navy-700 border border-navy-600 rounded-lg px-3 py-2 mb-5">
                   <Clock className="w-4 h-4 text-gold-400 flex-shrink-0" />

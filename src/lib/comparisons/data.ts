@@ -11,26 +11,27 @@ export const comparisons: ComparisonData[] = [
   // Karko AI vs Teal
   {
     slug: 'karko-ai-vs-teal',
-    title: 'Karko AI vs Teal: Which Resume Builder Wins in 2026?',
+    title: 'Karko AI vs Teal: One App for Your Job Search vs a Tracker (2026)',
     description:
-      'Teal tracks applications. Karko creates them. Compare features, pricing, and AI capabilities to find the right tool for your job search.',
-    h1: 'Karko AI vs Teal: Complete Applications vs Job Tracking (2026)',
+      'Teal tracks the jobs you find. Karko runs the whole loop: finds roles, checks fit, writes the full application, tracks it. Which tool fits your job search in 2026?',
+    h1: 'Karko AI vs Teal: One App for Everything vs a Tracker with Add-Ons',
     publishedAt: '2026-03-30',
     competitorName: 'Teal',
     competitorSlug: 'teal',
 
     // Summary table
     summaryTable: [
-      { feature: 'CV Generation', karkoValue: 'AI-tailored', competitorValue: 'Basic templates' },
-      { feature: 'Cover Letter', karkoValue: 'Personalized', competitorValue: 'Generic' },
-      { feature: 'Application Email', karkoValue: true, competitorValue: false, karkoWins: true },
-      { feature: 'Follow-Up Email', karkoValue: true, competitorValue: false, karkoWins: true },
-      { feature: 'Job Tracking', karkoValue: true, competitorValue: 'Strong' },
-      { feature: 'Smart Job Feed', karkoValue: true, competitorValue: false, karkoWins: true },
-      { feature: 'Fit Analysis', karkoValue: true, competitorValue: false, karkoWins: true },
-      { feature: 'Pricing', karkoValue: '$19.99-79.99/mo', competitorValue: 'Freemium (hidden)' },
-      { feature: 'AI Model', karkoValue: 'Claude Sonnet 4.6', competitorValue: 'Generic AI' },
-      { feature: 'Best For', karkoValue: 'Winning applications', competitorValue: 'Organizing search' },
+      { feature: 'Job discovery', karkoValue: 'Smart Job Feed, up to 25/day', competitorValue: 'Chrome extension (you find them)' },
+      { feature: 'Fit analysis before applying', karkoValue: true, competitorValue: false, karkoWins: true },
+      { feature: 'Tailored CV per role', karkoValue: 'Rewritten from your real CV', competitorValue: 'Template-based builder' },
+      { feature: 'Cover letter', karkoValue: 'Tailored to role and company', competitorValue: 'Generic generator' },
+      { feature: 'Application email', karkoValue: true, competitorValue: false, karkoWins: true },
+      { feature: 'Follow-up email', karkoValue: true, competitorValue: false, karkoWins: true },
+      { feature: 'Screening question answers', karkoValue: 'Plus and Max', competitorValue: false, karkoWins: true },
+      { feature: 'Application tracker', karkoValue: 'Built in', competitorValue: 'Strong, the core product' },
+      { feature: 'Every output traces to your real CV', karkoValue: true, competitorValue: false, karkoWins: true },
+      { feature: 'Pricing', karkoValue: 'Free, $19.99, $79.99 / month', competitorValue: 'Free tier, paid pricing hidden' },
+      { feature: 'Best for', karkoValue: 'Running the full job search', competitorValue: 'Organizing a search you run elsewhere' },
     ],
 
     // Karko overview
@@ -38,39 +39,36 @@ export const comparisons: ComparisonData[] = [
       name: 'Karko AI',
       slug: 'karko-ai',
       description:
-        'AI-powered job application assistant that generates complete application packages: CV, cover letter, application email, and follow-up email in under 90 seconds.',
-      pricing: 'Free (2 apps), Plus $19.99/mo (25 apps), Max $79.99/mo (100 apps)',
+        'The AI job application agent that replaces the seven tools job seekers stitch together. Find roles, check the fit, generate the full application, and track everything in one loop. Every word traces back to your real CV.',
+      pricing: 'Free (2 applications), Plus $19.99/mo (25 applications), Max $79.99/mo (100 applications)',
       keyFeatures: [
-        'Fit analysis before generating materials',
-        'AI-tailored CV using Claude Sonnet 4.6',
-        'Personalized cover letters with company research',
-        'Application email generation (unique)',
-        'Follow-up email generation (unique)',
-        'ATS-optimized templates (6 professional designs)',
-        'Master CV system (upload once, use everywhere)',
-        'German market specialization (2 German templates)',
-        'Screening question answers for ATS portals (Plus and Max)',
-        'Smart Job Feed with daily hand-picked jobs (Plus/Max)',
-        'Built-in application tracker',
+        'Smart Job Feed: up to 25 hand-picked roles per day',
+        'Fit analysis before you spend credits (match score, strengths, gaps)',
+        'Tailored CV rewritten for each role from your real CV',
+        'ATS-optimized templates (6 designs, US and EU)',
+        'Tailored cover letter grounded in your real experience',
+        'Application email, ready to send',
+        'Follow-up email pre-drafted for 7-10 days later',
+        'Screening question answers with STAR structure (Plus and Max)',
+        'Application tracker with match score, status, date',
+        'Every word traces back to your real CV, nothing invented',
       ],
       pros: [
-        'Only tool that generates application + follow-up emails',
-        'Fit analysis helps focus on good matches',
-        'Smart Job Feed: hand-picked jobs delivered daily',
-        'Screening question answers for ATS portals (Plus and Max)',
-        'Latest AI (Claude Sonnet 4.6) for highest quality content',
-        'Complete application package in one workflow',
-        'Built-in application tracker',
-        'Transparent credit-based pricing',
-        'ATS-optimized by default (all templates)',
-        'German templates for EU market',
+        'One app for the whole workflow: search, fit, write, track',
+        'Every word traces to your real CV (no fabricated experience)',
+        'Fit analysis saves credits on bad-fit roles',
+        'Smart Job Feed removes hours of daily board-hopping',
+        'Screening answers solve "the part most people quit at"',
+        'ATS-optimized templates pass Workday, Greenhouse, Lever',
+        'Transparent pricing, no hidden tiers',
+        'German templates for the EU market',
       ],
       cons: [
-        'No Chrome extension for one-click job saving',
-        'Newer platform (less established than Teal)',
+        'No Chrome extension for saving jobs from other boards',
+        'Newer platform than Teal',
       ],
       bestFor:
-        'Job seekers who need high-quality, complete application packages with personalized emails. Ideal if you want to focus on quality applications rather than tracking dozens of spray-and-pray submissions.',
+        'Job seekers who want their entire job search in one app. If you are tired of juggling LinkedIn, Indeed, a resume builder, ChatGPT for cover letters and emails, and a spreadsheet on the side, Karko collapses all of that into one loop.',
       rating: 4.8,
       url: 'https://www.karkoai.com',
     },
@@ -80,36 +78,34 @@ export const comparisons: ComparisonData[] = [
       name: 'Teal',
       slug: 'teal',
       description:
-        'Job tracking and application management platform with resume builder and cover letter tools. Strong focus on organization and project management approach to job search.',
-      pricing: 'Freemium (free tier available, paid tier pricing not publicly disclosed)',
+        'A job tracking and application management platform. Teal sits on top of your existing job search with a Chrome extension that saves jobs from any board. It also has a resume builder and cover letter tool, but the tracker is the core product.',
+      pricing: 'Free tier available. Paid tier pricing not publicly listed.',
       keyFeatures: [
-        'Job tracker with Chrome extension',
-        'One-click job saving from any job board',
+        'Chrome extension for one-click job saving from any board',
+        'Job tracker with pipeline stages and reminders',
         'Resume builder with templates',
         'Cover letter generator',
-        'Profile reviews and feedback',
+        'Profile and resume reviews',
         'Job search dashboard',
-        'Application pipeline management',
       ],
       pros: [
-        'Excellent job tracking system',
-        'Chrome extension for seamless job saving',
-        'Project management approach keeps job search organized',
-        'Strong brand recognition (4.2/5 Trustpilot)',
-        'Free tier available',
-        'Comprehensive job search dashboard',
+        'Chrome extension is genuinely good for saving jobs',
+        'Strong tracker UI for pipeline management',
+        'Free tier covers the core tracking use case',
+        'Established brand and community',
       ],
       cons: [
-        'Limited AI sophistication (users report it removes valuable experience)',
-        'No application email generation',
-        'No follow-up email generation',
-        'No fit analysis before applying',
-        'Geographic limitations (some features US-only)',
-        'Hidden pricing for paid tiers',
-        'Generic AI (doesn\'t specify model)',
+        'No job discovery: you still have to hunt roles yourself',
+        'No application emails or follow-up emails',
+        'No fit analysis before writing',
+        'No screening question answers',
+        'Resume builder is template-based, not AI-tailored per role',
+        'Users report the AI strips out valuable experience',
+        'Paid pricing not disclosed on the site',
+        'US-centric: some features limited outside the US',
       ],
       bestFor:
-        'Job seekers who need strong organizational tools and want to track applications across multiple job boards. Best if you\'re applying to many jobs and need project management.',
+        'Job seekers who already have their own job-search workflow (LinkedIn + their own writing process) and just want a better tracker to organize it.',
       rating: 4.2,
       url: 'https://www.tealhq.com',
     },
@@ -117,182 +113,209 @@ export const comparisons: ComparisonData[] = [
     // Feature comparisons
     features: [
       {
-        title: 'Content Generation Quality',
+        title: 'What the tool actually does for you',
         description:
-          'The quality of AI-generated application materials determines whether your application stands out or gets ignored.',
+          'The biggest difference is not feature-by-feature. It is the shape of the product. One runs your whole job search. The other sits on top of it.',
         karkoDetails:
-          'Uses Claude Sonnet 4.6, the latest AI model from Anthropic. Generates highly personalized content with company research, role-specific tailoring, and professional tone. Anti-hallucination rules ensure every claim traces to your Master CV.',
+          'Karko runs the full loop. The Smart Job Feed finds roles matched to your CV. Fit Analysis tells you if the role is worth applying to. The generator writes the tailored CV, cover letter, application email, follow-up, and screening answers. The tracker saves every application automatically. You do not leave the app.',
         competitorDetails:
-          'Uses generic AI (model not disclosed). Users report the AI sometimes removes valuable experience or produces generic content. Templates are available but customization is limited.',
+          'Teal gives you a place to save and track jobs you find yourself. The Chrome extension is the main way jobs enter the system. The resume builder and cover letter tools exist but are template-based, not tailored per role. You bring your own search, your own writing, and your own emails.',
         winner: 'karko',
         reasoning:
-          'Karko\'s use of Claude Sonnet 4.6 produces significantly higher-quality content. The anti-hallucination system and company research capabilities result in applications that feel custom-written, not AI-generated.',
+          'If you want one app for the entire workflow, Karko is built for that. If you want a tracker and prefer to handle search and writing elsewhere, Teal is built for that. Different products.',
       },
       {
-        title: 'Application Emails',
+        title: 'Finding the right jobs to apply to',
         description:
-          'Professional application emails can increase callback rates by up to 40%. Most candidates don\'t send them.',
+          'Most job seekers spend roughly ten hours a week bouncing between LinkedIn, Indeed, Wellfound, and company career pages. That is before they write a single application.',
         karkoDetails:
-          'Generates both application emails (to send with your CV/cover letter) and follow-up emails (to send 7-10 days later). Both reference the specific role, company, and your relevant experience. Includes subject lines and professional formatting.',
+          'Smart Job Feed delivers up to 25 roles a day, matched to your CV, your goals, and your location. Ranked by real fit, not keyword match. Tap any role to jump straight into the fit analysis and full application.',
         competitorDetails:
-          'Does not generate application emails or follow-up emails. This feature is not offered.',
+          'No job discovery. Teal assumes you are already on LinkedIn or Indeed or a company site. The Chrome extension saves the job to your tracker when you find it.',
         winner: 'karko',
         reasoning:
-          'Karko is the only tool in the market that generates application emails. This is a massive differentiator - Teal doesn\'t even attempt this feature.',
+          'Karko removes the job search step. Teal organizes the job search you run yourself. If the ten hours of daily board-hopping is the pain, Karko is the fix.',
       },
       {
-        title: 'Job Tracking',
+        title: 'Fit analysis before you commit',
         description:
-          'Tracking applications helps you follow up at the right time and avoid applying to the same role twice.',
+          'Spending an hour tailoring an application to a role that was never a fit is the biggest time sink in the job search. A fit check up front changes that.',
         karkoDetails:
-          'Built-in application tracker stores every application with match score, status, and company context. Update status as you progress through interviews.',
+          'Before any writing happens, Karko runs a fit analysis. Half a credit gives you a match score, the skills that line up, and a clear list of gaps. If the score is strong, you go ahead. If it is weak, the gaps tell you whether the role is wrong for you or your CV is just not surfacing the right experience.',
         competitorDetails:
-          'Excellent job tracking system with Chrome extension. Save jobs from any board, track application status, set reminders, and manage your entire pipeline in one dashboard.',
+          'No fit analysis. Teal will help you build a resume and track the application, but it does not tell you whether the role is worth applying to in the first place.',
+        winner: 'karko',
+        reasoning:
+          'A checkpoint before you spend time is one of Karko\'s core moves. Teal does not offer anything equivalent.',
+      },
+      {
+        title: 'Tailored CV per role',
+        description:
+          'A CV that reads "this person is exactly the right person for this role" beats a generic CV every time. The question is whether the tool writes one or just formats one.',
+        karkoDetails:
+          'Karko rewrites the CV for each specific role. The facts do not change. The framing does. The most relevant experience gets more weight, role-specific keywords land where you already have real experience, and the output is grounded in your real CV. Nothing invented.',
+        competitorDetails:
+          'Teal\'s resume builder is template-based. You edit one resume and pick a template. Limited per-role tailoring. Users report the AI sometimes strips out valuable experience rather than adding relevance.',
+        winner: 'karko',
+        reasoning:
+          'Karko tailors. Teal formats. For applications where the CV needs to match the role, that is a material difference.',
+      },
+      {
+        title: 'Application emails and follow-ups',
+        description:
+          'A clear email to the recruiter, and a polite follow-up a week later, signal seriousness. Most candidates skip both. Most tools do not help.',
+        karkoDetails:
+          'Karko writes both. An application email with subject line, body, and references to the role and company, ready to paste into any portal. A follow-up email pre-drafted for 7 to 10 days later, polite and direct. Both are grounded in your real CV.',
+        competitorDetails:
+          'Neither is offered. Teal generates resumes and cover letters. Application and follow-up emails are not in the product.',
+        winner: 'karko',
+        reasoning:
+          'Another thing Teal does not do at all. If sending a professional email with the application matters to you, Karko is the only one of the two that handles it.',
+      },
+      {
+        title: 'Screening question answers',
+        description:
+          'Screening questions in Workday, Greenhouse, and Lever are where most applications die. Each question can eat 5 minutes of your day. Good tools draft them for you.',
+        karkoDetails:
+          'Paste every screening question. Karko drafts each answer from your actual CV. Behavioral questions get situation, action, result structure. Factual questions get a direct answer. Every answer stays within ATS character limits. Available on Plus and Max.',
+        competitorDetails:
+          'Screening question answers are not offered.',
+        winner: 'karko',
+        reasoning:
+          'The part most people quit at is solved on Karko and absent on Teal.',
+      },
+      {
+        title: 'Tracking applications',
+        description:
+          'Tracking is where Teal started and where it is still strongest. Karko tracks too, but it is a different experience.',
+        karkoDetails:
+          'Every application you generate is saved automatically with company, role, match score, status, and date. Update status as things progress. The tracker lives next to the generator, so you never have to manually log anything.',
+        competitorDetails:
+          'The tracker is the main product. Chrome extension for saving jobs from any board. Rich pipeline management, reminders, notes, and stages. Best-in-class if tracking is the core use case.',
         winner: 'tie',
         reasoning:
-          'Both platforms now offer solid tracking. Teal has the Chrome extension for saving jobs from any board; Karko has tighter integration with its application workflow.',
+          'Teal\'s tracker is richer as a standalone product. Karko\'s tracker is tighter because every application goes there automatically. Different strengths.',
       },
       {
-        title: 'Job Discovery',
+        title: 'Trust: does the output sound like you, and is it true?',
         description:
-          'Finding the right jobs to apply to is half the battle. Manual searching across job boards is time-consuming.',
+          'Recruiters can now spot ChatGPT output in one read. And a CV that invents experience can get you fired after you start. Trust is the new bar.',
         karkoDetails:
-          'Smart Job Feed delivers up to 15-25 hand-picked jobs daily, ranked by fit against your CV. Jobs come to you instead of endless searching.',
+          'Every CV rewrite, cover letter, email, and screening answer is built from the CV you upload. Karko will not invent job titles, skills, or experience you do not have. The job description is used for keyword alignment and tone, never as a source of facts about you.',
         competitorDetails:
-          'No job discovery feature. You find jobs elsewhere and save them via the Chrome extension.',
+          'Teal\'s AI operates on the content you enter into the resume builder. Users in reviews report the AI sometimes removes real experience and substitutes generic language, which is a different trust problem.',
         winner: 'karko',
         reasoning:
-          'Karko eliminates the job search step entirely. Teal helps you organize jobs you find yourself. Fundamentally different approaches.',
+          'The anti-hallucination rule is architectural in Karko, not a promise. It is the moat.',
       },
       {
-        title: 'ATS Optimization',
+        title: 'Pricing clarity',
         description:
-          '76% of resumes are rejected by ATS before a human sees them. ATS-safe formatting is non-negotiable.',
+          'You should know exactly what you are paying before you sign up.',
         karkoDetails:
-          'All 6 templates are ATS-optimized by default: single-column layout, standard section headings, system fonts, consistent date formats. Keyword extraction from job descriptions is automatic.',
+          'Free ($0, 2 applications a month), Plus ($19.99/mo, 25 applications), Max ($79.99/mo, 100 applications). Every feature is on every plan. Plans differ in volume, Smart Job Feed access and size, and support tier. Add-on credit packs $19.99 for 50 credits.',
         competitorDetails:
-          'Resume builder includes ATS-compatible templates, but users report mixed results. No detailed ATS scoring or keyword analysis.',
+          'Free tier is visible. Paid pricing is not published on the site. You have to sign up and hit a gate to see it.',
         winner: 'karko',
         reasoning:
-          'Karko\'s templates are engineered ATS-first. Every output passes Workday, Greenhouse, and Lever parsers. Teal\'s ATS compatibility is adequate but not as robust.',
-      },
-      {
-        title: 'Pricing Transparency',
-        description:
-          'Hidden pricing creates uncertainty. You should know exactly what you\'re paying before committing.',
-        karkoDetails:
-          'Fully transparent credit-based pricing: Free (2 apps), Plus $19.99/mo (25 apps), Max $79.99/mo (100 apps). Add-on credit packs available ($19.99/50 credits). No hidden fees.',
-        competitorDetails:
-          'Freemium model with free tier available, but paid tier pricing is not publicly disclosed. Users report "three-month subscriptions" but exact pricing is hidden.',
-        winner: 'karko',
-        reasoning:
-          'Karko\'s transparent pricing lets you budget accurately. Teal\'s hidden pricing makes it hard to compare value or plan costs.',
-      },
-      {
-        title: 'International Support',
-        description:
-          'Different markets have different resume conventions. US and German resumes follow very different rules.',
-        karkoDetails:
-          'Supports US, UK, Canada, and Germany. Includes 2 German templates (German ATS, German Classic) with proper Lebenslauf formatting, tone, and conventions.',
-        competitorDetails:
-          'Primarily US-focused. Users report some features are unavailable outside the USA.',
-        winner: 'karko',
-        reasoning:
-          'Karko\'s German templates are a major advantage for EU job seekers. Teal\'s US-centric approach limits international usefulness.',
+          'Transparent pricing lets you compare and plan. Hidden pricing is a red flag in 2026.',
       },
     ],
 
     // Use cases
     useCases: [
       {
-        title: 'Choose Karko AI if you need:',
+        title: 'Pick Karko AI if you want one app for your whole job search',
         description:
-          'High-quality application materials with personalized emails. You want to focus on 10-20 carefully selected jobs rather than applying to 100+.',
+          'You are tired of bouncing between LinkedIn, Indeed, a resume builder, ChatGPT for cover letters, and a spreadsheet. You want one loop: find, check, write, track.',
         recommendedTool: 'Karko AI',
         reasoning:
-          'Karko excels at quality over quantity. The fit analysis, application emails, and follow-up emails give you the best chance of standing out. If you\'re applying strategically, Karko is the better choice.',
+          'This is exactly what Karko is built for. The Smart Job Feed replaces the board-hopping, fit analysis replaces the guesswork, the generator replaces the cover-letter-and-email grind, and the tracker replaces the spreadsheet. One app, one loop.',
       },
       {
-        title: 'Choose Teal if you need:',
+        title: 'Pick Karko AI if screening questions are killing your momentum',
         description:
-          'Job tracking and organization for a high-volume job search. You want to apply to many jobs and need a system to track them all.',
+          'You keep reaching the screening question section on Workday or Greenhouse and closing the tab. 20 minutes per application, 5-10 essay boxes, and you are done for the night.',
+        recommendedTool: 'Karko AI',
+        reasoning:
+          'Screening question answers are on Plus and Max. Paste the questions, get drafted answers in STAR structure (behavioral) or direct form (factual), all from your real CV. Two minutes instead of twenty.',
+      },
+      {
+        title: 'Pick Teal if you already have a working search workflow and just need a tracker',
+        description:
+          'You find jobs on LinkedIn or Indeed, you have your own writing process, and you just need a better place to log applications than a spreadsheet.',
         recommendedTool: 'Teal',
         reasoning:
-          'Teal\'s Chrome extension and job tracker are unmatched. If you\'re applying to 50+ jobs and need to stay organized, Teal is the right tool.',
+          'Teal was built for this use case and is strong at it. The Chrome extension and pipeline tracker are best-in-class if the rest of your workflow already works.',
       },
       {
-        title: 'Use both if:',
+        title: 'Pick Karko AI if you are applying in Europe, especially Germany',
         description:
-          'Your budget allows $40-80/month and you want the best of both worlds: Karko for content, Teal for tracking.',
-        recommendedTool: 'Karko AI + Teal',
-        reasoning:
-          'These tools are complementary, not competitive. Use Karko to generate high-quality applications with emails, then track them in Teal. This is the power-user approach.',
-      },
-      {
-        title: 'Choose Karko AI if you\'re applying internationally:',
-        description:
-          'You\'re applying to jobs in Germany or other EU markets and need proper Lebenslauf formatting.',
+          'You need Lebenslauf formatting, EU-style CV conventions, and templates that pass German ATS systems.',
         recommendedTool: 'Karko AI',
         reasoning:
-          'Karko\'s German templates follow EU conventions. Teal is US-focused and doesn\'t support German formatting.',
+          'Two dedicated German templates (German ATS, German Classic) with proper Lebenslauf structure. Teal is US-centric and has reported limitations outside the US.',
       },
     ],
 
     // FAQ
     faq: [
       {
-        question: 'Can I use Karko AI with Teal?',
+        question: 'Is Karko a Teal replacement?',
         answer:
-          'Yes! These tools are complementary. Use Karko AI to generate high-quality application materials (CV, cover letter, emails), then track your applications in Teal. Many users find this combination works well.',
+          'If you use Teal mainly as a tracker, Karko has a tracker too, and every application you generate saves there automatically. If you use Teal\'s Chrome extension to save jobs from dozens of boards, Karko does not replace that. Karko\'s answer to job discovery is the Smart Job Feed, which delivers curated roles to you instead of asking you to hunt for them.',
+      },
+      {
+        question: 'Can I use Karko AI and Teal together?',
+        answer:
+          'You can. Use Karko to generate tailored applications with emails and screening answers, then log them in Teal if you prefer Teal\'s tracker UI. Honestly, most Karko users do not need a second tracker, but the workflows are compatible.',
+      },
+      {
+        question: 'What does Karko do that Teal does not?',
+        answer:
+          'Five things: a Smart Job Feed that finds roles for you, fit analysis before you apply, tailored application emails, follow-up emails, and screening question answers. None of these exist on Teal.',
+      },
+      {
+        question: 'What does Teal do that Karko does not?',
+        answer:
+          'Two things: a Chrome extension for one-click saving of jobs from any board (Karko\'s approach is a curated feed instead), and a tracker UI that Teal power-users love if tracking is their whole game.',
       },
       {
         question: 'Which has better AI?',
         answer:
-          'Karko AI uses Claude Sonnet 4.6 by Anthropic, the latest and most capable AI model for writing tasks. Teal uses generic AI (model not disclosed). In testing, Karko produces significantly more personalized, professional content.',
+          'Karko runs on Claude Sonnet 4.6 by Anthropic, one of the most capable models available for writing. Teal uses generic AI (the model is not disclosed on the site). Karko also has architectural anti-hallucination rules so the output traces back to your real CV. Teal\'s users report the AI sometimes strips real experience out of their resumes, which is a different kind of problem.',
       },
       {
         question: 'Which is cheaper?',
         answer:
-          'Teal has a free tier, but paid tier pricing is hidden. Karko AI is transparent: Free (2 apps), Plus $19.99/mo (25 apps), Max $79.99/mo (100 apps). For quality applications, Karko\'s pricing is competitive at ~$0.80/application.',
+          'Teal has a free tier. Teal\'s paid tier pricing is not published. Karko is fully transparent: Free ($0, 2 applications), Plus ($19.99, 25 applications), Max ($79.99, 100 applications). At Plus, Karko comes to about 80 cents per full application with CV, cover letter, emails, and screening answers included.',
       },
       {
-        question: 'Does Teal generate application emails?',
+        question: 'Which is better for applying internationally?',
         answer:
-          'No. Teal generates resumes and cover letters but not application emails or follow-up emails. This is a unique feature of Karko AI.',
-      },
-      {
-        question: 'Does Karko track applications?',
-        answer:
-          'Yes. Karko has a built-in application tracker that stores every application with match score, status, and company context. Plus, the Smart Job Feed delivers hand-picked jobs to you daily.',
-      },
-      {
-        question: 'Which is better for international job seekers?',
-        answer:
-          'Karko AI. It includes German templates and supports EU markets. Teal is primarily US-focused, and some features are unavailable internationally.',
-      },
-      {
-        question: 'Can Teal do fit analysis before generating materials?',
-        answer:
-          'No. Fit analysis (assessing job match before creating documents) is unique to Karko AI. Teal goes straight to content creation.',
+          'Karko. Two dedicated German templates for the EU market, and an AI that detects and writes in the language of the job description. Teal is US-focused and has reported limitations outside the US.',
       },
     ],
 
     // Verdict
     verdict:
-      'Karko AI and Teal both now offer tracking, but Karko goes further: Smart Job Feed delivers daily hand-picked jobs, and every application includes CV, cover letter, and emails. Teal still leads on their Chrome extension for saving jobs from any board. Pick Karko if you want jobs delivered and a complete application package. Pick Teal if you prefer finding jobs yourself and organizing them.',
+      'Karko AI and Teal are different products pretending to be comparable. Karko replaces the seven tools you use to apply for a job with one loop: find, check fit, write, track. Teal replaces your tracking spreadsheet and gives you a good Chrome extension for saving jobs. Pick Karko if you want your entire job search in one app, with emails and screening answers included. Pick Teal if your workflow already works and you just want a better tracker.',
 
     // CTA
-    ctaText: 'Try Karko AI Free - 2 Complete Applications with Emails',
+    ctaText: 'Try Karko AI Free - Send Your First Full Application in 90 Seconds',
     ctaHref: '/dashboard',
 
     // SEO
     tags: [
       'Karko AI',
       'Teal',
+      'AI job application agent',
+      'job application tool',
       'resume builder comparison',
-      'AI job application',
       'job tracking',
+      'smart job feed',
       'application emails',
+      'screening question answers',
       'ATS optimization',
     ],
   },

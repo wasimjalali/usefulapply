@@ -17,9 +17,9 @@ export const metadata: Metadata = buildPageMetadata({
 const features = [
   {
     icon: Sparkles,
-    title: 'Master CV',
+    title: 'Primary CV',
     description:
-      'Upload your CV once. Karko reads it, structures every section, and keeps it as your single source of truth. Every CV rewrite, cover letter, email, and screening answer you generate pulls from this document. Karko will not invent experience you do not have.',
+      'Upload the CV you send to employers. Karko reads it, structures every section, and keeps it as your source of truth. Every CV rewrite, cover letter, email, and screening answer Karko generates pulls from this document. Nothing invented, nothing added.',
     benefits: [
       'Upload a PDF or paste plain text',
       'Parsed into structured sections you can edit inline',
@@ -27,8 +27,8 @@ const features = [
       'Free to store, across every plan',
     ],
     cost: 'Free',
-    link: '/master-cv-template',
-    linkText: 'Build your Master CV',
+    link: '/dashboard',
+    linkText: 'Upload your CV',
     image: '/images/features/master-cv-system.jpg',
   },
   {

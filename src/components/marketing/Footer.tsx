@@ -13,7 +13,6 @@ const productLinks: FooterLink[] = [
   { href: '/features', label: 'Features' },
   { href: '/features#smart-job-feed', label: 'Smart Job Feed' },
   { href: '/#how-it-works', label: 'How It Works' },
-  { href: '/master-cv', label: 'Master CV' },
   { href: '/ai-job-application/application-tracker', label: 'Application Tracker' },
   { href: '/pricing', label: 'Pricing' },
 ];
@@ -39,6 +38,7 @@ export default function Footer() {
   const resourcesLinks: FooterLink[] = [
     ...comparisonLinks,
     { href: '/ai-job-application/free-no-signup-test', label: 'Try Free, No Sign-Up' },
+    { href: '/master-cv', label: 'Master CV Guide' },
   ];
 
   const recentBlogPosts = getAllPosts().slice(0, 5);
