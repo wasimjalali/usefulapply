@@ -349,7 +349,7 @@ export default function Home() {
           <div className="text-center mb-10">
             <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Pricing</p>
             <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-3">
-              Every plan, every feature. Pick your volume.
+              One app, three sizes. Pick your volume.
             </h2>
             <p className="text-warm-gray text-lg max-w-xl mx-auto">
               Start free. Upgrade when you&apos;re applying every day.

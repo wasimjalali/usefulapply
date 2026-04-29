@@ -126,8 +126,8 @@ This section exists so any future session can immediately see the drift and fix 
 
 | Old (wrong) framing | Current (correct) framing | Why we changed |
 |---|---|---|
-| "Pricing made simple" | "Every plan, every feature. Pick your volume." | Generic SaaS line vs an unusual product truth (every tier gets every feature). |
-| "Plans that scale with your job search" | "Every plan, every feature. Pick your volume." | Same reason. Specificity over template. |
+| "Pricing made simple" | "One app, three sizes. Pick your volume." | Generic SaaS line vs specific pricing mental model. (Earlier draft used "Every plan, every feature" but that is only true if Screening moves to Plus — not accurate today, so reverted.) |
+| "Plans that scale with your job search" | "One app, three sizes. Pick your volume." | Same reason. |
 | "Five steps. One complete application." (homepage H2) | "Seven tools, collapsed into one flow." | The old line describes mechanics. The new line names the category insight. |
 | "See how well you fit" | "See the fit before you commit" | Adds the decision moment, which is the real value (don't waste credits on bad-fit roles). |
 | "Get jobs picked for you" | "Skip the job boards" | Problem-first framing (job boards) beats feature-first framing (Karko picks jobs). |
@@ -180,7 +180,7 @@ This section exists so any future session can immediately see the drift and fix 
 
 ### Section headlines (homepage blocks)
 - *Seven tools, collapsed into one flow.* (The compression frame — current "How It Works")
-- *Every plan, every feature. Pick your volume.* (Pricing frame)
+- *One app, three sizes. Pick your volume.* (Pricing frame — accurate because Feed and Screening are gated)
 - *Find. Apply. Track. One app for the whole loop.* (Platform scroll frame)
 - *The job hunt, compressed.*
 - *Your real CV. Their exact role. One matched application.*

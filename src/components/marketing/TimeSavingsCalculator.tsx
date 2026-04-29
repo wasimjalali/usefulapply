@@ -8,21 +8,21 @@ const savingsTiers = [
     apps: 2,
     hoursSaved: 2,
     price: 'Free',
-    tagline: 'That is 2 hours you get back for free. No credit card required.',
+    tagline: 'Two hours back, at zero cost. No card required.',
   },
   {
     plan: 'Plus',
     apps: 25,
     hoursSaved: 18,
     price: '$19.99/mo',
-    tagline: 'That is over 18 hours saved every month. At ~$0.80 per application.',
+    tagline: 'Two full workdays back every month. Roughly 80 cents per application.',
   },
   {
     plan: 'Max',
     apps: 100,
     hoursSaved: 108,
     price: '$79.99/mo',
-    tagline: 'That is over two and a half work weeks saved. Full automation at ~$0.80 per application.',
+    tagline: 'Two and a half work weeks back every month. Roughly 80 cents per application.',
   },
 ];
 
@@ -83,15 +83,15 @@ export function TimeSavingsCalculator() {
       <div className="grid grid-cols-3 gap-4 md:gap-6 mb-8">
         <div className="text-center p-4 md:p-6 bg-cream-50 rounded-xl border border-cream-200">
           <div className="text-3xl md:text-5xl font-bold text-navy-600 mb-2">{animatedApps}</div>
-          <div className="text-sm text-warm-gray">applications/month</div>
+          <div className="text-sm text-warm-gray">applications a month</div>
         </div>
         <div className="text-center p-4 md:p-6 bg-cream-50 rounded-xl border border-cream-200">
-          <div className="text-3xl md:text-5xl font-bold text-gold-500 mb-2">&lt;90</div>
-          <div className="text-sm text-warm-gray">seconds each</div>
+          <div className="text-3xl md:text-5xl font-bold text-gold-500 mb-2">40<span className="text-2xl md:text-3xl">x</span></div>
+          <div className="text-sm text-warm-gray">faster than by hand</div>
         </div>
         <div className="text-center p-4 md:p-6 bg-navy-600 rounded-xl">
           <div className="text-3xl md:text-5xl font-bold text-gold-400 mb-2">~{animatedHours}</div>
-          <div className="text-sm text-gold-300 font-medium">hours saved/month</div>
+          <div className="text-sm text-gold-300 font-medium">hours saved each month</div>
         </div>
       </div>
 
@@ -102,7 +102,7 @@ export function TimeSavingsCalculator() {
 
       {/* Disclaimer */}
       <p className="text-center text-sm text-warm-gray">
-        Based on 45-60 min of manual work per tailored application.
+        Based on an hour of manual work per tailored application.
       </p>
     </div>
   );

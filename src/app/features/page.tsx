@@ -429,7 +429,7 @@ export default function FeaturesPage() {
         <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-4">Every plan, every feature. Pick your volume.</h2>
+              <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-4">One app, three sizes. Pick your volume.</h2>
               <p className="text-warm-gray max-w-2xl mx-auto">
                 Start free with the full workflow. Upgrade when you want more monthly applications, the Smart Job Feed, or screening answers on top.
               </p>

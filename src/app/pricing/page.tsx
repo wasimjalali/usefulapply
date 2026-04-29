@@ -47,9 +47,9 @@ const faqs = [
     question: 'What exactly do I get with each application?',
     answer: 'One application gives you a CV rewritten for the specific role, a cover letter, an application email, a follow-up email, and answers to any screening questions. Every word is pulled from your real CV. All of it in under 90 seconds.',
   },
-  {
+    {
     question: 'Are all features the same across plans?',
-    answer: 'Yes. Every plan gets the full workflow: Smart Job Feed, fit analysis, tailored CV, cover letter, emails, screening answers, and the application tracker. The only difference between plans is how many applications you can generate per month.',
+    answer: 'Every plan gets the core workflow: tailored CV, cover letter, application email, follow-up, fit analysis, ATS templates, and the application tracker. Plus adds the Smart Job Feed (up to 15 roles a day) and add-on credit packs. Max adds the Smart Job Feed at 25 roles a day, screening question answers, and premium dedicated support. The main difference between plans is how many applications you can generate each month.',
   },
   {
     question: 'What happens if I run out of credits?',
@@ -190,7 +190,7 @@ export default function PricingPage() {
         <div className="max-w-4xl mx-auto text-center relative">
           <ScrollReveal delay={150}>
           <h1 className="font-bold text-navy-600 text-[40px] sm:text-[52px] leading-[1.08] mb-4">
-            Every plan, every feature.<br /><span className="text-gold-500">Pick your volume.</span>
+            One app, three sizes.<br /><span className="text-gold-500">Pick your volume.</span>
           </h1>
           </ScrollReveal>
           <ScrollReveal delay={300}>
@@ -242,15 +242,16 @@ export default function PricingPage() {
                 <p className="font-bold text-charcoal text-[15px] mb-3">What&apos;s included:</p>
                 <ul className="space-y-2.5 flex-1">
                   {[
-                    'Tailored CV, cover letter, email and follow-up',
-                    'Match score before you apply',
-                    'US and EU ATS-optimized templates',
-                    'Anti-hallucination guardrails',
-                    'Application tracker',
+                    { label: '4 credits per month', emphasis: true },
+                    { label: '2 full applications per month' },
+                    { label: 'Tailored CV, cover letter, email, follow-up' },
+                    { label: 'Fit analysis with match score' },
+                    { label: 'US and EU ATS-optimized templates' },
+                    { label: 'Application tracker' },
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold-500" />
-                      <span className="text-[14px] text-charcoal leading-relaxed">{f}</span>
+                      <span className={`text-[14px] text-charcoal leading-relaxed ${f.emphasis ? 'font-semibold' : ''}`}>{f.label}</span>
                     </li>
                   ))}
                 </ul>
@@ -290,14 +291,16 @@ export default function PricingPage() {
                 <p className="font-bold text-charcoal text-[15px] mb-3">Everything in Free, plus:</p>
                 <ul className="space-y-2.5 mb-5 flex-1">
                   {[
-                    'Smart Job Feed: up to 15 curated roles per day',
-                    'Full Fit Analysis with strengths and gaps',
-                    'Unlimited application tracker',
-                    'Add-on credit packs (credits roll over)',
+                    { label: '50 credits per month', emphasis: true },
+                    { label: '25 full applications per month' },
+                    { label: 'Smart Job Feed: up to 15 roles a day' },
+                    { label: 'Unlimited application tracker' },
+                    { label: 'Add-on credit packs (credits roll over)' },
+                    { label: 'Priority email support' },
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold-500" />
-                      <span className="text-[14px] text-charcoal leading-relaxed">{f}</span>
+                      <span className={`text-[14px] text-charcoal leading-relaxed ${f.emphasis ? 'font-semibold' : ''}`}>{f.label}</span>
                     </li>
                   ))}
                 </ul>
@@ -335,14 +338,15 @@ export default function PricingPage() {
                 <p className="font-bold text-white text-[15px] mb-3">Everything in Plus, plus:</p>
                 <ul className="space-y-2.5 mb-5 flex-1">
                   {[
-                    'Smart Job Feed: up to 25 curated roles per day',
-                    'Screening question answers',
-                    'Add-on credit packs (credits roll over)',
-                    'Premium dedicated support',
+                    { label: '200 credits per month', emphasis: true },
+                    { label: '100 full applications per month' },
+                    { label: 'Smart Job Feed: up to 25 roles a day' },
+                    { label: 'Screening question answers' },
+                    { label: 'Premium dedicated support' },
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold-400" />
-                      <span className="text-[14px] text-navy-100 leading-relaxed">{f}</span>
+                      <span className={`text-[14px] text-navy-100 leading-relaxed ${f.emphasis ? 'font-semibold' : ''}`}>{f.label}</span>
                     </li>
                   ))}
                 </ul>
@@ -449,15 +453,15 @@ export default function PricingPage() {
             <div className="grid grid-cols-3 gap-4 md:gap-6 mb-8">
               <div className="text-center p-4 md:p-6 bg-cream-50 rounded-xl border border-cream-200">
                 <div className="text-3xl md:text-5xl font-bold text-navy-600 mb-2">{animatedApps}</div>
-                <div className="text-sm text-warm-gray">applications/month</div>
+                <div className="text-sm text-warm-gray">applications a month</div>
               </div>
               <div className="text-center p-4 md:p-6 bg-cream-50 rounded-xl border border-cream-200">
-                <div className="text-3xl md:text-5xl font-bold text-gold-500 mb-2">&lt;90</div>
-                <div className="text-sm text-warm-gray">seconds each</div>
+                <div className="text-3xl md:text-5xl font-bold text-gold-500 mb-2">40<span className="text-2xl md:text-3xl">x</span></div>
+                <div className="text-sm text-warm-gray">faster than by hand</div>
               </div>
               <div className="text-center p-4 md:p-6 bg-navy-600 rounded-xl">
                 <div className="text-3xl md:text-5xl font-bold text-gold-400 mb-2">~{animatedHours}</div>
-                <div className="text-sm text-gold-300 font-medium">hours saved/month</div>
+                <div className="text-sm text-gold-300 font-medium">hours saved each month</div>
               </div>
             </div>
 
@@ -468,7 +472,7 @@ export default function PricingPage() {
 
             {/* Disclaimer */}
             <p className="text-center text-sm text-warm-gray">
-              Based on 45-60 min of manual work per tailored application.
+              Based on an hour of manual work per tailored application.
             </p>
           </div>
           </ScrollReveal>
