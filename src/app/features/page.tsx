@@ -154,7 +154,7 @@ const features = [
       'Stays within ATS character limits',
       'Every answer built from your real CV',
     ],
-    cost: 'Max plan',
+    cost: 'Included on Plus and Max',
     link: '/ai-job-application/screening-question-answers',
     linkText: 'Learn about screening answers',
     image: '/images/features/screening-question-answers.jpg',
@@ -257,7 +257,7 @@ const planFeatures = [
   {
     feature: 'Screening Question Answers',
     free: false,
-    plus: false,
+    plus: true,
     max: true,
   },
   {
@@ -287,7 +287,7 @@ const faqs = [
   {
     question: 'What is the difference between Free, Plus and Max?',
     answer:
-      'Every plan gets the full workflow: tailored CV, cover letter, application email, follow-up, fit analysis, ATS templates, and the application tracker. Plus adds the Smart Job Feed (up to 15 roles a day) and add-on credit packs. Max adds the Smart Job Feed at 25 roles a day, screening question answers, and premium support. The only difference between plans is how much you can generate per month.',
+      'Every plan gets the full workflow: tailored CV, cover letter, application email, follow-up, screening question answers, fit analysis, ATS templates, and the application tracker. Plus adds the Smart Job Feed (up to 15 roles a day) and add-on credit packs. Max gets the Smart Job Feed at 25 roles a day and premium dedicated support. The main difference between plans is how many applications you can generate each month.',
   },
   {
     question: 'How does fit analysis work?',
@@ -429,7 +429,7 @@ export default function FeaturesPage() {
         <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-4">One app, three sizes. Pick your volume.</h2>
+              <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-4">Every plan, every feature. Pick your volume.</h2>
               <p className="text-warm-gray max-w-2xl mx-auto">
                 Start free with the full workflow. Upgrade when you want more monthly applications, the Smart Job Feed, or screening answers on top.
               </p>

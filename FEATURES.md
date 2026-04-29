@@ -135,12 +135,12 @@
 
 ---
 
-### AI Screening Question Answers (Max Plan)
+### AI Screening Question Answers (Plus and Max)
 **What it does:** After your application is generated, paste the screening questions from the job portal and the AI drafts personalized answers. Each answer is formatted based on the question type — short factual answers for yes/no questions, structured STAR-method responses for behavioral questions, and step-by-step approaches for situational questions. Each answer has its own copy button.
 
 **Value for job seekers:** Screening questions are the most tedious part of online applications. Some portals have 5-10 questions, and answering them well takes 20-30 minutes per application. The AI uses your CV and the job context to draft answers that are truthful, specific to your experience, and properly sized for each question type. You copy, review, paste, and move on.
 
-**Cost:** No additional credits — included with Max plan subscription. Limited to 2 uses per application session.
+**Cost:** No additional credits. Included with Plus and Max. Limited to 2 uses per application session.
 
 ---
 
@@ -191,9 +191,9 @@
 
 | Plan | Price | Credits | Applications | Key Extras |
 |------|-------|---------|-------------|------------|
-| **Free** | $0/month | 4 | ~2/month | Complete application kit, all templates, fit analysis, tracker |
-| **Plus** | $19.99/month | 50 | ~25/month | Smart Job Feed up to 15 jobs/day, unlimited history, add-on credit packs, priority support |
-| **Max** | $79.99/month | 200 | ~100/month | Smart Job Feed up to 25 jobs/day, AI screening question answers, premium support |
+| **Free** | $0/month | 4 | ~2/month | Full application workflow, all templates, fit analysis, tracker |
+| **Plus** | $19.99/month | 50 | ~25/month | Smart Job Feed up to 15 jobs/day, AI screening question answers, unlimited history, add-on credit packs, priority support |
+| **Max** | $79.99/month | 200 | ~100/month | Smart Job Feed up to 25 jobs/day, AI screening question answers, premium dedicated support |
 | **Add-on** | $19.99 one-time | 50 | ~25 | Available on Plus and Max, credits roll over |
 
 ### Credit Costs
@@ -205,17 +205,18 @@
 | Email Regeneration | 0.5 |
 | Follow-Up Email Regeneration | 0.5 |
 | Chat Messages | Free |
-| Screening Question Answers | Free (Max plan only) |
+| Screening Question Answers | Free (Plus and Max) |
 
 ### Feature Availability
 
 | Feature | Free | Plus | Max |
 |---------|------|------|-----|
-| Complete Application Kit | Yes | Yes | Yes |
+| Full Application (CV + Cover Letter + Email + Follow-Up) | Yes | Yes | Yes |
 | Fit Analysis | Yes | Yes | Yes |
 | Application Tracker | Yes | Yes | Yes |
+| AI Screening Question Answers | No | Yes | Yes |
 | Smart Job Feed | No | Up to 15/day | Up to 25/day |
-| AI Screening Question Answers | No | No | Yes |
+| Priority / Premium Support | No | Priority email | Premium dedicated |
 
 ---
 

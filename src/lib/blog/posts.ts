@@ -108,7 +108,7 @@ And the AI is not tired. That is the underrated part. The 15th screening answer 
 
 ## Where to find it
 
-Screening Question Answers is available on the Max plan. Generate a full application kit for a role, then paste the screening questions into Karko. Get specific, personalized answers in under a minute.
+Screening Question Answers is available on Plus and Max. Generate a full application for a role, then paste the screening questions into Karko. Get specific, personalized answers in under a minute.
 
 Every application is saved in your tracker with its match score and status, and if you want to vet the role before committing, Fit Analysis gives you an honest match score and the skill gaps for 0.5 credits before you commit to a full application.
 
@@ -135,7 +135,7 @@ The screening question section used to be where strong applications died. It doe
     cta: {
       heading: 'Clear the screening question wall in minutes',
       description:
-        'Generate your application kit, paste the screening questions, and get specific, personalized answers that reference your actual experience. Available on the Max plan.',
+        'Generate your full application, paste the screening questions, and get specific, personalized answers that reference your actual experience. Available on Plus and Max.',
       text: 'Try Karko AI free',
       href: '/dashboard',
     },

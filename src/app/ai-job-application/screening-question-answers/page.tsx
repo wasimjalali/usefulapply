@@ -36,7 +36,7 @@ const faqs = [
   },
   {
     q: 'Is this feature available on all plans?',
-    a: 'Screening question answers are available on the Max plan ($79.99/month). This plan includes 200 credits per month, all core features (CV, cover letter, emails), and screening question answers with up to 2 sessions per application.',
+    a: 'Screening question answers are available on Plus ($19.99/month, 50 credits) and Max ($79.99/month, 200 credits). Both paid plans include up to 2 screening sessions per application. The Free plan does not include screening answers.',
   },
   {
     q: 'Does it work in languages other than English?',

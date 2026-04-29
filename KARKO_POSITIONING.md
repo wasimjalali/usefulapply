@@ -126,8 +126,8 @@ This section exists so any future session can immediately see the drift and fix 
 
 | Old (wrong) framing | Current (correct) framing | Why we changed |
 |---|---|---|
-| "Pricing made simple" | "One app, three sizes. Pick your volume." | Generic SaaS line vs specific pricing mental model. (Earlier draft used "Every plan, every feature" but that is only true if Screening moves to Plus — not accurate today, so reverted.) |
-| "Plans that scale with your job search" | "One app, three sizes. Pick your volume." | Same reason. |
+| "Pricing made simple" | "Every plan, every feature. Pick your volume." | Generic SaaS line vs specific product truth: every workflow feature (CV, cover letter, emails, fit analysis, screening answers, tracker, ATS templates) is on every plan. Plans differ only in volume, Feed access, Feed size, and support tier. |
+| "Plans that scale with your job search" | "Every plan, every feature. Pick your volume." | Same reason. |
 | "Five steps. One complete application." (homepage H2) | "Seven tools, collapsed into one flow." | The old line describes mechanics. The new line names the category insight. |
 | "See how well you fit" | "See the fit before you commit" | Adds the decision moment, which is the real value (don't waste credits on bad-fit roles). |
 | "Get jobs picked for you" | "Skip the job boards" | Problem-first framing (job boards) beats feature-first framing (Karko picks jobs). |
@@ -180,7 +180,7 @@ This section exists so any future session can immediately see the drift and fix 
 
 ### Section headlines (homepage blocks)
 - *Seven tools, collapsed into one flow.* (The compression frame — current "How It Works")
-- *One app, three sizes. Pick your volume.* (Pricing frame — accurate because Feed and Screening are gated)
+- *Every plan, every feature. Pick your volume.* (Pricing frame — accurate as of April 2026 after Screening moved to Plus)
 - *Find. Apply. Track. One app for the whole loop.* (Platform scroll frame)
 - *The job hunt, compressed.*
 - *Your real CV. Their exact role. One matched application.*
@@ -350,6 +350,23 @@ These are the five categories people might file Karko under that are all wrong. 
 
 Reference snapshot so future sessions know what's already been aligned and what hasn't.
 
+### Pricing tier gating (source of truth)
+
+| Feature | Free | Plus ($19.99) | Max ($79.99) |
+|---|---|---|---|
+| Monthly credits | 4 | 50 | 200 |
+| Full applications per month | 2 | 25 | 100 |
+| Full workflow (CV + cover letter + email + follow-up) | ✅ | ✅ | ✅ |
+| Fit analysis | ✅ | ✅ | ✅ |
+| ATS-optimized templates (6 designs) | ✅ | ✅ | ✅ |
+| Application tracker | ✅ | ✅ | ✅ |
+| **Screening question answers** | ❌ | **✅** | ✅ |
+| Smart Job Feed | ❌ | Up to 15/day | Up to 25/day |
+| Add-on credit packs | ❌ | ✅ | ✅ |
+| Support | Standard | Priority email | Premium dedicated |
+
+**Key decision (April 2026):** Screening question answers moved from Max-only to Plus+. This made the "Every plan, every feature. Pick your volume." headline accurate and honest. Max's differentiation now rests on volume (4x credits), Feed size (25 vs 15/day), and support tier.
+
 ### Aligned with this doc
 - Homepage hero H1 + sub-head
 - Homepage "How It Works" section (seven-tool framing, tightened step copy)
@@ -358,6 +375,8 @@ Reference snapshot so future sessions know what's already been aligned and what 
 - Homepage pricing teaser and final CTA
 - Pricing page hero, tier taglines, FAQ, final CTA
 - **Features page** (`/features`) — hero, full feature grid (reordered to real user workflow, every fabricated stat removed), comparison table H2 + rows, FAQ (now "Why Karko is not..." framing), final CTA, metadata
+- **Pricing cards** — credits-as-first-item ordering (SaaS convention), parallel tier taglines, screening in Plus and Max
+- **Time Savings Calculator** — single source of truth (40x faster stat, synced taglines, honest "an hour" disclaimer)
 
 ### Probably still drifting
 - `/ai-job-application/*` SEO landing pages (individual feature pages, may still use old "application kit" language and fabricated stats)

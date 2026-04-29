@@ -477,7 +477,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
         posthog?.capture('screening_upgrade_prompt_shown');
         addChatMessage({
           role: 'assistant',
-          content: '🔒 **Screening Question Answers** is available on the **Max plan**.\n\nWith Max, I can draft personalized answers to screening questions using the context from your CV and job description, formatted for easy copy and paste.',
+          content: '🔒 **Screening Question Answers** is available on **Plus and Max**.\n\nOn a paid plan, I can draft personalized answers to screening questions from your CV and the job description, formatted for easy copy and paste.',
           actions: [
             { label: 'View Plans', action: 'navigate-pricing', icon: 'new' },
           ],
@@ -833,9 +833,9 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
             <div className="flex justify-end gap-2 mt-2">
               <button
                 onClick={() => {
-                  const isMaxPlan = profile?.subscription_tier === 'max';
-                  handleAction(isMaxPlan ? 'screening-questions' : 'upgrade-for-screening');
-                  const dismissNow = !isMaxPlan;
+                  const isPaidPlan = profile?.subscription_tier === 'plus' || profile?.subscription_tier === 'max';
+                  handleAction(isPaidPlan ? 'screening-questions' : 'upgrade-for-screening');
+                  const dismissNow = !isPaidPlan;
                   useAppStore.getState().updateCurrentSession({
                     screeningUsageCount: dismissNow ? 2 : (currentSession?.screeningUsageCount ?? 0) + 1,
                   });

@@ -247,7 +247,7 @@ export function SubscriptionSection({
                 { label: 'Application tracker',           free: true,     plus: true,     max: true },
                 { label: 'Unlimited application tracker',  free: false,    plus: true,     max: true },
                 { label: 'Add-on credit packs',           free: false,    plus: true,     max: true },
-                { label: 'Screening question answers',     free: false,    plus: false,    max: true },
+                { label: 'Screening question answers',     free: false,    plus: true,     max: true },
                 { label: 'Hours saved/month',             free: '~2h',    plus: '~18h',   max: '~108h' },
               ] as const).map((row, i) => (
                 <tr key={row.label} className={i % 2 === 0 ? 'bg-cream-50/60' : ''}>

@@ -47,9 +47,9 @@ const faqs = [
     question: 'What exactly do I get with each application?',
     answer: 'One application gives you a CV rewritten for the specific role, a cover letter, an application email, a follow-up email, and answers to any screening questions. Every word is pulled from your real CV. All of it in under 90 seconds.',
   },
-    {
+  {
     question: 'Are all features the same across plans?',
-    answer: 'Every plan gets the core workflow: tailored CV, cover letter, application email, follow-up, fit analysis, ATS templates, and the application tracker. Plus adds the Smart Job Feed (up to 15 roles a day) and add-on credit packs. Max adds the Smart Job Feed at 25 roles a day, screening question answers, and premium dedicated support. The main difference between plans is how many applications you can generate each month.',
+    answer: 'Yes. Every plan gets the full workflow: tailored CV, cover letter, application email, follow-up, screening question answers, fit analysis, ATS templates, and the application tracker. Plus and Max add the Smart Job Feed (15 roles a day on Plus, 25 on Max). The main difference between plans is how many applications you can generate each month.',
   },
   {
     question: 'What happens if I run out of credits?',
@@ -190,7 +190,7 @@ export default function PricingPage() {
         <div className="max-w-4xl mx-auto text-center relative">
           <ScrollReveal delay={150}>
           <h1 className="font-bold text-navy-600 text-[40px] sm:text-[52px] leading-[1.08] mb-4">
-            One app, three sizes.<br /><span className="text-gold-500">Pick your volume.</span>
+            Every plan, every feature.<br /><span className="text-gold-500">Pick your volume.</span>
           </h1>
           </ScrollReveal>
           <ScrollReveal delay={300}>
@@ -294,6 +294,7 @@ export default function PricingPage() {
                     { label: '50 credits per month', emphasis: true },
                     { label: '25 full applications per month' },
                     { label: 'Smart Job Feed: up to 15 roles a day' },
+                    { label: 'Screening question answers' },
                     { label: 'Unlimited application tracker' },
                     { label: 'Add-on credit packs (credits roll over)' },
                     { label: 'Priority email support' },
@@ -341,7 +342,6 @@ export default function PricingPage() {
                     { label: '200 credits per month', emphasis: true },
                     { label: '100 full applications per month' },
                     { label: 'Smart Job Feed: up to 25 roles a day' },
-                    { label: 'Screening question answers' },
                     { label: 'Premium dedicated support' },
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">

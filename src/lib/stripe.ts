@@ -80,7 +80,8 @@ export const PLANS = {
     features: [
       '25 applications/month',
       'Smart Job Feed: 15 jobs/day',
-      'Complete application kit',
+      'Full application workflow',
+      'Screening question answers',
       'Application tracker',
       'Add-on credits',
       'Priority email support',
@@ -94,10 +95,10 @@ export const PLANS = {
     features: [
       '100 applications/month',
       'Smart Job Feed: 25 jobs/day',
-      'AI Screening Question Answers',
-      'Complete application kit',
+      'Full application workflow',
+      'Screening question answers',
       'Application tracker',
-      'Premium support',
+      'Premium dedicated support',
     ],
   },
 } as const;
