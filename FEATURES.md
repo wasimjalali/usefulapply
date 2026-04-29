@@ -6,6 +6,15 @@
 
 ## Core Application Generator
 
+### Smart Job Feed
+**What it does:** Builds a daily list of roles based on the user's target titles, locations, market preferences, and CV. Jobs are ranked by fit so the user starts with opportunities that are more likely to be worth applying to.
+
+**Value for job seekers:** Instead of opening five job boards every morning, users get a curated feed inside Karko. They can save roles, dismiss poor matches, open employer sites, or send a strong role directly into the Application Kit.
+
+**Availability:** Plus includes up to 15 curated jobs per day. Max includes up to 25 curated jobs per day.
+
+---
+
 ### AI-Tailored CV Optimization
 **What it does:** Takes your existing CV and the job description, then rewrites your CV to match what the employer is looking for — highlighting relevant experience, adding missing keywords, and restructuring sections for maximum impact.
 
@@ -182,10 +191,10 @@
 
 | Plan | Price | Credits | Applications | Key Extras |
 |------|-------|---------|-------------|------------|
-| **Free** | $0/month | 10 | ~5/month | Full AI agent, all templates, fit analysis |
-| **Plus** | $39.99/month | 100 | ~50/month | Unlimited history, add-on credit packs, priority support |
-| **Max** | $79.99/month | 200 | ~100/month | Everything in Plus + AI screening answers, premium support |
-| **Add-on** | $19.99 one-time | 40 | ~20 | Available on Plus and Max, credits roll over |
+| **Free** | $0/month | 4 | ~2/month | Complete application kit, all templates, fit analysis, tracker |
+| **Plus** | $19.99/month | 50 | ~25/month | Smart Job Feed up to 15 jobs/day, unlimited history, add-on credit packs, priority support |
+| **Max** | $79.99/month | 200 | ~100/month | Smart Job Feed up to 25 jobs/day, AI screening question answers, premium support |
+| **Add-on** | $19.99 one-time | 50 | ~25 | Available on Plus and Max, credits roll over |
 
 ### Credit Costs
 | Action | Credits |
@@ -197,6 +206,16 @@
 | Follow-Up Email Regeneration | 0.5 |
 | Chat Messages | Free |
 | Screening Question Answers | Free (Max plan only) |
+
+### Feature Availability
+
+| Feature | Free | Plus | Max |
+|---------|------|------|-----|
+| Complete Application Kit | Yes | Yes | Yes |
+| Fit Analysis | Yes | Yes | Yes |
+| Application Tracker | Yes | Yes | Yes |
+| Smart Job Feed | No | Up to 15/day | Up to 25/day |
+| AI Screening Question Answers | No | No | Yes |
 
 ---
 

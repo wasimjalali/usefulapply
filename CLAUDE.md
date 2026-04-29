@@ -22,6 +22,16 @@ Specialist agents are the **preferred** way to handle bug investigations, extern
 - **`debugger`** — When user reports an error, stack trace, crash, or unexpected behavior. Paste the symptom + trace hypotheses and delegate — don't burn main-context tokens investigating non-trivial bugs yourself.
 - **`researcher`** — For external doc lookups, API signatures, pricing/limits, version/release info. Prefer this over ad-hoc WebFetch (cheaper, faster, cross-references sources).
 
+### Opus 4.7 escalation (automatic — do not wait to be asked)
+For tasks requiring deep reasoning or premium creative output, draft first as Sonnet 4.6 then escalate to Opus 4.7 via Agent tool (model: "opus") to critique and polish. Pattern: Sonnet drafts → Opus 4.7 reviews and produces final → present Opus 4.7's version to user.
+
+Escalate automatically for:
+- **Website / marketing copywriting** — homepage, landing pages, CTAs, onboarding copy, pricing copy
+- **Video scripts** — demo scripts, walkthrough scripts, any voiceover narrative
+- **Debugging** — non-trivial bugs with stack traces or multi-file root causes (delegate to `debugger` agent)
+- **High-stakes UI/UX decisions** — brand-level design critique after `karko-ui-designer` runs
+- **Architecture decisions** — anything spanning 3+ files (use `karko-architect` which already uses Opus)
+
 ### When to parallelize
 If two agent tasks are independent (different files, different questions), spawn them in a **single message with multiple Agent tool calls** — they run concurrently. Good recent example: two `debugger` agents investigating double-generation and new-chat-broken bugs at the same time, each returning a tight file:line report.
 
@@ -91,8 +101,11 @@ If two agent tasks are independent (different files, different questions), spawn
 | Task Type | Model | When |
 |-----------|-------|------|
 | File search, quick lookup, verification | `haiku` | Explore agents for simple searches |
-| Code analysis, multi-file investigation, planning | `sonnet` | Default for most subagents |
-| Complex architecture, large refactors | `opus` | Only when user explicitly requests Opus or task truly requires it |
+| Code analysis, multi-file investigation, planning | `sonnet` | Default for most dev subagents |
+| Copywriting, video scripts, marketing copy | `opus` | Always — Sonnet drafts first, Opus polishes |
+| Debugging with stack trace / unexpected behavior | `opus` | Via `debugger` agent |
+| Architecture decisions, 3+ file refactors | `opus` | Via `karko-architect` |
+| UI/UX critique, brand-level design decisions | `opus` | Via `karko-ui-designer` for high-stakes calls |
 
 Always pass the `model` parameter when spawning an Agent. Never let subagents default to the parent model for expensive tasks.
 
@@ -146,10 +159,10 @@ Karko AI is a Next.js 14+ app generating job application materials (CV, Cover Le
 | Follow-Up Regen | 0.5 |
 
 ### Subscription Tiers
-- **Free** — 10 credits/month
-- **Plus** — 100 credits/month ($39.99)
+- **Free** — 4 credits/month
+- **Plus** — 50 credits/month ($19.99)
 - **Max** — 200 credits/month ($79.99)
-- **Add-on** — Credit Pack ($19.99/40 credits)
+- **Add-on** — Credit Pack ($19.99/50 credits)
 
 ---
 

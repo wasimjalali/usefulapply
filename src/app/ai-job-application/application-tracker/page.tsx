@@ -85,7 +85,7 @@ export default function ApplicationTrackerPage() {
       '@type': 'Organization',
       name: 'KarKo AI',
       url: SITE_URL,
-      logo: { '@type': 'ImageObject', url: `${SITE_URL}/karko-ai.png` },
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon-512x512.png` },
     },
     image: `${SITE_URL}/opengraph-image`,
     url: `${SITE_URL}/ai-job-application/application-tracker`,

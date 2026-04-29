@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: ComparisonPageProps): Promise
       modifiedTime: comparison.updatedAt || comparison.publishedAt,
       images: comparison.ogImage
         ? [{ url: comparison.ogImage, width: 1200, height: 630, alt: comparison.title }]
-        : [{ url: '/karko-ai.png', width: 1200, height: 630, alt: comparison.title }],
+        : [{ url: '/favicon-512x512.png', width: 1200, height: 630, alt: comparison.title }],
     },
     twitter: {
       card: 'summary_large_image',

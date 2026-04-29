@@ -131,7 +131,7 @@ export default function RootLayout({
               '@type': 'Organization',
               name: 'KarKo AI',
               url: SITE_URL,
-              logo: `${SITE_URL}/karko-ai.png`,
+              logo: `${SITE_URL}/favicon-512x512.png`,
               description:
                 'KarKo AI helps job seekers apply smarter with AI-powered CV optimization, cover letter generation, and application email drafting.',
               founder: {
