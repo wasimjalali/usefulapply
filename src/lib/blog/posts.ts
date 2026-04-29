@@ -70,7 +70,7 @@ That is how Karko's Screening Question Answers feature works.
 
 ## How it actually works
 
-You generate your full application kit first. Tailored CV, cover letter, application email, follow-up email. That takes under 90 seconds and costs 2 credits. Karko does the job description analysis and the company research as part of that.
+You generate your full application first. Tailored CV, cover letter, application email, follow-up email. That takes under 90 seconds and costs 2 credits. Karko does the job description analysis and the company research as part of that.
 
 Now Karko has full context. Your complete CV. The cover letter it just wrote for this specific role. The job description. The company details.
 
@@ -217,7 +217,7 @@ You click a job in the feed. From there, two honest options open up.
 
 If you are unsure about the role, you run a Fit Analysis. It costs 0.5 credits. In about 20 seconds, you get a match score, a short list of your strongest matching skills, and the gaps the job calls for that you are missing. If the gaps are too wide, you skip it. No application written, no time spent.
 
-If the Fit looks good, or if you already know the role is right, you generate a full application kit. Tailored CV, cover letter, application email, and follow-up email. It costs 2 credits, and it takes under 90 seconds.
+If the Fit looks good, or if you already know the role is right, you generate a full application. Tailored CV, cover letter, application email, and follow-up email. It costs 2 credits, and it takes under 90 seconds.
 
 Every application you create is saved in your tracker with its match score and status. You can see at a glance where you stand: applied, interview, follow-up, rejected, or accepted. The whole search, in one place.
 
@@ -259,7 +259,7 @@ If five months of searching sounds like a long time, that is because it is. Gett
     slug: 'follow-up-email-after-job-application',
     title: 'Follow-Up Email After Job Application: When & What to Say',
     description:
-      'Sending a follow-up email increases your chances by 40%. Learn when to send it, what to write, and how AI can generate a professional follow-up in seconds.',
+      'Most candidates never follow up. The ones who do stand out. Learn when to send a follow-up email, what to write, and how AI can draft a professional one in seconds.',
     content: `You submitted your application three weeks ago. You've refreshed your inbox 47 times. You've checked your spam folder twice. Still nothing.
 
 So you're stuck with the question every job seeker asks: **Should I follow up?**
@@ -270,9 +270,7 @@ This guide covers exactly when to send a follow-up email, what to include, and h
 
 ## Why Follow-Up Emails Actually Work
 
-A 2023 study by TopResume found that **sending a follow-up email increases your chances of getting a response by 40%**. That's not a small edge. That's the difference between a rejection and an interview.
-
-![Bar chart showing 40% higher response rate with follow-up emails](/blog/follow-up-response-rate.jpg)
+**Most candidates never follow up.** That alone puts the ones who do ahead of the pile. No magic, just patience and a polite nudge at the right time.
 
 Here's why it works:
 
@@ -368,17 +366,17 @@ Writing a follow-up email manually takes 10 to 15 minutes if you're trying to ge
 
 The follow-up email Karko generates includes:
 - The role and application date (pulled from your input).
-- A brief reiteration of your top relevant skill or achievement (pulled from your Master CV).
+- A brief reiteration of your top relevant skill or achievement (pulled from your real CV).
 - A polite request for an update or next steps.
 - Professional tone with no filler.
 
-You get the follow-up email when you first generate your application package. So when day 7 to 10 rolls around, you already have it ready to send. No staring at a blank screen. No overthinking the phrasing. Just open, review, and send.
+You get the follow-up email when you first generate your full application. So when day 7 to 10 rolls around, you already have it ready to send. No staring at a blank screen. No overthinking the phrasing. Just open, review, and send.
 
-## The 40% Edge
+## The Edge
 
 The job market in 2026 is brutal. You're competing with hundreds of other qualified candidates. Most of them submit an application and never follow up.
 
-**A follow-up email is a 40% increase in response rate.** That's massive. That's the difference between 2 interviews out of 100 applications and 3 or 4 interviews. Over time, that compounds.
+**The ones who do stand out.** No magic. Just a polite nudge at the right time, when the recruiter is actually reviewing shortlisted candidates.
 
 The candidates who get hired aren't always the most qualified. They're the ones who stayed visible, followed up at the right time, and made it easy for hiring managers to say yes.
 
@@ -415,7 +413,7 @@ If you're in a job search right now, you already know how much time you're spend
     ogImage: '/blog/follow-up-email-cover.jpg',
     cta: {
       heading: 'Generate Your Follow-Up Email in 90 Seconds',
-      description: 'Get a professional follow-up email as part of your complete application package. Free for 2 applications.',
+      description: 'Get a professional follow-up email as part of your full application. Free for 2 applications.',
       text: 'Generate Follow-Up Email Free',
       href: '/dashboard',
     },
@@ -854,16 +852,16 @@ Paste a job description and see what comes back.
     slug: 'ai-cover-letter-generator-how-it-works',
     title: 'AI Cover Letter Generator: How It Works',
     description:
-      'AI cover letters get 50% more callbacks than generic templates. Learn how AI generates personalized cover letters in seconds without fabricating experience.',
+      'A cover letter that reads as written for this role beats a generic template every time. Learn how AI generates a tailored cover letter in seconds without fabricating experience.',
     content: `Generic cover letter templates don't work.
 
 You know the type. "Dear Hiring Manager, I am writing to express my interest in the [Job Title] position at [Company Name]."
 
 Recruiters see that opening line 200 times per role. It signals exactly one thing: you didn't put in any effort.
 
-**Research shows that customized cover letters increase callback rates by over 50% compared to generic ones.** But writing a personalized cover letter manually takes 15 to 20 minutes per job. If you're applying to 100 jobs, that's 33 hours of writing.
+**A cover letter that reads as written for this role beats a generic template every time.** The specifics do the lifting: your real achievements, the role's real requirements, the company's real context. But writing a tailored cover letter manually takes 15 to 20 minutes per job. If you're applying to 100 jobs, that's 33 hours of writing.
 
-AI changes the math. **An AI cover letter generator writes a personalized, role-specific cover letter in under 90 seconds.** Same quality. 95% faster.
+AI changes the math. **An AI cover letter generator writes a tailored, role-specific cover letter in under 90 seconds.** Same quality as a hand-written letter, roughly 40x faster.
 
 This guide explains how AI cover letter generators work, what separates a good one from a bad one, and why AI-generated cover letters outperform templates when done right.
 
@@ -883,7 +881,7 @@ The AI needs two inputs:
 
 **Input 1: The job description.** This tells the AI what the employer is looking for: required skills, role responsibilities, company values, and any specific projects or challenges mentioned in the posting.
 
-**Input 2: Your CV (preferably a structured Master CV).** This is the source of truth for your real experience, skills, and achievements. Everything the AI writes must trace back to this document.
+**Input 2: Your real CV.** This is the source of truth for your real experience, skills, and achievements. Everything the AI writes must trace back to this document. The more detail on your CV, the more the AI has to work with.
 
 **The critical rule:** The AI should never invent experience you don't have. If your CV says you have Python experience, the cover letter can mention Python. If your CV doesn't, the cover letter shouldn't either.
 
@@ -980,7 +978,7 @@ Karko AI generates a cover letter as part of a 4-document package (CV, cover let
 
 **AI cover letters win because they're specific.** They reference the exact job requirements, your exact achievements, and the exact company context. They read like you spent 20 minutes writing them, even though it took 90 seconds.
 
-**The data confirms this:** Customized cover letters increase callback rates by over 50%. (Source: ResumeGo study, analyzing 5,000+ applications.)
+**The mechanism is simple:** recruiters can tell within two sentences whether a cover letter was written for this job or sent to everyone. A tailored one earns the read. A generic one gets skimmed and moved past.
 
 But "customized" doesn't mean "handwritten." It means **tailored to the specific role and company.** AI does that faster and more consistently than a human can.
 
@@ -1005,21 +1003,17 @@ I'm particularly drawn to [Company]'s focus on data-driven product development. 
 
 **Time to generate:** 90 seconds.
 
-## The 50% Edge
+## The Real Edge
 
-**Customized cover letters get 50% more callbacks than generic ones.** That's not a small edge. That's the difference between 4 interviews out of 100 applications and 6 interviews.
+**A cover letter that reads as written for this role beats one that could have been sent anywhere.** No stat needed. Any recruiter who opens both will tell you which one gets the read.
 
-Over a 3-month job search, that's the difference between 1 offer and 2 or 3 offers.
+The job seekers who get hired fastest aren't necessarily the best writers. They're the ones who consistently send tailored, relevant applications to more employers, faster.
 
-The job seekers who get hired fastest aren't necessarily the best writers. They're the ones who consistently send personalized, relevant applications to more employers, faster.
-
-Writing 100 cover letters manually takes 33 hours. With AI, it takes 2.5 hours.
-
-![Bar chart: Generic template = 3% callback, AI-generated personalized = 4.5% callback (50% increase)](/blog/ai-cover-letter-callback-rate.jpg)
+Writing 100 cover letters manually takes 33 hours. With AI, it takes 2.5 hours. Roughly 40x faster.
 
 ## Try It Yourself
 
-Karko AI is free for your first 2 applications. That includes the cover letter, plus the tailored CV, application email, and follow-up email. All four documents reference the same job description and draw from the same verified source (your Master CV).
+Karko AI is free for your first 2 applications. That includes the cover letter, plus the tailored CV, application email, and follow-up email. All four documents reference the same job description and draw from your uploaded CV.
 
 No credit card. No sign-up wall. Paste a job description and see what comes back.
 
@@ -1057,7 +1051,7 @@ No credit card. No sign-up wall. Paste a job description and see what comes back
     slug: 'best-ai-job-application-tools-2026',
     title: 'Best AI Job Application Tools 2026: Features & Pricing',
     description:
-      'Compare the top AI job application tools in 2026. From resume builders to full application packages, find the right tool for your job search strategy.',
+      'Compare the top AI job application tools in 2026. From resume builders to full applications, find the right tool for your job search strategy.',
     content: `The AI job application tool market exploded in 2025. Now there are dozens of options, all claiming to be "the best."
 
 Some generate resumes. Some write cover letters. Some scan for keywords. Some do all of the above plus track your applications and schedule follow-ups.
@@ -1076,7 +1070,7 @@ Not all tools are built for the same use case. Before comparing options, define 
 
 **3. ATS optimization:** Are the outputs formatted for Applicant Tracking Systems, or do they use fancy designs that break ATS parsers?
 
-**4. Speed:** How long does it take to generate a complete application package?
+**4. Speed:** How long does it take to generate a full application?
 
 **5. Pricing:** Free tier? Subscription? Pay-per-application?
 
@@ -1092,10 +1086,10 @@ Not all tools are built for the same use case. Before comparing options, define 
 
 ## Top 5 AI Job Application Tools in 2026
 
-### 1. Karko AI — Full Application Package in 90 Seconds
+### 1. Karko AI — Full Full Application in 90 Seconds
 
 **What it does:**
-Generates a complete, tailored application package: CV, cover letter, application email, and follow-up email. All four documents reference the same job description and draw from your uploaded Master CV.
+Generates a full application: CV, cover letter, application email, and follow-up email. All four documents reference the same job description and draw from your uploaded CV. On Plus and Max, screening question answers as well.
 
 **Key differentiators:**
 - **Anti-hallucination system:** Every claim traces back to your uploaded CV. No fabricated skills or experience.
@@ -1242,7 +1236,7 @@ The right tool saves you time, increases your callback rate, and gets you in fro
 
 ## Try Karko AI Free
 
-Karko AI is free for your first 2 applications. Generate a complete, tailored application package (CV, cover letter, application email, follow-up email) in 90 seconds. No credit card. No sign-up wall.
+Karko AI is free for your first 2 applications. Generate a full application (CV, cover letter, application email, follow-up email) in 90 seconds. No credit card. No sign-up wall.
 
 **[Compare the Tools Yourself — Try Karko AI Free](/dashboard)**
 
@@ -1316,7 +1310,7 @@ And that's assuming you're efficient. Most people aren't. Most people spend extr
 
 Meanwhile, the hiring timeline keeps stretching. The median time to a first job offer in 2025 went from 57 days in Q1 to 83 days by Q4. Companies are conducting 42% more interviews per hire than they were in 2021. The process is getting longer and harder on both sides.
 
-But here's the part that actually matters: **tailored applications work.** Research from Huntr's 2025 Annual Job Search Trends Report, based on 1.7 million applications and 243,000 resumes, shows that tailored resumes convert to interviews at a 5.8% rate, which is 1.6 times higher than untailored ones. Other studies show that customized cover letters increase callback rates by over 50% compared to generic ones.
+But here's the part that actually matters: **tailored applications work.** Research from Huntr's 2025 Annual Job Search Trends Report, based on 1.7 million applications and 243,000 resumes, shows that tailored resumes convert to interviews at a 5.8% rate, which is 1.6 times higher than untailored ones.
 
 The data is clear. Tailoring works. The problem isn't the strategy. The problem is the time it takes to execute it.
 
@@ -1344,7 +1338,7 @@ First, I built a manual prototype: a Claude AI project loaded with my CV as cont
 
 But even that manual process took 45 to 60 minutes per application. It wasn't scalable.
 
-So I built Karko AI. An AI agent that takes your CV and a job description, analyzes the fit, and generates a complete tailored application package, optimized CV, personalized cover letter, and professional email, in under 90 seconds.
+So I built Karko AI. An AI agent that takes your CV and a job description, analyzes the fit, and generates a full application, optimized CV, personalized cover letter, and professional email, in under 90 seconds.
 
 ![Split-screen comparison: a person overwhelmed with stacks of papers versus the same person smiling with a clean document generated in 90 seconds](/blog/manual-vs-karko-ai.jpg)
 
@@ -1354,7 +1348,7 @@ Let's redo the calculation with Karko AI.
 
 100 applications at 90 seconds each: **2.5 hours total.**
 
-That's 75 hours compressed into 2.5 hours. A 97% reduction in time spent per application.
+That's 75 hours compressed into 2.5 hours. Roughly 40x faster per application.
 
 But the quality doesn't drop. Every CV is tailored with ATS-optimized keywords pulled from the specific job description. Every cover letter opens with an achievement, not a cliche, and references the specific company. Every email is professionally formatted with the right subject line and attachment references.
 
