@@ -31,7 +31,7 @@ const PANELS: Panel[] = [
     description:
       'A fit score and ATS check first, so you know where you stand. Then the full application: tailored CV, cover letter, application email, follow-up, and answers to every screening question. All pulled from your real CV. Nothing invented.',
     image: '/screenshots/03-application-kit-generated.webp',
-    imageAlt: 'Karko Application Kit showing tailored CV with Cover Letter, Email, and Screening Answers tabs',
+    imageAlt: 'Karko full application, tailored CV with Cover Letter, Email, and Screening Answers tabs',
   },
   {
     id: 'tracker',

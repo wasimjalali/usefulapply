@@ -380,14 +380,30 @@ Reference snapshot so future sessions know what's already been aligned and what 
 - **Footer** — Master CV moved out of the prominent Product column into Resources as "Master CV Guide"
 - **All 6 comparison pages** (`/compare/karko-ai-vs-teal`, `-jobscan`, `-rezi`, `-kickresume`, `-enhancv`, `-resume-io`) — full rewrites with the new framing. Every page now opens with the "one app for the whole job search vs [what the competitor actually is]" frame, summary tables lead with job discovery and fit analysis, use cases are written around real user scenarios, FAQs use the "Is Karko a [X] replacement?" shape, verdicts name what each tool actually is rather than pretending they are comparable.
 
-### Probably still drifting
-- `/blog/*` blog posts
-- `/master-cv` page (intentionally kept as "Master CV Guide", separate from the Primary CV concept in the product)
-- README.md (may not reflect current framing)
-- Empty states and tooltips across the dashboard
+### Fully aligned
+- Homepage, Pricing page, Features page, About page (all marketing surfaces)
+- README.md
+- All 6 `/compare/*` pages
+- All 11 `/ai-job-application/*` SEO landing pages
+- All 12 blog posts in `src/lib/blog/posts.ts`
+- In-app user-facing chat messages (generation toasts, fit analysis closing lines, "your full application is ready" message)
+- Empty-state copy, marketing scroll-stack image alts, PLANS features in Stripe config
+
+### Intentionally kept as-is
+- **"Application Kit" as a dashboard panel label** — this is the internal workspace name logged-in users navigate to. Changing it would break muscle memory. Kept in `src/app/dashboard/page.tsx` (aria-labels, titles, display text), `src/store/useUIStore.ts` (code comment), `src/components/chat/useAgentWorkflow.ts:764` (chat message that refers users to the panel). Do not change these without a product decision.
+- **`/master-cv` page** — intentionally kept as "Master CV Guide", a separate concept from the Primary CV (what users upload to send to employers). The positioning doc's §15 terminology note explains the split.
 
 ### No longer in scope
 - Legacy in-app onboarding tour: already removed from the codebase. Zero tour libraries (no react-joyride, driver.js, shepherd, etc.) and no tour components. Replaced by the walkthrough video (`Karko_AI_Video_Scripts_v4.html` on founder's desktop).
+
+### Banned phrases (do not re-introduce)
+These phrases were scrubbed from every surface. If they creep back in, strip on sight:
+- "application kit" / "application package" / "Complete Application Package" (use "full application" instead, OR "Application Kit" only as the dashboard panel label)
+- "40% higher callback rate" / "50% more callbacks" / "97% time savings" / "95% faster" / "13x faster" (use "40x faster" which is math-defensible: 60 min / 90 sec ≈ 40x)
+- "A 2023 TopResume study found..." / "ResumeGo study" (citations we cannot verify)
+- "Nobody else offers this" / "Unique feature (only Karko offers this)" (absolute claims)
+- "agentic system" / "Agentic, Not Assistive" (jargon)
+- "AI-Powered Job Application Assistant" (commodity category - use "AI job application agent" instead)
 
 ### Terminology note (Primary CV vs Master CV)
 

@@ -66,7 +66,7 @@ export const PLANS = {
     credits: 4,
     features: [
       '2 applications/month',
-      'Complete application kit',
+      'Full application workflow',
       'Fit analysis',
       'All CV templates',
       'Application tracker',

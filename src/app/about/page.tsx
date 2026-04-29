@@ -54,8 +54,8 @@ export default function AboutPage() {
             {[
               {
                 icon: Sparkles,
-                title: 'Agentic, Not Assistive',
-                description: 'Other tools help you format a resume. KarKo AI is an autonomous agent that analyzes, writes, and self-refines, delivering a complete application package in one workflow.',
+                title: 'One Agent, One Loop',
+                description: 'Other tools help you format a resume. Karko is the AI job application agent that replaces the seven tools job seekers use today: find the role, check the fit, write the full application, track it. One loop.',
               },
               {
                 icon: Target,

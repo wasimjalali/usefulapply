@@ -81,11 +81,11 @@ const faqs = [
   },
   {
     question: 'How does Karko AI pricing compare to Teal?',
-    answer: 'Teal offers a free tier but hides its paid pricing. Karko AI is fully transparent: Free (2 apps), Plus $19.99/mo (25 apps), Max $79.99/mo (100 apps). Unlike Teal, Karko generates complete application packages with emails. See our full comparison at /compare/karko-ai-vs-teal.',
+    answer: 'Teal offers a free tier but does not publish its paid pricing. Karko is fully transparent: Free (2 applications), Plus $19.99/mo (25 applications), Max $79.99/mo (100 applications). Unlike Teal, Karko writes the full application (CV, cover letter, emails, screening answers), not just the resume. See our full comparison at /compare/karko-ai-vs-teal.',
   },
   {
     question: 'How does Karko AI pricing compare to Jobscan?',
-    answer: 'Jobscan offers a free tier for resume scanning, but does not generate application content. Karko AI creates complete, ATS-optimized application packages (CV, cover letter, application email, follow-up email) from scratch. Different tools for different needs. See our full comparison at /compare/karko-ai-vs-jobscan.',
+    answer: 'Jobscan offers a free tier for resume scanning, but does not generate application content. Karko writes the full application (CV, cover letter, application email, follow-up email, and on Plus and Max, screening answers) from scratch, ATS-safe by default. Different tools for different needs. See our full comparison at /compare/karko-ai-vs-jobscan.',
   },
 ];
 

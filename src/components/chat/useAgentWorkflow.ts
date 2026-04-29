@@ -83,7 +83,7 @@ function formatFitAnalysisMessage(
   const closing =
     fitAnalysis?.fitLevel === 'weak'
       ? 'This one looks weak. I would skip it unless there is a strong strategic reason to apply.'
-      : 'If you want to move forward, generate the full application package below.';
+      : 'If you want to move forward, generate the full application below.';
 
   return [
     `${fitEmoji} **${fitLabel}**`,
@@ -761,7 +761,7 @@ export function useAgentWorkflow(options?: {
                 setActiveTab('cv');
                 addChatMessage({
                   role: 'assistant',
-                  content: `✅ **Application package ready**\n\nYour optimized CV, cover letter, and email are ready. Check the **Application Kit** panel (top left).\n\nIf you need ATS form answers next, use the screening-question suggestion below.`,
+                  content: `✅ **Your full application is ready**\n\nTailored CV, cover letter, and email are ready. Check the **Application Kit** panel (top left).\n\nIf you need ATS screening question answers next, use the suggestion below.`,
                 });
                 break;
                 

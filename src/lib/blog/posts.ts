@@ -524,7 +524,7 @@ Neither works.
 
 ## How AI Changes the Math
 
-**Karko AI tailors your resume in under 90 seconds.** Same quality. 95% faster.
+**Karko AI tailors your resume in under 90 seconds.** Same quality as a hand-tailored CV, roughly 40x faster.
 
 Here's how it works:
 
