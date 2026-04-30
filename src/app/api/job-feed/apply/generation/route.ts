@@ -61,6 +61,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'A generation ID or session ID is required.' }, { status: 400 });
     }
 
+    // Client-side sessions use `session-${Date.now()}` until they sync with
+    // Supabase. The DB columns are uuid — querying with a non-uuid value would
+    // throw and produce a 500. Treat pre-sync ids as "no matching row" so the
+    // client gets a clean 404 instead of a scary error in the console.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (generationId && !UUID_RE.test(generationId)) {
+      return NextResponse.json({ error: 'Application generation not found.' }, { status: 404 });
+    }
+    if (sessionId && !UUID_RE.test(sessionId)) {
+      return NextResponse.json({ error: 'Application generation not found.' }, { status: 404 });
+    }
+
     let query = typedSupabase
       .from('job_feed_application_generations')
       .select('*')

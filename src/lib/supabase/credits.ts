@@ -8,6 +8,14 @@ const getUntypedSupabase = () => getSupabase() as any;
 // otherwise fall back to the module-level client (client-side / non-authed calls).
 const getSupabaseClient = (explicitClient?: any) => explicitClient || getUntypedSupabase();
 
+// Client-side sessions are `session-${Date.now()}` until synced with Supabase.
+// DB columns that hold our session id are uuid, so we must drop non-uuid values
+// before inserting to avoid Postgres raising `invalid input syntax for type uuid`.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function coerceSessionUuid(value: string | null | undefined): string | undefined {
+  return value && UUID_RE.test(value) ? value : undefined;
+}
+
 // =====================================================
 // TYPES
 // =====================================================
@@ -712,7 +720,7 @@ async function logCreditTransaction(
     user_id: userId,
     amount,
     transaction_type: transactionType,
-    session_id: options.sessionId,
+    session_id: coerceSessionUuid(options.sessionId),
     description: options.description,
     metadata: options.metadata || {},
     balance_before: options.balanceBefore,

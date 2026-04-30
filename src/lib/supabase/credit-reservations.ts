@@ -2,6 +2,16 @@ import { createAdminClient } from './admin';
 import { deductCredits, getTotalCredits, getUserCredits, addCredits, type CreditAction, CREDIT_COSTS } from './credits';
 import type { CreditReservation, CreditReservationStatus, Json } from './types';
 
+// DB columns credit_reservations.session_id and credit_reservations.generation_id
+// are uuid. Client sessions use `session-${Date.now()}` until synced with
+// Supabase, so we must coerce any non-uuid value to null before inserting —
+// otherwise Postgres throws `invalid input syntax for type uuid` and the
+// whole reservation fails after credits were already deducted.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function coerceUuidOrNull(value: string | null | undefined): string | null {
+  return value && UUID_RE.test(value) ? value : null;
+}
+
 export type { CreditReservation };
 
 export interface ReserveCreditResult {
@@ -33,7 +43,9 @@ export async function reserveCredits(params: {
   sessionId?: string | null;
   metadata?: Record<string, Json>;
 }): Promise<ReserveCreditResult> {
-  const { userId, action, idempotencyKey, generationId = null, sessionId = null, metadata = {} } = params;
+  const { userId, action, idempotencyKey, metadata = {} } = params;
+  const generationId = coerceUuidOrNull(params.generationId ?? null);
+  const sessionId = coerceUuidOrNull(params.sessionId ?? null);
   const amount = CREDIT_COSTS[action];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = createAdminClient() as any;
