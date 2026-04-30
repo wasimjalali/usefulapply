@@ -570,7 +570,7 @@ export default function Dashboard() {
       lastApplicationTabRef.current = resolvedTab;
       setMobileApplicationTab(resolvedTab);
 
-      if (autostart === 'job-feed-apply') {
+      if (autostart === 'job-feed-apply' || autostart === 'job-feed-analyze') {
         // Only force the mobile chat view on an actual mobile viewport. On
         // desktop the md:hidden mobile ChatPanel would still mount when
         // mobileView flipped to 'chat', causing a second instance of the

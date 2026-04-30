@@ -69,6 +69,38 @@ export function getLocalDateKey(date: Date, timeZone: string): string {
   return `${parts.year}-${month}-${day}`;
 }
 
+/**
+ * Return the UTC instant that corresponds to 00:00 tomorrow in the user's
+ * local timezone. Used by the Job Feed cooldown so "one run per calendar
+ * day" unlocks at local midnight regardless of when the run happened.
+ *
+ * Works by walking forward in ~1-hour increments starting at `from + 1h`
+ * until the local day rolls over. Bounded by 48 iterations (all real TZs
+ * roll within 25h of any instant, even across DST).
+ */
+export function getStartOfNextLocalDay(from: Date, timeZone: string): Date {
+  const startKey = getLocalDateKey(from, timeZone);
+
+  // Coarse pass: hourly steps forward until the day key changes.
+  let probe = new Date(from.getTime() + 60 * 60 * 1000);
+  for (let i = 0; i < 48; i += 1) {
+    if (getLocalDateKey(probe, timeZone) !== startKey) break;
+    probe = new Date(probe.getTime() + 60 * 60 * 1000);
+  }
+
+  // Fine pass: walk back by the minute within the last hour to find the
+  // first instant whose local day is the new one.
+  let fine = new Date(probe.getTime() - 60 * 60 * 1000);
+  for (let i = 0; i < 60; i += 1) {
+    const next = new Date(fine.getTime() + 60 * 1000);
+    if (getLocalDateKey(next, timeZone) !== startKey) return next;
+    fine = next;
+  }
+
+  // Fallback (should never hit): return the end of the coarse window.
+  return probe;
+}
+
 export function isJobFeedConfigured(settings: JobFeedSettings | null): settings is JobFeedSettings {
   if (!settings) return false;
 

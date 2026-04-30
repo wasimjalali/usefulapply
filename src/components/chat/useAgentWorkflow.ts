@@ -945,6 +945,7 @@ export function useAgentWorkflow(options?: {
     handleSend,
     handleStopGeneration,
     runAgentWorkflow,
+    runFitAnalysisFlow,
     // Setters needed by handleAction
     setFitAnalysisContextId,
     setFitAnalysisJD,

@@ -24,7 +24,7 @@ interface UIState {
   // Set by JobFeedPanel on click; ChatPanel picks it up and starts the agent
   // workflow immediately — even if the user does not navigate to the
   // Application Kit tab. Consumed-then-cleared by ChatPanel.
-  pendingJobFeedAutostart: { sessionId: string; generationId?: string | null; generationAttempt?: number | null } | null;
+  pendingJobFeedAutostart: { sessionId: string; generationId?: string | null; generationAttempt?: number | null; mode?: 'apply' | 'analyze' } | null;
 }
 
 interface UIActions {
@@ -40,7 +40,7 @@ interface UIActions {
   setError: (error: string | null) => void;
 
   // Autostart signal
-  setPendingJobFeedAutostart: (value: { sessionId: string; generationId?: string | null; generationAttempt?: number | null } | null) => void;
+  setPendingJobFeedAutostart: (value: { sessionId: string; generationId?: string | null; generationAttempt?: number | null; mode?: 'apply' | 'analyze' } | null) => void;
 
   // Reset
   resetUI: () => void;

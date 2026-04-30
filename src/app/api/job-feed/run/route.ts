@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { canAccessJobFeed, getLocalDateKey } from '@/lib/job-feed/helpers';
+import { canAccessJobFeed, getLocalDateKey, getStartOfNextLocalDay } from '@/lib/job-feed/helpers';
 import {
   getJobFeedRunDiagnostics,
   getLatestManualCompletedJobFeedRunAdmin,
@@ -11,8 +11,6 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
-
-const MANUAL_RUN_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,11 +39,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 
-    // Cooldown is measured from the user's last *manual* run only. Scheduled
-    // or debug sweeps must never lock the button.
+    const userTimeZone = await getUserTimeZone(user.id);
+    const now = new Date();
+    const todayKey = getLocalDateKey(now, userTimeZone);
+
+    // One manual run per local calendar day. If today already has a
+    // completed manual run, the next window opens at local midnight.
     const latestManualRun = await getLatestManualCompletedJobFeedRunAdmin(user.id);
-    const cooldown = getManualRunCooldown(latestManualRun?.completed_at ?? null);
-    if (cooldown.remainingMs > 0) {
+    const cooldown = getCalendarDayCooldown({
+      latestManualLocalDate: latestManualRun?.local_date ?? null,
+      todayKey,
+      now,
+      timeZone: userTimeZone,
+    });
+
+    if (cooldown.blocked) {
       const diagnostics = getJobFeedRunDiagnostics(latestManualRun ?? null);
       return NextResponse.json({
         success: true,
@@ -69,20 +77,21 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // If the existing same-day run came from a non-manual source, force a
-    // rerun so the user gets a real manual run. The workflow's
-    // reset-artifacts path handles this safely.
-    const shouldForce = await shouldForceManualRerun(user.id);
-
     const result = await runJobFeedFoundationWorkflow({
       userId: user.id,
       triggerSource: 'manual_user',
-      now: new Date(),
-      force: shouldForce,
+      now,
+      // No need to force here any more. Scheduler is gone, so an
+      // existing-same-day row can only be a stale manual run; the
+      // workflow handles that via its stale-running recovery path.
+      force: false,
       orchestrator: 'direct',
     });
 
     const diagnostics = getJobFeedRunDiagnostics(result.run);
+    const nextRunAt = result.run.local_date
+      ? getStartOfNextLocalDay(new Date(`${result.run.local_date}T12:00:00Z`), userTimeZone).toISOString()
+      : null;
 
     return NextResponse.json({
       success: true,
@@ -93,7 +102,7 @@ export async function POST(request: NextRequest) {
       created: result.created,
       skipped: result.skipped,
       cooldown: false,
-      nextRunAt: getNextRunAt(result.run.completed_at),
+      nextRunAt,
       remainingMs: 0,
       rawJobsFetched: result.run.raw_jobs_fetched,
       jobsAfterPrefilter: result.run.jobs_after_prefilter,
@@ -112,68 +121,36 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function shouldForceManualRerun(userId: string): Promise<boolean> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
+async function getUserTimeZone(userId: string): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet cover these tables.
   const admin = createAdminClient() as any;
-
-  const { data: settings } = await admin
+  const { data } = await admin
     .from('job_feed_settings')
     .select('user_timezone')
     .eq('user_id', userId)
     .maybeSingle();
-
-  const timeZone = (settings as { user_timezone?: string } | null)?.user_timezone ?? 'UTC';
-  const today = getLocalDateKey(new Date(), timeZone);
-
-  const { data: existingRun } = await admin
-    .from('job_feed_runs')
-    .select('trigger_source, status')
-    .eq('user_id', userId)
-    .eq('local_date', today)
-    .maybeSingle();
-
-  if (!existingRun) return false;
-
-  const row = existingRun as { trigger_source: string; status: string };
-  const isManual = row.trigger_source === 'manual_user'
-    || row.trigger_source === 'manual_debug'
-    || row.trigger_source === 'manual_debug_force';
-
-  // A completed non-manual run blocks the manual workflow via its
-  // same-day idempotency check; force past it. A stale running run from
-  // any source (crashed mid-run) also needs force-reset.
-  if (row.status === 'completed' && !isManual) return true;
-  if (row.status === 'running') return true;
-
-  return false;
+  return (data as { user_timezone?: string } | null)?.user_timezone || 'UTC';
 }
 
-function getManualRunCooldown(completedAt: string | null): { remainingMs: number; nextRunAt: string | null } {
-  if (!completedAt) {
-    return { remainingMs: 0, nextRunAt: null };
+function getCalendarDayCooldown(params: {
+  latestManualLocalDate: string | null;
+  todayKey: string;
+  now: Date;
+  timeZone: string;
+}): { blocked: boolean; nextRunAt: string | null; remainingMs: number } {
+  if (!params.latestManualLocalDate) {
+    return { blocked: false, nextRunAt: null, remainingMs: 0 };
   }
 
-  const completedTime = Date.parse(completedAt);
-  if (Number.isNaN(completedTime)) {
-    return { remainingMs: 0, nextRunAt: null };
+  // Only today's manual run locks. Past-day rows are just history.
+  if (params.latestManualLocalDate !== params.todayKey) {
+    return { blocked: false, nextRunAt: null, remainingMs: 0 };
   }
 
-  const nextRunTime = completedTime + MANUAL_RUN_COOLDOWN_MS;
+  const nextRunAt = getStartOfNextLocalDay(params.now, params.timeZone);
   return {
-    remainingMs: Math.max(0, nextRunTime - Date.now()),
-    nextRunAt: new Date(nextRunTime).toISOString(),
+    blocked: true,
+    nextRunAt: nextRunAt.toISOString(),
+    remainingMs: Math.max(0, nextRunAt.getTime() - params.now.getTime()),
   };
-}
-
-function getNextRunAt(completedAt: string | null): string | null {
-  if (!completedAt) {
-    return null;
-  }
-
-  const completedTime = Date.parse(completedAt);
-  if (Number.isNaN(completedTime)) {
-    return null;
-  }
-
-  return new Date(completedTime + MANUAL_RUN_COOLDOWN_MS).toISOString();
 }

@@ -77,6 +77,7 @@ import {
   JobFeedDetailModal,
   RunStatPill,
 } from './feed-cards';
+import { SmartFeedProgressCard } from './SmartFeedProgressCard';
 
 type SaveState = 'idle' | 'saving';
 type PendingJobAction = {
@@ -89,8 +90,6 @@ type ManualRunNotice = {
   lines: string[];
   stats?: Array<{ label: string; value: string }>;
 } | null;
-
-const MANUAL_FEED_RUN_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 function normalizeTimeZoneValue(value: string): string {
   if (JOB_FEED_TIMEZONE_LOOKUP.has(value)) {
@@ -147,9 +146,14 @@ export function JobFeedPanel() {
 
   const showDebugActions = !isPreviewing && process.env.NEXT_PUBLIC_ENABLE_JOB_FEED_DEBUG === 'true';
   const getManualRunAvailability = useCallback(() => {
-    // Cooldown is driven by the last *manual* run only. Scheduled/system
-    // runs must never lock the button.
-    const cooldown = getManualRunCooldown(overview?.latestManualRun?.completed_at ?? null);
+    // One manual run per local calendar day. The cooldown key is the
+    // local_date of the last manual run — not its completed_at — so the
+    // next window always opens at local midnight regardless of what time
+    // the run happened.
+    const cooldown = getManualRunCooldown({
+      latestManualLocalDate: overview?.latestManualRun?.local_date ?? null,
+      timeZone: overview?.settings?.user_timezone ?? null,
+    });
 
     if (overview?.latestRun?.status === 'queued' || overview?.latestRun?.status === 'running') {
       return {
@@ -175,7 +179,7 @@ export function JobFeedPanel() {
       remainingMs: 0,
       nextRunAt: cooldown.nextRunAt,
     };
-  }, [overview?.latestManualRun?.completed_at, overview?.latestRun?.status]);
+  }, [overview?.latestManualRun?.local_date, overview?.latestRun?.status, overview?.settings?.user_timezone]);
 
   const loadOverview = useCallback(async (options?: { quiet?: boolean }): Promise<JobFeedOverviewResponse | null> => {
     if (isPreviewing) {
@@ -308,6 +312,22 @@ export function JobFeedPanel() {
       subscription_tier: profile?.subscription_tier ?? 'unknown',
     });
   }, [isPreviewing, isSignedIn, posthog, profile?.subscription_tier]);
+
+  // Poll the overview every 5 seconds while a run is in progress so the
+  // UI switches from the progress card to the results the moment the
+  // server marks the run completed. Survives tab/panel switches because
+  // it's driven by the server row, not a local setTimeout on the fetch.
+  useEffect(() => {
+    if (isPreviewing) return;
+    const status = overview?.latestRun?.status;
+    const isInFlight = status === 'running' || status === 'queued' || isRunningManualFeed;
+    if (!isInFlight) return;
+
+    const id = setInterval(() => {
+      void loadOverview({ quiet: true });
+    }, 5000);
+    return () => clearInterval(id);
+  }, [isPreviewing, isRunningManualFeed, loadOverview, overview?.latestRun?.status]);
 
   useEffect(() => {
     if (isPreviewing) return;
@@ -586,7 +606,7 @@ export function JobFeedPanel() {
     try {
       if (isPreviewing) {
         applyPreviewFeedback(job.id, action);
-        toastRef.current.success('Thanks — preview updated locally.');
+        toastRef.current.success('Thanks, preview updated locally.');
         return;
       }
 
@@ -617,8 +637,8 @@ export function JobFeedPanel() {
 
       toastRef.current.success(
         rating === 'helpful'
-          ? 'Thanks — we\'ll keep sending roles like this.'
-          : 'Got it — we\'ll tune your feed away from this.'
+          ? 'Thanks. We\'ll keep sending roles like this.'
+          : 'Got it. We\'ll tune your feed away from this.'
       );
     } catch (error) {
       toastRef.current.error(error instanceof Error ? error.message : 'Failed to save your rating.');
@@ -627,7 +647,11 @@ export function JobFeedPanel() {
     }
   }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback, removeJobFromOverview, selectedJob?.id]);
 
-  const handleApplyWithKarko = useCallback(async (job: JobFeedFeedItem) => {
+  // Shared handler for both "Apply with Karko" (full generation) and
+  // "Check fit first" (0.5-credit analyze-first). Posts to the same
+  // apply endpoint to create/reuse the session + generation row, then
+  // routes into the Application Kit with a different autostart signal.
+  const startKarkoHandoff = useCallback(async (job: JobFeedFeedItem, mode: 'apply' | 'analyze') => {
     const isRetry =
       job.feedback.generationStatus === 'failed' ||
       job.feedback.generationStatus === 'cancelled';
@@ -681,6 +705,7 @@ export function JobFeedPanel() {
           sessionId: typedPayload.session.id,
           generationId: typedPayload.generation.id,
           generationAttempt: typedPayload.generation.attempt,
+          mode,
         });
       }
 
@@ -693,12 +718,13 @@ export function JobFeedPanel() {
         created_session: typedPayload.created,
       });
 
+      const handoffLabel = mode === 'analyze' ? 'Checking fit' : 'Generating your application';
       toastRef.current.success(
         shouldAutostartGeneration
-          ? `${job.title} at ${job.company} — Karko is generating your application`
+          ? `${job.title} at ${job.company}. ${handoffLabel}...`
           : currentCV
-            ? `${job.title} at ${job.company} — opening your application workspace`
-            : `${job.title} at ${job.company} — upload your CV to continue`
+            ? `${job.title} at ${job.company}. Opening your application workspace.`
+            : `${job.title} at ${job.company}. Upload your CV to continue.`
       );
 
       router.push(buildJobFeedApplyPath({
@@ -706,6 +732,7 @@ export function JobFeedPanel() {
         generationId: typedPayload.generation.id,
         generationAttempt: typedPayload.generation.attempt,
         autostart: shouldAutostartGeneration,
+        mode,
       }));
     } catch (error) {
       toastRef.current.error(error instanceof Error ? error.message : 'Failed to start the Karko AI application handoff.');
@@ -713,6 +740,15 @@ export function JobFeedPanel() {
       setPendingJobAction(null);
     }
   }, [applyPreviewFeedback, currentCV, isPreviewing, overview?.feedRun?.id, posthog, router, syncApplicationSession, updateJobFeedbackState]);
+
+  const handleApplyWithKarko = useCallback(
+    (job: JobFeedFeedItem) => startKarkoHandoff(job, 'apply'),
+    [startKarkoHandoff],
+  );
+  const handleAnalyzeFirst = useCallback(
+    (job: JobFeedFeedItem) => startKarkoHandoff(job, 'analyze'),
+    [startKarkoHandoff],
+  );
 
   const handleExternalApply = useCallback((job: JobFeedFeedItem) => {
     if (isPreviewing) {
@@ -918,10 +954,10 @@ export function JobFeedPanel() {
   const todayLocalDate = getLocalDateKeyForTimeZone(new Date(), userTimeZone);
   const latestRunIsToday = overview?.latestRun?.local_date === todayLocalDate;
   const completedToday = latestRunIsToday && overview?.latestRun?.status === 'completed';
-  const latestCompletedAt = overview?.latestRun?.status === 'completed'
-    ? overview.latestRun.completed_at
-    : overview?.feedRun?.completed_at ?? null;
-  const manualRunCooldown = getManualRunCooldown(latestCompletedAt);
+  const manualRunCooldown = getManualRunCooldown({
+    latestManualLocalDate: overview?.latestManualRun?.local_date ?? null,
+    timeZone: userTimeZone ?? null,
+  });
   const isInManualRunCooldown = manualRunCooldown.remainingMs > 0;
   const isPreparingToday = latestRunIsToday && (overview?.latestRun?.status === 'queued' || overview?.latestRun?.status === 'running');
   const canUseManualRun = activeTab === 'today'
@@ -1022,6 +1058,7 @@ export function JobFeedPanel() {
                 onLoadMore={handleLoadMoreJobs}
                 onOpenDetails={handleOpenDetails}
                 onApplyWithKarko={handleApplyWithKarko}
+                onAnalyzeFirst={handleAnalyzeFirst}
                 onExternalApply={handleExternalApply}
               />
             )}
@@ -1033,6 +1070,7 @@ export function JobFeedPanel() {
                 pendingJobAction={pendingJobAction}
                 onOpenDetails={handleOpenDetails}
                 onApplyWithKarko={handleApplyWithKarko}
+                onAnalyzeFirst={handleAnalyzeFirst}
                 onExternalApply={handleExternalApply}
                 onBackToFeed={handleShowTodayFeed}
               />
@@ -1087,6 +1125,7 @@ export function JobFeedPanel() {
           isDismissing={pendingJobAction?.jobId === selectedJob.id && pendingJobAction.action === 'dismiss'}
           isRating={pendingJobAction?.jobId === selectedJob.id && pendingJobAction.action === 'rate'}
           onApplyWithKarko={() => handleApplyWithKarko(selectedJob)}
+          onAnalyzeFirst={() => handleAnalyzeFirst(selectedJob)}
           onSave={() => handleSaveJob(selectedJob)}
           onDismiss={() => handleDismissJob(selectedJob)}
           onExternalApply={() => handleExternalApply(selectedJob)}
@@ -1217,6 +1256,7 @@ function SavedJobsView({
   pendingJobAction,
   onOpenDetails,
   onApplyWithKarko,
+  onAnalyzeFirst,
   onExternalApply,
   onBackToFeed,
 }: {
@@ -1225,6 +1265,7 @@ function SavedJobsView({
   pendingJobAction: PendingJobAction;
   onOpenDetails: (job: JobFeedFeedItem) => void;
   onApplyWithKarko: (job: JobFeedFeedItem) => void;
+  onAnalyzeFirst: (job: JobFeedFeedItem) => void;
   onExternalApply: (job: JobFeedFeedItem) => void;
   onBackToFeed: () => void;
 }) {
@@ -1269,6 +1310,7 @@ function SavedJobsView({
       feedSummary={`${jobs.length} saved ${jobs.length === 1 ? 'job' : 'jobs'}`}
       onOpenDetails={onOpenDetails}
       onApplyWithKarko={onApplyWithKarko}
+      onAnalyzeFirst={onAnalyzeFirst}
       onExternalApply={onExternalApply}
     />
   );
@@ -1319,7 +1361,7 @@ function FeedPageHeader({
       ? 'Preparing'
       : 'Run today';
   const runButtonTitle = hasCompletedToday
-    ? `Available again ${formatCooldownTarget(nextManualRunAt)}`
+    ? `Next refresh ${formatCooldownTarget(nextManualRunAt)}`
     : isPreparingToday
       ? 'Today’s feed is already being prepared'
       : 'Run today’s feed now';
@@ -1534,6 +1576,16 @@ function InlineStateMessage({
       ? 'Preparing'
       : 'Find jobs now';
 
+  // A run is in flight — either the local fetch hasn't returned yet, or
+  // the server already flipped the row to 'running'. Show the detailed
+  // progress card so the user knows it takes 1-2 minutes and can keep
+  // working elsewhere. Survives tab switches because it's driven by the
+  // server row, not a local timer.
+  if (isRunningManualFeed || isPreparingToday) {
+    const startedAt = overview?.latestRun?.started_at ?? overview?.latestRun?.created_at ?? null;
+    return <SmartFeedProgressCard startedAt={startedAt} />;
+  }
+
   if (showManualRunAction && (state === 'awaiting_first_run' || state === 'empty')) {
     return (
       <Card className="flex min-h-[320px] flex-col items-center justify-center rounded-[24px] border-cream-200 bg-white px-6 py-10 text-center shadow-sm">
@@ -1560,7 +1612,7 @@ function InlineStateMessage({
           <p className="mt-3 text-xs text-warm-gray">
             {isPreparingToday
               ? 'Your feed is already being prepared.'
-              : `Available again ${formatCooldownTarget(nextManualRunAt)}.`}
+              : `Your next refresh opens ${formatCooldownTarget(nextManualRunAt)}.`}
           </p>
         )}
       </Card>
@@ -2395,6 +2447,10 @@ function buildJobFeedApplyPath(params: {
   generationId: string;
   generationAttempt: number;
   autostart: boolean;
+  // 'apply' → fire the full-generation workflow immediately.
+  // 'analyze' → fire a fit analysis first so the user can decide before
+  // spending the full 1.5 credits on generation.
+  mode?: 'apply' | 'analyze';
 }): string {
   const searchParams = new URLSearchParams({
     workspace: 'application-kit',
@@ -2405,7 +2461,7 @@ function buildJobFeedApplyPath(params: {
   });
 
   if (params.autostart) {
-    searchParams.set('autostart', 'job-feed-apply');
+    searchParams.set('autostart', params.mode === 'analyze' ? 'job-feed-analyze' : 'job-feed-apply');
   }
 
   return `/dashboard?${searchParams.toString()}`;
@@ -2458,12 +2514,15 @@ function buildManualRunBlockedNotice(params: {
     };
   }
 
+  const target = formatCooldownTarget(params.nextRunAt);
   return {
     kind: 'cooldown',
-    title: 'Daily refresh limit',
+    title: 'Today’s feed is ready',
     lines: [
-      'You can refresh hand-picked jobs once every 24 hours.',
-      `Try again ${formatCooldownTarget(params.nextRunAt)}.`,
+      'You can refresh your feed once per day.',
+      target === 'tomorrow'
+        ? 'Your next refresh opens at the start of tomorrow in your local time.'
+        : `Your next refresh opens ${target}.`,
     ],
   };
 }
@@ -2506,39 +2565,84 @@ function toDisplayNumber(value: number | null | undefined): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
-function getManualRunCooldown(completedAt: string | null): { remainingMs: number; nextRunAt: string | null } {
-  if (!completedAt) {
+/**
+ * Calendar-day cooldown. One manual run per local date: if the most recent
+ * manual run's local_date equals today's local_date, the next window opens
+ * at the start of tomorrow in the user's timezone.
+ */
+function getManualRunCooldown(params: {
+  latestManualLocalDate: string | null;
+  timeZone: string | null;
+}): { remainingMs: number; nextRunAt: string | null } {
+  if (!params.latestManualLocalDate) {
     return { remainingMs: 0, nextRunAt: null };
   }
 
-  const completedTime = Date.parse(completedAt);
-  if (Number.isNaN(completedTime)) {
+  const tz = params.timeZone || getBrowserTimeZone() || 'UTC';
+  const now = new Date();
+  const todayKey = localDateKeyFromClient(now, tz);
+
+  if (params.latestManualLocalDate !== todayKey) {
     return { remainingMs: 0, nextRunAt: null };
   }
 
-  const nextRunTime = completedTime + MANUAL_FEED_RUN_COOLDOWN_MS;
+  const nextMidnight = getStartOfNextLocalDayClient(now, tz);
   return {
-    remainingMs: Math.max(0, nextRunTime - Date.now()),
-    nextRunAt: new Date(nextRunTime).toISOString(),
+    remainingMs: Math.max(0, nextMidnight.getTime() - now.getTime()),
+    nextRunAt: nextMidnight.toISOString(),
   };
 }
 
+// Small client-side mirrors of server helpers so the UI can compute the
+// cooldown locally without an extra round trip.
+function localDateKeyFromClient(date: Date, timeZone: string): string {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    return formatter.format(date);
+  } catch {
+    return date.toISOString().slice(0, 10);
+  }
+}
+
+function getStartOfNextLocalDayClient(from: Date, timeZone: string): Date {
+  const startKey = localDateKeyFromClient(from, timeZone);
+  let probe = new Date(from.getTime() + 60 * 60 * 1000);
+  for (let i = 0; i < 48; i += 1) {
+    if (localDateKeyFromClient(probe, timeZone) !== startKey) break;
+    probe = new Date(probe.getTime() + 60 * 60 * 1000);
+  }
+  let fine = new Date(probe.getTime() - 60 * 60 * 1000);
+  for (let i = 0; i < 60; i += 1) {
+    const next = new Date(fine.getTime() + 60 * 1000);
+    if (localDateKeyFromClient(next, timeZone) !== startKey) return next;
+    fine = next;
+  }
+  return probe;
+}
+
 function formatCooldownTarget(value: string | null): string {
-  if (!value) {
-    return 'after 24 hours';
+  if (!value) return 'tomorrow';
+
+  const target = new Date(value);
+  if (Number.isNaN(target.getTime())) return 'tomorrow';
+
+  const now = new Date();
+  const diffMs = target.getTime() - now.getTime();
+
+  // If next window is less than ~12h away, use relative time for clarity.
+  if (diffMs > 0 && diffMs < 12 * 60 * 60 * 1000) {
+    const minutes = Math.max(1, Math.round(diffMs / (60 * 1000)));
+    if (minutes < 60) return `in ${minutes} minute${minutes === 1 ? '' : 's'}`;
+    const hours = Math.round(minutes / 60);
+    return `in about ${hours} hour${hours === 1 ? '' : 's'}`;
   }
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return 'after 24 hours';
-  }
-
-  return date.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  return 'tomorrow';
 }
 
 function formatDeliveredAtLabel(value: string): string {

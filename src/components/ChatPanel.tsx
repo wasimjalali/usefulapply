@@ -90,6 +90,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     handleSend: workflowHandleSend,
     handleStopGeneration,
     runAgentWorkflow,
+    runFitAnalysisFlow,
     setFitAnalysisContextId,
     setFitAnalysisJD,
     setFitAnalysisContextData,
@@ -239,7 +240,12 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     const urlGenerationAttempt = rawGenerationAttempt && Number.isFinite(Number(rawGenerationAttempt))
       ? Number(rawGenerationAttempt)
       : null;
-    if (searchParams.get('autostart') !== 'job-feed-apply') return;
+    const autostartParam = searchParams.get('autostart');
+    const autostartMode: 'apply' | 'analyze' | null =
+      autostartParam === 'job-feed-apply' ? 'apply'
+        : autostartParam === 'job-feed-analyze' ? 'analyze'
+          : null;
+    if (!autostartMode) return;
     if (!urlSessionId || currentSession?.id !== urlSessionId) return;
     const autostartKey = buildJobFeedAutostartKey({
       sessionId: urlSessionId,
@@ -256,6 +262,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
       sessionId: urlSessionId,
       generationId: urlGenerationId,
       generationAttempt: urlGenerationAttempt ?? currentSession.jobFeedGenerationAttempt ?? null,
+      mode: autostartMode,
     });
   }, [currentSession, pendingJobFeedAutostart, searchParams, setPendingJobFeedAutostart]);
 
@@ -315,16 +322,23 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
       });
     }
 
+    const mode = pendingJobFeedAutostart.mode ?? 'apply';
+    const applicationModeForRun = mode === 'analyze' ? 'analyze_first' : 'apply_directly';
+
     addChatMessage({ role: 'user', content: jobDescription });
     setJobDescription(jobDescription);
-    setApplicationMode('apply_directly');
+    setApplicationMode(applicationModeForRun);
     setAwaitingJobDescription(false);
     posthog?.capture('jd_pasted', {
       jd_length: jobDescription.length,
-      mode: 'apply_directly',
+      mode: applicationModeForRun,
       source: 'job_feed_autostart',
     });
-    void runAgentWorkflow(jobDescription);
+    if (mode === 'analyze') {
+      void runFitAnalysisFlow(jobDescription);
+    } else {
+      void runAgentWorkflow(jobDescription);
+    }
   }, [
     addChatMessage,
     currentCV,
@@ -333,6 +347,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     pendingJobFeedAutostart,
     posthog,
     runAgentWorkflow,
+    runFitAnalysisFlow,
     setApplicationMode,
     setAwaitingJobDescription,
     setJobDescription,
