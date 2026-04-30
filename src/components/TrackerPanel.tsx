@@ -423,13 +423,17 @@ export function TrackerPanel() {
     }
   };
 
-  // Initial load
+  // Initial load + refetch on filter/search change.
+  // `isLoadingInitial` is only true on the first fire so the full-screen
+  // spinner does not unmount the search input every time the user types a
+  // letter (which would yank focus and force them to click back in).
+  const hasRunInitialLoadRef = useRef(false);
   useEffect(() => {
     if (!user) return;
 
     let cancelled = false;
+    const isFirstLoad = !hasRunInitialLoadRef.current;
     const load = async () => {
-      setIsLoadingInitial(true);
       const supabase = getSupabase() as any;
 
       const [pageResult, statusResult] = await Promise.all([
@@ -461,7 +465,10 @@ export function TrackerPanel() {
         setTotalCount(statusResult.data.length);
       }
 
-      setIsLoadingInitial(false);
+      if (isFirstLoad) {
+        hasRunInitialLoadRef.current = true;
+        setIsLoadingInitial(false);
+      }
     };
 
     load();
