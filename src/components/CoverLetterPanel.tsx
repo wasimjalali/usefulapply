@@ -481,33 +481,10 @@ ${letter.signatureName}`;
     );
   }
 
-  // Show generate button if CV is ready but no cover letter yet
-  if (!coverLetter && currentCV && jobDescription) {
-    return (
-      <div className="h-full flex items-center justify-center bg-cream-50 p-8">
-        <div className="text-center max-w-md">
-          <div className="w-16 h-16 rounded-2xl bg-navy-50 flex items-center justify-center mx-auto mb-5">
-            <Mail className="w-8 h-8 text-navy-400" />
-          </div>
-          <h3 className="text-lg font-bold tracking-tight text-charcoal mb-2">Generate Cover Letter</h3>
-          <p className="text-sm text-warm-gray mb-6 leading-relaxed">
-            Create a personalized cover letter tailored to this job application.
-          </p>
-          <Button
-            variant="gold"
-            size="lg"
-            onClick={handleGenerateCoverLetter}
-            isLoading={isLoadingCoverLetter}
-          >
-            <Mail className="w-4 h-4 mr-2" />
-            Generate Cover Letter
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Show placeholder if CV not ready
+  // No cover letter and no pending fit analysis — the only way to get here is
+  // to generate a full application from the chat panel. Do not offer a
+  // standalone "Generate Cover Letter" button (it cannot work without a job
+  // description + generation context).
   if (!coverLetter) {
     return (
       <div className="h-full flex items-center justify-center bg-cream-50 p-8">
@@ -517,7 +494,7 @@ ${letter.signatureName}`;
           </div>
           <h3 className="text-lg font-bold tracking-tight text-charcoal mb-2">No cover letter yet</h3>
           <p className="text-sm text-warm-gray leading-relaxed">
-            Analyze a job to generate a personalized cover letter
+            Paste a job description in the chat to generate your full application kit.
           </p>
         </div>
       </div>

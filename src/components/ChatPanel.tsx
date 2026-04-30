@@ -96,8 +96,31 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     setFitAnalysisContextData,
     setAgentSteps,
   } = useAgentWorkflow({
-    onInsufficientCredits: (required, available) => {
-      setCreditsModalData({ required, available });
+    onInsufficientCredits: async (required, available) => {
+      // Server-reported `available` can be stale or zero due to a reservation
+      // race. Verify with the live balance before showing the out-of-credits
+      // modal — users with hundreds of credits should not see "0 remaining".
+      let liveAvailable = available;
+      try {
+        const res = await fetch('/api/credits/balance');
+        if (res.ok) {
+          const data = await res.json();
+          if (typeof data?.total === 'number') {
+            liveAvailable = data.total;
+          }
+        }
+      } catch {
+        // Fall through to the server-reported value.
+      }
+      if (liveAvailable >= required) {
+        // False positive. Surface a recoverable error instead of the upsell.
+        addChatMessage({
+          role: 'assistant',
+          content: '❌ Sorry, something went wrong during generation. Your credits were not charged. Please try again.',
+        });
+        return;
+      }
+      setCreditsModalData({ required, available: liveAvailable });
       setShowCreditsModal(true);
     },
     onAnonymousLimitReached: () => {

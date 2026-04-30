@@ -358,33 +358,9 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
     );
   }
 
-  // Show generate button if job description is available but no email yet
-  if (!email && jobDescription) {
-    return (
-      <div className="h-full flex items-center justify-center bg-cream-50 p-8">
-        <div className="text-center max-w-md">
-          <div className="w-16 h-16 rounded-2xl bg-navy-50 flex items-center justify-center mx-auto mb-5">
-            <Send className="w-8 h-8 text-navy-400" />
-          </div>
-          <h3 className="text-lg font-bold tracking-tight text-charcoal mb-2">Generate Application Email</h3>
-          <p className="text-sm text-warm-gray mb-6 leading-relaxed">
-            Create a professional email to send with your CV and cover letter.
-          </p>
-          <Button
-            variant="gold"
-            size="lg"
-            onClick={handleGenerateEmail}
-            isLoading={isLoadingEmail}
-          >
-            <Send className="w-4 h-4 mr-2" />
-            Generate Email
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Show placeholder if CV not ready
+  // No email and no pending fit analysis — the email is always generated as
+  // part of the full application kit. Do not offer a standalone "Generate
+  // Email" button (it cannot work without a generation context).
   if (!email) {
     return (
       <div className="h-full flex items-center justify-center bg-cream-50 p-8">
@@ -394,7 +370,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
           </div>
           <h3 className="text-lg font-bold tracking-tight text-charcoal mb-2">No email yet</h3>
           <p className="text-sm text-warm-gray leading-relaxed">
-            Generate a cover letter first, then create an application email
+            Paste a job description in the chat to generate your full application kit.
           </p>
         </div>
       </div>

@@ -72,7 +72,11 @@ export async function POST(request: NextRequest) {
         {
           error: reserveResult.error || 'Insufficient credits',
           code: 'INSUFFICIENT_CREDITS',
-          details: { required: CREDIT_COSTS[creditAction], available: 0, upgradeRequired: true },
+          details: {
+            required: reserveResult.required ?? CREDIT_COSTS[creditAction],
+            available: reserveResult.available ?? 0,
+            upgradeRequired: true,
+          },
         },
         { status: 402 }
       );

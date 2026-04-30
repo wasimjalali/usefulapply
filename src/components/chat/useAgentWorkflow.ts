@@ -95,7 +95,7 @@ function formatFitAnalysisMessage(
 }
 
 export function useAgentWorkflow(options?: {
-  onInsufficientCredits?: (required: number, available: number) => void;
+  onInsufficientCredits?: (required: number, available: number) => void | Promise<void>;
   onAnonymousLimitReached?: () => void;
 }) {
   const { user, profile } = useAuth();

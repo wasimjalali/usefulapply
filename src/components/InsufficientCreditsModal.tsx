@@ -99,16 +99,13 @@ export function InsufficientCreditsModal({
             <div className="p-6 pt-4 flex flex-col flex-1">
               <div className="mb-4">
                 <h3 className="font-bold text-navy-600 text-[20px] leading-tight">Plus</h3>
-                <p className="text-sm text-warm-gray mt-0.5">For serious job seekers</p>
+                <p className="text-sm text-warm-gray mt-0.5">For applying every week</p>
               </div>
               <div className="mb-4">
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-[36px] font-bold text-navy-600 leading-none">$19.99</span>
                   <span className="text-warm-gray text-sm">/ month</span>
                 </div>
-                <span className="inline-block mt-2 text-[12px] font-semibold text-gold-700 bg-gold-50 border border-gold-200 rounded-full px-3 py-0.5">
-                  25 applications / month
-                </span>
               </div>
               <div className="flex items-center gap-2 bg-gold-50 border border-gold-200 rounded-lg px-3 py-2 mb-4">
                 <Clock className="w-4 h-4 text-gold-600 flex-shrink-0" />
@@ -127,14 +124,17 @@ export function InsufficientCreditsModal({
               <p className="font-bold text-charcoal text-[14px] mb-2.5">Everything in Free, plus:</p>
               <ul className="space-y-2 flex-1">
                 {[
-                  'Smart Job Feed: up to 15 curated roles per day',
-                  'Full Fit Analysis with strengths and gaps',
-                  'Unlimited application tracker',
-                  'Add-on credit packs (credits roll over)',
+                  { label: '50 credits per month', emphasis: true },
+                  { label: '25 full applications per month' },
+                  { label: 'Smart Job Feed: up to 15 roles a day' },
+                  { label: 'Screening question answers' },
+                  { label: 'Unlimited application tracker' },
+                  { label: 'Add-on credit packs (credits roll over)' },
+                  { label: 'Priority email support' },
                 ].map((f) => (
-                  <li key={f} className="flex items-start gap-2.5">
+                  <li key={f.label} className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold-500" />
-                    <span className="text-[13px] text-charcoal leading-relaxed">{f}</span>
+                    <span className={`text-[13px] text-charcoal leading-relaxed ${f.emphasis ? 'font-semibold' : ''}`}>{f.label}</span>
                   </li>
                 ))}
               </ul>
@@ -147,16 +147,13 @@ export function InsufficientCreditsModal({
             <div className="p-6 pt-4 flex flex-col flex-1">
               <div className="mb-4">
                 <h3 className="font-bold text-white text-[20px] leading-tight">Max</h3>
-                <p className="text-sm text-navy-300 mt-0.5">For the intense job search</p>
+                <p className="text-sm text-navy-300 mt-0.5">For applying every day</p>
               </div>
               <div className="mb-4">
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-[36px] font-bold text-white leading-none">$79.99</span>
                   <span className="text-navy-300 text-sm">/ month</span>
                 </div>
-                <span className="inline-block mt-2 text-[12px] font-semibold text-navy-200 bg-navy-700 border border-navy-600 rounded-full px-3 py-0.5">
-                  100 applications / month
-                </span>
               </div>
               <div className="flex items-center gap-2 bg-navy-700 border border-navy-600 rounded-lg px-3 py-2 mb-4">
                 <Clock className="w-4 h-4 text-gold-400 flex-shrink-0" />
@@ -175,14 +172,14 @@ export function InsufficientCreditsModal({
               <p className="font-bold text-white text-[14px] mb-2.5">Everything in Plus, plus:</p>
               <ul className="space-y-2 flex-1">
                 {[
-                  'Smart Job Feed: up to 25 curated roles per day',
-                  'Screening question answers',
-                  'Add-on credit packs (credits roll over)',
-                  'Premium dedicated support',
+                  { label: '200 credits per month', emphasis: true },
+                  { label: '100 full applications per month' },
+                  { label: 'Smart Job Feed: up to 25 roles a day' },
+                  { label: 'Premium dedicated support' },
                 ].map((f) => (
-                  <li key={f} className="flex items-start gap-2.5">
+                  <li key={f.label} className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold-400" />
-                    <span className="text-[13px] text-navy-100 leading-relaxed">{f}</span>
+                    <span className={`text-[13px] text-navy-100 leading-relaxed ${f.emphasis ? 'font-semibold' : ''}`}>{f.label}</span>
                   </li>
                 ))}
               </ul>

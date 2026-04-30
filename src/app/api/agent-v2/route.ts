@@ -467,7 +467,11 @@ export async function POST(request: NextRequest) {
                 type: 'error',
                 code: 'INSUFFICIENT_CREDITS',
                 message: reserveResult.error || 'Insufficient credits',
-                details: { required: CREDIT_COSTS.FIT_ANALYSIS, available: 0, upgradeRequired: true },
+                details: {
+                  required: reserveResult.required ?? CREDIT_COSTS.FIT_ANALYSIS,
+                  available: reserveResult.available ?? 0,
+                  upgradeRequired: true,
+                },
               })}\n\n`));
               controller.close();
               return;
@@ -601,7 +605,11 @@ export async function POST(request: NextRequest) {
                     type: 'error',
                     code: 'INSUFFICIENT_CREDITS',
                     message: reserveResult.error || 'Insufficient credits',
-                    details: { required: CREDIT_COSTS.FULL_APPLICATION, available: 0, upgradeRequired: true },
+                    details: {
+                      required: reserveResult.required ?? CREDIT_COSTS.FULL_APPLICATION,
+                      available: reserveResult.available ?? 0,
+                      upgradeRequired: true,
+                    },
                   })}\n\n`));
                   controller.close();
                   return;
@@ -683,7 +691,11 @@ export async function POST(request: NextRequest) {
                 type: 'error',
                 code: 'INSUFFICIENT_CREDITS',
                 message: reserveResult.error || 'Insufficient credits',
-                details: { required: CREDIT_COSTS.GENERATION_AFTER_FIT, available: 0, upgradeRequired: true },
+                details: {
+                  required: reserveResult.required ?? CREDIT_COSTS.GENERATION_AFTER_FIT,
+                  available: reserveResult.available ?? 0,
+                  upgradeRequired: true,
+                },
               })}\n\n`));
               controller.close();
               return;
@@ -773,7 +785,11 @@ export async function POST(request: NextRequest) {
               type: 'error',
               code: 'INSUFFICIENT_CREDITS',
               message: reserveResult.error || 'Insufficient credits',
-              details: { required: CREDIT_COSTS.FULL_APPLICATION, available: 0, upgradeRequired: true },
+              details: {
+                required: reserveResult.required ?? CREDIT_COSTS.FULL_APPLICATION,
+                available: reserveResult.available ?? 0,
+                upgradeRequired: true,
+              },
             })}\n\n`));
             controller.close();
             return;

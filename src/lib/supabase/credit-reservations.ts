@@ -8,6 +8,8 @@ export interface ReserveCreditResult {
   success: boolean;
   reservation: CreditReservation | null;
   error: string | null;
+  available?: number;
+  required?: number;
 }
 
 export interface CaptureOrReleaseResult {
@@ -57,6 +59,8 @@ export async function reserveCredits(params: {
       success: false,
       reservation: null,
       error: `Insufficient credits. Required: ${amount}, Available: ${total}`,
+      available: total,
+      required: amount,
     };
   }
 
