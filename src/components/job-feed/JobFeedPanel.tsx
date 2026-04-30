@@ -1392,23 +1392,12 @@ function FeedPageHeader({
       ? 'Today’s feed is already being prepared'
       : 'Run today’s feed now';
 
-  const todayLabel = jobsTodayCount > 0
-    ? `${jobsTodayCount} new ${jobsTodayCount === 1 ? 'job' : 'jobs'} today`
-    : null;
-  const backlogLabel = jobsBacklogCount > 0
-    ? `${jobsBacklogCount} from earlier days`
-    : null;
-
-  const combinedFeedHeadline = todayLabel && backlogLabel
-    ? `${todayLabel} · ${backlogLabel}`
-    : todayLabel
-      ? todayLabel
-      : backlogLabel
-        ? backlogLabel
-        : 'Your feed for today';
-
+  // Headline owns the "what's new today" signal. Backlog (untouched roles
+  // from the last 7 days) goes in the Delivered meta row below.
   const todayHeadline = isReady
-    ? combinedFeedHeadline
+    ? jobsTodayCount > 0
+      ? `${jobsTodayCount} new ${jobsTodayCount === 1 ? 'job' : 'jobs'} today`
+      : 'Your feed for today'
     : currentState === 'setup_required'
       ? 'Set up your daily feed'
       : currentState === 'paused'
@@ -1436,6 +1425,12 @@ function FeedPageHeader({
   const deliveredAt = activeTab === 'today' && isReady && latestRun?.completed_at
     ? formatDeliveredAtLabel(latestRun.completed_at)
     : null;
+  const backlogLabel = activeTab === 'today' && isReady && jobsBacklogCount > 0
+    ? `${jobsBacklogCount} unseen from earlier ${jobsBacklogCount === 1 ? 'day' : 'days'}`
+    : null;
+  const metaLine = [deliveredAt ? `Delivered ${deliveredAt}` : null, backlogLabel]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -1444,8 +1439,8 @@ function FeedPageHeader({
         {subtitle && (
           <p className="mt-1 text-sm text-warm-gray">{subtitle}</p>
         )}
-        {deliveredAt && (
-          <p className="mt-0.5 text-xs text-warm-gray">Delivered {deliveredAt}</p>
+        {metaLine && (
+          <p className="mt-0.5 text-xs text-warm-gray">{metaLine}</p>
         )}
       </div>
 

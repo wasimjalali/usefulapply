@@ -1152,8 +1152,18 @@ export async function listJobFeedInboxPageAdmin(params: {
     latestCompletedRun,
   });
 
-  const todayRunId = latestCompletedRun.id;
-  const todayVisibleCount = rows.filter((row) => row.run_id === todayRunId).length;
+  // "Today" must be the user's local day, not just "the latest completed
+  // run." If the user hasn't refreshed in a few days, the latest run is
+  // yesterday's or older — those visible jobs belong in the backlog, not
+  // the today bucket.
+  const settings = await getJobFeedSettingsAdmin(params.userId);
+  const userTz = settings?.user_timezone ?? 'UTC';
+  const todayKey = getLocalDateKey(new Date(), userTz);
+  const latestRunIsToday = latestCompletedRun.local_date === todayKey;
+
+  const todayVisibleCount = latestRunIsToday
+    ? rows.filter((row) => row.run_id === latestCompletedRun.id).length
+    : 0;
   const backlogVisibleCount = totalCount - todayVisibleCount;
 
   const offset = Math.max(0, Math.floor(params.offset));
