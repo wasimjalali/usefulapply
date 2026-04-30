@@ -9,6 +9,7 @@ import {
   listLatestJobFeedItemsAdmin,
 } from '@/lib/job-feed/server';
 import { JOB_FEED_INBOX_PAGE_SIZE } from '@/lib/job-feed/constants';
+import { getLocalDateKey } from '@/lib/job-feed/helpers';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import type { JobFeedRun } from '@/lib/supabase/types';
 
@@ -59,6 +60,8 @@ export async function GET(request: NextRequest) {
         jobs: [],
         jobsTotalCount: 0,
         jobsHasMore: false,
+        jobsTodayCount: 0,
+        jobsBacklogCount: 0,
         state: 'upgrade_required',
         foundationMode: true,
         feedCap: tierLimits.visibleCount,
@@ -110,9 +113,19 @@ export async function GET(request: NextRequest) {
     const jobs = firstPage?.items ?? [];
     const totalCount = firstPage?.totalCount ?? 0;
     const hasMore = firstPage?.hasMore ?? false;
+    const backlogVisibleCount = firstPage?.backlogVisibleCount ?? 0;
     const runForState = latestRun && isStaleOverviewRun(latestRun) && feedRunSummary.run
       ? feedRunSummary.run
       : latestRun;
+
+    // "Jobs today" = what the agent actually delivered today, unfiltered.
+    // Stays steady through the day even as the user dismisses or applies
+    // to jobs. Only counts when the latest completed run is from today's
+    // local day in the user's timezone.
+    const userTz = settings?.user_timezone ?? 'UTC';
+    const todayKey = getLocalDateKey(new Date(), userTz);
+    const latestRunIsToday = latestRun?.status === 'completed' && latestRun?.local_date === todayKey;
+    const jobsTodayCount = latestRunIsToday ? Number(latestRun?.ranked_jobs_count ?? 0) : 0;
 
     return NextResponse.json({
       canAccess,
@@ -124,6 +137,8 @@ export async function GET(request: NextRequest) {
       jobs,
       jobsTotalCount: totalCount,
       jobsHasMore: hasMore,
+      jobsTodayCount,
+      jobsBacklogCount: backlogVisibleCount,
       state: getJobFeedOverviewState({
         canAccess,
         settings: settings ?? null,

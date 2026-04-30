@@ -56,8 +56,18 @@ export interface JobFeedOverviewResponse {
   // First page of the 7-day inbox (JOB_FEED_VISIBLE_DEFAULT_COUNT items).
   // Subsequent pages come from /api/job-feed/inbox.
   jobs: JobFeedFeedItem[];
+  // Total visible jobs across the whole 7-day inbox (blocked jobs already
+  // stripped). Drives Load More's remaining count.
   jobsTotalCount: number;
   jobsHasMore: boolean;
+  // How many jobs today's run delivered, unfiltered by user actions. This
+  // is the agent's "how fresh is my feed" signal and stays fixed for the
+  // day even as the user dismisses or applies to jobs.
+  jobsTodayCount: number;
+  // How many visible jobs carried over from earlier days in the 7-day
+  // window (excludes jobs the user already applied / dismissed / rated
+  // not relevant). Shrinks as the user acts on jobs.
+  jobsBacklogCount: number;
   state: JobFeedOverviewState;
   foundationMode: boolean;
   feedCap: number;

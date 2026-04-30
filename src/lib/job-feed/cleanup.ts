@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
+  JOB_FEED_INBOX_RETENTION_DAYS,
   JOB_FEED_RAW_PAYLOAD_RETENTION_DAYS,
   JOB_FEED_RUN_METADATA_RETENTION_DAYS,
 } from '@/lib/job-feed/constants';
@@ -11,22 +12,28 @@ const UPDATE_BATCH_SIZE = 200;
 export interface JobFeedCleanupResult {
   rawPayloadRetentionDays: number;
   runMetadataRetentionDays: number;
+  inboxRetentionDays: number;
   rawPayloadCutoff: string;
   runMetadataCutoff: string;
+  inboxCutoff: string;
   rawFetchPayloadsRedacted: number;
   runMetadataCompacted: number;
+  rankedItemsDeleted: number;
 }
 
 export async function cleanupHistoricalJobFeedData(params?: {
   now?: Date;
   rawPayloadRetentionDays?: number;
   runMetadataRetentionDays?: number;
+  inboxRetentionDays?: number;
 }): Promise<JobFeedCleanupResult> {
   const now = params?.now ?? new Date();
   const rawPayloadRetentionDays = params?.rawPayloadRetentionDays ?? JOB_FEED_RAW_PAYLOAD_RETENTION_DAYS;
   const runMetadataRetentionDays = params?.runMetadataRetentionDays ?? JOB_FEED_RUN_METADATA_RETENTION_DAYS;
+  const inboxRetentionDays = params?.inboxRetentionDays ?? JOB_FEED_INBOX_RETENTION_DAYS;
   const rawPayloadCutoff = new Date(now.getTime() - rawPayloadRetentionDays * 24 * 60 * 60 * 1000).toISOString();
   const runMetadataCutoff = new Date(now.getTime() - runMetadataRetentionDays * 24 * 60 * 60 * 1000).toISOString();
+  const inboxCutoff = new Date(now.getTime() - inboxRetentionDays * 24 * 60 * 60 * 1000).toISOString();
 
   const rawFetchPayloadsRedacted = await redactOldRawFetchPayloads({
     now,
@@ -39,14 +46,64 @@ export async function cleanupHistoricalJobFeedData(params?: {
     runMetadataCutoff,
   });
 
+  // Delete ranked_items whose parent run completed more than
+  // `inboxRetentionDays` ago. After 7 days we consider the user has had
+  // enough time to decide; untouched roles fall out of the inbox. Runs
+  // and feedback rows are kept — runs for diagnostics/history, feedback
+  // so any past terminal action (applied/dismissed/not_relevant) still
+  // prevents re-surfacing the same canonical_job_id in future runs.
+  const rankedItemsDeleted = await deleteExpiredRankedInboxItems({ inboxCutoff });
+
   return {
     rawPayloadRetentionDays,
     runMetadataRetentionDays,
+    inboxRetentionDays,
     rawPayloadCutoff,
     runMetadataCutoff,
+    inboxCutoff,
     rawFetchPayloadsRedacted,
     runMetadataCompacted,
+    rankedItemsDeleted,
   };
+}
+
+async function deleteExpiredRankedInboxItems(params: { inboxCutoff: string }): Promise<number> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the joined ranked feed rows.
+  const admin = createAdminClient() as any;
+
+  // Find expired run IDs first, then batch-delete their ranked_items.
+  // Using a two-step approach keeps the delete predicate indexable and
+  // avoids relying on cross-table filters in the Supabase client.
+  const { data: expiredRuns, error: expiredRunsError } = await admin
+    .from('job_feed_runs')
+    .select('id')
+    .eq('status', 'completed')
+    .lt('completed_at', params.inboxCutoff);
+
+  if (expiredRunsError) {
+    throw new Error(`Failed to load expired job feed runs for inbox cleanup: ${expiredRunsError.message}`);
+  }
+
+  const expiredRunIds = ((expiredRuns ?? []) as Array<{ id: string }>).map((row) => row.id);
+  if (expiredRunIds.length === 0) {
+    return 0;
+  }
+
+  let deleted = 0;
+  for (const batch of chunk(expiredRunIds, UPDATE_BATCH_SIZE)) {
+    const { error, count } = await admin
+      .from('job_feed_ranked_items')
+      .delete({ count: 'exact' })
+      .in('run_id', batch);
+
+    if (error) {
+      throw new Error(`Failed to delete expired job feed ranked items: ${error.message}`);
+    }
+
+    deleted += typeof count === 'number' ? count : 0;
+  }
+
+  return deleted;
 }
 
 async function redactOldRawFetchPayloads(params: {

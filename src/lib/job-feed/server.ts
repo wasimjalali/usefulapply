@@ -12,7 +12,7 @@ import type {
   Json,
 } from '@/lib/supabase/types';
 import { getLocalDateKey, isJobFeedConfigured } from '@/lib/job-feed/helpers';
-import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
+import { getJobFeedTierLimits, JOB_FEED_INBOX_RETENTION_DAYS } from '@/lib/job-feed/constants';
 import type {
   JobFeedFeedbackAction,
   JobFeedFeedItem,
@@ -52,7 +52,6 @@ interface LatestJobFeedItemsResult {
   items: JobFeedFeedItem[];
 }
 
-const JOB_FEED_INBOX_RETENTION_DAYS = 7;
 
 export interface JobFeedGenerationStatusUpdateResult {
   session: Pick<SupabaseApplicationSession, 'id' | 'job_title' | 'company' | 'generation_status'>;
@@ -1127,21 +1126,35 @@ async function loadDedupedInboxRows(params: {
 /**
  * Server-paginated inbox page. Used by /api/job-feed/inbox so the UI can
  * "Load more" without the overview payload having to carry every row.
+ *
+ * `todayCount` is how many *visible* jobs came from today's run; the UI
+ * pairs it with the unfiltered today count (from latestRun.ranked_jobs_count)
+ * to render "N new jobs today · M from earlier days".
  */
 export async function listJobFeedInboxPageAdmin(params: {
   userId: string;
   offset: number;
   limit: number;
-}): Promise<{ items: JobFeedFeedItem[]; totalCount: number; hasMore: boolean } | null> {
+}): Promise<{
+  items: JobFeedFeedItem[];
+  totalCount: number;
+  hasMore: boolean;
+  todayVisibleCount: number;
+  backlogVisibleCount: number;
+} | null> {
   const latestCompletedRun = await getLatestCompletedJobFeedRunAdmin(params.userId);
   if (!latestCompletedRun) {
-    return { items: [], totalCount: 0, hasMore: false };
+    return { items: [], totalCount: 0, hasMore: false, todayVisibleCount: 0, backlogVisibleCount: 0 };
   }
 
   const { rows, totalCount } = await loadDedupedInboxRows({
     userId: params.userId,
     latestCompletedRun,
   });
+
+  const todayRunId = latestCompletedRun.id;
+  const todayVisibleCount = rows.filter((row) => row.run_id === todayRunId).length;
+  const backlogVisibleCount = totalCount - todayVisibleCount;
 
   const offset = Math.max(0, Math.floor(params.offset));
   const limit = Math.max(1, Math.min(50, Math.floor(params.limit)));
@@ -1156,6 +1169,8 @@ export async function listJobFeedInboxPageAdmin(params: {
     items,
     totalCount,
     hasMore: offset + pageRows.length < totalCount,
+    todayVisibleCount,
+    backlogVisibleCount,
   };
 }
 
@@ -1892,26 +1907,29 @@ export function isJobFeedbackBlocked(feedback: JobFeedFeedback | null | undefine
 export async function getBlockedCanonicalJobIdsAdmin(userId: string): Promise<Set<string>> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand job_feed_feedback here.
   const admin = createAdminClient() as any;
+  // `or` covers the three column-based terminal states: applied_at (direct
+  // apply or successful generation), dismissed_at, and generation_status =
+  // 'succeeded' (belt-and-suspenders in case applied_at was not written).
   const { data, error } = await admin
     .from('job_feed_feedback')
-    .select('canonical_job_id, applied_at, dismissed_at, metadata')
+    .select('canonical_job_id, applied_at, dismissed_at, generation_status, metadata')
     .eq('user_id', userId)
-    .or('applied_at.not.is.null,dismissed_at.not.is.null');
+    .or('applied_at.not.is.null,dismissed_at.not.is.null,generation_status.eq.succeeded');
 
   if (error) {
     throw new Error(`Failed to load blocked job feed canonical ids: ${error.message}`);
   }
 
   const blocked = new Set<string>();
-  for (const row of (data ?? []) as Array<Pick<JobFeedFeedback, 'canonical_job_id' | 'applied_at' | 'dismissed_at' | 'metadata'>>) {
+  for (const row of (data ?? []) as Array<Pick<JobFeedFeedback, 'canonical_job_id' | 'applied_at' | 'dismissed_at' | 'generation_status' | 'metadata'>>) {
     if (isJobFeedbackBlocked(row as JobFeedFeedback)) {
       blocked.add(row.canonical_job_id);
     }
   }
 
-  // The `or` filter above covers applied/dismissed. Do a second query for
-  // rated_not_relevant which lives in metadata (no column predicate), then
-  // merge. Separate query keeps the main one indexable.
+  // The `or` filter above covers column-based terminal states. Do a
+  // second query for rated_not_relevant which lives in metadata (no
+  // column predicate), then merge.
   const { data: ratedData, error: ratedError } = await admin
     .from('job_feed_feedback')
     .select('canonical_job_id, applied_at, dismissed_at, metadata')

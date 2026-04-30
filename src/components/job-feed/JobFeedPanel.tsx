@@ -456,15 +456,22 @@ export function JobFeedPanel() {
       if (!prev) return prev;
 
       const jobs = prev.jobs.filter((job) => job.id !== jobId);
-      // Decrement jobsTotalCount by 1 when we're actually removing something
-      // from the page-1 slice, so "Load more (N)" stays accurate.
       const removed = prev.jobs.length - jobs.length;
+      // Optimistic count update for snappy UI. jobsTotalCount shrinks by
+      // one since the job is no longer visible anywhere in the inbox.
+      // jobsTodayCount stays fixed (it reflects what today's agent
+      // delivered — unfiltered by user actions). jobsBacklogCount is
+      // recomputed from (total - today) to stay consistent; the next
+      // quiet overview reload will fix any off-by-one from dismissals
+      // on page 2+ that we don't have run-id info for.
       const nextTotal = Math.max(0, (prev.jobsTotalCount ?? prev.jobs.length) - removed);
+      const nextBacklog = Math.max(0, nextTotal - (prev.jobsTodayCount ?? 0));
       return {
         ...prev,
         jobs,
         jobsTotalCount: nextTotal,
-        jobsHasMore: nextTotal > (jobs.length /* page 1 */),
+        jobsBacklogCount: nextBacklog,
+        jobsHasMore: nextTotal > jobs.length /* page 1 */,
         state: getJobFeedOverviewState({
           canAccess: prev.canAccess,
           settings: prev.settings,
@@ -1007,7 +1014,8 @@ export function JobFeedPanel() {
               <FeedPageHeader
                 currentState={currentState}
                 form={shellForm}
-                jobsCount={overview?.jobs.length ?? 0}
+                jobsTodayCount={overview?.jobsTodayCount ?? 0}
+                jobsBacklogCount={overview?.jobsBacklogCount ?? 0}
                 savedJobsCount={savedJobs?.length ?? null}
                 activeTab={activeTab}
                 latestRun={overview?.feedRun ?? overview?.latestRun ?? null}
@@ -1331,7 +1339,8 @@ function SavedJobsView({
 function FeedPageHeader({
   currentState,
   form,
-  jobsCount,
+  jobsTodayCount,
+  jobsBacklogCount,
   savedJobsCount,
   activeTab,
   latestRun,
@@ -1349,7 +1358,12 @@ function FeedPageHeader({
 }: {
   currentState: string;
   form: JobFeedSettingsInput;
-  jobsCount: number;
+  // Jobs today's run delivered, before user actions (0 when today has no
+  // completed run yet).
+  jobsTodayCount: number;
+  // Jobs still visible from earlier days in the 7-day window (already
+  // excludes applied/dismissed/not-relevant).
+  jobsBacklogCount: number;
   savedJobsCount: number | null;
   activeTab: 'today' | 'saved';
   latestRun: JobFeedOverviewResponse['latestRun'];
@@ -1378,10 +1392,23 @@ function FeedPageHeader({
       ? 'Today’s feed is already being prepared'
       : 'Run today’s feed now';
 
+  const todayLabel = jobsTodayCount > 0
+    ? `${jobsTodayCount} new ${jobsTodayCount === 1 ? 'job' : 'jobs'} today`
+    : null;
+  const backlogLabel = jobsBacklogCount > 0
+    ? `${jobsBacklogCount} from earlier days`
+    : null;
+
+  const combinedFeedHeadline = todayLabel && backlogLabel
+    ? `${todayLabel} · ${backlogLabel}`
+    : todayLabel
+      ? todayLabel
+      : backlogLabel
+        ? backlogLabel
+        : 'Your feed for today';
+
   const todayHeadline = isReady
-    ? jobsCount > 0
-      ? `${jobsCount} ${jobsCount === 1 ? 'job' : 'jobs'} for you today`
-      : 'Your feed for today'
+    ? combinedFeedHeadline
     : currentState === 'setup_required'
       ? 'Set up your daily feed'
       : currentState === 'paused'
