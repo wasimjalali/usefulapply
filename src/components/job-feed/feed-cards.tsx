@@ -331,7 +331,7 @@ export function JobFeedCard({
             title={isAnotherJobBusy && !isApplying ? 'Finishing another application first…' : undefined}
           >
             {isApplying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isApplying ? 'Opening...' : continueLabel ? 'Continue in Karko' : 'Apply with Karko'}
+            {isApplying ? 'Opening...' : continueLabel ? 'Continue in Karko' : 'Generate Application Kit'}
           </Button>
 
           {!continueLabel && (
@@ -609,7 +609,7 @@ export function JobFeedDetailModal({
             )}
             <Button variant="gold" onClick={onApplyWithKarko} disabled={isJobActionPending}>
               {isApplying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isApplied || isApplyStarted ? 'Continue in Karko' : 'Apply with Karko'}
+              {isApplied || isApplyStarted ? 'Continue in Karko' : 'Generate Application Kit'}
             </Button>
           </div>
         </div>

@@ -467,7 +467,7 @@ ${letter.signatureName}`;
               className="flex items-center gap-2 rounded-full bg-navy-700 text-white px-5 py-3 text-sm font-semibold shadow-sm hover:bg-navy-800 transition-all cursor-pointer"
             >
               <Zap className="w-4 h-4" />
-              Apply for This Job
+              Generate Application Kit
             </button>
             <button
               onClick={() => setPendingApplicationAction('skip-job')}

@@ -669,7 +669,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                         className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold bg-navy-600 text-white rounded-2xl hover:bg-navy-700 transition-all shadow-md cursor-pointer"
                       >
                         <Zap className="w-4 h-4" />
-                        Apply Directly
+                        Generate Application Kit
                       </button>
                       <button
                         onClick={() => handleModeSelect('analyze_first')}
@@ -680,8 +680,8 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                         Analyze Fit First
                       </button>
                       <p className="mt-1 text-[11px] leading-relaxed text-warm-gray/80">
-                        <span className="font-medium text-charcoal">Apply Directly</span> generates everything at once.{' '}
-                        <span className="font-medium text-charcoal">Analyze First</span> shows match score before generating.
+                        <span className="font-medium text-charcoal">Generate Application Kit</span> creates your CV, cover letter, and email at once.{' '}
+                        <span className="font-medium text-charcoal">Analyze Fit First</span> shows your match score before generating.
                       </p>
                     </div>
                   </>
@@ -841,7 +841,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                 className="flex items-center gap-2 rounded-full border border-navy-700 bg-navy-700 text-white px-4 py-2.5 text-sm font-medium shadow-sm hover:bg-navy-800 hover:border-navy-800 transition-all cursor-pointer"
               >
                 <Zap className="w-4 h-4" />
-                Apply for This Job
+                Generate Application Kit
               </button>
               <button
                 onClick={() => handleAction('skip-job')}
