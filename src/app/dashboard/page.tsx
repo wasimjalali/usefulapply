@@ -14,7 +14,7 @@ import { useAppStore, useCVStore } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import { uploadCVFile, saveDocument } from '@/lib/supabase';
-import { FileText, Mail, Send, FolderOpen, ClipboardList, Target, User, Loader2, MessageCircle, AlertCircle, ArrowRight, PanelRightClose, PanelRightOpen, ArrowUpRight, Briefcase, ChevronDown, CreditCard, Bell, Shield, LogOut, X } from 'lucide-react';
+import { FileText, Mail, Send, FolderOpen, ClipboardList, Target, User, Loader2, MessageCircle, AlertCircle, ArrowRight, PanelRightClose, PanelRightOpen, ArrowUpRight, Briefcase, ChevronDown, CreditCard, Bell, Shield, LogOut, LifeBuoy, X } from 'lucide-react';
 import KarkoLogo, { KarkoIcon } from '@/components/KarkoLogo';
 import Link from 'next/link';
 import { CreditIndicator } from '@/components/ui/CreditIndicator';
@@ -82,8 +82,9 @@ function DashboardProfileMenu({ profile, onSignOut }: DashboardProfileMenuProps)
     { href: '/profile', label: 'Profile', description: 'Personal details', icon: User },
     { href: '/account', label: 'Account', description: 'Security and login', icon: Shield },
     { href: '/subscription', label: 'Subscription', description: 'Plan and billing', icon: CreditCard },
-    { href: '/notifications', label: 'Notifications', description: 'Email preferences', icon: Bell },
+    { href: '/contact', label: 'Contact Support', description: 'Reach the Karko team', icon: LifeBuoy },
     { href: '/documents', label: 'Documents', description: 'Manage uploaded files', icon: FolderOpen },
+    { href: '/notifications', label: 'Notifications', description: 'Email preferences', icon: Bell },
   ];
 
   const subscriptionTier = profile?.subscription_tier;

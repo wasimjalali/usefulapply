@@ -36,6 +36,12 @@ import { usePostHog } from 'posthog-js/react';
 // fires exactly once per session regardless of how many panels are mounted.
 const autostartedApplySessionIds = new Set<string>();
 
+// Module-level dedupe for CoverLetterPanel/EmailPanel fit-analysis CTA
+// dispatches. Both ChatPanel instances receive the same zustand state
+// snapshot on the same render; without this, both run handleAction and
+// the server gets two simultaneous generation requests.
+const consumedPanelActionIds = new Set<string>();
+
 function buildJobFeedAutostartKey(params: {
   sessionId: string;
   generationId?: string | null;
@@ -451,6 +457,12 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
         onTabChange?.('email');
         break;
       case 'generate-full-application': {
+        // Defense-in-depth: never fire a second generation over an already
+        // running workflow. Prevents double-billing and the confusing
+        // "something went wrong" message from a mid-flight second request.
+        if (isAgentWorking || isGenerating) {
+          return;
+        }
         posthog?.capture('apply_clicked', { mode: 'analyze_first' });
         addChatMessage({
           role: 'assistant',
@@ -528,14 +540,17 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
   };
 
   // Consume pendingApplicationAction from CoverLetterPanel / EmailPanel CTAs.
-  // Clear first so the sibling mounted ChatPanel (desktop + mobile) does not
-  // double-fire the same action.
+  // Module-level dedupe ensures exactly one ChatPanel instance runs the
+  // action, even when desktop + mobile are both mounted (md:hidden hides the
+  // mobile DOM but does not unmount the React tree).
   const pendingApplicationAction = useUIStore((state) => state.pendingApplicationAction);
-  const setPendingApplicationAction = useUIStore((state) => state.setPendingApplicationAction);
+  const clearPendingApplicationAction = useUIStore((state) => state.clearPendingApplicationAction);
   useEffect(() => {
     if (!pendingApplicationAction) return;
-    const action = pendingApplicationAction;
-    setPendingApplicationAction(null);
+    const { id, action } = pendingApplicationAction;
+    if (consumedPanelActionIds.has(id)) return;
+    consumedPanelActionIds.add(id);
+    clearPendingApplicationAction();
     void handleAction(action);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingApplicationAction]);

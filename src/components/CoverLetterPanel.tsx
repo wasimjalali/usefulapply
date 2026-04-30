@@ -24,7 +24,7 @@ interface CoverLetterPanelProps {
 export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) {
   const { user } = useAuth();
   const { currentSession, isGenerating, isAgentWorking, agentWorkflowPhase, setCoverLetter, currentCV, structuredCV, masterCV } = useAppStore();
-  const setPendingApplicationAction = useUIStore((state) => state.setPendingApplicationAction);
+  const dispatchApplicationAction = useUIStore((state) => state.dispatchApplicationAction);
   const coverLetter = currentSession?.coverLetter;
   const requirements = currentSession?.requirements;
   const jobDescription = currentSession?.jobDescription;
@@ -463,14 +463,14 @@ ${letter.signatureName}`;
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <button
-              onClick={() => setPendingApplicationAction('generate-full-application')}
+              onClick={() => dispatchApplicationAction('generate-full-application')}
               className="flex items-center gap-2 rounded-full bg-navy-700 text-white px-5 py-3 text-sm font-semibold shadow-sm hover:bg-navy-800 transition-all cursor-pointer"
             >
               <Zap className="w-4 h-4" />
               Generate Application Kit
             </button>
             <button
-              onClick={() => setPendingApplicationAction('skip-job')}
+              onClick={() => dispatchApplicationAction('skip-job')}
               className="flex items-center gap-2 rounded-full border border-cream-200 bg-white text-charcoal px-5 py-3 text-sm font-semibold hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer"
             >
               New Search
