@@ -37,6 +37,7 @@ import {
   JOB_FEED_TIMEZONE_GROUPS,
   JOB_FEED_TIMEZONE_LOOKUP,
   JOB_FEED_WORK_AUTH_OPTIONS,
+  JOB_FEED_INBOX_PAGE_SIZE,
   getJobFeedInputCaps,
   getJobFeedTimeZoneLabel,
   legacyMarketFromCountries,
@@ -250,7 +251,7 @@ export function JobFeedPanel() {
 
     setIsLoadingMoreJobs(true);
     try {
-      const response = await fetch(`/api/job-feed/inbox?offset=${already}&limit=10`, {
+      const response = await fetch(`/api/job-feed/inbox?offset=${already}&limit=${JOB_FEED_INBOX_PAGE_SIZE}`, {
         method: 'GET',
         cache: 'no-store',
       });
@@ -455,19 +456,30 @@ export function JobFeedPanel() {
       if (!prev) return prev;
 
       const jobs = prev.jobs.filter((job) => job.id !== jobId);
+      // Decrement jobsTotalCount by 1 when we're actually removing something
+      // from the page-1 slice, so "Load more (N)" stays accurate.
+      const removed = prev.jobs.length - jobs.length;
+      const nextTotal = Math.max(0, (prev.jobsTotalCount ?? prev.jobs.length) - removed);
       return {
         ...prev,
         jobs,
+        jobsTotalCount: nextTotal,
+        jobsHasMore: nextTotal > (jobs.length /* page 1 */),
         state: getJobFeedOverviewState({
           canAccess: prev.canAccess,
           settings: prev.settings,
           latestRun: prev.latestRun,
-          jobsCount: jobs.length,
+          jobsCount: nextTotal,
         }),
       };
     });
-    // Also drop it from the saved list if present — applying or rating a job
-    // as not relevant is a terminal action that hides it from both views.
+    // Pages 2+ live in additionalJobs (loaded via Load More). Strip the
+    // removed job there too so it disappears immediately regardless of
+    // which page it was rendered on.
+    setAdditionalJobs((prev) => prev.filter((job) => job.id !== jobId));
+    // Also drop it from the saved list if present. Applying or rating a
+    // job as not relevant is a terminal action that hides it from both
+    // views.
     setSavedJobs((prev) => (prev ? prev.filter((job) => job.id !== jobId) : prev));
   }, []);
 

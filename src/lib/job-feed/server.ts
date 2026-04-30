@@ -1065,10 +1065,14 @@ async function listRecentJobFeedInboxItemsAdmin(params: {
 
 /**
  * Build the full 7-day inbox row list once (ordered: today first, then older
- * days, deduped by canonical_job_id). Returned rows are the authoritative
- * ordering the UI paginates through. Callers supply offset/limit when
- * rendering pages; the full list is small (tier cap × 7 days) so rebuilding
- * per page is cheap and keeps ordering stable across requests.
+ * days, deduped by canonical_job_id, with jobs the user has already
+ * applied / dismissed / rated not relevant removed). Returned rows are the
+ * authoritative ordering the UI paginates through; callers supply
+ * offset/limit when rendering pages.
+ *
+ * We must strip blocked jobs *before* slicing. If we filter later, the
+ * totalCount and hasMore flags include rows the UI never renders, so Load
+ * More can return an empty page even when totalCount > visible count.
  */
 async function loadDedupedInboxRows(params: {
   userId: string;
@@ -1104,14 +1108,20 @@ async function loadDedupedInboxRows(params: {
 
   const seenJobIds = new Set<string>();
   const dedupedRows = [...todayRows, ...olderRows].filter((row) => {
-    if (seenJobIds.has(row.canonical_job_id)) {
-      return false;
-    }
+    if (seenJobIds.has(row.canonical_job_id)) return false;
     seenJobIds.add(row.canonical_job_id);
     return true;
   });
 
-  return { rows: dedupedRows, totalCount: dedupedRows.length };
+  // Exclude jobs the user has already acted on (applied / dismissed /
+  // rated not relevant). Keeps the inbox focused on roles the user has
+  // yet to decide on.
+  const blockedIds = await getBlockedCanonicalJobIdsAdmin(params.userId);
+  const visibleRows = blockedIds.size > 0
+    ? dedupedRows.filter((row) => !blockedIds.has(row.canonical_job_id))
+    : dedupedRows;
+
+  return { rows: visibleRows, totalCount: visibleRows.length };
 }
 
 /**

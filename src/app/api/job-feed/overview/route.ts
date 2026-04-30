@@ -8,7 +8,7 @@ import {
   listJobFeedInboxPageAdmin,
   listLatestJobFeedItemsAdmin,
 } from '@/lib/job-feed/server';
-import { JOB_FEED_VISIBLE_DEFAULT_COUNT } from '@/lib/job-feed/constants';
+import { JOB_FEED_INBOX_PAGE_SIZE } from '@/lib/job-feed/constants';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import type { JobFeedRun } from '@/lib/supabase/types';
 
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
       listJobFeedInboxPageAdmin({
         userId: user.id,
         offset: 0,
-        limit: JOB_FEED_VISIBLE_DEFAULT_COUNT,
+        limit: JOB_FEED_INBOX_PAGE_SIZE,
       }),
       getLatestManualCompletedJobFeedRunAdmin(user.id),
     ]);

@@ -8,6 +8,10 @@ export const JOB_FEED_PREFILTER_HARD_CAP = 15;
 // First page shows this many; the "Load more" button fetches the rest from
 // Supabase on demand so the initial payload stays light.
 export const JOB_FEED_VISIBLE_DEFAULT_COUNT = 10;
+// Page size for the inbox's Load More pagination. Small enough that
+// loading feels snappy and the user can skim; total is capped by the
+// tier visibleCount × 7 days anyway.
+export const JOB_FEED_INBOX_PAGE_SIZE = 5;
 // Absolute upper bound the LLM is allowed to surface in a single day's feed.
 // Matches the Max tier's visibleCount so the ranker's instruction respects
 // the highest tier cap.
