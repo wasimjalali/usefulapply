@@ -12,6 +12,249 @@ import { BlogPost } from './types';
  */
 export const blogPosts: BlogPost[] = [
   {
+    slug: 'your-entire-job-search-in-one-app',
+    title: 'Your entire job search, in one app',
+    description:
+      'Job seekers run seven tools to send one application. Here is why that stack is quietly breaking your results, and what one app for the whole loop actually looks like.',
+    content: `It is Sunday night. You have seven browser tabs open.
+
+One is LinkedIn, where you just saved a role you like. One is Indeed, because the same role sometimes pays more or has an older listing. One is the company's careers page, because the LinkedIn post cut off the last paragraph. One is a resume builder, half finished. One is ChatGPT, where you pasted the job description an hour ago and asked it to "make my CV match, keep it honest." One is a cover letter tool with a free trial that expires at midnight. The last one is a spreadsheet where you try to remember which role was at which company and whether you sent the follow-up.
+
+It is 11:47pm. You have sent one application. You were going to send five.
+
+This is not a you problem. It is a tool problem.
+
+![A job seeker at night with seven scattered browser tabs and tools surrounding one laptop, illustrating the fractured Sunday-night job search stack](/blog/sunday-night-stack.jpg)
+
+## The stack you did not sign up for
+
+Somewhere along the way, applying for a job stopped being one thing and became seven things. Nobody announced it. Nobody wrote a manual. Each tool in the stack was sold to you as a small upgrade over the one before it, and each one was probably right on its own terms.
+
+Stitched together, they are a disaster.
+
+Here is the stack a real job seeker actually runs in 2026.
+
+![The eight-tool job search stack: LinkedIn and Indeed for finding roles, Zety or Canva for the CV, Jobscan for ATS checks, ChatGPT for fit and screening questions, a generic cover letter tool, a Google doc for emails, and a spreadsheet for tracking](/blog/seven-tool-stack.jpg)
+
+Eight surfaces. Eight logins. Eight chances to lose context. Zero of them know what the other seven just did.
+
+The spreadsheet does not know the cover letter exists. The cover letter does not know the CV was tailored. The CV does not know the company. ChatGPT does not know your real CV, so you paste it in again. Every single step starts from zero.
+
+No wonder one application takes two hours.
+
+## The part everyone misses: it is not a resume problem
+
+When job seekers complain, they say "my CV is not working." So they buy another resume tool. The CV gets a little better. The results do not move. Why?
+
+Because the bottleneck was never the resume. It was the workflow.
+
+You were not losing to candidates with better resumes. You were losing to candidates who had the energy to send five strong applications before you finished your first. You were losing to the candidate who followed up on day eight while you were still trying to remember which company you applied to. You were losing to the person who did not hit the screening wall at 11:47pm and close the tab.
+
+The real problem is what researchers politely call "context switching." Every time you move from LinkedIn to the resume builder to ChatGPT, your brain re-loads the state. What role was this again? What did they care about? Where is my cover letter draft? Each switch burns a few minutes and a little focus. Stack enough of them and a two-hour application is what you get, even though none of the individual steps should take that long.
+
+An agent does not have that problem. Neither would you, if your tools shared one source of truth.
+
+## The false choice: fast or good, pick one
+
+Look at what every current tool optimizes for, and you will see the same broken trade.
+
+<!-- IMAGE PROMPT (speed-quality-quadrant.jpg): Clean editorial 2x2 quadrant diagram on warm cream background (#FAF7F2). X axis labeled "Speed" (low to high). Y axis labeled "Quality" (low to high). Four quadrants labeled minimally: top-left "Resume writers and career coaches (slow, high quality)", bottom-right "Auto-apply bots (fast, low quality)", bottom-left "Manual rewriting + generic AI (slow, low quality)", top-right highlighted in gold (#F59E0B) with a single word: "Karko." Typography: Georgia for headings, Inter for labels. Navy (#1E3A5F) line work, no gradients, no AI slop. -->
+![A speed vs quality quadrant with auto-apply bots in the fast-low-quality corner, resume writers in the slow-high-quality corner, and Karko alone in the fast-high-quality corner](/blog/speed-quality-quadrant.jpg)
+
+**Auto-apply bots** live in the fast-and-low-quality corner. They spray 200 applications a day. Candidates get flagged by ATS vendors, ghosted by recruiters, and embarrassed in interviews when they cannot explain claims on their own CV. In 2026, ATS platforms are actively hardening against them. Speed without trust is not speed. It is noise.
+
+**Resume writers and career coaches** live in the slow-and-high-quality corner. A hand-crafted CV from a professional costs $100 to $500 and takes days. Fine for one application. Useless when you need to send twenty.
+
+**Generic AI and manual rewriting** live in the slow-and-low-quality corner. A ChatGPT cover letter takes 20 minutes and reads like a ChatGPT cover letter. Recruiters spot them in one read.
+
+There has not been a product in the fourth corner. Fast and high-quality at the same time.
+
+That is the corner an agent is supposed to live in.
+
+## So what is an AI job application agent, exactly?
+
+An agent, in the 2026 sense of the word, is not a chatbot. It is not a prompt you paste into. It is software that runs a multi-step workflow on your behalf, carries state between steps, and uses tools to get real work done.
+
+Karko is built as that. One app for the entire application loop.
+
+**The AI job application agent.** Your entire job search, in one app.
+
+Here is the shape of the loop it runs, with one shared source of truth (your real CV) behind every step.
+
+**1. Smart Job Feed.** Up to 25 roles a day, hand-picked by an LLM that actually read your CV against every job description, not a keyword filter pretending to match.
+
+![The Karko Smart Job Feed: a curated list of roles with match scores, ready when you open your laptop](/screenshots/01b-job-feed-left-only.webp)
+
+**2. Fit Analysis.** Before you commit to a full application, you spend 0.5 credits and get back a match score, your strongest skills for the role, the gaps you are missing, and a recommendation. Decide in 30 seconds whether this role is worth your next two credits.
+
+![Karko Fit Analysis showing match score, strengths, gaps and a recommendation for a specific role](/screenshots/product-05-fit-analysis.webp)
+
+**3. Full application.** In about 90 seconds, a CV rewritten for this exact role, a cover letter in your voice, an application email, and a follow-up email pre-drafted for day seven. Every application is saved in one place so you can see the full loop.
+
+![Karko tracker showing saved applications with match scores and status, produced from the full application workflow](/screenshots/_archive/showcase-tracker.jpg)
+
+**4. Screening answers.** Paste the portal's questions, get specific, personalized answers pulled from your actual experience. The cover letter, the CV and the company context are already loaded.
+
+**5. Tracker.** Every application you generate is saved with its match score and status. No spreadsheet. No more "which company was that?"
+
+![Karko Application Kit: tailored CV, cover letter, application email and follow-up email generated together](/screenshots/03-application-kit-generated.webp)
+
+One loop. One shared context. Zero re-typing of your experience into another box.
+
+## Inside the full application: what actually comes out
+
+This is the part every current tool gets half-right. The resume builder gives you a resume. The cover letter tool gives you a cover letter. Karko gives you the full application, all four pieces, all writing from the same shared context, all consistent in tone and claims. You open the panel and the whole thing is waiting.
+
+Here is what lands in under 90 seconds.
+
+### A tailored CV, written from your real experience
+
+The CV is rewritten for this exact role. Your bullets get reordered so the most relevant experience floats to the top. The keywords the job description actually uses get threaded in where your real experience supports them. If the role calls for "stakeholder management" and your CV has it under a different phrase, the wording aligns. If the role calls for skills you do not have, the CV does not invent them.
+
+![A tailored Karko CV rendered in one of the ATS-optimized templates](/screenshots/_archive/showcase-cv.jpg)
+
+### A cover letter that sounds like you, not like ChatGPT
+
+The cover letter is the part most candidates know is being read by a human. Karko writes it in a voice that matches your CV, references the specific company (not "your organization"), and picks out one or two real threads from your background that map to the role. No "passionate team player." No "I am writing to express my interest." No ChatGPT tells.
+
+![A Karko cover letter written in the candidate's voice, referencing the specific role and company](/screenshots/_archive/showcase-cover-letter.jpg)
+
+### An application email that is ready to paste
+
+The email is the small thing that used to eat 15 minutes because you kept rewriting the first line. Karko drafts it with the CV. Short. Polite. Clear about what is attached and why. Subject line included.
+
+![A Karko application email drafted alongside the CV and cover letter, ready to send](/screenshots/_archive/showcase-email.jpg)
+
+### A follow-up email, pre-drafted for day seven
+
+Most candidates never follow up, and the ones who do are the ones who get remembered. Karko generates the follow-up with the rest of the package. It sits in your tracker until the timing is right. No more staring at a blank message box on day eight, wondering how to phrase it without sounding desperate.
+
+![A Karko follow-up email pre-drafted for the candidate to send 7 to 10 days after applying](/screenshots/_archive/showcase-follow-up.jpg)
+
+Four documents. One generation. One voice across all of them.
+
+## The four things that make it work
+
+From the outside, "AI writes your application" sounds like every other tool from 2023. It is not. Four design decisions set the agent apart, and each one is why a real job seeker sees different results.
+
+### 1. Never a word you did not earn
+
+Karko will not invent experience you do not have. Every bullet in the tailored CV, every paragraph in the cover letter, every screening answer traces back to the real CV you uploaded. This is not a tagline. It is the architecture.
+
+Why it matters: recruiters have spent two years training themselves to spot hallucinated AI copy, and ATS vendors are catching up. Candidates who got burned in interviews once, because a generic AI made them sound like a leader they were not, do not come back to the tool. Trust is the defensible thing.
+
+### 2. Tailored to this exact role, from your exact experience
+
+Personalization is not a marketing word. It is layered three ways inside the app. The feed is personal to your CV. The fit score is personal to you and this role. The rewrite is personal to your experience, tuned to the role's language, in your voice. The screening answers pull from the same context the cover letter did, so the whole application sounds like one coherent person and not four different drafts.
+
+Generic AI has one input: the prompt. The agent has three: your real CV, the role, and the company. That is why the output is not a five-paragraph essay that could have been written by anyone.
+
+### 3. One app, one loop, seven tools collapsed
+
+The compression is the point. Stop counting features and look at what you are no longer doing: no tool-switching, no re-pasting your CV, no re-entering job details, no "wait, which role was this cover letter for?" The full application workflow lives in one place because there is one source of truth behind all of it.
+
+At a job-seeker scale, this is worth hours a week. At a career scale, it is worth enough strong applications to actually move the needle.
+
+### 4. Sounds like you, reads like a real application
+
+Most tools optimize for either the ATS scan or the recruiter read. The agent has to clear both. Every Karko template is ATS-safe by default (six designs, single-column structure, clean fonts). And every generation is tuned to sound like you wrote it late Tuesday afternoon, not like a language model wrote it late Sunday night.
+
+## The two scores that save you hours
+
+Two of the most overlooked parts of Karko are the two honest scores it shows you: a fit score before you commit, and an ATS score after the CV is generated. Both exist because the single biggest way to save a job seeker's time is to tell them the truth.
+
+The **Fit Analysis** runs for 0.5 credits before you generate anything. It reads your real CV against the full job description and gives you a clean match score, the skills you have that align, the skills the role calls for that you do not, and a plain-English recommendation. If the number is low and the gaps are real, you skip the role. No wasted credits. No three hours tailoring a CV for a job you were never going to get.
+
+![Karko Fit Analysis with match score, strengths and gaps for a specific role](/images/features/fit-analysis.jpg)
+
+The **ATS score** shows up on the generated CV itself. Every template Karko offers is ATS-safe by default, so the score is not about "your layout is broken." It is about keyword alignment: did the CV pick up the words the job description actually uses, in places where your real experience backs them. A CV that passes the robots before a human sees it.
+
+![A tailored Karko CV displayed with its ATS score and keyword alignment](/screenshots/_archive/showcase-ats-score.jpg)
+
+Together, these two scores collapse the entire "am I wasting my time on this application" question into a 30-second answer. That is the part the seven-tool stack never had.
+
+## What the math actually looks like
+
+One of the few specific numbers the founder uses about Karko is his own. Over 50 applications sent through the agent, he got 5 interviews. Roughly a 10% interview rate. The industry baseline for tailored applications sits at 2 to 3%. He did not fudge the CV. He was a first-time job seeker with a founder background and no degree, applying in Germany. The only variable was the tool.
+
+Here is another way to think about the same thing. Manual tailoring of a single application runs about 60 minutes if you are disciplined, more if you are tired. Karko does it in 90 seconds. That is roughly 40x faster. Multiply over 50 applications and you are looking at the difference between two weekends and two full work weeks.
+
+Time saved is not the whole story, though. The quieter win is what you do with the time. You spend it preparing for the interview. You spend it researching the company beyond the careers page. You spend it calling a friend who worked there. You spend it sleeping.
+
+None of those things happen when you are still on application number one at midnight.
+
+## What it actually replaces, and what you will not miss
+
+If you are moving from the seven-tool stack to one app, this is what changes:
+
+- **LinkedIn and Indeed scrolling** becomes the Smart Job Feed. Still 22 countries. Still fresh listings. You just do not open the tabs.
+- **Zety and Canva** becomes the tailored-CV generator with six ATS-safe templates (Premium ATS, Modern Professional, Executive, German ATS, German Classic, Classic Green). No more fancy layouts that look good in Photoshop and break in Workday.
+- **Jobscan and Resume Worded** become the built-in ATS score and keyword injection. Same output, inside the same app, on every generation.
+- **ChatGPT "am I a fit?"** becomes Fit Analysis. It costs 0.5 credits, it runs in 20 seconds, and it reads your real CV against the real job description instead of asking you to paste both.
+- **Generic AI cover letter tools** become the grounded cover letter. Every claim traces back to your uploaded CV. Nothing invented.
+- **Copy-pasting an application email at midnight** becomes a pre-drafted email that arrives with the CV.
+- **"I will follow up eventually"** becomes the pre-drafted follow-up, sitting in your tracker, ready for day seven.
+- **ChatGPT for screening questions** becomes Screening Question Answers. Paste the portal questions, get specific, personalized answers pulled from the same context the cover letter just used.
+- **The spreadsheet** becomes the tracker. Every application, every match score, every status, auto-saved.
+
+You will not miss any of it. That is the test.
+
+## Why this could only happen now
+
+Three things converged in the past eighteen months to make an agent possible for job seekers, not just for pitch decks.
+
+The first is that foundation models finally became reliable enough for multi-step workflows. Not just chat. Actual agentic execution, with tools and state and traceable outputs. This is the same wave that gave you coding agents that can merge a pull request end-to-end. Applied to job search, it collapses the stack.
+
+The second is that the auto-apply bot backlash hit in earnest. ATS vendors started flagging mass-apply traffic. Recruiters started ghosting spray candidates. Anti-hallucination stopped being a nice-to-have and became the defensible posture. The quality line in the 2x2 moved up.
+
+The third is that the job market, globally, got harder. People apply to more roles for longer. They need the loop compressed, not another tool bolted on.
+
+## How to try it
+
+If any of the last few scrolls described a version of your Sunday night, the only useful next step is to see what your own real CV produces when the whole workflow is in one place.
+
+Karko is free for your first two full applications. No credit card. You upload your CV once. You run a Fit Analysis on a role from your feed. If the score makes it worth it, you generate the full application in under two minutes. You send it before your coffee gets cold.
+
+Ten hours of searching, gone. The screening wall, gone. The spreadsheet, gone.
+
+One app for your entire job search.
+
+**[Start free at karkoai.com](/dashboard)**
+
+---
+
+*Wasim Jalali is the founder of Karko AI, the AI job application agent. He built Karko after running out of money on a startup in Germany and spending months applying to jobs by hand. Over 50 applications through Karko, he got 5 interviews. Roughly 10%, against an industry baseline of 2 to 3%.*`,
+    author: {
+      name: 'Wasim Jalali',
+      role: 'Founder, Karko AI',
+    },
+    publishedAt: '2026-04-30',
+    readingTime: 9,
+    category: 'AI & Technology',
+    tags: [
+      'ai job application agent',
+      'job search',
+      'all in one job search',
+      'ai job application',
+      'job application workflow',
+      'ats optimization',
+      'anti hallucination',
+      'karko ai',
+      'seven tools',
+      'category positioning',
+    ],
+    featured: true,
+    priority: 1,
+    ogImage: '/blog/ai-job-application-agent-cover.jpg',
+    cta: {
+      heading: 'Your entire job search, in one app',
+      description:
+        'Stop juggling seven tools. Upload your CV once, pick a role from your feed, and send your first full application in under two minutes. Free for 2 applications.',
+      text: 'Try Karko AI free',
+      href: '/dashboard',
+    },
+  },
+  {
     slug: 'screening-question-answers-ai-job-applications',
     title: 'The screening question wall, and how to stop hitting it',
     description:
@@ -130,7 +373,7 @@ The screening question section used to be where strong applications died. It doe
       'application abandonment',
     ],
     featured: false,
-    priority: 2,
+    priority: 3,
     ogImage: '/blog/screening-questions-cover.jpg',
     cta: {
       heading: 'Clear the screening question wall in minutes',
@@ -244,8 +487,8 @@ If five months of searching sounds like a long time, that is because it is. Gett
       'job application tool',
       'career',
     ],
-    featured: true,
-    priority: 1,
+    featured: false,
+    priority: 2,
     ogImage: '/blog/smart-job-feed-cover.jpg',
     cta: {
       heading: 'Stop scrolling, start applying',
@@ -592,7 +835,7 @@ If you're in a job search, you already know how long tailoring takes. The questi
       'job search tips',
     ],
     featured: false,
-    priority: 3,
+    priority: 4,
     ogImage: '/blog/resume-tailoring-cover.jpg',
     cta: {
       heading: 'Tailor Your Resume in 90 Seconds',
