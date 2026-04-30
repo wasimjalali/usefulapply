@@ -9,7 +9,6 @@ import {
   listLatestJobFeedItemsAdmin,
 } from '@/lib/job-feed/server';
 import { JOB_FEED_INBOX_PAGE_SIZE } from '@/lib/job-feed/constants';
-import { getLocalDateKey } from '@/lib/job-feed/helpers';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import type { JobFeedRun } from '@/lib/supabase/types';
 
@@ -113,19 +112,15 @@ export async function GET(request: NextRequest) {
     const jobs = firstPage?.items ?? [];
     const totalCount = firstPage?.totalCount ?? 0;
     const hasMore = firstPage?.hasMore ?? false;
+    // Both counts reflect what the user can still act on right now.
+    // Acting on a job (dismiss / rate not relevant / successful apply)
+    // removes it from the visible inbox and the corresponding count
+    // drops after the next overview refetch.
+    const jobsTodayCount = firstPage?.todayVisibleCount ?? 0;
     const backlogVisibleCount = firstPage?.backlogVisibleCount ?? 0;
     const runForState = latestRun && isStaleOverviewRun(latestRun) && feedRunSummary.run
       ? feedRunSummary.run
       : latestRun;
-
-    // "Jobs today" = what the agent actually delivered today, unfiltered.
-    // Stays steady through the day even as the user dismisses or applies
-    // to jobs. Only counts when the latest completed run is from today's
-    // local day in the user's timezone.
-    const userTz = settings?.user_timezone ?? 'UTC';
-    const todayKey = getLocalDateKey(new Date(), userTz);
-    const latestRunIsToday = latestRun?.status === 'completed' && latestRun?.local_date === todayKey;
-    const jobsTodayCount = latestRunIsToday ? Number(latestRun?.ranked_jobs_count ?? 0) : 0;
 
     return NextResponse.json({
       canAccess,

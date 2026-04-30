@@ -452,41 +452,20 @@ export function JobFeedPanel() {
   }, []);
 
   const removeJobFromOverview = useCallback((jobId: string) => {
+    // Optimistic removal from the visible arrays so the card disappears
+    // immediately. Counts (jobsTodayCount / jobsBacklogCount / total)
+    // intentionally stay untouched here; a follow-up quiet overview
+    // reload will rehydrate them from the server, which is the one
+    // place that knows whether the removed job was from today's run or
+    // an earlier day. Trying to guess locally risks off-by-one in the
+    // header counter the user sees every time they dismiss.
     setOverview((prev) => {
       if (!prev) return prev;
-
       const jobs = prev.jobs.filter((job) => job.id !== jobId);
-      const removed = prev.jobs.length - jobs.length;
-      // Optimistic count update for snappy UI. jobsTotalCount shrinks by
-      // one since the job is no longer visible anywhere in the inbox.
-      // jobsTodayCount stays fixed (it reflects what today's agent
-      // delivered — unfiltered by user actions). jobsBacklogCount is
-      // recomputed from (total - today) to stay consistent; the next
-      // quiet overview reload will fix any off-by-one from dismissals
-      // on page 2+ that we don't have run-id info for.
-      const nextTotal = Math.max(0, (prev.jobsTotalCount ?? prev.jobs.length) - removed);
-      const nextBacklog = Math.max(0, nextTotal - (prev.jobsTodayCount ?? 0));
-      return {
-        ...prev,
-        jobs,
-        jobsTotalCount: nextTotal,
-        jobsBacklogCount: nextBacklog,
-        jobsHasMore: nextTotal > jobs.length /* page 1 */,
-        state: getJobFeedOverviewState({
-          canAccess: prev.canAccess,
-          settings: prev.settings,
-          latestRun: prev.latestRun,
-          jobsCount: nextTotal,
-        }),
-      };
+      if (jobs.length === prev.jobs.length) return prev;
+      return { ...prev, jobs };
     });
-    // Pages 2+ live in additionalJobs (loaded via Load More). Strip the
-    // removed job there too so it disappears immediately regardless of
-    // which page it was rendered on.
     setAdditionalJobs((prev) => prev.filter((job) => job.id !== jobId));
-    // Also drop it from the saved list if present. Applying or rating a
-    // job as not relevant is a terminal action that hides it from both
-    // views.
     setSavedJobs((prev) => (prev ? prev.filter((job) => job.id !== jobId) : prev));
   }, []);
 
@@ -605,12 +584,16 @@ export function JobFeedPanel() {
         feed_run_id: overview?.feedRun?.id ?? null,
       });
       toastRef.current.success('Dismissed from your current feed.');
+      // Rehydrate the header counts from the server. Local optimistic
+      // counts can't know whether the removed job was from today's run
+      // or earlier, so we let the server recompute.
+      void loadOverview({ quiet: true });
     } catch (error) {
       toastRef.current.error(error instanceof Error ? error.message : 'Failed to dismiss this job.');
     } finally {
       setPendingJobAction(null);
     }
-  }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback, removeJobFromOverview, selectedJob?.id]);
+  }, [applyPreviewFeedback, isPreviewing, loadOverview, overview?.feedRun?.id, posthog, recordJobFeedback, removeJobFromOverview, selectedJob?.id]);
 
   const handleRateMatch = useCallback(async (job: JobFeedFeedItem, rating: 'helpful' | 'not_relevant') => {
     // If the user clicks the same rating twice in a row, treat as no-op so we
@@ -646,12 +629,14 @@ export function JobFeedPanel() {
       });
 
       if (rating === 'not_relevant') {
-        // Hide the job right away — rating it as not relevant is a terminal
+        // Hide the job right away. Rating as not relevant is a terminal
         // action, same as dismissing. Close the modal if it was open.
         removeJobFromOverview(job.id);
         if (selectedJob?.id === job.id) {
           setSelectedJob(null);
         }
+        // Rehydrate header counts (today vs. earlier days).
+        void loadOverview({ quiet: true });
       }
 
       toastRef.current.success(
@@ -664,7 +649,7 @@ export function JobFeedPanel() {
     } finally {
       setPendingJobAction(null);
     }
-  }, [applyPreviewFeedback, isPreviewing, overview?.feedRun?.id, posthog, recordJobFeedback, removeJobFromOverview, selectedJob?.id]);
+  }, [applyPreviewFeedback, isPreviewing, loadOverview, overview?.feedRun?.id, posthog, recordJobFeedback, removeJobFromOverview, selectedJob?.id]);
 
   // Shared handler for both "Apply with Karko" (full generation) and
   // "Check fit first" (0.5-credit analyze-first). Posts to the same
@@ -1428,19 +1413,23 @@ function FeedPageHeader({
   const backlogLabel = activeTab === 'today' && isReady && jobsBacklogCount > 0
     ? `${jobsBacklogCount} unseen from earlier ${jobsBacklogCount === 1 ? 'day' : 'days'}`
     : null;
-  const metaLine = [deliveredAt ? `Delivered ${deliveredAt}` : null, backlogLabel]
-    .filter(Boolean)
-    .join(' · ');
+  // Saved view still uses the old role-summary subtitle (the bookmarked
+  // list doesn't repeat it on every card). The today view drops it — the
+  // same role/country info already shows on every job card.
+  const savedSubtitle = activeTab === 'saved' ? subtitle : null;
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
         <h1 className="text-3xl font-semibold tracking-tight text-charcoal">{headline}</h1>
-        {subtitle && (
-          <p className="mt-1 text-sm text-warm-gray">{subtitle}</p>
+        {backlogLabel && (
+          <p className="mt-1.5 text-base font-medium text-navy-700">{backlogLabel}</p>
         )}
-        {metaLine && (
-          <p className="mt-0.5 text-xs text-warm-gray">{metaLine}</p>
+        {savedSubtitle && (
+          <p className="mt-1 text-sm text-warm-gray">{savedSubtitle}</p>
+        )}
+        {deliveredAt && (
+          <p className="mt-1 text-xs text-warm-gray">Delivered {deliveredAt}</p>
         )}
       </div>
 
