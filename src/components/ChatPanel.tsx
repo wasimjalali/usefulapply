@@ -30,17 +30,12 @@ import { SignUpWallModal, hasUsedFreeGeneration } from '@/components/SignUpWallM
 import { InsufficientCreditsModal } from '@/components/InsufficientCreditsModal';
 import { usePostHog } from 'posthog-js/react';
 
-// Module-level dedupe set: shared across ALL mounted ChatPanel instances
-// (desktop wrapper is `hidden md:flex`, mobile is `md:hidden` — both can be
-// mounted simultaneously in the DOM). Ensures Apply-with-Karko autostart
-// fires exactly once per session regardless of how many panels are mounted.
+// Module-level dedupe set for Job Feed autostart. Kept as a safety net in
+// case the dashboard ever navigates between two sessions fast enough that
+// React has not finished unmounting the previous ChatPanel. ChatPanel
+// itself only renders on desktop/tablet (mobile shows a "Best on desktop"
+// screen), so we no longer have a desktop+mobile dual-mount race.
 const autostartedApplySessionIds = new Set<string>();
-
-// Module-level dedupe for CoverLetterPanel/EmailPanel fit-analysis CTA
-// dispatches. Both ChatPanel instances receive the same zustand state
-// snapshot on the same render; without this, both run handleAction and
-// the server gets two simultaneous generation requests.
-const consumedPanelActionIds = new Set<string>();
 
 function buildJobFeedAutostartKey(params: {
   sessionId: string;
@@ -540,17 +535,14 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
   };
 
   // Consume pendingApplicationAction from CoverLetterPanel / EmailPanel CTAs.
-  // Module-level dedupe ensures exactly one ChatPanel instance runs the
-  // action, even when desktop + mobile are both mounted (md:hidden hides the
-  // mobile DOM but does not unmount the React tree).
+  // ChatPanel only renders on desktop/tablet (mobile has its own Job Feed
+  // + Tracker shell), so exactly one instance consumes the signal.
   const pendingApplicationAction = useUIStore((state) => state.pendingApplicationAction);
-  const clearPendingApplicationAction = useUIStore((state) => state.clearPendingApplicationAction);
+  const setPendingApplicationAction = useUIStore((state) => state.setPendingApplicationAction);
   useEffect(() => {
     if (!pendingApplicationAction) return;
-    const { id, action } = pendingApplicationAction;
-    if (consumedPanelActionIds.has(id)) return;
-    consumedPanelActionIds.add(id);
-    clearPendingApplicationAction();
+    const action = pendingApplicationAction;
+    setPendingApplicationAction(null);
     void handleAction(action);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingApplicationAction]);

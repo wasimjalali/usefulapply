@@ -28,11 +28,10 @@ interface UIState {
 
   // Cross-component action signal: CoverLetterPanel/EmailPanel dispatch
   // 'generate-full-application' or 'skip-job' after a fit analysis.
-  // Includes a unique id so multiple mounted ChatPanel instances can
-  // dedupe via a module-level set instead of racing on the same boolean.
-  pendingApplicationAction:
-    | { id: string; action: 'generate-full-application' | 'skip-job' }
-    | null;
+  // Safe as a bare action because only one ChatPanel mounts at a time
+  // (mobile viewport does not render ChatPanel at all — Application Kit is
+  // desktop/tablet only).
+  pendingApplicationAction: 'generate-full-application' | 'skip-job' | null;
 }
 
 interface UIActions {
@@ -51,8 +50,7 @@ interface UIActions {
   setPendingJobFeedAutostart: (value: { sessionId: string; generationId?: string | null; generationAttempt?: number | null; mode?: 'apply' | 'analyze' } | null) => void;
 
   // Panel action signal (fit analysis CTAs dispatched from Cover Letter / Email panels)
-  dispatchApplicationAction: (action: 'generate-full-application' | 'skip-job') => void;
-  clearPendingApplicationAction: () => void;
+  setPendingApplicationAction: (value: 'generate-full-application' | 'skip-job' | null) => void;
 
   // Reset
   resetUI: () => void;
@@ -92,14 +90,7 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
   setPendingJobFeedAutostart: (value) => set({ pendingJobFeedAutostart: value }),
 
   // Panel action signal
-  dispatchApplicationAction: (action) =>
-    set({
-      pendingApplicationAction: {
-        id: `panel-action-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
-        action,
-      },
-    }),
-  clearPendingApplicationAction: () => set({ pendingApplicationAction: null }),
+  setPendingApplicationAction: (value) => set({ pendingApplicationAction: value }),
 
   // Reset
   resetUI: () => set(initialState),

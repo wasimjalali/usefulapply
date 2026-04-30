@@ -14,7 +14,7 @@ import { useAppStore, useCVStore } from '@/store/useAppStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import { uploadCVFile, saveDocument } from '@/lib/supabase';
-import { FileText, Mail, Send, FolderOpen, ClipboardList, Target, User, Loader2, MessageCircle, AlertCircle, ArrowRight, PanelRightClose, PanelRightOpen, ArrowUpRight, Briefcase, ChevronDown, CreditCard, Bell, Shield, LogOut, LifeBuoy, X } from 'lucide-react';
+import { FileText, Mail, Send, FolderOpen, ClipboardList, Target, User, Loader2, AlertCircle, ArrowRight, PanelRightClose, PanelRightOpen, ArrowUpRight, Briefcase, ChevronDown, CreditCard, Bell, Shield, LogOut, LifeBuoy, X } from 'lucide-react';
 import KarkoLogo, { KarkoIcon } from '@/components/KarkoLogo';
 import Link from 'next/link';
 import { CreditIndicator } from '@/components/ui/CreditIndicator';
@@ -26,7 +26,11 @@ import type { StructuredCV } from '@/lib/types/cv-schema';
 
 type ApplicationTab = 'cv' | 'cover-letter' | 'email';
 type Workspace = 'application-kit' | 'job-feed' | 'tracker';
-type MobileView = 'chat' | Workspace;
+// Mobile is restricted to Job Feed + Tracker. Application Kit (chat, CV, cover
+// letter, email) requires a larger viewport — we show a "Best on desktop"
+// screen instead. This keeps the heavy, dual-mount-prone components (ChatPanel,
+// CVPanel, CoverLetterPanel, EmailPanel) off mobile entirely.
+type MobileView = 'desktop-required' | 'job-feed' | 'tracker';
 
 function readDashboardQuery() {
   if (typeof window === 'undefined') {
@@ -484,8 +488,7 @@ export default function Dashboard() {
   }, [activeTab, isChatCollapsed]);
 
   // Mobile tab state — must be before any early returns (Rules of Hooks)
-  const [mobileView, setMobileView] = useState<MobileView>('chat');
-  const [mobileApplicationTab, setMobileApplicationTab] = useState<ApplicationTab>('cv');
+  const [mobileView, setMobileView] = useState<MobileView>('desktop-required');
 
   // Resize effect (desktop only)
   useEffect(() => {
@@ -531,7 +534,6 @@ export default function Dashboard() {
   useEffect(() => {
     if (isApplicationTab) {
       lastApplicationTabRef.current = activeTab;
-      setMobileApplicationTab(activeTab);
     }
   }, [activeTab, isApplicationTab]);
 
@@ -569,22 +571,14 @@ export default function Dashboard() {
     if (requestedWorkspace === 'application-kit') {
       setActiveTab(resolvedTab);
       lastApplicationTabRef.current = resolvedTab;
-      setMobileApplicationTab(resolvedTab);
+
+      // Mobile has no Application Kit — viewport is shown the "Best on
+      // desktop" screen. Desktop continues as before.
+      setMobileView('desktop-required');
 
       if (autostart === 'job-feed-apply' || autostart === 'job-feed-analyze') {
-        // Only force the mobile chat view on an actual mobile viewport. On
-        // desktop the md:hidden mobile ChatPanel would still mount when
-        // mobileView flipped to 'chat', causing a second instance of the
-        // autostart effect to fire and duplicate the generation.
-        if (typeof window !== 'undefined' && window.innerWidth < 768) {
-          setMobileView('chat');
-        } else {
-          setMobileView('application-kit');
-        }
         setIsChatCollapsed(false);
         chatCollapsedBeforeFullWidthRef.current = false;
-      } else {
-        setMobileView('application-kit');
       }
 
       return;
@@ -615,11 +609,6 @@ export default function Dashboard() {
   const handleMobileViewChange = useCallback((view: MobileView) => {
     setMobileView(view);
 
-    if (view === 'application-kit') {
-      setActiveTab(mobileApplicationTab);
-      return;
-    }
-
     if (view === 'job-feed') {
       setActiveTab('jobs');
       return;
@@ -628,13 +617,6 @@ export default function Dashboard() {
     if (view === 'tracker') {
       setActiveTab('tracker');
     }
-  }, [mobileApplicationTab, setActiveTab]);
-
-  const handleMobileApplicationTabChange = useCallback((tab: ApplicationTab) => {
-    setMobileApplicationTab(tab);
-    setMobileView('application-kit');
-    setActiveTab(tab);
-    lastApplicationTabRef.current = tab;
   }, [setActiveTab]);
 
   // Show loading state while checking auth (brief — just to resolve user state)
@@ -1032,144 +1014,53 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* Mobile experience (< 768px): Job Feed + Tracker only. The Application
+          Kit and Chat require desktop/tablet — we render a friendly "Best on
+          desktop" screen instead of mounting those heavy panels. */}
       <div className="md:hidden flex-1 flex flex-col overflow-hidden">
-        {mobileView === 'application-kit' && currentCV && (
-          <div className="bg-white/90 border-b border-cream-200 px-3 py-2.5">
-            <div className="inline-flex items-center bg-cream-100/80 rounded-2xl p-0.5 overflow-x-auto scrollbar-hide">
-              <button
-                type="button"
-                onClick={() => handleMobileApplicationTabChange('cv')}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
-                  mobileApplicationTab === 'cv'
-                    ? 'bg-white text-navy-700 shadow-sm font-semibold'
-                    : 'text-warm-gray'
-                }`}
-              >
-                <FileText className={`w-4 h-4 ${mobileApplicationTab === 'cv' ? 'text-gold-500' : ''}`} />
-                CV
-              </button>
-              <button
-                type="button"
-                onClick={() => handleMobileApplicationTabChange('cover-letter')}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
-                  mobileApplicationTab === 'cover-letter'
-                    ? 'bg-white text-navy-700 shadow-sm font-semibold'
-                    : 'text-warm-gray'
-                }`}
-              >
-                <Mail className={`w-4 h-4 ${mobileApplicationTab === 'cover-letter' ? 'text-gold-500' : ''}`} />
-                Letter
-              </button>
-              <button
-                type="button"
-                onClick={() => handleMobileApplicationTabChange('email')}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
-                  mobileApplicationTab === 'email'
-                    ? 'bg-white text-navy-700 shadow-sm font-semibold'
-                    : 'text-warm-gray'
-                }`}
-              >
-                <Send className={`w-4 h-4 ${mobileApplicationTab === 'email' ? 'text-gold-500' : ''}`} />
-                Email
-              </button>
-            </div>
-          </div>
-        )}
-
         <div className="flex-1 overflow-auto">
           {mobileView === 'tracker' ? (
             <TrackerPanel />
           ) : mobileView === 'job-feed' ? (
             <JobBoardPanel />
-          ) : mobileView === 'chat' ? (
-            <ChatPanel
-              onTabChange={(tab) => handleMobileApplicationTabChange(tab)}
-              isMobileDrawer={false}
-            />
-          ) : !currentCV ? (
+          ) : (
             <div className="flex items-center justify-center h-full p-6">
-              <div className="max-w-sm w-full">
-                <div className="text-center mb-6">
-                  <div className="inline-flex mb-4">
-                    <KarkoIcon size="md" theme="light" />
-                  </div>
-                  <h2 className="text-xl font-bold tracking-tight text-charcoal mb-1.5">Upload your CV</h2>
-                  <p className="text-sm text-warm-gray">
-                    Get started by uploading your CV. We&apos;ll optimize it for every job.
-                  </p>
+              <div className="max-w-sm w-full text-center">
+                <div className="inline-flex mb-5">
+                  <KarkoIcon size="md" theme="light" />
                 </div>
-
-                {uploadError && (
-                  <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-                    <p className="text-sm text-red-600">{uploadError}</p>
-                  </div>
-                )}
-
-                {isUploadingCV ? (
-                  <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-navy-300 rounded-2xl bg-navy-50/50">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Loader2 className="w-5 h-5 animate-spin text-navy-600" />
-                      <p className="text-sm text-navy-600 font-medium">Parsing your CV...</p>
-                    </div>
-                    <p className="text-xs text-navy-500">This may take 30-60 seconds</p>
-                  </div>
-                ) : (
-                  <CVInputZone
-                    onFileSelect={handleOnboardingCVUpload}
-                    onError={(msg) => setUploadError(msg)}
-                    label="Upload your CV"
-                    description="PDF, DOCX, TXT, or MD (max 10 MB)"
-                    compact
-                  />
-                )}
-
-                <div className="mt-4 flex items-center justify-center">
+                <h2 className="text-xl font-bold tracking-tight text-charcoal mb-2">Best on desktop</h2>
+                <p className="text-sm text-warm-gray leading-relaxed mb-6">
+                  Karko&apos;s Application Kit works best on a laptop or tablet. Open Karko on a larger screen to upload your CV, chat with the agent, and generate tailored applications.
+                </p>
+                <p className="text-xs text-warm-gray mb-6">
+                  On the go? Browse your daily Job Feed and review your Tracker right here.
+                </p>
+                <div className="flex flex-col gap-2">
                   <button
-                    onClick={() => router.push('/documents')}
-                    className="inline-flex items-center gap-1.5 text-sm text-warm-gray hover:text-navy-600 transition-colors cursor-pointer"
+                    type="button"
+                    onClick={() => handleMobileViewChange('job-feed')}
+                    className="w-full flex items-center justify-center gap-2 rounded-full bg-navy-700 text-white px-5 py-3 text-sm font-semibold shadow-sm hover:bg-navy-800 transition-colors cursor-pointer"
                   >
-                    <FolderOpen className="w-3.5 h-3.5" />
-                    Open Documents
-                    <ArrowRight className="w-3 h-3" />
+                    <Briefcase className="w-4 h-4" />
+                    Open Job Feed
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleMobileViewChange('tracker')}
+                    className="w-full flex items-center justify-center gap-2 rounded-full border border-cream-200 bg-white text-charcoal px-5 py-3 text-sm font-semibold hover:bg-cream-50 transition-colors cursor-pointer"
+                  >
+                    <ClipboardList className="w-4 h-4" />
+                    Open Tracker
                   </button>
                 </div>
               </div>
             </div>
-          ) : (
-            <>
-              {mobileApplicationTab === 'cv' && <CVPanel atsControl={atsControl} />}
-              {mobileApplicationTab === 'cover-letter' && <CoverLetterPanel />}
-              {mobileApplicationTab === 'email' && <EmailPanel />}
-            </>
           )}
         </div>
 
         <div className="flex-shrink-0 bg-white border-t border-cream-200 px-2 pb-[env(safe-area-inset-bottom)] z-50">
           <div className="flex items-center justify-around py-1.5">
-            <button
-              type="button"
-              onClick={() => handleMobileViewChange('chat')}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer min-w-[52px] ${
-                mobileView === 'chat' ? 'text-gold-600' : 'text-warm-gray'
-              }`}
-            >
-              <MessageCircle className={`w-5 h-5 ${mobileView === 'chat' ? 'text-gold-500' : ''}`} />
-              <span className="text-[10px] font-medium">Chat</span>
-              {isAgentWorking && mobileView !== 'chat' && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-gold-500 rounded-full animate-pulse" />
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleMobileViewChange('application-kit')}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer min-w-[52px] ${
-                mobileView === 'application-kit' ? 'text-gold-600' : 'text-warm-gray'
-              }`}
-            >
-              <FileText className={`w-5 h-5 ${mobileView === 'application-kit' ? 'text-gold-500' : ''}`} />
-              <span className="text-[10px] font-medium">Kit</span>
-            </button>
             <button
               type="button"
               onClick={() => handleMobileViewChange('job-feed')}

@@ -30,7 +30,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
     isAgentWorking,
     agentWorkflowPhase,
   } = useAppStore();
-  const dispatchApplicationAction = useUIStore((state) => state.dispatchApplicationAction);
+  const setPendingApplicationAction = useUIStore((state) => state.setPendingApplicationAction);
   const email = currentSession?.email;
   const followUpEmail = currentSession?.followUpEmail;
   const requirements = currentSession?.requirements;
@@ -340,14 +340,14 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <button
-              onClick={() => dispatchApplicationAction('generate-full-application')}
+              onClick={() => setPendingApplicationAction('generate-full-application')}
               className="flex items-center gap-2 rounded-full bg-navy-700 text-white px-5 py-3 text-sm font-semibold shadow-sm hover:bg-navy-800 transition-all cursor-pointer"
             >
               <Zap className="w-4 h-4" />
               Generate Application Kit
             </button>
             <button
-              onClick={() => dispatchApplicationAction('skip-job')}
+              onClick={() => setPendingApplicationAction('skip-job')}
               className="flex items-center gap-2 rounded-full border border-cream-200 bg-white text-charcoal px-5 py-3 text-sm font-semibold hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer"
             >
               New Search
