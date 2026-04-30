@@ -70,7 +70,7 @@ export function PricingAurora() {
         className="absolute inset-0 animate-aurora-shimmer"
         style={{
           backgroundImage:
-            'linear-gradient(to right, rgba(30, 58, 95, 0.055) 1px, transparent 1px), linear-gradient(to bottom, rgba(30, 58, 95, 0.055) 1px, transparent 1px)',
+            'linear-gradient(to right, rgba(30, 58, 95, 0.11) 1px, transparent 1px), linear-gradient(to bottom, rgba(30, 58, 95, 0.11) 1px, transparent 1px)',
           backgroundSize: '80px 80px',
           WebkitMaskImage:
             'radial-gradient(ellipse 75% 65% at 50% 40%, transparent 25%, black 90%)',

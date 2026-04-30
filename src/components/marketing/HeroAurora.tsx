@@ -5,9 +5,10 @@
  *
  * Premium ambient background for the landing hero. Layers:
  *   1. Aurora glow: two large navy + gold blurred orbs drifting slowly.
- *   2. Shimmer highlight: warm off-white soft spot breathing in place.
+ *   2. Sage accent orb for depth.
  *   3. Fine grid lines with radial mask — fades to nothing at center and edges.
  *   4. SVG grain noise overlay for editorial texture.
+ *   5. Soft bottom fade into the next section.
  *
  * All layers are pointer-events-none and aria-hidden.
  * Motion respects prefers-reduced-motion via keyframes defined in globals.css.
@@ -53,7 +54,7 @@ export function HeroAurora() {
         className="absolute inset-0 animate-aurora-shimmer"
         style={{
           backgroundImage:
-            'linear-gradient(to right, rgba(30, 58, 95, 0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(30, 58, 95, 0.06) 1px, transparent 1px)',
+            'linear-gradient(to right, rgba(30, 58, 95, 0.11) 1px, transparent 1px), linear-gradient(to bottom, rgba(30, 58, 95, 0.11) 1px, transparent 1px)',
           backgroundSize: '72px 72px',
           WebkitMaskImage:
             'radial-gradient(ellipse 70% 60% at 50% 45%, transparent 30%, black 90%)',
