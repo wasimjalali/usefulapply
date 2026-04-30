@@ -5,7 +5,8 @@ import { createPortal } from 'react-dom';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useAppStore } from '@/store/useAppStore';
-import { Mail, Download, Copy, Check, RefreshCw, FileText, Edit3, Maximize2, X } from 'lucide-react';
+import { useUIStore } from '@/store/useUIStore';
+import { Mail, Download, Copy, Check, RefreshCw, FileText, Edit3, Maximize2, X, Zap } from 'lucide-react';
 import type { GeneratedCoverLetter } from '@/lib/types';
 import { jsPDF } from 'jspdf';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
@@ -23,10 +24,16 @@ interface CoverLetterPanelProps {
 export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) {
   const { user } = useAuth();
   const { currentSession, isGenerating, isAgentWorking, agentWorkflowPhase, setCoverLetter, currentCV, structuredCV, masterCV } = useAppStore();
+  const setPendingApplicationAction = useUIStore((state) => state.setPendingApplicationAction);
   const coverLetter = currentSession?.coverLetter;
   const requirements = currentSession?.requirements;
   const jobDescription = currentSession?.jobDescription;
   const companyResearch = currentSession?.companyResearch;
+  const pendingFitAnalysis = currentSession?.pendingFitAnalysis;
+  const hasFreshPendingFitAnalysis = Boolean(
+    pendingFitAnalysis?.createdAt
+    && Date.now() < new Date(pendingFitAnalysis.createdAt).getTime() + 30 * 60 * 1000
+  );
   
   const [copied, setCopied] = useState(false);
   const [isLoadingCoverLetter, setIsLoadingCoverLetter] = useState(false);
@@ -443,6 +450,37 @@ ${letter.signatureName}`;
     );
   }
 
+  if (!coverLetter && hasFreshPendingFitAnalysis) {
+    return (
+      <div className="h-full flex items-center justify-center bg-cream-50 p-8">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 rounded-2xl bg-navy-50 flex items-center justify-center mx-auto mb-5">
+            <Mail className="w-8 h-8 text-navy-400" />
+          </div>
+          <h3 className="text-lg font-bold tracking-tight text-charcoal mb-2">Ready to apply?</h3>
+          <p className="text-sm text-warm-gray mb-6 leading-relaxed">
+            Your fit analysis is ready. Generate the full application to unlock your tailored cover letter.
+          </p>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <button
+              onClick={() => setPendingApplicationAction('generate-full-application')}
+              className="flex items-center gap-2 rounded-full bg-navy-700 text-white px-5 py-3 text-sm font-semibold shadow-sm hover:bg-navy-800 transition-all cursor-pointer"
+            >
+              <Zap className="w-4 h-4" />
+              Apply for This Job
+            </button>
+            <button
+              onClick={() => setPendingApplicationAction('skip-job')}
+              className="flex items-center gap-2 rounded-full border border-cream-200 bg-white text-charcoal px-5 py-3 text-sm font-semibold hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer"
+            >
+              New Search
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Show generate button if CV is ready but no cover letter yet
   if (!coverLetter && currentCV && jobDescription) {
     return (
@@ -455,8 +493,8 @@ ${letter.signatureName}`;
           <p className="text-sm text-warm-gray mb-6 leading-relaxed">
             Create a personalized cover letter tailored to this job application.
           </p>
-          <Button 
-            variant="gold" 
+          <Button
+            variant="gold"
             size="lg"
             onClick={handleGenerateCoverLetter}
             isLoading={isLoadingCoverLetter}

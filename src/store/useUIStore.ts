@@ -25,6 +25,11 @@ interface UIState {
   // workflow immediately — even if the user does not navigate to the
   // Application Kit tab. Consumed-then-cleared by ChatPanel.
   pendingJobFeedAutostart: { sessionId: string; generationId?: string | null; generationAttempt?: number | null; mode?: 'apply' | 'analyze' } | null;
+
+  // Cross-component action signal: CoverLetterPanel/EmailPanel dispatch
+  // 'generate-full-application' or 'skip-job' after a fit analysis.
+  // ChatPanel consumes and clears this.
+  pendingApplicationAction: 'generate-full-application' | 'skip-job' | null;
 }
 
 interface UIActions {
@@ -42,6 +47,9 @@ interface UIActions {
   // Autostart signal
   setPendingJobFeedAutostart: (value: { sessionId: string; generationId?: string | null; generationAttempt?: number | null; mode?: 'apply' | 'analyze' } | null) => void;
 
+  // Panel action signal (fit analysis CTAs dispatched from Cover Letter / Email panels)
+  setPendingApplicationAction: (value: 'generate-full-application' | 'skip-job' | null) => void;
+
   // Reset
   resetUI: () => void;
 }
@@ -55,6 +63,7 @@ const initialState: UIState = {
   activeTab: 'cv',
   error: null,
   pendingJobFeedAutostart: null,
+  pendingApplicationAction: null,
 };
 
 /**
@@ -77,6 +86,9 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
 
   // Autostart signal
   setPendingJobFeedAutostart: (value) => set({ pendingJobFeedAutostart: value }),
+
+  // Panel action signal
+  setPendingApplicationAction: (value) => set({ pendingApplicationAction: value }),
 
   // Reset
   resetUI: () => set(initialState),

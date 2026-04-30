@@ -504,6 +504,19 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     }
   };
 
+  // Consume pendingApplicationAction from CoverLetterPanel / EmailPanel CTAs.
+  // Clear first so the sibling mounted ChatPanel (desktop + mobile) does not
+  // double-fire the same action.
+  const pendingApplicationAction = useUIStore((state) => state.pendingApplicationAction);
+  const setPendingApplicationAction = useUIStore((state) => state.setPendingApplicationAction);
+  useEffect(() => {
+    if (!pendingApplicationAction) return;
+    const action = pendingApplicationAction;
+    setPendingApplicationAction(null);
+    void handleAction(action);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingApplicationAction]);
+
   const handleNewApplication = () => {
     // Gate: If anonymous user has already used their free generation, show signup wall
     if (!user && hasUsedFreeGeneration()) {

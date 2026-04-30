@@ -5,7 +5,8 @@ import { createPortal } from 'react-dom';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useAppStore } from '@/store/useAppStore';
-import { Send, Copy, Check, RefreshCw, Edit3, Clock } from 'lucide-react';
+import { useUIStore } from '@/store/useUIStore';
+import { Send, Copy, Check, RefreshCw, Edit3, Clock, Zap } from 'lucide-react';
 import type { GeneratedEmail } from '@/lib/types';
 import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
 import { useToast } from './ui/Toast';
@@ -22,18 +23,24 @@ interface EmailPanelProps {
 export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   const { user } = useAuth();
   const posthog = usePostHog();
-  const { 
+  const {
     currentSession,
     updateCurrentSession,
     isGenerating,
     isAgentWorking,
     agentWorkflowPhase,
   } = useAppStore();
+  const setPendingApplicationAction = useUIStore((state) => state.setPendingApplicationAction);
   const email = currentSession?.email;
   const followUpEmail = currentSession?.followUpEmail;
   const requirements = currentSession?.requirements;
   const jobDescription = currentSession?.jobDescription;
   const companyResearch = currentSession?.companyResearch;
+  const pendingFitAnalysis = currentSession?.pendingFitAnalysis;
+  const hasFreshPendingFitAnalysis = Boolean(
+    pendingFitAnalysis?.createdAt
+    && Date.now() < new Date(pendingFitAnalysis.createdAt).getTime() + 30 * 60 * 1000
+  );
 
   // Update email using session update
   const setEmail = (newEmail: GeneratedEmail) => {
@@ -318,6 +325,39 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
     );
   }
 
+  // Fit analysis is pending — the email can't be generated alone, so surface
+  // the real next steps (apply for the job or start over).
+  if (!email && hasFreshPendingFitAnalysis) {
+    return (
+      <div className="h-full flex items-center justify-center bg-cream-50 p-8">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 rounded-2xl bg-navy-50 flex items-center justify-center mx-auto mb-5">
+            <Send className="w-8 h-8 text-navy-400" />
+          </div>
+          <h3 className="text-lg font-bold tracking-tight text-charcoal mb-2">Ready to apply?</h3>
+          <p className="text-sm text-warm-gray mb-6 leading-relaxed">
+            Your fit analysis is ready. Generate the full application to unlock your tailored email.
+          </p>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <button
+              onClick={() => setPendingApplicationAction('generate-full-application')}
+              className="flex items-center gap-2 rounded-full bg-navy-700 text-white px-5 py-3 text-sm font-semibold shadow-sm hover:bg-navy-800 transition-all cursor-pointer"
+            >
+              <Zap className="w-4 h-4" />
+              Apply for This Job
+            </button>
+            <button
+              onClick={() => setPendingApplicationAction('skip-job')}
+              className="flex items-center gap-2 rounded-full border border-cream-200 bg-white text-charcoal px-5 py-3 text-sm font-semibold hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer"
+            >
+              New Search
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Show generate button if job description is available but no email yet
   if (!email && jobDescription) {
     return (
@@ -330,8 +370,8 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
           <p className="text-sm text-warm-gray mb-6 leading-relaxed">
             Create a professional email to send with your CV and cover letter.
           </p>
-          <Button 
-            variant="gold" 
+          <Button
+            variant="gold"
             size="lg"
             onClick={handleGenerateEmail}
             isLoading={isLoadingEmail}
