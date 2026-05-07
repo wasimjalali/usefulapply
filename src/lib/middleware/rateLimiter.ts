@@ -6,6 +6,7 @@
 
 interface RateLimitEntry {
   timestamps: number[];
+  windowMs: number;
 }
 
 const store = new Map<string, RateLimitEntry>();
@@ -20,8 +21,9 @@ function cleanup() {
   lastCleanup = now;
 
   for (const [key, entry] of store.entries()) {
-    // Use a generous window for cleanup — individual route checks handle their own filtering
-    entry.timestamps = entry.timestamps.filter(t => now - t < 120_000); // 2 minutes (covers all current 60s windows)
+    // Keep timestamps for the longest window used by this key. Individual
+    // route checks still apply the active config before allowing a request.
+    entry.timestamps = entry.timestamps.filter(t => now - t < entry.windowMs);
     if (entry.timestamps.length === 0) {
       store.delete(key);
     }
@@ -54,8 +56,10 @@ export function checkRateLimit(key: string, config: RateLimitConfig): RateLimitR
 
   let entry = store.get(key);
   if (!entry) {
-    entry = { timestamps: [] };
+    entry = { timestamps: [], windowMs: config.windowMs };
     store.set(key, entry);
+  } else {
+    entry.windowMs = Math.max(entry.windowMs, config.windowMs);
   }
 
   // Remove timestamps outside the current window

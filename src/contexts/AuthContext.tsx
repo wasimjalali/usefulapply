@@ -9,6 +9,8 @@ import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
 import posthog from 'posthog-js';
 
+const AUTH_USER_ID_STORAGE_KEY = 'karko-auth-user-id';
+
 /**
  * Clear all persisted Zustand stores to prevent cross-user data leakage.
  * Called on sign-out AND when the authenticated user changes (e.g. new user
@@ -117,10 +119,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Only clear stores when switching between two different authenticated
           // users. When transitioning from anonymous (null) to first auth, keep
           // the data - the user may have uploaded a CV before signing up.
-          const storedUserId = prevUserIdRef.current;
+          const storedUserId = localStorage.getItem(AUTH_USER_ID_STORAGE_KEY);
           if (storedUserId && storedUserId !== initialSession.user.id) {
             clearPersistedStores();
           }
+          localStorage.setItem(AUTH_USER_ID_STORAGE_KEY, initialSession.user.id);
           prevUserIdRef.current = initialSession.user.id;
 
           setSession(initialSession);
@@ -129,6 +132,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           fetchProfile(initialSession.user.id, initialSession.user.email)
             .then(profileData => setProfile(profileData))
             .catch(err => console.error('Profile fetch error:', err));
+        } else {
+          const storedUserId = localStorage.getItem(AUTH_USER_ID_STORAGE_KEY);
+          if (storedUserId) {
+            clearPersistedStores();
+            localStorage.removeItem(AUTH_USER_ID_STORAGE_KEY);
+          }
+          prevUserIdRef.current = null;
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
@@ -146,14 +156,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Skip clear when transitioning from anonymous (null) to first auth -
         // the user may have uploaded a CV before signing up.
         if (newSession?.user) {
-          const prevId = prevUserIdRef.current;
+          const prevId = prevUserIdRef.current || localStorage.getItem(AUTH_USER_ID_STORAGE_KEY);
           if (prevId && prevId !== newSession.user.id) {
             clearPersistedStores();
           }
+          localStorage.setItem(AUTH_USER_ID_STORAGE_KEY, newSession.user.id);
           prevUserIdRef.current = newSession.user.id;
         } else if (event === 'SIGNED_OUT') {
           prevUserIdRef.current = null;
           clearPersistedStores();
+          localStorage.removeItem(AUTH_USER_ID_STORAGE_KEY);
         }
 
         setSession(newSession);
@@ -244,6 +256,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
     setSession(null);
     clearPersistedStores();
+    localStorage.removeItem(AUTH_USER_ID_STORAGE_KEY);
   };
 
   // Update user profile - optimistic update for better UX

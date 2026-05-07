@@ -32,6 +32,12 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import type { ParsedCV } from '@/lib/types';
+import {
+  AUTHENTICATED_CV_UPLOAD_LIMIT_BYTES,
+  formatUploadLimit,
+  getCVUploadDescription,
+  getPrimaryCVUploadLimitBytes,
+} from '@/lib/cv-upload-limits';
 
 /**
  * Resizes an image file to fit within `maxSize` pixels on its longest side,
@@ -70,10 +76,16 @@ function resizeImage(file: File, maxSize: number, quality = 0.9): Promise<string
   });
 }
 
-function parseDocumentFile(file: File, storagePath?: string, documentType: 'primary_cv' | 'master_cv' = 'primary_cv'): Promise<{ parsedCV: ParsedCV; structuredCV: any }> {
-  const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
-  if (file.size > MAX_UPLOAD_SIZE) {
-    return Promise.reject(new Error(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum: 10 MB.`));
+function parseDocumentFile(
+  file: File,
+  storagePath?: string,
+  documentType: 'primary_cv' | 'master_cv' = 'primary_cv',
+  maxUploadSizeBytes = AUTHENTICATED_CV_UPLOAD_LIMIT_BYTES
+): Promise<{ parsedCV: ParsedCV; structuredCV: any }> {
+  if (file.size > maxUploadSizeBytes) {
+    return Promise.reject(new Error(
+      `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum: ${formatUploadLimit(maxUploadSizeBytes)}.`
+    ));
   }
 
   return (async () => {
@@ -150,6 +162,9 @@ interface DocumentsPanelProps {
 
 export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
   const { user, isLoading: authLoading } = useAuth();
+  const primaryUploadLimitBytes = getPrimaryCVUploadLimitBytes(Boolean(user));
+  const primaryUploadDescription = getCVUploadDescription(primaryUploadLimitBytes);
+  const authenticatedUploadDescription = getCVUploadDescription(AUTHENTICATED_CV_UPLOAD_LIMIT_BYTES);
 
   const {
     currentCV,
@@ -203,17 +218,31 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
         } else {
           // No doc in Supabase. Check if the user has a locally-parsed CV
           // (anonymous upload before signup). If so, save it to Supabase.
-          const localCV = useCVStore.getState().currentCV;
-          const localStructured = useCVStore.getState().structuredCV;
+          const localCVState = useCVStore.getState();
+          const localCV = localCVState.currentCV;
+          const localStructured = localCVState.structuredCV;
           if (localCV && localCV.rawText) {
-            await saveDocument(user.id, 'primary_cv', {
+            const structuredData = localStructured
+              ? {
+                  ...localStructured,
+                  _editedCVData: localCVState.editedOriginalCVData,
+                }
+              : null;
+
+            const { document: migratedDoc, error: migrateError } = await saveDocument(user.id, 'primary_cv', {
               file_name: localCV.fileName || 'uploaded-cv',
               file_type: (localCV.fileType as 'pdf' | 'docx' | 'txt') || 'txt',
               file_size: localCV.rawText.length,
               raw_text: localCV.rawText,
               sections: localCV.sections,
-              structured_data: localStructured,
+              structured_data: structuredData,
             });
+
+            if (migrateError) {
+              console.error('Error migrating local CV to Supabase:', migrateError);
+            } else if (migratedDoc) {
+              setSupabaseDocs(prev => ({ ...prev, primary: migratedDoc }));
+            }
           } else {
             setCurrentCV(null);
             setStructuredCV(null);
@@ -294,13 +323,19 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
     setIsUploadingCV(true);
     setUploadError(null);
     try {
+      if (file.size > primaryUploadLimitBytes) {
+        throw new Error(
+          `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum: ${formatUploadLimit(primaryUploadLimitBytes)}.`
+        );
+      }
+
       let storagePath: string | undefined;
       if (user) {
         const uploadResult = await uploadCVFile(user.id, 'primary_cv', file);
         storagePath = uploadResult.path || undefined;
       }
 
-      const result = await parseDocumentFile(file, storagePath, 'primary_cv');
+      const result = await parseDocumentFile(file, storagePath, 'primary_cv', primaryUploadLimitBytes);
       setCurrentCV(result.parsedCV);
       if (result.structuredCV) {
         setStructuredCV(result.structuredCV);
@@ -349,13 +384,19 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
     setIsUploadingMasterCV(true);
     setMasterCVUploadError(null);
     try {
+      if (file.size > AUTHENTICATED_CV_UPLOAD_LIMIT_BYTES) {
+        throw new Error(
+          `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum: ${formatUploadLimit(AUTHENTICATED_CV_UPLOAD_LIMIT_BYTES)}.`
+        );
+      }
+
       let storagePath: string | undefined;
       if (user) {
         const uploadResult = await uploadCVFile(user.id, 'master_cv', file);
         storagePath = uploadResult.path || undefined;
       }
 
-      const result = await parseDocumentFile(file, storagePath, 'master_cv');
+      const result = await parseDocumentFile(file, storagePath, 'master_cv', AUTHENTICATED_CV_UPLOAD_LIMIT_BYTES);
       const { parsedCV } = result;
 
       const allSkills = parsedCV.sections.skills
@@ -577,7 +618,8 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                       onFileSelect={handleCVUpload}
                       onError={(msg) => setUploadError(msg)}
                       label="Upload your CV"
-                      description="PDF, DOCX, TXT, or MD (max 10 MB)"
+                      description={primaryUploadDescription}
+                      maxSizeBytes={primaryUploadLimitBytes}
                       compact
                     />
                   )}
@@ -744,7 +786,8 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                         onFileSelect={handleMasterCVUpload}
                         onError={(msg) => setMasterCVUploadError(msg)}
                         label="Upload master CV"
-                        description="PDF, DOCX, TXT, or MD (max 10 MB)"
+                        description={authenticatedUploadDescription}
+                        maxSizeBytes={AUTHENTICATED_CV_UPLOAD_LIMIT_BYTES}
                         compact
                       />
                     )}
@@ -914,7 +957,8 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                   onFileSelect={handleCVUpload}
                   onError={(msg) => setUploadError(msg)}
                   label="Upload your CV"
-                  description="PDF, DOCX, TXT, or MD (max 10 MB)"
+                  description={primaryUploadDescription}
+                  maxSizeBytes={primaryUploadLimitBytes}
                 />
               )}
             </div>
@@ -1080,7 +1124,8 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                     onFileSelect={handleMasterCVUpload}
                     onError={(msg) => setMasterCVUploadError(msg)}
                     label="Upload master CV"
-                    description="PDF, DOCX, TXT, or MD (max 10 MB)"
+                    description={authenticatedUploadDescription}
+                    maxSizeBytes={AUTHENTICATED_CV_UPLOAD_LIMIT_BYTES}
                   />
                 )}
               </div>

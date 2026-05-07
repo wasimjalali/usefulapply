@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { inflateRawSync } from 'node:zlib';
 import { v4 as uuidv4 } from 'uuid';
 import { StructuredCV, createEmptyCV, withId } from '@/lib/types/cv-schema';
 import { getPostHogServer } from '@/lib/posthog-server';
@@ -17,10 +18,18 @@ const MAX_FILE_SIZE_STORAGE = 10 * 1024 * 1024;   // Storage-first upload (no bo
 // Accepted file extensions
 const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.txt', '.md', '.tex'];
 
-// Check if we have the required API keys (Bedrock OR direct Anthropic)
+// Check if we have the required API keys (Bedrock OR direct Anthropic OR DigitalOcean)
+const aiProvider = process.env.AI_PROVIDER as 'digitalocean' | 'bedrock' | 'anthropic' | undefined;
 const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
 const hasBedrockKeys = !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) || !!process.env.AWS_BEARER_TOKEN_BEDROCK;
-const hasAICapability = hasAnthropicKey || hasBedrockKeys;
+const hasDigitalOceanKeys = !!(process.env.DIGITALOCEAN_AGENT_ENDPOINT && process.env.DIGITALOCEAN_ACCESS_KEY);
+const hasAICapability = aiProvider === 'digitalocean'
+  ? hasDigitalOceanKeys
+  : aiProvider === 'bedrock'
+    ? hasBedrockKeys
+    : aiProvider === 'anthropic'
+      ? hasAnthropicKey
+      : hasAnthropicKey || hasBedrockKeys || hasDigitalOceanKeys;
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,7 +79,7 @@ export async function POST(request: NextRequest) {
 
       if (!ACCEPTED_EXTENSIONS.includes(fileExt)) {
         return NextResponse.json(
-          { error: `Unsupported file type "${fileExt}". Accepted formats: PDF, DOCX, TXT, MD.` },
+          { error: `Unsupported file type "${fileExt}". Accepted formats: PDF, DOCX, TXT, MD, TEX.` },
           { status: 400 }
         );
       }
@@ -114,7 +123,7 @@ export async function POST(request: NextRequest) {
 
       if (!file || !(file instanceof File) || file.size === 0) {
         console.error('[Parser] No valid file in form data. Keys:', [...formData.keys()]);
-        return NextResponse.json({ error: 'No file provided. Please select a PDF, DOCX, TXT, or MD file.' }, { status: 400 });
+        return NextResponse.json({ error: 'No file provided. Please select a PDF, DOCX, TXT, MD, or TEX file.' }, { status: 400 });
       }
 
       originalFileName = file.name;
@@ -122,7 +131,7 @@ export async function POST(request: NextRequest) {
 
       if (!ACCEPTED_EXTENSIONS.includes(fileExt)) {
         return NextResponse.json(
-          { error: `Unsupported file type "${fileExt}". Accepted formats: PDF, DOCX, TXT, MD.` },
+          { error: `Unsupported file type "${fileExt}". Accepted formats: PDF, DOCX, TXT, MD, TEX.` },
           { status: 400 }
         );
       }
@@ -173,31 +182,25 @@ export async function POST(request: NextRequest) {
     // Parse CV using AI
     let rawText = '';
     let structuredCV: StructuredCV;
-    const parserUsed = 'ai';
+    let parserUsed = 'ai';
     const parseStartTime = Date.now();
 
     console.log(`[Parser] Starting: file=${originalFileName}, ext=${fileExt}, size=${buffer.length}, mode=${contentType.includes('application/json') ? 'storage' : 'direct'}, documentType=${documentType}`);
 
     if (fileExt === '.pdf' || fileExt === '.docx') {
-      // Native document parsing: send PDF/DOCX directly to Claude as a document block.
-      // Bedrock Converse API reads both formats natively - no local text extraction needed.
       try {
-        const docFormat = fileExt === '.pdf' ? 'pdf' : 'docx';
-        const jsonContent = await parseDocumentAsCV({
+        const documentResult = await parseDocumentWithAIOrFallback({
           buffer,
-          docFormat,
-          prompt: getDocumentParsingPrompt(),
-          systemPrompt: 'You are a precise CV parser. Extract factual information only. Return valid JSON. Do not infer or fabricate any information not explicitly present in the source document.',
-          maxTokens: 8192,
-          temperature: 0.3,
-          visualMode: docFormat === 'pdf' && documentType !== 'master_cv',
+          fileExt,
+          region: region as 'US' | 'EU',
+          documentType,
         });
-        structuredCV = parseAIResponse(jsonContent, region as 'US' | 'EU');
-        rawText = reconstructRawText(structuredCV);
-        console.log(`[Parser] ${docFormat.toUpperCase()} direct parse complete: ${rawText.length} chars reconstructed`);
+        rawText = documentResult.rawText;
+        structuredCV = documentResult.structuredCV;
+        parserUsed = documentResult.parserUsed;
       } catch (e) {
         const errMsg = e instanceof Error ? e.message : String(e);
-        console.error(`[Parser] ${fileExt.toUpperCase()} direct parse failed:`, errMsg);
+        console.error(`[Parser] ${fileExt.toUpperCase()} parse failed:`, errMsg);
         return NextResponse.json(
           { error: 'Failed to parse CV. Please try again or use a different file format.' },
           { status: 500 }
@@ -214,17 +217,11 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Cap text length to avoid AI timeout — 30K chars ≈ 9K tokens, keeps parsing under 60s
-      const MAX_AI_TEXT_LENGTH = 30000;
-      const textForAI = rawText.length > MAX_AI_TEXT_LENGTH
-        ? rawText.substring(0, MAX_AI_TEXT_LENGTH) + '\n\n[... truncated for parsing efficiency ...]'
-        : rawText;
-      if (rawText.length > MAX_AI_TEXT_LENGTH) {
-        console.log(`[Parser] Text truncated for AI: ${rawText.length} → ${MAX_AI_TEXT_LENGTH} chars`);
-      }
+      const textForAI = prepareTextForAI(rawText);
 
       try {
         structuredCV = await parseWithAI(textForAI, region as 'US' | 'EU');
+        parserUsed = 'ai-text';
       } catch (e) {
         const errMsg = e instanceof Error ? e.message : String(e);
         console.error('[Parser] AI parsing failed:', errMsg);
@@ -267,14 +264,17 @@ export async function POST(request: NextRequest) {
         ].join('\n')
       : rawText;
     const detectedLang = detectCVLanguage(textForLangDetection);
-    const { localizedStrings } = generateLocalizedHeaders(detectedLang);
+    const { sectionHeaders: localizedSectionHeaders, localizedStrings } = generateLocalizedHeaders(detectedLang);
 
-    // For text-based uploads, use the user's ORIGINAL section header text.
-    // For native document uploads, headers come from reconstructed text (English) so skip.
-    const originalHeaders = (fileExt !== '.pdf' && fileExt !== '.docx')
+    // Prefer original text headers when we have extracted text; otherwise use
+    // generated localized headers so PDF/DOCX templates do not fall back to English.
+    const rawTextHasOriginalHeaders = parserUsed === 'ai-extracted-text' || (fileExt !== '.pdf' && fileExt !== '.docx');
+    const originalHeaders = rawTextHasOriginalHeaders
       ? extractOriginalHeaders(rawText)
       : {};
-    structuredCV.sectionHeaders = originalHeaders;
+    structuredCV.sectionHeaders = Object.keys(originalHeaders).length > 0
+      ? originalHeaders
+      : localizedSectionHeaders;
     structuredCV.localizedStrings = localizedStrings;
     structuredCV.settings.language = detectedLang;
 
@@ -311,6 +311,244 @@ export async function POST(request: NextRequest) {
   }
 }
 
+type DocumentFileExt = '.pdf' | '.docx';
+
+async function parseDocumentWithAIOrFallback(options: {
+  buffer: Buffer;
+  fileExt: DocumentFileExt;
+  region: 'US' | 'EU';
+  documentType: 'primary_cv' | 'master_cv';
+}): Promise<{ rawText: string; structuredCV: StructuredCV; parserUsed: string }> {
+  const { buffer, fileExt, region, documentType } = options;
+  const docFormat = fileExt === '.pdf' ? 'pdf' : 'docx';
+
+  try {
+    const jsonContent = await parseDocumentAsCV({
+      buffer,
+      docFormat,
+      prompt: getDocumentParsingPrompt(),
+      systemPrompt: 'You are a precise CV parser. Extract factual information only. Return valid JSON. Do not infer or fabricate any information not explicitly present in the source document.',
+      maxTokens: 8192,
+      temperature: 0.3,
+      visualMode: docFormat === 'pdf' && documentType !== 'master_cv',
+    });
+    const structuredCV = parseAIResponse(jsonContent, region);
+    const rawText = reconstructRawText(structuredCV);
+    if (rawText.trim().length < 20) {
+      throw new Error('Native document parser returned too little content.');
+    }
+    console.log(`[Parser] ${docFormat.toUpperCase()} native document parse complete: ${rawText.length} chars reconstructed`);
+    return { rawText, structuredCV, parserUsed: 'ai-document-native' };
+  } catch (nativeError) {
+    const nativeMessage = nativeError instanceof Error ? nativeError.message : String(nativeError);
+    console.warn(`[Parser] ${docFormat.toUpperCase()} native document parse unavailable/failed; falling back to extracted text:`, nativeMessage);
+  }
+
+  let extractedText: string;
+  try {
+    extractedText = docFormat === 'pdf'
+      ? await extractTextFromPDF(buffer)
+      : extractTextFromDOCX(buffer);
+  } catch (extractError) {
+    const extractMessage = extractError instanceof Error ? extractError.message : String(extractError);
+    throw new Error(`${docFormat.toUpperCase()} text extraction fallback failed: ${extractMessage}`);
+  }
+
+  if (!extractedText || extractedText.trim().length < 50) {
+    throw new Error(`${docFormat.toUpperCase()} text extraction returned too little content. The document may be scanned, encrypted, or corrupted.`);
+  }
+
+  const structuredCV = await parseWithAI(prepareTextForAI(extractedText), region);
+  console.log(`[Parser] ${docFormat.toUpperCase()} extracted-text fallback complete: ${extractedText.length} chars`);
+  return { rawText: extractedText, structuredCV, parserUsed: 'ai-extracted-text' };
+}
+
+function prepareTextForAI(rawText: string): string {
+  // Cap text length to avoid AI timeout. 30K chars is roughly 9K tokens and
+  // keeps parsing stable for large master CVs.
+  const MAX_AI_TEXT_LENGTH = 30000;
+  if (rawText.length <= MAX_AI_TEXT_LENGTH) {
+    return rawText;
+  }
+
+  console.log(`[Parser] Text truncated for AI: ${rawText.length} -> ${MAX_AI_TEXT_LENGTH} chars`);
+  return rawText.substring(0, MAX_AI_TEXT_LENGTH) + '\n\n[... truncated for parsing efficiency ...]';
+}
+
+async function extractTextFromPDF(buffer: Buffer): Promise<string> {
+  const pdfjsModule = 'pdfjs-dist/legacy/build/pdf.mjs';
+  const pdfjs = await import(pdfjsModule) as any;
+  const loadingTask = pdfjs.getDocument({
+    data: new Uint8Array(buffer),
+    useWorkerFetch: false,
+    isEvalSupported: false,
+    disableFontFace: true,
+  });
+
+  const pdf = await loadingTask.promise;
+  const pages: string[] = [];
+
+  try {
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+      const page = await pdf.getPage(pageNumber);
+      const content = await page.getTextContent();
+      const pageText = content.items
+        .map((item: any) => typeof item.str === 'string' ? item.str : '')
+        .filter(Boolean)
+        .join(' ')
+        .replace(/[ \t]+/g, ' ')
+        .trim();
+
+      if (pageText) {
+        pages.push(pageText);
+      }
+      page.cleanup?.();
+    }
+  } finally {
+    await pdf.destroy?.();
+  }
+
+  return pages.join('\n\n').trim();
+}
+
+function extractTextFromDOCX(buffer: Buffer): string {
+  const xmlEntries = extractDocxXmlEntries(buffer);
+  if (xmlEntries.length === 0) {
+    throw new Error('No Word document XML entries found.');
+  }
+
+  return xmlEntries
+    .map(entry => extractTextFromWordXml(entry))
+    .filter(Boolean)
+    .join('\n\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function extractDocxXmlEntries(buffer: Buffer): string[] {
+  const eocdOffset = findEndOfCentralDirectory(buffer);
+  if (eocdOffset < 0) {
+    throw new Error('Invalid DOCX ZIP container.');
+  }
+
+  const centralDirectoryOffset = buffer.readUInt32LE(eocdOffset + 16);
+  const centralDirectorySize = buffer.readUInt32LE(eocdOffset + 12);
+  const centralDirectoryEnd = centralDirectoryOffset + centralDirectorySize;
+  const entries: Array<{ name: string; xml: string }> = [];
+  let offset = centralDirectoryOffset;
+
+  while (offset < centralDirectoryEnd) {
+    if (buffer.readUInt32LE(offset) !== 0x02014b50) {
+      break;
+    }
+
+    const compressionMethod = buffer.readUInt16LE(offset + 10);
+    const compressedSize = buffer.readUInt32LE(offset + 20);
+    const fileNameLength = buffer.readUInt16LE(offset + 28);
+    const extraLength = buffer.readUInt16LE(offset + 30);
+    const commentLength = buffer.readUInt16LE(offset + 32);
+    const localHeaderOffset = buffer.readUInt32LE(offset + 42);
+    const fileNameStart = offset + 46;
+    const name = buffer.toString('utf8', fileNameStart, fileNameStart + fileNameLength);
+
+    if (isWordTextXmlEntry(name)) {
+      const xmlBuffer = readZipEntryData(buffer, localHeaderOffset, compressedSize, compressionMethod);
+      entries.push({ name, xml: xmlBuffer.toString('utf8') });
+    }
+
+    offset = fileNameStart + fileNameLength + extraLength + commentLength;
+  }
+
+  const priority = ['word/document.xml'];
+  return entries
+    .sort((a, b) => {
+      const aPriority = priority.indexOf(a.name);
+      const bPriority = priority.indexOf(b.name);
+      if (aPriority !== bPriority) return bPriority - aPriority;
+      return a.name.localeCompare(b.name);
+    })
+    .map(entry => entry.xml);
+}
+
+function findEndOfCentralDirectory(buffer: Buffer): number {
+  const minOffset = Math.max(0, buffer.length - 65557);
+  for (let offset = buffer.length - 22; offset >= minOffset; offset -= 1) {
+    if (buffer.readUInt32LE(offset) === 0x06054b50) {
+      return offset;
+    }
+  }
+  return -1;
+}
+
+function isWordTextXmlEntry(name: string): boolean {
+  return /^word\/(?:document|header\d*|footer\d*|footnotes|endnotes)\.xml$/i.test(name);
+}
+
+function readZipEntryData(
+  buffer: Buffer,
+  localHeaderOffset: number,
+  compressedSize: number,
+  compressionMethod: number
+): Buffer {
+  if (buffer.readUInt32LE(localHeaderOffset) !== 0x04034b50) {
+    throw new Error('Invalid DOCX local file header.');
+  }
+
+  const fileNameLength = buffer.readUInt16LE(localHeaderOffset + 26);
+  const extraLength = buffer.readUInt16LE(localHeaderOffset + 28);
+  const dataStart = localHeaderOffset + 30 + fileNameLength + extraLength;
+  const dataEnd = dataStart + compressedSize;
+  if (dataEnd > buffer.length) {
+    throw new Error('DOCX ZIP entry exceeds file bounds.');
+  }
+
+  const compressed = buffer.subarray(dataStart, dataEnd);
+  if (compressionMethod === 0) {
+    return compressed;
+  }
+  if (compressionMethod === 8) {
+    return inflateRawSync(compressed);
+  }
+  throw new Error(`Unsupported DOCX ZIP compression method: ${compressionMethod}`);
+}
+
+function extractTextFromWordXml(xml: string): string {
+  return decodeXmlEntities(
+    xml
+      .replace(/<w:tab\b[^>]*\/>/gi, '\t')
+      .replace(/<w:br\b[^>]*\/>/gi, '\n')
+      .replace(/<\/w:p>/gi, '\n')
+      .replace(/<\/w:tr>/gi, '\n')
+      .replace(/<\/w:tc>/gi, '\t')
+      .replace(/<[^>]+>/g, '')
+  )
+    .split(/\r?\n/)
+    .map(line => line.replace(/[ \t]+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n');
+}
+
+function decodeXmlEntities(text: string): string {
+  return text
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => {
+      const codePoint = Number.parseInt(hex, 16);
+      return Number.isFinite(codePoint) && codePoint <= 0x10ffff
+        ? String.fromCodePoint(codePoint)
+        : '';
+    })
+    .replace(/&#(\d+);/g, (_, value: string) => {
+      const codePoint = Number.parseInt(value, 10);
+      return Number.isFinite(codePoint) && codePoint <= 0x10ffff
+        ? String.fromCodePoint(codePoint)
+        : '';
+    })
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+}
+
 /**
  * Parse CV using AI with text input (for TXT/MD/TEX)
  */
@@ -330,7 +568,7 @@ async function parseWithAI(rawText: string, region: 'US' | 'EU'): Promise<Struct
 }
 
 /**
- * Get the parsing prompt for text-based CV input (DOCX/TXT/MD)
+ * Get the parsing prompt for text-based CV input (TXT/MD/TEX or extracted document text)
  */
 function getParsingPrompt(rawText: string): string {
   return `

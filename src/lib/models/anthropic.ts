@@ -828,7 +828,13 @@ export async function parseDocumentAsCV(options: {
     return text;
   }
 
-  // Anthropic SDK (Bedrock traditional keys or direct Anthropic API) — PDF only
+  // Anthropic SDK (Bedrock traditional keys or direct Anthropic API) - PDF only
+  // DOCX is handled by the route's ZIP/XML text extraction fallback for these providers.
+  if (docFormat !== 'pdf') {
+    throw new Error('Native DOCX document blocks are only supported through the Bedrock bearer path in this client.');
+  }
+
+  // Anthropic SDK (Bedrock traditional keys or direct Anthropic API) - PDF only
   if (!anthropic) throw new Error('Anthropic client not initialized');
 
   // Build document block with optional citations for visual mode

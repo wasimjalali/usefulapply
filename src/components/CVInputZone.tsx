@@ -3,6 +3,10 @@
 import { useState, useRef } from 'react';
 import { FileUpload } from '@/components/FileUpload';
 import { Upload, Type, ArrowRight } from 'lucide-react';
+import {
+  AUTHENTICATED_CV_UPLOAD_LIMIT_BYTES,
+  getCVUploadDescription,
+} from '@/lib/cv-upload-limits';
 
 interface CVInputZoneProps {
   onFileSelect: (file: File) => void;
@@ -11,6 +15,7 @@ interface CVInputZoneProps {
   onError?: (message: string) => void;
   label?: string;
   description?: string;
+  maxSizeBytes?: number;
   isLoading?: boolean;
   /** Use compact textarea height for embedded panels */
   compact?: boolean;
@@ -22,7 +27,8 @@ export function CVInputZone({
   onClear,
   onError,
   label = 'Upload your CV',
-  description = 'PDF, DOCX, TXT, or MD (max 10 MB)',
+  description = getCVUploadDescription(AUTHENTICATED_CV_UPLOAD_LIMIT_BYTES),
+  maxSizeBytes = AUTHENTICATED_CV_UPLOAD_LIMIT_BYTES,
   isLoading = false,
   compact = false,
 }: CVInputZoneProps) {
@@ -57,6 +63,7 @@ export function CVInputZone({
         onError={onError}
         label={label}
         description={description}
+        maxSizeBytes={maxSizeBytes}
         isLoading={isLoading}
       />
     );
@@ -104,6 +111,7 @@ export function CVInputZone({
           onError={onError}
           label={label}
           description={description}
+          maxSizeBytes={maxSizeBytes}
           isLoading={isLoading}
         />
       )}

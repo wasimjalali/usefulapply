@@ -13,6 +13,7 @@ import {
   getChatMessages,
   addChatMessage as addSupabaseChatMessage,
   getDocumentByType,
+  saveDocument,
   getProfilePhotoUrl,
 } from '@/lib/supabase';
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
@@ -142,9 +143,35 @@ export function useSupabaseSync() {
             setStructuredCV(null);
           }
         } else {
-          setCurrentCV(null);
-          setStructuredCV(null);
-          useCVStore.getState().setEditedOriginalCVData(null);
+          const localCVState = useCVStore.getState();
+          const localCV = localCVState.currentCV;
+
+          if (localCV?.rawText?.trim()) {
+            console.log('[SupabaseSync] No Supabase primary CV found; migrating local CV after auth:', localCV.fileName);
+
+            const structuredData = localCVState.structuredCV
+              ? {
+                  ...localCVState.structuredCV,
+                  _editedCVData: localCVState.editedOriginalCVData,
+                }
+              : null;
+
+            const { error: saveError } = await saveDocument(user.id, 'primary_cv', {
+              file_name: localCV.fileName,
+              file_type: localCV.fileType,
+              raw_text: localCV.rawText,
+              sections: localCV.sections,
+              structured_data: structuredData,
+            });
+
+            if (saveError) {
+              console.error('[SupabaseSync] Failed to migrate local primary CV to Supabase:', saveError);
+            }
+          } else {
+            setCurrentCV(null);
+            setStructuredCV(null);
+            useCVStore.getState().setEditedOriginalCVData(null);
+          }
         }
         
         if (masterDoc) {

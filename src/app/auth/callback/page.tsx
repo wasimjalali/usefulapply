@@ -3,9 +3,6 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { useCVStore } from '@/store/useCVStore';
-import { useSessionStore } from '@/store/useSessionStore';
-import { useUIStore } from '@/store/useUIStore';
 import { Loader2 } from 'lucide-react';
 
 function CallbackHandler() {
@@ -17,22 +14,9 @@ function CallbackHandler() {
     const handleCallback = async () => {
       const supabase = createClient();
 
-      // Only clear stores if a DIFFERENT user was previously signed in.
-      // If the user was anonymous (first sign-up), preserve their CV data
-      // so it can be saved to Supabase after auth settles.
-      try {
-        const prevSessionRaw = localStorage.getItem('session-store');
-        const hadPreviousUser = prevSessionRaw && JSON.parse(prevSessionRaw)?.state?.userId;
-        if (hadPreviousUser) {
-          useCVStore.getState().resetCVData();
-          useSessionStore.getState().resetSessionData();
-          useUIStore.getState().resetUI();
-          localStorage.removeItem('session-store');
-          localStorage.removeItem('cv-store');
-        }
-      } catch { /* ignore */ }
-
       // Flow 1: PKCE code exchange (OAuth, client-side signUp)
+      // User-aware persistence cleanup happens in AuthProvider after Supabase
+      // establishes the actual authenticated user.
       const code = searchParams.get('code');
       if (code) {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);

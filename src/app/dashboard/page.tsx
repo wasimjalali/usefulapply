@@ -23,6 +23,11 @@ import { LowCreditsModal } from '@/components/ui/LowCreditsModal';
 import { useJobFeedBadge } from '@/hooks/useJobFeedBadge';
 import type { ParsedCV } from '@/lib/types';
 import type { StructuredCV } from '@/lib/types/cv-schema';
+import {
+  formatUploadLimit,
+  getCVUploadDescription,
+  getPrimaryCVUploadLimitBytes,
+} from '@/lib/cv-upload-limits';
 
 type ApplicationTab = 'cv' | 'cover-letter' | 'email';
 type Workspace = 'application-kit' | 'job-feed' | 'tracker';
@@ -258,14 +263,17 @@ export default function Dashboard() {
   // Onboarding CV upload state
   const [isUploadingCV, setIsUploadingCV] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const onboardingUploadLimitBytes = getPrimaryCVUploadLimitBytes(Boolean(user));
+  const onboardingUploadDescription = getCVUploadDescription(onboardingUploadLimitBytes);
 
   const handleOnboardingCVUpload = useCallback(async (file: File) => {
     setIsUploadingCV(true);
     setUploadError(null);
     try {
-      const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
-      if (file.size > MAX_UPLOAD_SIZE) {
-        throw new Error(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum: 10 MB.`);
+      if (file.size > onboardingUploadLimitBytes) {
+        throw new Error(
+          `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum: ${formatUploadLimit(onboardingUploadLimitBytes)}.`
+        );
       }
 
       // Upload to Supabase Storage first if authenticated
@@ -367,7 +375,7 @@ export default function Dashboard() {
     } finally {
       setIsUploadingCV(false);
     }
-  }, [user, setCurrentCV, setStructuredCV]);
+  }, [onboardingUploadLimitBytes, user, setCurrentCV, setStructuredCV]);
 
   // Toolbar portal: panels render their controls into this slot in the tab bar
   const [toolbarNode, setToolbarNode] = useState<HTMLDivElement | null>(null);
@@ -915,7 +923,8 @@ export default function Dashboard() {
                       onFileSelect={handleOnboardingCVUpload}
                       onError={(msg) => setUploadError(msg)}
                       label="Upload your CV"
-                      description="PDF, DOCX, TXT, or MD (max 10 MB)"
+                      description={onboardingUploadDescription}
+                      maxSizeBytes={onboardingUploadLimitBytes}
                     />
                   )}
 

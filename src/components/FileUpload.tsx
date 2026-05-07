@@ -3,6 +3,11 @@
 import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, File, X } from 'lucide-react';
+import {
+  AUTHENTICATED_CV_UPLOAD_LIMIT_BYTES,
+  formatUploadLimit,
+  getCVUploadDescription,
+} from '@/lib/cv-upload-limits';
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
@@ -11,6 +16,7 @@ interface FileUploadProps {
   accept?: Record<string, string[]>;
   label?: string;
   description?: string;
+  maxSizeBytes?: number;
   isLoading?: boolean;
   onError?: (message: string) => void;
 }
@@ -27,10 +33,13 @@ export function FileUpload({
     'application/x-tex': ['.tex'],
   },
   label = 'Upload your CV',
-  description = 'PDF, DOCX, TXT, or MD (max 10 MB)',
+  description = getCVUploadDescription(AUTHENTICATED_CV_UPLOAD_LIMIT_BYTES),
+  maxSizeBytes = AUTHENTICATED_CV_UPLOAD_LIMIT_BYTES,
   isLoading = false,
   onError,
 }: FileUploadProps) {
+  const maxSizeLabel = formatUploadLimit(maxSizeBytes);
+
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (acceptedFiles.length > 0) {
@@ -47,9 +56,9 @@ export function FileUpload({
       const errorCode = rejection.errors[0]?.code;
       let message = 'File could not be uploaded.';
       if (errorCode === 'file-too-large') {
-        message = `File is too large (${(rejection.file.size / 1024 / 1024).toFixed(1)} MB). Maximum: 10 MB.`;
+        message = `File is too large (${(rejection.file.size / 1024 / 1024).toFixed(1)} MB). Maximum: ${maxSizeLabel}.`;
       } else if (errorCode === 'file-invalid-type') {
-        message = 'Unsupported file type. Please upload a PDF, DOCX, TXT, or MD file.';
+        message = 'Unsupported file type. Please upload a PDF, DOCX, TXT, MD, or TEX file.';
       }
       if (onError) {
         onError(message);
@@ -57,7 +66,7 @@ export function FileUpload({
         console.error('[FileUpload] Rejected:', message);
       }
     },
-    [onError]
+    [maxSizeLabel, onError]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -65,7 +74,7 @@ export function FileUpload({
     onDropRejected,
     accept,
     maxFiles: 1,
-    maxSize: 10 * 1024 * 1024,
+    maxSize: maxSizeBytes,
     disabled: isLoading,
   });
 
