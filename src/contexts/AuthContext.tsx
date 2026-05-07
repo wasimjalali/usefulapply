@@ -114,11 +114,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ]) as Awaited<typeof sessionPromise>;
         
         if (initialSession) {
-          // Persisted stores are not keyed by user id. Clear them before
-          // hydrating an authenticated session; Supabase reloads the user's
-          // own documents/sessions after auth settles.
+          // Only clear stores when switching between two different authenticated
+          // users. When transitioning from anonymous (null) to first auth, keep
+          // the data - the user may have uploaded a CV before signing up.
           const storedUserId = prevUserIdRef.current;
-          if (storedUserId !== initialSession.user.id) {
+          if (storedUserId && storedUserId !== initialSession.user.id) {
             clearPersistedStores();
           }
           prevUserIdRef.current = initialSession.user.id;
@@ -142,15 +142,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
-        // Detect user switch: clear stale persisted data before setting new user
+        // Detect user switch: clear stale persisted data before setting new user.
+        // Skip clear when transitioning from anonymous (null) to first auth -
+        // the user may have uploaded a CV before signing up.
         if (newSession?.user) {
           const prevId = prevUserIdRef.current;
-          if (prevId !== newSession.user.id) {
+          if (prevId && prevId !== newSession.user.id) {
             clearPersistedStores();
           }
           prevUserIdRef.current = newSession.user.id;
         } else if (event === 'SIGNED_OUT') {
           prevUserIdRef.current = null;
+          clearPersistedStores();
         }
 
         setSession(newSession);

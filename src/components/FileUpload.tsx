@@ -22,8 +22,9 @@ export function FileUpload({
   accept = {
     'application/pdf': ['.pdf'],
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-    'text/plain': ['.txt'],
+    'text/plain': ['.txt', '.tex'],
     'text/markdown': ['.md'],
+    'application/x-tex': ['.tex'],
   },
   label = 'Upload your CV',
   description = 'PDF, DOCX, TXT, or MD (max 10 MB)',

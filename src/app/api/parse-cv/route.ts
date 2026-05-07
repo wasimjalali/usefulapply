@@ -6,7 +6,6 @@ import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateL
 import { createClient } from '@/lib/supabase/server';
 import { detectCVLanguage, extractOriginalHeaders, generateLocalizedHeaders } from '@/lib/cv-parser/section-splitter';
 import { callAnthropic, parseDocumentAsCV } from '@/lib/models/anthropic';
-import { createAdminClient } from '@/lib/supabase/admin';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -16,7 +15,7 @@ const MAX_FILE_SIZE_DIRECT = 4.5 * 1024 * 1024;  // Direct upload (Vercel body l
 const MAX_FILE_SIZE_STORAGE = 10 * 1024 * 1024;   // Storage-first upload (no body limit)
 
 // Accepted file extensions
-const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.txt', '.md'];
+const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.txt', '.md', '.tex'];
 
 // Check if we have the required API keys (Bedrock OR direct Anthropic)
 const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
@@ -132,7 +131,10 @@ export async function POST(request: NextRequest) {
 
       if (file.size > MAX_FILE_SIZE_DIRECT) {
         return NextResponse.json(
-          { error: `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum for direct upload: 4.5 MB. For larger files, use the Documents page.` },
+          { error: isAuthenticated
+            ? `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum for direct upload: 4.5 MB. For larger files, use the Documents page.`
+            : `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Free uploads are limited to 4.5 MB. Sign up to upload files up to 10 MB.`
+          },
           { status: 400 }
         );
       }
@@ -150,29 +152,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File appears to be empty. Please try uploading again.' }, { status: 400 });
     }
 
-    // IP-based rate limiting for anonymous users (5 parses per 24h rolling window)
+    // Tighter rate limiting for anonymous users: 5 parses per hour per IP
     if (!isAuthenticated) {
-      try {
-        const admin = createAdminClient();
-        const { data, error: rpcError } = await admin.rpc(
-          'check_anon_parse_limit' as never,
-          { p_ip: clientIP } as never
-        ) as unknown as {
-          data: { allowed: boolean; current_count: number }[] | null;
-          error: { message: string } | null;
-        };
-        if (rpcError) {
-          console.error('[Parser] Rate limit RPC error:', rpcError.message);
-          // Fail open — don't block users if the rate limit check itself fails
-        } else if (data && data.length > 0 && !data[0].allowed) {
-          return NextResponse.json(
-            { error: "You've reached the free parse limit. Sign up free to get unlimited CV uploads." },
-            { status: 429 }
-          );
-        }
-      } catch (e) {
-        console.error('[Parser] Rate limit check failed:', e);
-        // Fail open
+      const anonResult = checkRateLimit(`anon-parse:${clientIP}`, { limit: 5, windowMs: 3_600_000 });
+      if (!anonResult.allowed) {
+        return NextResponse.json(
+          { error: "You've reached the free parse limit. Sign up free to get unlimited CV uploads." },
+          { status: 429 }
+        );
       }
     }
 
@@ -191,39 +178,34 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Parser] Starting: file=${originalFileName}, ext=${fileExt}, size=${buffer.length}, mode=${contentType.includes('application/json') ? 'storage' : 'direct'}, documentType=${documentType}`);
 
-    if (fileExt === '.pdf') {
-      // One-step: send PDF directly to Claude as a document block — no local text extraction needed.
-      // Claude reads the PDF natively, producing accurate structured data even for broken-font PDFs.
+    if (fileExt === '.pdf' || fileExt === '.docx') {
+      // Native document parsing: send PDF/DOCX directly to Claude as a document block.
+      // Bedrock Converse API reads both formats natively - no local text extraction needed.
       try {
-        // visual mode = primary CV (1-2 pages) → full page-as-image rendering via citations: enabled
-        // text mode   = master CV (3-8 pages) → text-extraction-only (cheaper)
+        const docFormat = fileExt === '.pdf' ? 'pdf' : 'docx';
         const jsonContent = await parseDocumentAsCV({
           buffer,
-          docFormat: 'pdf',
+          docFormat,
           prompt: getDocumentParsingPrompt(),
           systemPrompt: 'You are a precise CV parser. Extract factual information only. Return valid JSON. Do not infer or fabricate any information not explicitly present in the source document.',
           maxTokens: 8192,
           temperature: 0.3,
-          visualMode: documentType !== 'master_cv',
+          visualMode: docFormat === 'pdf' && documentType !== 'master_cv',
         });
         structuredCV = parseAIResponse(jsonContent, region as 'US' | 'EU');
         rawText = reconstructRawText(structuredCV);
-        console.log(`[Parser] PDF direct parse complete: ${rawText.length} chars reconstructed`);
+        console.log(`[Parser] ${docFormat.toUpperCase()} direct parse complete: ${rawText.length} chars reconstructed`);
       } catch (e) {
         const errMsg = e instanceof Error ? e.message : String(e);
-        console.error('[Parser] PDF direct parse failed:', errMsg);
+        console.error(`[Parser] ${fileExt.toUpperCase()} direct parse failed:`, errMsg);
         return NextResponse.json(
           { error: 'Failed to parse CV. Please try again or use a different file format.' },
           { status: 500 }
         );
       }
     } else {
-      // DOCX/TXT/MD: extract text first, then parse with AI
-      if (fileExt === '.docx') {
-        rawText = extractTextFromDOCX(buffer);
-      } else {
-        rawText = buffer.toString('utf-8');
-      }
+      // TXT/MD/TEX: plain text, parse with AI
+      rawText = buffer.toString('utf-8');
 
       if (!rawText || rawText.trim().length < 50) {
         return NextResponse.json(
@@ -272,14 +254,26 @@ export async function POST(request: NextRequest) {
     console.log(`[Parser] Extracted: ${structuredCV.experience.length} exp, ${structuredCV.education.length} edu, ${structuredCV.skills.length} skills, ${structuredCV.languages.length} langs, ${structuredCV.certifications.length} certs, ${structuredCV.projects?.length || 0} projects, ${structuredCV.additionalSections?.length || 0} additional sections`);
 
     structuredCV.sourceFileName = originalFileName;
-    structuredCV.sourceFormat = fileExt === '.pdf' ? 'pdf' : fileExt === '.docx' ? 'docx' : 'txt';
+    structuredCV.sourceFormat = (fileExt === '.pdf') ? 'pdf' : (fileExt === '.docx') ? 'docx' : 'txt';
 
     // Detect CV language and generate localized strings (Present/Heute, GPA/Note, etc.)
-    const detectedLang = detectCVLanguage(rawText);
+    // For native document path (PDF/DOCX), rawText is reconstructed with English headers,
+    // so use the AI-extracted content (summary + bullets) for more accurate language detection.
+    const textForLangDetection = (fileExt === '.pdf' || fileExt === '.docx')
+      ? [
+          structuredCV.summary || '',
+          ...structuredCV.experience.flatMap(e => e.bullets || []),
+          ...structuredCV.education.map(e => `${e.degree} ${e.institution}`),
+        ].join('\n')
+      : rawText;
+    const detectedLang = detectCVLanguage(textForLangDetection);
     const { localizedStrings } = generateLocalizedHeaders(detectedLang);
 
-    // Use the user's ORIGINAL section header text instead of generic localized headers
-    const originalHeaders = extractOriginalHeaders(rawText);
+    // For text-based uploads, use the user's ORIGINAL section header text.
+    // For native document uploads, headers come from reconstructed text (English) so skip.
+    const originalHeaders = (fileExt !== '.pdf' && fileExt !== '.docx')
+      ? extractOriginalHeaders(rawText)
+      : {};
     structuredCV.sectionHeaders = originalHeaders;
     structuredCV.localizedStrings = localizedStrings;
     structuredCV.settings.language = detectedLang;
@@ -318,30 +312,7 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Extract text from DOCX — parses XML from ZIP archive
- */
-function extractTextFromDOCX(buffer: Buffer): string {
-  const rawBuffer = buffer.toString('utf-8');
-  // Extract text between XML <w:t> tags in the document.xml inside the ZIP
-  const xmlTextParts: string[] = [];
-  const xmlTagPattern = /<w:t[^>]*>([^<]+)<\/w:t>/g;
-  let match;
-  while ((match = xmlTagPattern.exec(rawBuffer)) !== null) {
-    xmlTextParts.push(match[1]);
-  }
-  if (xmlTextParts.length > 0) {
-    const text = xmlTextParts.join(' ').replace(/\s+/g, ' ').trim();
-    console.log(`[Parser] DOCX text extracted via XML tags: ${text.length} chars`);
-    return text;
-  }
-  // Fallback: strip non-printable chars
-  const text = rawBuffer.replace(/[^\x20-\x7E\n\r\t\u00C0-\u024F]/g, ' ').replace(/\s+/g, ' ').trim();
-  console.log(`[Parser] DOCX text extracted via fallback: ${text.length} chars`);
-  return text;
-}
-
-/**
- * Parse CV using AI with text input (for DOCX/TXT/MD)
+ * Parse CV using AI with text input (for TXT/MD/TEX)
  */
 async function parseWithAI(rawText: string, region: 'US' | 'EU'): Promise<StructuredCV> {
   const prompt = getParsingPrompt(rawText);
@@ -653,19 +624,19 @@ function parseAIResponse(content: string, region: 'US' | 'EU'): StructuredCV {
 
   cv.summary = parsed.summary;
 
-  // Map experience with ALL fields
-  cv.experience = (parsed.experience || []).map((exp: any) => withId({
+  const asArray = (v: unknown): any[] => Array.isArray(v) ? v : [];
+
+  cv.experience = asArray(parsed.experience).map((exp: any) => withId({
     company: exp.company || '',
     position: exp.position || '',
     location: exp.location,
     startDate: exp.startDate || { raw: '', confidence: 'low' },
     endDate: exp.endDate,
     current: exp.current || false,
-    bullets: exp.bullets || [],
+    bullets: asArray(exp.bullets),
   }));
 
-  // Map education with ALL fields including startDate
-  cv.education = (parsed.education || []).map((edu: any) => withId({
+  cv.education = asArray(parsed.education).map((edu: any) => withId({
     institution: edu.institution || '',
     degree: edu.degree || '',
     field: edu.field,
@@ -673,42 +644,38 @@ function parseAIResponse(content: string, region: 'US' | 'EU'): StructuredCV {
     startDate: edu.startDate,
     endDate: edu.endDate,
     grade: edu.grade,
-    highlights: edu.highlights || [],
+    highlights: asArray(edu.highlights),
   }));
 
-  // Map skills - ensure proper categorization
-  cv.skills = (parsed.skills || []).map((cat: any) => withId({
+  cv.skills = asArray(parsed.skills).map((cat: any) => withId({
     category: cat.category || 'Skills',
-    skills: Array.isArray(cat.skills) ? cat.skills : [],
+    skills: asArray(cat.skills),
   }));
 
-  // Map certifications
-  cv.certifications = (parsed.certifications || []).map((cert: any) => withId({
+  cv.certifications = asArray(parsed.certifications).map((cert: any) => withId({
     name: cert.name || '',
     issuer: cert.issuer || '',
     date: cert.date,
   }));
 
-  // Map languages
-  cv.languages = (parsed.languages || []).map((lang: any) => withId({
+  cv.languages = asArray(parsed.languages).map((lang: any) => withId({
     language: lang.language || '',
     proficiency: lang.proficiency || 'Professional',
     certification: lang.certification,
   }));
 
-  // Map projects if present
-  cv.projects = (parsed.projects || []).map((proj: any) => withId({
+  cv.projects = asArray(parsed.projects).map((proj: any) => withId({
     name: proj.name || '',
     description: proj.description || '',
-    technologies: proj.technologies || [],
+    technologies: asArray(proj.technologies),
     url: proj.url,
   }));
 
-  // Map additional sections (volunteer, awards, interests, references, etc.)
-  if (parsed.additionalSections && Array.isArray(parsed.additionalSections) && parsed.additionalSections.length > 0) {
-    cv.additionalSections = parsed.additionalSections.map((section: any) => withId({
+  const additionalArr = asArray(parsed.additionalSections);
+  if (additionalArr.length > 0) {
+    cv.additionalSections = additionalArr.map((section: any) => withId({
       title: section.title || 'Additional Information',
-      items: Array.isArray(section.items) ? section.items.filter(Boolean) : [],
+      items: asArray(section.items).filter(Boolean),
     }));
   }
 

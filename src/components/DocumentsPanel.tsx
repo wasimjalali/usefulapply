@@ -201,9 +201,24 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
             setStructuredCV(null);
           }
         } else {
-          setCurrentCV(null);
-          setStructuredCV(null);
-          useCVStore.getState().setEditedOriginalCVData(null);
+          // No doc in Supabase. Check if the user has a locally-parsed CV
+          // (anonymous upload before signup). If so, save it to Supabase.
+          const localCV = useCVStore.getState().currentCV;
+          const localStructured = useCVStore.getState().structuredCV;
+          if (localCV && localCV.rawText) {
+            await saveDocument(user.id, 'primary_cv', {
+              file_name: localCV.fileName || 'uploaded-cv',
+              file_type: (localCV.fileType as 'pdf' | 'docx' | 'txt') || 'txt',
+              file_size: localCV.rawText.length,
+              raw_text: localCV.rawText,
+              sections: localCV.sections,
+              structured_data: localStructured,
+            });
+          } else {
+            setCurrentCV(null);
+            setStructuredCV(null);
+            useCVStore.getState().setEditedOriginalCVData(null);
+          }
         }
 
         if (masterDoc) {
