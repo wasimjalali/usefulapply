@@ -1070,6 +1070,7 @@ export function JobFeedPanel() {
                 ) : (
                   <>
                     <AISearchProfileCard />
+                    <SearchStrategyPreviewCard />
                     <JobFeedPreferencesCard
                       variant="editing"
                       form={wizardForm}
@@ -1084,7 +1085,6 @@ export function JobFeedPanel() {
                         setIsSetupWizardOpen(false);
                       }}
                     />
-                    <SearchStrategyPreviewCard />
                   </>
                 )}
               </div>

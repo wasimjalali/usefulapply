@@ -709,12 +709,14 @@ export function useSupabaseSync() {
           _editedCVData: editedOriginalCVData,
         };
 
-        // Update in Supabase (cast to any to bypass generated types)
+        // Update in Supabase (cast to any to bypass generated types).
+        // Do NOT bump updated_at: _editedCVData is a UI overlay, not a
+        // content change. Bumping it falsely invalidates user_career_profiles
+        // and triggers an auto-regen loop in AISearchProfileCard.
         await (supabase as any)
           .from('documents')
           .update({
             structured_data: updatedStructuredData,
-            updated_at: new Date().toISOString(),
           })
           .eq('id', primaryDoc.id);
 

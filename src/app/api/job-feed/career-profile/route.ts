@@ -247,5 +247,7 @@ function isCVNewerThanProfile(params: {
   const profileTime = Date.parse(params.profileSourceUpdatedAt);
   const cvTime = Date.parse(params.primaryDocUpdatedAt);
   if (Number.isNaN(profileTime) || Number.isNaN(cvTime)) return false;
-  return cvTime > profileTime;
+  // Require a meaningful gap (>1s) so harmless writes that touch the
+  // documents row don't reopen the auto-regen loop in AISearchProfileCard.
+  return cvTime - profileTime > 1000;
 }
