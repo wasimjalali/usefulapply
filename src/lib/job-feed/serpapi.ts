@@ -239,6 +239,51 @@ export function getCountryName(code: string): string {
   return COUNTRY_NAMES[code] || code.toUpperCase();
 }
 
+/**
+ * Drop trailing comma-segments that duplicate the country we already pin
+ * with `gl`. Handles the 2-letter code, the canonical country name, and a
+ * handful of common aliases people put in their CV / settings. Idempotent.
+ *
+ * Examples (countryCode = 'us', countryName = 'United States'):
+ *   "San Francisco, US"             -> "San Francisco"
+ *   "San Francisco, USA"            -> "San Francisco"
+ *   "San Francisco, United States"  -> "San Francisco"
+ *   "Berlin, Germany"               -> "Berlin"          (when called with de/Germany)
+ *   "Berlin"                        -> "Berlin"          (no-op)
+ *   "London, UK"                    -> "London"          (when called with uk/United Kingdom)
+ */
+function stripTrailingCountrySegment(
+  location: string,
+  countryCode: string,
+  countryName: string,
+): string {
+  const segments = location.split(',').map((segment) => segment.trim()).filter(Boolean);
+  if (segments.length <= 1) return segments.join(', ');
+
+  const code = countryCode.toLowerCase();
+  const name = countryName.toLowerCase();
+  // A short, conservative list of country aliases / codes the upstream
+  // CV-suggestions layer or hand-typed values commonly produce. We do
+  // NOT strip arbitrary 2-letter trailing segments — that would eat
+  // legitimate state codes ("New York, NY") and break disambiguation.
+  const ALIASES = new Set<string>([
+    'usa', 'u.s.', 'u.s.a', 'us',
+    'uk', 'gb',
+    'deutschland',
+  ]);
+
+  while (segments.length > 1) {
+    const tail = segments[segments.length - 1].toLowerCase().replace(/\.+$/, '');
+    if (tail === code || tail === name || ALIASES.has(tail)) {
+      segments.pop();
+      continue;
+    }
+    break;
+  }
+
+  return segments.join(', ');
+}
+
 export function buildSerpApiSearchParams(input: SerpApiSearchInput): URLSearchParams {
   const searchParams = new URLSearchParams({
     engine: 'google_jobs',
@@ -256,8 +301,14 @@ export function buildSerpApiSearchParams(input: SerpApiSearchInput): URLSearchPa
     searchParams.set('hl', language);
 
     if (input.location?.trim()) {
-      const location = input.location.trim();
       const countryName = getCountryName(countryCode);
+      // Strip a trailing country-like segment so we never end up with
+      // "San Francisco, US, United States" — SerpAPI rejects that as
+      // 400 "Unsupported location parameter". The upstream cv-suggestions
+      // layer appends `cv.personal.country` (often the 2-letter code)
+      // without knowing how SerpAPI scopes by `gl`. We normalize at the
+      // boundary so user input stays untouched in our DB.
+      const location = stripTrailingCountrySegment(input.location.trim(), countryCode, countryName);
       const locationValue = location.toLowerCase().includes(countryName.toLowerCase())
         ? location
         : `${location}, ${countryName}`;
