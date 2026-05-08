@@ -110,6 +110,16 @@ export async function PUT(request: NextRequest) {
       ? profileMirror.targetRoles
       : normalized.data.target_roles;
 
+    if (targetRoles.length === 0) {
+      return NextResponse.json(
+        {
+          error:
+            'Karko could not infer your target roles from your CV yet. Upload or refresh your CV, then try again.',
+        },
+        { status: 400 }
+      );
+    }
+
     const userSkills = profileMirror?.userSkills && profileMirror.userSkills.length > 0
       ? profileMirror.userSkills
       : normalized.data.user_skills;

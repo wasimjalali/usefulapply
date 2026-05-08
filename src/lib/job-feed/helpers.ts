@@ -282,15 +282,12 @@ export function normalizeJobFeedSettingsInput(input: unknown): { data?: JobFeedS
   // Target roles get extra treatment: if a user pastes a composite string
   // like "AI Engineer | Product Builder", split it into separate queries so
   // SerpAPI doesn't try to match the entire literal as a job title.
+  // The minimal preferences card does not collect roles directly — they get
+  // auto-mirrored from the AI career profile in the route handler. Empty here
+  // is allowed; the route enforces the final non-empty invariant after mirror.
   const targetRoles = sanitizeTargetRoles(payload.target_roles);
-  if (targetRoles.length === 0) {
-    return { error: 'Add at least one target role so Karko knows what to look for.' };
-  }
 
   const employmentTypes = sanitizeStringArray(payload.employment_types).filter((value) => EMPLOYMENT_TYPE_VALUES.has(value)) as JobFeedSettingsInput['employment_types'];
-  if (employmentTypes.length === 0) {
-    return { error: 'Choose at least one employment type.' };
-  }
 
   const languages = sanitizeStringArray(payload.languages);
 
