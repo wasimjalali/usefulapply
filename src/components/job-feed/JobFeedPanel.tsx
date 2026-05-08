@@ -78,6 +78,8 @@ import {
   RunStatPill,
 } from './feed-cards';
 import { SmartFeedProgressCard } from './SmartFeedProgressCard';
+import { AISearchProfileCard } from './AISearchProfileCard';
+import { SearchStrategyPreviewCard } from './SearchStrategyPreviewCard';
 
 type SaveState = 'idle' | 'saving';
 type PendingJobAction = {
@@ -1032,7 +1034,8 @@ export function JobFeedPanel() {
             )}
 
             {setupOpen && (
-              <div ref={setupWizardRef}>
+              <div ref={setupWizardRef} className="space-y-4">
+                <AISearchProfileCard />
                 <JobFeedOnboardingWizard
                   form={wizardForm}
                   overview={overview}
@@ -1046,6 +1049,7 @@ export function JobFeedPanel() {
                     setIsSetupWizardOpen(false);
                   }}
                 />
+                <SearchStrategyPreviewCard />
               </div>
             )}
 
