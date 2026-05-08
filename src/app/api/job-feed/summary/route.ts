@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { canAccessJobFeed } from '@/lib/job-feed/helpers';
+import { requireJobFeedAccess } from '@/lib/job-feed/auth';
 import { listLatestJobFeedItemsAdmin } from '@/lib/job-feed/server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 
@@ -74,6 +75,11 @@ export async function PATCH(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+
+    const access = await requireJobFeedAccess(typedSupabase, user);
+    if (!access.ok) {
+      return NextResponse.json({ canAccess: false, error: access.error }, { status: access.status });
     }
 
     const body = await request.json();

@@ -109,6 +109,7 @@ export function buildJobFeedPreviewSnapshot(
         state: 'upgrade_required',
         foundationMode: true,
         feedCap: 10,
+        target_roles_outdated: false,
       },
       form: configuredForm,
     };
@@ -137,6 +138,7 @@ export function buildJobFeedPreviewSnapshot(
         state: 'setup_required',
         foundationMode: true,
         feedCap: 10,
+        target_roles_outdated: false,
       },
       form: setupForm,
     };
@@ -164,6 +166,7 @@ export function buildJobFeedPreviewSnapshot(
         state: 'awaiting_first_run',
         foundationMode: true,
         feedCap: 10,
+        target_roles_outdated: false,
       },
       form: formByMode,
     };
@@ -186,6 +189,7 @@ export function buildJobFeedPreviewSnapshot(
         state: 'paused',
         foundationMode: true,
         feedCap: 10,
+        target_roles_outdated: false,
       },
       form: formByMode,
     };
@@ -229,6 +233,7 @@ export function buildJobFeedPreviewSnapshot(
       state: mode,
       foundationMode: true,
       feedCap: 10,
+      target_roles_outdated: false,
     },
     form: formByMode,
   };

@@ -3,6 +3,7 @@ import { canAccessJobFeed } from '@/lib/job-feed/helpers';
 import { captureJobFeedActionRejected, captureJobFeedEvent } from '@/lib/job-feed/analytics';
 import { updateJobFeedApplicationGenerationStatusAdmin } from '@/lib/job-feed/server';
 import { createClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/middleware/rateLimiter';
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
 
 export const runtime = 'nodejs';
@@ -32,6 +33,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
     userId = user.id;
+
+    const { allowed } = checkRateLimit(`job-feed-apply-status:${user.id}`, { limit: 30, windowMs: 60_000 });
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
+    }
 
     const { data: profile, error: profileError } = await typedSupabase
       .from('profiles')

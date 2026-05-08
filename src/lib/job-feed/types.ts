@@ -71,6 +71,12 @@ export interface JobFeedOverviewResponse {
   state: JobFeedOverviewState;
   foundationMode: boolean;
   feedCap: number;
+  /**
+   * True when the saved settings.target_roles differ from the latest AI profile's
+   * inferred titles. The editing card surfaces a notice so the user knows to
+   * save preferences to apply the updated roles.
+   */
+  target_roles_outdated: boolean;
 }
 
 export interface JobFeedRunDiagnostics {

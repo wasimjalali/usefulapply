@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { createClient } from '@/lib/supabase/server';
-import { canAccessJobFeed } from '@/lib/job-feed/helpers';
+import { requireJobFeedAccess } from '@/lib/job-feed/auth';
 import {
   CAREER_PROFILE_SCHEMA_VERSION,
   isCurrentCareerProfile,
@@ -66,8 +66,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`career-profile-generate:${ip}`, { limit: 4, windowMs: 60_000 });
+    // Rate-limit by user ID (not IP) so users behind shared IPs or VPNs
+    // don't burn each other's budget. Must authenticate first to get the ID.
+    const supabaseForRateLimit = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const typedSupabaseForRateLimit = supabaseForRateLimit as any;
+    const { data: { user: userForRateLimit } } = await typedSupabaseForRateLimit.auth.getUser();
+    const rateLimitKey = userForRateLimit?.id
+      ? `career-profile-generate:${userForRateLimit.id}`
+      : `career-profile-generate:${getClientIP(request)}`;
+    const { allowed } = checkRateLimit(rateLimitKey, { limit: 6, windowMs: 60_000 });
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
@@ -114,6 +122,34 @@ export async function POST(request: NextRequest) {
         generatedAt: profileRow.profile.generatedAt,
       };
       return NextResponse.json(body);
+    }
+
+    // Idempotency guard for force=true: if the profile was generated very
+    // recently (within the last 30 seconds) AND the source CV hasn't changed
+    // since then, return the cached profile instead of burning another LLM
+    // call. This prevents duplicate generations from rapid re-mounts or
+    // parallel requests (e.g., AISearchProfileCard auto-regen race).
+    if (
+      force
+      && profileRow?.profile
+      && isCurrentCareerProfile(profileRow.profile)
+      && profileRow.source_document_updated_at
+      && primaryDoc.updated_at
+    ) {
+      const profileAge = Date.now() - Date.parse(profileRow.profile.generatedAt);
+      const cvNewerThanCached = isCVNewerThanProfile({
+        profileSourceUpdatedAt: profileRow.source_document_updated_at,
+        primaryDocUpdatedAt: primaryDoc.updated_at,
+      });
+      if (profileAge < 30_000 && !cvNewerThanCached) {
+        const body: CareerProfileResponseBody = {
+          profile: profileRow.profile,
+          cvNewerThanProfile: false,
+          status: 'ok',
+          generatedAt: profileRow.profile.generatedAt,
+        };
+        return NextResponse.json(body);
+      }
     }
 
     const cv = primaryDoc.structured_data as StructuredCV;
@@ -166,14 +202,12 @@ async function authenticatePaidUser(): Promise<AuthSuccess | AuthFailure> {
     return { ok: false, response: NextResponse.json({ error: 'Authentication required.' }, { status: 401 }) };
   }
 
-  const { data: profile } = await typedSupabase
-    .from('profiles')
-    .select('subscription_tier')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile || !canAccessJobFeed(profile.subscription_tier)) {
-    return { ok: false, response: NextResponse.json({ error: 'Career profile is available on paid plans only.' }, { status: 403 }) };
+  // requireJobFeedAccess correctly distinguishes missing profiles row (500)
+  // from plan gate (403), avoiding a misleading "paid plans only" message
+  // when the profiles row is simply absent (account setup incomplete).
+  const access = await requireJobFeedAccess(typedSupabase, user);
+  if (!access.ok) {
+    return { ok: false, response: NextResponse.json({ error: access.error }, { status: access.status }) };
   }
 
   return { ok: true, userId: user.id as string, supabase: typedSupabase };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Loader2, Sparkles } from 'lucide-react';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
 
@@ -11,6 +11,8 @@ interface CareerProfileResponse {
   generatedAt: string | null;
 }
 
+type CardStatus = 'loading' | 'upgrade_required' | 'ok' | 'no_cv' | 'no_profile';
+
 /**
  * Read-only preview of the AI-inferred career profile that drives the job feed.
  * Auto-refreshes when the underlying CV changes (the wizard fires a
@@ -20,21 +22,27 @@ interface CareerProfileResponse {
  */
 export function AISearchProfileCard() {
   const [data, setData] = useState<CareerProfileResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [cardStatus, setCardStatus] = useState<CardStatus>('loading');
+  const lastRegenAttemptRef = useRef<number>(0);
 
   const load = useCallback(async () => {
     try {
       const response = await fetch('/api/job-feed/career-profile');
+      if (response.status === 403) {
+        setCardStatus('upgrade_required');
+        return;
+      }
       if (!response.ok) {
         setData(null);
+        setCardStatus('no_profile');
         return;
       }
       const json = (await response.json()) as CareerProfileResponse;
       setData(json);
+      setCardStatus(json.status === 'ok' ? 'ok' : json.status);
     } catch {
       setData(null);
-    } finally {
-      setIsLoading(false);
+      setCardStatus('no_profile');
     }
   }, []);
 
@@ -45,28 +53,34 @@ export function AISearchProfileCard() {
   // Silent auto-regen when the user has uploaded a newer CV than the cached
   // profile reflects. We don't show a button — the system just refreshes.
   // Once the regeneration completes, we reload to show the new profile.
+  // A 60-second cooldown prevents repeated firing on re-renders or rapid
+  // component re-mounts, and a cancellation flag avoids state updates after
+  // unmount.
   useEffect(() => {
-    if (!data?.cvNewerThanProfile) return;
+    if (data?.cvNewerThanProfile !== true) return;
+    const now = Date.now();
+    if (now - lastRegenAttemptRef.current < 60_000) return;
+    lastRegenAttemptRef.current = now;
     let cancelled = false;
     (async () => {
       try {
-        await fetch('/api/job-feed/career-profile', {
+        const res = await fetch('/api/job-feed/career-profile', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ force: true }),
         });
+        if (!res.ok) return;
+        if (!cancelled) await load();
       } catch {
-        // ignore
+        // Keep cooldown active so we don't spin on repeated failures.
       }
-      if (cancelled) return;
-      void load();
     })();
     return () => {
       cancelled = true;
     };
   }, [data?.cvNewerThanProfile, load]);
 
-  if (isLoading) {
+  if (cardStatus === 'loading') {
     return (
       <div className="rounded-2xl border border-cream-200 bg-cream-50 p-6 shadow-sm">
         <div className="flex items-center gap-2 text-sm text-warm-gray">
@@ -77,7 +91,31 @@ export function AISearchProfileCard() {
     );
   }
 
-  if (!data || data.status === 'no_cv') {
+  if (cardStatus === 'upgrade_required') {
+    return (
+      <div className="rounded-2xl border border-cream-200 bg-cream-50 p-6 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="rounded-full bg-gold-100 p-2">
+            <Sparkles className="h-4 w-4 text-gold-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-base font-semibold text-charcoal">Your AI search profile</h3>
+            <p className="mt-1 text-sm text-warm-gray">
+              Upgrade your plan to unlock the AI-powered search profile and daily job feed.
+            </p>
+            <a
+              href="/pricing"
+              className="mt-2 inline-flex items-center text-sm font-medium text-navy-600 underline-offset-2 hover:underline"
+            >
+              View plans
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (cardStatus === 'no_cv' || (!data && cardStatus !== 'no_profile')) {
     return (
       <div className="rounded-2xl border border-cream-200 bg-cream-50 p-6 shadow-sm">
         <div className="flex items-start gap-3">
@@ -95,7 +133,7 @@ export function AISearchProfileCard() {
     );
   }
 
-  if (data.status === 'no_profile' || !data.profile) {
+  if (cardStatus === 'no_profile' || !data?.profile) {
     return (
       <div className="rounded-2xl border border-cream-200 bg-cream-50 p-6 shadow-sm">
         <div className="flex items-start gap-3">

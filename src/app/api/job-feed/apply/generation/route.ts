@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { canAccessJobFeed } from '@/lib/job-feed/helpers';
 import { captureJobFeedActionRejected } from '@/lib/job-feed/analytics';
 import { createClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/middleware/rateLimiter';
 
 export const runtime = 'nodejs';
 
@@ -25,6 +26,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
     userId = user.id;
+
+    const { allowed } = checkRateLimit(`job-feed-apply-gen:${user.id}`, { limit: 60, windowMs: 60_000 });
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
+    }
 
     const { data: profile, error: profileError } = await typedSupabase
       .from('profiles')

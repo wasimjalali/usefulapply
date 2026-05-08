@@ -287,7 +287,12 @@ export function normalizeJobFeedSettingsInput(input: unknown): { data?: JobFeedS
   // is allowed; the route enforces the final non-empty invariant after mirror.
   const targetRoles = sanitizeTargetRoles(payload.target_roles);
 
-  const employmentTypes = sanitizeStringArray(payload.employment_types).filter((value) => EMPLOYMENT_TYPE_VALUES.has(value)) as JobFeedSettingsInput['employment_types'];
+  const suppliedEmploymentTypes = sanitizeStringArray(payload.employment_types);
+  const filteredEmploymentTypes = suppliedEmploymentTypes.filter((value) => EMPLOYMENT_TYPE_VALUES.has(value));
+  if (suppliedEmploymentTypes.length > 0 && filteredEmploymentTypes.length !== suppliedEmploymentTypes.length) {
+    return { error: 'employment_types contains unsupported values.' };
+  }
+  const employmentTypes = filteredEmploymentTypes as JobFeedSettingsInput['employment_types'];
 
   const languages = sanitizeStringArray(payload.languages);
 

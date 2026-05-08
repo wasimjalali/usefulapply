@@ -34,6 +34,9 @@ export const jobFeedApplicationGenerationReconcilerFunction = inngest.createFunc
   {
     id: 'job-feed-application-generation-reconciler',
     name: 'Job Feed Application Generation Reconciler',
+    // Singleton: only one reconciler run at a time so stale-row expirations
+    // don't double-fire if a previous tick is still executing.
+    concurrency: { limit: 1 },
     triggers: [{ cron: '*/10 * * * *' }],
   },
   async ({ step }) => {
@@ -47,6 +50,9 @@ export const creditReservationReconcilerFunction = inngest.createFunction(
   {
     id: 'credit-reservation-reconciler',
     name: 'Credit Reservation Reconciler',
+    // Singleton: only one reconciler run at a time so credit reservations
+    // are not released twice if a previous tick is still executing.
+    concurrency: { limit: 1 },
     triggers: [{ cron: '*/10 * * * *' }],
   },
   async ({ step }) => {

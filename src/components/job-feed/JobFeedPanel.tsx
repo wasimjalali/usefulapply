@@ -104,8 +104,16 @@ export function JobFeedPanel() {
   const [activeTab, setActiveTab] = useState<'today' | 'saved'>('today');
   const [savedJobs, setSavedJobs] = useState<JobFeedFeedItem[] | null>(null);
   const [isLoadingSavedJobs, setIsLoadingSavedJobs] = useState(false);
+  // Tracks the run ID the user is currently browsing. Set once on initial
+  // load and only updated on explicit user actions (refresh, tab switch).
+  // Background polling must NOT update this — doing so would reset
+  // additionalJobs mid-browse and lose the user's scroll position.
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const lastTrackedState = useRef<string | null>(null);
   const setupWizardRef = useRef<HTMLDivElement | null>(null);
+  const pollAttemptsRef = useRef(0);
+  const jobFeedOpenedCapturedRef = useRef(false);
+  const pollDeadlineRef = useRef<number | null>(null);
   const isPreviewing = previewMode !== 'off';
   const isSignedIn = isPreviewing ? previewMode !== 'signed_out' : Boolean(user);
 
@@ -245,7 +253,8 @@ export function JobFeedPanel() {
   const handleShowSavedJobs = useCallback(() => {
     setActiveTab('saved');
     // Collapse "show all" state when switching tabs so each view starts clean.
-    setAdditionalJobs([]);
+    // Resetting activeRunId drives the additionalJobs clear via its effect.
+    setActiveRunId(null);
     if (savedJobs === null) {
       void loadSavedJobs();
     }
@@ -253,7 +262,9 @@ export function JobFeedPanel() {
 
   const handleShowTodayFeed = useCallback(() => {
     setActiveTab('today');
-    setAdditionalJobs([]);
+    // Resetting activeRunId drives the additionalJobs clear via its effect,
+    // and the initialise effect above will re-set it from the current overview.
+    setActiveRunId(null);
   }, []);
 
   useEffect(() => {
@@ -279,30 +290,50 @@ export function JobFeedPanel() {
   }, [isPreviewing, loadOverview, previewMode, user]);
 
   useEffect(() => {
-    if (isPreviewing || !isSignedIn) return;
+    if (isPreviewing || !isSignedIn || !profile) return;
+    if (jobFeedOpenedCapturedRef.current) return;
     if (!posthog) return;
-
+    jobFeedOpenedCapturedRef.current = true;
     posthog.capture('job_feed_opened', {
       foundation_mode: true,
-      subscription_tier: profile?.subscription_tier ?? 'unknown',
+      subscription_tier: profile.subscription_tier ?? 'unknown',
     });
-  }, [isPreviewing, isSignedIn, posthog, profile?.subscription_tier]);
+  }, [isPreviewing, isSignedIn, posthog, profile]);
 
   // Poll the overview every 5 seconds while a run is in progress so the
   // UI switches from the progress card to the results the moment the
   // server marks the run completed. Survives tab/panel switches because
   // it's driven by the server row, not a local setTimeout on the fetch.
+  // Capped at 240 attempts (~20 min) so a stuck run never polls forever.
   useEffect(() => {
     if (isPreviewing) return;
     const status = overview?.latestRun?.status;
     const isInFlight = status === 'running' || status === 'queued' || isRunningManualFeed;
-    if (!isInFlight) return;
 
-    const id = setInterval(() => {
-      void loadOverview({ quiet: true });
+    if (!isInFlight) {
+      pollAttemptsRef.current = 0;
+      pollDeadlineRef.current = null;
+      return;
+    }
+
+    if (pollDeadlineRef.current === null) {
+      pollDeadlineRef.current = Date.now() + 20 * 60_000;
+      pollAttemptsRef.current = 0;
+    }
+
+    const id = setInterval(async () => {
+      pollAttemptsRef.current += 1;
+      if (
+        pollAttemptsRef.current > 240 ||
+        (pollDeadlineRef.current !== null && Date.now() > pollDeadlineRef.current)
+      ) {
+        clearInterval(id);
+        return;
+      }
+      await loadOverview({ quiet: true });
     }, 5000);
     return () => clearInterval(id);
-  }, [isPreviewing, isRunningManualFeed, loadOverview, overview?.latestRun?.status]);
+  }, [isPreviewing, isRunningManualFeed, loadOverview, overview?.latestRun?.id, overview?.latestRun?.status]);
 
   useEffect(() => {
     if (isPreviewing) return;
@@ -316,9 +347,20 @@ export function JobFeedPanel() {
     });
   }, [isPreviewing, overview?.state, posthog]);
 
+  // Initialise activeRunId once on first load. Background polling updates
+  // overview?.feedRun?.id without changing activeRunId so additionalJobs
+  // (the "Load more" pages) stay intact during polling.
+  useEffect(() => {
+    if (overview?.feedRun?.id && activeRunId === null) {
+      setActiveRunId(overview.feedRun.id);
+    }
+  }, [overview?.feedRun?.id, activeRunId]);
+
+  // Reset additionalJobs only when the user intentionally navigates to a
+  // new run (activeRunId changes), not on every background poll.
   useEffect(() => {
     setAdditionalJobs([]);
-  }, [overview?.feedRun?.id]);
+  }, [activeRunId]);
 
   useEffect(() => {
     if (isSignedIn) {
@@ -786,7 +828,10 @@ export function JobFeedPanel() {
       const wasFirstTimeSetup = !overview?.settings;
       if (wasFirstTimeSetup) {
         setIsBuildingFirstFeed(true);
-        try {
+      }
+
+      try {
+        if (wasFirstTimeSetup) {
           const profileResponse = await fetch('/api/job-feed/career-profile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -800,52 +845,61 @@ export function JobFeedPanel() {
                 : (profilePayload?.error || 'Could not build your AI search profile. Please try again.')
             );
           }
-        } catch (error) {
+        }
+
+        const response = await fetch('/api/job-feed/settings', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(nextForm),
+        });
+
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || 'Failed to save Job Feed settings.');
+        }
+
+        posthog?.capture('job_feed_setup_completed', {
+          foundation_mode: true,
+          enabled: nextForm.enabled,
+          target_market: nextForm.target_market,
+          roles_count: nextForm.target_roles.length,
+        });
+
+        setForm(nextForm);
+        setDraftForm(null);
+
+        // Reload overview immediately after settings save so we can check
+        // whether this was genuinely a first-time setup (not a race where
+        // settings already existed). Uses the fresh server state, not the
+        // stale pre-save overview that wasFirstTimeSetup was derived from.
+        const refreshedOverview = await loadOverview({ quiet: true });
+        const confirmedFirstTimeSetup = wasFirstTimeSetup && Boolean(refreshedOverview?.settings);
+
+        // Search strategy can run after settings save — it reads them.
+        // Non-fatal: a failure here is logged and ignored. The next feed run
+        // will regenerate the strategy lazily via loadOrGenerateSearchStrategyAdmin.
+        if (confirmedFirstTimeSetup) {
+          try {
+            const strategyRes = await fetch('/api/job-feed/search-strategy', { method: 'POST' });
+            if (!strategyRes.ok) {
+              const strategyBody = await strategyRes.json().catch(() => ({}));
+              console.error('[job-feed] search-strategy POST failed:', strategyRes.status, strategyBody?.error ?? '');
+            }
+          } catch (error) {
+            console.error('[job-feed] search-strategy generation failed:', error);
+          }
+        }
+
+        toast.success(nextForm.enabled && consentReady ? 'Your AI feed is ready.' : 'Preferences saved.');
+        setIsEditing(false);
+        setIsSetupWizardOpen(false);
+      } finally {
+        if (wasFirstTimeSetup) {
           setIsBuildingFirstFeed(false);
-          throw error;
         }
       }
-
-      const response = await fetch('/api/job-feed/settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(nextForm),
-      });
-
-      const payload = await response.json();
-      if (!response.ok) {
-        if (wasFirstTimeSetup) setIsBuildingFirstFeed(false);
-        throw new Error(payload.error || 'Failed to save Job Feed settings.');
-      }
-
-      posthog?.capture('job_feed_setup_completed', {
-        foundation_mode: true,
-        enabled: nextForm.enabled,
-        target_market: nextForm.target_market,
-        roles_count: nextForm.target_roles.length,
-      });
-
-      setForm(nextForm);
-      setDraftForm(null);
-
-      // Search strategy can run after settings save — it reads them.
-      if (wasFirstTimeSetup) {
-        try {
-          await fetch('/api/job-feed/search-strategy', { method: 'POST' });
-        } catch (error) {
-          console.error('[job-feed] search-strategy generation failed:', error);
-          // Non-fatal — next feed run will regenerate lazily.
-        } finally {
-          setIsBuildingFirstFeed(false);
-        }
-      }
-
-      toast.success(nextForm.enabled && consentReady ? 'Your AI feed is ready.' : 'Preferences saved.');
-      setIsEditing(false);
-      setIsSetupWizardOpen(false);
-      await loadOverview({ quiet: true });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save Job Feed settings.');
     } finally {
@@ -928,6 +982,9 @@ export function JobFeedPanel() {
           nextRunAt: payload.nextRunAt ?? null,
         }));
       } else {
+        // New run completed — reset activeRunId so additionalJobs clears
+        // and reinitialises from the fresh run's feed.
+        setActiveRunId(null);
         const nextOverview = await loadOverview({ quiet: true });
         setManualRunNotice(buildManualRunSuccessNotice(payload, nextOverview));
         return;
@@ -955,14 +1012,11 @@ export function JobFeedPanel() {
 
     setIsSetupWizardOpen(true);
   }, [isSetupWizardOpen, overview?.settings]);
-  const updateDraftForm = useCallback((nextValue: React.SetStateAction<JobFeedSettingsInput>) => {
-    setDraftForm((prev) => {
-      const baseValue = prev ?? form;
-      return typeof nextValue === 'function'
-        ? (nextValue as (value: JobFeedSettingsInput) => JobFeedSettingsInput)(baseValue)
-        : nextValue;
-    });
-  }, [form]);
+  const updateDraftForm = useCallback((updater: (prev: JobFeedSettingsInput) => JobFeedSettingsInput) => {
+    // openSetupWizard always initialises draftForm before this is called,
+    // so prev should never be null here. The nullish coalesce is defensive only.
+    setDraftForm((prev) => updater(prev ?? createDefaultJobFeedInput(getBrowserTimeZone())));
+  }, []);
 
   const currentState = isSignedIn ? (overview?.state ?? 'setup_required') : 'sign_in_required';
   const setupOpen = isSignedIn && (isEditing || isSetupWizardOpen);
@@ -990,7 +1044,7 @@ export function JobFeedPanel() {
   const showHeaderRunButton = canUseManualRun && hasFeedCards;
   const showCenteredRunButton = canUseManualRun && !hasFeedCards;
   const wizardForm = draftForm ?? form;
-  const inputCaps = getJobFeedInputCaps(profile?.subscription_tier ?? 'plus');
+  const inputCaps = getJobFeedInputCaps(profile?.subscription_tier ?? null);
   const showStateSupportCard = isSignedIn
     && !setupOpen
     && currentState !== 'upgrade_required'
@@ -1079,6 +1133,7 @@ export function JobFeedPanel() {
                       maxCountries={inputCaps.maxCountries}
                       onFormChange={updateDraftForm}
                       onSave={handleSave}
+                      targetRolesOutdated={Boolean(overview?.target_roles_outdated)}
                       onClose={() => {
                         setDraftForm(null);
                         setIsEditing(false);

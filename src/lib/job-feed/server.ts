@@ -1169,7 +1169,11 @@ export async function listJobFeedInboxPageAdmin(params: {
   // yesterday's or older — those visible jobs belong in the backlog, not
   // the today bucket.
   const settings = await getJobFeedSettingsAdmin(params.userId);
-  const userTz = settings?.user_timezone ?? 'UTC';
+  // Prefer the run's recorded timezone over the current settings value so
+  // "today" is computed consistently even when the user changes timezone
+  // between the run and viewing the feed. Fall back to UTC only when both
+  // are absent (shouldn't happen in practice, but defensive).
+  const userTz = settings?.user_timezone || latestCompletedRun.local_timezone || 'UTC';
   const todayKey = getLocalDateKey(new Date(), userTz);
   const latestRunIsToday = latestCompletedRun.local_date === todayKey;
 
@@ -1450,9 +1454,10 @@ export async function runJobFeedFoundationWorkflow(params: {
     const subscriptionTier = await getUserSubscriptionTierAdmin(userId);
     const tierLimits = getJobFeedTierLimits(subscriptionTier);
 
-    // Resolve the AI search strategy ahead of ingestion. Falls back to
-    // the legacy deterministic planner when no profile / no strategy
-    // exists (free tier, paid users on first run before profile sync).
+    // Resolve the AI search strategy ahead of ingestion. Returns null when
+    // no career profile exists yet (first-time paid users before profile
+    // synthesis completes). ingestJobFeedRunJobs falls back to the legacy
+    // deterministic planner when strategy is null.
     const careerProfileForStrategy = await getUserCareerProfileAdmin(userId);
     const searchStrategy = await loadOrGenerateSearchStrategyAdmin({
       userId,
@@ -1939,14 +1944,18 @@ export function isJobFeedbackBlocked(feedback: JobFeedFeedback | null | undefine
 export async function getBlockedCanonicalJobIdsAdmin(userId: string): Promise<Set<string>> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand job_feed_feedback here.
   const admin = createAdminClient() as any;
-  // `or` covers the three column-based terminal states: applied_at (direct
-  // apply or successful generation), dismissed_at, and generation_status =
-  // 'succeeded' (belt-and-suspenders in case applied_at was not written).
+  // Fetch all feedback rows for this user and apply isJobFeedbackBlocked on
+  // each. This is the single source of truth for "blocked" state. Using a
+  // single full-fetch + in-process filter instead of two separate queries
+  // eliminates the race where a second metadata-based query catches
+  // `not_relevant`-rated jobs whose rating has since been changed to `helpful`
+  // (re-rating un-block). The `isJobFeedbackBlocked` helper reads current
+  // metadata, so a re-rated row with match_rating='helpful' in metadata is
+  // correctly treated as unblocked.
   const { data, error } = await admin
     .from('job_feed_feedback')
     .select('canonical_job_id, applied_at, dismissed_at, generation_status, metadata')
-    .eq('user_id', userId)
-    .or('applied_at.not.is.null,dismissed_at.not.is.null,generation_status.eq.succeeded');
+    .eq('user_id', userId);
 
   if (error) {
     throw new Error(`Failed to load blocked job feed canonical ids: ${error.message}`);
@@ -1957,25 +1966,6 @@ export async function getBlockedCanonicalJobIdsAdmin(userId: string): Promise<Se
     if (isJobFeedbackBlocked(row as JobFeedFeedback)) {
       blocked.add(row.canonical_job_id);
     }
-  }
-
-  // The `or` filter above covers column-based terminal states. Do a
-  // second query for rated_not_relevant which lives in metadata (no
-  // column predicate), then merge.
-  const { data: ratedData, error: ratedError } = await admin
-    .from('job_feed_feedback')
-    .select('canonical_job_id, applied_at, dismissed_at, metadata')
-    .eq('user_id', userId)
-    .contains('metadata', { match_rating: 'not_relevant' });
-
-  if (ratedError) {
-    // Non-fatal — just log and continue with what we have.
-    console.error('[job-feed] not-relevant exclusion query failed:', ratedError.message);
-    return blocked;
-  }
-
-  for (const row of (ratedData ?? []) as Array<Pick<JobFeedFeedback, 'canonical_job_id' | 'applied_at' | 'dismissed_at' | 'metadata'>>) {
-    blocked.add(row.canonical_job_id);
   }
 
   return blocked;
@@ -2339,11 +2329,24 @@ export async function loadOrGenerateSearchStrategyAdmin(params: {
     console.error('[job-feed/server] strategy fetch error:', cacheError.message);
   }
 
+  // Use epoch comparison instead of string equality so minor timestamp
+  // formatting differences and same-millisecond profile regenerations still
+  // hit the cache. `>=` means a strategy synthesized for the same or an older
+  // profile is valid — a newer profile invalidates the cache (regenerate).
+  const cachedTs = Number.isFinite(Number(new Date(cached?.source_profile_generated_at ?? '')))
+    ? new Date(cached.source_profile_generated_at).getTime()
+    : NaN;
+  const profileTs = Number.isFinite(Number(new Date(profile.generatedAt ?? '')))
+    ? new Date(profile.generatedAt).getTime()
+    : NaN;
+
   if (
     cached
     && cached.version === SEARCH_STRATEGY_SCHEMA_VERSION
     && isCurrentSearchStrategy(cached.strategy)
-    && cached.source_profile_generated_at === profile.generatedAt
+    && Number.isFinite(cachedTs)
+    && Number.isFinite(profileTs)
+    && cachedTs >= profileTs
   ) {
     return cached.strategy;
   }

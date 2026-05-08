@@ -19,8 +19,14 @@ export const maxDuration = 60;
 
 interface SearchStrategyResponseBody {
   strategy: SearchStrategy | null;
-  /** "ok" when a strategy is returned (cached or freshly generated). */
-  status: 'ok' | 'no_profile' | 'no_settings' | 'no_countries';
+  /**
+   * "ok"           — strategy returned (cached or freshly generated).
+   * "no_profile"   — no AI career profile exists yet (user hasn't generated one).
+   * "profile_only" — profile exists but no strategy cached yet (generating shortly).
+   * "no_settings"  — no job feed settings saved.
+   * "no_countries" — settings exist but no target countries selected.
+   */
+  status: 'ok' | 'no_profile' | 'profile_only' | 'no_settings' | 'no_countries';
   generatedAt: string | null;
   sourceProfileGeneratedAt: string | null;
   /** True when the cached strategy was synthesized against an older profile. */
@@ -85,9 +91,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (!data || data.version !== SEARCH_STRATEGY_SCHEMA_VERSION || !isCurrentSearchStrategy(data.strategy)) {
+      // Profile exists but no cached strategy yet (or stale version).
+      // Use 'profile_only' so the consumer can show "Generating your search
+      // strategy..." rather than "Upload your CV to get started".
       return NextResponse.json<SearchStrategyResponseBody>({
         strategy: null,
-        status: 'no_profile',
+        status: 'profile_only',
         generatedAt: null,
         sourceProfileGeneratedAt: null,
         profileNewerThanStrategy: false,

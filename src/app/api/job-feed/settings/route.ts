@@ -3,6 +3,7 @@ import { normalizeJobFeedSettingsInput } from '@/lib/job-feed/helpers';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { createClient } from '@/lib/supabase/server';
 import { isCurrentCareerProfile, type CareerProfile } from '@/lib/job-feed/career-profile';
+import { requireJobFeedAccess } from '@/lib/job-feed/auth';
 import type { JobFeedSettingsInput } from '@/lib/job-feed/types';
 
 export const runtime = 'nodejs';
@@ -22,6 +23,11 @@ export async function GET(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+
+    const access = await requireJobFeedAccess(typedSupabase, user);
+    if (!access.ok) {
+      return NextResponse.json({ error: access.error }, { status: access.status });
     }
 
     const { data, error } = await typedSupabase
@@ -104,32 +110,22 @@ export async function PUT(request: NextRequest) {
     // hand. The minimal preferences card only captures things the AI cannot
     // know (countries, cities, work mode, salary floor, work authorization).
     // The strategy generator still reads these mirrored fields downstream.
+    // profileMirror is the authoritative source for targetRoles — we never
+    // fall back to client-supplied roles so drift is impossible.
     const profileMirror = await loadCareerProfileMirror(typedSupabase, user.id);
 
-    const targetRoles = profileMirror?.targetRoles && profileMirror.targetRoles.length > 0
-      ? profileMirror.targetRoles
-      : normalized.data.target_roles;
-
-    if (targetRoles.length === 0) {
+    if (!profileMirror?.targetRoles?.length) {
       return NextResponse.json(
-        {
-          error:
-            'Karko could not infer your target roles from your CV yet. Upload or refresh your CV, then try again.',
-        },
-        { status: 400 }
+        { error: 'AI profile not ready. Please retry in a few seconds.' },
+        { status: 422 }
       );
     }
 
-    const userSkills = profileMirror?.userSkills && profileMirror.userSkills.length > 0
-      ? profileMirror.userSkills
-      : normalized.data.user_skills;
+    const targetRoles = profileMirror.targetRoles;
+    const userSkills = profileMirror.userSkills ?? [];
+    const languages = profileMirror.languages ?? ['English'];
 
-    const languages = profileMirror?.languages && profileMirror.languages.length > 0
-      ? profileMirror.languages
-      : normalized.data.languages;
-
-    const seniorityTargets = profileMirror?.seniorityTargets
-      ?? normalized.data.seniority_targets;
+    const seniorityTargets = profileMirror.seniorityTargets ?? normalized.data.seniority_targets;
     const seniorityTarget = seniorityTargets[0] ?? normalized.data.seniority_target ?? null;
 
     // Employment types stays user-controlled in DB but the new wizard
@@ -174,18 +170,21 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to save job feed settings.' }, { status: 500 });
     }
 
-    // Sync preferences for cover letter context (fire-and-forget)
+    // Sync preferences for cover letter context (fire-and-forget).
+    // Use the AI-mirrored variables (targetRoles, userSkills, seniorityTarget)
+    // so the cover letter agent sees the enriched values, not the raw client
+    // input which may be empty arrays on first save before the mirror runs.
     typedSupabase
       .from('user_job_preferences')
       .upsert({
         user_id: user.id,
         salary_floor: normalized.data.salary_floor,
         remote_preference: normalized.data.remote_preference,
-        employment_types: normalized.data.employment_types,
-        target_roles: normalized.data.target_roles,
-        user_skills: normalized.data.user_skills,
+        employment_types: employmentTypes,
+        target_roles: targetRoles,
+        user_skills: userSkills,
         target_market: normalized.data.target_market,
-        seniority_target: normalized.data.seniority_target,
+        seniority_target: seniorityTarget,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' })
       .then(({ error: prefError }: { error: { message: string } | null }) => {

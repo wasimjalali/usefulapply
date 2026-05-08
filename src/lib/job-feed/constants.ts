@@ -79,7 +79,16 @@ export const JOB_FEED_INPUT_CAPS: Record<JobFeedTier, JobFeedInputCaps> = {
   },
 };
 
-export function getJobFeedInputCaps(subscriptionTier: string): JobFeedInputCaps {
+// Locked caps returned for free / unauthenticated / loading users.
+// Shape-compatible with JobFeedInputCaps so all consumers compile unchanged.
+export const JOB_FEED_INPUT_CAPS_LOCKED: JobFeedInputCaps = {
+  maxRoles: 0,
+  maxCountries: 0,
+  maxCitiesPerCountry: 0,
+};
+
+export function getJobFeedInputCaps(subscriptionTier: string | null | undefined): JobFeedInputCaps {
+  if (!subscriptionTier || subscriptionTier === 'free') return JOB_FEED_INPUT_CAPS_LOCKED;
   if (subscriptionTier === 'max') return JOB_FEED_INPUT_CAPS.max;
   return JOB_FEED_INPUT_CAPS.plus;
 }

@@ -25,9 +25,12 @@ interface JobFeedPreferencesCardProps {
   saveState: 'idle' | 'saving';
   hasRecordedConsent: boolean;
   maxCountries: number;
-  onFormChange: React.Dispatch<React.SetStateAction<JobFeedSettingsInput>>;
+  onFormChange: (updater: (prev: JobFeedSettingsInput) => JobFeedSettingsInput) => void;
   onSave: (form: JobFeedSettingsInput) => void;
   onClose?: () => void;
+  /** When true (editing variant only), the saved target roles differ from the
+   *  latest AI profile. An inline notice prompts the user to save. */
+  targetRolesOutdated?: boolean;
 }
 
 /**
@@ -56,15 +59,19 @@ export function JobFeedPreferencesCard({
   onFormChange,
   onSave,
   onClose,
+  targetRolesOutdated = false,
 }: JobFeedPreferencesCardProps) {
-  // Auto-detect the browser timezone once on mount. Silent — we don't ask
-  // the user, we just write it to the form. Fall back to UTC only if the
-  // browser cannot tell us (extremely rare).
+  // Auto-detect the browser timezone once on mount. Never overrides a saved
+  // value — if the form already has a timezone (even one from the server),
+  // we leave it untouched. Fall back to UTC only if the browser cannot
+  // tell us (extremely rare). Fixes: auto-detect silently overriding saved tz.
   useEffect(() => {
-    if (form.user_timezone && isValidTimeZone(form.user_timezone)) return;
+    if (form.user_timezone) return;
     const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const next = detected && isValidTimeZone(detected) ? detected : 'UTC';
-    onFormChange((prev) => ({ ...prev, user_timezone: next }));
+    onFormChange((prev) => ({
+      ...prev,
+      user_timezone: detected && isValidTimeZone(detected) ? detected : 'UTC',
+    }));
   }, [form.user_timezone, onFormChange]);
 
   const consentReady = form.consent_accepted || hasRecordedConsent;
@@ -75,6 +82,12 @@ export function JobFeedPreferencesCard({
       <Header variant={variant} onClose={onClose} />
 
       <div className="space-y-7 px-6 py-7 sm:px-8 sm:py-8">
+        {variant === 'editing' && targetRolesOutdated && (
+          <div className="rounded-lg border border-gold-200 bg-gold-50 px-4 py-3 text-sm text-charcoal">
+            Updated from your latest CV. Save to apply.
+          </div>
+        )}
+
         <SectionLabel
           label="Where to search"
           help="Pick the countries and cities you want jobs from."
@@ -138,12 +151,14 @@ export function JobFeedPreferencesCard({
             placeholder="e.g. 80000"
             value={form.salary_floor === null ? '' : String(form.salary_floor)}
             onChange={(event) => {
-              const value = event.target.value;
-              const parsed = value.trim() === '' ? null : Number(value);
-              onFormChange((prev) => ({
-                ...prev,
-                salary_floor: Number.isFinite(parsed) ? (parsed as number) : null,
-              }));
+              const raw = event.target.value;
+              if (raw === '') {
+                onFormChange((prev) => ({ ...prev, salary_floor: null }));
+                return;
+              }
+              const parsed = Number(raw);
+              if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1_000_000) return;
+              onFormChange((prev) => ({ ...prev, salary_floor: Math.floor(parsed) }));
             }}
             className="w-full max-w-xs rounded-lg border border-cream-200 bg-white px-3.5 py-2.5 text-sm text-charcoal placeholder:text-warm-gray/60 outline-none transition-colors focus:border-navy-400 focus:ring-2 focus:ring-navy-100"
           />

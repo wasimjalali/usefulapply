@@ -9,7 +9,7 @@ import type { SearchStrategy, SearchStrategyQuery } from '@/lib/job-feed/search-
 
 interface SearchStrategyResponse {
   strategy: SearchStrategy | null;
-  status: 'ok' | 'no_profile' | 'no_settings' | 'no_countries';
+  status: 'ok' | 'no_profile' | 'profile_only' | 'no_settings' | 'no_countries';
   generatedAt: string | null;
   sourceProfileGeneratedAt: string | null;
   profileNewerThanStrategy: boolean;
@@ -99,11 +99,22 @@ export function SearchStrategyPreviewCard() {
           <div className="flex-1">
             <h3 className="text-base font-semibold text-charcoal">How we&apos;ll search for you</h3>
             <p className="mt-1 text-sm text-warm-gray">
-              {data?.status === 'no_profile' && 'Karko is preparing your AI profile. Your search plan will appear here next.'}
+              {data?.status === 'no_profile' && 'Upload your CV to get started. Karko builds your search plan from your career profile.'}
+              {data?.status === 'profile_only' && 'Generating your search strategy. Check back in a moment.'}
               {data?.status === 'no_settings' && 'Save your preferences below to see the search plan Karko will run for you.'}
               {data?.status === 'no_countries' && 'Pick at least one country in your preferences to see the search plan.'}
               {!data && 'Karko is preparing your search plan.'}
             </p>
+            {data?.status === 'profile_only' && (
+              <button
+                type="button"
+                onClick={() => { setIsLoading(true); void load(); }}
+                className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-cream-200 bg-white px-3 py-1.5 text-xs font-medium text-charcoal transition-colors hover:border-cream-300 hover:bg-cream-50 cursor-pointer"
+              >
+                <Loader2 className="h-3.5 w-3.5" />
+                Retry
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -10,6 +10,7 @@ import {
 } from '@/lib/job-feed/server';
 import { JOB_FEED_INBOX_PAGE_SIZE } from '@/lib/job-feed/constants';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { isCurrentCareerProfile, type CareerProfile } from '@/lib/job-feed/career-profile';
 import type { JobFeedRun } from '@/lib/supabase/types';
 
 export const runtime = 'nodejs';
@@ -64,10 +65,15 @@ export async function GET(request: NextRequest) {
         state: 'upgrade_required',
         foundationMode: true,
         feedCap: tierLimits.visibleCount,
+        target_roles_outdated: false,
       });
     }
 
-    const [{ data: settings, error: settingsError }, { data: latestRun, error: runError }] = await Promise.all([
+    const [
+      { data: settings, error: settingsError },
+      { data: latestRun, error: runError },
+      { data: careerProfileRow },
+    ] = await Promise.all([
       typedSupabase
         .from('job_feed_settings')
         .select('*')
@@ -79,6 +85,11 @@ export async function GET(request: NextRequest) {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1)
+        .maybeSingle(),
+      typedSupabase
+        .from('user_career_profiles')
+        .select('profile')
+        .eq('user_id', user.id)
         .maybeSingle(),
     ]);
 
@@ -122,6 +133,13 @@ export async function GET(request: NextRequest) {
       ? feedRunSummary.run
       : latestRun;
 
+    // Compare saved target_roles in settings against AI-inferred titles in the
+    // career profile. Flag drift so the editing card can surface a notice.
+    const targetRolesOutdated = computeTargetRolesOutdated(
+      (settings?.target_roles as string[] | null) ?? null,
+      careerProfileRow?.profile ?? null,
+    );
+
     return NextResponse.json({
       canAccess,
       settings: settings ?? null,
@@ -142,11 +160,41 @@ export async function GET(request: NextRequest) {
       }),
       foundationMode: true,
       feedCap: tierLimits.visibleCount,
+      target_roles_outdated: targetRolesOutdated,
     });
   } catch (error) {
     console.error('[job-feed/overview] unexpected error:', error);
     return NextResponse.json({ error: 'Failed to load job feed overview.' }, { status: 500 });
   }
+}
+
+/**
+ * Compare the saved settings.target_roles against the AI career profile's
+ * inferred titles. Returns true when they differ (drift detected). Returns
+ * false when either side is missing — only flag when both are present and
+ * clearly mismatched so we don't show a spurious banner on first setup.
+ */
+function computeTargetRolesOutdated(
+  savedRoles: string[] | null,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- CareerProfile structure may vary; we do a safe read.
+  rawProfile: any,
+): boolean {
+  if (!savedRoles || savedRoles.length === 0) return false;
+  if (!rawProfile || !isCurrentCareerProfile(rawProfile)) return false;
+  const profile = rawProfile as CareerProfile;
+
+  const profileRoles = profile.inferredTitles
+    .map((title) => title.canonical.trim().toLowerCase())
+    .filter((v, i, a) => a.indexOf(v) === i)
+    .sort();
+
+  const normalized = savedRoles
+    .map((r) => r.trim().toLowerCase())
+    .filter(Boolean)
+    .sort();
+
+  if (normalized.length !== profileRoles.length) return true;
+  return normalized.some((role, idx) => role !== profileRoles[idx]);
 }
 
 function isStaleOverviewRun(run: JobFeedRun): boolean {
