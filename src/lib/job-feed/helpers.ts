@@ -1,5 +1,4 @@
 import {
-  JOB_FEED_AGGRESSIVENESS_OPTIONS,
   JOB_FEED_COUNTRY_OPTIONS,
   JOB_FEED_DEFAULT_SETTINGS,
   JOB_FEED_EMPLOYMENT_TYPE_OPTIONS,
@@ -25,7 +24,6 @@ const REMOTE_VALUES = new Set<string>(JOB_FEED_REMOTE_PREFERENCE_OPTIONS.map((op
 const SENIORITY_VALUES = new Set<string>(JOB_FEED_SENIORITY_OPTIONS.map((option) => option.value));
 const EMPLOYMENT_TYPE_VALUES = new Set<string>(JOB_FEED_EMPLOYMENT_TYPE_OPTIONS.map((option) => option.value));
 const WORK_AUTH_VALUES = new Set<string>(JOB_FEED_WORK_AUTH_OPTIONS.map((option) => option.value));
-const AGGRESSIVENESS_VALUES = new Set<string>(JOB_FEED_AGGRESSIVENESS_OPTIONS.map((option) => option.value));
 const PREMIUM_TIER_VALUES = new Set<string>(PREMIUM_JOB_FEED_TIERS);
 
 export function canAccessJobFeed(subscriptionTier?: string | null): boolean {
@@ -144,8 +142,6 @@ export function createDefaultJobFeedInput(timeZone?: string): JobFeedSettingsInp
     target_countries: [...JOB_FEED_DEFAULT_SETTINGS.target_countries],
     target_cities: [...JOB_FEED_DEFAULT_SETTINGS.target_cities],
     target_roles: [...JOB_FEED_DEFAULT_SETTINGS.target_roles],
-    adjacent_roles_enabled: JOB_FEED_DEFAULT_SETTINGS.adjacent_roles_enabled,
-    adjacent_roles: [...JOB_FEED_DEFAULT_SETTINGS.adjacent_roles],
     preferred_locations: [...JOB_FEED_DEFAULT_SETTINGS.preferred_locations],
     remote_preference: JOB_FEED_DEFAULT_SETTINGS.remote_preference,
     remote_preferences: [...JOB_FEED_DEFAULT_SETTINGS.remote_preferences] as JobFeedSettingsInput['remote_preferences'],
@@ -155,7 +151,6 @@ export function createDefaultJobFeedInput(timeZone?: string): JobFeedSettingsInp
     seniority_targets: [...JOB_FEED_DEFAULT_SETTINGS.seniority_targets] as JobFeedSettingsInput['seniority_targets'],
     employment_types: [...JOB_FEED_DEFAULT_SETTINGS.employment_types] as JobFeedSettingsInput['employment_types'],
     work_authorization_status: JOB_FEED_DEFAULT_SETTINGS.work_authorization_status,
-    aggressiveness: JOB_FEED_DEFAULT_SETTINGS.aggressiveness,
     user_skills: [],
     consent_accepted: false,
   };
@@ -189,8 +184,6 @@ export function toJobFeedInput(settings: JobFeedSettings | null, fallbackTimeZon
     target_countries: targetCountries,
     target_cities: settings.target_cities ?? [],
     target_roles: settings.target_roles,
-    adjacent_roles_enabled: settings.adjacent_roles_enabled,
-    adjacent_roles: settings.adjacent_roles,
     preferred_locations: settings.preferred_locations,
     remote_preference: settings.remote_preference,
     remote_preferences: remotePreferences as JobFeedSettingsInput['remote_preferences'],
@@ -202,7 +195,6 @@ export function toJobFeedInput(settings: JobFeedSettings | null, fallbackTimeZon
       ? settings.employment_types
       : [...JOB_FEED_DEFAULT_SETTINGS.employment_types] as JobFeedSettingsInput['employment_types'],
     work_authorization_status: settings.work_authorization_status ?? JOB_FEED_DEFAULT_SETTINGS.work_authorization_status,
-    aggressiveness: settings.aggressiveness,
     user_skills: settings.user_skills ?? [],
   };
 }
@@ -289,11 +281,6 @@ export function normalizeJobFeedSettingsInput(input: unknown): { data?: JobFeedS
     return { error: 'Please choose a valid work authorization status.' };
   }
 
-  const aggressiveness = asTrimmedString(payload.aggressiveness, MAX_ITEM_LENGTH);
-  if (!AGGRESSIVENESS_VALUES.has(aggressiveness)) {
-    return { error: 'Please choose a valid aggressiveness level.' };
-  }
-
   // Target roles get extra treatment: if a user pastes a composite string
   // like "AI Engineer | Product Builder", split it into separate queries so
   // SerpAPI doesn't try to match the entire literal as a job title.
@@ -335,8 +322,6 @@ export function normalizeJobFeedSettingsInput(input: unknown): { data?: JobFeedS
     target_countries: targetCountries,
     target_cities: targetCities,
     target_roles: targetRoles,
-    adjacent_roles_enabled: Boolean(payload.adjacent_roles_enabled),
-    adjacent_roles: sanitizeStringArray(payload.adjacent_roles),
     preferred_locations: sanitizeStringArray(payload.preferred_locations),
     remote_preference: remotePreference,
     remote_preferences: remotePreferences,
@@ -346,7 +331,6 @@ export function normalizeJobFeedSettingsInput(input: unknown): { data?: JobFeedS
     seniority_targets: seniorityTargets,
     employment_types: employmentTypes,
     work_authorization_status: (workAuthorizationStatus ?? null) as JobFeedSettingsInput['work_authorization_status'],
-    aggressiveness: aggressiveness as JobFeedSettingsInput['aggressiveness'],
     user_skills: userSkills,
   };
 

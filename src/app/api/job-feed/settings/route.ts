@@ -116,14 +116,11 @@ export async function PUT(request: NextRequest) {
         seniority_target: normalized.data.seniority_target,
         // Shared arrays
         target_roles: normalized.data.target_roles,
-        adjacent_roles_enabled: false,
-        adjacent_roles: [],
         preferred_locations: normalized.data.preferred_locations,
         salary_floor: normalized.data.salary_floor,
         languages: normalized.data.languages,
         employment_types: normalized.data.employment_types,
         work_authorization_status: normalized.data.work_authorization_status,
-        aggressiveness: normalized.data.aggressiveness,
         user_skills: normalized.data.user_skills,
       }, {
         onConflict: 'user_id',

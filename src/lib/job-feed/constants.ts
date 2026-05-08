@@ -339,12 +339,6 @@ export const JOB_FEED_WORK_AUTH_OPTIONS = [
   { value: 'needs_sponsorship', label: 'Needs sponsorship' },
 ] as const;
 
-export const JOB_FEED_AGGRESSIVENESS_OPTIONS = [
-  { value: 'strict', label: 'Strict', description: 'Exact role and location matches only. Fewer but highly targeted results.' },
-  { value: 'balanced', label: 'Balanced', description: 'Core criteria matched, some flexibility on adjacent roles and locations.' },
-  { value: 'broad', label: 'Broad', description: 'Wider net — includes adjacent roles, nearby cities, and flexible requirements.' },
-] as const;
-
 export const JOB_FEED_SUGGESTED_ROLES = [
   'Software Engineer',
   'Frontend Engineer',
@@ -374,8 +368,6 @@ export const JOB_FEED_DEFAULT_SETTINGS = {
   target_countries: ['us'] as string[],
   target_cities: [] as string[],
   target_roles: [] as string[],
-  adjacent_roles_enabled: false,
-  adjacent_roles: [] as string[],
   preferred_locations: [] as string[],
   remote_preference: 'remote_first',
   remote_preferences: ['remote_first', 'hybrid'] as string[],
@@ -385,7 +377,6 @@ export const JOB_FEED_DEFAULT_SETTINGS = {
   seniority_targets: ['mid', 'senior'] as string[],
   employment_types: ['full_time'] as string[],
   work_authorization_status: 'open_to_both',
-  aggressiveness: 'balanced',
 } as const;
 
 export function formatDeliveryHourLabel(hour: number): string {

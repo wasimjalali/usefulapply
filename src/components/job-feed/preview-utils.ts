@@ -82,11 +82,8 @@ export function buildJobFeedPreviewSnapshot(
     seniority_target: 'senior',
     seniority_targets: ['senior', 'lead'],
     work_authorization_status: 'authorized',
-    aggressiveness: 'balanced',
     employment_types: ['full_time'],
     languages: ['English'],
-    adjacent_roles_enabled: true,
-    adjacent_roles: ['Platform Product Manager'],
   };
 
   if (mode === 'signed_out') {
@@ -252,8 +249,6 @@ export function toPreviewJobFeedSettings(form: JobFeedSettingsInput): NonNullabl
     target_countries: form.target_countries,
     target_cities: form.target_cities,
     target_roles: form.target_roles,
-    adjacent_roles_enabled: form.adjacent_roles_enabled,
-    adjacent_roles: form.adjacent_roles,
     preferred_locations: form.preferred_locations,
     remote_preference: form.remote_preference,
     remote_preferences: form.remote_preferences,
@@ -263,7 +258,6 @@ export function toPreviewJobFeedSettings(form: JobFeedSettingsInput): NonNullabl
     seniority_targets: form.seniority_targets,
     employment_types: form.employment_types,
     work_authorization_status: form.work_authorization_status,
-    aggressiveness: form.aggressiveness,
     user_skills: form.user_skills,
     created_at: now,
     updated_at: now,
