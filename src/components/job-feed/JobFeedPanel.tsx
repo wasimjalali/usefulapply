@@ -69,6 +69,31 @@ type ManualRunNotice = {
   stats?: Array<{ label: string; value: string }>;
 } | null;
 
+// Cheap shallow comparison that catches the dimensions of the overview that
+// actually drive UI transitions: run state, run identity, page-1 jobs list,
+// and the configured/visible flags. If all of these match, no consumer of
+// `overview` would render differently — so we keep the previous reference and
+// avoid a cascade of child re-renders during 5/10s background polls.
+function isOverviewStructurallyEqual(
+  a: JobFeedOverviewResponse | null,
+  b: JobFeedOverviewResponse | null,
+): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  if (a.state !== b.state) return false;
+  if ((a.latestRun?.id ?? null) !== (b.latestRun?.id ?? null)) return false;
+  if ((a.latestRun?.status ?? null) !== (b.latestRun?.status ?? null)) return false;
+  if ((a.feedRun?.id ?? null) !== (b.feedRun?.id ?? null)) return false;
+  if (a.jobs.length !== b.jobs.length) return false;
+  for (let i = 0; i < a.jobs.length; i++) {
+    if (a.jobs[i].id !== b.jobs[i].id) return false;
+    if (a.jobs[i].feedback?.appliedAt !== b.jobs[i].feedback?.appliedAt) return false;
+    if (a.jobs[i].feedback?.dismissedAt !== b.jobs[i].feedback?.dismissedAt) return false;
+    if (a.jobs[i].feedback?.savedAt !== b.jobs[i].feedback?.savedAt) return false;
+  }
+  return true;
+}
+
 export function JobFeedPanel() {
   const router = useRouter();
   const { user, profile } = useAuth();
@@ -171,9 +196,9 @@ export function JobFeedPanel() {
       return null;
     }
 
-    if (!options?.quiet) {
+    const isQuiet = Boolean(options?.quiet);
+    if (!isQuiet) {
       setIsLoading(true);
-    } else {
       setIsRefreshing(true);
     }
 
@@ -189,16 +214,24 @@ export function JobFeedPanel() {
       }
 
       const nextOverview = payload as JobFeedOverviewResponse;
-      setOverview(nextOverview);
-      setForm(toJobFeedInput(nextOverview.settings, getBrowserTimeZone()));
-      setDraftForm(null);
+      setOverview((prev) => (isOverviewStructurallyEqual(prev, nextOverview) ? prev : nextOverview));
+      // Quiet polls (background 5/10s ticks) must not stomp the form. The user
+      // could be mid-edit, and resetting form/draftForm here clobbers their
+      // unsaved changes and forces every consumer to re-render. Only sync
+      // form on user-initiated loads.
+      if (!isQuiet) {
+        setForm(toJobFeedInput(nextOverview.settings, getBrowserTimeZone()));
+        setDraftForm(null);
+      }
       return nextOverview;
     } catch (error) {
       toastRef.current.error(error instanceof Error ? error.message : 'Failed to load Job Feed.');
       return null;
     } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+      if (!isQuiet) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
     }
   }, [isPreviewing]);
 
@@ -300,11 +333,14 @@ export function JobFeedPanel() {
     });
   }, [isPreviewing, isSignedIn, posthog, profile]);
 
-  // Poll the overview every 5 seconds while a run is in progress so the
-  // UI switches from the progress card to the results the moment the
-  // server marks the run completed. Survives tab/panel switches because
-  // it's driven by the server row, not a local setTimeout on the fetch.
-  // Capped at 240 attempts (~20 min) so a stuck run never polls forever.
+  // Poll the overview while a run is in progress so the UI switches from
+  // the progress card to results the moment the server marks the run
+  // completed. Cadence: 5s for the first 2 minutes (most runs finish in
+  // 30-90s, so we want low latency on completion), then back off to 10s
+  // because longer runs gain nothing from tight polling and the network
+  // chatter is wasteful. Hard cap at ~20 minutes total so a stuck row
+  // never polls forever. Quiet polls do not flip isLoading/isRefreshing
+  // and skip form sync — see loadOverview.
   useEffect(() => {
     if (isPreviewing) return;
     const status = overview?.latestRun?.status;
@@ -316,23 +352,41 @@ export function JobFeedPanel() {
       return;
     }
 
+    const startedAt = Date.now();
     if (pollDeadlineRef.current === null) {
-      pollDeadlineRef.current = Date.now() + 20 * 60_000;
+      pollDeadlineRef.current = startedAt + 20 * 60_000;
       pollAttemptsRef.current = 0;
     }
 
-    const id = setInterval(async () => {
+    const tick = async () => {
       pollAttemptsRef.current += 1;
-      if (
-        pollAttemptsRef.current > 240 ||
-        (pollDeadlineRef.current !== null && Date.now() > pollDeadlineRef.current)
-      ) {
-        clearInterval(id);
-        return;
+      if (pollDeadlineRef.current !== null && Date.now() > pollDeadlineRef.current) {
+        return false;
+      }
+      if (pollAttemptsRef.current > 240) {
+        return false;
       }
       await loadOverview({ quiet: true });
-    }, 5000);
-    return () => clearInterval(id);
+      return true;
+    };
+
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const schedule = () => {
+      if (cancelled) return;
+      const elapsed = Date.now() - startedAt;
+      const interval = elapsed > 2 * 60_000 ? 10_000 : 5_000;
+      timeoutId = setTimeout(async () => {
+        const keepGoing = await tick();
+        if (keepGoing) schedule();
+      }, interval);
+    };
+    schedule();
+
+    return () => {
+      cancelled = true;
+      if (timeoutId !== null) clearTimeout(timeoutId);
+    };
   }, [isPreviewing, isRunningManualFeed, loadOverview, overview?.latestRun?.id, overview?.latestRun?.status]);
 
   useEffect(() => {
