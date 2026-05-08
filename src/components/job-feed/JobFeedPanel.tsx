@@ -778,6 +778,34 @@ export function JobFeedPanel() {
         return;
       }
 
+      // First-time setup: synthesize the AI career profile FIRST so the
+      // settings PUT below can mirror target_roles / skills / seniority
+      // from it. The settings handler rejects payloads where final
+      // target_roles is empty, which is exactly what happens on first save
+      // when user_career_profiles has no row yet.
+      const wasFirstTimeSetup = !overview?.settings;
+      if (wasFirstTimeSetup) {
+        setIsBuildingFirstFeed(true);
+        try {
+          const profileResponse = await fetch('/api/job-feed/career-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ force: true }),
+          });
+          const profilePayload = await profileResponse.json().catch(() => ({}));
+          if (!profileResponse.ok || profilePayload?.status === 'no_cv') {
+            throw new Error(
+              profilePayload?.status === 'no_cv'
+                ? 'Upload your CV first so Karko can build your search profile.'
+                : (profilePayload?.error || 'Could not build your AI search profile. Please try again.')
+            );
+          }
+        } catch (error) {
+          setIsBuildingFirstFeed(false);
+          throw error;
+        }
+      }
+
       const response = await fetch('/api/job-feed/settings', {
         method: 'PUT',
         headers: {
@@ -788,6 +816,7 @@ export function JobFeedPanel() {
 
       const payload = await response.json();
       if (!response.ok) {
+        if (wasFirstTimeSetup) setIsBuildingFirstFeed(false);
         throw new Error(payload.error || 'Failed to save Job Feed settings.');
       }
 
@@ -801,25 +830,13 @@ export function JobFeedPanel() {
       setForm(nextForm);
       setDraftForm(null);
 
-      // First-time setup: run profile synthesis and search-strategy
-      // generation in the background while the building card animates.
-      // We wait for completion so the user lands on a populated dashboard,
-      // not on empty cards. Returning users skip this — they already have
-      // a profile and the strategy will regenerate lazily on the next run.
-      const wasFirstTimeSetup = !overview?.settings;
+      // Search strategy can run after settings save — it reads them.
       if (wasFirstTimeSetup) {
-        setIsBuildingFirstFeed(true);
         try {
-          await fetch('/api/job-feed/career-profile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ force: true }),
-          });
           await fetch('/api/job-feed/search-strategy', { method: 'POST' });
         } catch (error) {
-          console.error('[job-feed] first-time AI synthesis failed:', error);
-          // Fall through anyway — the user can retry or the next feed run
-          // will lazily regenerate. Don't block the success toast.
+          console.error('[job-feed] search-strategy generation failed:', error);
+          // Non-fatal — next feed run will regenerate lazily.
         } finally {
           setIsBuildingFirstFeed(false);
         }
