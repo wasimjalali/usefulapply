@@ -94,8 +94,15 @@ export interface CareerProfileRecord {
 export function isCurrentCareerProfile(value: unknown): value is CareerProfile {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<CareerProfile>;
-  return candidate.version === CAREER_PROFILE_SCHEMA_VERSION
+  return (
+    candidate.version === CAREER_PROFILE_SCHEMA_VERSION
     && typeof candidate.function === 'string'
     && Array.isArray(candidate.inferredTitles)
-    && Array.isArray(candidate.primarySkillClusters);
+    && Array.isArray(candidate.primarySkillClusters)
+    && Array.isArray(candidate.secondarySkillClusters)
+    && Array.isArray(candidate.workingLanguages)
+    && candidate.seniority !== null
+    && typeof candidate.seniority === 'object'
+    && typeof (candidate.seniority as CareerProfileSeniority).level === 'string'
+  );
 }

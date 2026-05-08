@@ -696,7 +696,11 @@ function parseSalaryText(value?: string): {
   return {
     salaryText,
     salaryMin: numericValues[0] ?? null,
-    salaryMax: numericValues[1] ?? null,
+    // When only a single value is present (e.g. "$60k"), use it as both min
+    // and max so the prefilter ceiling check can still apply. A truly
+    // range-less posting ("$60k") should be treated as an exact point, not
+    // as "unknown ceiling".
+    salaryMax: numericValues[1] ?? numericValues[0] ?? null,
     salaryCurrency: detectCurrency(salaryText),
   };
 }

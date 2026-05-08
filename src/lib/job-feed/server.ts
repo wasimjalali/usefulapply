@@ -1385,7 +1385,8 @@ export async function runJobFeedFoundationWorkflow(params: {
   if (existingRun?.status === 'running') {
     const isStaleRunningRun = isStaleJobFeedRun(existingRun, now);
 
-    if (!force || !isStaleRunningRun) {
+    if (!isStaleRunningRun) {
+      // Active (non-stale) running run — block unconditionally.
       captureJobFeedRunIdempotencyConflict({
         userId,
         run: existingRun,
@@ -1402,13 +1403,16 @@ export async function runJobFeedFoundationWorkflow(params: {
       return { run: existingRun, created: false, skipped: true };
     }
 
+    // Stale running run (>15 min with no progress): reset and let the
+    // function continue so the row is reused below. This allows "Run Today"
+    // (force=false) to recover stuck runs without requiring a force flag.
     captureJobFeedRunIdempotencyConflict({
       userId,
       run: existingRun,
       localDate,
       triggerSource,
       force,
-      reason: 'stale_running_run_force_reset',
+      reason: force ? 'stale_running_run_force_reset' : 'stale_running_run_reset',
     });
     await resetJobFeedRunArtifactsForRerun(existingRun.id);
   }
@@ -2251,7 +2255,7 @@ export async function getUserYearsExperienceAdmin(userId: string): Promise<numbe
     .select('structured_data')
     .eq('user_id', userId)
     .eq('type', 'primary_cv')
-    .order('created_at', { ascending: false })
+    .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 

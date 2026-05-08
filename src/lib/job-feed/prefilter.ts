@@ -186,8 +186,13 @@ function hasSalaryMismatch(job: JobFeedCanonicalJob, settings: JobFeedSettings):
   // still below that minimum — i.e. no realistic negotiation will bridge
   // the gap. Absent salary data = do not reject (candidate can negotiate).
   if (!settings.salary_floor) return false;
-  if (job.salary_max === null) return false;
-  return job.salary_max < settings.salary_floor;
+  // Use salary_min as fallback ceiling when salary_max is null. This handles
+  // single-value postings (e.g. "$60k") that parseSalaryText maps to
+  // salaryMin=60000 / salaryMax=60000. Truly unknown salary (both null) =
+  // do not reject.
+  const advertisedCeiling = job.salary_max ?? job.salary_min;
+  if (advertisedCeiling === null) return false;
+  return advertisedCeiling < settings.salary_floor;
 }
 
 function hasWorkAuthorizationMismatch(job: JobFeedCanonicalJob, settings: JobFeedSettings): boolean {

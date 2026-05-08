@@ -874,22 +874,20 @@ export function JobFeedPanel() {
         // whether this was genuinely a first-time setup (not a race where
         // settings already existed). Uses the fresh server state, not the
         // stale pre-save overview that wasFirstTimeSetup was derived from.
-        const refreshedOverview = await loadOverview({ quiet: true });
-        const confirmedFirstTimeSetup = wasFirstTimeSetup && Boolean(refreshedOverview?.settings);
+        await loadOverview({ quiet: true });
 
-        // Search strategy can run after settings save — it reads them.
+        // Fire on every successful save — the endpoint is cache-aware and only
+        // regenerates when the underlying profile or settings hash changed.
         // Non-fatal: a failure here is logged and ignored. The next feed run
         // will regenerate the strategy lazily via loadOrGenerateSearchStrategyAdmin.
-        if (confirmedFirstTimeSetup) {
-          try {
-            const strategyRes = await fetch('/api/job-feed/search-strategy', { method: 'POST' });
-            if (!strategyRes.ok) {
-              const strategyBody = await strategyRes.json().catch(() => ({}));
-              console.error('[job-feed] search-strategy POST failed:', strategyRes.status, strategyBody?.error ?? '');
-            }
-          } catch (error) {
-            console.error('[job-feed] search-strategy generation failed:', error);
+        try {
+          const strategyRes = await fetch('/api/job-feed/search-strategy', { method: 'POST' });
+          if (!strategyRes.ok) {
+            const strategyBody = await strategyRes.json().catch(() => ({}));
+            console.error('[job-feed] search-strategy POST failed:', strategyRes.status, strategyBody?.error ?? '');
           }
+        } catch (error) {
+          console.error('[job-feed] search-strategy generation failed:', error);
         }
 
         toast.success(nextForm.enabled && consentReady ? 'Your AI feed is ready.' : 'Preferences saved.');
