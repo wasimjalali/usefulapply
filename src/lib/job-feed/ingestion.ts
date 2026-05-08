@@ -626,6 +626,9 @@ async function runOneSerpApiFetch(params: {
     const responseNextPageToken = data.serpapi_pagination?.next_page_token ?? null;
 
     if (providerError && !noResults) {
+      console.error(
+        `[ingestion] SerpAPI provider error for q="${planItem.query}" gl=${planItem.country}: ${providerError}`,
+      );
       return {
         rawFetchId: rawFetch.id,
         observedJobs: [],
@@ -650,6 +653,19 @@ async function runOneSerpApiFetch(params: {
   } catch (error) {
     const errorMessage = getFetchErrorMessage(error);
     const errorPayload = toErrorPayload(error);
+
+    if (error instanceof SerpApiHttpError) {
+      // Strip api_key=… so it never lands in logs even if SerpAPI ever
+      // echoes the request URL inside an error body.
+      const safeBody = error.bodyText.replace(/api_key=[^&"\s]+/gi, 'api_key=REDACTED').slice(0, 500);
+      console.error(
+        `[ingestion] SerpAPI ${error.status} for q="${planItem.query}" gl=${planItem.country}: ${safeBody}`,
+      );
+    } else {
+      console.error(
+        `[ingestion] SerpAPI fetch threw for q="${planItem.query}" gl=${planItem.country}: ${errorMessage}`,
+      );
+    }
 
     const rawFetch = await insertRawFetch(admin, {
       run_id: runId,
