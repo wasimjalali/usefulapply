@@ -1,4 +1,5 @@
 import { hasOpenAICredentials, rankWithOpenAI } from '@/lib/job-feed/openai-ranking';
+import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import type {
   JobFeedRankingCandidate,
   JobFeedRankingExecutionResult,
@@ -10,6 +11,7 @@ export async function rankJobFeedCandidates(params: {
   candidates: JobFeedRankingCandidate[];
   visibleCap?: number;
   yearsExperience?: number | null;
+  careerProfile?: CareerProfile | null;
 }): Promise<JobFeedRankingExecutionResult> {
   return rankWithOpenAI(params);
 }

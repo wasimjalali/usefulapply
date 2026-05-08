@@ -26,7 +26,6 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
 import {
-  JOB_FEED_AGGRESSIVENESS_OPTIONS,
   JOB_FEED_COUNTRY_OPTIONS,
   JOB_FEED_EMPLOYMENT_TYPE_OPTIONS,
   JOB_FEED_REMOTE_PREFERENCE_OPTIONS,
@@ -1783,6 +1782,19 @@ function JobFeedOnboardingWizard({
       applyCVSuggestion(data.suggestion as JobFeedSettingsSuggestion);
       setCVSuggestionApplied(true);
       setCvNewerThanCache(false);
+
+      // Fire-and-forget: regenerate the AI career profile in the background.
+      // The wizard never blocks on this; the profile is consumed by the
+      // ranker on the next feed run. If the user hasn't generated one yet,
+      // POST without force; if they explicitly clicked "Refresh from my CV",
+      // pass force so a stale profile is rebuilt against the latest CV.
+      void fetch('/api/job-feed/career-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force: Boolean(options.force) }),
+      }).catch(() => {
+        // Ignore — profile generation is best-effort, not user-facing.
+      });
     } catch {
       // silently ignore — user can still fill manually
     } finally {
@@ -1826,6 +1838,14 @@ function JobFeedOnboardingWizard({
         applyCVSuggestion(data.suggestion as JobFeedSettingsSuggestion, { onlyIfEmpty: true });
         setCVSuggestionApplied(true);
         if (data.cvNewerThanCache) setCvNewerThanCache(true);
+
+        // First-open auto-generation of the AI career profile, in the
+        // background. The wizard never waits on this; downstream feed runs
+        // pick it up the next time they execute. The endpoint is a no-op
+        // for users who already have a fresh profile against the same CV.
+        void fetch('/api/job-feed/career-profile', { method: 'POST' }).catch(() => {
+          // Best-effort — silent failure is fine.
+        });
       } catch {
         // ignore — form stays editable
       } finally {
@@ -2106,16 +2126,6 @@ function JobFeedOnboardingWizard({
                       })}
                     />
                   </FieldGroup>
-
-                  <SelectField
-                    label="Search style"
-                    value={form.aggressiveness}
-                    onChange={(aggressiveness) => onFormChange((prev) => ({
-                      ...prev,
-                      aggressiveness: aggressiveness as JobFeedSettingsInput['aggressiveness'],
-                    }))}
-                    options={JOB_FEED_AGGRESSIVENESS_OPTIONS}
-                  />
 
                   <FieldGroup label="Employment types" help="Pick any that apply. Leave broad unless you have a strong preference.">
                     <MultiSelectDropdown

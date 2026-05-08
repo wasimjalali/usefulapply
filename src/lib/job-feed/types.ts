@@ -99,8 +99,6 @@ export interface JobFeedSettingsInput {
   target_countries: string[];
   target_cities: string[];
   target_roles: string[];
-  adjacent_roles_enabled: boolean;
-  adjacent_roles: string[];
   preferred_locations: string[];
   remote_preference: JobFeedSettings['remote_preference'];
   remote_preferences: JobFeedSettings['remote_preferences'];
@@ -110,7 +108,6 @@ export interface JobFeedSettingsInput {
   seniority_targets: JobFeedSettings['seniority_targets'];
   employment_types: JobFeedSettings['employment_types'];
   work_authorization_status: JobFeedSettings['work_authorization_status'];
-  aggressiveness: JobFeedSettings['aggressiveness'];
   user_skills: string[];
 }
 
@@ -127,13 +124,36 @@ export interface JobFeedSettingsSuggestion {
 export interface JobFeedSearchPlanItem {
   query: string;
   targetRole: string;
-  isAdjacentRole: boolean;
   market: JobFeedSettings['target_market'];
   /** ISO 3166-1 alpha-2 country code (lowercase). */
   country: string;
   /** Null means "let SerpAPI derive from country" (via COUNTRY_LANGUAGES). */
   language: string | null;
   location: string | null;
+  /** Strategy origin: "short_tail" | "long_tail" | "localized" | null (legacy planner). */
+  queryType: 'short_tail' | 'long_tail' | 'localized' | null;
+  /** Strategy-supplied expected recall band (null when from the legacy planner). */
+  expectedRecall: 'high' | 'medium' | 'low' | null;
+  /**
+   * Index into the same plan array of a fallback to retry when this item
+   * returns zero results. Resolved DURING plan construction (not from the
+   * raw strategy) so circular pointers can't slip through. Null when no
+   * fallback is wired up.
+   */
+  fallbackToIndex: number | null;
+  /**
+   * True when this entry was produced as a retry triggered by another
+   * entry's `fallbackToIndex`. Lets diagnostics tell main-pass calls apart
+   * from fallback calls.
+   */
+  isFallbackRetry: boolean;
+  /**
+   * SerpAPI `uds` filter-chip tokens to apply to this query. Empty when
+   * the country is in FILTER_CHIP_DISABLED_MARKETS, when no token is
+   * cached yet (first run for that country), or when the call is a
+   * fallback retry (fallbacks intentionally run unfiltered).
+   */
+  filterTokens: string[];
 }
 
 export interface JobFeedJobPreview {

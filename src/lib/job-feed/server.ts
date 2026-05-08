@@ -30,6 +30,18 @@ import { prepareJobFeedRankingCandidates, prefilterJobFeedJobs } from '@/lib/job
 import { rankJobFeedCandidates } from '@/lib/job-feed/ranking';
 import { captureJobFeedEvent } from '@/lib/job-feed/analytics';
 import { estimateTotalExperienceYears } from '@/lib/job-feed/cv-suggestions';
+import {
+  CAREER_PROFILE_SCHEMA_VERSION,
+  isCurrentCareerProfile,
+  type CareerProfile,
+} from '@/lib/job-feed/career-profile';
+import {
+  computeSettingsHash,
+  generateSearchStrategy,
+  isCurrentSearchStrategy,
+  SEARCH_STRATEGY_SCHEMA_VERSION,
+  type SearchStrategy,
+} from '@/lib/job-feed/search-strategy';
 import type { StructuredCV } from '@/lib/types/cv-schema';
 
 type JobFeedRunUpdate = Partial<Pick<JobFeedRun,
@@ -1439,12 +1451,23 @@ export async function runJobFeedFoundationWorkflow(params: {
     const subscriptionTier = await getUserSubscriptionTierAdmin(userId);
     const tierLimits = getJobFeedTierLimits(subscriptionTier);
 
+    // Resolve the AI search strategy ahead of ingestion. Falls back to
+    // the legacy deterministic planner when no profile / no strategy
+    // exists (free tier, paid users on first run before profile sync).
+    const careerProfileForStrategy = await getUserCareerProfileAdmin(userId);
+    const searchStrategy = await loadOrGenerateSearchStrategyAdmin({
+      userId,
+      settings,
+      profile: careerProfileForStrategy,
+    });
+
     const ingestion = await ingestJobFeedRunJobs({
       runId: run.id,
       userId,
       settings,
       maxQueries: tierLimits.maxDailyQueries,
       maxRawJobs: tierLimits.maxRawJobsPerRun,
+      strategy: searchStrategy,
     });
 
     if (ingestion.rawJobsFetched === 0 && ingestion.failedFetches.length === ingestion.searchPlan.length && ingestion.searchPlan.length > 0) {
@@ -1480,6 +1503,7 @@ export async function runJobFeedFoundationWorkflow(params: {
       candidates: rankingPrep.candidates,
       visibleCap: tierLimits.visibleCount,
       yearsExperience,
+      careerProfile: careerProfileForStrategy,
     });
     const rankedPreviewItems = rankingResult.items.map(toRankedPreviewRecord);
     const materializedRanking = await persistJobFeedRankedItemsForRunAdmin({
@@ -2250,4 +2274,107 @@ export async function getUserYearsExperienceAdmin(userId: string): Promise<numbe
   }
 
   return null;
+}
+
+/**
+ * Load the latest valid `CareerProfile` for a user from `user_career_profiles`.
+ * Returns null when no row exists, the row predates the current schema
+ * version, or the payload fails the runtime shape check (e.g. stale row from
+ * a prior schema). The ranker treats null as "fall back to settings only."
+ *
+ * Read-only by the job-feed pipeline. This data must NEVER be loaded by
+ * `src/lib/agents/**` — application-kit generation stays grounded in the
+ * literal `StructuredCV`.
+ */
+export async function getUserCareerProfileAdmin(userId: string): Promise<CareerProfile | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the user_career_profiles table here.
+  const admin = createAdminClient() as any;
+
+  const { data, error } = await admin
+    .from('user_career_profiles')
+    .select('profile, version')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[job-feed/server] career profile fetch error:', error.message);
+    return null;
+  }
+
+  if (!data || data.version !== CAREER_PROFILE_SCHEMA_VERSION) return null;
+  if (!isCurrentCareerProfile(data.profile)) return null;
+
+  return data.profile;
+}
+
+/**
+ * Resolve the user's search strategy for the current settings, regenerating
+ * it via Claude when the cache is missing or stale relative to the profile.
+ * Returns null when the prerequisites for a strategy don't exist (no career
+ * profile yet, or no target_countries set), in which case the caller falls
+ * back to the legacy deterministic search planner.
+ *
+ * Read-only by the job-feed pipeline. NEVER imported from src/lib/agents/**.
+ */
+export async function loadOrGenerateSearchStrategyAdmin(params: {
+  userId: string;
+  settings: JobFeedSettings;
+  profile: CareerProfile | null;
+}): Promise<SearchStrategy | null> {
+  const { userId, settings, profile } = params;
+
+  if (!profile) return null;
+  if (!settings.target_countries || settings.target_countries.length === 0) return null;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the user_search_strategies table here.
+  const admin = createAdminClient() as any;
+  const settingsHash = computeSettingsHash(settings);
+
+  const { data: cached, error: cacheError } = await admin
+    .from('user_search_strategies')
+    .select('strategy, version, source_profile_generated_at')
+    .eq('user_id', userId)
+    .eq('settings_hash', settingsHash)
+    .maybeSingle();
+
+  if (cacheError) {
+    console.error('[job-feed/server] strategy fetch error:', cacheError.message);
+  }
+
+  if (
+    cached
+    && cached.version === SEARCH_STRATEGY_SCHEMA_VERSION
+    && isCurrentSearchStrategy(cached.strategy)
+    && cached.source_profile_generated_at === profile.generatedAt
+  ) {
+    return cached.strategy;
+  }
+
+  // Cache miss / stale / version bump — synthesize a fresh one and upsert.
+  try {
+    const result = await generateSearchStrategy({ profile, settings });
+    await admin
+      .from('user_search_strategies')
+      .upsert({
+        user_id: userId,
+        settings_hash: settingsHash,
+        strategy: result.strategy,
+        version: SEARCH_STRATEGY_SCHEMA_VERSION,
+        source_profile_generated_at: profile.generatedAt,
+        model_provider: result.modelProvider,
+        model_name: result.modelName,
+      }, { onConflict: 'user_id,settings_hash' });
+
+    console.log(
+      `[search-strategy] Generated for user ${userId}: ${result.modelName} | ${result.inputTokens}in/${result.outputTokens}out | ${result.latencyMs}ms | ${result.strategy.queries.length} queries`,
+    );
+    return result.strategy;
+  } catch (error) {
+    console.error('[job-feed/server] strategy generation failed:', error instanceof Error ? error.message : String(error));
+    // Fall back to the deterministic planner — never block a feed run on
+    // strategy generation. The cached strategy (if any, even if stale) is
+    // a safer fallback than the legacy planner; return it when available.
+    if (cached && isCurrentSearchStrategy(cached.strategy)) return cached.strategy;
+    return null;
+  }
 }

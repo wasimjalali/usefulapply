@@ -1,5 +1,6 @@
 import { AzureOpenAI } from 'openai';
 import { JOB_FEED_VISIBLE_MAX_COUNT } from '@/lib/job-feed/constants';
+import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import type {
   JobFeedRankingCandidate,
   JobFeedRankingExecutionResult,
@@ -154,8 +155,15 @@ export async function rankWithOpenAI(params: {
   candidates: JobFeedRankingCandidate[];
   visibleCap?: number;
   yearsExperience?: number | null;
+  careerProfile?: CareerProfile | null;
 }): Promise<JobFeedRankingExecutionResult> {
-  const { settings, candidates, visibleCap = JOB_FEED_VISIBLE_MAX_COUNT, yearsExperience = null } = params;
+  const {
+    settings,
+    candidates,
+    visibleCap = JOB_FEED_VISIBLE_MAX_COUNT,
+    yearsExperience = null,
+    careerProfile = null,
+  } = params;
   const deterministicItems = buildDeterministicRankedItems(candidates, visibleCap);
 
   if (candidates.length === 0) {
@@ -183,7 +191,7 @@ export async function rankWithOpenAI(params: {
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: buildUserProfileMessage(settings, yearsExperience) },
+        { role: 'user', content: buildUserProfileMessage(settings, yearsExperience, careerProfile) },
         { role: 'user', content: buildCandidatesMessage(candidates, visibleCap) },
       ],
     });
@@ -234,6 +242,7 @@ export function buildRankingRequestBody(params: {
   candidates: JobFeedRankingCandidate[];
   visibleCap?: number;
   yearsExperience?: number | null;
+  careerProfile?: CareerProfile | null;
 }): {
   model: string;
   temperature: number;
@@ -249,7 +258,7 @@ export function buildRankingRequestBody(params: {
     response_format: { type: 'json_object' },
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: buildUserProfileMessage(params.settings, params.yearsExperience ?? null) },
+      { role: 'user', content: buildUserProfileMessage(params.settings, params.yearsExperience ?? null, params.careerProfile ?? null) },
       { role: 'user', content: buildCandidatesMessage(params.candidates, cap) },
     ],
   };
@@ -271,9 +280,16 @@ export function parseRankingResponse(
 // Per-user, stable across daily runs. Emitting the user profile as its own
 // message (instead of mixing it with candidates) lets Azure OpenAI cache
 // this block across repeat runs within the cache TTL window.
+//
+// When a CareerProfile is available (paid users with the synthesis pass run),
+// it is included as `inferredProfile` alongside the explicit user settings.
+// The settings remain authoritative for hard constraints; the inferred
+// profile is a richer prior for soft signals like skill clusters, function,
+// industry domains, and the narrative paragraph.
 function buildUserProfileMessage(
   settings: JobFeedSettings,
   yearsExperience: number | null = null,
+  careerProfile: CareerProfile | null = null,
 ): string {
   return JSON.stringify({
     section: 'candidate_profile',
@@ -300,8 +316,23 @@ function buildUserProfileMessage(
       workAuthorizationStatus: settings.work_authorization_status,
       targetMarket: settings.target_market,
       languages: settings.languages,
-      aggressiveness: settings.aggressiveness,
     },
+    inferredProfile: careerProfile
+      ? {
+          function: careerProfile.function,
+          inferredTitles: careerProfile.inferredTitles,
+          seniority: careerProfile.seniority,
+          yearsTotal: careerProfile.yearsTotal,
+          yearsInFunction: careerProfile.yearsInFunction,
+          primarySkillClusters: careerProfile.primarySkillClusters,
+          secondarySkillClusters: careerProfile.secondarySkillClusters,
+          industryDomains: careerProfile.industryDomains,
+          toolsEnvironment: careerProfile.toolsEnvironment,
+          workingLanguages: careerProfile.workingLanguages,
+          narrative: careerProfile.narrative,
+          negativeSignals: careerProfile.negativeSignals,
+        }
+      : null,
   }, null, 2);
 }
 

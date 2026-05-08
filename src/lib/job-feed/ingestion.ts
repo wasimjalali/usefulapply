@@ -7,6 +7,7 @@ import {
   JOB_FEED_PROVIDER,
 } from '@/lib/job-feed/constants';
 import { splitCompositeRole } from '@/lib/job-feed/cv-suggestions';
+import type { SearchStrategy } from '@/lib/job-feed/search-strategy';
 import {
   buildSerpApiSearchParams,
   fetchSerpApiJobs,
@@ -14,8 +15,15 @@ import {
   normalizeSerpApiJob,
   serializeSearchParams,
   SerpApiHttpError,
+  toSerpApiGl,
   type NormalizedSerpApiJob,
 } from '@/lib/job-feed/serpapi';
+import {
+  discoverFilterTokensFromResponse,
+  FILTER_CHIP_DISABLED_MARKETS,
+  loadDatePostedPastWeekTokens,
+  recordSerpApiFilterTokens,
+} from '@/lib/job-feed/filter-tokens';
 import type {
   JobFeedIngestionFailure,
   JobFeedIngestionResult,
@@ -80,11 +88,15 @@ export function buildJobFeedSearchPlan(settings: JobFeedSettings, maxQueries: nu
       plan.push({
         query: role,
         targetRole: role,
-        isAdjacentRole: false,
         market: settings.target_market,
         country: country as JobFeedSearchPlanItem['country'],
         language,
         location,
+        queryType: null,
+        expectedRecall: null,
+        fallbackToIndex: null,
+        isFallbackRetry: false,
+        filterTokens: [],
       });
     }
   }
@@ -183,132 +195,317 @@ function inferCountryForCity(city: string): string | null {
   return null;
 }
 
+/**
+ * Build a search plan from an AI-generated SearchStrategy. Selects up to
+ * `maxQueries` entries in the strategy's natural priority order, while
+ * guaranteeing every selected query's `fallbackTo` is also in the plan when
+ * possible (so a zero-result long-tail can be retried without an extra
+ * SerpAPI call beyond the daily budget — fallback retries cost at most
+ * +1 SerpAPI call per run, gated by `JOB_FEED_FALLBACK_BUDGET`).
+ */
+export function buildJobFeedSearchPlanFromStrategy(
+  strategy: SearchStrategy,
+  settings: JobFeedSettings,
+  maxQueries: number = JOB_FEED_MAX_DAILY_QUERIES,
+): JobFeedSearchPlanItem[] {
+  if (maxQueries <= 0 || strategy.queries.length === 0) return [];
+
+  const language = pickQueryLanguage(settings);
+  const locationsByCountry = indexLocationsByCountry(
+    [...(settings.preferred_locations ?? []), ...(settings.target_cities ?? [])],
+    [...new Set(strategy.queries.map((q) => q.targetCountry.toLowerCase()))],
+  );
+
+  // Take the first maxQueries entries in strategy order. The strategy was
+  // generated with priority ordering as a hard rule, so a clean prefix
+  // gives us the model's "best within budget" pick.
+  const selected = strategy.queries.slice(0, maxQueries);
+
+  const plan: JobFeedSearchPlanItem[] = selected.map((entry, index) => {
+    const country = entry.targetCountry.toLowerCase();
+    const cities = locationsByCountry.get(country) ?? [];
+    return {
+      query: entry.query,
+      targetRole: entry.query,
+      market: settings.target_market,
+      country: country as JobFeedSearchPlanItem['country'],
+      language,
+      location: cities.length > 0 ? cities[index % cities.length] : null,
+      queryType: entry.type,
+      expectedRecall: entry.expectedRecall,
+      // Resolved later — fallback indices in the strategy point into the
+      // FULL strategy array; we may have dropped some entries when slicing
+      // by maxQueries. Resolve to an in-plan index where possible.
+      fallbackToIndex: null,
+      isFallbackRetry: false,
+      // Populated by ingestJobFeedRunJobs after a single bulk lookup of
+      // cached `uds` tokens. Empty here keeps this builder pure.
+      filterTokens: [],
+    };
+  });
+
+  // Resolve fallback indices: for each in-plan item, if its strategy entry
+  // had a fallbackTo pointing to a query that is ALSO in the selected
+  // prefix, link them. If the target wasn't selected, leave null — the
+  // caller can still trigger an out-of-plan fallback retry (see the
+  // FALLBACK pass in `ingestJobFeedRunJobs`).
+  const strategyQueryToPlanIdx = new Map<string, number>();
+  selected.forEach((entry, planIdx) => {
+    strategyQueryToPlanIdx.set(strategyKey(entry), planIdx);
+  });
+
+  for (let i = 0; i < plan.length; i += 1) {
+    const strategyEntry = selected[i];
+    if (strategyEntry.fallbackTo === null) continue;
+    const fallbackEntry = strategy.queries[strategyEntry.fallbackTo];
+    if (!fallbackEntry) continue;
+    const inPlanIdx = strategyQueryToPlanIdx.get(strategyKey(fallbackEntry));
+    if (inPlanIdx !== undefined && inPlanIdx !== i) {
+      plan[i].fallbackToIndex = inPlanIdx;
+    }
+  }
+
+  return plan;
+}
+
+function strategyKey(entry: { query: string; targetCountry: string }): string {
+  return `${entry.targetCountry.toLowerCase()}::${entry.query.trim().toLowerCase()}`;
+}
+
+/**
+ * Mutate plan items in-place, attaching the cached "Past week" date_posted
+ * `uds` token where one exists for the country. Skips low-volume markets
+ * (FILTER_CHIP_DISABLED_MARKETS), and skips fallback retries (they are
+ * intentionally unfiltered safety nets).
+ */
+async function applyDatePostedFiltersToPlan(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the new tables here.
+  admin: any,
+  plan: JobFeedSearchPlanItem[],
+): Promise<void> {
+  if (plan.length === 0) return;
+
+  const eligibleCountries = [
+    ...new Set(
+      plan
+        .filter((p) => !p.isFallbackRetry && !FILTER_CHIP_DISABLED_MARKETS.has(toSerpApiGl(p.country)))
+        .map((p) => toSerpApiGl(p.country)),
+    ),
+  ];
+  if (eligibleCountries.length === 0) return;
+
+  const tokenMap = await loadDatePostedPastWeekTokens(admin, eligibleCountries);
+  if (tokenMap.size === 0) return;
+
+  for (const item of plan) {
+    if (item.isFallbackRetry) continue;
+    const country = toSerpApiGl(item.country);
+    if (FILTER_CHIP_DISABLED_MARKETS.has(country)) continue;
+    const token = tokenMap.get(country);
+    if (token) {
+      item.filterTokens = [token];
+    }
+  }
+}
+
+// Maximum out-of-plan fallback SerpAPI calls per run. Keeps the cost bounded
+// when long-tail queries return zero results AND the strategy's fallbackTo
+// pointed to a query that wasn't in the main plan slice.
+const JOB_FEED_FALLBACK_BUDGET = 1;
+
+// Maximum opportunistic page-2 fetches per run. Triggered when a main-pass
+// query returned a thin result set AND SerpAPI handed back a next_page_token.
+// Capped so worst-case cost is +50% over the daily budget, not +100%.
+const JOB_FEED_PAGINATION_BUDGET = 2;
+// Threshold below which a main-pass result counts as "thin" and qualifies for
+// an opportunistic page-2 retry. SerpAPI typically returns ~10 jobs per page,
+// so 5 catches markets where the first page came back genuinely starved.
+const JOB_FEED_THIN_RESULT_THRESHOLD = 5;
+
 export async function ingestJobFeedRunJobs(params: {
   runId: string;
   userId: string;
   settings: JobFeedSettings;
   maxQueries?: number;
   maxRawJobs?: number;
+  /**
+   * AI-generated search strategy. When provided, queries come from the
+   * strategy and zero-result long-tail entries are retried via their
+   * fallbackTo pointers. When null, falls back to the legacy deterministic
+   * `target_roles × target_countries` planner.
+   */
+  strategy?: SearchStrategy | null;
 }): Promise<JobFeedIngestionResult> {
-  const { runId, userId, settings, maxQueries, maxRawJobs = JOB_FEED_MAX_RAW_JOBS_PER_RUN } = params;
+  const { runId, userId, settings, maxQueries, maxRawJobs = JOB_FEED_MAX_RAW_JOBS_PER_RUN, strategy = null } = params;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the new tables here.
   const admin = createAdminClient() as any;
 
-  const searchPlan = buildJobFeedSearchPlan(settings, maxQueries);
+  const searchPlan = strategy
+    ? buildJobFeedSearchPlanFromStrategy(strategy, settings, maxQueries)
+    : buildJobFeedSearchPlan(settings, maxQueries);
+
+  // Apply the cached "Past week" date_posted filter to every plan item in
+  // a market where filtering is safe. First-run users for any country see
+  // an unfiltered call (no token cached yet); the response populates the
+  // cache for subsequent runs. Fallback retries explicitly skip filtering
+  // (set in their planItem construction).
+  await applyDatePostedFiltersToPlan(admin, searchPlan);
+
   const rawFetchIds: string[] = [];
   const observedJobs: ObservedNormalizedJob[] = [];
   const failedFetches: JobFeedIngestionFailure[] = [];
+  // Per-plan-index counter of jobs returned by the main pass. Used to
+  // decide which long-tail items qualify for a fallback retry.
+  const mainPassJobCounts: number[] = new Array(searchPlan.length).fill(0);
   let rawJobsFetched = 0;
 
-  for (const planItem of searchPlan) {
-    const requestParams = serializeSearchParams(buildSerpApiSearchParams({
-      query: planItem.query,
-      country: planItem.country,
-      language: planItem.language ?? undefined,
-      location: planItem.location ?? undefined,
-    }));
+  // ---- Main pass ----
+  // Run all main-plan SerpAPI calls in parallel. Plan size is bounded by
+  // tier limits (Plus: 2; Max: 4), so the natural concurrency is well below
+  // any provider rate limit. Each plan item still gets its own raw_fetch
+  // row inserted; observations are merged in plan order so deterministic
+  // dedupe + preview ordering is preserved.
+  //
+  // Each parallel call gets a proportional share of `maxRawJobs` for its
+  // own slice, matching the sequential version's per-call cap. Over-fetch
+  // is therefore impossible at the response-trim level; canonical-job
+  // dedupe still handles cross-query duplicates.
+  const perCallCap = searchPlan.length > 0
+    ? Math.max(1, Math.ceil(maxRawJobs / searchPlan.length))
+    : maxRawJobs;
+  const mainPassResults = await Promise.allSettled(
+    searchPlan.map((planItem) => runOneSerpApiFetch({
+      admin,
+      runId,
+      userId,
+      planItem,
+      remainingRawCapacity: perCallCap,
+    })),
+  );
 
-    try {
-      const { data } = await fetchSerpApiJobs({
-        query: planItem.query,
-        country: planItem.country,
-        language: planItem.language ?? undefined,
-        location: planItem.location ?? undefined,
+  // Per-plan-index next_page_token handed back by SerpAPI on the main pass.
+  // Used by the pagination pass to fire page-2 calls for thin main-pass
+  // results without consuming another query slot from the strategy.
+  const mainPassNextPageTokens: Array<string | null> = new Array(searchPlan.length).fill(null);
+
+  for (let i = 0; i < mainPassResults.length; i += 1) {
+    const settled = mainPassResults[i];
+    if (settled.status !== 'fulfilled') {
+      // runOneSerpApiFetch traps SerpAPI errors itself, so a rejected
+      // promise here is a genuine internal failure (e.g. raw_fetch insert
+      // bombed). Surface it as a failed fetch and keep going.
+      const message = settled.reason instanceof Error ? settled.reason.message : String(settled.reason);
+      const planItem = searchPlan[i];
+      console.error('[ingestion] runOneSerpApiFetch threw:', message);
+      failedFetches.push({ query: planItem.query, country: planItem.country, error: message });
+      continue;
+    }
+
+    const fetchResult = settled.value;
+    rawFetchIds.push(fetchResult.rawFetchId);
+    if (fetchResult.failedFetch) failedFetches.push(fetchResult.failedFetch);
+    for (const observed of fetchResult.observedJobs) observedJobs.push(observed);
+    rawJobsFetched += fetchResult.observedJobs.length;
+    mainPassJobCounts[i] = fetchResult.observedJobs.length;
+    mainPassNextPageTokens[i] = fetchResult.nextPageToken;
+  }
+
+  // ---- Pagination pass ----
+  // Opportunistic page-2 retry: when a main-pass query returned a thin
+  // result set AND SerpAPI handed back a next_page_token, fire one extra
+  // call to capture the second page. Bounded by JOB_FEED_PAGINATION_BUDGET
+  // and the rawJobs cap, so worst-case cost is +PAGINATION_BUDGET extra
+  // SerpAPI calls per run.
+  if (rawJobsFetched < maxRawJobs) {
+    let paginationBudget = JOB_FEED_PAGINATION_BUDGET;
+
+    for (let i = 0; i < searchPlan.length && paginationBudget > 0; i += 1) {
+      const planItem = searchPlan[i];
+      const nextToken = mainPassNextPageTokens[i];
+      const mainCount = mainPassJobCounts[i];
+
+      if (!nextToken) continue;
+      if (mainCount === 0) continue; // zero-result lanes go through the fallback pass instead
+      if (mainCount >= JOB_FEED_THIN_RESULT_THRESHOLD) continue;
+
+      const pageTwoResult = await runOneSerpApiFetch({
+        admin,
+        runId,
+        userId,
+        planItem,
+        remainingRawCapacity: Math.max(0, maxRawJobs - rawJobsFetched),
+        nextPageToken: nextToken,
+        isPaginationFetch: true,
       });
 
-      const jobsResults = data.jobs_results ?? [];
-      const remainingCapacity = Math.max(0, maxRawJobs - rawJobsFetched);
-      const jobsToStore = jobsResults.slice(0, remainingCapacity);
-      const providerError = data.error ?? null;
-      const noResults = isSerpApiNoResultsError(providerError ?? undefined);
-      const status = providerError
-        ? (noResults ? 'no_results' : 'failed')
-        : 'completed';
+      rawFetchIds.push(pageTwoResult.rawFetchId);
+      if (pageTwoResult.failedFetch) failedFetches.push(pageTwoResult.failedFetch);
+      for (const observed of pageTwoResult.observedJobs) observedJobs.push(observed);
+      rawJobsFetched += pageTwoResult.observedJobs.length;
+      paginationBudget -= 1;
 
-      const rawFetch = await insertRawFetch(admin, {
-        run_id: runId,
-        user_id: userId,
-        provider: JOB_FEED_PROVIDER,
-        status,
-        query_text: planItem.query,
-        market: planItem.market,
-        country_code: planItem.country,
-        language_code: planItem.language,
-        request_location: planItem.location,
-        request_filters: [],
-        page_number: 1,
-        query_context: {
-          target_role: planItem.targetRole,
-          is_adjacent_role: planItem.isAdjacentRole,
-          aggressiveness: settings.aggressiveness,
-        },
-        request_params: requestParams,
-        response_payload: toJsonValue(data),
-        response_error: providerError,
-        fetched_jobs_count: jobsToStore.length,
-        next_page_token: data.serpapi_pagination?.next_page_token ?? null,
+      if (rawJobsFetched >= maxRawJobs) break;
+    }
+  }
+
+  // ---- Fallback pass ----
+  // Only when a SearchStrategy is in play. We only retry long-tail / localized
+  // entries whose main-pass call returned zero observations AND whose
+  // fallbackTo points into the strategy. Each retry consumes one extra
+  // SerpAPI call beyond `maxQueries` (capped by JOB_FEED_FALLBACK_BUDGET).
+  if (strategy && rawJobsFetched < maxRawJobs) {
+    let fallbacksRemaining = JOB_FEED_FALLBACK_BUDGET;
+    const alreadyExecutedKeys = new Set(searchPlan.map((p) => `${p.country}::${p.query.toLowerCase()}`));
+
+    for (let i = 0; i < searchPlan.length && fallbacksRemaining > 0; i += 1) {
+      const planItem = searchPlan[i];
+      if (planItem.queryType === 'short_tail') continue;
+      if (mainPassJobCounts[i] !== 0) continue;
+
+      const sourceStrategyEntry = strategy.queries.find(
+        (q) => strategyKey(q) === `${planItem.country}::${planItem.query.toLowerCase()}`,
+      );
+      const fallbackTo = sourceStrategyEntry?.fallbackTo ?? null;
+      if (fallbackTo === null) continue;
+      const fallbackEntry = strategy.queries[fallbackTo];
+      if (!fallbackEntry) continue;
+
+      const fallbackKey = strategyKey(fallbackEntry);
+      if (alreadyExecutedKeys.has(fallbackKey)) continue;
+
+      const fallbackPlanItem: JobFeedSearchPlanItem = {
+        query: fallbackEntry.query,
+        targetRole: fallbackEntry.query,
+        market: settings.target_market,
+        country: fallbackEntry.targetCountry.toLowerCase() as JobFeedSearchPlanItem['country'],
+        language: planItem.language,
+        location: planItem.location,
+        queryType: fallbackEntry.type,
+        expectedRecall: fallbackEntry.expectedRecall,
+        fallbackToIndex: null,
+        isFallbackRetry: true,
+        // Fallbacks intentionally run unfiltered — they are the safety net
+        // when a filtered long-tail returned zero. Filtering them too
+        // would defeat the fallback's purpose.
+        filterTokens: [],
+      };
+
+      const fetchResult = await runOneSerpApiFetch({
+        admin,
+        runId,
+        userId,
+        planItem: fallbackPlanItem,
+        remainingRawCapacity: Math.max(0, maxRawJobs - rawJobsFetched),
       });
+      rawFetchIds.push(fetchResult.rawFetchId);
+      if (fetchResult.failedFetch) failedFetches.push(fetchResult.failedFetch);
+      for (const observed of fetchResult.observedJobs) observedJobs.push(observed);
+      rawJobsFetched += fetchResult.observedJobs.length;
+      alreadyExecutedKeys.add(fallbackKey);
+      fallbacksRemaining -= 1;
+      searchPlan.push(fallbackPlanItem); // make the fallback visible in diagnostics
 
-      rawFetchIds.push(rawFetch.id);
-
-      if (providerError) {
-        if (!noResults) {
-          failedFetches.push({
-            query: planItem.query,
-            country: planItem.country,
-            error: providerError,
-          });
-        }
-        continue;
-      }
-
-      const observedAt = rawFetch.fetched_at;
-      for (const job of jobsToStore) {
-        observedJobs.push({
-          draft: normalizeSerpApiJob(job),
-          rawFetchId: rawFetch.id,
-          observedAt,
-        });
-      }
-
-      rawJobsFetched += jobsToStore.length;
-      if (rawJobsFetched >= maxRawJobs) {
-        break;
-      }
-    } catch (error) {
-      const errorMessage = getFetchErrorMessage(error);
-      const errorPayload = toErrorPayload(error);
-
-      const rawFetch = await insertRawFetch(admin, {
-        run_id: runId,
-        user_id: userId,
-        provider: JOB_FEED_PROVIDER,
-        status: 'failed',
-        query_text: planItem.query,
-        market: planItem.market,
-        country_code: planItem.country,
-        language_code: planItem.language,
-        request_location: planItem.location,
-        request_filters: [],
-        page_number: 1,
-        query_context: {
-          target_role: planItem.targetRole,
-          is_adjacent_role: planItem.isAdjacentRole,
-          aggressiveness: settings.aggressiveness,
-        },
-        request_params: requestParams,
-        response_payload: errorPayload,
-        response_error: errorMessage,
-        fetched_jobs_count: 0,
-        next_page_token: null,
-      });
-
-      rawFetchIds.push(rawFetch.id);
-      failedFetches.push({
-        query: planItem.query,
-        country: planItem.country,
-        error: errorMessage,
-      });
+      if (rawJobsFetched >= maxRawJobs) break;
     }
   }
 
@@ -327,6 +524,165 @@ export async function ingestJobFeedRunJobs(params: {
     failedFetches,
     previewJobs: sortedCanonicalJobs.slice(0, 5).map(toJobPreview),
   };
+}
+
+interface OneFetchResult {
+  rawFetchId: string;
+  observedJobs: ObservedNormalizedJob[];
+  failedFetch: JobFeedIngestionFailure | null;
+  /** Next-page token returned by SerpAPI; null when no further page exists. */
+  nextPageToken: string | null;
+}
+
+/**
+ * Run one SerpAPI search for the given plan item, persist the raw_fetch row,
+ * and return normalized observations alongside the raw_fetch id. Encapsulates
+ * the success / no-results / error branches so the main + fallback passes
+ * can share identical persistence semantics.
+ */
+async function runOneSerpApiFetch(params: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the new tables here.
+  admin: any;
+  runId: string;
+  userId: string;
+  planItem: JobFeedSearchPlanItem;
+  remainingRawCapacity: number;
+  /** When set, fetch page 2+ of an existing query rather than the first page. */
+  nextPageToken?: string;
+  /** When true, the raw_fetch row stores page_number = 2. */
+  isPaginationFetch?: boolean;
+}): Promise<OneFetchResult> {
+  const { admin, runId, userId, planItem, remainingRawCapacity, nextPageToken, isPaginationFetch = false } = params;
+
+  const filtersForCall = planItem.filterTokens.length > 0 ? planItem.filterTokens : undefined;
+
+  const requestParams = serializeSearchParams(buildSerpApiSearchParams({
+    query: planItem.query,
+    country: planItem.country,
+    language: planItem.language ?? undefined,
+    location: planItem.location ?? undefined,
+    filters: filtersForCall,
+    nextPageToken,
+  }));
+
+  try {
+    const { data } = await fetchSerpApiJobs({
+      query: planItem.query,
+      country: planItem.country,
+      language: planItem.language ?? undefined,
+      location: planItem.location ?? undefined,
+      filters: filtersForCall,
+      nextPageToken,
+    });
+
+    // Discover and persist any newly-seen filter tokens from the response.
+    // Fire-and-forget: a write failure must not bubble up and break the run.
+    if (Array.isArray(data.filters) && data.filters.length > 0) {
+      const discovered = discoverFilterTokensFromResponse({
+        countryCode: toSerpApiGl(planItem.country),
+        filters: data.filters,
+      });
+      if (discovered.length > 0) {
+        void recordSerpApiFilterTokens(admin, discovered).catch((error) => {
+          console.error('[ingestion] filter-token discovery failed:', error instanceof Error ? error.message : String(error));
+        });
+      }
+    }
+
+    const jobsResults = data.jobs_results ?? [];
+    const jobsToStore = jobsResults.slice(0, Math.max(0, remainingRawCapacity));
+    const providerError = data.error ?? null;
+    const noResults = isSerpApiNoResultsError(providerError ?? undefined);
+    const status = providerError
+      ? (noResults ? 'no_results' : 'failed')
+      : 'completed';
+
+    const rawFetch = await insertRawFetch(admin, {
+      run_id: runId,
+      user_id: userId,
+      provider: JOB_FEED_PROVIDER,
+      status,
+      query_text: planItem.query,
+      market: planItem.market,
+      country_code: planItem.country,
+      language_code: planItem.language,
+      request_location: planItem.location,
+      request_filters: planItem.filterTokens,
+      page_number: isPaginationFetch ? 2 : 1,
+      query_context: {
+        target_role: planItem.targetRole,
+        query_type: planItem.queryType,
+        expected_recall: planItem.expectedRecall,
+        is_fallback_retry: planItem.isFallbackRetry,
+        is_pagination_fetch: isPaginationFetch,
+      },
+      request_params: requestParams,
+      response_payload: toJsonValue(data),
+      response_error: providerError,
+      fetched_jobs_count: jobsToStore.length,
+      next_page_token: data.serpapi_pagination?.next_page_token ?? null,
+    });
+
+    const responseNextPageToken = data.serpapi_pagination?.next_page_token ?? null;
+
+    if (providerError && !noResults) {
+      return {
+        rawFetchId: rawFetch.id,
+        observedJobs: [],
+        failedFetch: { query: planItem.query, country: planItem.country, error: providerError },
+        nextPageToken: null,
+      };
+    }
+
+    if (providerError) {
+      // No-results path — not a failure, just an empty bucket.
+      return { rawFetchId: rawFetch.id, observedJobs: [], failedFetch: null, nextPageToken: null };
+    }
+
+    const observedAt = rawFetch.fetched_at;
+    const observedJobs: ObservedNormalizedJob[] = jobsToStore.map((job) => ({
+      draft: normalizeSerpApiJob(job),
+      rawFetchId: rawFetch.id,
+      observedAt,
+    }));
+
+    return { rawFetchId: rawFetch.id, observedJobs, failedFetch: null, nextPageToken: responseNextPageToken };
+  } catch (error) {
+    const errorMessage = getFetchErrorMessage(error);
+    const errorPayload = toErrorPayload(error);
+
+    const rawFetch = await insertRawFetch(admin, {
+      run_id: runId,
+      user_id: userId,
+      provider: JOB_FEED_PROVIDER,
+      status: 'failed',
+      query_text: planItem.query,
+      market: planItem.market,
+      country_code: planItem.country,
+      language_code: planItem.language,
+      request_location: planItem.location,
+      request_filters: planItem.filterTokens,
+      page_number: 1,
+      query_context: {
+        target_role: planItem.targetRole,
+        query_type: planItem.queryType,
+        expected_recall: planItem.expectedRecall,
+        is_fallback_retry: planItem.isFallbackRetry,
+      },
+      request_params: requestParams,
+      response_payload: errorPayload,
+      response_error: errorMessage,
+      fetched_jobs_count: 0,
+      next_page_token: null,
+    });
+
+    return {
+      rawFetchId: rawFetch.id,
+      observedJobs: [],
+      failedFetch: { query: planItem.query, country: planItem.country, error: errorMessage },
+      nextPageToken: null,
+    };
+  }
 }
 
 async function insertRawFetch(

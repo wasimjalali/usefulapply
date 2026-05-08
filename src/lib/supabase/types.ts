@@ -101,8 +101,6 @@ export interface Database {
           target_countries: string[]
           target_cities: string[]
           target_roles: string[]
-          adjacent_roles_enabled: boolean
-          adjacent_roles: string[]
           preferred_locations: string[]
           remote_preference: 'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible'
           remote_preferences: Array<'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible'>
@@ -112,7 +110,6 @@ export interface Database {
           seniority_targets: Array<'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager'>
           employment_types: Array<'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'>
           work_authorization_status: 'authorized' | 'needs_sponsorship' | 'open_to_both' | null
-          aggressiveness: 'strict' | 'balanced' | 'broad'
           user_skills: string[]
           created_at: string
           updated_at: string
@@ -127,8 +124,6 @@ export interface Database {
           target_countries?: string[]
           target_cities?: string[]
           target_roles?: string[]
-          adjacent_roles_enabled?: boolean
-          adjacent_roles?: string[]
           preferred_locations?: string[]
           remote_preference?: 'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible'
           remote_preferences?: Array<'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible'>
@@ -138,7 +133,6 @@ export interface Database {
           seniority_targets?: Array<'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager'>
           employment_types?: Array<'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'>
           work_authorization_status?: 'authorized' | 'needs_sponsorship' | 'open_to_both' | null
-          aggressiveness?: 'strict' | 'balanced' | 'broad'
           user_skills?: string[]
           created_at?: string
           updated_at?: string
@@ -153,8 +147,6 @@ export interface Database {
           target_countries?: string[]
           target_cities?: string[]
           target_roles?: string[]
-          adjacent_roles_enabled?: boolean
-          adjacent_roles?: string[]
           preferred_locations?: string[]
           remote_preference?: 'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible'
           remote_preferences?: Array<'remote_only' | 'remote_first' | 'hybrid' | 'onsite' | 'flexible'>
@@ -164,7 +156,6 @@ export interface Database {
           seniority_targets?: Array<'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager'>
           employment_types?: Array<'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'>
           work_authorization_status?: 'authorized' | 'needs_sponsorship' | 'open_to_both' | null
-          aggressiveness?: 'strict' | 'balanced' | 'broad'
           user_skills?: string[]
           created_at?: string
           updated_at?: string
@@ -1251,6 +1242,102 @@ export interface Database {
           user_skills?: string[]
           target_market?: 'us' | 'canada' | 'us_canada' | null
           seniority_target?: 'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager' | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      user_career_profiles: {
+        Row: {
+          user_id: string
+          profile: Json
+          version: number
+          source_document_id: string | null
+          source_document_updated_at: string | null
+          model_provider: string | null
+          model_name: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          profile?: Json
+          version?: number
+          source_document_id?: string | null
+          source_document_updated_at?: string | null
+          model_provider?: string | null
+          model_name?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          profile?: Json
+          version?: number
+          source_document_id?: string | null
+          source_document_updated_at?: string | null
+          model_provider?: string | null
+          model_name?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      serpapi_filter_tokens: {
+        Row: {
+          country_code: string
+          filter_name: string
+          option_label: string
+          uds_token: string
+          last_seen_at: string
+          created_at: string
+        }
+        Insert: {
+          country_code: string
+          filter_name: string
+          option_label: string
+          uds_token: string
+          last_seen_at?: string
+          created_at?: string
+        }
+        Update: {
+          country_code?: string
+          filter_name?: string
+          option_label?: string
+          uds_token?: string
+          last_seen_at?: string
+          created_at?: string
+        }
+      }
+      user_search_strategies: {
+        Row: {
+          user_id: string
+          settings_hash: string
+          strategy: Json
+          version: number
+          source_profile_generated_at: string | null
+          model_provider: string | null
+          model_name: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          settings_hash: string
+          strategy?: Json
+          version?: number
+          source_profile_generated_at?: string | null
+          model_provider?: string | null
+          model_name?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          settings_hash?: string
+          strategy?: Json
+          version?: number
+          source_profile_generated_at?: string | null
+          model_provider?: string | null
+          model_name?: string | null
           created_at?: string
           updated_at?: string
         }

@@ -1,0 +1,251 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { createClient } from '@/lib/supabase/server';
+import { canAccessJobFeed } from '@/lib/job-feed/helpers';
+import {
+  CAREER_PROFILE_SCHEMA_VERSION,
+  isCurrentCareerProfile,
+  type CareerProfile,
+} from '@/lib/job-feed/career-profile';
+import { generateCareerProfile } from '@/lib/job-feed/career-profile-synthesis';
+import type { StructuredCV } from '@/lib/types/cv-schema';
+
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
+interface CareerProfileResponseBody {
+  profile: CareerProfile | null;
+  /** True when the cached profile is older than the latest primary_cv. */
+  cvNewerThanProfile: boolean;
+  /** "ok" when a profile is returned (cached or freshly generated). */
+  status: 'ok' | 'no_cv' | 'no_profile';
+  generatedAt: string | null;
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const ip = getClientIP(request);
+    const { allowed } = checkRateLimit(`career-profile:${ip}`, RATE_LIMITS['job-feed-settings']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
+    const auth = await authenticatePaidUser();
+    if (!auth.ok) return auth.response;
+    const { userId, supabase } = auth;
+
+    const { profileRow, primaryDoc } = await loadProfileAndPrimaryCV(supabase, userId);
+
+    if (!profileRow?.profile || !isCurrentCareerProfile(profileRow.profile)) {
+      const body: CareerProfileResponseBody = {
+        profile: null,
+        cvNewerThanProfile: false,
+        status: primaryDoc ? 'no_profile' : 'no_cv',
+        generatedAt: null,
+      };
+      return NextResponse.json(body);
+    }
+
+    const cvNewerThanProfile = isCVNewerThanProfile({
+      profileSourceUpdatedAt: profileRow.source_document_updated_at,
+      primaryDocUpdatedAt: primaryDoc?.updated_at ?? null,
+    });
+
+    const body: CareerProfileResponseBody = {
+      profile: profileRow.profile,
+      cvNewerThanProfile,
+      status: 'ok',
+      generatedAt: profileRow.profile.generatedAt,
+    };
+    return NextResponse.json(body);
+  } catch (error) {
+    console.error('[job-feed/career-profile] GET unexpected error:', error);
+    return NextResponse.json({ error: 'Failed to load career profile.' }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const ip = getClientIP(request);
+    const { allowed } = checkRateLimit(`career-profile-generate:${ip}`, { limit: 4, windowMs: 60_000 });
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
+    const auth = await authenticatePaidUser();
+    if (!auth.ok) return auth.response;
+    const { userId, supabase } = auth;
+
+    let force = false;
+    try {
+      const body = await request.json();
+      force = Boolean(body?.force);
+    } catch {
+      // No body / malformed body — treat as non-forced regeneration.
+    }
+
+    const { profileRow, primaryDoc } = await loadProfileAndPrimaryCV(supabase, userId);
+
+    if (!primaryDoc?.structured_data) {
+      const body: CareerProfileResponseBody = {
+        profile: null,
+        cvNewerThanProfile: false,
+        status: 'no_cv',
+        generatedAt: null,
+      };
+      return NextResponse.json(body, { status: 200 });
+    }
+
+    if (
+      !force
+      && profileRow?.profile
+      && isCurrentCareerProfile(profileRow.profile)
+      && profileRow.version === CAREER_PROFILE_SCHEMA_VERSION
+      && !isCVNewerThanProfile({
+        profileSourceUpdatedAt: profileRow.source_document_updated_at,
+        primaryDocUpdatedAt: primaryDoc.updated_at,
+      })
+    ) {
+      // Cache hit, no force, no CV change — return existing profile unchanged.
+      const body: CareerProfileResponseBody = {
+        profile: profileRow.profile,
+        cvNewerThanProfile: false,
+        status: 'ok',
+        generatedAt: profileRow.profile.generatedAt,
+      };
+      return NextResponse.json(body);
+    }
+
+    const cv = primaryDoc.structured_data as StructuredCV;
+    const result = await generateCareerProfile(cv);
+
+    await supabase
+      .from('user_career_profiles')
+      .upsert({
+        user_id: userId,
+        profile: result.profile,
+        version: CAREER_PROFILE_SCHEMA_VERSION,
+        source_document_id: primaryDoc.id ?? null,
+        source_document_updated_at: primaryDoc.updated_at ?? null,
+        model_provider: result.modelProvider,
+        model_name: result.modelName,
+      }, { onConflict: 'user_id' });
+
+    console.log(
+      `[career-profile] Generated for user ${userId}: ${result.modelName} | ${result.inputTokens}in/${result.outputTokens}out | ${result.latencyMs}ms`,
+    );
+
+    const body: CareerProfileResponseBody = {
+      profile: result.profile,
+      cvNewerThanProfile: false,
+      status: 'ok',
+      generatedAt: result.profile.generatedAt,
+    };
+    return NextResponse.json(body);
+  } catch (error) {
+    console.error('[job-feed/career-profile] POST unexpected error:', error);
+    return NextResponse.json({ error: 'Failed to generate career profile.' }, { status: 500 });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added user_career_profiles table here.
+type TypedSupabase = any;
+type AuthSuccess = { ok: true; userId: string; supabase: TypedSupabase };
+type AuthFailure = { ok: false; response: NextResponse };
+
+async function authenticatePaidUser(): Promise<AuthSuccess | AuthFailure> {
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added user_career_profiles table here.
+  const typedSupabase = supabase as any;
+  const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+  if (authError || !user) {
+    return { ok: false, response: NextResponse.json({ error: 'Authentication required.' }, { status: 401 }) };
+  }
+
+  const { data: profile } = await typedSupabase
+    .from('profiles')
+    .select('subscription_tier')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || !canAccessJobFeed(profile.subscription_tier)) {
+    return { ok: false, response: NextResponse.json({ error: 'Career profile is available on paid plans only.' }, { status: 403 }) };
+  }
+
+  return { ok: true, userId: user.id as string, supabase: typedSupabase };
+}
+
+interface ProfileRow {
+  profile: CareerProfile | null;
+  version: number;
+  source_document_id: string | null;
+  source_document_updated_at: string | null;
+}
+
+interface PrimaryDocRow {
+  id: string;
+  structured_data: StructuredCV | null;
+  updated_at: string;
+}
+
+async function loadProfileAndPrimaryCV(
+  supabase: TypedSupabase,
+  userId: string,
+): Promise<{ profileRow: ProfileRow | null; primaryDoc: PrimaryDocRow | null }> {
+  const [profileResult, primaryDocResult] = await Promise.all([
+    supabase
+      .from('user_career_profiles')
+      .select('profile, version, source_document_id, source_document_updated_at')
+      .eq('user_id', userId)
+      .maybeSingle(),
+    supabase
+      .from('documents')
+      .select('id, structured_data, updated_at')
+      .eq('user_id', userId)
+      .eq('type', 'primary_cv')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  if (profileResult.error) {
+    console.error('[job-feed/career-profile] profile fetch error:', profileResult.error.message);
+  }
+  if (primaryDocResult.error) {
+    console.error('[job-feed/career-profile] primary CV fetch error:', primaryDocResult.error.message);
+  }
+
+  const profileRow = profileResult.data
+    ? {
+        profile: (profileResult.data.profile as CareerProfile | null) ?? null,
+        version: (profileResult.data.version as number | null) ?? 0,
+        source_document_id: (profileResult.data.source_document_id as string | null) ?? null,
+        source_document_updated_at: (profileResult.data.source_document_updated_at as string | null) ?? null,
+      }
+    : null;
+
+  const primaryDoc = primaryDocResult.data
+    ? {
+        id: primaryDocResult.data.id as string,
+        structured_data: (primaryDocResult.data.structured_data as StructuredCV | null) ?? null,
+        updated_at: primaryDocResult.data.updated_at as string,
+      }
+    : null;
+
+  return { profileRow, primaryDoc };
+}
+
+function isCVNewerThanProfile(params: {
+  profileSourceUpdatedAt: string | null;
+  primaryDocUpdatedAt: string | null;
+}): boolean {
+  if (!params.profileSourceUpdatedAt || !params.primaryDocUpdatedAt) return false;
+  const profileTime = Date.parse(params.profileSourceUpdatedAt);
+  const cvTime = Date.parse(params.primaryDocUpdatedAt);
+  if (Number.isNaN(profileTime) || Number.isNaN(cvTime)) return false;
+  return cvTime > profileTime;
+}
