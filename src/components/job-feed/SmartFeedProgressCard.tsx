@@ -65,7 +65,7 @@ export function SmartFeedProgressCard({ startedAt }: { startedAt: string | null 
     : `${Math.floor(displaySeconds / 60)}m ${displaySeconds % 60}s elapsed`;
 
   return (
-    <Card className="flex min-h-[320px] flex-col rounded-[24px] border-cream-200 bg-white px-6 py-8 shadow-sm">
+    <Card className="flex min-h-[320px] flex-col rounded-2xl border-cream-200 bg-white px-6 py-8 shadow-sm">
       <div className="flex items-start gap-4">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gold-50 text-gold-700">
           <Loader2 className="h-6 w-6 animate-spin" />

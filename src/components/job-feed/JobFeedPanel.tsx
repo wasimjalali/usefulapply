@@ -10,15 +10,11 @@ import {
   Bookmark,
   Building2,
   CalendarClock,
-  ChevronDown,
-  ChevronUp,
-  FileText,
   Loader2,
   PauseCircle,
   RefreshCw,
   Settings2,
   Sparkles,
-  X,
 } from 'lucide-react';
 import { KarkoIcon } from '@/components/KarkoLogo';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,22 +23,10 @@ import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
 import {
   JOB_FEED_COUNTRY_OPTIONS,
-  JOB_FEED_EMPLOYMENT_TYPE_OPTIONS,
-  JOB_FEED_REMOTE_PREFERENCE_OPTIONS,
-  JOB_FEED_SENIORITY_OPTIONS,
-  JOB_FEED_SUGGESTED_LANGUAGES,
-  JOB_FEED_SUGGESTED_LOCATIONS,
-  JOB_FEED_SUGGESTED_ROLES,
-  JOB_FEED_TIMEZONE_GROUPS,
-  JOB_FEED_TIMEZONE_LOOKUP,
-  JOB_FEED_WORK_AUTH_OPTIONS,
   JOB_FEED_INBOX_PAGE_SIZE,
   getJobFeedInputCaps,
-  getJobFeedTimeZoneLabel,
-  legacyMarketFromCountries,
-  type JobFeedInputCaps,
 } from '@/lib/job-feed/constants';
-import { createDefaultJobFeedInput, getJobFeedOverviewState, isValidTimeZone, toJobFeedInput } from '@/lib/job-feed/helpers';
+import { createDefaultJobFeedInput, getJobFeedOverviewState, toJobFeedInput } from '@/lib/job-feed/helpers';
 import type {
   JobFeedApplyResponse,
   JobFeedFeedbackResponse,
@@ -51,7 +35,6 @@ import type {
   JobFeedOverviewState,
   JobFeedRunDiagnostics,
   JobFeedSettingsInput,
-  JobFeedSettingsSuggestion,
 } from '@/lib/job-feed/types';
 import { notifyJobFeedBadgeRefresh } from '@/hooks/useJobFeedBadge';
 import { useCVStore } from '@/store/useCVStore';
@@ -64,15 +47,6 @@ import {
   toPreviewJobFeedSettings,
 } from './preview-utils';
 import {
-  ChipField,
-  GroupedSelectField,
-  MultiSelectDropdown,
-  SelectField,
-  InputField,
-  RoleEntryField,
-  FieldGroup,
-} from './form-controls';
-import {
   FeedResultsCard,
   JobFeedDetailModal,
   RunStatPill,
@@ -80,6 +54,8 @@ import {
 import { SmartFeedProgressCard } from './SmartFeedProgressCard';
 import { AISearchProfileCard } from './AISearchProfileCard';
 import { SearchStrategyPreviewCard } from './SearchStrategyPreviewCard';
+import { JobFeedPreferencesCard } from './JobFeedPreferencesCard';
+import { JobFeedSetupBuildingCard } from './JobFeedSetupBuildingCard';
 
 type SaveState = 'idle' | 'saving';
 type PendingJobAction = {
@@ -93,13 +69,6 @@ type ManualRunNotice = {
   stats?: Array<{ label: string; value: string }>;
 } | null;
 
-function normalizeTimeZoneValue(value: string): string {
-  if (JOB_FEED_TIMEZONE_LOOKUP.has(value)) {
-    return value;
-  }
-  // Fall back to the first curated zone so the <select> always has a valid selection.
-  return JOB_FEED_TIMEZONE_GROUPS[0]?.zones[0]?.value ?? 'UTC';
-}
 export function JobFeedPanel() {
   const router = useRouter();
   const { user, profile } = useAuth();
@@ -113,6 +82,10 @@ export function JobFeedPanel() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSetupWizardOpen, setIsSetupWizardOpen] = useState(false);
+  // First-time-save flag. While true, the setup view renders the
+  // building-progress card while Karko synthesizes the profile and search
+  // strategy in the background. Resets when both AI calls complete or fail.
+  const [isBuildingFirstFeed, setIsBuildingFirstFeed] = useState(false);
   const [draftForm, setDraftForm] = useState<JobFeedSettingsInput | null>(null);
   const [isRunningManualFeed, setIsRunningManualFeed] = useState(false);
   const [isRunningDebugFlow, setIsRunningDebugFlow] = useState(false);
@@ -827,7 +800,32 @@ export function JobFeedPanel() {
 
       setForm(nextForm);
       setDraftForm(null);
-      toast.success(nextForm.enabled && consentReady ? 'Daily feed is ready.' : 'Job Feed settings saved.');
+
+      // First-time setup: run profile synthesis and search-strategy
+      // generation in the background while the building card animates.
+      // We wait for completion so the user lands on a populated dashboard,
+      // not on empty cards. Returning users skip this — they already have
+      // a profile and the strategy will regenerate lazily on the next run.
+      const wasFirstTimeSetup = !overview?.settings;
+      if (wasFirstTimeSetup) {
+        setIsBuildingFirstFeed(true);
+        try {
+          await fetch('/api/job-feed/career-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ force: true }),
+          });
+          await fetch('/api/job-feed/search-strategy', { method: 'POST' });
+        } catch (error) {
+          console.error('[job-feed] first-time AI synthesis failed:', error);
+          // Fall through anyway — the user can retry or the next feed run
+          // will lazily regenerate. Don't block the success toast.
+        } finally {
+          setIsBuildingFirstFeed(false);
+        }
+      }
+
+      toast.success(nextForm.enabled && consentReady ? 'Your AI feed is ready.' : 'Preferences saved.');
       setIsEditing(false);
       setIsSetupWizardOpen(false);
       await loadOverview({ quiet: true });
@@ -1035,21 +1033,43 @@ export function JobFeedPanel() {
 
             {setupOpen && (
               <div ref={setupWizardRef} className="space-y-4">
-                <AISearchProfileCard />
-                <JobFeedOnboardingWizard
-                  form={wizardForm}
-                  overview={overview}
-                  saveState={saveState}
-                  inputCaps={inputCaps}
-                  onFormChange={updateDraftForm}
-                  onSave={handleSave}
-                  onClose={() => {
-                    setDraftForm(null);
-                    setIsEditing(false);
-                    setIsSetupWizardOpen(false);
-                  }}
-                />
-                <SearchStrategyPreviewCard />
+                {isBuildingFirstFeed ? (
+                  <JobFeedSetupBuildingCard />
+                ) : !overview?.settings ? (
+                  <JobFeedPreferencesCard
+                    variant="onboarding"
+                    form={wizardForm}
+                    saveState={saveState}
+                    hasRecordedConsent={Boolean(overview?.settings?.consent_accepted_at)}
+                    maxCountries={inputCaps.maxCountries}
+                    onFormChange={updateDraftForm}
+                    onSave={handleSave}
+                    onClose={() => {
+                      setDraftForm(null);
+                      setIsEditing(false);
+                      setIsSetupWizardOpen(false);
+                    }}
+                  />
+                ) : (
+                  <>
+                    <AISearchProfileCard />
+                    <JobFeedPreferencesCard
+                      variant="editing"
+                      form={wizardForm}
+                      saveState={saveState}
+                      hasRecordedConsent={Boolean(overview?.settings?.consent_accepted_at)}
+                      maxCountries={inputCaps.maxCountries}
+                      onFormChange={updateDraftForm}
+                      onSave={handleSave}
+                      onClose={() => {
+                        setDraftForm(null);
+                        setIsEditing(false);
+                        setIsSetupWizardOpen(false);
+                      }}
+                    />
+                    <SearchStrategyPreviewCard />
+                  </>
+                )}
               </div>
             )}
 
@@ -1093,7 +1113,7 @@ export function JobFeedPanel() {
             )}
 
             {showDebugActions && (
-              <Card className="rounded-[24px] border-dashed border-navy-200 bg-navy-50/60 p-6 shadow-sm">
+              <Card className="rounded-2xl border-dashed border-navy-200 bg-navy-50/60 p-6 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-navy-600">Diagnostics</p>
                 <h2 className="mt-2 text-lg font-semibold text-charcoal">Run feed diagnostics for this account</h2>
                 <p className="mt-2 text-sm leading-6 text-warm-gray">
@@ -1279,7 +1299,7 @@ function SavedJobsView({
 }) {
   if (isLoading && jobs === null) {
     return (
-      <Card className="rounded-[24px] border-cream-200 bg-white p-6 shadow-sm">
+      <Card className="rounded-2xl border-cream-200 bg-white p-6 shadow-sm">
         <div className="flex items-center gap-3 text-navy-600">
           <Loader2 className="h-5 w-5 animate-spin" />
           <span className="text-sm font-medium">Loading your saved jobs…</span>
@@ -1290,7 +1310,7 @@ function SavedJobsView({
 
   if (!jobs || jobs.length === 0) {
     return (
-      <Card className="rounded-[24px] border-cream-200 bg-cream-50 p-8 text-center shadow-sm">
+      <Card className="rounded-2xl border-cream-200 bg-cream-50 p-8 text-center shadow-sm">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm">
           <Bookmark className="h-5 w-5 text-warm-gray" />
         </div>
@@ -1614,7 +1634,7 @@ function InlineStateMessage({
 
   if (showManualRunAction && (state === 'awaiting_first_run' || state === 'empty')) {
     return (
-      <Card className="flex min-h-[320px] flex-col items-center justify-center rounded-[24px] border-cream-200 bg-white px-6 py-10 text-center shadow-sm">
+      <Card className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border-cream-200 bg-white px-6 py-10 text-center shadow-sm">
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gold-50 text-gold-700">
           <Sparkles className="h-7 w-7" />
         </div>
@@ -1676,7 +1696,7 @@ function ManualRunNoticeDialog({
 }) {
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-navy-900/30 px-4">
-      <div className="w-full max-w-md rounded-[24px] border border-cream-200 bg-white p-6 text-center shadow-2xl">
+      <div className="w-full max-w-md rounded-[24px] border border-cream-200 bg-white p-6 text-center shadow-lg">
         <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-2xl ${
           notice.kind === 'success' ? 'bg-sage-50 text-sage-700' : 'bg-gold-50 text-gold-700'
         }`}>
@@ -1706,568 +1726,10 @@ function ManualRunNoticeDialog({
   );
 }
 
-function JobFeedOnboardingWizard({
-  form,
-  overview,
-  saveState,
-  inputCaps,
-  onFormChange,
-  onSave,
-  onClose,
-}: {
-  form: JobFeedSettingsInput;
-  overview: JobFeedOverviewResponse | null;
-  saveState: SaveState;
-  inputCaps: JobFeedInputCaps;
-  onFormChange: React.Dispatch<React.SetStateAction<JobFeedSettingsInput>>;
-  onSave: (form: JobFeedSettingsInput) => void;
-  onClose: () => void;
-}) {
-  // Recommended "fine-tune" block is expanded by default for non-technical users.
-  const [isAdvancedOpen, setIsAdvancedOpen] = useState(true);
-  const [isLoadingCVSuggestions, setIsLoadingCVSuggestions] = useState(false);
-  const [cvSuggestionApplied, setCVSuggestionApplied] = useState(false);
-  const browserTimeZone = getBrowserTimeZone();
-  const hasRecordedConsent = Boolean(overview?.settings?.consent_accepted_at);
-  const canSave = canSaveJobFeedSettings(form, hasRecordedConsent);
-  const consentReady = form.consent_accepted || hasRecordedConsent;
-  const isEditing = Boolean(overview?.settings);
-
-  const applyCVSuggestion = useCallback((
-    suggestion: JobFeedSettingsSuggestion,
-    options: { onlyIfEmpty?: boolean } = {},
-  ) => {
-    onFormChange((prev) => {
-      const shouldFill = (current: string[]) => !options.onlyIfEmpty || current.length === 0;
-      const next: JobFeedSettingsInput = { ...prev };
-
-      if (suggestion.target_roles.length > 0 && shouldFill(prev.target_roles)) {
-        next.target_roles = suggestion.target_roles;
-      }
-      if (suggestion.preferred_locations.length > 0 && shouldFill(prev.preferred_locations)) {
-        next.preferred_locations = suggestion.preferred_locations;
-      }
-      if (suggestion.target_countries && suggestion.target_countries.length > 0 && shouldFill(prev.target_countries)) {
-        next.target_countries = suggestion.target_countries;
-        next.target_market = legacyMarketFromCountries(suggestion.target_countries);
-      }
-      if (suggestion.user_skills.length > 0 && shouldFill(prev.user_skills)) {
-        next.user_skills = suggestion.user_skills;
-      }
-      if (suggestion.languages.length > 0 && shouldFill(prev.languages.filter((l) => l !== 'English'))) {
-        next.languages = suggestion.languages;
-      }
-      if (suggestion.seniority_target) {
-        const current = prev.seniority_targets ?? [];
-        if (!options.onlyIfEmpty || current.length === 0) {
-          next.seniority_targets = [suggestion.seniority_target] as JobFeedSettingsInput['seniority_targets'];
-          next.seniority_target = suggestion.seniority_target;
-        }
-      }
-      return next;
-    });
-  }, [onFormChange]);
-
-  // When true, the user's CV on file has been updated more recently than
-  // the cached suggestion. Surfaced as a banner so users can refresh their
-  // feed settings without hunting for the button.
-  const [cvNewerThanCache, setCvNewerThanCache] = useState(false);
-
-  const handleTakeFromCV = useCallback(async (options: { force?: boolean } = {}) => {
-    setIsLoadingCVSuggestions(true);
-    try {
-      const url = options.force
-        ? '/api/job-feed/settings/suggest?force=true'
-        : '/api/job-feed/settings/suggest';
-      const response = await fetch(url);
-      const data = await response.json();
-      if (!response.ok || !data.suggestion) return;
-
-      applyCVSuggestion(data.suggestion as JobFeedSettingsSuggestion);
-      setCVSuggestionApplied(true);
-      setCvNewerThanCache(false);
-
-      // Fire-and-forget: regenerate the AI career profile in the background.
-      // The wizard never blocks on this; the profile is consumed by the
-      // ranker on the next feed run. If the user hasn't generated one yet,
-      // POST without force; if they explicitly clicked "Refresh from my CV",
-      // pass force so a stale profile is rebuilt against the latest CV.
-      void fetch('/api/job-feed/career-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ force: Boolean(options.force) }),
-      }).catch(() => {
-        // Ignore — profile generation is best-effort, not user-facing.
-      });
-    } catch {
-      // silently ignore — user can still fill manually
-    } finally {
-      setIsLoadingCVSuggestions(false);
-    }
-  }, [applyCVSuggestion]);
-
-  // Auto-prefill from CV on first open (for new users without settings saved yet).
-  // Only fills fields that are currently empty, so we never overwrite choices.
-  const autoPrefillAttemptedRef = useRef(false);
-  useEffect(() => {
-    if (autoPrefillAttemptedRef.current) return;
-
-    autoPrefillAttemptedRef.current = true;
-
-    (async () => {
-      // Even when the user already has saved settings (isEditing), we
-      // still want to hit the endpoint once to detect whether their CV has
-      // changed since the last time we cached suggestions. The `onlyIfEmpty`
-      // guard below keeps us from overwriting saved values.
-      const shouldAutoApply = !isEditing && form.target_roles.length === 0;
-      if (!shouldAutoApply) {
-        try {
-          const response = await fetch('/api/job-feed/settings/suggest');
-          if (!response.ok) return;
-          const data = await response.json();
-          if (data.cvNewerThanCache) setCvNewerThanCache(true);
-        } catch {
-          // ignore
-        }
-        return;
-      }
-
-      setIsLoadingCVSuggestions(true);
-      try {
-        const response = await fetch('/api/job-feed/settings/suggest');
-        if (!response.ok) return;
-        const data = await response.json();
-        if (!data.suggestion) return;
-
-        applyCVSuggestion(data.suggestion as JobFeedSettingsSuggestion, { onlyIfEmpty: true });
-        setCVSuggestionApplied(true);
-        if (data.cvNewerThanCache) setCvNewerThanCache(true);
-
-        // First-open auto-generation of the AI career profile, in the
-        // background. The wizard never waits on this; downstream feed runs
-        // pick it up the next time they execute. The endpoint is a no-op
-        // for users who already have a fresh profile against the same CV.
-        void fetch('/api/job-feed/career-profile', { method: 'POST' }).catch(() => {
-          // Best-effort — silent failure is fine.
-        });
-      } catch {
-        // ignore — form stays editable
-      } finally {
-        setIsLoadingCVSuggestions(false);
-      }
-    })();
-  }, [applyCVSuggestion, form.target_roles.length, isEditing]);
-
-  const chunk1Done = form.target_roles.length > 0;
-  const showChunk2 = chunk1Done || isEditing;
-  const showChunk3 = showChunk2 || isEditing;
-  const showSaveAction = (showChunk3 && isValidTimeZone(form.user_timezone)) || isEditing;
-
-  // If the saved timezone isn't in our curated list, auto-select the closest
-  // curated equivalent so what the dropdown shows matches what we will save.
-  useEffect(() => {
-    if (!JOB_FEED_TIMEZONE_LOOKUP.has(form.user_timezone)) {
-      const fallback = normalizeTimeZoneValue(form.user_timezone);
-      onFormChange((prev) => ({ ...prev, user_timezone: fallback }));
-    }
-  }, [form.user_timezone, onFormChange]);
-
-  // If the saved timezone isn't in our curated list, auto-select the closest
-  // curated equivalent so what the dropdown shows matches what we will save.
-  useEffect(() => {
-    if (!JOB_FEED_TIMEZONE_LOOKUP.has(form.user_timezone)) {
-      const fallback = normalizeTimeZoneValue(form.user_timezone);
-      onFormChange((prev) => ({ ...prev, user_timezone: fallback }));
-    }
-  }, [form.user_timezone, onFormChange]);
-
-  const currentStep = !chunk1Done
-    ? 1
-    : form.remote_preferences.length === 0
-      ? 2
-      : !isValidTimeZone(form.user_timezone)
-        ? 3
-        : 4;
-
-  return (
-    <Card className="overflow-hidden rounded-[24px] border-cream-200 bg-cream-50 p-0 shadow-md">
-      <div className="border-b border-cream-200 px-6 py-5 sm:px-8">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <h2 className="text-xl font-semibold tracking-tight text-charcoal">
-              {isEditing ? 'Edit your feed settings' : 'Set up your daily feed'}
-            </h2>
-            <p className="mt-1 text-sm text-warm-gray">
-              {isEditing ? 'Changes save when you press save below.' : 'Fill in the basics and your first feed will be ready by tomorrow.'}
-            </p>
-            {!isEditing && (
-              <div className="mt-4 flex items-center gap-1.5" aria-label={`Step ${currentStep} of 4`}>
-                {[1, 2, 3, 4].map((step) => (
-                  <span
-                    key={step}
-                    className={`h-1.5 rounded-full transition-all duration-200 ${
-                      step <= currentStep
-                        ? 'w-8 bg-navy-600'
-                        : 'w-4 bg-cream-300'
-                    }`}
-                  />
-                ))}
-                <span className="ml-2 text-xs font-medium text-warm-gray">Step {currentStep} of 4</span>
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {!isEditing && !cvSuggestionApplied && (
-              <button
-                type="button"
-                onClick={() => void handleTakeFromCV()}
-                disabled={isLoadingCVSuggestions}
-                className="flex items-center gap-1.5 rounded-full border border-navy-200 bg-navy-50 px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:bg-navy-100 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-              >
-                {isLoadingCVSuggestions ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-                Take from my CV
-              </button>
-            )}
-            {cvSuggestionApplied && (
-              <span className="text-xs text-green-600">CV data applied</span>
-            )}
-            <button type="button" onClick={onClose} className="rounded-full p-2 text-warm-gray hover:bg-cream-100 hover:text-charcoal cursor-pointer">
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {cvNewerThanCache && (
-        <div className="border-b border-gold-200 bg-gold-50/80 px-6 py-3 sm:px-8">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-charcoal">
-              <span className="font-semibold">Your CV was updated.</span>
-              <span className="ml-1 text-warm-gray">Refresh your feed settings to reflect the latest roles and skills?</span>
-            </p>
-            <button
-              type="button"
-              onClick={() => void handleTakeFromCV({ force: true })}
-              disabled={isLoadingCVSuggestions}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-gold-300 bg-white px-3 py-1.5 text-xs font-semibold text-charcoal transition-colors hover:border-gold-400 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-            >
-              {isLoadingCVSuggestions ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-              Refresh from my CV
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-0 divide-y divide-cream-200">
-        {/* Step 1: Roles + Countries */}
-        <div className="px-6 py-6 sm:px-8">
-          <p className="text-sm font-semibold text-charcoal">What jobs are you looking for?</p>
-          <div className="mt-4 space-y-4">
-            <FieldGroup
-              label="Roles"
-              help={`Type your own or pick from the list. We'll run one search per (role × country) each day, up to ${inputCaps.maxRoles} ${inputCaps.maxRoles === 1 ? 'search' : 'searches'} on your plan.`}
-            >
-              <RoleEntryField
-                values={form.target_roles}
-                suggestions={JOB_FEED_SUGGESTED_ROLES}
-                placeholder="Type a role and press Enter"
-                onChange={(target_roles) => onFormChange((prev) => ({ ...prev, target_roles }))}
-              />
-              {form.target_roles.length > inputCaps.maxRoles && (
-                <p className="mt-2 text-xs text-amber-700">
-                  Your plan searches up to {inputCaps.maxRoles} {inputCaps.maxRoles === 1 ? 'role' : 'roles'} per day. The first {inputCaps.maxRoles} in this list will be used each run — extras are kept for future runs.
-                </p>
-              )}
-            </FieldGroup>
-
-            <FieldGroup
-              label="Countries to search"
-              help={`Pick one or more. The daily budget is ${inputCaps.maxRoles} ${inputCaps.maxRoles === 1 ? 'search' : 'searches'} total, split across all countries you choose.`}
-            >
-              <MultiSelectDropdown
-                values={form.target_countries}
-                options={[...JOB_FEED_COUNTRY_OPTIONS]}
-                placeholder="Choose countries (e.g. United States, Germany, United Kingdom)"
-                searchable
-                maxSelections={inputCaps.maxCountries}
-                onChange={(target_countries) => onFormChange((prev) => ({
-                  ...prev,
-                  target_countries,
-                  target_market: legacyMarketFromCountries(target_countries),
-                }))}
-              />
-              {form.target_countries.length > 1 && form.target_roles.length > 0 && (
-                <p className="mt-2 text-xs text-warm-gray">
-                  With {form.target_countries.length} countries and a budget of {inputCaps.maxRoles}, each country gets {Math.max(1, Math.floor(inputCaps.maxRoles / form.target_countries.length))} {Math.max(1, Math.floor(inputCaps.maxRoles / form.target_countries.length)) === 1 ? 'role' : 'roles'} searched per day.
-                </p>
-              )}
-            </FieldGroup>
-
-            <FieldGroup
-              label="Cities"
-              help={`City names only (e.g. Berlin). We rotate through up to ${inputCaps.maxCitiesPerCountry} cities per country so each search targets a different city. Leave empty to search the whole country.`}
-            >
-              <RoleEntryField
-                values={form.preferred_locations}
-                suggestions={JOB_FEED_SUGGESTED_LOCATIONS}
-                placeholder="Type a city and press Enter (e.g. Berlin)"
-                addLabel="Add city"
-                suggestionsLabel="Examples"
-                emptyLabel="No cities added yet — we'll search the whole country."
-                onChange={(preferred_locations) => onFormChange((prev) => ({ ...prev, preferred_locations }))}
-              />
-              {form.preferred_locations.length > inputCaps.maxCitiesPerCountry * Math.max(1, form.target_countries.length) && (
-                <p className="mt-2 text-xs text-amber-700">
-                  Only the first {inputCaps.maxCitiesPerCountry} cities per country are rotated through each day. Extras are kept in your profile but not searched in a single run.
-                </p>
-              )}
-            </FieldGroup>
-          </div>
-        </div>
-
-        {/* Step 2: Work mode */}
-        {showChunk2 && (
-          <div className="px-6 py-6 sm:px-8">
-            <p className="text-sm font-semibold text-charcoal">How do you want to work?</p>
-            <div className="mt-4 space-y-4">
-              <FieldGroup
-                label="Work modes"
-                help="This is the only place remote preference is set. Pick any that work for you — Karko will match jobs to any mode you choose."
-              >
-                <MultiSelectDropdown
-                  values={form.remote_preferences}
-                  options={JOB_FEED_REMOTE_PREFERENCE_OPTIONS.map((option) => ({
-                    value: option.value,
-                    label: option.label,
-                  }))}
-                  placeholder="Pick one or more work modes"
-                  onChange={(nextValues) => onFormChange((prev) => {
-                    const remote_preferences = nextValues as JobFeedSettingsInput['remote_preferences'];
-                    return {
-                      ...prev,
-                      remote_preferences,
-                      // Keep the legacy scalar in sync with the primary choice.
-                      remote_preference: (remote_preferences[0] ?? prev.remote_preference) as JobFeedSettingsInput['remote_preference'],
-                    };
-                  })}
-                />
-              </FieldGroup>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Timezone */}
-        {showChunk3 && (
-          <div className="px-6 py-6 sm:px-8">
-            <p className="text-sm font-semibold text-charcoal">Your timezone</p>
-            <div className="mt-4 max-w-xl">
-              <FieldGroup label="Timezone" help="Used to group jobs by your local day so yesterday's feed doesn't mix with today's.">
-                <GroupedSelectField
-                  label=""
-                  value={normalizeTimeZoneValue(form.user_timezone)}
-                  groups={JOB_FEED_TIMEZONE_GROUPS}
-                  onChange={(user_timezone) => onFormChange((prev) => ({ ...prev, user_timezone }))}
-                />
-                {browserTimeZone
-                  && browserTimeZone !== form.user_timezone
-                  && JOB_FEED_TIMEZONE_LOOKUP.has(browserTimeZone) && (
-                  <button
-                    type="button"
-                    onClick={() => onFormChange((prev) => ({ ...prev, user_timezone: browserTimeZone }))}
-                    className="mt-2 text-xs font-medium text-navy-600 hover:text-navy-700 cursor-pointer"
-                  >
-                    Use my browser timezone ({getJobFeedTimeZoneLabel(browserTimeZone)})
-                  </button>
-                )}
-              </FieldGroup>
-            </div>
-          </div>
-        )}
-
-        {/* Step 4 — Fine-tune (expanded by default for non-technical users).
-             Kept collapsible via the header button in case a power user prefers
-             a compact view. */}
-        {showChunk3 && (
-          <div className="px-6 py-6 sm:px-8">
-            <button
-              type="button"
-              onClick={() => setIsAdvancedOpen((prev) => !prev)}
-              className="flex w-full items-center justify-between gap-3 rounded-2xl border border-cream-200 bg-white px-4 py-3 transition-colors hover:border-navy-200 cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                {isAdvancedOpen ? <ChevronUp className="h-4 w-4 text-navy-600" /> : <ChevronDown className="h-4 w-4 text-navy-600" />}
-                <div className="text-left">
-                  <p className="text-sm font-semibold text-charcoal">Fine-tune your feed</p>
-                  <p className="text-xs text-warm-gray">Seniority, skills, minimum salary and a few more details to improve matches.</p>
-                </div>
-              </div>
-              <span className="shrink-0 rounded-full border border-navy-200 bg-navy-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-navy-700">
-                Recommended
-              </span>
-            </button>
-
-            {isAdvancedOpen && (
-              <div className="mt-4 grid gap-5 xl:grid-cols-2">
-                <div className="space-y-4">
-                  <FieldGroup
-                    label="Seniority"
-                    help="Pick every level you’re open to — e.g. junior and mid."
-                  >
-                    <MultiSelectDropdown
-                      values={form.seniority_targets}
-                      options={JOB_FEED_SENIORITY_OPTIONS.map((option) => ({
-                        value: option.value,
-                        label: option.label,
-                      }))}
-                      placeholder="Keep flexible"
-                      onChange={(nextValues) => onFormChange((prev) => {
-                        const seniority_targets = nextValues as JobFeedSettingsInput['seniority_targets'];
-                        return {
-                          ...prev,
-                          seniority_targets,
-                          seniority_target: (seniority_targets[0] ?? null) as JobFeedSettingsInput['seniority_target'],
-                        };
-                      })}
-                    />
-                  </FieldGroup>
-
-                  <FieldGroup label="Employment types" help="Pick any that apply. Leave broad unless you have a strong preference.">
-                    <MultiSelectDropdown
-                      values={form.employment_types}
-                      options={JOB_FEED_EMPLOYMENT_TYPE_OPTIONS.map((option) => ({
-                        value: option.value,
-                        label: option.label,
-                      }))}
-                      placeholder="Pick one or more job types"
-                      onChange={(employment_types) => onFormChange((prev) => ({
-                        ...prev,
-                        employment_types: employment_types as JobFeedSettingsInput['employment_types'],
-                      }))}
-                    />
-                  </FieldGroup>
-
-                  <FieldGroup label="Languages" help="Only matters if language fit changes whether a role is worth seeing.">
-                    <ChipField
-                      values={form.languages}
-                      suggestions={JOB_FEED_SUGGESTED_LANGUAGES}
-                      placeholder="Add a language"
-                      onChange={(languages) => onFormChange((prev) => ({ ...prev, languages }))}
-                    />
-                  </FieldGroup>
-
-                  <SelectField
-                    label="Work authorization"
-                    value={form.work_authorization_status ?? ''}
-                    onChange={(work_authorization_status) => onFormChange((prev) => ({
-                      ...prev,
-                      work_authorization_status: (work_authorization_status || null) as JobFeedSettingsInput['work_authorization_status'],
-                    }))}
-                    options={[{ value: '', label: 'Keep flexible' }, ...JOB_FEED_WORK_AUTH_OPTIONS]}
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  <FieldGroup
-                    label="Minimum salary (non-negotiable)"
-                    help="Jobs that clearly state a salary below this number are dropped before ranking. Leave blank if you are open to negotiation. Enter an annual amount in your local currency."
-                  >
-                    <InputField
-                      label=""
-                      type="number"
-                      value={form.salary_floor === null ? '' : String(form.salary_floor)}
-                      onChange={(salary_floor) => onFormChange((prev) => ({
-                        ...prev,
-                        salary_floor: salary_floor ? Number(salary_floor) : null,
-                      }))}
-                      placeholder="e.g. 80000"
-                    />
-                  </FieldGroup>
-
-                  <FieldGroup label="Your skills" help="Used to match you with jobs that need what you bring. Imported from your CV or add manually.">
-                    <ChipField
-                      values={form.user_skills}
-                      suggestions={[]}
-                      placeholder="Add a skill (e.g. Python, React, SQL)"
-                      onChange={(user_skills) => onFormChange((prev) => ({ ...prev, user_skills }))}
-                    />
-                    {form.user_skills.length === 0 && !cvSuggestionApplied && (
-                      <button
-                        type="button"
-                        onClick={() => void handleTakeFromCV()}
-                        disabled={isLoadingCVSuggestions}
-                        className="mt-2 flex items-center gap-1 text-xs font-medium text-navy-600 hover:text-navy-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                      >
-                        {isLoadingCVSuggestions ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
-                        Import skills from CV
-                      </button>
-                    )}
-                  </FieldGroup>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Save action */}
-        {showSaveAction && (
-          <div className="px-6 py-6 sm:px-8">
-            <div className="flex flex-col items-center gap-4 text-center">
-              {!isEditing && !hasRecordedConsent && (
-                <label className="flex max-w-md items-start justify-center gap-3 text-left">
-                  <input
-                    type="checkbox"
-                    checked={form.consent_accepted}
-                    onChange={(event) => onFormChange((prev) => ({ ...prev, consent_accepted: event.target.checked }))}
-                    className="mt-1 h-4 w-4 rounded border-cream-300 text-navy-600 focus:ring-navy-500"
-                  />
-                  <span className="text-sm leading-relaxed text-charcoal">
-                    I agree to let Karko search for jobs on my behalf once a day, using the preferences above.
-                  </span>
-                </label>
-              )}
-              {isEditing && (
-                <p className="text-sm text-warm-gray">
-                  Timezone: {getJobFeedTimeZoneLabel(form.user_timezone)}
-                </p>
-              )}
-
-              <div className="flex flex-col items-center gap-2 sm:flex-row">
-                <Button
-                  variant="gold"
-                  onClick={() => {
-                    const saveForm = isEditing ? form : { ...form, enabled: true };
-                    void onSave(saveForm);
-                  }}
-                  disabled={!canSave || saveState === 'saving'}
-                >
-                  {saveState === 'saving' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isEditing ? 'Save changes' : 'Start my daily feed'}
-                </Button>
-                {!isEditing && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onFormChange((prev) => ({ ...prev, enabled: false }));
-                      void onSave({ ...form, enabled: false });
-                    }}
-                    disabled={!canSave || saveState === 'saving'}
-                    className="text-sm font-medium text-warm-gray hover:text-charcoal disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                  >
-                    Save and keep paused
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </Card>
-  );
-}
 
 function LoadingState() {
   return (
-    <Card className="rounded-[24px] border-cream-200 bg-white/92 p-6 shadow-sm">
+    <Card className="rounded-2xl border-cream-200 bg-white p-6 shadow-sm">
       <div className="flex items-center gap-3 text-navy-600">
         <Loader2 className="h-5 w-5 animate-spin" />
         <span className="text-sm font-medium">Loading your daily feed…</span>
@@ -2299,7 +1761,7 @@ function OperationalSnapshotCard({
   }
 
   return (
-    <Card className="rounded-[24px] border-dashed border-emerald-200 bg-emerald-50/70 p-6 shadow-sm">
+    <Card className="rounded-2xl border-dashed border-emerald-200 bg-emerald-50/70 p-6 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Run snapshot</p>
       <h2 className="mt-2 text-lg font-semibold text-charcoal">Latest run operational summary</h2>
       <p className="mt-2 text-sm leading-6 text-warm-gray">
@@ -2355,17 +1817,6 @@ function formatYesNoUnknown(value: boolean | null): string {
   if (value === false) return 'no';
   return 'unknown';
 }
-
-function canSaveJobFeedSettings(form: JobFeedSettingsInput, hasRecordedConsent = false): boolean {
-  const consentReady = form.consent_accepted || hasRecordedConsent;
-
-  return form.target_roles.length > 0
-    && form.remote_preferences.length > 0
-    && form.employment_types.length > 0
-    && isValidTimeZone(form.user_timezone)
-    && (!form.enabled || consentReady);
-}
-
 
 
 function summarizeTargetRoles(roles: string[]): string {

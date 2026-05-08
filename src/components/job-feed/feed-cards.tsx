@@ -234,7 +234,7 @@ function CopyJobButton({
 
   const baseClass = variant === 'modal'
     ? 'inline-flex items-center gap-1.5 rounded-lg border border-cream-300 bg-white px-3 py-1.5 text-xs font-medium text-charcoal transition-colors hover:border-navy-300 hover:text-navy-700 cursor-pointer'
-    : 'inline-flex items-center gap-1 rounded-full border border-cream-200 bg-white/80 px-2.5 py-1 text-xs font-medium text-warm-gray transition-colors hover:border-navy-200 hover:text-navy-700 cursor-pointer';
+    : 'inline-flex items-center gap-1 rounded-full border border-cream-200 bg-white px-2.5 py-1 text-xs font-medium text-warm-gray transition-colors hover:border-navy-200 hover:text-navy-700 cursor-pointer';
 
   return (
     <button
@@ -275,7 +275,7 @@ export function JobFeedCard({
   const continueLabel = isApplied || isApplyStarted;
 
   return (
-    <div className={`rounded-[24px] border p-5 transition-colors duration-200 ${
+    <div className={`rounded-2xl border p-5 transition-colors duration-200 ${
       isApplying
         ? 'border-gold-300 bg-gold-50/40 ring-1 ring-gold-200'
         : 'border-cream-200 bg-cream-50 hover:border-navy-200'
@@ -646,7 +646,7 @@ export function FeedResultsCard({
   const applyingJobId = pendingJobAction?.action === 'apply' ? pendingJobAction.jobId : null;
 
   return (
-    <Card className="rounded-[24px] border-cream-200 bg-white p-6 shadow-sm">
+    <Card className="rounded-2xl border-cream-200 bg-white p-6 shadow-sm">
       <p className="text-sm text-warm-gray">{feedSummary}</p>
 
       <div className="mt-5 space-y-4">

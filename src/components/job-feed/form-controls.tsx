@@ -542,7 +542,7 @@ export function RoleEntryField({
   };
 
   return (
-    <div className="rounded-2xl border border-cream-200 bg-white/96 p-4 shadow-sm">
+    <div className="rounded-2xl border border-cream-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap gap-2">
         {values.length > 0 ? (
           values.map((value) => (
