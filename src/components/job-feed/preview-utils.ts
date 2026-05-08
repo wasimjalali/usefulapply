@@ -72,7 +72,6 @@ export function buildJobFeedPreviewSnapshot(
     target_roles: ['Senior Product Manager', 'Growth Product Manager'],
     preferred_locations: ['New York, NY', 'Remote (US)'],
     user_timezone: timeZone,
-    delivery_hour_local: 8,
     target_market: 'us_canada',
     target_countries: ['us', 'ca'],
     target_cities: ['New York, NY', 'Toronto, ON'],
@@ -198,7 +197,6 @@ export function buildJobFeedPreviewSnapshot(
   const latestRun = buildPreviewJobFeedRun({
     status: mode === 'error' ? 'failed' : mode === 'generating' ? 'running' : 'completed',
     timeZone: formByMode.user_timezone,
-    deliveryHourLocal: formByMode.delivery_hour_local,
     resultSummary: mode === 'ready'
       ? 'Karko ranked and prepared the strongest roles for today.'
       : mode === 'thin_feed'
@@ -244,7 +242,6 @@ export function toPreviewJobFeedSettings(form: JobFeedSettingsInput): NonNullabl
     enabled: form.enabled,
     consent_accepted_at: form.consent_accepted ? now : null,
     user_timezone: form.user_timezone,
-    delivery_hour_local: form.delivery_hour_local,
     target_market: form.target_market,
     target_countries: form.target_countries,
     target_cities: form.target_cities,
@@ -267,13 +264,11 @@ export function toPreviewJobFeedSettings(form: JobFeedSettingsInput): NonNullabl
 export function buildPreviewJobFeedRun({
   status,
   timeZone,
-  deliveryHourLocal,
   resultSummary,
   errorMessage,
 }: {
   status: 'running' | 'completed' | 'failed';
   timeZone: string;
-  deliveryHourLocal: number;
   resultSummary: string | null;
   errorMessage: string | null;
 }): NonNullable<JobFeedOverviewResponse['latestRun']> {
@@ -290,7 +285,6 @@ export function buildPreviewJobFeedRun({
     user_id: 'preview-user',
     local_date: localDate,
     local_timezone: timeZone,
-    delivery_hour_local: deliveryHourLocal,
     trigger_source: 'scheduled',
     status,
     idempotency_key: `preview-${status}`,

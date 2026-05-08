@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Loader2, RefreshCw, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
 
 interface CareerProfileResponse {
@@ -13,14 +13,14 @@ interface CareerProfileResponse {
 
 /**
  * Read-only preview of the AI-inferred career profile that drives the job feed.
- * Visible inside the wizard so paid users can see what Karko inferred from
- * their CV — and refresh it on demand. Editing happens via the existing
- * settings fields below; this card is observability, not a form.
+ * Auto-refreshes when the underlying CV changes (the wizard fires a
+ * background regen and re-mounts this card). No manual refresh button —
+ * we don't want users burning tokens on idle clicks. Profile editing is
+ * deferred to a later iteration.
  */
 export function AISearchProfileCard() {
   const [data, setData] = useState<CareerProfileResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -38,28 +38,33 @@ export function AISearchProfileCard() {
     }
   }, []);
 
-  const refresh = useCallback(async () => {
-    setIsRefreshing(true);
-    try {
-      const response = await fetch('/api/job-feed/career-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ force: true }),
-      });
-      if (response.ok) {
-        const json = (await response.json()) as CareerProfileResponse;
-        setData(json);
-      }
-    } catch {
-      // ignore — silent failure is fine for a refresh action
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, []);
-
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Silent auto-regen when the user has uploaded a newer CV than the cached
+  // profile reflects. We don't show a button — the system just refreshes.
+  // Once the regeneration completes, we reload to show the new profile.
+  useEffect(() => {
+    if (!data?.cvNewerThanProfile) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await fetch('/api/job-feed/career-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ force: true }),
+        });
+      } catch {
+        // ignore
+      }
+      if (cancelled) return;
+      void load();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [data?.cvNewerThanProfile, load]);
 
   if (isLoading) {
     return (
@@ -98,20 +103,9 @@ export function AISearchProfileCard() {
             <Sparkles className="h-4 w-4 text-gold-600" />
           </div>
           <div className="flex-1">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-base font-semibold text-charcoal">Your AI search profile</h3>
-              <button
-                type="button"
-                onClick={() => void refresh()}
-                disabled={isRefreshing}
-                className="inline-flex items-center gap-1.5 rounded-full bg-gold-400 px-3 py-1.5 text-xs font-semibold text-navy-900 transition-colors hover:bg-gold-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-              >
-                {isRefreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                {isRefreshing ? 'Generating' : 'Generate now'}
-              </button>
-            </div>
+            <h3 className="text-base font-semibold text-charcoal">Your AI search profile</h3>
             <p className="mt-1 text-sm text-warm-gray">
-              Karko hasn&apos;t synthesized your profile yet. Generate it now to see what we inferred from your CV.
+              Karko is reading your CV. Your profile will appear here in a moment.
             </p>
           </div>
         </div>
@@ -130,26 +124,14 @@ export function AISearchProfileCard() {
           <Sparkles className="h-4 w-4 text-gold-600" />
         </div>
         <div className="flex-1">
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="text-base font-semibold text-charcoal">Your AI search profile</h3>
-            <button
-              type="button"
-              onClick={() => void refresh()}
-              disabled={isRefreshing}
-              className="inline-flex items-center gap-1.5 rounded-full border border-cream-200 bg-white px-3 py-1.5 text-xs font-semibold text-charcoal transition-colors hover:border-cream-300 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-            >
-              {isRefreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-              {isRefreshing ? 'Refreshing' : 'Refresh'}
-            </button>
-          </div>
-
+          <h3 className="text-base font-semibold text-charcoal">Your AI search profile</h3>
           <p className="mt-1 text-sm text-warm-gray">
             What Karko inferred from your CV. Powers your daily feed.
           </p>
 
           {cvNewerThanProfile && (
             <p className="mt-2 rounded-lg bg-gold-50 px-3 py-2 text-xs text-charcoal">
-              Your CV was updated more recently. Refresh to keep the feed in sync.
+              We&apos;re refreshing your profile to match your latest CV.
             </p>
           )}
 

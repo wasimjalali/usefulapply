@@ -137,7 +137,6 @@ export function createDefaultJobFeedInput(timeZone?: string): JobFeedSettingsInp
   return {
     enabled: JOB_FEED_DEFAULT_SETTINGS.enabled,
     user_timezone: timeZone && isValidTimeZone(timeZone) ? timeZone : JOB_FEED_DEFAULT_SETTINGS.user_timezone,
-    delivery_hour_local: JOB_FEED_DEFAULT_SETTINGS.delivery_hour_local,
     target_market: JOB_FEED_DEFAULT_SETTINGS.target_market,
     target_countries: [...JOB_FEED_DEFAULT_SETTINGS.target_countries],
     target_cities: [...JOB_FEED_DEFAULT_SETTINGS.target_cities],
@@ -179,7 +178,6 @@ export function toJobFeedInput(settings: JobFeedSettings | null, fallbackTimeZon
     enabled: settings.enabled,
     consent_accepted: Boolean(settings.consent_accepted_at),
     user_timezone: settings.user_timezone,
-    delivery_hour_local: settings.delivery_hour_local,
     target_market: settings.target_market,
     target_countries: targetCountries,
     target_cities: settings.target_cities ?? [],
@@ -296,16 +294,6 @@ export function normalizeJobFeedSettingsInput(input: unknown): { data?: JobFeedS
 
   const languages = sanitizeStringArray(payload.languages);
 
-  // delivery_hour_local was used by the old scheduler to pick each user's
-  // daily delivery slot. The real-time on-click flow doesn't read it, but
-  // the DB column is NOT NULL, so keep a sane default when the client
-  // doesn't send one. Clients that still send a valid value (0..23) are
-  // respected so existing rows don't lose data on next save.
-  const rawDeliveryHour = asInteger(payload.delivery_hour_local);
-  const deliveryHourLocal = rawDeliveryHour !== null && rawDeliveryHour >= 0 && rawDeliveryHour <= 23
-    ? rawDeliveryHour
-    : 8;
-
   const salaryFloor = asNullableInteger(payload.salary_floor);
   if (salaryFloor !== null && salaryFloor < 0) {
     return { error: 'Salary floor cannot be negative.' };
@@ -317,7 +305,6 @@ export function normalizeJobFeedSettingsInput(input: unknown): { data?: JobFeedS
     enabled: Boolean(payload.enabled),
     consent_accepted: Boolean(payload.consent_accepted),
     user_timezone: userTimezone,
-    delivery_hour_local: deliveryHourLocal,
     target_market: targetMarket,
     target_countries: targetCountries,
     target_cities: targetCities,

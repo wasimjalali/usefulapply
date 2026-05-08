@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2, RefreshCw, Search } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import {
   JOB_FEED_COUNTRY_OPTIONS,
 } from '@/lib/job-feed/constants';
@@ -34,13 +34,14 @@ const RECALL_LABEL: Record<SearchStrategyQuery['expectedRecall'], string> = {
 /**
  * Read-only preview of the AI-generated SerpAPI search strategy. Shows the
  * actual queries the daily feed will fire, grouped by country, with type
- * and recall labels. Has a "Regenerate" action so users can refresh the
- * strategy after a settings change without waiting for the next daily run.
+ * and recall labels. Auto-regenerates server-side when the user saves
+ * preferences (settings_hash changes) or when their profile updates. No
+ * manual "Regenerate" button — token cost is bounded by real input
+ * changes, not user clicks.
  */
 export function SearchStrategyPreviewCard() {
   const [data, setData] = useState<SearchStrategyResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -55,21 +56,6 @@ export function SearchStrategyPreviewCard() {
       setData(null);
     } finally {
       setIsLoading(false);
-    }
-  }, []);
-
-  const regenerate = useCallback(async () => {
-    setIsRegenerating(true);
-    try {
-      const response = await fetch('/api/job-feed/search-strategy', { method: 'POST' });
-      if (response.ok) {
-        const json = (await response.json()) as SearchStrategyResponse;
-        setData(json);
-      }
-    } catch {
-      // ignore — silent failure is fine for a manual refresh
-    } finally {
-      setIsRegenerating(false);
     }
   }, []);
 
@@ -111,25 +97,12 @@ export function SearchStrategyPreviewCard() {
             <Search className="h-4 w-4 text-navy-600" />
           </div>
           <div className="flex-1">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-base font-semibold text-charcoal">How we&apos;ll search for you</h3>
-              {data?.status !== 'no_profile' && data?.status !== 'no_settings' && (
-                <button
-                  type="button"
-                  onClick={() => void regenerate()}
-                  disabled={isRegenerating}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-gold-400 px-3 py-1.5 text-xs font-semibold text-navy-900 transition-colors hover:bg-gold-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                >
-                  {isRegenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-                  {isRegenerating ? 'Generating' : 'Generate now'}
-                </button>
-              )}
-            </div>
+            <h3 className="text-base font-semibold text-charcoal">How we&apos;ll search for you</h3>
             <p className="mt-1 text-sm text-warm-gray">
-              {data?.status === 'no_profile' && 'Generate your AI profile first to see the search plan Karko will run for you.'}
-              {data?.status === 'no_settings' && 'Save your job feed settings to see the AI-generated search plan.'}
-              {data?.status === 'no_countries' && 'Pick at least one country in the wizard to see the AI-generated search plan.'}
-              {!data && 'Karko hasn’t generated a search plan yet. Save your settings to begin.'}
+              {data?.status === 'no_profile' && 'Karko is preparing your AI profile. Your search plan will appear here next.'}
+              {data?.status === 'no_settings' && 'Save your preferences below to see the search plan Karko will run for you.'}
+              {data?.status === 'no_countries' && 'Pick at least one country in your preferences to see the search plan.'}
+              {!data && 'Karko is preparing your search plan.'}
             </p>
           </div>
         </div>
@@ -146,26 +119,14 @@ export function SearchStrategyPreviewCard() {
           <Search className="h-4 w-4 text-navy-600" />
         </div>
         <div className="flex-1">
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="text-base font-semibold text-charcoal">How we&apos;ll search for you</h3>
-            <button
-              type="button"
-              onClick={() => void regenerate()}
-              disabled={isRegenerating}
-              className="inline-flex items-center gap-1.5 rounded-full border border-cream-200 bg-white px-3 py-1.5 text-xs font-semibold text-charcoal transition-colors hover:border-cream-300 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-            >
-              {isRegenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-              {isRegenerating ? 'Regenerating' : 'Regenerate'}
-            </button>
-          </div>
-
+          <h3 className="text-base font-semibold text-charcoal">How we&apos;ll search for you</h3>
           <p className="mt-1 text-sm text-warm-gray">
-            The {strategy.queries.length} {strategy.queries.length === 1 ? 'query' : 'queries'} Karko will run on Google Jobs every day, in priority order.
+            The {strategy.queries.length} {strategy.queries.length === 1 ? 'query' : 'queries'} Karko runs on Google Jobs every time you open this feed, in priority order.
           </p>
 
           {profileNewerThanStrategy && (
             <p className="mt-2 rounded-lg bg-gold-50 px-3 py-2 text-xs text-charcoal">
-              Your profile changed since this plan was generated. Regenerate to keep your search aligned.
+              We&apos;ll refresh this plan automatically since your profile changed.
             </p>
           )}
 

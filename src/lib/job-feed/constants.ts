@@ -363,7 +363,6 @@ export const JOB_FEED_SUGGESTED_LANGUAGES = ['English', 'French'];
 export const JOB_FEED_DEFAULT_SETTINGS = {
   enabled: true,
   user_timezone: 'America/New_York',
-  delivery_hour_local: 8,
   target_market: 'us_canada',
   target_countries: ['us'] as string[],
   target_cities: [] as string[],
@@ -378,13 +377,6 @@ export const JOB_FEED_DEFAULT_SETTINGS = {
   employment_types: ['full_time'] as string[],
   work_authorization_status: 'open_to_both',
 } as const;
-
-export function formatDeliveryHourLabel(hour: number): string {
-  const normalized = ((hour % 24) + 24) % 24;
-  const period = normalized >= 12 ? 'PM' : 'AM';
-  const hour12 = normalized % 12 === 0 ? 12 : normalized % 12;
-  return `${hour12}:00 ${period}`;
-}
 
 export function isJobFeedDebugModeEnabled(): boolean {
   return process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_ENABLE_JOB_FEED_DEBUG === 'true';

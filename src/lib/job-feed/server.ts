@@ -1417,7 +1417,6 @@ export async function runJobFeedFoundationWorkflow(params: {
     user_id: userId,
     local_date: localDate,
     local_timezone: settings.user_timezone,
-    delivery_hour_local: settings.delivery_hour_local,
     trigger_source: triggerSource,
     idempotency_key: `${userId}:${localDate}`,
     settings_snapshot: settings as unknown as Json,
@@ -1598,7 +1597,6 @@ async function createJobFeedRun(insert: {
   user_id: string;
   local_date: string;
   local_timezone: string;
-  delivery_hour_local: number;
   trigger_source: string;
   idempotency_key: string;
   metadata: Json;

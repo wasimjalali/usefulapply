@@ -94,7 +94,6 @@ export interface JobFeedSettingsInput {
   enabled: boolean;
   consent_accepted: boolean;
   user_timezone: string;
-  delivery_hour_local: number;
   target_market: JobFeedSettings['target_market'];
   target_countries: string[];
   target_cities: string[];

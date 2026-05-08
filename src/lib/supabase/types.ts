@@ -96,7 +96,6 @@ export interface Database {
           enabled: boolean
           consent_accepted_at: string | null
           user_timezone: string
-          delivery_hour_local: number
           target_market: 'us' | 'canada' | 'us_canada'
           target_countries: string[]
           target_cities: string[]
@@ -119,7 +118,6 @@ export interface Database {
           enabled?: boolean
           consent_accepted_at?: string | null
           user_timezone?: string
-          delivery_hour_local?: number
           target_market?: 'us' | 'canada' | 'us_canada'
           target_countries?: string[]
           target_cities?: string[]
@@ -142,7 +140,6 @@ export interface Database {
           enabled?: boolean
           consent_accepted_at?: string | null
           user_timezone?: string
-          delivery_hour_local?: number
           target_market?: 'us' | 'canada' | 'us_canada'
           target_countries?: string[]
           target_cities?: string[]
@@ -167,7 +164,6 @@ export interface Database {
           user_id: string
           local_date: string
           local_timezone: string
-          delivery_hour_local: number
           trigger_source: string
           status: 'queued' | 'running' | 'completed' | 'failed' | 'skipped'
           idempotency_key: string
@@ -188,7 +184,6 @@ export interface Database {
           user_id: string
           local_date: string
           local_timezone: string
-          delivery_hour_local: number
           trigger_source?: string
           status?: 'queued' | 'running' | 'completed' | 'failed' | 'skipped'
           idempotency_key: string
@@ -209,7 +204,6 @@ export interface Database {
           user_id?: string
           local_date?: string
           local_timezone?: string
-          delivery_hour_local?: number
           trigger_source?: string
           status?: 'queued' | 'running' | 'completed' | 'failed' | 'skipped'
           idempotency_key?: string

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { normalizeJobFeedSettingsInput } from '@/lib/job-feed/helpers';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { createClient } from '@/lib/supabase/server';
+import { isCurrentCareerProfile, type CareerProfile } from '@/lib/job-feed/career-profile';
+import type { JobFeedSettingsInput } from '@/lib/job-feed/types';
 
 export const runtime = 'nodejs';
 
@@ -97,6 +99,36 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Auto-mirror AI-derived fields from the latest career profile so the
+    // user never has to fill in roles, seniority, languages, or skills by
+    // hand. The minimal preferences card only captures things the AI cannot
+    // know (countries, cities, work mode, salary floor, work authorization).
+    // The strategy generator still reads these mirrored fields downstream.
+    const profileMirror = await loadCareerProfileMirror(typedSupabase, user.id);
+
+    const targetRoles = profileMirror?.targetRoles && profileMirror.targetRoles.length > 0
+      ? profileMirror.targetRoles
+      : normalized.data.target_roles;
+
+    const userSkills = profileMirror?.userSkills && profileMirror.userSkills.length > 0
+      ? profileMirror.userSkills
+      : normalized.data.user_skills;
+
+    const languages = profileMirror?.languages && profileMirror.languages.length > 0
+      ? profileMirror.languages
+      : normalized.data.languages;
+
+    const seniorityTargets = profileMirror?.seniorityTargets
+      ?? normalized.data.seniority_targets;
+    const seniorityTarget = seniorityTargets[0] ?? normalized.data.seniority_target ?? null;
+
+    // Employment types stays user-controlled in DB but the new wizard
+    // doesn't expose it. Default to ['full_time'] when the client did not
+    // send a value.
+    const employmentTypes = normalized.data.employment_types.length > 0
+      ? normalized.data.employment_types
+      : (['full_time'] as JobFeedSettingsInput['employment_types']);
+
     const { data, error } = await typedSupabase
       .from('job_feed_settings')
       .upsert({
@@ -104,24 +136,23 @@ export async function PUT(request: NextRequest) {
         enabled: normalized.data.enabled,
         consent_accepted_at: consentAcceptedAt,
         user_timezone: normalized.data.user_timezone,
-        delivery_hour_local: normalized.data.delivery_hour_local,
         // New multi-select columns — primary source of truth for the feed.
         target_countries: normalized.data.target_countries,
         target_cities: normalized.data.target_cities,
         remote_preferences: normalized.data.remote_preferences,
-        seniority_targets: normalized.data.seniority_targets,
+        seniority_targets: seniorityTargets,
         // Legacy scalar columns — kept in sync so older code paths keep working.
         target_market: normalized.data.target_market,
         remote_preference: normalized.data.remote_preference,
-        seniority_target: normalized.data.seniority_target,
-        // Shared arrays
-        target_roles: normalized.data.target_roles,
+        seniority_target: seniorityTarget,
+        // Shared arrays — AI-mirrored where a profile exists.
+        target_roles: targetRoles,
         preferred_locations: normalized.data.preferred_locations,
         salary_floor: normalized.data.salary_floor,
-        languages: normalized.data.languages,
-        employment_types: normalized.data.employment_types,
+        languages: languages,
+        employment_types: employmentTypes,
         work_authorization_status: normalized.data.work_authorization_status,
-        user_skills: normalized.data.user_skills,
+        user_skills: userSkills,
       }, {
         onConflict: 'user_id',
       })
@@ -156,4 +187,61 @@ export async function PUT(request: NextRequest) {
     console.error('[job-feed/settings] PUT unexpected error:', error);
     return NextResponse.json({ error: 'Failed to save job feed settings.' }, { status: 500 });
   }
+}
+
+interface CareerProfileMirror {
+  targetRoles: string[];
+  userSkills: string[];
+  languages: string[];
+  seniorityTargets: JobFeedSettingsInput['seniority_targets'];
+}
+
+/**
+ * Read the user's latest career profile and project the slice of fields
+ * job_feed_settings should mirror. Returns null when no profile exists yet
+ * (free users / first-time paid users whose profile is still synthesizing).
+ * The caller falls back to whatever the client sent in those cases.
+ */
+async function loadCareerProfileMirror(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the user_career_profiles table here.
+  supabase: any,
+  userId: string,
+): Promise<CareerProfileMirror | null> {
+  const { data, error } = await supabase
+    .from('user_career_profiles')
+    .select('profile')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[job-feed/settings] career profile fetch error:', error.message);
+    return null;
+  }
+  if (!data?.profile || !isCurrentCareerProfile(data.profile)) return null;
+
+  const profile = data.profile as CareerProfile;
+
+  const targetRoles = profile.inferredTitles
+    .map((title) => title.canonical)
+    .filter((value, index, all) => all.indexOf(value) === index)
+    .slice(0, 6);
+
+  const skillSet = new Set<string>();
+  for (const cluster of [...profile.primarySkillClusters, ...profile.secondarySkillClusters]) {
+    for (const skill of cluster.skills) {
+      const trimmed = skill.trim();
+      if (trimmed) skillSet.add(trimmed);
+      if (skillSet.size >= 50) break;
+    }
+    if (skillSet.size >= 50) break;
+  }
+
+  const seniorityTargets = [profile.seniority.level] as JobFeedSettingsInput['seniority_targets'];
+
+  return {
+    targetRoles,
+    userSkills: Array.from(skillSet),
+    languages: profile.workingLanguages.length > 0 ? profile.workingLanguages : ['English'],
+    seniorityTargets,
+  };
 }
