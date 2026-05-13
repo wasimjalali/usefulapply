@@ -21,7 +21,7 @@ const SLIDES: Slide[] = [
     title: 'Jobs picked for you, daily',
     description:
       'Every morning Karko delivers hand-picked roles that fit your profile. No keyword wrangling, no job-board swamp.',
-    src: '/screenshots/product-01-job-feed.webp',
+    src: '/screenshots/product-01-job-feed.webp?v=2',
     alt: 'Karko AI Smart Job Feed showing six hand-picked roles with match badges',
   },
   {
