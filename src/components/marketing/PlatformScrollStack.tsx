@@ -20,7 +20,7 @@ const PANELS: Panel[] = [
     titleAccent: 'delivered to your feed every morning.',
     description:
       'While you sleep, Karko searches the web and picks roles that actually fit you. Matched to your CV, your goals, your location. No keyword searches, no six-tab job-board marathon. Open the app and start applying.',
-    image: '/screenshots/01b-job-feed-left-only.webp',
+    image: '/screenshots/product-01-job-feed.webp',
     imageAlt: 'Karko Smart Job Feed with six hand-picked roles and match scores',
   },
   {
