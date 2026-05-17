@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabase } from '@/lib/supabase/client';
 import { Loader2 } from 'lucide-react';
 
 function CallbackHandler() {
@@ -12,7 +12,7 @@ function CallbackHandler() {
 
   useEffect(() => {
     const handleCallback = async () => {
-      const supabase = createClient();
+      const supabase = getSupabase();
 
       // Flow 1: PKCE code exchange (OAuth, client-side signUp)
       // User-aware persistence cleanup happens in AuthProvider after Supabase
