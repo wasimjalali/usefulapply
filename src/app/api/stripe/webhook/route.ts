@@ -577,10 +577,13 @@ async function handleChargeRefunded(charge: any) {
     return;
   }
 
-  // Get user by customer ID
+  // Get user by customer ID. plan_tier is read only as a last-resort
+  // fallback for unknown charge amounts; the refund itself is sized from
+  // the charge's own amount so plan changes after the charge don't skew
+  // the refund.
   const { data: userCredits } = await supabase
     .from('user_credits')
-    .select('user_id, monthly_credits, rollover_credits, addon_credits, plan_tier')
+    .select('user_id, plan_tier')
     .eq('stripe_customer_id', customerId)
     .single();
 
@@ -589,119 +592,159 @@ async function handleChargeRefunded(charge: any) {
     return;
   }
 
-  // Determine how many credits to remove based on the refund amount
-  // charge.amount_refunded is in cents
+  // charge.amount_refunded and charge.amount are both in cents.
   const refundedAmountCents = charge.amount_refunded;
   const totalAmountCents = charge.amount;
-
-  // Check if this was a subscription payment or add-on purchase
-  // by looking at the charge metadata or invoice
   const isSubscription = !!charge.invoice;
 
   let creditsToRemove = 0;
+  let planCreditsSource: 'max_charge_amount' | 'plus_charge_amount' | 'plan_tier_fallback' | 'addon_price_map' | 'addon_per_credit_fallback';
 
   if (isSubscription) {
-    // Subscription refund: remove the plan's monthly credits
-    const planCredits = userCredits.plan_tier === 'max' ? 200 : userCredits.plan_tier === 'plus' ? 50 : 4;
-
-    if (refundedAmountCents >= totalAmountCents) {
-      // Full refund — remove all plan credits
-      creditsToRemove = planCredits;
+    // Source plan credits from the charge amount the user actually paid,
+    // NOT from user_credits.plan_tier. plan_tier reflects the CURRENT
+    // plan, which may have changed since the charge — refunding 50
+    // credits for a $79.99 Max charge (because the user has since
+    // downgraded to Plus) under-removes; the inverse over-removes.
+    let planCredits: number;
+    if (totalAmountCents === 7999) {
+      planCredits = 200;
+      planCreditsSource = 'max_charge_amount';
+    } else if (totalAmountCents === 1999) {
+      planCredits = 50;
+      planCreditsSource = 'plus_charge_amount';
     } else {
-      // Partial refund — remove proportional credits
-      creditsToRemove = Math.round(planCredits * (refundedAmountCents / totalAmountCents));
+      console.warn(
+        `[Stripe Webhook] Unknown subscription charge amount ${totalAmountCents} cents on charge ${charge.id}; ` +
+        `falling back to current plan_tier ${userCredits.plan_tier}. Update the amount->credits map.`,
+      );
+      planCredits = userCredits.plan_tier === 'max' ? 200 : userCredits.plan_tier === 'plus' ? 50 : 4;
+      planCreditsSource = 'plan_tier_fallback';
     }
 
-    // Deduct from monthly credits first, then rollover
-    let remaining = creditsToRemove;
-    let newMonthly = userCredits.monthly_credits;
-    let newRollover = userCredits.rollover_credits;
-
-    const monthlyDeduct = Math.min(remaining, newMonthly);
-    newMonthly -= monthlyDeduct;
-    remaining -= monthlyDeduct;
-
-    if (remaining > 0) {
-      const rolloverDeduct = Math.min(remaining, newRollover);
-      newRollover -= rolloverDeduct;
-      remaining -= rolloverDeduct;
-    }
-
-    const totalBefore = userCredits.monthly_credits + userCredits.rollover_credits + userCredits.addon_credits;
-    const totalAfter = newMonthly + newRollover + userCredits.addon_credits;
-
-    const { error } = await supabase
-      .from('user_credits')
-      .update({
-        monthly_credits: newMonthly,
-        rollover_credits: newRollover,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', userCredits.user_id);
-
-    if (error) {
-      console.error('[Stripe Webhook] Failed to remove credits on refund:', error);
-    } else {
-      await supabase.from('credit_transactions').insert({
-        user_id: userCredits.user_id,
-        amount: -creditsToRemove,
-        transaction_type: 'refund',
-        description: `Refund: removed ${creditsToRemove} subscription credits`,
-        metadata: { chargeId: charge.id, refundedAmountCents, isFullRefund: refundedAmountCents >= totalAmountCents },
-        balance_before: totalBefore,
-        balance_after: totalAfter,
-      });
-      console.log(`[Stripe Webhook] Refund: removed ${creditsToRemove} credits for user ${userCredits.user_id}`);
-    }
+    creditsToRemove = refundedAmountCents >= totalAmountCents
+      ? planCredits
+      : Math.round(planCredits * (refundedAmountCents / totalAmountCents));
   } else {
-    // Add-on refund: remove from addon_credits
-    // Map refund amount to credit count
-    // Current: 50 credits = $19.99; Legacy: 60 credits = $14.99, 120 credits = $29.99
-    // Use the charge amount to determine which pack was purchased
+    // Add-on refund — pack credits inferred from the original charge.
+    // Current: 50 credits = $19.99; Legacy: 60 credits = $14.99, 120 credits = $29.99.
     if (totalAmountCents === 1999) {
       creditsToRemove = 50;
+      planCreditsSource = 'addon_price_map';
     } else if (totalAmountCents === 1499) {
       creditsToRemove = 60;
+      planCreditsSource = 'addon_price_map';
     } else if (totalAmountCents === 2999) {
       creditsToRemove = 120;
+      planCreditsSource = 'addon_price_map';
     } else {
-      // Fallback: proportional based on $0.40/credit
       creditsToRemove = Math.round(refundedAmountCents / 40);
+      planCreditsSource = 'addon_per_credit_fallback';
     }
 
-    // For partial refunds, scale proportionally
     if (refundedAmountCents < totalAmountCents) {
       const fullPackCredits = creditsToRemove;
       creditsToRemove = Math.round(fullPackCredits * (refundedAmountCents / totalAmountCents));
     }
+  }
 
-    const newAddon = Math.max(0, userCredits.addon_credits - creditsToRemove);
-    const totalBefore = userCredits.monthly_credits + userCredits.rollover_credits + userCredits.addon_credits;
-    const totalAfter = userCredits.monthly_credits + userCredits.rollover_credits + newAddon;
+  // CAS-guarded balance update with retry once. Without the .eq() guards
+  // on current bucket values, a user spending credits at the moment a
+  // refund webhook lands would lose or gain credits through last-writer-
+  // wins. The retry handles the rare case where a concurrent deductCredits
+  // landed between our read and update.
+  let attempt = 0;
+  let succeeded = false;
+  let lastError: unknown = null;
+  let totalBefore = 0;
+  let totalAfter = 0;
 
-    const { error } = await supabase
+  while (attempt < 2 && !succeeded) {
+    const { data: fresh, error: readError } = await supabase
+      .from('user_credits')
+      .select('monthly_credits, rollover_credits, addon_credits')
+      .eq('user_id', userCredits.user_id)
+      .single();
+
+    if (readError || !fresh) {
+      lastError = readError ?? new Error('User credits row disappeared during refund');
+      break;
+    }
+
+    totalBefore = fresh.monthly_credits + fresh.rollover_credits + fresh.addon_credits;
+
+    let newMonthly = fresh.monthly_credits;
+    let newRollover = fresh.rollover_credits;
+    let newAddon = fresh.addon_credits;
+
+    if (isSubscription) {
+      // Subscription refund drains monthly first, then rollover. addon
+      // stays untouched (it was purchased separately).
+      let remaining = creditsToRemove;
+      const monthlyDeduct = Math.min(remaining, newMonthly);
+      newMonthly -= monthlyDeduct;
+      remaining -= monthlyDeduct;
+      if (remaining > 0) {
+        const rolloverDeduct = Math.min(remaining, newRollover);
+        newRollover -= rolloverDeduct;
+      }
+    } else {
+      // Add-on refund only touches addon_credits.
+      newAddon = Math.max(0, newAddon - creditsToRemove);
+    }
+
+    totalAfter = newMonthly + newRollover + newAddon;
+
+    const { data: updated, error: updateError } = await supabase
       .from('user_credits')
       .update({
+        monthly_credits: newMonthly,
+        rollover_credits: newRollover,
         addon_credits: newAddon,
         updated_at: new Date().toISOString(),
       })
-      .eq('user_id', userCredits.user_id);
+      .eq('user_id', userCredits.user_id)
+      .eq('monthly_credits', fresh.monthly_credits)
+      .eq('rollover_credits', fresh.rollover_credits)
+      .eq('addon_credits', fresh.addon_credits)
+      .select('user_id');
 
-    if (error) {
-      console.error('[Stripe Webhook] Failed to remove addon credits on refund:', error);
+    if (updateError) {
+      lastError = updateError;
+      break;
+    }
+
+    if (updated && updated.length > 0) {
+      succeeded = true;
     } else {
-      await supabase.from('credit_transactions').insert({
-        user_id: userCredits.user_id,
-        amount: -creditsToRemove,
-        transaction_type: 'refund',
-        description: `Refund: removed ${creditsToRemove} add-on credits`,
-        metadata: { chargeId: charge.id, refundedAmountCents, totalAmountCents },
-        balance_before: totalBefore,
-        balance_after: totalAfter,
-      });
-      console.log(`[Stripe Webhook] Refund: removed ${creditsToRemove} addon credits for user ${userCredits.user_id}`);
+      attempt += 1;
+      console.warn(`[Stripe Webhook] Refund CAS miss for user ${userCredits.user_id}, retry ${attempt}`);
     }
   }
+
+  if (!succeeded) {
+    console.error('[Stripe Webhook] Failed to remove credits on refund:', lastError);
+    return;
+  }
+
+  await supabase.from('credit_transactions').insert({
+    user_id: userCredits.user_id,
+    amount: -creditsToRemove,
+    transaction_type: 'refund',
+    description: isSubscription
+      ? `Refund: removed ${creditsToRemove} subscription credits`
+      : `Refund: removed ${creditsToRemove} add-on credits`,
+    metadata: {
+      chargeId: charge.id,
+      refundedAmountCents,
+      totalAmountCents,
+      isFullRefund: refundedAmountCents >= totalAmountCents,
+      planCreditsSource,
+    },
+    balance_before: totalBefore,
+    balance_after: totalAfter,
+  });
+  console.log(`[Stripe Webhook] Refund: removed ${creditsToRemove} credits for user ${userCredits.user_id} (source: ${planCreditsSource})`);
 }
 
 async function handlePaymentFailed(invoice: any) {
