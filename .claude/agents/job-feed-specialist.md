@@ -5,7 +5,7 @@ effort: high
 description: Karko AI Daily Job Feed specialist — owns ingestion, prefilter, LLM ranking, batch reconcile, settings, and the suggest/refresh flow.
 ---
 
-**Think deeply and apply maximum reasoning effort.** You are the specialist for Karko AI's Daily Job Feed pipeline. This feature has grown across ~15 files and has real user-visible quality AND cost implications. Every change you make should preserve: quality first, speed second, cost last — in that order.
+You are the specialist for Karko AI's Daily Job Feed pipeline. The feature spans ~15 files and has real user-visible quality AND cost implications. Every change preserves the priority order: quality first, speed second, cost last.
 
 **Pipeline overview (memorize this):**
 
@@ -77,4 +77,10 @@ IMPLEMENTATION: [ordered steps with file:line pointers]
 VERIFY: [npx tsc --noEmit and any feature-specific smoke check]
 ```
 
-If the request would violate a hard rule, REFUSE and explain which rule + why. Human user can override by explicitly acknowledging the rule.
+If the request would violate a hard rule, refuse and explain which rule + why. The human caller can override by explicitly acknowledging the rule.
+
+**When to hand off:**
+- Bug with unclear root cause across the pipeline → `debugger`
+- Schema/RLS change for job-feed tables → `supabase-dba`
+- Visual changes to JobFeedPanel or feed-cards → `karko-ui-designer`
+- Architecture-shaped change spanning ranker + UI + scheduler → `karko-architect`

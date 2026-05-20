@@ -9,18 +9,14 @@
 Specialist agents are the **preferred** way to handle bug investigations, external research, code review, UI verification, and agent/prompt work. They protect the main context window and often find issues faster than direct exploration. Spawn them in parallel when the work is independent.
 
 ### Project-scope agents (this repo)
-- **`agent-expert`** — When editing anything in `src/lib/agents/`, `src/lib/agents/prompts/`, `src/lib/models/`, `src/app/api/agent-v2/`, or the `useAgentV2` / `useAgentWorkflow` hooks. Also for anti-hallucination rule changes, SSE event debugging, context-builder work, CV pipeline, fit-assessment prompts.
+- **`debugger`** — Whenever a runtime bug, regression, stack trace, or "X is broken but I don't know why" appears. Also for intermittent SSE/streaming failures, wrong state on screen, credit/billing anomalies, and any failed request without an obvious cause. Read-only by default; proposes patches with file:line, refuses to paper over symptoms. Powered by Opus 4.7.
+- **`agent-expert`** — When editing anything in `src/lib/agents/`, `src/lib/agents/prompts/`, `src/lib/models/`, `src/app/api/agent-v2/`, or the `useAgentV2` / `useAgentWorkflow` hooks. Also for anti-hallucination rule changes, SSE event semantics, context-builder work, CV pipeline, fit-assessment prompts. Powered by Opus 4.7.
 - **`ui-tester`** — After any UI change to `/dashboard`, `/applications`, `/documents`, `/` (landing), or shared components (ChatPanel, CVPanel, CoverLetterPanel, EmailPanel, JobFeedPanel). Uses Playwright MCP. Run before calling a UI task done.
-- **`karko-architect`** — For cross-cutting design decisions, refactors, and "where should this state live" questions. Use for anything that spans 3+ files or has non-obvious tradeoffs. Returns a plan with ordered steps; does not modify code itself.
+- **`karko-architect`** — For cross-cutting design decisions, refactors, and "where should this state live" questions. Use for anything that spans 3+ files or has non-obvious tradeoffs. Returns a plan with ordered steps; does not modify code itself. Powered by Opus 4.7.
 - **`supabase-dba`** — When writing or reviewing migrations in `supabase/migrations/`, changing RLS policies, touching schema, or when a query looks suspicious. Will not run migrations itself.
 - **`integration-tester`** — Before every commit touching components, hooks, API routes, or job-feed files. Runs tsc + lint + narrow spot-checks. Cheap and fast — uses Haiku 4.5.
 - **`job-feed-specialist`** — When editing anything under `src/lib/job-feed/**`, `src/inngest/job-feed.ts`, `src/app/api/job-feed/**`, or `src/components/job-feed/**`. Owns ingestion, prefilter, LLM ranker, batch reconcile, and settings flows.
-- **`karko-ui-designer`** — For UI/UX audits, redesigns, and visual polish. Carries brand tokens (navy/cream/gold), typography (Georgia+Arial), and anti-AI-slop rules in its system prompt. Can audit AND implement. Does NOT touch backend, API routes, data fetching, or Zustand stores.
-
-### Global-scope agents (all projects — from `~/.claude/CLAUDE.md`)
-- **`reviewer`** — BEFORE any git commit with non-trivial changes (>30 lines), when touching security-sensitive code (auth, API routes, DB, Stripe webhooks, credits), or when user says "review this / check this / any issues?".
-- **`debugger`** — When user reports an error, stack trace, crash, or unexpected behavior. Paste the symptom + trace hypotheses and delegate — don't burn main-context tokens investigating non-trivial bugs yourself.
-- **`researcher`** — For external doc lookups, API signatures, pricing/limits, version/release info. Prefer this over ad-hoc WebFetch (cheaper, faster, cross-references sources).
+- **`karko-ui-designer`** — For UI/UX audits, redesigns, and visual polish. Carries brand tokens (navy/cream/gold), typography (Georgia+Arial), surface roles, radius/shadow scales, and anti-AI-slop rules in its system prompt. Can audit AND implement. Does NOT touch backend, API routes, data fetching, or Zustand stores.
 
 ### Opus 4.7 escalation (automatic — do not wait to be asked)
 For tasks requiring deep reasoning or premium creative output, draft first as Sonnet 4.6 then escalate to Opus 4.7 via Agent tool (model: "opus") to critique and polish. Pattern: Sonnet drafts → Opus 4.7 reviews and produces final → present Opus 4.7's version to user.
@@ -28,12 +24,13 @@ For tasks requiring deep reasoning or premium creative output, draft first as So
 Escalate automatically for:
 - **Website / marketing copywriting** — homepage, landing pages, CTAs, onboarding copy, pricing copy
 - **Video scripts** — demo scripts, walkthrough scripts, any voiceover narrative
-- **Debugging** — non-trivial bugs with stack traces or multi-file root causes (delegate to `debugger` agent)
+- **Debugging non-trivial bugs** — use the `debugger` agent (already Opus 4.7). Don't try to root-cause stack traces or multi-file regressions in the main thread.
+- **Anti-hallucination / prompt changes** — use the `agent-expert` agent (already Opus 4.7) for anything in `src/lib/agents/**`.
 - **High-stakes UI/UX decisions** — brand-level design critique after `karko-ui-designer` runs
-- **Architecture decisions** — anything spanning 3+ files (use `karko-architect` which already uses Opus)
+- **Architecture decisions** — anything spanning 3+ files (use `karko-architect` which already uses Opus 4.7)
 
 ### When to parallelize
-If two agent tasks are independent (different files, different questions), spawn them in a **single message with multiple Agent tool calls** — they run concurrently. Good recent example: two `debugger` agents investigating double-generation and new-chat-broken bugs at the same time, each returning a tight file:line report.
+If two agent tasks are independent (different files, different questions), spawn them in a **single message with multiple Agent tool calls** — they run concurrently.
 
 ---
 
@@ -53,6 +50,11 @@ If two agent tasks are independent (different files, different questions), spawn
   - **Modifying Stripe webhook/credit logic** — financial logic, confirm intent first
   - **Force-push or git history rewrites** — always confirm
   - **Touching Supabase auth or session handling** — security-sensitive
+
+### Code-Change Discipline
+- **Surgical changes.** Touch only what the task requires. No drive-by refactors, no reformatting adjacent code, no "while I'm here" cleanups. Match existing style even if you disagree.
+- **Simplicity first.** Minimum code that solves the problem. No abstractions for single-use code. No speculative features. If a senior engineer would call it overcomplicated, simplify.
+- **Fail loud.** "Completed" is wrong if anything was skipped. "Tests pass" is wrong if any were skipped. Surface uncertainty; never hide it. Don't catch-and-swallow errors to make a flow appear to work.
 
 ### After Every Code Change
 - Run `npx tsc --noEmit` — **zero TypeScript errors required** before calling any task done
