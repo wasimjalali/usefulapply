@@ -319,8 +319,25 @@ export async function checkCreditBalance(
 // =====================================================
 
 /**
+ * Per-bucket allocation of a deduction. Returned by deductCredits so
+ * callers (notably credit-reservations.ts refunds) can reverse a deduction
+ * into the same buckets it came from instead of always dumping into addon.
+ */
+export interface DeductionAllocation {
+  monthly: number;
+  rollover: number;
+  addon: number;
+}
+
+const NO_DEDUCTION: DeductionAllocation = { monthly: 0, rollover: 0, addon: 0 };
+
+/**
  * Deduct credits from user balance
  * Order: monthly → rollover → addon
+ *
+ * Returns deductedFrom describing exactly which buckets were drained so a
+ * later refund (e.g., on idempotency-race rollback) can reverse the
+ * allocation precisely.
  */
 export async function deductCredits(
   userId: string,
@@ -333,6 +350,7 @@ export async function deductCredits(
 ): Promise<{
   success: boolean;
   remainingCredits: number;
+  deductedFrom: DeductionAllocation;
   error: Error | null;
 }> {
   const supabase = getSupabaseClient(options?.supabaseClient);
@@ -344,6 +362,7 @@ export async function deductCredits(
     return {
       success: false,
       remainingCredits: 0,
+      deductedFrom: NO_DEDUCTION,
       error: fetchError || new Error('Credits not found'),
     };
   }
@@ -355,6 +374,7 @@ export async function deductCredits(
     return {
       success: false,
       remainingCredits: totalBefore,
+      deductedFrom: NO_DEDUCTION,
       error: new Error(`Insufficient credits. Required: ${amount}, Available: ${totalBefore}`),
     };
   }
@@ -409,6 +429,7 @@ export async function deductCredits(
     return {
       success: false,
       remainingCredits: totalBefore,
+      deductedFrom: NO_DEDUCTION,
       error: new Error('Failed to update credits'),
     };
   }
@@ -419,11 +440,11 @@ export async function deductCredits(
     // Re-read and retry once
     const { credits: freshCredits, error: retryFetchError } = await getUserCredits(userId, options?.supabaseClient);
     if (retryFetchError || !freshCredits) {
-      return { success: false, remainingCredits: 0, error: retryFetchError || new Error('Credits not found on retry') };
+      return { success: false, remainingCredits: 0, deductedFrom: NO_DEDUCTION, error: retryFetchError || new Error('Credits not found on retry') };
     }
     const freshTotal = getTotalCredits(freshCredits);
     if (freshTotal < amount) {
-      return { success: false, remainingCredits: freshTotal, error: new Error(`Insufficient credits after retry. Required: ${amount}, Available: ${freshTotal}`) };
+      return { success: false, remainingCredits: freshTotal, deductedFrom: NO_DEDUCTION, error: new Error(`Insufficient credits after retry. Required: ${amount}, Available: ${freshTotal}`) };
     }
     // Recalculate with fresh values
     let retryRemaining = amount;
@@ -444,7 +465,7 @@ export async function deductCredits(
       .select('user_id');
 
     if (retryError || !retryResult || retryResult.length === 0) {
-      return { success: false, remainingCredits: freshTotal, error: new Error('Credit deduction failed due to concurrent access. Please try again.') };
+      return { success: false, remainingCredits: freshTotal, deductedFrom: NO_DEDUCTION, error: new Error('Credit deduction failed due to concurrent access. Please try again.') };
     }
     const retryTotalAfter = retryMonthly + retryRollover + retryAddon;
     await logCreditTransaction(userId, -amount, action.toLowerCase(), {
@@ -453,7 +474,16 @@ export async function deductCredits(
       balanceBefore: freshTotal,
       balanceAfter: retryTotalAfter,
     }, options?.supabaseClient);
-    return { success: true, remainingCredits: retryTotalAfter, error: null };
+    return {
+      success: true,
+      remainingCredits: retryTotalAfter,
+      deductedFrom: {
+        monthly: freshCredits.monthly_credits - retryMonthly,
+        rollover: freshCredits.rollover_credits - retryRollover,
+        addon: freshCredits.addon_credits - retryAddon,
+      },
+      error: null,
+    };
   }
 
   const totalAfter = newMonthly + newRollover + newAddon;
@@ -469,6 +499,11 @@ export async function deductCredits(
   return {
     success: true,
     remainingCredits: totalAfter,
+    deductedFrom: {
+      monthly: credits.monthly_credits - newMonthly,
+      rollover: credits.rollover_credits - newRollover,
+      addon: credits.addon_credits - newAddon,
+    },
     error: null,
   };
 }

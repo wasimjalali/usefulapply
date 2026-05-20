@@ -86,6 +86,23 @@ export async function reserveCredits(params: {
     return { success: false, reservation: null, error: deductResult.error?.message ?? 'Deduction failed' };
   }
 
+  // Refund the deduction by reversing its per-bucket allocation. Without
+  // this, every refund flowed into addon_credits even when the deduction
+  // came from monthly/rollover, which inflated addon balances over time
+  // (free-tier users would accumulate addon credits they never bought).
+  const refundDeduction = async (reason: string, description: string) => {
+    const { deductedFrom } = deductResult;
+    if (deductedFrom.monthly > 0) {
+      await addCredits(userId, deductedFrom.monthly, 'monthly', reason, description, admin);
+    }
+    if (deductedFrom.rollover > 0) {
+      await addCredits(userId, deductedFrom.rollover, 'rollover', reason, description, admin);
+    }
+    if (deductedFrom.addon > 0) {
+      await addCredits(userId, deductedFrom.addon, 'addon', reason, description, admin);
+    }
+  };
+
   const { data, error } = await admin
     .from('credit_reservations')
     .insert({
@@ -117,7 +134,7 @@ export async function reserveCredits(params: {
         .single();
 
       if (raceWinner) {
-        await addCredits(userId, amount, 'addon', 'reservation_duplicate_refund', `Duplicate reservation refund for ${idempotencyKey}`, admin);
+        await refundDeduction('reservation_duplicate_refund', `Duplicate reservation refund for ${idempotencyKey}`);
         return { success: true, reservation: raceWinner as CreditReservation, error: null };
       }
     }
@@ -136,7 +153,7 @@ export async function reserveCredits(params: {
       return { success: true, reservation: postInsertCheck as CreditReservation, error: null };
     }
 
-    await addCredits(userId, amount, 'addon', 'reservation_failed_refund', `Failed reservation refund for ${idempotencyKey}`, admin);
+    await refundDeduction('reservation_failed_refund', `Failed reservation refund for ${idempotencyKey}`);
     return { success: false, reservation: null, error: `Failed to create reservation: ${error.message}` };
   }
 
