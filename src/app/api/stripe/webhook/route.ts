@@ -151,11 +151,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true, duplicate: true });
   }
 
-  // Record event BEFORE processing to prevent race conditions with concurrent retries
-  await supabaseAdmin.from('webhook_events').insert({
-    event_id: event.id,
-    event_type: event.type,
-  });
+  // Record event BEFORE processing to prevent race conditions with concurrent retries.
+  // The insert is the authoritative dedupe step: when a concurrent retry has
+  // already written the row, Postgres returns 23505 (unique_violation), and we
+  // bail out instead of silently proceeding past the duplicate check.
+  const { error: insertError } = await supabaseAdmin
+    .from('webhook_events')
+    .insert({
+      event_id: event.id,
+      event_type: event.type,
+    })
+    .select('event_id')
+    .single();
+
+  if (insertError) {
+    if (insertError.code === '23505') {
+      console.log('[Stripe Webhook] Concurrent retry won the race, treating as duplicate:', event.id);
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+    console.error('[Stripe Webhook] Failed to record event:', insertError);
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+  }
 
   try {
     switch (event.type) {
