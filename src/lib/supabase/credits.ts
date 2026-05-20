@@ -575,20 +575,31 @@ export async function addCredits(
     };
   }
 
-  // If no rows matched, concurrent modification — retry once
+  // If no rows matched, concurrent modification — retry once.
+  // The retry MUST verify the row actually matched via .select('user_id');
+  // a raw .update().eq() returns success even when 0 rows were affected,
+  // which would silently no-op a refund or addon purchase and return
+  // success: true to the caller.
+  let usedRetryPath = false;
+  let retryFreshTotal = totalBefore;
   if (!updateResult || updateResult.length === 0) {
     const { credits: fresh, error: fetchErr } = await getUserCredits(userId, supabaseClient);
     if (fetchErr || !fresh) return { success: false, newBalance: 0, error: new Error('Credits not found on retry') };
+    retryFreshTotal = getTotalCredits(fresh);
     const freshField = creditType === 'monthly' ? fresh.monthly_credits : creditType === 'rollover' ? fresh.rollover_credits : fresh.addon_credits;
-    const { error: retryErr } = await supabase
+    const { data: retryUpdated, error: retryErr } = await supabase
       .from('user_credits')
       .update({ [updateField]: freshField + amount, updated_at: new Date().toISOString() })
       .eq('user_id', userId)
-      .eq(updateField, freshField);
-    if (retryErr) return { success: false, newBalance: getTotalCredits(fresh), error: new Error('Credit addition failed due to concurrent access') };
+      .eq(updateField, freshField)
+      .select('user_id');
+    if (retryErr || !retryUpdated || retryUpdated.length === 0) {
+      return { success: false, newBalance: retryFreshTotal, error: new Error('Credit addition failed due to concurrent access') };
+    }
+    usedRetryPath = true;
   }
 
-  const totalAfter = totalBefore + amount;
+  const totalAfter = (usedRetryPath ? retryFreshTotal : totalBefore) + amount;
 
   // Log transaction
   await logCreditTransaction(userId, amount, transactionType, {

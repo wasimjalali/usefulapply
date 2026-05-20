@@ -252,42 +252,71 @@ async function handleCheckoutCompleted(session: any) {
       return;
     }
 
-    // Get current credits for balance tracking
-    const { data: currentCredits } = await supabase
-      .from('user_credits')
-      .select('monthly_credits, rollover_credits, addon_credits')
-      .eq('user_id', userId)
-      .single();
+    // CAS-guarded read-modify-write. Without the .eq() guard on
+    // addon_credits, a user spending credits during this webhook would
+    // have their addon_credits silently overwritten with a stale base.
+    let attempt = 0;
+    let succeeded = false;
+    let lastError: unknown = null;
+    let totalBefore = 0;
+    let totalAfter = 0;
 
-    const addonBefore = currentCredits?.addon_credits || 0;
-    const totalBefore = (currentCredits?.monthly_credits || 0) + (currentCredits?.rollover_credits || 0) + addonBefore;
-    const newAddonCredits = addonBefore + creditsToAdd;
-    const totalAfter = totalBefore + creditsToAdd;
+    while (attempt < 2 && !succeeded) {
+      const { data: fresh, error: readError } = await supabase
+        .from('user_credits')
+        .select('monthly_credits, rollover_credits, addon_credits')
+        .eq('user_id', userId)
+        .single();
 
-    const { error } = await supabase
-      .from('user_credits')
-      .update({
-        addon_credits: newAddonCredits,
-        stripe_customer_id: customerId,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', userId);
+      if (readError || !fresh) {
+        lastError = readError ?? new Error('User credits row not found for addon purchase');
+        break;
+      }
 
-    if (error) {
-      console.error('Failed to add addon credits:', error);
-    } else {
-      // Log the credit transaction
-      await supabase.from('credit_transactions').insert({
-        user_id: userId,
-        amount: creditsToAdd,
-        transaction_type: 'addon_purchase',
-        description: `Purchased ${packSize} add-on pack (${creditsToAdd} credits)`,
-        metadata: { packSize, stripeSessionId: session.id },
-        balance_before: totalBefore,
-        balance_after: totalAfter,
-      });
-      console.log(`[Stripe Webhook] Added ${creditsToAdd} addon credits for user ${userId}`);
+      const addonBefore = fresh.addon_credits || 0;
+      totalBefore = (fresh.monthly_credits || 0) + (fresh.rollover_credits || 0) + addonBefore;
+      const newAddonCredits = addonBefore + creditsToAdd;
+      totalAfter = totalBefore + creditsToAdd;
+
+      const { data: updated, error: updateError } = await supabase
+        .from('user_credits')
+        .update({
+          addon_credits: newAddonCredits,
+          stripe_customer_id: customerId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .eq('addon_credits', addonBefore)
+        .select('user_id');
+
+      if (updateError) {
+        lastError = updateError;
+        break;
+      }
+
+      if (updated && updated.length > 0) {
+        succeeded = true;
+      } else {
+        attempt += 1;
+        console.warn(`[Stripe Webhook] Addon credit CAS miss for user ${userId}, retry ${attempt}`);
+      }
     }
+
+    if (!succeeded) {
+      console.error('Failed to add addon credits:', lastError);
+      return;
+    }
+
+    await supabase.from('credit_transactions').insert({
+      user_id: userId,
+      amount: creditsToAdd,
+      transaction_type: 'addon_purchase',
+      description: `Purchased ${packSize} add-on pack (${creditsToAdd} credits)`,
+      metadata: { packSize, stripeSessionId: session.id },
+      balance_before: totalBefore,
+      balance_after: totalAfter,
+    });
+    console.log(`[Stripe Webhook] Added ${creditsToAdd} addon credits for user ${userId}`);
     return;
   }
 
@@ -523,49 +552,89 @@ async function handlePaymentSucceeded(invoice: any) {
   const supabase = getSupabaseAdmin();
   const customerId = invoice.customer;
 
-  // Get user by customer ID — include rollover_credits for proper reset
-  const { data: userCredits } = await supabase
+  // Get user by customer ID. plan_tier is read once to decide baseCredits;
+  // monthly_credits and rollover_credits are re-read inside the CAS loop
+  // so a concurrent deductCredits between renewal trigger and update
+  // doesn't get overwritten.
+  const { data: userRow } = await supabase
     .from('user_credits')
-    .select('user_id, plan_tier, monthly_credits, rollover_credits, addon_credits')
+    .select('user_id, plan_tier')
     .eq('stripe_customer_id', customerId)
     .single();
 
-  if (!userCredits) {
+  if (!userRow) {
     console.error('User not found for customer:', customerId);
     return;
   }
 
-  // Determine base credits for the plan
-  const baseCredits = userCredits.plan_tier === 'plus' ? 50 : userCredits.plan_tier === 'max' ? 200 : 4;
-
-  // Rollover unused monthly credits (capped per plan)
-  const maxRollover = userCredits.plan_tier === 'plus' ? 50 : userCredits.plan_tier === 'max' ? 100 : 0;
-  const newRollover = Math.min(
-    (userCredits.rollover_credits || 0) + (userCredits.monthly_credits || 0),
-    maxRollover
-  );
+  const baseCredits = userRow.plan_tier === 'plus' ? 50 : userRow.plan_tier === 'max' ? 200 : 4;
+  const maxRollover = userRow.plan_tier === 'plus' ? 50 : userRow.plan_tier === 'max' ? 100 : 0;
 
   const now = new Date();
   const nextReset = new Date(now);
   nextReset.setMonth(nextReset.getMonth() + 1);
 
-  const { error } = await supabase
-    .from('user_credits')
-    .update({
-      monthly_credits: baseCredits,
-      rollover_credits: newRollover,
-      subscription_status: 'active',
-      last_reset_date: now.toISOString(),
-      next_reset_date: nextReset.toISOString(),
-      updated_at: now.toISOString(),
-    })
-    .eq('user_id', userCredits.user_id);
+  // CAS-guarded renewal. Without the .eq() guards, a concurrent
+  // deductCredits or a duplicate webhook firing during dedupe window
+  // could inflate rollover by re-adding already-reset monthly_credits
+  // on top of an already-reset state.
+  let attempt = 0;
+  let succeeded = false;
+  let lastError: unknown = null;
+  let finalMonthlyBefore = 0;
+  let finalRolloverBefore = 0;
+  let newRollover = 0;
 
-  if (error) {
-    console.error('Failed to reset credits:', error);
-  } else {
-    console.log(`[Webhook] Renewal for ${userCredits.user_id}: ${baseCredits} monthly, ${newRollover} rollover (was ${userCredits.rollover_credits || 0} + ${userCredits.monthly_credits || 0})`);
+  while (attempt < 2 && !succeeded) {
+    const { data: fresh, error: readError } = await supabase
+      .from('user_credits')
+      .select('monthly_credits, rollover_credits')
+      .eq('user_id', userRow.user_id)
+      .single();
+
+    if (readError || !fresh) {
+      lastError = readError ?? new Error('User credits row not found during renewal');
+      break;
+    }
+
+    finalMonthlyBefore = fresh.monthly_credits || 0;
+    finalRolloverBefore = fresh.rollover_credits || 0;
+    newRollover = Math.min(finalRolloverBefore + finalMonthlyBefore, maxRollover);
+
+    const { data: updated, error: updateError } = await supabase
+      .from('user_credits')
+      .update({
+        monthly_credits: baseCredits,
+        rollover_credits: newRollover,
+        subscription_status: 'active',
+        last_reset_date: now.toISOString(),
+        next_reset_date: nextReset.toISOString(),
+        updated_at: now.toISOString(),
+      })
+      .eq('user_id', userRow.user_id)
+      .eq('monthly_credits', finalMonthlyBefore)
+      .eq('rollover_credits', finalRolloverBefore)
+      .select('user_id');
+
+    if (updateError) {
+      lastError = updateError;
+      break;
+    }
+
+    if (updated && updated.length > 0) {
+      succeeded = true;
+    } else {
+      attempt += 1;
+      console.warn(`[Webhook] Renewal CAS miss for user ${userRow.user_id}, retry ${attempt}`);
+    }
   }
+
+  if (!succeeded) {
+    console.error('Failed to reset credits:', lastError);
+    return;
+  }
+
+  console.log(`[Webhook] Renewal for ${userRow.user_id}: ${baseCredits} monthly, ${newRollover} rollover (was ${finalRolloverBefore} + ${finalMonthlyBefore})`);
 }
 
 async function handleChargeRefunded(charge: any) {
