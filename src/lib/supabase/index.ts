@@ -67,7 +67,12 @@ export {
 } from './feedback';
 export type { MessageFeedback } from './feedback';
 
-// Credit operations
+// Credit operations.
+//
+// upgradePlan, processMonthlyReset, processAddonPurchase live in
+// credits.server.ts and are intentionally NOT re-exported here. They use
+// the service-role client and must be imported directly from the
+// server-only module so they never end up in a client bundle.
 export {
   CREDIT_COSTS,
   getSubscriptionPlans,
@@ -79,10 +84,7 @@ export {
   checkCreditBalance,
   deductCredits,
   addCredits,
-  upgradePlan,
-  processMonthlyReset,
   getCreditTransactions,
-  processAddonPurchase,
 } from './credits';
 export type {
   UserCredits,

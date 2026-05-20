@@ -570,138 +570,23 @@ export async function addCredits(
 }
 
 // =====================================================
-// PLAN MANAGEMENT
-// =====================================================
-
-/**
- * Upgrade user's plan
- */
-export async function upgradePlan(
-  userId: string,
-  newTier: 'plus' | 'max'
-): Promise<{
-  success: boolean;
-  error: Error | null;
-}> {
-  const supabase = getUntypedSupabase();
-
-  // Get the new plan details
-  const { plan, error: planError } = await getSubscriptionPlan(newTier);
-  if (planError || !plan) {
-    return { success: false, error: planError || new Error('Plan not found') };
-  }
-
-  // Get current credits
-  const { credits, error: creditsError } = await getUserCredits(userId);
-  if (creditsError || !credits) {
-    return { success: false, error: creditsError || new Error('Credits not found') };
-  }
-
-  const totalBefore = getTotalCredits(credits);
-
-  // Calculate new credits (add the difference or full amount if upgrading)
-  const creditsToAdd = plan.credits_monthly;
-
-  // Update user credits with new plan
-  const { error: updateError } = await supabase
-    .from('user_credits')
-    .update({
-      plan_tier: newTier,
-      monthly_credits: credits.monthly_credits + creditsToAdd,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('user_id', userId);
-
-  if (updateError) {
-    console.error('Error upgrading plan:', updateError);
-    return { success: false, error: new Error(updateError.message) };
-  }
-
-  // Log transaction
-  await logCreditTransaction(userId, creditsToAdd, 'plan_upgrade', {
-    description: `Upgraded to ${plan.name} plan`,
-    balanceBefore: totalBefore,
-    balanceAfter: totalBefore + creditsToAdd,
-    metadata: { newTier, planName: plan.name },
-  });
-
-  return { success: true, error: null };
-}
-
-/**
- * Process monthly credit reset (called by cron/webhook)
- */
-export async function processMonthlyReset(userId: string): Promise<{
-  success: boolean;
-  error: Error | null;
-}> {
-  const supabase = getUntypedSupabase();
-
-  // Get current credits and plan
-  const { credits, error: creditsError } = await getUserCredits(userId);
-  if (creditsError || !credits) {
-    return { success: false, error: creditsError || new Error('Credits not found') };
-  }
-
-  const { plan, error: planError } = await getSubscriptionPlan(credits.plan_tier);
-  if (planError || !plan) {
-    return { success: false, error: planError || new Error('Plan not found') };
-  }
-
-  const totalBefore = getTotalCredits(credits);
-
-  // Calculate rollover (unused monthly credits)
-  let newRollover = credits.rollover_credits + credits.monthly_credits;
-
-  // Apply rollover limit
-  if (plan.max_rollover_credits > 0) {
-    newRollover = Math.min(newRollover, plan.max_rollover_credits);
-  } else {
-    newRollover = 0; // No rollover for free
-  }
-
-  // Calculate next reset date
-  const nextReset = new Date();
-  nextReset.setMonth(nextReset.getMonth() + 1);
-
-  // Update credits
-  const { error: updateError } = await supabase
-    .from('user_credits')
-    .update({
-      monthly_credits: plan.credits_monthly,
-      rollover_credits: newRollover,
-      last_reset_date: new Date().toISOString(),
-      next_reset_date: nextReset.toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('user_id', userId);
-
-  if (updateError) {
-    console.error('Error processing monthly reset:', updateError);
-    return { success: false, error: new Error(updateError.message) };
-  }
-
-  const totalAfter = plan.credits_monthly + newRollover + credits.addon_credits;
-
-  // Log transaction
-  await logCreditTransaction(userId, plan.credits_monthly, 'monthly_reset', {
-    description: `Monthly credit reset for ${plan.name} plan`,
-    balanceBefore: totalBefore,
-    balanceAfter: totalAfter,
-    metadata: { rolloverApplied: newRollover },
-  });
-
-  return { success: true, error: null };
-}
-
-// =====================================================
 // TRANSACTION LOGGING
 // =====================================================
 
+// Plan-mutating functions (upgradePlan, processMonthlyReset,
+// processAddonPurchase) live in credits.server.ts. They use the
+// service-role client and must never be reachable from a client bundle.
+
 /**
- * Log a credit transaction
+ * Log a credit transaction.
+ *
+ * Exported so server-only credit mutation functions in credits.server.ts
+ * can record their writes through the same code path. The caller must
+ * pass an admin (service-role) client; the default client falls back to
+ * anon, which RLS will deny once the user-write policies on
+ * credit_transactions are dropped.
  */
-async function logCreditTransaction(
+export async function logCreditTransaction(
   userId: string,
   amount: number,
   transactionType: string,
@@ -756,57 +641,3 @@ export async function getCreditTransactions(
   return { transactions: data as CreditTransaction[], error: null };
 }
 
-// =====================================================
-// ADD-ON PURCHASE
-// =====================================================
-
-/**
- * Process add-on credit purchase
- */
-export async function processAddonPurchase(
-  userId: string,
-  packId: string
-): Promise<{
-  success: boolean;
-  creditsAdded: number;
-  error: Error | null;
-}> {
-  const supabase = getUntypedSupabase();
-
-  // Get the pack details
-  const { data: pack, error: packError } = await supabase
-    .from('addon_credit_packs')
-    .select('*')
-    .eq('id', packId)
-    .eq('active', true)
-    .single();
-
-  if (packError || !pack) {
-    return { success: false, creditsAdded: 0, error: new Error('Pack not found') };
-  }
-
-  // Check if user is on a plan that allows add-ons
-  const { credits, error: creditsError } = await getUserCredits(userId);
-  if (creditsError || !credits) {
-    return { success: false, creditsAdded: 0, error: creditsError || new Error('Credits not found') };
-  }
-
-  if (credits.plan_tier === 'free') {
-    return { success: false, creditsAdded: 0, error: new Error('Add-ons not available for Free plan') };
-  }
-
-  // Add credits
-  const { success, error } = await addCredits(
-    userId,
-    pack.credits,
-    'addon',
-    'addon_purchase',
-    `Purchased ${pack.name} (${pack.credits} credits)`
-  );
-
-  if (!success) {
-    return { success: false, creditsAdded: 0, error };
-  }
-
-  return { success: true, creditsAdded: pack.credits, error: null };
-}
