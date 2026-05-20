@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePostHog } from 'posthog-js/react';
 import { hasUsedFreeGeneration, markFreeGenerationUsed } from '@/components/SignUpWallModal';
 import { notifyJobFeedBadgeRefresh } from '@/hooks/useJobFeedBadge';
+import { generateRequestId } from '@/lib/utils/requestId';
 import type { JobFeedApplicationGeneration } from '@/lib/supabase/types';
 
 // AgentStepData type for V2 progress tracking
@@ -368,12 +369,19 @@ export function useAgentWorkflow(options?: {
     
     try {
       const { masterCV } = useAppStore.getState();
-      
+
       abortControllerRef.current = new AbortController();
-      
+
+      // Stable idempotency key for this workflow. Server uses it to dedupe
+      // credit reservations across transient retries.
+      const requestId = generateRequestId();
+
       const response = await fetch('/api/agent-v2', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-request-id': requestId,
+        },
         body: JSON.stringify({
           jobDescription,
           currentCV: currentCV.rawText,
@@ -538,10 +546,17 @@ export function useAgentWorkflow(options?: {
       abortControllerRef.current = new AbortController();
       void syncJobFeedGenerationStatus('running', undefined, workflowSessionId);
 
+      // Stable idempotency key for this workflow. Server uses it to dedupe
+      // credit reservations across transient retries.
+      const requestId = generateRequestId();
+
       const contextData = overrideContextData || fitAnalysisContextData;
       const response = await fetch('/api/agent-v2', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-request-id': requestId,
+        },
         body: JSON.stringify({
           jobDescription,
           currentCV: currentCV.rawText,
