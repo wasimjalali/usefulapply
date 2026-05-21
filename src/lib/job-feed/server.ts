@@ -1004,7 +1004,15 @@ export async function listLatestJobFeedItemsAdmin(params: {
   latestRun?: JobFeedRun | null;
 }): Promise<LatestJobFeedItemsResult> {
   const candidateRun = params.latestRun ?? await getLatestJobFeedRunAdmin(params.userId);
-  const run = candidateRun?.status === 'completed'
+  // Apply the inbox retention window to the candidate too. Without this the
+  // fast-path accepts a stale completed run, the inbox path returns empty,
+  // and the metadata fallback below resurrects ranked_preview_jobs from a run
+  // whose ranked_items were already deleted by cleanup at day 7.
+  const cutoffMs = Date.now() - JOB_FEED_INBOX_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+  const candidateFresh = candidateRun?.status === 'completed'
+    && typeof candidateRun.completed_at === 'string'
+    && Date.parse(candidateRun.completed_at) >= cutoffMs;
+  const run = candidateFresh
     ? candidateRun
     : await getLatestCompletedJobFeedRunAdmin(params.userId);
   if (!run || run.status !== 'completed') {
@@ -1294,6 +1302,12 @@ export function getJobFeedRunDiagnostics(run: JobFeedRun | null): JobFeedRunDiag
 }
 
 export async function getLatestCompletedJobFeedRunAdmin(userId: string): Promise<JobFeedRun | null> {
+  // Scope to the inbox retention window. After JOB_FEED_INBOX_RETENTION_DAYS,
+  // cleanup deletes the ranked_items so the inbox panel renders empty for that
+  // run anyway. Returning an older run here causes the dashboard badge to count
+  // unprocessed jobs via the run.metadata fallback (retained 30 days), while
+  // the panel shows nothing - badge and inbox disagree.
+  const since = new Date(Date.now() - JOB_FEED_INBOX_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
   const admin = createAdminClient() as any;
   const { data, error } = await admin
@@ -1301,6 +1315,7 @@ export async function getLatestCompletedJobFeedRunAdmin(userId: string): Promise
     .select('*')
     .eq('user_id', userId)
     .eq('status', 'completed')
+    .gte('completed_at', since)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
