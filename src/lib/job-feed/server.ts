@@ -1294,6 +1294,12 @@ export function getJobFeedRunDiagnostics(run: JobFeedRun | null): JobFeedRunDiag
 }
 
 export async function getLatestCompletedJobFeedRunAdmin(userId: string): Promise<JobFeedRun | null> {
+  // Scope to the inbox retention window. After JOB_FEED_INBOX_RETENTION_DAYS,
+  // cleanup deletes the ranked_items so the inbox panel renders empty for that
+  // run anyway. Returning an older run here causes the dashboard badge to count
+  // unprocessed jobs via the run.metadata fallback (retained 30 days), while
+  // the panel shows nothing - badge and inbox disagree.
+  const since = new Date(Date.now() - JOB_FEED_INBOX_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
   const admin = createAdminClient() as any;
   const { data, error } = await admin
@@ -1301,6 +1307,7 @@ export async function getLatestCompletedJobFeedRunAdmin(userId: string): Promise
     .select('*')
     .eq('user_id', userId)
     .eq('status', 'completed')
+    .gte('completed_at', since)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
