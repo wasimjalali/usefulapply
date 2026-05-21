@@ -1004,7 +1004,15 @@ export async function listLatestJobFeedItemsAdmin(params: {
   latestRun?: JobFeedRun | null;
 }): Promise<LatestJobFeedItemsResult> {
   const candidateRun = params.latestRun ?? await getLatestJobFeedRunAdmin(params.userId);
-  const run = candidateRun?.status === 'completed'
+  // Apply the inbox retention window to the candidate too. Without this the
+  // fast-path accepts a stale completed run, the inbox path returns empty,
+  // and the metadata fallback below resurrects ranked_preview_jobs from a run
+  // whose ranked_items were already deleted by cleanup at day 7.
+  const cutoffMs = Date.now() - JOB_FEED_INBOX_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+  const candidateFresh = candidateRun?.status === 'completed'
+    && typeof candidateRun.completed_at === 'string'
+    && Date.parse(candidateRun.completed_at) >= cutoffMs;
+  const run = candidateFresh
     ? candidateRun
     : await getLatestCompletedJobFeedRunAdmin(params.userId);
   if (!run || run.status !== 'completed') {
