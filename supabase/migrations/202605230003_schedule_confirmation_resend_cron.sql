@@ -18,9 +18,12 @@
 --        VALUES ('karko_cron_secret', '<value from step 1>')
 --        ON CONFLICT (name) DO UPDATE SET secret = EXCLUDED.secret;
 --
---   5. Now run this migration. If any prerequisite is missing, the migration
---      raises NOTICE but does NOT error out, so it stays idempotent and safe
---      to re-run after the manual setup is complete.
+--   5. Now run this migration. If any prerequisite is missing the migration
+--      raises NOTICE on the cron.schedule step (which is the only step that
+--      actually depends on the prerequisites) and returns early. The
+--      CREATE OR REPLACE FUNCTION block always runs because the function
+--      is safe to create even without pg_net (it will only fail at call
+--      time). Re-running after the prerequisites are filled in is safe.
 
 DO $$
 DECLARE

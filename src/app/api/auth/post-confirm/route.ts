@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { buildWelcomeEmail } from '@/lib/email/templates/welcome';
 import { buildCheckInEmail } from '@/lib/email/templates/check-in';
 
@@ -24,17 +24,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  *  4. Send Day 0 founder welcome via Resend (fatal if it fails: roll back claim).
  *  5. Schedule Day 3 check-in via Resend `scheduledAt` (non-fatal if it fails: log).
  */
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
-    const clientIP = getClientIP(request);
-    const rateLimit = checkRateLimit(`post-confirm:${clientIP}`, RATE_LIMITS['post-confirm']);
-    if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        { status: 429 }
-      );
-    }
-
+    // Auth FIRST per .claude/rules/security.md: a 401 must not consume a rate-limit slot.
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user || !user.email) {
@@ -42,6 +34,15 @@ export async function POST(request: NextRequest) {
     }
     if (!user.email_confirmed_at) {
       return NextResponse.json({ error: 'Email not yet confirmed.' }, { status: 400 });
+    }
+
+    // Now rate-limit by user.id — meaningful for an authenticated route.
+    const rateLimit = checkRateLimit(`post-confirm:${user.id}`, RATE_LIMITS['post-confirm']);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429 }
+      );
     }
 
     const supabaseAdmin = createAdminClient();

@@ -39,8 +39,8 @@ export function buildConfirmationEmail({
   const safeName = escapeHtml(cleanName);
   const greeting = safeName ? `Hi ${safeName},` : 'Hi there,';
   const subject = isReminder
-    ? 'A reminder: confirm your KarKo AI account'
-    : 'Confirm your KarKo AI account';
+    ? 'A reminder: confirm your Karko AI account'
+    : 'Confirm your Karko AI account';
 
   const intro = isReminder
     ? "You signed up for Karko AI a little while back but haven't confirmed your email yet. Here's a fresh link, valid for 24 hours."
@@ -49,7 +49,7 @@ export function buildConfirmationEmail({
   const html = `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fafaf8; padding: 40px 20px;">
   <div style="text-align: center; margin-bottom: 32px;">
-    <h1 style="font-size: 28px; color: #0f3057; margin: 0; letter-spacing: -0.5px;">KarKo AI</h1>
+    <h1 style="font-size: 28px; color: #0f3057; margin: 0; letter-spacing: -0.5px;">Karko AI</h1>
     <p style="color: #888; font-size: 14px; margin: 4px 0 0 0;">Your job application copilot</p>
   </div>
   <div style="background: #ffffff; border-radius: 12px; padding: 32px; border: 1px solid #e8e4dc;">
@@ -67,7 +67,7 @@ export function buildConfirmationEmail({
     </p>
   </div>
   <p style="text-align: center; color: #bbb; font-size: 12px; margin-top: 24px;">
-    KarKo AI . karkoai.com
+    Karko AI . karkoai.com
   </p>
 </div>
 `.trim();

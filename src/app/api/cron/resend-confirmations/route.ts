@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { timingSafeEqual } from 'crypto';
 import { Resend } from 'resend';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { buildConfirmationEmail } from '@/lib/email/templates/confirmation';
@@ -42,7 +43,13 @@ interface ProfileRow {
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization') ?? '';
   const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  // Constant-time compare to close any timing side-channel on the bearer token.
+  const expected = Buffer.from(`Bearer ${cronSecret}`);
+  const actual = Buffer.from(authHeader);
+  if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
