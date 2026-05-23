@@ -11,6 +11,18 @@ function CallbackHandler() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Fire-and-forget: trigger the founder welcome + Day 3 schedule once we
+    // know we have a confirmed session. Idempotent server-side via
+    // profiles.welcome_sent_at, so safe to call on every callback hit.
+    const triggerPostConfirm = () => {
+      fetch('/api/auth/post-confirm', {
+        method: 'POST',
+        credentials: 'same-origin',
+      }).catch(() => {
+        // Non-blocking — welcome email is best-effort and must not gate the redirect.
+      });
+    };
+
     const handleCallback = async () => {
       const supabase = getSupabase();
 
@@ -21,6 +33,7 @@ function CallbackHandler() {
       if (code) {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
         if (!exchangeError) {
+          triggerPostConfirm();
           const next = searchParams.get('next') ?? '/dashboard';
           router.replace(next);
           return;
@@ -42,6 +55,7 @@ function CallbackHandler() {
             refresh_token: refreshToken,
           });
           if (!sessionError) {
+            triggerPostConfirm();
             router.replace('/dashboard');
             return;
           }
