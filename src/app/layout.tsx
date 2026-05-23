@@ -119,8 +119,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" translate="no">
       <head>
+        {/* Disable browser translation. Translation extensions (Google Translate,
+            Edge, Safari, Firefox) replace text nodes with <font> wrappers, which
+            breaks React's reconciler and surfaces as
+            "Failed to execute 'removeChild' on 'Node'" during commit. */}
+        <meta name="google" content="notranslate" />
         <link rel="author" href={`${SITE_URL}/about`} />
         {/* Organization Schema — site-wide */}
         <script
