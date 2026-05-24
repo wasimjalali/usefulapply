@@ -151,18 +151,19 @@ export default function Home() {
               <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
             </Link>
             <Link
-              href="#how-it-works"
+              href="#demo"
               className="px-5 py-3.5 border border-white/70 bg-white/60 hover:bg-white hover:border-white hover:shadow-md text-navy-600 font-semibold rounded-lg transition-all duration-200 hover:-translate-y-0.5 flex items-center justify-center gap-1.5 text-base group"
             >
-              See how it works <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
+              Watch the demo <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
             </Link>
           </div>
           </ScrollReveal>
         </div>
 
         {/* Demo video sits below the hero CTAs, above the trust bar.
-            Wider than the text column so the demo reads cinematic. */}
-        <div className="max-w-6xl mx-auto mt-12 lg:mt-16 relative">
+            Wider than the text column so the demo reads cinematic.
+            scroll-mt-24 keeps the anchor below the fixed navbar. */}
+        <div id="demo" className="max-w-6xl mx-auto mt-12 lg:mt-16 relative scroll-mt-24">
           <ScrollReveal delay={550}>
             <div className="relative rounded-2xl overflow-hidden shadow-lg border border-cream-200 bg-cream-50">
               <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
