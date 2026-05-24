@@ -167,7 +167,7 @@ export default function Home() {
             <div className="relative rounded-2xl overflow-hidden shadow-lg border border-cream-200 bg-cream-50">
               <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
                 <iframe
-                  src="https://www.tella.tv/video/vid_cmpjrsku400wk04jm1wuf3es6/embed?b=0&title=1&a=1&loop=0&t=0&muted=1&wt=1&o=1"
+                  src="https://www.tella.tv/video/vid_cmpjrsku400wk04jm1wuf3es6/embed?b=0&title=0&a=1&loop=0&t=0&muted=1&wt=1&o=1"
                   title="Karko AI demo"
                   loading="lazy"
                   referrerPolicy="strict-origin-when-cross-origin"
@@ -226,8 +226,8 @@ export default function Home() {
                 step: 1,
                 title: 'Upload your CV once',
                 description: 'Your source of truth. Karko reads it, structures it, and uses only what is actually there.',
-                accent: '/images/_archive/brand-cv-upload.webp',
-                accentAlt: 'CV upload brand illustration',
+                accent: '/images/features/master-cv-system.jpg',
+                accentAlt: 'Master CV upload illustration',
               },
               {
                 step: 2,
@@ -240,8 +240,8 @@ export default function Home() {
                 step: 3,
                 title: 'See the fit before you commit',
                 description: 'A match score, the skills that line up, and the gaps. You decide before you spend the credits.',
-                accent: '/images/_archive/brand-fit-analysis.webp',
-                accentAlt: 'Fit analysis brand illustration',
+                accent: '/images/features/fit-analysis.jpg',
+                accentAlt: 'Fit analysis illustration',
               },
               {
                 step: 4,
@@ -331,7 +331,7 @@ export default function Home() {
                   I ran out of money building a startup in Germany. No savings, no degree to fall back on. Generic applications got me zero interviews. Tailoring each one by hand took 45 to 60 minutes, and it still was not working.
                 </p>
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  So I built Karko to do the whole workflow automatically. Over 50 applications, I got 5 interviews. That is roughly 10 percent, against an industry baseline of 2 to 3 percent. First-time job seeker, no formal background. That is when I knew every job seeker needed this.
+                  So I built Karko to do the whole workflow automatically. Sixty applications later, I landed my first job. First-time job seeker, no formal background, in a market where most people send hundreds and never hear back. That is when I knew Karko could not stay a personal tool. Every job seeker stuck where I was deserves the same shot.
                 </p>
               </div>
             </div>
