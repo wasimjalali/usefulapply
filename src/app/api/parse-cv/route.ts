@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
 
     // Tighter rate limiting for anonymous users: 5 parses per hour per IP
     if (!isAuthenticated) {
-      const anonResult = checkRateLimit(`anon-parse:${clientIP}`, { limit: 5, windowMs: 3_600_000 });
+      const anonResult = checkRateLimit(`anon-parse:${clientIP}`, RATE_LIMITS['anon-parse']);
       if (!anonResult.allowed) {
         return NextResponse.json(
           { error: "You've reached the free parse limit. Sign up free to get unlimited CV uploads." },

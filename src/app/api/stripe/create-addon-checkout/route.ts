@@ -8,7 +8,7 @@ import { getStripe, STRIPE_ADDON_PRICES, ADDON_CREDIT_MAP } from '@/lib/stripe';
 import { createClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { getPostHogServer } from '@/lib/posthog-server';
-import { checkRateLimit, getClientIP } from '@/lib/middleware/rateLimiter';
+import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 
 function getSupabaseAdmin() {
   return createClient(
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   try {
     // Rate limiting
     const clientIP = getClientIP(req);
-    const rateLimitResult = checkRateLimit(`create-addon-checkout:${clientIP}`, { limit: 5, windowMs: 60_000 });
+    const rateLimitResult = checkRateLimit(`create-addon-checkout:${clientIP}`, RATE_LIMITS['create-addon-checkout']);
     if (!rateLimitResult.allowed) {
       return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
     }

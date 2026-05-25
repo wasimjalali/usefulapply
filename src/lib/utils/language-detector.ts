@@ -1,44 +1,60 @@
 /**
  * Language Detection Utility
- * 
- * Detects the language of text content (currently supports English and German)
- * Used for determining output language for CV, cover letter, and email generation
+ *
+ * Detects the language of text content. Supports the same 7 languages as the
+ * CV section splitter so JD/CV detection stays in sync.
+ * Used for determining output language for CV, cover letter, and email generation.
  */
 
-export type SupportedLanguage = string; // ISO 639-1 codes
+export type SupportedLanguage = 'en' | 'de' | 'fr' | 'es' | 'pt' | 'it' | 'nl';
+
+const LANGUAGE_INDICATORS: Record<Exclude<SupportedLanguage, 'en'>, RegExp> = {
+  de: /\b(und|oder|für|mit|bei|auf|zur|zum|von|dem|den|des|wir|Sie|Ihre|Ihr|uns|werden|haben|sein|Anforderungen|Aufgaben|Verantwortung|Erfahrung|Kenntnisse|Qualifikationen|Bewerbung|Unternehmen|GmbH|AG)\b/gi,
+  fr: /\b(le|la|les|un|une|des|et|ou|pour|avec|dans|sur|nous|vous|votre|expérience|compétences|exigences|missions|formation|entreprise|candidature|poste)\b/gi,
+  es: /\b(el|la|los|las|un|una|y|o|para|con|en|sobre|nosotros|usted|su|sus|experiencia|conocimientos|requisitos|funciones|formación|empresa|candidatura|puesto)\b/gi,
+  pt: /\b(o|a|os|as|um|uma|e|ou|para|com|em|sobre|nós|você|seu|sua|experiência|conhecimentos|requisitos|funções|formação|empresa|candidatura)\b/gi,
+  it: /\b(il|la|i|le|un|una|uno|e|o|per|con|in|su|noi|voi|vostro|esperienza|competenze|requisiti|mansioni|formazione|azienda|candidatura|posizione)\b/gi,
+  nl: /\b(de|het|een|en|of|voor|met|bij|op|over|wij|jij|u|uw|ervaring|kennis|vereisten|taken|opleiding|bedrijf|sollicitatie|vacature)\b/gi,
+};
+
+const LANGUAGE_NAMES: Record<SupportedLanguage, string> = {
+  en: 'English',
+  de: 'German',
+  fr: 'French',
+  es: 'Spanish',
+  pt: 'Portuguese',
+  it: 'Italian',
+  nl: 'Dutch',
+};
 
 /**
- * Detect language from text content
- * Currently supports English (en) and German (de)
- * 
+ * Detect language from text content.
+ *
  * @param text - Text to analyze
- * @returns 'de' if German indicators found, 'en' otherwise
+ * @returns one of the 7 supported language codes; defaults to 'en'
  */
 export function detectLanguage(text: string): SupportedLanguage {
-  const germanIndicators = /\b(und|oder|für|mit|bei|auf|zur|zum|von|dem|den|des|wir|Sie|Ihre|Ihr|uns|werden|haben|sein|Anforderungen|Aufgaben|Verantwortung|Erfahrung|Kenntnisse|Qualifikationen|Bewerbung|Unternehmen|GmbH|AG)\b/gi;
-  const matches = (text.match(germanIndicators) || []).length;
-  
-  // If 5 or more German indicators found, consider it German
-  return matches >= 5 ? 'de' : 'en';
+  let best: { lang: SupportedLanguage; score: number } = { lang: 'en', score: 0 };
+
+  for (const [lang, pattern] of Object.entries(LANGUAGE_INDICATORS) as Array<[Exclude<SupportedLanguage, 'en'>, RegExp]>) {
+    const score = (text.match(pattern) || []).length;
+    if (score > best.score) {
+      best = { lang, score };
+    }
+  }
+
+  // Threshold of 5 keeps short or code-mixed text classified as English by default.
+  return best.score >= 5 ? best.lang : 'en';
 }
 
-/**
- * Check if text is in German
- */
 export function isGerman(text: string): boolean {
   return detectLanguage(text) === 'de';
 }
 
-/**
- * Check if text is in English
- */
 export function isEnglish(text: string): boolean {
   return detectLanguage(text) === 'en';
 }
 
-/**
- * Get language name from code
- */
 export function getLanguageName(code: SupportedLanguage): string {
-  return code === 'de' ? 'German' : 'English';
+  return LANGUAGE_NAMES[code] ?? 'English';
 }

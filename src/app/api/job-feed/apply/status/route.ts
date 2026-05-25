@@ -3,7 +3,7 @@ import { canAccessJobFeed } from '@/lib/job-feed/helpers';
 import { captureJobFeedActionRejected, captureJobFeedEvent } from '@/lib/job-feed/analytics';
 import { updateJobFeedApplicationGenerationStatusAdmin } from '@/lib/job-feed/server';
 import { createClient } from '@/lib/supabase/server';
-import { checkRateLimit } from '@/lib/middleware/rateLimiter';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
 
 export const runtime = 'nodejs';
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
     userId = user.id;
 
-    const { allowed } = checkRateLimit(`job-feed-apply-status:${user.id}`, { limit: 30, windowMs: 60_000 });
+    const { allowed } = checkRateLimit(`job-feed-apply-status:${user.id}`, RATE_LIMITS['job-feed-apply-status']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
     }
@@ -58,18 +58,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => ({} as Record<string, unknown>));
     sessionId = typeof body?.sessionId === 'string' ? body.sessionId.trim() : '';
     generationId = typeof body?.generationId === 'string' ? body.generationId.trim() : '';
     status = typeof body?.status === 'string' ? body.status.trim() as JobFeedGenerationStatus : 'none';
     const errorMessage = typeof body?.errorMessage === 'string' ? body.errorMessage.trim().slice(0, 1000) : null;
 
-    if (!sessionId) {
+    if (!sessionId || sessionId.length > 100 || generationId.length > 100) {
       captureJobFeedActionRejected({
         userId,
         route: 'apply/status',
         action: 'generation_status_update',
-        reason: 'missing_session_id',
+        reason: !sessionId ? 'missing_session_id' : 'invalid_input_length',
         status: 400,
         subscriptionTier,
       });

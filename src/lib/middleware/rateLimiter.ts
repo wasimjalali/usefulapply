@@ -117,6 +117,13 @@ export const RATE_LIMITS = {
   'job-feed-inbox':     { limit: 30, windowMs: 60_000 },
   'credits-balance':    { limit: 30, windowMs: 60_000 },
   'delete-account':     { limit: 3,  windowMs: 60_000 },
+  'create-checkout':         { limit: 5,  windowMs: 60_000 },
+  'create-addon-checkout':   { limit: 5,  windowMs: 60_000 },
+  'create-portal':           { limit: 3,  windowMs: 60_000 },
+  'job-feed-apply-gen':      { limit: 60, windowMs: 60_000 },
+  'job-feed-apply-status':   { limit: 30, windowMs: 60_000 },
+  'career-profile-generate': { limit: 6,  windowMs: 60_000 },
+  'anon-parse':              { limit: 5,  windowMs: 3_600_000 },
 } as const;
 
 export type RateLimitRoute = keyof typeof RATE_LIMITS;

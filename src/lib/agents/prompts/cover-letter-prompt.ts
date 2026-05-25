@@ -378,20 +378,48 @@ ${masterCV ? `
 === MASTER CV (comprehensive skills & experience inventory - mine this for best metrics) ===
 ${masterCV}` : ''}
 
-${match && match.missingSkills.length > 0 ? `=== VERIFIED SKILL CONSTRAINT ===
+${(() => {
+  const verifiedSkills = [
+    ...(applicant?.skills || []),
+    ...(applicant?.tools || []),
+    ...(applicant?.languages || []),
+  ]
+    .map((s) => (typeof s === 'string' ? s.trim() : ''))
+    .filter(Boolean);
 
-The following skills are verified as MISSING from the applicant's background.
-Do NOT claim experience with any of these in the cover letter:
+  const hasAllowList = verifiedSkills.length > 0;
+  const hasBlockList = match && match.missingSkills.length > 0;
 
-SKILLS YOU MUST NOT CLAIM:
+  if (!hasAllowList && !hasBlockList) return '';
+
+  const allowBlock = hasAllowList
+    ? `SKILLS YOU MAY CLAIM (allow-list, verified from the applicant's CV):
+${verifiedSkills.join(', ')}
+
+`
+    : '';
+
+  const blockList = hasBlockList
+    ? `SKILLS YOU MUST NOT CLAIM (block-list, verified missing from the JD match):
 ${match.missingSkills.join(', ')}
 
-Instead of claiming missing skills, emphasize:
-- Transferable skills from the applicant's actual background — name the tools and technologies the applicant DOES have and explain how they transfer
+`
+    : '';
+
+  return `=== VERIFIED SKILL CONSTRAINT (BINDING) ===
+
+The allow-list below is the authoritative source of skills the applicant has.
+If a JD requirement is not in the allow-list, do not claim it as a skill the
+applicant possesses, even if it does not appear on the block-list (the block-list
+is JD-derived and may not be exhaustive).
+
+${allowBlock}${blockList}Instead of claiming any skill outside the allow-list, emphasize:
+- Transferable skills from the allow-list, named explicitly, with a short bridge sentence
 - Builder mindset and learning ability
 - Relevant projects that demonstrate adjacent competency
 - Concrete achievements with real metrics
-` : ''}
+`;
+})()}
 === RELOCATION CONSTRAINT (BINDING) ===
 Job location: ${job?.location || 'Not specified'}
 ${masterCV && /relocat/i.test(masterCV) ? `Master CV relocation statement found. The applicant's relocation preferences are ONLY what is written in the Master CV above. If the job location (${job?.location || 'unknown'}) is NOT explicitly covered by the Master CV's relocation statement, do NOT mention relocation willingness at all.` : `No relocation statement found in Master CV. Do NOT mention relocation willingness in the cover letter.`}

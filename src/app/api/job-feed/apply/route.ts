@@ -71,16 +71,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => ({} as Record<string, unknown>));
     jobId = typeof body?.jobId === 'string' ? body.jobId.trim() : '';
     runId = typeof body?.runId === 'string' ? body.runId.trim() : '';
 
-    if (!jobId) {
+    if (!jobId || jobId.length > 100 || runId.length > 100) {
       captureJobFeedActionRejected({
         userId,
         route: 'apply',
         action: 'apply_started',
-        reason: 'missing_job_id',
+        reason: !jobId ? 'missing_job_id' : 'invalid_input_length',
         status: 400,
         subscriptionTier,
       });
