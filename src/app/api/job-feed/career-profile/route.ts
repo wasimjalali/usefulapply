@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
     const cv = primaryDoc.structured_data as StructuredCV;
     const result = await generateCareerProfile(cv);
 
-    await supabase
+    const { error: persistError } = await supabase
       .from('user_career_profiles')
       .upsert({
         user_id: userId,
@@ -166,6 +166,14 @@ export async function POST(request: NextRequest) {
         model_provider: result.modelProvider,
         model_name: result.modelName,
       }, { onConflict: 'user_id' });
+
+    if (persistError) {
+      console.error('[career-profile] Failed to persist generated profile:', {
+        userId,
+        error: persistError.message,
+      });
+      return NextResponse.json({ error: 'Failed to save career profile.' }, { status: 500 });
+    }
 
     console.log(
       `[career-profile] Generated for user ${userId}: ${result.modelName} | ${result.inputTokens}in/${result.outputTokens}out | ${result.latencyMs}ms`,

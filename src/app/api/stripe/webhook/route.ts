@@ -307,7 +307,7 @@ async function handleCheckoutCompleted(session: any) {
       return;
     }
 
-    await supabase.from('credit_transactions').insert({
+    const { error: addonTxError } = await supabase.from('credit_transactions').insert({
       user_id: userId,
       amount: creditsToAdd,
       transaction_type: 'addon_purchase',
@@ -316,6 +316,14 @@ async function handleCheckoutCompleted(session: any) {
       balance_before: totalBefore,
       balance_after: totalAfter,
     });
+    if (addonTxError) {
+      console.error('[Stripe Webhook] Failed to log addon credit transaction:', {
+        userId,
+        stripeSessionId: session.id,
+        creditsToAdd,
+        error: addonTxError,
+      });
+    }
     console.log(`[Stripe Webhook] Added ${creditsToAdd} addon credits for user ${userId}`);
     return;
   }
@@ -796,7 +804,7 @@ async function handleChargeRefunded(charge: any) {
     return;
   }
 
-  await supabase.from('credit_transactions').insert({
+  const { error: refundTxError } = await supabase.from('credit_transactions').insert({
     user_id: userCredits.user_id,
     amount: -creditsToRemove,
     transaction_type: 'refund',
@@ -813,6 +821,15 @@ async function handleChargeRefunded(charge: any) {
     balance_before: totalBefore,
     balance_after: totalAfter,
   });
+  if (refundTxError) {
+    console.error('[Stripe Webhook] Failed to log refund transaction:', {
+      userId: userCredits.user_id,
+      chargeId: charge.id,
+      creditsToRemove,
+      refundedAmountCents,
+      error: refundTxError,
+    });
+  }
   console.log(`[Stripe Webhook] Refund: removed ${creditsToRemove} credits for user ${userCredits.user_id} (source: ${planCreditsSource})`);
 }
 

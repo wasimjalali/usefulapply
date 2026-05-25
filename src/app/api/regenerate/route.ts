@@ -68,9 +68,12 @@ export async function POST(request: NextRequest) {
     });
 
     if (!reserveResult.success) {
+      if (reserveResult.error) {
+        console.warn('[Regenerate API] Credit reservation failed:', reserveResult.error);
+      }
       return NextResponse.json(
         {
-          error: reserveResult.error || 'Insufficient credits',
+          error: 'Insufficient credits',
           code: 'INSUFFICIENT_CREDITS',
           details: {
             required: reserveResult.required ?? CREDIT_COSTS[creditAction],

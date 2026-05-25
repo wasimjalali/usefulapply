@@ -503,17 +503,21 @@ export const unifiedWriterAgent = {
       }
       
       const parsed = JSON.parse(jsonContent);
-      
-      console.log('[UnifiedAgent] Parsed structured CV data:');
-      console.log('  - Personal:', parsed.personal?.fullName);
-      console.log('  - Experience entries:', parsed.experience?.length || 0);
-      console.log('  - Skill categories:', parsed.skills?.length || 0);
-      console.log('  - Projects:', parsed.projects?.length || 0);
-      console.log('  - Additional Info:', parsed.additionalInfo?.length || 0);
-      console.log('  - Custom Sections:', parsed.customSections?.length || 0);
-      console.log('  - Driver License:', parsed.personal?.driverLicense ?? parsed.personal?.driver_license ?? 'not present');
-      console.log('  - sectionHeaders:', parsed.sectionHeaders ? JSON.stringify(parsed.sectionHeaders) : 'NOT PRESENT');
-      console.log('  - localizedStrings:', parsed.localizedStrings ? JSON.stringify(parsed.localizedStrings) : 'NOT PRESENT');
+
+      // Avoid logging PII (applicant name, raw JSON blobs) in production — these
+      // land in CloudWatch / PostHog server logs and are not aggregated personal data.
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[UnifiedAgent] Parsed structured CV data:');
+        console.log('  - Personal name present:', Boolean(parsed.personal?.fullName));
+        console.log('  - Experience entries:', parsed.experience?.length || 0);
+        console.log('  - Skill categories:', parsed.skills?.length || 0);
+        console.log('  - Projects:', parsed.projects?.length || 0);
+        console.log('  - Additional Info:', parsed.additionalInfo?.length || 0);
+        console.log('  - Custom Sections:', parsed.customSections?.length || 0);
+        console.log('  - Driver License present:', Boolean(parsed.personal?.driverLicense ?? parsed.personal?.driver_license));
+        console.log('  - sectionHeaders present:', Boolean(parsed.sectionHeaders));
+        console.log('  - localizedStrings present:', Boolean(parsed.localizedStrings));
+      }
       
       // Validate and provide defaults
       const cvData: NonNullable<MasterContext['optimizedCVData']> = {
@@ -828,10 +832,15 @@ export const unifiedWriterAgent = {
       
       const parsed = JSON.parse(jsonContent);
       
-      // Clean up any placeholder names
+      // Clean up any placeholder names left by the model.
+      // Covers English and German salutation patterns and bracketed placeholders
+      // (e.g., [Name], [Vorname], [Nachname], "Sehr geehrte/r [Name]").
       let cleanBody = (parsed.body || response.content)
         .replace(/Hi \[Name\],?/gi, 'Hello,')
         .replace(/Dear \[Name\],?/gi, 'Dear Hiring Team,')
+        .replace(/Hallo \[Name\],?/gi, 'Hallo,')
+        .replace(/Sehr geehrte\/?r? \[Name\],?/gi, 'Sehr geehrte Damen und Herren,')
+        .replace(/\[Vorname\]|\[Nachname\]/gi, '')
         .replace(/\[Name\]/g, 'Hiring Manager');
       
       cleanBody = fixTypos(cleanBody);
@@ -911,10 +920,15 @@ export const unifiedWriterAgent = {
       let cleanBody = fixTypos(parsed.body || '');
       const cleanSubject = fixTypos(parsed.subject || `Following Up: ${job?.title || 'Position'} - ${applicant?.name || 'Applicant'}`);
 
-      // Clean up any placeholder names
+      // Clean up any placeholder names left by the model.
+      // Covers English and German salutation patterns and bracketed placeholders
+      // (e.g., [Name], [Vorname], [Nachname], "Sehr geehrte/r [Name]").
       cleanBody = cleanBody
         .replace(/Hi \[Name\],?/gi, 'Hello,')
         .replace(/Dear \[Name\],?/gi, 'Dear Hiring Team,')
+        .replace(/Hallo \[Name\],?/gi, 'Hallo,')
+        .replace(/Sehr geehrte\/?r? \[Name\],?/gi, 'Sehr geehrte Damen und Herren,')
+        .replace(/\[Vorname\]|\[Nachname\]/gi, '')
         .replace(/\[Name\]/g, 'Hiring Manager');
 
       cleanBody = sanitizeDashes(cleanBody);

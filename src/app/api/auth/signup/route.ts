@@ -96,7 +96,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Send confirmation email via Resend (no rate limit, unlike Supabase built-in SMTP)
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (!resendApiKey) {
+      console.error('[/api/auth/signup] Missing RESEND_API_KEY, skipping confirmation email');
+      // User was created successfully — return success so the UI shows "check your email";
+      // the user can request a resend later once the key is configured.
+      return NextResponse.json({ success: true });
+    }
+    const resend = new Resend(resendApiKey);
     const confirmationLink = linkData.properties.action_link;
     const safeName = escapeHtml(fullName ?? '');
     const greeting = safeName ? `Hi ${safeName},` : 'Hi there,';

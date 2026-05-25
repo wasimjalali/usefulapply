@@ -69,7 +69,7 @@ export async function POST(_request: NextRequest) {
     const apiKey = process.env.RESEND_API_KEY;
     const audienceId = process.env.RESEND_AUDIENCE_ID;
     if (!apiKey) {
-      console.error('[/api/auth/post-confirm] RESEND_API_KEY missing — rolling back claim');
+      console.error('[/api/auth/post-confirm] RESEND_API_KEY missing, rolling back claim');
       await (supabaseAdmin as any)
         .from('profiles')
         .update({ welcome_sent_at: null })

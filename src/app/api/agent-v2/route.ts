@@ -593,10 +593,13 @@ export async function POST(request: NextRequest) {
               console.warn('[API_AGENT_V2] Context cache miss AND no client context data, falling back to full optimization');
 
               if (!isAnonymous) {
-                const fallbackKey = `full_application:${user!.id}:${clientRequestId}`;
+                // Reaching this fallback means fit_analysis already ran in this flow
+                // (and was billed 0.5 credits) but the context cache is gone. Charge the
+                // remaining generation slice only, so total stays 2.0 instead of 2.5.
+                const fallbackKey = `generation_after_fit:${user!.id}:${clientRequestId}`;
                 const reserveResult = await reserveCredits({
                   userId: user!.id,
-                  action: 'FULL_APPLICATION',
+                  action: 'GENERATION_AFTER_FIT',
                   idempotencyKey: fallbackKey,
                   sessionId: clientSessionId,
                 });
@@ -606,7 +609,7 @@ export async function POST(request: NextRequest) {
                     code: 'INSUFFICIENT_CREDITS',
                     message: reserveResult.error || 'Insufficient credits',
                     details: {
-                      required: reserveResult.required ?? CREDIT_COSTS.FULL_APPLICATION,
+                      required: reserveResult.required ?? CREDIT_COSTS.GENERATION_AFTER_FIT,
                       available: reserveResult.available ?? 0,
                       upgradeRequired: true,
                     },
@@ -619,7 +622,7 @@ export async function POST(request: NextRequest) {
 
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                   type: 'credits_deducted',
-                  creditsUsed: CREDIT_COSTS.FULL_APPLICATION,
+                  creditsUsed: CREDIT_COSTS.GENERATION_AFTER_FIT,
                 })}\n\n`));
               }
 
@@ -885,8 +888,11 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'workflow_error';
 
-        // Server-owned: mark generation as failed
-        await tryTransitionGeneration(resolvedSessionId, activeReservationUserId ?? '', 'failed', errorMsg);
+        // Server-owned: mark generation as failed only when we know whose generation it is.
+        // Empty string user IDs would produce misleading audit rows.
+        if (activeReservationUserId) {
+          await tryTransitionGeneration(resolvedSessionId, activeReservationUserId, 'failed', errorMsg);
+        }
 
         // Release credit reservation — generation failed, refund user
         if (activeReservationKey && activeReservationUserId) {

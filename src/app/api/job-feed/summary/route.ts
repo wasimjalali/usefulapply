@@ -89,10 +89,15 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid date format.' }, { status: 400 });
     }
 
-    await typedSupabase
+    const { error: updateError } = await typedSupabase
       .from('profiles')
       .update({ job_feed_last_seen_run_date: date })
       .eq('id', user.id);
+
+    if (updateError) {
+      console.error('[job-feed/summary] PATCH update error:', updateError.message);
+      return NextResponse.json({ error: 'Failed to update.' }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     if (!priceId) {
       console.error('[Checkout] Price ID is empty for plan:', planTier, 'PLUS:', STRIPE_PRICES.PLUS, 'MAX:', STRIPE_PRICES.MAX);
       return NextResponse.json(
-        { error: `Price not configured for ${planTier} plan. Check STRIPE_PRICE_ID_${planTier.toUpperCase()} env var.` },
+        { error: 'Selected plan is not available' },
         { status: 400 }
       );
     }
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
 
     let customerId = userCredits?.stripe_customer_id;
 
-    // Create customer if doesn't exist
+    // Create customer if doesn't exist, then persist so future checkouts reuse it
     if (!customerId) {
       const customer = await getStripe().customers.create({
         email: profile.email,
@@ -105,6 +105,19 @@ export async function POST(req: NextRequest) {
         },
       });
       customerId = customer.id;
+
+      const { error: persistError } = await supabase
+        .from('user_credits')
+        .update({ stripe_customer_id: customerId })
+        .eq('user_id', userId);
+
+      if (persistError) {
+        console.error('[Checkout] Failed to persist stripe_customer_id', {
+          userId,
+          customerId,
+          error: persistError,
+        });
+      }
     }
 
     // Create checkout session

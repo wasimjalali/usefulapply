@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 
 export const runtime = 'nodejs';
 
@@ -14,13 +15,24 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Rate-limit per user so a compromised session can't burn deletion attempts in a loop.
+    const rateLimit = checkRateLimit(`delete-account:${user.id}`, RATE_LIMITS['delete-account']);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     const userId = user.id;
     const supabaseAdmin = createAdminClient();
 
-    // Delete all user data from public tables using admin client (bypasses RLS)
-    // Order matters due to foreign key constraints
+    // Delete all user data from public tables using admin client (bypasses RLS).
+    // Most child tables also `on delete cascade` from profiles.id, so this is
+    // belt-and-suspenders against cascade misconfig. Order matters for FK constraints.
     const tablesWithUserId = [
       'chat_messages',
+      'credit_reservations',
       'job_feed_application_generation_events',
       'job_feed_application_generations',
       'job_feed_feedback',
@@ -30,6 +42,9 @@ export async function DELETE(request: NextRequest) {
       'job_feed_settings',
       'user_cv_suggestions',
       'user_job_preferences',
+      'user_career_profiles',
+      'user_search_strategies',
+      'user_notifications',
       'application_sessions',
       'documents',
       'profile_photos',

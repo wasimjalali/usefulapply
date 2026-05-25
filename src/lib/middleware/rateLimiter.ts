@@ -83,10 +83,14 @@ export function checkRateLimit(key: string, config: RateLimitConfig): RateLimitR
 }
 
 /**
- * Extract client IP from request headers (Vercel provides x-forwarded-for).
+ * Extract client IP from request headers.
+ * Prefer x-vercel-forwarded-for: Vercel signs this header so it can't be spoofed
+ * by clients that bypass the edge. Fall back to x-forwarded-for / x-real-ip for
+ * non-Vercel environments (local dev, tests).
  */
 export function getClientIP(request: Request): string {
   return (
+    request.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim() ||
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     request.headers.get('x-real-ip') ||
     'unknown'
@@ -112,6 +116,7 @@ export const RATE_LIMITS = {
   'job-feed-dev-run':   { limit: 3,  windowMs: 60_000 },
   'job-feed-inbox':     { limit: 30, windowMs: 60_000 },
   'credits-balance':    { limit: 30, windowMs: 60_000 },
+  'delete-account':     { limit: 3,  windowMs: 60_000 },
 } as const;
 
 export type RateLimitRoute = keyof typeof RATE_LIMITS;
