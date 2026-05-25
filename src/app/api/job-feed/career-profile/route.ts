@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     const rateLimitKey = userForRateLimit?.id
       ? `career-profile-generate:${userForRateLimit.id}`
       : `career-profile-generate:${getClientIP(request)}`;
-    const { allowed } = checkRateLimit(rateLimitKey, { limit: 6, windowMs: 60_000 });
+    const { allowed } = checkRateLimit(rateLimitKey, RATE_LIMITS['career-profile-generate']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }

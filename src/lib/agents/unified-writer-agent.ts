@@ -35,7 +35,7 @@ import {
 } from './context-builder';
 import { buildCVOptimizationSystemBlocks, buildCVOptimizationUserPrompt, buildVerifiedSkillList, buildVerifiedMetricsList } from './prompts/cv-prompt';
 import { buildCoverLetterSystemBlocks, buildCoverLetterUserPrompt } from './prompts/cover-letter-prompt';
-import { buildApplicationEmailUserPrompt, buildApplicationEmailSystemBlocks, buildFollowUpEmailUserPrompt, buildFollowUpEmailSystemPrompt } from './prompts/email-prompts';
+import { buildApplicationEmailUserPrompt, buildApplicationEmailSystemBlocks, buildFollowUpEmailUserPrompt, buildFollowUpEmailSystemBlocks } from './prompts/email-prompts';
 import { buildFitAssessmentPrompt, buildFitAssessmentSystemBlocks, computeFitLevel } from './prompts/fit-assessment-prompt';
 
 // Re-export for backward compatibility
@@ -892,7 +892,7 @@ export const unifiedWriterAgent = {
     const response = await callModel({
       task: 'write_follow_up_email',
       prompt: buildFollowUpEmailUserPrompt(context),
-      systemPrompt: buildFollowUpEmailSystemPrompt(context),
+      systemBlocks: buildFollowUpEmailSystemBlocks(),
       jsonMode: true,
     });
 

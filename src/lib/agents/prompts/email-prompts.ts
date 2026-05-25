@@ -277,8 +277,8 @@ export function buildFollowUpEmailUserPrompt(context: MasterContext): string {
 Generate a follow-up email with subject line and body.
 
 SUBJECT LINE RULES:
-- English format: "Following Up: [Role Title] Application — [Full Name]"
-- German format: "Nachfrage: [Stellentitel] Bewerbung — [Full Name]"
+- English format: "Following Up: [Role Title] Application, [Full Name]"
+- German format: "Nachfrage: [Stellentitel] Bewerbung, [Full Name]"
 - Must be 60 characters or fewer
 - Must include the role title and applicant name
 
@@ -331,24 +331,22 @@ Set recommendedDelay to ${recommendedDelay}.
 }
 
 /**
- * Build the follow-up email system prompt
+ * Static follow-up email system text. No per-request variation so Anthropic
+ * prompt caching can reuse the same prefix across calls. Language-specific
+ * guidance and the recommended delay are carried by the user prompt
+ * (<detected_language>, <market>, recommendedDelay).
  */
-export function buildFollowUpEmailSystemPrompt(context: MasterContext): string {
-  const outputLang = context.userLanguageOverride || context.detectedLanguage || 'en';
-  const isGerman = outputLang === 'de';
-  const recommendedDelay = isGerman ? 7 : 5;
+const FOLLOW_UP_EMAIL_SYSTEM_TEXT = `You are the follow-up email writer for Karko AI. You generate a brief, professional follow-up email that the applicant will send several business days after their initial application. The exact business-day delay is supplied in the user prompt; do not hard-code it in your output.
 
-  return `You are the follow-up email writer for Karko AI. You generate a brief, professional follow-up email that the applicant will send ${recommendedDelay} business days after their initial application.
-
-FORMATTING — HARD RULES (NON-NEGOTIABLE):
-This is non-negotiable. Violation produces low-quality output that signals AI generation.
+FORMATTING (HARD RULES, NON-NEGOTIABLE):
+Violation produces low-quality output that signals AI generation.
 
 BANNED PUNCTUATION:
-- Em-dashes (—), en-dashes (–), horizontal bars (―, ‒) — NEVER anywhere in the email
+- Em-dashes, en-dashes, horizontal bars: NEVER anywhere in the email
 - Use commas, periods, colons, semicolons, or parentheses instead
-WRONG: "Led product — shipped v2" → RIGHT: "Led product; shipped v2."
+WRONG: "Led product, shipped v2" with an em-dash, RIGHT: "Led product; shipped v2."
 
-BANNED AI-TELL PHRASES — never write these:
+BANNED AI-TELL PHRASES (never write these):
 - "however", "furthermore", "moreover" (as sentence starters or transitions)
 - "it is important to note", "it is worth noting"
 - "delve", "delving", "dive deep"
@@ -361,7 +359,28 @@ CRITICAL RULES:
 - Keep the body under 80 words (excluding greeting and sign-off)
 - Be specific about the company (reference something from the JD)
 - Sound human and confident, not desperate or generic
-- ${isGerman ? 'Write entirely in German with formal Sie-form. Use a professional German closing appropriate to the JD tone.' : 'Write in English.'}
+- Match the language specified in <detected_language>. If German, write entirely in German with formal Sie-form and a professional German closing appropriate to the JD tone. Otherwise write in English.
 
 Return ONLY valid JSON. No explanation or preamble.`;
+
+/**
+ * Build the follow-up email system prompt as cacheable blocks.
+ * Fully static so the prompt-cache prefix stays stable.
+ */
+export function buildFollowUpEmailSystemBlocks(): Array<{ type: 'text'; text: string; cache_control: { type: 'ephemeral' } }> {
+  return [
+    {
+      type: 'text',
+      text: FOLLOW_UP_EMAIL_SYSTEM_TEXT,
+      cache_control: { type: 'ephemeral' as const },
+    },
+  ];
+}
+
+/**
+ * Build the follow-up email system prompt (plain string, kept for backward compat).
+ * @deprecated Use buildFollowUpEmailSystemBlocks() for prompt caching.
+ */
+export function buildFollowUpEmailSystemPrompt(_context: MasterContext): string {
+  return FOLLOW_UP_EMAIL_SYSTEM_TEXT;
 }

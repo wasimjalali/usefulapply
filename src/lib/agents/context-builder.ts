@@ -215,30 +215,57 @@ Return valid JSON only. No explanation or preamble.`,
   }
 }
 
-/**
- * Detect the language of the job description
- * Returns 'de' for German, 'en' for English (default)
- */
-export function detectLanguage(text: string): string {
-  const germanIndicators = [
+export type DetectedLanguage = 'en' | 'de' | 'fr' | 'es' | 'pt' | 'it' | 'nl';
+
+const LANGUAGE_INDICATORS: Record<Exclude<DetectedLanguage, 'en'>, RegExp[]> = {
+  de: [
     /\b(und|oder|für|mit|bei|auf|aus|nach|zur|zum|von|dem|den|des|der|die|das|ein|eine|einer|eines|wir|Sie|Ihre|Ihr|uns|werden|haben|sein|kann|können|sind|wird|wurde|werden|müssen|sollen|dürfen|möchten|Anforderungen|Aufgaben|Verantwortung|Erfahrung|Kenntnisse|Qualifikationen|Bewerbung|Stellenanzeige|Arbeitgeber|Mitarbeiter|Unternehmen|GmbH|AG)\b/gi,
     /\b(Berufserfahrung|Ausbildung|Studium|Abschluss|Vollzeit|Teilzeit|unbefristet|befristet|Gehalt|Vergütung|Arbeitszeit|Homeoffice|flexibel)\b/gi,
-  ];
-  
-  let germanMatches = 0;
-  for (const pattern of germanIndicators) {
-    const matches = text.match(pattern);
-    if (matches) {
-      germanMatches += matches.length;
+  ],
+  fr: [
+    /\b(le|la|les|un|une|des|et|ou|pour|avec|dans|sur|nous|vous|votre|nos|sera|sont|peut|peuvent|doit|doivent|expérience|compétences|exigences|missions|responsabilités|formation|profil|entreprise|société|candidature|poste)\b/gi,
+    /\b(temps plein|temps partiel|télétravail|CDI|CDD|stage|alternance|salaire|rémunération)\b/gi,
+  ],
+  es: [
+    /\b(el|la|los|las|un|una|unos|unas|y|o|para|con|en|sobre|nosotros|usted|su|sus|sera|son|puede|pueden|debe|deben|experiencia|conocimientos|requisitos|funciones|responsabilidades|formación|perfil|empresa|candidatura|puesto)\b/gi,
+    /\b(tiempo completo|media jornada|teletrabajo|indefinido|temporal|salario|remuneración)\b/gi,
+  ],
+  pt: [
+    /\b(o|a|os|as|um|uma|uns|umas|e|ou|para|com|em|sobre|nós|você|seu|seus|sua|suas|será|são|pode|podem|deve|devem|experiência|conhecimentos|requisitos|funções|responsabilidades|formação|perfil|empresa|candidatura)\b/gi,
+    /\b(tempo integral|meio período|teletrabalho|efetivo|temporário|salário|remuneração)\b/gi,
+  ],
+  it: [
+    /\b(il|la|i|le|un|una|uno|e|o|per|con|in|su|noi|voi|vostro|nostri|sara|sono|può|possono|deve|devono|esperienza|competenze|requisiti|mansioni|responsabilità|formazione|profilo|azienda|candidatura|posizione)\b/gi,
+    /\b(tempo pieno|part time|smart working|indeterminato|determinato|stipendio|retribuzione)\b/gi,
+  ],
+  nl: [
+    /\b(de|het|een|en|of|voor|met|bij|op|over|wij|jij|u|uw|onze|wordt|worden|kunnen|moeten|ervaring|kennis|vereisten|taken|verantwoordelijkheden|opleiding|profiel|bedrijf|sollicitatie|vacature|werkgever)\b/gi,
+    /\b(voltijd|deeltijd|thuiswerken|vast|tijdelijk|salaris|vergoeding)\b/gi,
+  ],
+};
+
+/**
+ * Detect the language of the job description.
+ * Returns one of the 7 supported language codes (matches detectCVLanguage).
+ * Falls back to 'en' when no language passes the indicator threshold so the
+ * existing English prompt path stays the safe default.
+ */
+export function detectLanguage(text: string): DetectedLanguage {
+  let best: { lang: DetectedLanguage; score: number } = { lang: 'en', score: 0 };
+
+  for (const [lang, patterns] of Object.entries(LANGUAGE_INDICATORS) as Array<[Exclude<DetectedLanguage, 'en'>, RegExp[]]>) {
+    let score = 0;
+    for (const pattern of patterns) {
+      score += text.match(pattern)?.length ?? 0;
+    }
+    if (score > best.score) {
+      best = { lang, score };
     }
   }
-  
-  // Threshold: at least 10 German words
-  if (germanMatches >= 10) {
-    return 'de';
-  }
-  
-  return 'en';
+
+  // Threshold: at least 10 indicator hits to commit to a non-English language;
+  // below that, the text could be code-mixed or too short — keep the English default.
+  return best.score >= 10 ? best.lang : 'en';
 }
 
 /**
@@ -542,9 +569,17 @@ export function computeSkillMatchFallback(
       matchingSkills.push(skill);
       continue;
     }
-    const hasSkill = [...applicantSkills].some(
-      s => s.includes(skillLower) || skillLower.includes(s)
-    );
+    // Substring matching is lax for short tokens ("R" matches "React",
+    // "Go" matches "Mongo", "AI" matches "Mail"). Require exact equality when
+    // either side is <= 3 chars; only use bidirectional includes for longer
+    // skills where the false-positive risk is much lower.
+    const hasSkill = [...applicantSkills].some((s) => {
+      if (!s) return false;
+      if (s.length <= 3 || skillLower.length <= 3) {
+        return s === skillLower;
+      }
+      return s.includes(skillLower) || skillLower.includes(s);
+    });
     if (hasSkill) {
       matchingSkills.push(skill);
     } else {
