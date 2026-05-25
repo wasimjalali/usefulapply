@@ -33,6 +33,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
+    if (!process.env.NEXT_PUBLIC_APP_URL) {
+      console.error('[Portal] NEXT_PUBLIC_APP_URL is not set');
+      return NextResponse.json({ error: 'App URL not configured' }, { status: 500 });
+    }
+
     const supabase = getSupabaseAdmin();
     const userId = user.id; // Use authenticated user ID, never trust client
 

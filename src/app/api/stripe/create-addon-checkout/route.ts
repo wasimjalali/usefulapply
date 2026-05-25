@@ -37,9 +37,9 @@ export async function POST(req: NextRequest) {
     const { packSize } = await req.json();
     const userId = user.id; // Use authenticated user ID, never trust client
 
-    if (!packSize) {
+    if (!packSize || typeof packSize !== 'string' || packSize.length > 64) {
       return NextResponse.json(
-        { error: 'Missing packSize' },
+        { error: 'Invalid packSize' },
         { status: 400 }
       );
     }
@@ -61,7 +61,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const creditsToAdd = ADDON_CREDIT_MAP[priceId] || 0;
+    const creditsToAdd = ADDON_CREDIT_MAP[priceId];
+    if (!creditsToAdd || creditsToAdd <= 0) {
+      console.error('[Addon Checkout] No credit mapping for priceId:', priceId, 'packSize:', packSize);
+      return NextResponse.json(
+        { error: 'Credit pack configuration error' },
+        { status: 500 }
+      );
+    }
 
     // Get user's email
     const { data: profile } = await supabase
@@ -98,11 +105,19 @@ export async function POST(req: NextRequest) {
       });
       customerId = customer.id;
 
-      // Save customer ID
-      await supabase
+      // Save customer ID so future checkouts reuse it
+      const { error: persistError } = await supabase
         .from('user_credits')
         .update({ stripe_customer_id: customerId })
         .eq('user_id', userId);
+
+      if (persistError) {
+        console.error('[Addon Checkout] Failed to persist stripe_customer_id', {
+          userId,
+          customerId,
+          error: persistError,
+        });
+      }
     }
 
     // Create one-time payment checkout session

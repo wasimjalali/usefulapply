@@ -170,11 +170,13 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to save job feed settings.' }, { status: 500 });
     }
 
-    // Sync preferences for cover letter context (fire-and-forget).
+    // Sync preferences for cover letter context. Awaited because Vercel kills
+    // floating promises after the handler returns; fire-and-forget would silently
+    // drop writes and downstream cover-letter generation would see stale data.
     // Use the AI-mirrored variables (targetRoles, userSkills, seniorityTarget)
     // so the cover letter agent sees the enriched values, not the raw client
     // input which may be empty arrays on first save before the mirror runs.
-    typedSupabase
+    const { error: prefError } = await typedSupabase
       .from('user_job_preferences')
       .upsert({
         user_id: user.id,
@@ -186,10 +188,12 @@ export async function PUT(request: NextRequest) {
         target_market: normalized.data.target_market,
         seniority_target: seniorityTarget,
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' })
-      .then(({ error: prefError }: { error: { message: string } | null }) => {
-        if (prefError) console.error('[job-feed/settings] preferences sync error:', prefError.message);
-      });
+      }, { onConflict: 'user_id' });
+
+    if (prefError) {
+      console.error('[job-feed/settings] preferences sync error:', prefError.message);
+      // Non-fatal for the settings flow itself, but surfaced for observability.
+    }
 
     return NextResponse.json({ settings: data });
   } catch (error) {

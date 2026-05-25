@@ -70,8 +70,8 @@ INSTRUCTIONS:
 8. NEVER mention the fit score, match percentage, or any numeric score in the email — this is internal data for context only
 
 EMAIL SUBJECT LINE RULES:
-- English: "Application: [Job Title] — [Your Name]" (max 60 chars)
-- German: "Bewerbung als [Job Title] — [Your Name]" (max 60 chars)
+- English: "Application: [Job Title], [Your Name]" (max 60 chars)
+- German: "Bewerbung als [Job Title], [Your Name]" (max 60 chars)
 - NEVER add extra descriptors, skill keywords, or metrics in the subject
 - The subject line is for identification, not selling
 
@@ -151,8 +151,8 @@ DUAL-CV SOURCING:
 - Every claim must exist in at least one CV source
 
 EMAIL SUBJECT LINE FORMAT (STRICT):
-- English: "Application: [Job Title] — [Your Name]" (max 60 chars total)
-- German: "Bewerbung als [Job Title] — [Your Name]" (max 60 chars total)
+- English: "Application: [Job Title], [Your Name]" (max 60 chars total)
+- German: "Bewerbung als [Job Title], [Your Name]" (max 60 chars total)
 - NEVER add extra descriptors, skill keywords, or metrics in the subject
 
 ATTACHMENT REFERENCE (MANDATORY):
@@ -195,7 +195,7 @@ PROHIBITIONS:
 - Mentioning fit score, match percentage, or any internal assessment score in the email
 
 STRUCTURE:
-Subject: "Application: [Job Title] — [Your Name]" (max 60 chars)
+Subject: "Application: [Job Title], [Your Name]" (max 60 chars)
 Body: Greeting + One sentence hook with metric + one sentence value + attachment reference + availability/call to action + Signature
 
 SIGNATURE REQUIREMENT:
