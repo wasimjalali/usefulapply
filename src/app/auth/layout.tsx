@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Sign In — KarKo AI',
   description:
-    'Sign in or create a free KarKo AI account. Get 10 free credits to generate AI-powered job applications, optimized CVs, and tailored cover letters.',
+    'Sign in or create a free KarKo AI account. Get 4 free credits each month to generate AI-powered job applications, optimized CVs, and tailored cover letters.',
   robots: {
     index: false,
     follow: false,
