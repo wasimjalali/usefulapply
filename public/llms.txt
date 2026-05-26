@@ -54,7 +54,7 @@ The product UI is in English. Job descriptions can be processed in English, Germ
 
 **How long does a full application take?** Under 90 seconds end to end. That includes the tailored CV, cover letter, application email, follow-up email, and screening answers.
 
-**Is KarKo AI GDPR compliant?** Yes. CVs are processed in-memory and are not stored permanently. The company is incorporated in Delaware, USA, with EU-compliant data handling.
+**Where is my CV stored?** Uploaded CVs and generated documents are stored in Supabase (a managed Postgres + Storage service) so you can revisit and re-download past applications from your account. See https://www.karkoai.com/privacy for the current data handling policy.
 
 **Where is KarKo AI based?** KarKo AI Inc. 1207 Delaware Ave #412, Wilmington, DE 19806, USA. Contact: support@karkoai.com.
 
@@ -131,5 +131,4 @@ KarKo AI was founded by Wasim Jalali after he got 5 interviews from 50+ applicat
 - Anti-hallucination guardrails: every skill, metric, and claim is verified against the uploaded CV
 - Real-time streaming progress with agentic workflow (Analyze First mode and Apply Directly mode)
 - 6 ATS-optimized CV templates covering US and EU markets, including two German formats
-- Secure: CVs processed in-memory, not stored permanently
-- GDPR compliant
+- Uploaded CVs, extracted CV content, and generated documents are stored in Supabase (Storage + Postgres) so the user can return to past applications. See https://www.karkoai.com/privacy for the current data handling policy.

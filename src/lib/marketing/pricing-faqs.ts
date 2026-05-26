@@ -7,7 +7,7 @@ export const pricingFAQs: PricingFAQ[] = [
   {
     question: 'What exactly do I get with each application?',
     answer:
-      'One application gives you a CV rewritten for the specific role, a cover letter, an application email, a follow-up email, and answers to any screening questions. Every word is pulled from your real CV. All of it in under 90 seconds.',
+      'One application gives you a CV rewritten for the specific role, a cover letter, an application email, and a follow-up email. Plus and Max also include AI-drafted answers to screening questions. Every word is pulled from your real CV. All of it in under 90 seconds.',
   },
   {
     question: 'Are all features the same across plans?',

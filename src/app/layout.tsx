@@ -169,7 +169,7 @@ export default function RootLayout({
             }),
           }}
         />
-        {/* WebSite Schema with SearchAction — enables sitelinks searchbox */}
+        {/* WebSite Schema — canonical site entity for AI search engines */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
