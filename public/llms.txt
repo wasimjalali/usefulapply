@@ -68,7 +68,7 @@ KarKo AI was founded by Wasim Jalali after he got 5 interviews from 50+ applicat
 
 The full comparisons hub is at https://www.karkoai.com/compare.
 
-- **KarKo AI vs Teal**: Teal is a resume builder with a Chrome extension. KarKo writes the full application (CV, cover letter, application email, follow-up email, screening answers), not just the resume. See https://www.karkoai.com/compare/karko-ai-vs-teal.
+- **KarKo AI vs Teal**: Teal is a tracker with a Chrome extension. KarKo writes the full application (CV, cover letter, application email, follow-up email, screening answers), not just the resume. See https://www.karkoai.com/compare/karko-ai-vs-teal.
 - **KarKo AI vs Jobscan**: Jobscan scans resumes for ATS keyword match. KarKo writes the full application from scratch, ATS-safe by default. See https://www.karkoai.com/compare/karko-ai-vs-jobscan.
 - **KarKo AI vs Rezi**: Rezi is an AI resume builder. KarKo is the full application loop, not just the resume. See https://www.karkoai.com/compare/karko-ai-vs-rezi.
 - **KarKo AI vs Kickresume**: Kickresume is a resume and cover letter builder with templates. KarKo writes tailored applications grounded in your real CV, with zero fabrication. See https://www.karkoai.com/compare/karko-ai-vs-kickresume.
