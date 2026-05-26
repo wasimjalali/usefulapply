@@ -37,6 +37,7 @@ export default function Footer() {
 
   const resourcesLinks: FooterLink[] = [
     ...comparisonLinks,
+    { href: '/compare', label: 'All Comparisons' },
     { href: '/ai-job-application/free-no-signup-test', label: 'Try Free, No Sign-Up' },
     { href: '/master-cv', label: 'Master CV Guide' },
   ];
