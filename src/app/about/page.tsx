@@ -26,11 +26,11 @@ const founderPersonJsonLd = {
   image: `${SITE_URL}/wasim-founder.jpg`,
   worksFor: {
     '@type': 'Organization',
-    name: 'KarKo AI',
+    name: 'Karko AI',
     url: SITE_URL,
   },
   description:
-    'Wasim Jalali is the founder of KarKo AI. He built the early version of the tool for his own job search and got 5 interviews from 50+ applications using it.',
+    'Wasim Jalali is the founder of Karko AI. He built the early version of the tool for his own job search and got 5 interviews from 50+ applications using it.',
 };
 
 const aboutBreadcrumbJsonLd = {
