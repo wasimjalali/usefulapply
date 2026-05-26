@@ -135,6 +135,7 @@ export default function RootLayout({
               '@context': 'https://schema.org',
               '@type': 'Organization',
               name: 'KarKo AI',
+              legalName: 'Karko AI Inc',
               url: SITE_URL,
               logo: `${SITE_URL}/favicon-512x512.png`,
               description:
@@ -142,12 +143,49 @@ export default function RootLayout({
               founder: {
                 '@type': 'Person',
                 name: 'Wasim Jalali',
+                jobTitle: 'Founder',
+                url: `${SITE_URL}/about`,
+                image: `${SITE_URL}/wasim-founder.jpg`,
+              },
+              foundingDate: '2025',
+              address: {
+                '@type': 'PostalAddress',
+                streetAddress: '1207 Delaware Ave #412',
+                addressLocality: 'Wilmington',
+                addressRegion: 'DE',
+                postalCode: '19806',
+                addressCountry: 'US',
               },
               contactPoint: {
                 '@type': 'ContactPoint',
+                email: 'support@karkoai.com',
                 url: `${SITE_URL}/contact`,
                 contactType: 'customer support',
+                availableLanguage: ['English', 'German'],
               },
+              sameAs: [
+                'https://www.trustpilot.com/review/karkoai.com',
+              ],
+            }),
+          }}
+        />
+        {/* WebSite Schema with SearchAction — enables sitelinks searchbox */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebSite',
+              name: 'KarKo AI',
+              url: SITE_URL,
+              description:
+                'AI job application agent. Generate tailored CVs, cover letters, and emails in 90 seconds.',
+              publisher: {
+                '@type': 'Organization',
+                name: 'KarKo AI',
+                url: SITE_URL,
+              },
+              inLanguage: 'en-US',
             }),
           }}
         />

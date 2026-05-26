@@ -15,9 +15,44 @@ export const metadata: Metadata = buildPageMetadata({
   canonical: '/about',
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
+
+const founderPersonJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: 'Wasim Jalali',
+  jobTitle: 'Founder',
+  url: `${SITE_URL}/about`,
+  image: `${SITE_URL}/wasim-founder.jpg`,
+  worksFor: {
+    '@type': 'Organization',
+    name: 'KarKo AI',
+    url: SITE_URL,
+  },
+  description:
+    'Wasim Jalali is the founder of KarKo AI. He built the early version of the tool for his own job search and got 5 interviews from 50+ applications using it.',
+};
+
+const aboutBreadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+    { '@type': 'ListItem', position: 2, name: 'About', item: `${SITE_URL}/about` },
+  ],
+};
+
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-cream-100">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(founderPersonJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutBreadcrumbJsonLd) }}
+      />
       <Navbar />
       <main>
       {/* Hero Section */}
