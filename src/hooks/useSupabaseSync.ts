@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore, type ApplicationSession } from '@/store/useSessionStore';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabase } from '@/lib/supabase/client';
 import {
   getSessions,
   createSession as createSupabaseSession,
@@ -87,8 +87,12 @@ export function useSupabaseSync() {
   const isCreatingSessionRef = useRef<Set<string>>(new Set());
   // Track user ID to reset refs when user changes (prevents cross-user data)
   const prevSyncUserIdRef = useRef<string | null>(null);
-  // Create the client once per hook instance — not on every render
-  const supabaseRef = useRef(createClient());
+  // Use the module-level singleton. Calling createClient() inside useRef()
+  // would re-run on every render (useRef evaluates its arg each time, then
+  // discards all but the first), spinning up disposable browser clients
+  // whose navigator.locks AbortControllers fire when GC'd. See locks.ts:107
+  // "signal is aborted without reason".
+  const supabaseRef = useRef(getSupabase());
   // Track synced chat message IDs to avoid duplicates
   const syncedMessageIdsRef = useRef<Set<string>>(new Set());
 
