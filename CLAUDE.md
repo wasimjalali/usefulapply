@@ -133,7 +133,7 @@ Karko AI is a Next.js 14+ app generating job application materials (CV, Cover Le
 - `src/lib/agents/` — Unified Writer Agent + context-builder
 - `src/lib/agents/prompts/` — Prompt builders (cv-prompt, cover-letter-prompt, email-prompts, fit-assessment-prompt)
 - `src/lib/models/` — Model configurations and task types
-- `src/lib/cv-parser/` — Modular CV parsers (section-splitter, parse-experience, parse-education, parse-skills, parse-other)
+- `src/lib/cv-parser/` — `section-splitter` (language detection + localized headers). CV parsing itself is LLM-only via `src/app/api/parse-cv/route.ts` (Claude reads the document and emits a `StructuredCV`); there are no per-section regex parser modules.
 - `src/app/api/` — API routes (agent-v2, regenerate, auth/*, stripe/*, contact, chat, generate-pdf, parse-cv)
 - `src/hooks/` — React hooks (`useAgentV2` for SSE streaming)
 - `src/store/` — Zustand stores (useSessionStore, useCVStore, useUIStore)

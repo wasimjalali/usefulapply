@@ -171,6 +171,10 @@ export function parseDate(raw: string): CVDate {
   const patterns = [
     { regex: /^(\d{4})-(\d{2})$/, format: 'YYYY-MM', confidence: 'high' as const },
     { regex: /^(\d{2})\/(\d{4})$/, format: 'MM/YYYY', confidence: 'high' as const },
+    // German / DACH CVs use dotted dates: "03.2022" (MM.YYYY) and
+    // "15.03.2022" (DD.MM.YYYY). Both normalize to YYYY-MM like the others.
+    { regex: /^(\d{2})\.(\d{4})$/, format: 'MM.YYYY', confidence: 'high' as const },
+    { regex: /^(\d{2})\.(\d{2})\.(\d{4})$/, format: 'DD.MM.YYYY', confidence: 'high' as const },
     { regex: /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*(\d{4})$/i, format: 'Mon YYYY', confidence: 'high' as const },
     { regex: /^(\d{4})$/, format: 'YYYY', confidence: 'medium' as const },
     { regex: /present|current|heute|aktuell/i, format: 'present', confidence: 'high' as const },
@@ -183,8 +187,10 @@ export function parseDate(raw: string): CVDate {
       
       if (format === 'YYYY-MM') {
         normalized = trimmed;
-      } else if (format === 'MM/YYYY') {
+      } else if (format === 'MM/YYYY' || format === 'MM.YYYY') {
         normalized = `${match[2]}-${match[1]}`;
+      } else if (format === 'DD.MM.YYYY') {
+        normalized = `${match[3]}-${match[2]}`;
       } else if (format === 'Mon YYYY') {
         const months: Record<string, string> = {
           jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
