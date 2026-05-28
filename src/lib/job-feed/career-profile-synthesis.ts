@@ -16,6 +16,7 @@ import type { StructuredCV } from '@/lib/types/cv-schema';
 import {
   CAREER_PROFILE_SCHEMA_VERSION,
   type CareerProfile,
+  type CareerProfileTargetDirection,
 } from '@/lib/job-feed/career-profile';
 
 const SYNTHESIS_TEMPERATURE = 0.4;
@@ -40,6 +41,12 @@ One of: "engineering", "product", "design", "data", "marketing", "sales", "growt
 
 ## seniority.level
 One of: "intern", "junior", "mid", "senior", "lead", "staff", "manager". Combine title signals (Senior, Lead, Principal, Junior, Manager, Director) with years of experience and scope of responsibility (team size, budget, individual-contributor vs. people-management bullets). "manager" is reserved for people-management roles. "staff" maps to staff/principal IC tracks.
+
+## targetDirection
+Where this candidate is heading NEXT, which is not always the same as where they've been. Read the summary, the trajectory of the most recent role, and any recency trend in their skills.
+- aspirationalTitles: 0-3 canonical titles the candidate is moving toward. If a senior IC shows people-management bullets trending up, "Engineering Manager" belongs here even if they've never held the title. If an analyst is picking up pipelines and warehousing, "Analytics Engineer" / "Data Engineer" belongs here. Leave EMPTY when the candidate is clearly deepening on their current track (the inferredTitles already cover them).
+- pivot: set { "from": "<current track>", "to": "<target track>" } ONLY when there's real evidence of a deliberate career pivot. Null otherwise. Do not invent a pivot for someone who is simply progressing in seniority on the same track.
+- confidence: "high" only with explicit evidence (a stated goal in the summary, a clear recent shift in responsibilities). "low" when you're reading weak tea leaves. Be conservative: a wrong aspirationalTitle steers the whole feed toward roles the candidate can't get.
 
 ## yearsTotal / yearsInFunction
 Integer years. Compute from start/end dates in the CV's experience array. yearsInFunction <= yearsTotal. If dates are missing or "Present," compute from earliest start date to today (today = the moment of synthesis).
@@ -76,6 +83,12 @@ Return ONLY a single valid JSON object matching the schema below. No markdown, n
     { "canonical": "<string>", "confidence": "high|medium|low", "rationale": "<short string>" }
   ],
   "seniority": { "level": "<level>", "confidence": "high|medium|low", "rationale": "<short string>" },
+  "targetDirection": {
+    "aspirationalTitles": ["<string>"],
+    "pivot": { "from": "<string>", "to": "<string>" },
+    "confidence": "high|medium|low",
+    "rationale": "<short string>"
+  },
   "yearsTotal": <integer>,
   "yearsInFunction": <integer>,
   "primarySkillClusters": [
@@ -98,6 +111,7 @@ Return ONLY a single valid JSON object matching the schema below. No markdown, n
 4. No invented companies, skills, or dates.
 5. version equals ${CAREER_PROFILE_SCHEMA_VERSION}.
 6. Narrative contains no em-dashes and no AI-tell phrases.
+7. targetDirection.pivot is null unless there's real pivot evidence; aspirationalTitles is empty when the candidate is staying on their current track.
 `;
 
 export function buildCareerProfileSystemBlocks(): Array<{ type: 'text'; text: string; cache_control: { type: 'ephemeral' } }> {
@@ -250,6 +264,8 @@ function validateCareerProfilePayload(value: unknown): CareerProfile {
     rationale: ensureString(seniorityRaw.rationale, 'seniority.rationale'),
   };
 
+  const targetDirection = parseTargetDirection(candidate.targetDirection);
+
   const yearsTotal = clampInteger(candidate.yearsTotal, 0, 80, 'yearsTotal');
   const yearsInFunction = clampInteger(candidate.yearsInFunction, 0, yearsTotal, 'yearsInFunction');
 
@@ -262,6 +278,7 @@ function validateCareerProfilePayload(value: unknown): CareerProfile {
     function: ensureNonEmptyString(candidate.function, 'function'),
     inferredTitles,
     seniority,
+    targetDirection,
     yearsTotal,
     yearsInFunction,
     primarySkillClusters,
@@ -274,6 +291,34 @@ function validateCareerProfilePayload(value: unknown): CareerProfile {
   };
 
   return profile;
+}
+
+// Degrades gracefully: targetDirection is a soft enhancement, so a model that
+// omits it or returns a malformed confidence/rationale should NOT nuke the
+// whole profile synthesis (there is no retry). Missing/invalid → a safe empty
+// direction (no aspirational titles, low confidence). aspirationalTitles is the
+// only field that carries real signal, and it's defaulted to [].
+function parseTargetDirection(value: unknown): CareerProfileTargetDirection {
+  const record = value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+  const confidence = record.confidence;
+  return {
+    aspirationalTitles: stringArray(Array.isArray(record.aspirationalTitles) ? record.aspirationalTitles : [], 'targetDirection.aspirationalTitles').slice(0, 3),
+    pivot: parsePivot(record.pivot),
+    confidence: (confidence === 'high' || confidence === 'medium' || confidence === 'low') ? confidence : 'low',
+    rationale: typeof record.rationale === 'string' ? record.rationale : '',
+  };
+}
+
+function parsePivot(value: unknown): CareerProfileTargetDirection['pivot'] {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const from = typeof record.from === 'string' ? record.from.trim() : '';
+  const to = typeof record.to === 'string' ? record.to.trim() : '';
+  if (!from || !to) return null;
+  return { from, to };
 }
 
 function ensureArray(value: unknown): unknown[] {

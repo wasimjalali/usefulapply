@@ -151,6 +151,7 @@ export function createDefaultJobFeedInput(timeZone?: string): JobFeedSettingsInp
     employment_types: [...JOB_FEED_DEFAULT_SETTINGS.employment_types] as JobFeedSettingsInput['employment_types'],
     work_authorization_status: JOB_FEED_DEFAULT_SETTINGS.work_authorization_status,
     user_skills: [],
+    excluded_terms: [],
     consent_accepted: false,
   };
 }
@@ -194,6 +195,7 @@ export function toJobFeedInput(settings: JobFeedSettings | null, fallbackTimeZon
       : [...JOB_FEED_DEFAULT_SETTINGS.employment_types] as JobFeedSettingsInput['employment_types'],
     work_authorization_status: settings.work_authorization_status ?? JOB_FEED_DEFAULT_SETTINGS.work_authorization_status,
     user_skills: settings.user_skills ?? [],
+    excluded_terms: settings.excluded_terms ?? [],
   };
 }
 
@@ -302,6 +304,9 @@ export function normalizeJobFeedSettingsInput(input: unknown): { data?: JobFeedS
   }
 
   const userSkills = sanitizeStringArray(payload.user_skills, MAX_SKILLS_ITEMS);
+  // User-controlled exclusions (titles/companies/keywords to never surface).
+  // Capped at 20 to keep the ranker prompt bounded.
+  const excludedTerms = sanitizeStringArray(payload.excluded_terms, 20);
 
   const data: JobFeedSettingsInput = {
     enabled: Boolean(payload.enabled),
@@ -321,6 +326,7 @@ export function normalizeJobFeedSettingsInput(input: unknown): { data?: JobFeedS
     employment_types: employmentTypes,
     work_authorization_status: (workAuthorizationStatus ?? null) as JobFeedSettingsInput['work_authorization_status'],
     user_skills: userSkills,
+    excluded_terms: excludedTerms,
   };
 
   return { data };

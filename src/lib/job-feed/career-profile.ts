@@ -13,7 +13,7 @@
 
 import type { JobFeedSettings } from '@/lib/supabase/types';
 
-export const CAREER_PROFILE_SCHEMA_VERSION = 1 as const;
+export const CAREER_PROFILE_SCHEMA_VERSION = 2 as const;
 
 export type CareerProfileConfidence = 'high' | 'medium' | 'low';
 export type CareerProfileEvidenceStrength = 'strong' | 'moderate' | 'mentioned';
@@ -41,6 +41,22 @@ export interface CareerProfileSkillCluster {
   evidenceStrength: CareerProfileEvidenceStrength;
 }
 
+export interface CareerProfileTargetDirection {
+  /**
+   * Titles the candidate is moving TOWARD (where they're going), which may
+   * differ from inferredTitles (where they are). Empty when the candidate is
+   * clearly staying on their current track.
+   */
+  aspirationalTitles: string[];
+  /**
+   * Set when the candidate is mid-pivot (e.g. IC -> management, analyst ->
+   * data engineering). Null when they're deepening on their current track.
+   */
+  pivot: { from: string; to: string } | null;
+  confidence: CareerProfileConfidence;
+  rationale: string;
+}
+
 export interface CareerProfile {
   version: typeof CAREER_PROFILE_SCHEMA_VERSION;
   generatedAt: string;
@@ -50,6 +66,13 @@ export interface CareerProfile {
 
   inferredTitles: CareerProfileInferredTitle[];
   seniority: CareerProfileSeniority;
+
+  /**
+   * Where the candidate is heading next. Lets search + ranking favour the
+   * roles they WANT, not only the roles they've held. Synthesized from the
+   * summary, recency trends, and the trajectory of the most recent role.
+   */
+  targetDirection: CareerProfileTargetDirection;
 
   /** Total professional years inferred from start/end dates across roles. */
   yearsTotal: number;
@@ -104,5 +127,8 @@ export function isCurrentCareerProfile(value: unknown): value is CareerProfile {
     && candidate.seniority !== null
     && typeof candidate.seniority === 'object'
     && typeof (candidate.seniority as CareerProfileSeniority).level === 'string'
+    && candidate.targetDirection !== null
+    && typeof candidate.targetDirection === 'object'
+    && Array.isArray((candidate.targetDirection as CareerProfileTargetDirection).aspirationalTitles)
   );
 }

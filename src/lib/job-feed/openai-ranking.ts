@@ -37,11 +37,11 @@ For each candidate job in the payload, return exactly one decision: "strong", "g
 # Evaluation framework (industry-standard weighting)
 Apply these weights when forming your decision. The weights reflect what actually predicts interview success for real hiring teams.
 
-1. SKILL MATCH (40%). Does the job description require skills the candidate actually has, per the userProfile.userSkills list? A candidate meeting 80%+ of must-have skills beats a perfect title match with meaningful skill gaps. Read the description carefully. Do not infer skills from title alone. Skill match is the single most important signal.
-2. ROLE ALIGNMENT (25%). Does the title and the day-to-day responsibilities match what the candidate is looking for (userProfile.targetRoles)? Exact-title matches rank highest. Clearly adjacent roles ("Applied AI Engineer" for a candidate searching "AI Engineer", "Full-Stack Engineer" for "Backend Engineer" with JS skills) count as aligned. Wildly different domains do not ("Account Executive" for an "AI Engineer" search is a skip even if both need communication).
+1. SKILL MATCH (40%). Does the job description require skills the candidate actually has, per the userProfile.userSkills list? These are the candidate's evidenced skills (derived from their CV's skill clusters and tools when a profile exists, otherwise their declared list). A candidate meeting 80%+ of must-have skills beats a perfect title match with meaningful skill gaps. Read the description carefully. Do not infer skills from title alone. Skill match is the single most important signal.
+2. ROLE ALIGNMENT (25%). Does the title and the day-to-day responsibilities match what the candidate is looking for (userProfile.targetRoles)? Exact-title matches rank highest. Clearly adjacent roles ("Applied AI Engineer" for a candidate searching "AI Engineer", "Full-Stack Engineer" for "Backend Engineer" with JS skills) count as aligned. Wildly different domains do not ("Account Executive" for an "AI Engineer" search is a skip even if both need communication). Also weigh inferredProfile.targetDirection when present: a role matching where the candidate is HEADING (their aspirationalTitles or the "to" side of a pivot) counts as aligned even if it doesn't match a past title, as long as the description's requirements are a realistic reach for their current skills.
 3. LOCATION & REMOTE FIT (15%). See rules below under LOCATION SEMANTICS and REMOTE SEMANTICS.
 4. SENIORITY & EXPERIENCE FIT (10%). Combine TWO signals to decide if the candidate is at the right level:
-   a. SeniorityTarget match: within ±1 level of any seniorityTarget is acceptable. A junior candidate seeing a staff/principal role is a skip. A senior candidate seeing an intern role is a skip. Title alone is unreliable in non-English postings; read seniority signals in the description.
+   a. SeniorityTarget match: within ±1 level of any seniorityTarget is acceptable. A junior candidate seeing a staff/principal role is a skip. A senior candidate seeing an intern role is a skip. Title alone is unreliable in non-English postings; read seniority signals in the description. PRECEDENCE: when inferredProfile.seniority is present with confidence "high", prefer it over seniorityTargets for level fit (it is derived from the CV, not a self-reported setting). Fall back to seniorityTargets when the inferred confidence is medium or low, or when no inferredProfile is present.
    b. YEARS OF EXPERIENCE match: when the posting explicitly states a required experience range (e.g. "5-8 years", "mindestens 7 Jahre", "minimum 10 years of experience") AND the candidate's userProfile.yearsExperience is provided, apply this rule:
       - If the candidate has at least HALF of the stated minimum (candidate_years >= required_min / 2), treat as a soft match. Acceptable to surface as "good" if other signals are strong, especially when the description uses soft language like "experience is less important for the right candidate", "exceptional juniors welcome", or "ideally but not required".
       - If the candidate has less than HALF of the stated minimum (candidate_years < required_min / 2), SKIP. This is the most common "wrong level" rejection and should not be ambiguous. Do not surface a role requiring 8-10 years to a candidate with 2 years unless the posting explicitly says experience is negotiable.
@@ -102,7 +102,10 @@ The same job is sometimes posted across multiple boards and arrives in the candi
 Each candidate includes a deterministic score and score breakdown computed upstream. Use these as a prior signal: they encode role/token match, freshness, salary alignment, remote alignment, preferred-location match, apply-URL availability, and heuristic skill overlap. However: YOU are reading the full description and they are not. Upgrade when the description reveals a fit the heuristic missed (non-English title matching via translation, seniority phrased unusually, responsibilities matching despite a mismatched title). Downgrade when the description reveals a mismatch the heuristic missed (wrong stack, mandatory unavailable skill, explicit country restriction, posting actually about a totally different role).
 
 # Negative signals (downweight)
-The candidate profile may include a userProfile.negativeTerms array: title or keyword fragments that are a poor fit for this specific candidate (derived from their career history and explicit anti-preferences). When a candidate job's title or core focus matches one of these terms, treat it as a strong downweight: default to skip unless the description clearly shows a genuine fit the term was wrong about. These are signals, not hard constraints, so read the description before discarding a job that is otherwise an excellent match.
+The candidate profile may include a userProfile.negativeTerms array: title or keyword fragments that are a poor fit for this specific candidate (derived from their career history). When a candidate job's title or core focus matches one of these terms, treat it as a strong downweight: default to skip unless the description clearly shows a genuine fit the term was wrong about. These are signals, not hard constraints, so read the description before discarding a job that is otherwise an excellent match.
+
+# User exclusions (honor strongly)
+The profile may also include userProfile.excludedTerms: titles, companies, or keywords the user has EXPLICITLY said they never want to see. Treat these as near-hard constraints. When a candidate job's title, company, or core focus matches an excluded term, skip it. The only exception is an obviously incidental string match where the job is clearly not what the user meant to exclude (e.g. the user excluded "Lead" meaning team-lead roles, and the term appears only inside an unrelated phrase like "lead generation tooling we use"). When in doubt, honor the user's exclusion and skip.
 
 # Quality over quantity — hard rule
 The feed is daily. Fewer excellent matches beats more mediocre ones. If only 2 of 30 candidates are truly strong fits, return 2 strongs and skip the rest. Do not pad the feed to hit a number. Do not upgrade a "good" to a "strong" to fill a cap. The user will notice and trust the feed less.
@@ -160,6 +163,7 @@ export async function rankWithOpenAI(params: {
   yearsExperience?: number | null;
   careerProfile?: CareerProfile | null;
   negativeTerms?: string[];
+  excludedTerms?: string[];
 }): Promise<JobFeedRankingExecutionResult> {
   const {
     settings,
@@ -168,6 +172,7 @@ export async function rankWithOpenAI(params: {
     yearsExperience = null,
     careerProfile = null,
     negativeTerms = [],
+    excludedTerms = [],
   } = params;
   const deterministicItems = buildDeterministicRankedItems(candidates, visibleCap);
 
@@ -200,7 +205,7 @@ export async function rankWithOpenAI(params: {
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: buildUserProfileMessage(settings, yearsExperience, careerProfile, negativeTerms) },
+        { role: 'user', content: buildUserProfileMessage(settings, yearsExperience, careerProfile, negativeTerms, excludedTerms) },
         { role: 'user', content: buildCandidatesMessage(candidates, visibleCap) },
       ],
     });
@@ -253,6 +258,7 @@ export function buildRankingRequestBody(params: {
   yearsExperience?: number | null;
   careerProfile?: CareerProfile | null;
   negativeTerms?: string[];
+  excludedTerms?: string[];
 }): {
   model: string;
   temperature: number;
@@ -268,7 +274,7 @@ export function buildRankingRequestBody(params: {
     response_format: { type: 'json_object' },
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: buildUserProfileMessage(params.settings, params.yearsExperience ?? null, params.careerProfile ?? null, params.negativeTerms ?? []) },
+      { role: 'user', content: buildUserProfileMessage(params.settings, params.yearsExperience ?? null, params.careerProfile ?? null, params.negativeTerms ?? [], params.excludedTerms ?? []) },
       { role: 'user', content: buildCandidatesMessage(params.candidates, cap) },
     ],
   };
@@ -306,13 +312,29 @@ function buildUserProfileMessage(
   yearsExperience: number | null = null,
   careerProfile: CareerProfile | null = null,
   negativeTerms: string[] = [],
+  excludedTerms: string[] = [],
 ): string {
+  const declaredSkills = settings.user_skills ?? [];
+  // Authoritative skill set for the 40%-weighted skill match. When a
+  // CareerProfile exists, prefer the synthesized, evidence-weighted clusters +
+  // tools over the flat raw CV skill list (which is noisy and proficiency-
+  // stripped). Fall back to the declared list when no profile, or when the
+  // profile somehow yields nothing.
+  const profileSkills = careerProfile
+    ? dedupeSkills([
+        ...careerProfile.primarySkillClusters.flatMap((cluster) => cluster.skills),
+        ...careerProfile.toolsEnvironment,
+      ])
+    : [];
+  const userSkills = profileSkills.length > 0 ? profileSkills : declaredSkills;
+
   return JSON.stringify({
     section: 'candidate_profile',
     profile: {
       targetRoles: settings.target_roles,
-      userSkills: settings.user_skills ?? [],
+      userSkills,
       negativeTerms,
+      excludedTerms,
       // Years of professional experience inferred from CV start/end dates.
       // Used by the ranker to catch jobs that require much more experience
       // than the candidate has (e.g. job asks 8-10 yrs, candidate has 2).
@@ -339,6 +361,7 @@ function buildUserProfileMessage(
           function: careerProfile.function,
           inferredTitles: careerProfile.inferredTitles,
           seniority: careerProfile.seniority,
+          targetDirection: careerProfile.targetDirection,
           yearsTotal: careerProfile.yearsTotal,
           yearsInFunction: careerProfile.yearsInFunction,
           primarySkillClusters: careerProfile.primarySkillClusters,
@@ -459,6 +482,23 @@ function validateModelRankingResponse(
       reason: item.reason,
       deterministicScore: item.candidate.deterministicScore,
     }));
+}
+
+// Case-insensitive dedupe that preserves the first-seen casing. Used to merge
+// skill-cluster skills with toolsEnvironment without emitting "React"/"react"
+// twice or losing the candidate's preferred casing.
+function dedupeSkills(skills: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const skill of skills) {
+    const trimmed = skill.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(trimmed);
+  }
+  return result;
 }
 
 function normalizeReason(value: unknown): string | null {
