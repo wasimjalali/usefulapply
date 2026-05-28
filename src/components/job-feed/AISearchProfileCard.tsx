@@ -80,6 +80,35 @@ export function AISearchProfileCard() {
     };
   }, [data?.cvNewerThanProfile, load]);
 
+  // Self-heal a missing or stale-by-schema profile. status "no_profile" means
+  // a CV exists but no valid profile is stored (genuinely new, or an existing
+  // profile that no longer validates after a schema bump). Nothing else in
+  // this card's flow would refresh that case, so synthesize once. Shares the
+  // 60s cooldown so we don't spin on repeated failures.
+  useEffect(() => {
+    if (cardStatus !== 'no_profile') return;
+    const now = Date.now();
+    if (now - lastRegenAttemptRef.current < 60_000) return;
+    lastRegenAttemptRef.current = now;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/job-feed/career-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ force: true }),
+        });
+        if (!res.ok) return;
+        if (!cancelled) await load();
+      } catch {
+        // Keep cooldown active so we don't spin on repeated failures.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [cardStatus, load]);
+
   if (cardStatus === 'loading') {
     return (
       <div className="rounded-2xl border border-cream-200 bg-cream-50 p-6 shadow-sm">

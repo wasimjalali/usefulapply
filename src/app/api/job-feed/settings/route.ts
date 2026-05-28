@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { normalizeJobFeedSettingsInput } from '@/lib/job-feed/helpers';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { createClient } from '@/lib/supabase/server';
-import { isCurrentCareerProfile, type CareerProfile } from '@/lib/job-feed/career-profile';
+import type { CareerProfile } from '@/lib/job-feed/career-profile';
+import { getOrSynthesizeCareerProfileAdmin } from '@/lib/job-feed/server';
 import { requireJobFeedAccess } from '@/lib/job-feed/auth';
 import type { JobFeedSettingsInput } from '@/lib/job-feed/types';
 
@@ -112,7 +113,7 @@ export async function PUT(request: NextRequest) {
     // The strategy generator still reads these mirrored fields downstream.
     // profileMirror is the authoritative source for targetRoles — we never
     // fall back to client-supplied roles so drift is impossible.
-    const profileMirror = await loadCareerProfileMirror(typedSupabase, user.id);
+    const profileMirror = await loadCareerProfileMirror(user.id);
 
     if (!profileMirror?.targetRoles?.length) {
       return NextResponse.json(
@@ -213,29 +214,16 @@ interface CareerProfileMirror {
 }
 
 /**
- * Read the user's latest career profile and project the slice of fields
- * job_feed_settings should mirror. Returns null when no profile exists yet
- * (free users / first-time paid users whose profile is still synthesizing).
- * The caller falls back to whatever the client sent in those cases.
+ * Resolve the user's latest career profile and project the slice of fields
+ * job_feed_settings should mirror. Synthesizes on demand when the profile is
+ * missing or stale (e.g. existing users on the first deploy after a profile
+ * schema bump) so settings save never gets stuck on a profile that no other
+ * path in this flow would rebuild. Returns null only when there's genuinely no
+ * CV to synthesize from; the caller then surfaces "profile not ready".
  */
-async function loadCareerProfileMirror(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the user_career_profiles table here.
-  supabase: any,
-  userId: string,
-): Promise<CareerProfileMirror | null> {
-  const { data, error } = await supabase
-    .from('user_career_profiles')
-    .select('profile')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (error) {
-    console.error('[job-feed/settings] career profile fetch error:', error.message);
-    return null;
-  }
-  if (!data?.profile || !isCurrentCareerProfile(data.profile)) return null;
-
-  const profile = data.profile as CareerProfile;
+async function loadCareerProfileMirror(userId: string): Promise<CareerProfileMirror | null> {
+  const profile: CareerProfile | null = await getOrSynthesizeCareerProfileAdmin(userId);
+  if (!profile) return null;
 
   const targetRoles = profile.inferredTitles
     .map((title) => title.canonical)

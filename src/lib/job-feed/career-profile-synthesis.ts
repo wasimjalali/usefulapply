@@ -293,13 +293,21 @@ function validateCareerProfilePayload(value: unknown): CareerProfile {
   return profile;
 }
 
+// Degrades gracefully: targetDirection is a soft enhancement, so a model that
+// omits it or returns a malformed confidence/rationale should NOT nuke the
+// whole profile synthesis (there is no retry). Missing/invalid → a safe empty
+// direction (no aspirational titles, low confidence). aspirationalTitles is the
+// only field that carries real signal, and it's defaulted to [].
 function parseTargetDirection(value: unknown): CareerProfileTargetDirection {
-  const record = ensureRecord(value, 'targetDirection');
+  const record = value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+  const confidence = record.confidence;
   return {
-    aspirationalTitles: stringArray(record.aspirationalTitles ?? [], 'targetDirection.aspirationalTitles').slice(0, 3),
+    aspirationalTitles: stringArray(Array.isArray(record.aspirationalTitles) ? record.aspirationalTitles : [], 'targetDirection.aspirationalTitles').slice(0, 3),
     pivot: parsePivot(record.pivot),
-    confidence: ensureConfidence(record.confidence, 'targetDirection.confidence'),
-    rationale: ensureString(record.rationale, 'targetDirection.rationale'),
+    confidence: (confidence === 'high' || confidence === 'medium' || confidence === 'low') ? confidence : 'low',
+    rationale: typeof record.rationale === 'string' ? record.rationale : '',
   };
 }
 
