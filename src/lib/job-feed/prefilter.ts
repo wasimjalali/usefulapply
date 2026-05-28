@@ -181,18 +181,19 @@ function getEffectiveRemotePreferences(settings: JobFeedSettings): Array<JobFeed
 }
 
 function hasSalaryMismatch(job: JobFeedCanonicalJob, settings: JobFeedSettings): boolean {
-  // salary_floor is the user's non-negotiable MINIMUM salary. Only reject
-  // when the job explicitly advertises a salary AND its top-of-range is
-  // still below that minimum — i.e. no realistic negotiation will bridge
-  // the gap. Absent salary data = do not reject (candidate can negotiate).
+  // salary_floor is the user's non-negotiable MINIMUM salary. Only HARD-reject
+  // when the job advertises a genuine RANGE whose top is still below that
+  // minimum, i.e. no realistic negotiation bridges the gap.
+  //
+  // A single-value posting (salary_min === salary_max, e.g. "$60k") is
+  // ambiguous: it may be a floor ("from $60k"), a ceiling ("up to $60k"), or a
+  // typo. parseSalaryText cannot tell which, so we defer those to the LLM,
+  // which reads the "from"/"up to"/"starting at" language in the description.
+  // Absent salary (both null) = do not reject (candidate can negotiate).
   if (!settings.salary_floor) return false;
-  // Use salary_min as fallback ceiling when salary_max is null. This handles
-  // single-value postings (e.g. "$60k") that parseSalaryText maps to
-  // salaryMin=60000 / salaryMax=60000. Truly unknown salary (both null) =
-  // do not reject.
-  const advertisedCeiling = job.salary_max ?? job.salary_min;
-  if (advertisedCeiling === null) return false;
-  return advertisedCeiling < settings.salary_floor;
+  if (job.salary_min === null || job.salary_max === null) return false;
+  if (job.salary_min === job.salary_max) return false; // single value → LLM decides
+  return job.salary_max < settings.salary_floor;
 }
 
 function hasWorkAuthorizationMismatch(job: JobFeedCanonicalJob, settings: JobFeedSettings): boolean {

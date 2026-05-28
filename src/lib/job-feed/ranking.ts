@@ -12,6 +12,7 @@ export async function rankJobFeedCandidates(params: {
   visibleCap?: number;
   yearsExperience?: number | null;
   careerProfile?: CareerProfile | null;
+  negativeTerms?: string[];
 }): Promise<JobFeedRankingExecutionResult> {
   return rankWithOpenAI(params);
 }

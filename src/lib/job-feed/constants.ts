@@ -42,8 +42,11 @@ export const JOB_FEED_TIER_LIMITS: Record<JobFeedTier, JobFeedTierLimits> = {
     prefilterHardCap: 20,
     // Daily visible cap. The LLM may surface fewer when fewer genuinely
     // qualify ("quality over quantity" is explicit in its system prompt),
-    // but we give it headroom when the day is strong.
-    visibleCount: 15,
+    // but we give it headroom when the day is strong. Held at the absolute
+    // ceiling (25) so a strong day's genuine matches are never truncated;
+    // Max keeps its edge via 2x search volume (4 queries vs Plus's 2), not a
+    // smaller visible cap.
+    visibleCount: 25,
   },
   max: {
     maxDailyQueries: 4,
