@@ -634,35 +634,51 @@ function readUrlProtocol(value: string): string | null {
   }
 }
 
+// "today" / "just posted" / "x hours ago" equivalents across the markets we
+// serve (EN + DE/FR/ES/IT/NL/PT). SerpAPI returns the posted-at string in the
+// query locale (driven by hl), so a German query yields "vor 3 Tagen", a French
+// one "il y a 2 jours". English-only parsing zeroed the freshness signal for
+// every EU posting; this restores it.
+const FRESHNESS_TODAY_TOKENS = [
+  'today', 'just posted', 'new', 'hours ago', 'hour ago',
+  'heute', 'gerade', 'soeben', 'vor wenigen', 'stunden', 'stunde',
+  "aujourd'hui", 'à l\'instant', 'heures', 'heure',
+  'hoy', 'recién', 'horas', 'hora',
+  'oggi', 'poco fa', 'ore fa', 'ora fa',
+  'vandaag', 'zojuist', 'uur geleden',
+  'hoje', 'agora', 'horas atrás',
+];
+const FRESHNESS_YESTERDAY_TOKENS = ['yesterday', 'gestern', 'hier', 'ayer', 'ieri', 'gisteren', 'ontem'];
+
+// Unit patterns: the count always precedes the unit in every supported
+// locale ("3 days ago", "vor 3 Tagen", "il y a 2 jours", "hace 5 días").
+const FRESHNESS_DAY_UNIT = /(\d+)\+?\s*(?:days?|tage?n?|jours?|d[ií]as?|giorni|giorno|dag(?:en)?|dni|dzie[nń])/;
+const FRESHNESS_WEEK_UNIT = /(\d+)\+?\s*(?:weeks?|wochen?|semaines?|semanas?|settimane?|weken|week|tygodni|tydzie[nń])/;
+const FRESHNESS_MONTH_UNIT = /(\d+)\+?\s*(?:months?|monate?n?|mois|mes(?:es)?|mesi|mese|maand(?:en)?|miesi)/;
+
 function estimateFreshnessDays(value?: string | null): number | null {
   const normalized = normalizeOptionalText(value)?.toLowerCase();
   if (!normalized) return null;
 
-  if (
-    normalized.includes('today')
-    || normalized.includes('just posted')
-    || normalized.includes('new')
-    || normalized.includes('hours ago')
-    || normalized.includes('hour ago')
-  ) {
+  if (FRESHNESS_TODAY_TOKENS.some((token) => normalized.includes(token))) {
     return 0;
   }
 
-  if (normalized.includes('yesterday')) {
+  if (FRESHNESS_YESTERDAY_TOKENS.some((token) => normalized.includes(token))) {
     return 1;
   }
 
-  const dayMatch = normalized.match(/(\d+)\+?\s*day/);
+  const dayMatch = normalized.match(FRESHNESS_DAY_UNIT);
   if (dayMatch) {
     return Number.parseInt(dayMatch[1], 10);
   }
 
-  const weekMatch = normalized.match(/(\d+)\+?\s*week/);
+  const weekMatch = normalized.match(FRESHNESS_WEEK_UNIT);
   if (weekMatch) {
     return Number.parseInt(weekMatch[1], 10) * 7;
   }
 
-  const monthMatch = normalized.match(/(\d+)\+?\s*month/);
+  const monthMatch = normalized.match(FRESHNESS_MONTH_UNIT);
   if (monthMatch) {
     return Number.parseInt(monthMatch[1], 10) * 30;
   }
