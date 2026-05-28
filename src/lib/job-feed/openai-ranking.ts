@@ -101,6 +101,9 @@ The same job is sometimes posted across multiple boards and arrives in the candi
 # How to use the deterministic score
 Each candidate includes a deterministic score and score breakdown computed upstream. Use these as a prior signal: they encode role/token match, freshness, salary alignment, remote alignment, preferred-location match, apply-URL availability, and heuristic skill overlap. However: YOU are reading the full description and they are not. Upgrade when the description reveals a fit the heuristic missed (non-English title matching via translation, seniority phrased unusually, responsibilities matching despite a mismatched title). Downgrade when the description reveals a mismatch the heuristic missed (wrong stack, mandatory unavailable skill, explicit country restriction, posting actually about a totally different role).
 
+# Negative signals (downweight)
+The candidate profile may include a userProfile.negativeTerms array: title or keyword fragments that are a poor fit for this specific candidate (derived from their career history and explicit anti-preferences). When a candidate job's title or core focus matches one of these terms, treat it as a strong downweight: default to skip unless the description clearly shows a genuine fit the term was wrong about. These are signals, not hard constraints, so read the description before discarding a job that is otherwise an excellent match.
+
 # Quality over quantity — hard rule
 The feed is daily. Fewer excellent matches beats more mediocre ones. If only 2 of 30 candidates are truly strong fits, return 2 strongs and skip the rest. Do not pad the feed to hit a number. Do not upgrade a "good" to a "strong" to fill a cap. The user will notice and trust the feed less.
 
@@ -156,6 +159,7 @@ export async function rankWithOpenAI(params: {
   visibleCap?: number;
   yearsExperience?: number | null;
   careerProfile?: CareerProfile | null;
+  negativeTerms?: string[];
 }): Promise<JobFeedRankingExecutionResult> {
   const {
     settings,
@@ -163,6 +167,7 @@ export async function rankWithOpenAI(params: {
     visibleCap = JOB_FEED_VISIBLE_MAX_COUNT,
     yearsExperience = null,
     careerProfile = null,
+    negativeTerms = [],
   } = params;
   const deterministicItems = buildDeterministicRankedItems(candidates, visibleCap);
 
@@ -187,11 +192,15 @@ export async function rankWithOpenAI(params: {
     const response = await client.chat.completions.create({
       model: AZURE_DEPLOYMENT,
       temperature: 0.2,
-      max_tokens: 4000,
+      // Headroom for large candidate sets: ~40 jobs each needing
+      // jobId+decision+rank+reason can exceed 4k output tokens, and a
+      // truncated JSON body fails parsing and drops the whole run to the
+      // deterministic fallback. 8k removes that cliff for the quality path.
+      max_tokens: 8000,
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: buildUserProfileMessage(settings, yearsExperience, careerProfile) },
+        { role: 'user', content: buildUserProfileMessage(settings, yearsExperience, careerProfile, negativeTerms) },
         { role: 'user', content: buildCandidatesMessage(candidates, visibleCap) },
       ],
     });
@@ -243,6 +252,7 @@ export function buildRankingRequestBody(params: {
   visibleCap?: number;
   yearsExperience?: number | null;
   careerProfile?: CareerProfile | null;
+  negativeTerms?: string[];
 }): {
   model: string;
   temperature: number;
@@ -254,11 +264,11 @@ export function buildRankingRequestBody(params: {
   return {
     model: AZURE_DEPLOYMENT,
     temperature: 0.2,
-    max_tokens: 4000,
+    max_tokens: 8000,
     response_format: { type: 'json_object' },
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: buildUserProfileMessage(params.settings, params.yearsExperience ?? null, params.careerProfile ?? null) },
+      { role: 'user', content: buildUserProfileMessage(params.settings, params.yearsExperience ?? null, params.careerProfile ?? null, params.negativeTerms ?? []) },
       { role: 'user', content: buildCandidatesMessage(params.candidates, cap) },
     ],
   };
@@ -286,16 +296,23 @@ export function parseRankingResponse(
 // The settings remain authoritative for hard constraints; the inferred
 // profile is a richer prior for soft signals like skill clusters, function,
 // industry domains, and the narrative paragraph.
+//
+// negativeTerms come from the AI search strategy (title/keyword fragments that
+// are a poor fit for this candidate). The ranker treats them as a downweight
+// signal per the "Negative signals" rule in the system prompt. They live in
+// this per-user message so the static system prompt stays cache-stable.
 function buildUserProfileMessage(
   settings: JobFeedSettings,
   yearsExperience: number | null = null,
   careerProfile: CareerProfile | null = null,
+  negativeTerms: string[] = [],
 ): string {
   return JSON.stringify({
     section: 'candidate_profile',
     profile: {
       targetRoles: settings.target_roles,
       userSkills: settings.user_skills ?? [],
+      negativeTerms,
       // Years of professional experience inferred from CV start/end dates.
       // Used by the ranker to catch jobs that require much more experience
       // than the candidate has (e.g. job asks 8-10 yrs, candidate has 2).
@@ -356,7 +373,11 @@ function buildCandidatesMessage(candidates: JobFeedRankingCandidate[], visibleCa
       deterministicScore: candidate.deterministicScore,
       deterministicFitLabel: candidate.deterministicFitLabel,
       scoreBreakdown: candidate.scoreBreakdown,
-      descriptionExcerpt: truncateText(candidate.description, 1400),
+      // 3500 chars (was 1400): requirements (must-have skills, years) usually
+      // sit in the back half of a JD, and skill match is 40% of the score, so
+      // the ranker must see them. Only this uncached candidates message grows;
+      // system + profile caching is unaffected.
+      descriptionExcerpt: truncateText(candidate.description, 3500),
     })),
   }, null, 2);
 }
