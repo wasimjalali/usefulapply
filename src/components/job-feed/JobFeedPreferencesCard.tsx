@@ -183,6 +183,20 @@ export function JobFeedPreferencesCard({
           />
         </SectionLabel>
 
+        <Divider />
+
+        <SectionLabel
+          label="What to avoid"
+          help="Optional. Titles, companies or keywords you never want to see. Karko skips anything that matches."
+        >
+          <ChipField
+            values={form.excluded_terms}
+            suggestions={[]}
+            placeholder="e.g. Sales, agency, crypto"
+            onChange={(excluded_terms) => onFormChange((prev) => ({ ...prev, excluded_terms }))}
+          />
+        </SectionLabel>
+
         {!hasRecordedConsent && variant === 'onboarding' && (
           <ConsentRow
             checked={form.consent_accepted}

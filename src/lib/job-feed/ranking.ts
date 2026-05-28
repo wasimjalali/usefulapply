@@ -13,6 +13,7 @@ export async function rankJobFeedCandidates(params: {
   yearsExperience?: number | null;
   careerProfile?: CareerProfile | null;
   negativeTerms?: string[];
+  excludedTerms?: string[];
 }): Promise<JobFeedRankingExecutionResult> {
   return rankWithOpenAI(params);
 }

@@ -261,6 +261,7 @@ export function toPreviewJobFeedSettings(form: JobFeedSettingsInput): NonNullabl
     employment_types: form.employment_types,
     work_authorization_status: form.work_authorization_status,
     user_skills: form.user_skills,
+    excluded_terms: form.excluded_terms,
     created_at: now,
     updated_at: now,
   };

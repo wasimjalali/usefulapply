@@ -159,6 +159,9 @@ export async function PUT(request: NextRequest) {
         employment_types: employmentTypes,
         work_authorization_status: normalized.data.work_authorization_status,
         user_skills: userSkills,
+        // User-controlled exclusions. Unlike the other AI-mirrored fields this
+        // is pure user input (the AI can't know what they want to avoid).
+        excluded_terms: normalized.data.excluded_terms,
       }, {
         onConflict: 'user_id',
       })

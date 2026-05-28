@@ -113,6 +113,7 @@ export interface Database {
           employment_types: Array<'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'>
           work_authorization_status: 'authorized' | 'needs_sponsorship' | 'open_to_both' | null
           user_skills: string[]
+          excluded_terms: string[]
           created_at: string
           updated_at: string
         }
@@ -135,6 +136,7 @@ export interface Database {
           employment_types?: Array<'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'>
           work_authorization_status?: 'authorized' | 'needs_sponsorship' | 'open_to_both' | null
           user_skills?: string[]
+          excluded_terms?: string[]
           created_at?: string
           updated_at?: string
         }
@@ -157,6 +159,7 @@ export interface Database {
           employment_types?: Array<'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'>
           work_authorization_status?: 'authorized' | 'needs_sponsorship' | 'open_to_both' | null
           user_skills?: string[]
+          excluded_terms?: string[]
           created_at?: string
           updated_at?: string
         }

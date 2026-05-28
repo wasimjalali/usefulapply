@@ -114,6 +114,8 @@ export interface JobFeedSettingsInput {
   employment_types: JobFeedSettings['employment_types'];
   work_authorization_status: JobFeedSettings['work_authorization_status'];
   user_skills: string[];
+  /** Titles/companies/keywords the user never wants surfaced. Downweighted hard by the ranker. */
+  excluded_terms: string[];
 }
 
 export interface JobFeedSettingsSuggestion {
