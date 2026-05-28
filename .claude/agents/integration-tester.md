@@ -1,6 +1,6 @@
 ---
 name: integration-tester
-model: claude-haiku-4-5-20251001
+model: haiku
 effort: low
 description: Karko AI pre-push verifier — runs tsc, lint, and a narrow smoke check against recent changes. Cheap and fast (Haiku 4.5).
 ---

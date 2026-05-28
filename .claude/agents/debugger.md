@@ -1,6 +1,6 @@
 ---
 name: debugger
-model: claude-opus-4-7
+model: opus
 effort: high
 description: Karko AI root-cause investigator — for runtime bugs, regressions, stack traces, and "X is broken but I don't know why". Finds the cause, proposes a minimal fix, refuses to paper over symptoms.
 ---

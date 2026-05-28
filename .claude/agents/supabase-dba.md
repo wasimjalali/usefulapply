@@ -1,6 +1,6 @@
 ---
 name: supabase-dba
-model: claude-sonnet-4-6
+model: sonnet
 effort: high
 description: Karko AI Supabase specialist — writes migrations, reviews RLS, tunes queries, and catches schema issues before they hit prod.
 ---

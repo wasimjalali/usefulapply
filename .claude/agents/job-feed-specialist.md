@@ -1,6 +1,6 @@
 ---
 name: job-feed-specialist
-model: claude-sonnet-4-6
+model: sonnet
 effort: high
 description: Karko AI Daily Job Feed specialist — owns ingestion, prefilter, career-profile synthesis, search strategy, LLM ranking, settings, and the suggest/refresh flow. The feed runs on-click in real time (no batch path, no scheduler).
 ---

@@ -9,25 +9,25 @@
 Specialist agents are the **preferred** way to handle bug investigations, external research, code review, UI verification, and agent/prompt work. They protect the main context window and often find issues faster than direct exploration. Spawn them in parallel when the work is independent.
 
 ### Project-scope agents (this repo)
-- **`debugger`** — Whenever a runtime bug, regression, stack trace, or "X is broken but I don't know why" appears. Also for intermittent SSE/streaming failures, wrong state on screen, credit/billing anomalies, and any failed request without an obvious cause. Read-only by default; proposes patches with file:line, refuses to paper over symptoms. Powered by Opus 4.7.
-- **`agent-expert`** — When editing anything in `src/lib/agents/`, `src/lib/agents/prompts/`, `src/lib/models/`, `src/app/api/agent-v2/`, or the `useAgentV2` / `useAgentWorkflow` hooks. Also for anti-hallucination rule changes, SSE event semantics, context-builder work, CV pipeline, fit-assessment prompts. Powered by Opus 4.7.
+- **`debugger`** — Whenever a runtime bug, regression, stack trace, or "X is broken but I don't know why" appears. Also for intermittent SSE/streaming failures, wrong state on screen, credit/billing anomalies, and any failed request without an obvious cause. Read-only by default; proposes patches with file:line, refuses to paper over symptoms. Powered by Opus.
+- **`agent-expert`** — When editing anything in `src/lib/agents/`, `src/lib/agents/prompts/`, `src/lib/models/`, `src/app/api/agent-v2/`, or the `useAgentV2` / `useAgentWorkflow` hooks. Also for anti-hallucination rule changes, SSE event semantics, context-builder work, CV pipeline, fit-assessment prompts. Powered by Opus.
 - **`ui-tester`** — After any UI change to `/dashboard`, `/applications`, `/documents`, `/` (landing), or shared components (ChatPanel, CVPanel, CoverLetterPanel, EmailPanel, JobFeedPanel). Uses Playwright MCP. Run before calling a UI task done.
-- **`karko-architect`** — For cross-cutting design decisions, refactors, and "where should this state live" questions. Use for anything that spans 3+ files or has non-obvious tradeoffs. Returns a plan with ordered steps; does not modify code itself. Powered by Opus 4.7.
+- **`karko-architect`** — For cross-cutting design decisions, refactors, and "where should this state live" questions. Use for anything that spans 3+ files or has non-obvious tradeoffs. Returns a plan with ordered steps; does not modify code itself. Powered by Opus.
 - **`supabase-dba`** — When writing or reviewing migrations in `supabase/migrations/`, changing RLS policies, touching schema, or when a query looks suspicious. Will not run migrations itself.
-- **`integration-tester`** — Before every commit touching components, hooks, API routes, or job-feed files. Runs tsc + lint + narrow spot-checks. Cheap and fast — uses Haiku 4.5.
+- **`integration-tester`** — Before every commit touching components, hooks, API routes, or job-feed files. Runs tsc + lint + narrow spot-checks. Cheap and fast — uses Haiku.
 - **`job-feed-specialist`** — When editing anything under `src/lib/job-feed/**`, `src/inngest/job-feed.ts`, `src/app/api/job-feed/**`, or `src/components/job-feed/**`. Owns ingestion, prefilter, LLM ranker, batch reconcile, and settings flows.
 - **`karko-ui-designer`** — For UI/UX audits, redesigns, and visual polish. Carries brand tokens (navy/cream/gold), typography (Georgia+Arial), surface roles, radius/shadow scales, and anti-AI-slop rules in its system prompt. Can audit AND implement. Does NOT touch backend, API routes, data fetching, or Zustand stores.
 
-### Opus 4.7 escalation (automatic — do not wait to be asked)
-For tasks requiring deep reasoning or premium creative output, draft first as Sonnet 4.6 then escalate to Opus 4.7 via Agent tool (model: "opus") to critique and polish. Pattern: Sonnet drafts → Opus 4.7 reviews and produces final → present Opus 4.7's version to user.
+### Opus escalation (automatic — do not wait to be asked)
+For tasks requiring deep reasoning or premium creative output, draft first as Sonnet then escalate to Opus via Agent tool (model: "opus") to critique and polish. Pattern: Sonnet drafts → Opus reviews and produces final → present Opus's version to user.
 
 Escalate automatically for:
 - **Website / marketing copywriting** — homepage, landing pages, CTAs, onboarding copy, pricing copy
 - **Video scripts** — demo scripts, walkthrough scripts, any voiceover narrative
-- **Debugging non-trivial bugs** — use the `debugger` agent (already Opus 4.7). Don't try to root-cause stack traces or multi-file regressions in the main thread.
-- **Anti-hallucination / prompt changes** — use the `agent-expert` agent (already Opus 4.7) for anything in `src/lib/agents/**`.
+- **Debugging non-trivial bugs** — use the `debugger` agent (already Opus). Don't try to root-cause stack traces or multi-file regressions in the main thread.
+- **Anti-hallucination / prompt changes** — use the `agent-expert` agent (already Opus) for anything in `src/lib/agents/**`.
 - **High-stakes UI/UX decisions** — brand-level design critique after `karko-ui-designer` runs
-- **Architecture decisions** — anything spanning 3+ files (use `karko-architect` which already uses Opus 4.7)
+- **Architecture decisions** — anything spanning 3+ files (use `karko-architect` which already uses Opus)
 
 ### When to parallelize
 If two agent tasks are independent (different files, different questions), spawn them in a **single message with multiple Agent tool calls** — they run concurrently.
@@ -209,65 +209,9 @@ These rules apply to: agent completion messages, chat assistant replies, error/e
 
 ---
 
-## Design System (authoritative — this overrides any older spec)
+## Design System
 
-The product has three visual layers. Every panel, card, and document must pick a role and stick to it.
-
-### Surface roles
-| Layer | Token | Hex | Use for |
-|-------|-------|-----|---------|
-| **Canvas** | `cream-100` | `#FAF7F2` | Page canvas only: dashboard shell, every panel shell, modal backdrop fallback |
-| **Surface** | `cream-50` | `#FEFDFB` | Everything cards live in: cards, grids, pills, inputs, state messages, wizard body, tab tracks, tracker rows, job cards, empty-state tiles |
-| **Document** | `white` | `#FFFFFF` | Only printable/sendable documents: CV page, cover letter body, email body, modal inner scroll area when it holds a document |
-
-Rules:
-- **No gradients on canvas or surface layers.** No `bg-gradient-to-b from-cream-100 to-cream-50` shells, no custom `bg-[radial-gradient(...)]` canvases. Gradients are reserved for CTAs (gold/navy buttons), nothing else.
-- **No translucent whites over cream.** `bg-white/85`, `bg-white/90`, `bg-white/95` on a cream canvas create subtle tint shifts the eye can feel but not name. Use solid `bg-cream-50` or solid `bg-white` — decide which role the surface is playing.
-- **Borders on surfaces:** `border-cream-200`. Darker cream borders (`cream-300`, `cream-400`) are for dingy; do not reach for them on new work.
-- **Avoid `cream-300` and `cream-400` on large fills.** They read as aged paper / dingy. Keep them for dividers and scrollbar thumbs only.
-
-### Typography
-- **Headings that anchor the user's eye** → `font-serif` (Georgia via Tailwind `font-serif`, semi-bold): page title `h1`, panel/section `h2`, modal title, wizard title. These are "where am I" moments.
-- **Everything smaller** → default sans (Inter, set in `globals.css` as `--font-sans`): `h3`, body, labels, buttons, chips, form fields. These are scanning-text, not anchoring-text.
-- **Do not apply `font-serif` to chat messages, job cards, tracker rows, form labels, or button text.** It looks Victorian.
-- **`font-semibold` not `font-bold`** on serif headings — bold Georgia reads as AI-slop.
-
-### Radius scale (3 + 1)
-Pick one role per element. Everything else is deprecated.
-| Role | Class | Use for |
-|------|-------|---------|
-| **Pill** | `rounded-full` | Chips, status pills, icon buttons, avatar rings |
-| **Control** | `rounded-lg` | Inputs, dropdowns, small buttons, tooltips |
-| **Card** | `rounded-2xl` | Cards, panels, grids, wizards, preview tiles |
-| **Modal** *(reserved)* | `rounded-[24px]` | Full-screen / centered modals only |
-
-Do NOT use: `rounded-md`, `rounded-xl`, `rounded-3xl`, `rounded-[14px]`, `rounded-[16px]`, `rounded-[18px]`, `rounded-[20px]`, `rounded-[22px]`, `rounded-[28px]`, `rounded-[30px]`, `rounded-[32px]`. Collapse all of those to the nearest role above.
-
-### CTA treatments (one each — no gradients)
-| CTA | Class | Use |
-|-----|-------|-----|
-| **Primary (Gold)** | `bg-gold-400 hover:bg-gold-500 text-navy-900` | Main action per surface ("Apply with Karko", "Start my daily feed", "Upgrade to Plus") |
-| **Primary (Navy)** | `bg-navy-600 hover:bg-navy-700 text-white` | Secondary primary ("Sign up", "Save changes", sidebar highlights) |
-
-Do NOT use: `bg-gradient-to-r from-gold-400 to-gold-500`, `bg-gradient-to-r from-navy-600 to-navy-700`, `bg-gold-500` / `bg-navy-700` as default base. Gradients on CTAs read as AI-slop; flat brand colors read as confident.
-
-### Shadow scale (3 values)
-| Depth | Class | Use |
-|-------|-------|-----|
-| **Resting** | `shadow-sm` | Cards, pills, tab tracks — everything that sits on the canvas |
-| **Elevated** | `shadow-md` | Hover state on cards, dropdowns, popovers |
-| **Floating** | `shadow-lg` | Modals, full-preview overlays, toasts |
-
-Do NOT invent bespoke drop-shadow strings like `shadow-[0_24px_60px_-20px_rgba(30,58,95,0.35)]`. If `shadow-lg` isn't dramatic enough for a modal, use `shadow-xl` (last resort). Never `shadow-2xl`.
-
-### Motion
-- `transition-colors duration-200` default.
-- Elevation lift (`-translate-y-0.5 hover:shadow-md`) reserved for elevated CTAs only — not on every card.
-
-### Iconography
-- Lucide-react only. Sizes: `w-3.5` (chrome), `w-4` (inline text), `w-5` (headers), `w-6` (modal close, empty-state tiles).
-
-**When in doubt, read this section before touching any visual code.**
+The full design system (surface roles, typography, radius/CTA/shadow scales, motion, iconography) lives in `.claude/rules/design-system.md`. It's path-scoped, so it loads automatically when you open any UI file (`src/components/**`, `src/app/**/*.tsx`, `src/**/*.css`). Follow it exactly on any visual work. The `karko-ui-designer` agent also carries it in its system prompt.
 
 ---
 
@@ -280,17 +224,8 @@ Do NOT invent bespoke drop-shadow strings like `shadow-[0_24px_60px_-20px_rgba(3
 
 ---
 
-## CV Templates (6 total)
-| ID | Name | Color | Market |
-|----|------|-------|--------|
-| `premium-ats` | Premium ATS | #0F3057 navy | Default |
-| `modern-professional` | Modern Professional | #2C7A7B teal | Tech |
-| `executive` | Executive | #702459 burgundy | Senior |
-| `german-ats` | German ATS | #1E3A5F slate blue | DE two-col |
-| `german-classic` | German Classic | #374151 charcoal | DE single-col |
-| `classic-green` | Classic Green | #2D6A4F forest green | All industries |
-
-All templates: Arial body + Georgia headers (system fonts, ATS-compliant).
+## CV Templates
+The 6 CV templates and their color/market tokens live in `.claude/rules/cv-templates.md`, path-scoped to `src/components/cv-templates/**` and `src/lib/cv-templates/**`. All templates use Arial body + Georgia headers (system fonts, ATS-compliant).
 
 ---
 
