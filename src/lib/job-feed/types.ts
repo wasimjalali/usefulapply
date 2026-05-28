@@ -179,6 +179,16 @@ export interface JobFeedApplyOption {
   link: string;
 }
 
+/**
+ * A structured section of a job posting (e.g. "Qualifications",
+ * "Responsibilities", "Benefits") as extracted by the provider. Used to render
+ * clean sections when the free-text description arrives as one run-on blob.
+ */
+export interface JobFeedHighlight {
+  title: string;
+  items: string[];
+}
+
 export interface JobFeedFeedItem {
   id: string;
   title: string;
@@ -188,6 +198,7 @@ export interface JobFeedFeedItem {
   employmentType: JobFeedCanonicalJob['employment_type'];
   salaryText: string | null;
   description: string | null;
+  highlights: JobFeedHighlight[];
   applyUrl: string | null;
   sourceUrl: string | null;
   via: string | null;
