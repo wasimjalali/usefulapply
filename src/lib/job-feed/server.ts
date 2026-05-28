@@ -2018,6 +2018,7 @@ function toFeedItem(
     employmentType: job.employment_type,
     salaryText: job.salary_text,
     description: job.description,
+    highlights: extractHighlights(sourceIdentifiers.highlights),
     applyUrl: job.apply_url,
     sourceUrl: job.source_url,
     via: typeof sourceIdentifiers.via === 'string' ? sourceIdentifiers.via : null,
@@ -2029,6 +2030,27 @@ function toFeedItem(
     applyOptions: extractApplyOptions(sourceIdentifiers.apply_options, job),
     feedback: toJobFeedFeedbackState(feedback),
   };
+}
+
+// Provider-extracted structured sections (Qualifications / Responsibilities /
+// Benefits) captured at ingestion into source_identifiers.highlights. Surfaced
+// so the UI can render clean sections when the free-text description is a
+// single run-on paragraph with no line breaks.
+function extractHighlights(value: Json | undefined): JobFeedFeedItem['highlights'] {
+  if (!Array.isArray(value)) return [];
+
+  const highlights: JobFeedFeedItem['highlights'] = [];
+  for (const entry of value) {
+    if (!isJsonRecord(entry)) continue;
+    const title = typeof entry.title === 'string' ? entry.title.trim() : '';
+    const items = Array.isArray(entry.items)
+      ? entry.items.filter((item): item is string => typeof item === 'string').map((item) => item.trim()).filter(Boolean)
+      : [];
+    if (items.length === 0) continue;
+    highlights.push({ title, items });
+  }
+
+  return highlights;
 }
 
 function extractApplyOptions(value: Json | undefined, job: JobFeedCanonicalJob): JobFeedFeedItem['applyOptions'] {
