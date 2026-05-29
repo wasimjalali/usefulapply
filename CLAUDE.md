@@ -67,6 +67,14 @@ If two agent tasks are independent (different files, different questions), spawn
 - Branch naming: `feature/short-description` or `fix/short-description`
 - Never push directly to `main`; never use `--no-verify`
 
+**Standard workflow for every new feature, fix, or change:**
+1. Develop on the local `main` branch. Keep it current first with `git checkout main && git pull`.
+2. When the change is ready to push, create a new branch off your working changes (`git checkout -b feature/short-description`, which carries the uncommitted edits over) and push to that branch. Never push to `main`.
+3. Open a PR to merge the branch into `main` (`gh pr create`).
+4. Review the PR before merging: run `coderabbit` or the `pr-review-toolkit`, and address what it surfaces.
+5. Wait for GitHub CI checks to go green. Do not merge on red or pending checks.
+6. Merge the PR into `main`. Vercel auto-deploys `main` to production, so `main` must always stay green.
+
 ### Package Manager
 - Use **`npm` only** — never bun, yarn, or pnpm
 
