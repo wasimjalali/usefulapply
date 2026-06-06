@@ -46,6 +46,27 @@
 
   /* Font family */
   --font-sans: 'Inter', system-ui, sans-serif;
+
+  /* ─── Premium motion + depth tokens (UI premium pass) ───
+     Central language for easing, shadow depth and accent glow. Every
+     shadow-sm/md/lg/xl utility in the app reads these, so depth stays
+     consistent and a future dark mode is a token remap, not a rewrite. */
+
+  /* Easing: one calm decelerating curve for structure, one springy curve
+     reserved for pop moments (dialogs, ticks, badges). */
+  --ease-out-quart: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Brand-tinted shadow scale — overrides Tailwind's black-based defaults so
+     every card, panel and modal picks up the warm navy tint at once. Kept
+     close to the previous weight; just softer and tinted with navy-600. */
+  --shadow-sm: 0 1px 2px 0 rgb(30 58 95 / 0.06), 0 1px 1px -1px rgb(30 58 95 / 0.05);
+  --shadow-md: 0 1px 0 0 rgb(30 58 95 / 0.04), 0 10px 24px -12px rgb(30 58 95 / 0.16);
+  --shadow-lg: 0 1px 0 0 rgb(30 58 95 / 0.05), 0 22px 46px -20px rgb(30 58 95 / 0.22);
+  --shadow-xl: 0 1px 0 0 rgb(30 58 95 / 0.06), 0 32px 60px -24px rgb(30 58 95 / 0.28);
+
+  /* Accent glow (gold) — for primary-CTA hover and active emphasis only. */
+  --shadow-glow-gold: 0 0 0 1px rgb(212 168 83 / 0.18), 0 12px 30px -10px rgb(212 168 83 / 0.42);
 }
 
 :root {
@@ -90,6 +111,14 @@ body {
 ::selection {
   background-color: #C5D1E3; /* navy-100 */
   color: #1E3A5F; /* navy-600 */
+}
+
+/* Tailwind v4 dropped the default pointer on buttons — restore it so every
+   interactive element feels clickable (disabled buttons keep the arrow). */
+button:not(:disabled),
+summary,
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
 }
 
 /* Focus ring customization — only for elements without custom focus styles */
@@ -323,12 +352,60 @@ select:focus-visible {
 
 /* Card hover lift effect for marketing pages */
 .card-hover-lift {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.3s var(--ease-out-quart), box-shadow 0.3s var(--ease-out-quart);
 }
 
 .card-hover-lift:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 24px -8px rgba(30, 58, 95, 0.12);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ─── Premium primitives (UI premium pass) ─── */
+
+/* Primary gold CTA: warms to a gold glow on hover and dips slightly on press.
+   Layered on top of existing bg-gold-400 / hover:bg-gold-500 utilities. */
+.cta-gold {
+  transition: background-color 0.2s var(--ease-out-quart),
+    box-shadow 0.2s var(--ease-out-quart),
+    transform 0.2s var(--ease-out-quart);
+}
+.cta-gold:hover {
+  box-shadow: var(--shadow-glow-gold);
+  transform: translateY(-1px);
+}
+.cta-gold:active {
+  transform: translateY(0) scale(0.985);
+}
+
+/* Soft panel entrance — for app surfaces that mount on tab switch. */
+@keyframes panel-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.panel-rise {
+  animation: panel-rise 0.42s var(--ease-out-quart) both;
+}
+
+/* Active segmented-pill tab — premium treatment for app chrome (workspace
+   switcher, document tabs). A faint gold inset ring + soft navy drop reads
+   richer than a flat white pill in a still frame. Layered on top of bg-white. */
+.tab-pill-active {
+  box-shadow:
+    inset 0 0 0 1px rgb(212 168 83 / 0.28),
+    0 1px 0 0 rgb(255 255 255 / 0.9) inset,
+    0 4px 12px -6px rgb(30 58 95 / 0.30);
+}
+
+/* Eyebrow label with a small gradient accent dot — page-level labels only. */
+.eyebrow-dot::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--color-gold-300), var(--color-gold-500));
+  margin-right: 0.45rem;
+  vertical-align: 1.5px;
 }
 
 /* Smooth FAQ expand/collapse */
@@ -881,10 +958,46 @@ select:focus-visible {
 .animate-aurora-shimmer { animation: aurora-shimmer 8s ease-in-out infinite; }
 .animate-conic-sweep { animation: conic-sweep 90s linear infinite; will-change: transform; }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   REDUCED MOTION — single blanket gate (UI premium pass)
+   Honors prefers-reduced-motion across the whole app, not just the aurora.
+   Decorative loops stop entirely; functional transitions collapse to near-zero
+   so nothing depends on animation and no content stays hidden.
+   ═══════════════════════════════════════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Kill the ambient, infinitely-looping background decoration outright. */
   .animate-aurora-slow-1,
   .animate-aurora-slow-2,
   .animate-aurora-slow-3,
   .animate-aurora-shimmer,
-  .animate-conic-sweep { animation: none; }
+  .animate-conic-sweep,
+  .animate-float,
+  .animate-float-slow,
+  .animate-float-delayed,
+  .animate-pulse-soft,
+  .animate-shimmer,
+  .animate-scroll-logos,
+  .animate-badge-float,
+  .cta-glow,
+  [class*="animate-ring-float"],
+  [class*="animate-dot-float"],
+  [class*="animate-streak"],
+  [class*="animate-cloud"],
+  [class*="animate-platform-float"],
+  [class*="animate-light-stream"],
+  [class*="animate-sparkle"],
+  [class*="animate-glow"],
+  [class*="animate-breathe"],
+  [class*="animate-ribbon"],
+  [class*="animate-golden-glow"],
+  .animated-border::before { animation: none !important; }
 }
