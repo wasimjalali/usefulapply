@@ -1,0 +1,66 @@
+---
+paths:
+  - "src/components/**"
+  - "src/app/**/*.tsx"
+  - "src/**/*.css"
+---
+
+# Karko Design System (authoritative — overrides any older spec)
+
+The product has three visual layers. Every panel, card, and document must pick a role and stick to it.
+
+### Surface roles
+| Layer | Token | Hex | Use for |
+|-------|-------|-----|---------|
+| **Canvas** | `cream-100` | `#FAF7F2` | Page canvas only: dashboard shell, every panel shell, modal backdrop fallback |
+| **Surface** | `cream-50` | `#FEFDFB` | Everything cards live in: cards, grids, pills, inputs, state messages, wizard body, tab tracks, tracker rows, job cards, empty-state tiles |
+| **Document** | `white` | `#FFFFFF` | Only printable/sendable documents: CV page, cover letter body, email body, modal inner scroll area when it holds a document |
+
+Rules:
+- **No gradients on canvas or surface layers.** No `bg-gradient-to-b from-cream-100 to-cream-50` shells, no custom `bg-[radial-gradient(...)]` canvases. Gradients are reserved for CTAs (gold/navy buttons), nothing else.
+- **No translucent whites over cream.** `bg-white/85`, `bg-white/90`, `bg-white/95` on a cream canvas create subtle tint shifts the eye can feel but not name. Use solid `bg-cream-50` or solid `bg-white` — decide which role the surface is playing.
+- **Borders on surfaces:** `border-cream-200`. Darker cream borders (`cream-300`, `cream-400`) are for dingy; do not reach for them on new work.
+- **Avoid `cream-300` and `cream-400` on large fills.** They read as aged paper / dingy. Keep them for dividers and scrollbar thumbs only.
+
+### Typography
+- **Headings that anchor the user's eye** → `font-serif` (Georgia via Tailwind `font-serif`, semi-bold): page title `h1`, panel/section `h2`, modal title, wizard title. These are "where am I" moments.
+- **Everything smaller** → default sans (Inter, set in `globals.css` as `--font-sans`): `h3`, body, labels, buttons, chips, form fields. These are scanning-text, not anchoring-text.
+- **Do not apply `font-serif` to chat messages, job cards, tracker rows, form labels, or button text.** It looks Victorian.
+- **`font-semibold` not `font-bold`** on serif headings — bold Georgia reads as AI-slop.
+
+### Radius scale (3 + 1)
+Pick one role per element. Everything else is deprecated.
+| Role | Class | Use for |
+|------|-------|---------|
+| **Pill** | `rounded-full` | Chips, status pills, icon buttons, avatar rings |
+| **Control** | `rounded-lg` | Inputs, dropdowns, small buttons, tooltips |
+| **Card** | `rounded-2xl` | Cards, panels, grids, wizards, preview tiles |
+| **Modal** *(reserved)* | `rounded-[24px]` | Full-screen / centered modals only |
+
+Do NOT use: `rounded-md`, `rounded-xl`, `rounded-3xl`, `rounded-[14px]`, `rounded-[16px]`, `rounded-[18px]`, `rounded-[20px]`, `rounded-[22px]`, `rounded-[28px]`, `rounded-[30px]`, `rounded-[32px]`. Collapse all of those to the nearest role above.
+
+### CTA treatments (one each — no gradients)
+| CTA | Class | Use |
+|-----|-------|-----|
+| **Primary (Gold)** | `bg-gold-400 hover:bg-gold-500 text-navy-900` | Main action per surface ("Apply with Karko", "Start my daily feed", "Upgrade to Plus") |
+| **Primary (Navy)** | `bg-navy-600 hover:bg-navy-700 text-white` | Secondary primary ("Sign up", "Save changes", sidebar highlights) |
+
+Do NOT use: `bg-gradient-to-r from-gold-400 to-gold-500`, `bg-gradient-to-r from-navy-600 to-navy-700`, `bg-gold-500` / `bg-navy-700` as default base. Gradients on CTAs read as AI-slop; flat brand colors read as confident.
+
+### Shadow scale (3 values)
+| Depth | Class | Use |
+|-------|-------|-----|
+| **Resting** | `shadow-sm` | Cards, pills, tab tracks — everything that sits on the canvas |
+| **Elevated** | `shadow-md` | Hover state on cards, dropdowns, popovers |
+| **Floating** | `shadow-lg` | Modals, full-preview overlays, toasts |
+
+Do NOT invent bespoke drop-shadow strings like `shadow-[0_24px_60px_-20px_rgba(30,58,95,0.35)]`. If `shadow-lg` isn't dramatic enough for a modal, use `shadow-xl` (last resort). Never `shadow-2xl`.
+
+### Motion
+- `transition-colors duration-200` default.
+- Elevation lift (`-translate-y-0.5 hover:shadow-md`) reserved for elevated CTAs only — not on every card.
+
+### Iconography
+- Lucide-react only. Sizes: `w-3.5` (chrome), `w-4` (inline text), `w-5` (headers), `w-6` (modal close, empty-state tiles).
+
+**When in doubt, follow this before touching any visual code.**

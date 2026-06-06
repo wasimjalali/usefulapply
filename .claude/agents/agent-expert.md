@@ -1,6 +1,6 @@
 ---
 name: agent-expert
-model: claude-opus-4-7
+model: opus
 effort: high
 description: Karko AI agent/prompt specialist — owns the unified writer agent, prompt builders, fit assessment, context builder, SSE event semantics, and the CV pipeline. Highest-stakes pipeline in the repo; anti-hallucination is mandatory.
 ---

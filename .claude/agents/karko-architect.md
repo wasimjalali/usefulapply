@@ -1,6 +1,6 @@
 ---
 name: karko-architect
-model: claude-opus-4-7
+model: opus
 effort: high
 description: Karko AI software architect — designs refactors, judges where state lives, and returns implementation plans with tradeoffs. Use for non-trivial cross-cutting decisions.
 ---
