@@ -59,7 +59,7 @@ export default function Footer() {
             </p>
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-gold-400 hover:bg-gold-500 text-white rounded-xl transition-all shadow-sm hover:shadow-md"
+              className="cta-gold inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-gold-400 hover:bg-gold-500 text-white rounded-xl shadow-sm"
             >
               Start free, no credit card
             </Link>

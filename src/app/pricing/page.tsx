@@ -237,7 +237,7 @@ export default function PricingPage() {
                 <button
                   onClick={() => handleSubscribe('plus')}
                   disabled={loadingPlan === 'plus'}
-                  className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-white shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-60 mb-6 group"
+                  className="cta-gold w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-white shadow-sm cursor-pointer disabled:opacity-60 mb-6 group"
                 >
                   {loadingPlan === 'plus' ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Plus <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
                 </button>
@@ -284,7 +284,7 @@ export default function PricingPage() {
                 <button
                   onClick={() => handleSubscribe('max')}
                   disabled={loadingPlan === 'max'}
-                  className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-navy-900 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-60 mb-6 group"
+                  className="cta-gold w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-navy-900 shadow-sm cursor-pointer disabled:opacity-60 mb-6 group"
                 >
                   {loadingPlan === 'max' ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Max <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
                 </button>
@@ -324,7 +324,7 @@ export default function PricingPage() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
               {/* Left: label + headline + note */}
               <div className="flex-1">
-                <p className="text-xs font-semibold text-gold-400 uppercase tracking-[0.12em] mb-2">
+                <p className="eyebrow-dot text-xs font-semibold text-gold-400 uppercase tracking-[0.12em] mb-2">
                   Need more this month?
                 </p>
                 <h3 className="font-bold text-white text-[24px] leading-tight mb-2">
@@ -348,7 +348,7 @@ export default function PricingPage() {
                   <button
                     onClick={() => handleBuyAddon(pack.name.split(' ')[0].toLowerCase())}
                     disabled={loadingAddon === pack.name.split(' ')[0].toLowerCase()}
-                    className="px-6 py-4 rounded-xl bg-gold-400 hover:bg-gold-500 text-navy-900 font-bold text-[18px] shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2 group"
+                    className="cta-gold px-6 py-4 rounded-xl bg-gold-400 hover:bg-gold-500 text-navy-900 font-bold text-[18px] shadow-sm cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2 group"
                   >
                     {loadingAddon === pack.name.split(' ')[0].toLowerCase()
                       ? <Loader2 className="w-5 h-5 animate-spin" />
@@ -369,7 +369,7 @@ export default function PricingPage() {
         <div className="max-w-4xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-10">
-            <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Time Savings</p>
+            <p className="eyebrow-dot text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Time Savings</p>
             <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-3">
               How much time will you save?
             </h2>
@@ -436,7 +436,7 @@ export default function PricingPage() {
         <div className="max-w-4xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-10">
-            <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Credit System</p>
+            <p className="eyebrow-dot text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Credit System</p>
             <h2 className="font-bold text-navy-600 text-[32px] leading-[1.1] mb-3">
               How credits work.
             </h2>
@@ -477,7 +477,7 @@ export default function PricingPage() {
         <div className="max-w-3xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-10">
-            <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">FAQ</p>
+            <p className="eyebrow-dot text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">FAQ</p>
             <h2 className="font-bold text-navy-600 text-[32px] leading-[1.1]">
               Frequently asked questions.
             </h2>
@@ -501,7 +501,7 @@ export default function PricingPage() {
                   />
                 </button>
                 {expandedFaq === idx && (
-                  <div className="px-5 pb-5">
+                  <div className="panel-rise px-5 pb-5">
                     <p className="text-warm-gray leading-relaxed">{faq.answer}</p>
                   </div>
                 )}
@@ -525,7 +525,7 @@ export default function PricingPage() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             <Link
               href="/dashboard"
-              className="px-8 py-3.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors flex items-center justify-center text-base"
+              className="cta-gold px-8 py-3.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm flex items-center justify-center text-base"
             >
               Start free, no credit card
             </Link>

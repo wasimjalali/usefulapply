@@ -734,7 +734,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                   <div className="mt-6 pt-5 border-t border-cream-200">
                     <button
                       onClick={() => { setSignUpWallTrigger('general'); setShowSignUpWall(true); }}
-                      className="w-full px-4 py-2.5 text-sm font-semibold bg-gold-400 text-white rounded-2xl hover:bg-gold-500 transition-all shadow-md cursor-pointer"
+                      className="cta-gold w-full px-4 py-2.5 text-sm font-semibold bg-gold-400 text-white rounded-2xl hover:bg-gold-500 shadow-md cursor-pointer"
                     >
                       Sign Up Free
                     </button>

@@ -655,7 +655,7 @@ export default function Dashboard() {
             onClick={() => handleWorkspaceChange('application-kit')}
             className={`flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
               activeWorkspace === 'application-kit'
-                ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
+                ? 'bg-white text-navy-700 tab-pill-active font-semibold'
                 : 'text-warm-gray hover:text-navy-600'
             }`}
           >
@@ -672,7 +672,7 @@ export default function Dashboard() {
               }}
               className={`relative flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
                 activeWorkspace === 'job-feed'
-                  ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
+                  ? 'bg-white text-navy-700 tab-pill-active font-semibold'
                   : 'text-warm-gray hover:text-navy-600'
               }`}
             >
@@ -756,7 +756,7 @@ export default function Dashboard() {
             onClick={() => handleWorkspaceChange('tracker')}
             className={`flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
               activeWorkspace === 'tracker'
-                ? 'bg-white text-navy-700 shadow-sm font-semibold ring-1 ring-cream-200/80'
+                ? 'bg-white text-navy-700 tab-pill-active font-semibold'
                 : 'text-warm-gray hover:text-navy-600'
             }`}
           >
@@ -843,7 +843,7 @@ export default function Dashboard() {
                     onClick={() => handleTabChange('cv')}
                     className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                       activeTab === 'cv'
-                        ? 'bg-white text-navy-700 shadow-sm font-semibold'
+                        ? 'bg-white text-navy-700 tab-pill-active font-semibold'
                         : 'text-warm-gray hover:text-navy-600'
                     }`}
                   >
@@ -855,7 +855,7 @@ export default function Dashboard() {
                     onClick={() => handleTabChange('cover-letter')}
                     className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                       activeTab === 'cover-letter'
-                        ? 'bg-white text-navy-700 shadow-sm font-semibold'
+                        ? 'bg-white text-navy-700 tab-pill-active font-semibold'
                         : 'text-warm-gray hover:text-navy-600'
                     }`}
                   >
@@ -867,7 +867,7 @@ export default function Dashboard() {
                     onClick={() => handleTabChange('email')}
                     className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                       activeTab === 'email'
-                        ? 'bg-white text-navy-700 shadow-sm font-semibold'
+                        ? 'bg-white text-navy-700 tab-pill-active font-semibold'
                         : 'text-warm-gray hover:text-navy-600'
                     }`}
                   >

@@ -145,7 +145,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             <Link
               href="/dashboard"
-              className="px-7 py-3.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 flex items-center justify-center gap-2 text-base group"
+              className="cta-gold px-7 py-3.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm flex items-center justify-center gap-2 text-base group"
             >
               Start free, no credit card
               <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
@@ -211,7 +211,7 @@ export default function Home() {
         <div className="max-w-3xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-14">
-            <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">How It Works</p>
+            <p className="eyebrow-dot text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">How It Works</p>
             <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-3">
               Seven tools, collapsed into one flow.
             </h2>
@@ -321,7 +321,7 @@ export default function Home() {
 
             {/* Quote column */}
             <div>
-              <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">
+              <p className="eyebrow-dot text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">
                 A note from the founder
               </p>
               <h2 className="font-bold text-navy-600 text-[28px] md:text-[32px] leading-[1.15] mb-6">
@@ -347,7 +347,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-10">
-            <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Time Savings</p>
+            <p className="eyebrow-dot text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Time Savings</p>
             <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-3">
               How much time will you save?
             </h2>
@@ -368,7 +368,7 @@ export default function Home() {
         <div className="max-w-5xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-10">
-            <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Pricing</p>
+            <p className="eyebrow-dot text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Pricing</p>
             <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-3">
               Every plan, every feature. Pick your volume.
             </h2>
@@ -458,7 +458,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             <Link
               href="/dashboard"
-              className="px-8 py-3.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 flex items-center justify-center gap-2 text-base group"
+              className="cta-gold px-8 py-3.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm flex items-center justify-center gap-2 text-base group"
             >
               Start free, no credit card
               <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
