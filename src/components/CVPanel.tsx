@@ -913,6 +913,9 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
             Open Documents
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
+          <p className="text-xs text-warm-gray/80 mt-4 leading-relaxed">
+            Then paste a job description and Karko tailors your CV, cover letter and emails.
+          </p>
         </div>
       </div>
     );

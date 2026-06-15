@@ -330,6 +330,7 @@ export function JobFeedCard({
   job,
   isApplying,
   isAnotherJobBusy,
+  isFreeUser,
   onOpenDetails,
   onApplyWithKarko,
   onAnalyzeFirst,
@@ -338,6 +339,7 @@ export function JobFeedCard({
   job: JobFeedFeedItem;
   isApplying: boolean;
   isAnotherJobBusy: boolean;
+  isFreeUser: boolean;
   onOpenDetails: () => void;
   onApplyWithKarko: () => void;
   onAnalyzeFirst: () => void;
@@ -400,27 +402,54 @@ export function JobFeedCard({
         </div>
 
         <div className="flex flex-col items-stretch gap-2 lg:w-[200px]">
-          <Button
-            variant="gold"
-            onClick={onApplyWithKarko}
-            disabled={karkoButtonsDisabled}
-            title={isAnotherJobBusy && !isApplying ? 'Finishing another application first…' : undefined}
-          >
-            {isApplying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isApplying ? 'Opening...' : continueLabel ? 'Continue in Karko' : 'Generate Kit'}
-          </Button>
+          {/* Free user + non-strong match: "Check Fit" leads as the primary action */}
+          {isFreeUser && !continueLabel && job.fitLabel !== 'strong' ? (
+            <>
+              <button
+                type="button"
+                onClick={onAnalyzeFirst}
+                disabled={karkoButtonsDisabled}
+                title={isAnotherJobBusy && !isApplying ? 'Finishing another application first…' : 'Check the fit for 0.5 credits before generating'}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-navy-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Target className="h-3.5 w-3.5" />
+                Check Fit
+              </button>
+              <Button
+                variant="outline"
+                onClick={onApplyWithKarko}
+                disabled={karkoButtonsDisabled}
+                title={isAnotherJobBusy && !isApplying ? 'Finishing another application first…' : undefined}
+              >
+                {isApplying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isApplying ? 'Opening...' : 'Generate Kit'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="gold"
+                onClick={onApplyWithKarko}
+                disabled={karkoButtonsDisabled}
+                title={isAnotherJobBusy && !isApplying ? 'Finishing another application first…' : undefined}
+              >
+                {isApplying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isApplying ? 'Opening...' : continueLabel ? 'Continue in Karko' : 'Generate Kit'}
+              </Button>
 
-          {!continueLabel && (
-            <button
-              type="button"
-              onClick={onAnalyzeFirst}
-              disabled={karkoButtonsDisabled}
-              title={isAnotherJobBusy && !isApplying ? 'Finishing another application first…' : 'Check the fit for 0.5 credits before generating'}
-              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-cream-300 bg-white px-4 py-2 text-sm font-medium text-navy-700 transition-colors hover:border-navy-300 hover:bg-cream-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Target className="h-3.5 w-3.5" />
-              Check fit first
-            </button>
+              {!continueLabel && (
+                <button
+                  type="button"
+                  onClick={onAnalyzeFirst}
+                  disabled={karkoButtonsDisabled}
+                  title={isAnotherJobBusy && !isApplying ? 'Finishing another application first…' : 'Check the fit for 0.5 credits before generating'}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-cream-300 bg-white px-4 py-2 text-sm font-medium text-navy-700 transition-colors hover:border-navy-300 hover:bg-cream-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Target className="h-3.5 w-3.5" />
+                  Check Fit
+                </button>
+              )}
+            </>
           )}
 
           {employerLink && (
@@ -680,7 +709,7 @@ export function JobFeedDetailModal({
                 className="inline-flex items-center gap-1.5 rounded-lg border border-cream-300 bg-white px-4 py-2 text-sm font-medium text-navy-700 transition-colors hover:border-navy-300 hover:bg-cream-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Target className="h-3.5 w-3.5" />
-                Check fit first
+                Check Fit
               </button>
             )}
             <Button variant="gold" onClick={onApplyWithKarko} disabled={isJobActionPending}>
@@ -701,6 +730,7 @@ export function FeedResultsCard({
   isLoadingMore,
   pendingJobAction,
   feedSummary,
+  isFreeUser,
   onLoadMore,
   onOpenDetails,
   onApplyWithKarko,
@@ -713,6 +743,7 @@ export function FeedResultsCard({
   isLoadingMore: boolean;
   pendingJobAction: PendingJobAction;
   feedSummary: string;
+  isFreeUser: boolean;
   onLoadMore: () => void;
   onOpenDetails: (job: JobFeedFeedItem) => void;
   onApplyWithKarko: (job: JobFeedFeedItem) => void;
@@ -732,6 +763,7 @@ export function FeedResultsCard({
             job={job}
             isApplying={applyingJobId === job.id}
             isAnotherJobBusy={Boolean(applyingJobId) && applyingJobId !== job.id}
+            isFreeUser={isFreeUser}
             onOpenDetails={() => onOpenDetails(job)}
             onApplyWithKarko={() => onApplyWithKarko(job)}
             onAnalyzeFirst={() => onAnalyzeFirst(job)}

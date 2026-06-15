@@ -145,6 +145,23 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
   const [showScrollButton, setShowScrollButton] = useState(false);
   const isDesktopDocked = !!navBarPortal && !isMobileDrawer;
 
+  // Welcome-hero action state: the JD lives in the same input box the user
+  // already types into. Actions stay inert until a real JD is present, then
+  // light up once (no looping animation).
+  const HERO_MIN_JD = 80;
+  const heroJdValid = inputValue.trim().length >= HERO_MIN_JD;
+  const [heroJustActivated, setHeroJustActivated] = useState(false);
+  const heroPrevValidRef = useRef(false);
+  useEffect(() => {
+    if (heroJdValid && !heroPrevValidRef.current) {
+      setHeroJustActivated(true);
+      const t = setTimeout(() => setHeroJustActivated(false), 900);
+      heroPrevValidRef.current = heroJdValid;
+      return () => clearTimeout(t);
+    }
+    heroPrevValidRef.current = heroJdValid;
+  }, [heroJdValid]);
+
   const isNearBottom = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container) return true;
@@ -425,16 +442,19 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     setInputValue('');
   };
 
-  const handleModeSelect = (mode: 'apply_directly' | 'analyze_first') => {
-    setApplicationMode(mode);
-    setAwaitingJobDescription(true);
-    if (!currentSession) {
-      useSessionStore.getState().createNewSession('');
+  // Hero actions: the JD typed in the hero input drives generation directly.
+  // Routes through the same send path so anonymous signup-wall and credit
+  // checks still apply; the explicit mode skips JD re-detection.
+  const heroSubmit = async (mode: 'apply_directly' | 'analyze_first') => {
+    const text = inputValue.trim();
+    if (text.length < HERO_MIN_JD) return;
+    const result = await workflowHandleSend(text, { mode });
+    if (result === 'show_signup_wall') {
+      setSignUpWallTrigger('new-application');
+      setShowSignUpWall(true);
+      return;
     }
-    const msg = mode === 'apply_directly'
-      ? "Paste a job description below. I'll generate a tailored CV, cover letter, and application email right away."
-      : "Paste a job description below. I'll first analyze how well your profile matches the role, then you can decide whether to generate the full application.";
-    addChatMessage({ role: 'assistant', content: msg });
+    setInputValue('');
   };
 
   const handleAction = async (action: string) => {
@@ -683,35 +703,51 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
               <div className="text-center max-w-sm px-6 py-8">
                 {currentCV ? (
                   <>
-                    <div className="flex items-center justify-center gap-3 mb-3">
-                      <KarkoIcon size="md" theme="light" />
-                      <h2 className="text-lg font-bold tracking-tight text-navy-800">
-                        {user ? 'Ready to apply?' : 'Your AI Job Application Assistant'}
-                      </h2>
-                    </div>
-                    <p className="text-sm text-warm-gray leading-relaxed mb-6">
-                      Paste a job description and I&apos;ll create a tailored CV, cover letter, and application emails.
+                    <p className="text-sm text-warm-gray leading-relaxed mb-4">
+                      Paste a job description and Karko tailors your CV, cover letter and emails.
                     </p>
-                    <div className="flex flex-col gap-2.5">
+
+                    {/* JD input sits directly above the actions (top-to-bottom path) */}
+                    <div className="text-left">
+                      <textarea
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            if (heroJdValid) void heroSubmit('apply_directly');
+                          }
+                        }}
+                        rows={5}
+                        placeholder="Paste the job description here..."
+                        className="w-full resize-none rounded-lg border border-cream-200 bg-cream-50 px-3.5 py-3 text-sm text-charcoal placeholder:text-warm-gray/70 focus:outline-none focus:ring-2 focus:ring-gold-300/50 focus:border-gold-300 transition-colors"
+                      />
+                      <p className="mt-1.5 text-[11px] text-warm-gray/80">
+                        Paste a job description, then Generate or Check Fit.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-2.5 mt-3">
                       <button
-                        onClick={() => handleModeSelect('apply_directly')}
-                        title="Generates your optimized CV, cover letter, and email immediately (2 credits)."
-                        className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold bg-navy-600 text-white rounded-2xl hover:bg-navy-700 transition-all shadow-md cursor-pointer"
+                        onClick={() => heroSubmit('apply_directly')}
+                        disabled={!heroJdValid}
+                        title="Generates your tailored CV, cover letter and email (2 credits)."
+                        className={`w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium rounded-lg bg-gold-400 text-white shadow-sm transition-all duration-200 enabled:hover:bg-gold-500 enabled:hover:-translate-y-0.5 enabled:hover:shadow-md enabled:active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${heroJustActivated ? 'ring-2 ring-gold-300' : ''}`}
                       >
                         <Zap className="w-4 h-4" />
-                        Generate Application Kit
+                        Generate Kit
                       </button>
                       <button
-                        onClick={() => handleModeSelect('analyze_first')}
-                        title="Shows your match score and skill gaps first, then you decide whether to generate the full application (0.5 credits, then +2 if you continue)."
-                        className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium bg-white text-charcoal border border-cream-300 rounded-2xl hover:bg-cream-50 hover:border-gold-300 hover:shadow-sm transition-all cursor-pointer"
+                        onClick={() => heroSubmit('analyze_first')}
+                        disabled={!heroJdValid}
+                        title="Shows your match score and skill gaps first (0.5 credits, then +2 if you continue)."
+                        className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium rounded-lg bg-navy-50 text-navy-600 border-2 border-navy-600 shadow-sm transition-all duration-200 enabled:hover:bg-navy-100 enabled:hover:-translate-y-0.5 enabled:hover:shadow-md enabled:active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       >
-                        <Search className="w-4 h-4 text-warm-gray" />
-                        Analyze Fit First
+                        <Search className="w-4 h-4" />
+                        Check Fit
                       </button>
                       <p className="mt-1 text-[11px] leading-relaxed text-warm-gray/80">
-                        <span className="font-medium text-charcoal">Generate Application Kit</span> creates your CV, cover letter, and email at once.{' '}
-                        <span className="font-medium text-charcoal">Analyze Fit First</span> shows your match score before generating.
+                        Check Fit costs less and shows your match before you generate.
                       </p>
                     </div>
                   </>
@@ -868,10 +904,10 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
             <div className="flex justify-end gap-2 mt-2">
               <button
                 onClick={() => handleAction('generate-full-application')}
-                className="flex items-center gap-2 rounded-full border border-navy-700 bg-navy-700 text-white px-4 py-2.5 text-sm font-medium shadow-sm hover:bg-navy-800 hover:border-navy-800 transition-all cursor-pointer"
+                className="flex items-center gap-2 rounded-full bg-gold-400 text-white px-4 py-2.5 text-sm font-medium shadow-sm hover:bg-gold-500 transition-all cursor-pointer"
               >
                 <Zap className="w-4 h-4" />
-                Generate Application Kit
+                Generate Kit
               </button>
               <button
                 onClick={() => handleAction('skip-job')}
@@ -931,7 +967,8 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
           </div>
         )}
 
-        {/* Input Area */}
+        {/* Input Area — hidden while the welcome hero owns the JD input */}
+        {!(!currentSession && messages.length === 0 && currentCV) && (
         <div className={isDesktopDocked ? 'border-t border-cream-200 bg-cream-50 px-3 pt-2.5 pb-3' : ''}>
           <ChatInput
             value={inputValue}
@@ -948,6 +985,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
             surface={isDesktopDocked ? 'embedded' : 'floating'}
           />
         </div>
+        )}
       </div>
 
       {/* Sign Up Wall Modal */}

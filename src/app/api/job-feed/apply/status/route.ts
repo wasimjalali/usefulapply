@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { canAccessJobFeed } from '@/lib/job-feed/helpers';
+import { canViewJobFeed } from '@/lib/job-feed/helpers';
 import { captureJobFeedActionRejected, captureJobFeedEvent } from '@/lib/job-feed/analytics';
 import { updateJobFeedApplicationGenerationStatusAdmin } from '@/lib/job-feed/server';
 import { createClient } from '@/lib/supabase/server';
@@ -46,7 +46,10 @@ export async function POST(request: NextRequest) {
       .single();
     subscriptionTier = profile?.subscription_tier ?? null;
 
-    if (profileError || !profile || !canAccessJobFeed(profile.subscription_tier)) {
+    // Intentionally canViewJobFeed (free + premium): updates the status of the
+    // user's own credit-gated generation (scoped to userId). No premium-exclusive
+    // capability here; the paywall is enforced downstream in the agent flow.
+    if (profileError || !profile || !canViewJobFeed(profile.subscription_tier)) {
       captureJobFeedActionRejected({
         userId,
         route: 'apply/status',

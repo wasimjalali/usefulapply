@@ -14,6 +14,30 @@ function coerceUuidOrNull(value: string | null | undefined): string | null {
 
 export type { CreditReservation };
 
+/**
+ * Extract the per-bucket deduction split persisted on a reservation at reserve
+ * time (metadata.deducted_from). Returns null when absent (reservations created
+ * before this field existed) or when the split does not sum to `amount`, so the
+ * caller falls back to a safe single-bucket refund and the net refund total is
+ * never changed by a corrupt record.
+ */
+function extractDeductedFrom(
+  metadata: CreditReservation['metadata'],
+  amount: number,
+): { monthly: number; rollover: number; addon: number } | null {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+  const raw = (metadata as Record<string, unknown>).deducted_from;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const split = raw as Record<string, unknown>;
+  const monthly = typeof split.monthly === 'number' ? split.monthly : 0;
+  const rollover = typeof split.rollover === 'number' ? split.rollover : 0;
+  const addon = typeof split.addon === 'number' ? split.addon : 0;
+  // Only trust the split when it reconstructs the exact reserved amount, so a
+  // partial or corrupt record can never change the net credits refunded.
+  if (Math.abs(monthly + rollover + addon - amount) > 1e-9) return null;
+  return { monthly, rollover, addon };
+}
+
 export interface ReserveCreditResult {
   success: boolean;
   reservation: CreditReservation | null;
@@ -116,6 +140,15 @@ export async function reserveCredits(params: {
       metadata: {
         ...metadata,
         remaining_after_reserve: deductResult.remainingCredits,
+        // Persist the per-bucket allocation so a later release refunds the
+        // SAME buckets it drew from (monthly/rollover/addon), instead of
+        // dumping everything into addon. Stored here on the existing JSONB
+        // column, so no schema change is needed.
+        deducted_from: {
+          monthly: deductResult.deductedFrom.monthly,
+          rollover: deductResult.deductedFrom.rollover,
+          addon: deductResult.deductedFrom.addon,
+        },
       },
     })
     .select('*')
@@ -192,17 +225,35 @@ export async function releaseReservation(params: {
     timestampField: 'released_at',
   });
 
-  if (result.success && result.reservation) {
+  // Gate on `transitioned`, not `success`: a repeat release on an already
+  // released reservation returns success but did NOT change state, and must
+  // not refund a second time.
+  if (result.transitioned && result.reservation) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const admin = createAdminClient() as any;
-    await addCredits(
-      result.reservation.user_id,
-      result.reservation.amount,
-      'addon',
-      'reservation_released',
-      `Released reservation ${result.reservation.id}${params.reason ? `: ${params.reason}` : ''}`,
-      admin,
-    );
+    const reservation = result.reservation;
+    const reason = 'reservation_released';
+    const description = `Released reservation ${reservation.id}${params.reason ? `: ${params.reason}` : ''}`;
+
+    // Refund into the SAME buckets the reservation drew from (recorded at
+    // reserve time in metadata.deducted_from). Refunding blindly to addon
+    // silently converted expiring monthly credits into permanent addon
+    // credits. Pre-fix reservations have no split recorded, so they fall back
+    // to addon; the net amount refunded is identical either way.
+    const split = extractDeductedFrom(reservation.metadata, reservation.amount);
+    if (split) {
+      if (split.monthly > 0) {
+        await addCredits(reservation.user_id, split.monthly, 'monthly', reason, description, admin);
+      }
+      if (split.rollover > 0) {
+        await addCredits(reservation.user_id, split.rollover, 'rollover', reason, description, admin);
+      }
+      if (split.addon > 0) {
+        await addCredits(reservation.user_id, split.addon, 'addon', reason, description, admin);
+      }
+    } else {
+      await addCredits(reservation.user_id, reservation.amount, 'addon', reason, description, admin);
+    }
   }
 
   return result;
@@ -301,7 +352,10 @@ async function transitionReservation(params: {
   fromStatus: CreditReservationStatus;
   toStatus: CreditReservationStatus;
   timestampField: 'captured_at' | 'released_at' | 'refunded_at';
-}): Promise<CaptureOrReleaseResult> {
+}): Promise<CaptureOrReleaseResult & { transitioned: boolean }> {
+  // `transitioned` is true ONLY when this call performed the real state change.
+  // A repeat call on an already-`toStatus` reservation returns success but
+  // transitioned:false, so callers (releaseReservation) never refund twice.
   const { idempotencyKey, userId, fromStatus, toStatus, timestampField } = params;
   const now = new Date().toISOString();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -315,17 +369,17 @@ async function transitionReservation(params: {
     .maybeSingle();
 
   if (!existing) {
-    return { success: false, reservation: null, error: 'Reservation not found' };
+    return { success: false, reservation: null, error: 'Reservation not found', transitioned: false };
   }
 
   const reservation = existing as CreditReservation;
 
   if (reservation.status === toStatus) {
-    return { success: true, reservation, error: null };
+    return { success: true, reservation, error: null, transitioned: false };
   }
 
   if (reservation.status !== fromStatus) {
-    return { success: false, reservation, error: `Cannot transition from ${reservation.status} to ${toStatus}` };
+    return { success: false, reservation, error: `Cannot transition from ${reservation.status} to ${toStatus}`, transitioned: false };
   }
 
   const { data, error } = await admin
@@ -340,8 +394,8 @@ async function transitionReservation(params: {
     .single();
 
   if (error) {
-    return { success: false, reservation, error: `Failed to transition reservation: ${error.message}` };
+    return { success: false, reservation, error: `Failed to transition reservation: ${error.message}`, transitioned: false };
   }
 
-  return { success: true, reservation: data as CreditReservation, error: null };
+  return { success: true, reservation: data as CreditReservation, error: null, transitioned: true };
 }

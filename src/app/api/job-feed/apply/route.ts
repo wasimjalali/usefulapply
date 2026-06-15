@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { canAccessJobFeed } from '@/lib/job-feed/helpers';
+import { canViewJobFeed } from '@/lib/job-feed/helpers';
 import {
   authorizeJobFeedJobActionAdmin,
   createOrReuseJobFeedApplicationGenerationAdmin,
@@ -59,7 +59,11 @@ export async function POST(request: NextRequest) {
       .single();
     subscriptionTier = profile?.subscription_tier ?? null;
 
-    if (profileError || !profile || !canAccessJobFeed(profile.subscription_tier)) {
+    // Intentionally canViewJobFeed (free + premium), NOT canAccessJobFeed. This
+    // is a handoff that only creates a session + generation intent; it charges no
+    // credits and exposes nothing premium-exclusive. The paywall is enforced
+    // downstream in the agent flow. canViewJobFeed still denies unknown tiers.
+    if (profileError || !profile || !canViewJobFeed(profile.subscription_tier)) {
       captureJobFeedActionRejected({
         userId,
         route: 'apply',

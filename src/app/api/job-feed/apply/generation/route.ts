@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { canAccessJobFeed } from '@/lib/job-feed/helpers';
+import { canViewJobFeed } from '@/lib/job-feed/helpers';
 import { captureJobFeedActionRejected } from '@/lib/job-feed/analytics';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
@@ -39,7 +39,10 @@ export async function GET(request: NextRequest) {
       .single();
     subscriptionTier = profile?.subscription_tier ?? null;
 
-    if (profileError || !profile || !canAccessJobFeed(profile.subscription_tier)) {
+    // Intentionally canViewJobFeed (free + premium): free users reach the
+    // credit-gated generation handoff from feed cards. This route only reads the
+    // user's own generation context (scoped to userId). Paywall is downstream.
+    if (profileError || !profile || !canViewJobFeed(profile.subscription_tier)) {
       captureJobFeedActionRejected({
         userId,
         route: 'apply/generation',

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { canAccessJobFeed, getLocalDateKey, getStartOfNextLocalDay } from '@/lib/job-feed/helpers';
+import { canViewJobFeed, getLocalDateKey, getStartOfNextLocalDay } from '@/lib/job-feed/helpers';
 import {
   getJobFeedRunDiagnostics,
   getLatestManualCompletedJobFeedRunAdmin,
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    if (profileError || !profile || !canAccessJobFeed(profile.subscription_tier)) {
+    if (profileError || !profile || !canViewJobFeed(profile.subscription_tier)) {
       return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 
