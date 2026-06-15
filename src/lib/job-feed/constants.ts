@@ -30,6 +30,21 @@ export interface JobFeedTierLimits {
   visibleCount: number;
 }
 
+/**
+ * Free-tier limits. Kept separate from JOB_FEED_TIER_LIMITS so 'free' does NOT
+ * enter the JobFeedTier union (which would force a 'free' entry into every
+ * Record<JobFeedTier, ...> across the codebase).
+ *
+ * 1 SerpAPI call per run = real cash. Do not raise maxDailyQueries without
+ * explicit approval.
+ */
+export const JOB_FEED_FREE_TIER_LIMITS: JobFeedTierLimits = {
+  maxDailyQueries: 1,
+  maxRawJobsPerRun: 10,
+  prefilterHardCap: 10,
+  visibleCount: 5,
+};
+
 export const JOB_FEED_TIER_LIMITS: Record<JobFeedTier, JobFeedTierLimits> = {
   plus: {
     // maxDailyQueries = SerpAPI calls per run (paid per call). 2 calls x
@@ -97,6 +112,7 @@ export function getJobFeedInputCaps(subscriptionTier: string | null | undefined)
 }
 
 export function getJobFeedTierLimits(subscriptionTier: string): JobFeedTierLimits {
+  if (subscriptionTier === 'free') return JOB_FEED_FREE_TIER_LIMITS;
   if (subscriptionTier === 'max') return JOB_FEED_TIER_LIMITS.max;
   return JOB_FEED_TIER_LIMITS.plus;
 }

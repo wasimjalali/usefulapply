@@ -12,7 +12,7 @@ import type {
   Json,
 } from '@/lib/supabase/types';
 import { getLocalDateKey, isJobFeedConfigured } from '@/lib/job-feed/helpers';
-import { getJobFeedTierLimits, JOB_FEED_INBOX_RETENTION_DAYS } from '@/lib/job-feed/constants';
+import { getJobFeedTierLimits, JOB_FEED_DEFAULT_SETTINGS, JOB_FEED_INBOX_RETENTION_DAYS } from '@/lib/job-feed/constants';
 import type {
   JobFeedFeedbackAction,
   JobFeedFeedItem,
@@ -86,7 +86,11 @@ async function getUserSubscriptionTierAdmin(userId: string): Promise<string> {
     .select('subscription_tier')
     .eq('id', userId)
     .single();
-  return data?.subscription_tier ?? 'plus';
+  // Fail SAFE to the least-privileged tier. A transient profile-read miss must
+  // never silently grant premium economics (extra paid SerpAPI calls, a higher
+  // visible/apply ceiling) to a free user. Worst case on a failed read is one
+  // under-provisioned run, not an over-spend.
+  return data?.subscription_tier ?? 'free';
 }
 
 export async function getJobFeedSettingsAdmin(userId: string): Promise<JobFeedSettings | null> {
@@ -103,6 +107,99 @@ export async function getJobFeedSettingsAdmin(userId: string): Promise<JobFeedSe
   }
 
   return (data ?? null) as JobFeedSettings | null;
+}
+
+/**
+ * Derive non-empty seed roles for a free user's auto-provisioned settings from
+ * their synthesized career profile. Uses the market-normalized inferred titles
+ * (where they are) plus any aspirational titles (where they're heading), deduped
+ * case-insensitively and capped. Returns [] only when there's no usable profile,
+ * in which case the caller must not provision (the run has nothing to search on).
+ */
+function deriveFreeFeedSeedRoles(profile: CareerProfile | null): string[] {
+  if (!profile) return [];
+  const candidates = [
+    ...profile.inferredTitles.map((title) => title.canonical),
+    ...profile.targetDirection.aspirationalTitles,
+  ]
+    .map((title) => title.trim())
+    .filter(Boolean);
+
+  const seen = new Set<string>();
+  const unique: string[] = [];
+  for (const title of candidates) {
+    const key = title.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(title);
+    }
+  }
+  return unique.slice(0, 5);
+}
+
+/**
+ * For free-tier users who have never completed settings setup (settings row is
+ * null), auto-provision a minimal default row so the run can proceed without
+ * user configuration. Free users get an automatic feed driven by their
+ * synthesized career profile - they never touch the settings UI.
+ *
+ * `seedRoles` is required and must be non-empty: the job_feed_settings table
+ * enforces a non-empty target_roles CHECK, and the caller derives the roles
+ * from the user's career profile (see deriveFreeFeedSeedRoles). The rest of the
+ * row uses safe defaults; the run still resolves search terms from the career
+ * profile and search strategy at run time.
+ *
+ * Only called for free users. Premium users must configure settings manually
+ * through the settings UI (requireJobFeedAccess-gated).
+ */
+export async function getOrProvisionFreeJobFeedSettingsAdmin(
+  userId: string,
+  seedRoles: string[],
+): Promise<JobFeedSettings> {
+  const existing = await getJobFeedSettingsAdmin(userId);
+  if (existing) return existing;
+
+  if (seedRoles.length === 0) {
+    throw new Error('Cannot provision free-tier job feed settings without at least one seed role from the career profile.');
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
+  const admin = createAdminClient() as any;
+  const { data, error } = await admin
+    .from('job_feed_settings')
+    .insert({
+      user_id: userId,
+      enabled: true,
+      consent_accepted_at: new Date().toISOString(),
+      user_timezone: JOB_FEED_DEFAULT_SETTINGS.user_timezone,
+      target_market: JOB_FEED_DEFAULT_SETTINGS.target_market,
+      target_countries: JOB_FEED_DEFAULT_SETTINGS.target_countries,
+      target_cities: JOB_FEED_DEFAULT_SETTINGS.target_cities,
+      target_roles: seedRoles,
+      preferred_locations: JOB_FEED_DEFAULT_SETTINGS.preferred_locations,
+      remote_preference: JOB_FEED_DEFAULT_SETTINGS.remote_preference,
+      remote_preferences: JOB_FEED_DEFAULT_SETTINGS.remote_preferences,
+      salary_floor: JOB_FEED_DEFAULT_SETTINGS.salary_floor,
+      languages: JOB_FEED_DEFAULT_SETTINGS.languages,
+      seniority_target: JOB_FEED_DEFAULT_SETTINGS.seniority_target,
+      seniority_targets: JOB_FEED_DEFAULT_SETTINGS.seniority_targets,
+      employment_types: JOB_FEED_DEFAULT_SETTINGS.employment_types,
+      work_authorization_status: JOB_FEED_DEFAULT_SETTINGS.work_authorization_status,
+      user_skills: [],
+      excluded_terms: [],
+    })
+    .select('*')
+    .single();
+
+  if (error) {
+    // Concurrent first run: the other request won the user_id PK. Re-read and
+    // reuse its row instead of failing this run with a 500.
+    const raced = await getJobFeedSettingsAdmin(userId);
+    if (raced) return raced;
+    throw new Error(`Failed to provision free-tier job feed settings: ${error.message}`);
+  }
+
+  return data as JobFeedSettings;
 }
 
 export async function getLatestJobFeedRunAdmin(userId: string): Promise<JobFeedRun | null> {
@@ -1369,18 +1466,33 @@ export async function runJobFeedFoundationWorkflow(params: {
   orchestrator?: JobFeedRunDiagnostics['orchestrator'];
 }): Promise<JobFeedRunWorkflowResult> {
   const { userId, triggerSource = 'scheduled', now = new Date(), force = false, orchestrator = 'direct' } = params;
-  const settings = await getJobFeedSettingsAdmin(userId);
 
-  if (!settings) {
-    throw new Error('Job feed settings were not found for this user.');
-  }
+  // Resolve the subscription tier early so we can auto-provision settings for
+  // free users who have never gone through the (premium-only) settings UI.
+  const subscriptionTierForSetup = await getUserSubscriptionTierAdmin(userId);
+  const isFreeUser = subscriptionTierForSetup === 'free';
 
-  if (!settings.enabled) {
-    throw new Error('Job feed is paused for this user.');
-  }
-
-  if (!isJobFeedConfigured(settings)) {
-    throw new Error('Job feed settings are incomplete.');
+  let settings: JobFeedSettings;
+  if (isFreeUser) {
+    // Free users get automatic settings. Seed target_roles from their synthesized
+    // career profile so the provisioned row satisfies the non-empty target_roles
+    // constraint. The profile is reused below for the search strategy
+    // (getOrSynthesizeCareerProfileAdmin is cached, so this is one synthesis).
+    const careerProfileForSeed = await getOrSynthesizeCareerProfileAdmin(userId);
+    const seedRoles = deriveFreeFeedSeedRoles(careerProfileForSeed);
+    settings = await getOrProvisionFreeJobFeedSettingsAdmin(userId, seedRoles);
+  } else {
+    const loaded = await getJobFeedSettingsAdmin(userId);
+    if (!loaded) {
+      throw new Error('Job feed settings were not found for this user.');
+    }
+    if (!loaded.enabled) {
+      throw new Error('Job feed is paused for this user.');
+    }
+    if (!isJobFeedConfigured(loaded)) {
+      throw new Error('Job feed settings are incomplete.');
+    }
+    settings = loaded;
   }
 
   const localDate = getLocalDateKey(now, settings.user_timezone);
@@ -1471,8 +1583,9 @@ export async function runJobFeedFoundationWorkflow(params: {
   });
 
   try {
-    const subscriptionTier = await getUserSubscriptionTierAdmin(userId);
-    const tierLimits = getJobFeedTierLimits(subscriptionTier);
+    // subscriptionTierForSetup was already resolved before the run row was
+    // created — reuse it rather than making a second DB round-trip.
+    const tierLimits = getJobFeedTierLimits(subscriptionTierForSetup);
 
     // Resolve the AI search strategy ahead of ingestion. The career profile is
     // a prerequisite for quality matching, so synthesize it synchronously when

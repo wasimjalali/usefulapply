@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { canAccessJobFeed, getJobFeedOverviewState } from '@/lib/job-feed/helpers';
+import { canAccessJobFeed, canViewJobFeed, getJobFeedOverviewState } from '@/lib/job-feed/helpers';
 import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
 import {
   getJobFeedRunDiagnostics,
@@ -46,10 +46,11 @@ export async function GET(request: NextRequest) {
     }
 
     const canAccess = canAccessJobFeed(profile.subscription_tier);
+    const canView = canViewJobFeed(profile.subscription_tier);
 
     const tierLimits = getJobFeedTierLimits(profile.subscription_tier);
 
-    if (!canAccess) {
+    if (!canView) {
       return NextResponse.json({
         canAccess: false,
         settings: null,
@@ -120,15 +121,24 @@ export async function GET(request: NextRequest) {
       getLatestManualCompletedJobFeedRunAdmin(user.id),
     ]);
 
-    const jobs = firstPage?.items ?? [];
-    const totalCount = firstPage?.totalCount ?? 0;
-    const hasMore = firstPage?.hasMore ?? false;
+    // For free users the visible inbox is capped to tierLimits.visibleCount (5).
+    // We slice here rather than in the DB layer to keep server.ts tier-agnostic.
+    const visibleCap = !canAccess ? tierLimits.visibleCount : Number.POSITIVE_INFINITY;
+    const rawJobs = firstPage?.items ?? [];
+    const jobs = rawJobs.slice(0, visibleCap);
+    const rawTotalCount = firstPage?.totalCount ?? 0;
+    const totalCount = Math.min(rawTotalCount, visibleCap);
+    const hasMore = !canAccess ? false : (firstPage?.hasMore ?? false);
     // Both counts reflect what the user can still act on right now.
     // Acting on a job (dismiss / rate not relevant / successful apply)
     // removes it from the visible inbox and the corresponding count
     // drops after the next overview refetch.
-    const jobsTodayCount = firstPage?.todayVisibleCount ?? 0;
-    const backlogVisibleCount = firstPage?.backlogVisibleCount ?? 0;
+    const rawTodayCount = firstPage?.todayVisibleCount ?? 0;
+    const rawBacklogCount = firstPage?.backlogVisibleCount ?? 0;
+    const jobsTodayCount = !canAccess ? Math.min(rawTodayCount, visibleCap) : rawTodayCount;
+    const backlogVisibleCount = !canAccess
+      ? Math.min(rawBacklogCount, Math.max(0, visibleCap - rawTodayCount))
+      : rawBacklogCount;
     const runForState = latestRun && isStaleOverviewRun(latestRun) && feedRunSummary.run
       ? feedRunSummary.run
       : latestRun;
@@ -153,10 +163,14 @@ export async function GET(request: NextRequest) {
       jobsTodayCount,
       jobsBacklogCount: backlogVisibleCount,
       state: getJobFeedOverviewState({
-        canAccess,
+        canAccess: canView,
         settings: settings ?? null,
         latestRun: runForState ?? null,
         jobsCount: totalCount,
+        isFreeUser: !canAccess,
+        hasCareerProfile: Boolean(
+          careerProfileRow?.profile && isCurrentCareerProfile(careerProfileRow.profile)
+        ),
       }),
       foundationMode: true,
       feedCap: tierLimits.visibleCount,

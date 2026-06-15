@@ -823,10 +823,19 @@ export function useAgentWorkflow(options?: {
     }
   };
 
-  const handleSend = async (inputValue: string) => {
+  const handleSend = async (
+    inputValue: string,
+    opts?: { mode?: 'analyze_first' | 'apply_directly' },
+  ) => {
     if (!inputValue.trim()) return;
 
     const messageContent = inputValue.trim();
+    // When the caller picks an action explicitly (e.g. the hero "Generate Kit"
+    // / "Check Fit" buttons), that mode wins over the stored applicationMode and
+    // the paste is always treated as the JD, never re-detected by heuristics.
+    const explicitMode = opts?.mode;
+    const effectiveMode = explicitMode ?? applicationMode;
+    if (explicitMode) setApplicationMode(explicitMode);
 
     // Gate: If anonymous user has already used their free generation and this is a new JD, show signup wall
     if (!user && hasUsedFreeGeneration()) {
@@ -841,8 +850,8 @@ export function useAgentWorkflow(options?: {
       setJobDescription(jd);
       setIsAgentWorking(true);
       setAwaitingJobDescription(false);
-      posthog?.capture('jd_pasted', { jd_length: jd.length, mode: applicationMode });
-      if (applicationMode === 'apply_directly') {
+      posthog?.capture('jd_pasted', { jd_length: jd.length, mode: effectiveMode });
+      if (effectiveMode === 'apply_directly') {
         setV2Progress({ percent: 0, message: 'Generating full application...' });
         runAgentWorkflow(jd);
       } else {
@@ -860,7 +869,7 @@ export function useAgentWorkflow(options?: {
 
       // If the user explicitly picked a mode, treat the next non-trivial message
       // as the JD regardless of keyword heuristics.
-      if (awaitingJobDescription && messageContent.length >= 30) {
+      if ((explicitMode || awaitingJobDescription) && messageContent.length >= 30) {
         runWorkflowForJD(messageContent);
         return undefined;
       }
@@ -881,7 +890,7 @@ export function useAgentWorkflow(options?: {
 
       // Short-circuit: user just clicked Apply Directly / Analyze First and is
       // pasting the JD. Skip heuristic detection entirely.
-      if (awaitingJobDescription && !isScreeningMode && messageContent.length >= 30) {
+      if ((explicitMode || awaitingJobDescription) && !isScreeningMode && messageContent.length >= 30) {
         setFitAnalysisContextId(null);
         setFitAnalysisJD('');
         setFitAnalysisContextData(null);

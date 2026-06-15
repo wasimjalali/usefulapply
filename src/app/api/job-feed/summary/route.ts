@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { canAccessJobFeed } from '@/lib/job-feed/helpers';
+import { canViewJobFeed } from '@/lib/job-feed/helpers';
 import { requireJobFeedAccess } from '@/lib/job-feed/auth';
 import { listLatestJobFeedItemsAdmin } from '@/lib/job-feed/server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    const canAccess = canAccessJobFeed(profile?.subscription_tier ?? null);
+    const canAccess = canViewJobFeed(profile?.subscription_tier ?? null);
     if (!canAccess) {
       return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, unprocessedCount: 0 });
     }

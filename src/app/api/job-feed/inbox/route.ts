@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { canAccessJobFeed } from '@/lib/job-feed/helpers';
+import { canAccessJobFeed, canViewJobFeed } from '@/lib/job-feed/helpers';
+import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
 import { listJobFeedInboxPageAdmin } from '@/lib/job-feed/server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { createClient } from '@/lib/supabase/server';
@@ -31,9 +32,14 @@ export async function GET(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    if (profileError || !profile || !canAccessJobFeed(profile.subscription_tier)) {
+    if (profileError || !profile || !canViewJobFeed(profile.subscription_tier)) {
       return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
+
+    // Free users can only see up to their tier visibleCount (5) across the
+    // inbox. Premium (plus/max) users paginate without a tier cap here.
+    const isPremium = canAccessJobFeed(profile.subscription_tier);
+    const tierLimits = getJobFeedTierLimits(profile.subscription_tier);
 
     const url = new URL(request.url);
     const offset = Number.parseInt(url.searchParams.get('offset') ?? '0', 10) || 0;
@@ -50,10 +56,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ items: [], totalCount: 0, hasMore: false, offset, limit });
     }
 
+    // Cap free users to their visibleCount across all inbox pages so they
+    // cannot paginate beyond what the tier allows even via direct API calls.
+    const visibleCap = isPremium ? page.totalCount : tierLimits.visibleCount;
+    const cappedItems = page.items.slice(0, Math.max(0, visibleCap - offset));
+    const cappedTotal = Math.min(page.totalCount, visibleCap);
+    const cappedHasMore = isPremium ? page.hasMore : offset + cappedItems.length < cappedTotal;
+
     return NextResponse.json({
-      items: page.items,
-      totalCount: page.totalCount,
-      hasMore: page.hasMore,
+      items: cappedItems,
+      totalCount: cappedTotal,
+      hasMore: cappedHasMore,
       offset,
       limit,
     });

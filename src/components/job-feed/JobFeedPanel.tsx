@@ -1086,9 +1086,13 @@ export function JobFeedPanel() {
   });
   const isInManualRunCooldown = manualRunCooldown.remainingMs > 0;
   const isPreparingToday = latestRunIsToday && (overview?.latestRun?.status === 'queued' || overview?.latestRun?.status === 'running');
+  // Free users can trigger a run too (the run route uses canViewJobFeed).
+  // For free users the settings row is auto-provisioned on first click, so we
+  // don't require overview?.settings — we just need the career profile to exist
+  // (no_cv_required = no profile, so that state is excluded naturally).
+  const canRunAsFree = !canAccess && currentState !== 'upgrade_required' && currentState !== 'no_cv_required' && currentState !== 'paused';
   const canUseManualRun = activeTab === 'today'
-    && canAccess
-    && Boolean(overview?.settings)
+    && (canRunAsFree || (canAccess && Boolean(overview?.settings)))
     && currentState !== 'setup_required'
     && currentState !== 'paused'
     && currentState !== 'upgrade_required';
@@ -1198,21 +1202,27 @@ export function JobFeedPanel() {
             )}
 
             {activeTab === 'today' && showFeedResults && overview && (
-              <FeedResultsCard
-                jobs={[...overview.jobs, ...additionalJobs]}
-                hasMore={additionalJobs.length > 0
-                  ? (additionalJobs.length + overview.jobs.length) < (overview.jobsTotalCount ?? 0)
-                  : Boolean(overview.jobsHasMore)}
-                remainingCount={Math.max(0, (overview.jobsTotalCount ?? 0) - overview.jobs.length - additionalJobs.length)}
-                isLoadingMore={isLoadingMoreJobs}
-                pendingJobAction={pendingJobAction}
-                feedSummary={buildFeedSummary(shellForm)}
-                onLoadMore={handleLoadMoreJobs}
-                onOpenDetails={handleOpenDetails}
-                onApplyWithKarko={handleApplyWithKarko}
-                onAnalyzeFirst={handleAnalyzeFirst}
-                onExternalApply={handleExternalApply}
-              />
+              <>
+                <FeedResultsCard
+                  jobs={[...overview.jobs, ...additionalJobs]}
+                  hasMore={additionalJobs.length > 0
+                    ? (additionalJobs.length + overview.jobs.length) < (overview.jobsTotalCount ?? 0)
+                    : Boolean(overview.jobsHasMore)}
+                  remainingCount={Math.max(0, (overview.jobsTotalCount ?? 0) - overview.jobs.length - additionalJobs.length)}
+                  isLoadingMore={isLoadingMoreJobs}
+                  pendingJobAction={pendingJobAction}
+                  feedSummary={buildFeedSummary(shellForm)}
+                  isFreeUser={!['plus', 'max'].includes(profile?.subscription_tier ?? '')}
+                  onLoadMore={handleLoadMoreJobs}
+                  onOpenDetails={handleOpenDetails}
+                  onApplyWithKarko={handleApplyWithKarko}
+                  onAnalyzeFirst={handleAnalyzeFirst}
+                  onExternalApply={handleExternalApply}
+                />
+                {!['plus', 'max'].includes(profile?.subscription_tier ?? '') && (
+                  <FreeTierTeaserCard />
+                )}
+              </>
             )}
 
             {activeTab === 'saved' && (
@@ -1220,6 +1230,7 @@ export function JobFeedPanel() {
                 jobs={savedJobs}
                 isLoading={isLoadingSavedJobs}
                 pendingJobAction={pendingJobAction}
+                isFreeUser={!['plus', 'max'].includes(profile?.subscription_tier ?? '')}
                 onOpenDetails={handleOpenDetails}
                 onApplyWithKarko={handleApplyWithKarko}
                 onAnalyzeFirst={handleAnalyzeFirst}
@@ -1406,6 +1417,7 @@ function SavedJobsView({
   jobs,
   isLoading,
   pendingJobAction,
+  isFreeUser,
   onOpenDetails,
   onApplyWithKarko,
   onAnalyzeFirst,
@@ -1415,6 +1427,7 @@ function SavedJobsView({
   jobs: JobFeedFeedItem[] | null;
   isLoading: boolean;
   pendingJobAction: PendingJobAction;
+  isFreeUser: boolean;
   onOpenDetails: (job: JobFeedFeedItem) => void;
   onApplyWithKarko: (job: JobFeedFeedItem) => void;
   onAnalyzeFirst: (job: JobFeedFeedItem) => void;
@@ -1460,11 +1473,35 @@ function SavedJobsView({
       onLoadMore={() => {}}
       pendingJobAction={pendingJobAction}
       feedSummary={`${jobs.length} saved ${jobs.length === 1 ? 'job' : 'jobs'}`}
+      isFreeUser={isFreeUser}
       onOpenDetails={onOpenDetails}
       onApplyWithKarko={onApplyWithKarko}
       onAnalyzeFirst={onAnalyzeFirst}
       onExternalApply={onExternalApply}
     />
+  );
+}
+
+function FreeTierTeaserCard() {
+  return (
+    <div className="rounded-2xl border border-cream-200 bg-cream-50 p-6 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h3 className="text-base font-semibold text-charcoal">Want more matches?</h3>
+          <p className="mt-1 text-sm leading-relaxed text-warm-gray">
+            Pro searches more sources and surfaces more matches every day. Free shows your top 5.
+          </p>
+        </div>
+        <div className="shrink-0">
+          <Link href="/pricing">
+            <Button variant="gold" size="sm" className="whitespace-nowrap">
+              Upgrade to Plus
+              <ArrowRight className="ml-2 h-3.5 w-3.5" />
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1580,7 +1617,7 @@ function FeedPageHeader({
         )}
       </div>
 
-      {currentState !== 'setup_required' && (
+      {currentState !== 'setup_required' && currentState !== 'no_cv_required' && (
         <div className="flex flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
           <div className="inline-flex items-center rounded-full border border-cream-200 bg-white p-0.5 shadow-sm">
             <button
@@ -1692,6 +1729,11 @@ function InlineStateMessage({
       action: 'Start setup',
       tone: 'primary',
       ctaVariant: 'gold',
+    },
+    no_cv_required: {
+      icon: Settings2,
+      message: 'Upload your CV first. Karko builds your feed automatically from your CV - no setup needed.',
+      tone: 'primary',
     },
     paused: {
       icon: PauseCircle,

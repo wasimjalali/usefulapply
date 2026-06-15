@@ -24,7 +24,7 @@ const faqs = [
   },
   {
     q: 'How many applications does 2 credits cover?',
-    a: 'One full application. Each package generates a tailored CV, cover letter, application email, and follow-up email from a single job description. 2 credits = 1 complete package regardless of which flow you use (Analyze First or Generate Application Kit).',
+    a: 'One full application. Each package generates a tailored CV, cover letter, application email, and follow-up email from a single job description. 2 credits = 1 complete package regardless of which flow you use (Check Fit or Generate Kit).',
   },
   {
     q: 'Is there a free plan with no credit card?',
@@ -199,7 +199,7 @@ export default function PricingCreditsPage() {
               </h2>
             </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
-              One complete application (Analyze First or Generate Application Kit) costs 2 credits. A fit
+              One complete application (Check Fit or Generate Kit) costs 2 credits. A fit
               assessment only (without generating documents) costs 0.5 credits. Regenerating a cover
               letter or email costs 0.5 credits per regeneration. The follow-up email is included in
               the initial 2-credit generation at no additional credit cost.

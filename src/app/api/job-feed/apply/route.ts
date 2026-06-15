@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { canAccessJobFeed } from '@/lib/job-feed/helpers';
+import { canViewJobFeed } from '@/lib/job-feed/helpers';
 import {
   authorizeJobFeedJobActionAdmin,
   createOrReuseJobFeedApplicationGenerationAdmin,
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       .single();
     subscriptionTier = profile?.subscription_tier ?? null;
 
-    if (profileError || !profile || !canAccessJobFeed(profile.subscription_tier)) {
+    if (profileError || !profile || !canViewJobFeed(profile.subscription_tier)) {
       captureJobFeedActionRejected({
         userId,
         route: 'apply',

@@ -10,6 +10,7 @@ import type {
 export type JobFeedOverviewState =
   | 'upgrade_required'
   | 'setup_required'
+  | 'no_cv_required'
   | 'paused'
   | 'awaiting_first_run'
   | 'generating'

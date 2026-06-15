@@ -341,10 +341,10 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <button
               onClick={() => setPendingApplicationAction('generate-full-application')}
-              className="flex items-center gap-2 rounded-full bg-navy-700 text-white px-5 py-3 text-sm font-semibold shadow-sm hover:bg-navy-800 transition-all cursor-pointer"
+              className="flex items-center gap-2 rounded-full bg-gold-400 text-white px-5 py-3 text-sm font-semibold shadow-sm hover:bg-gold-500 transition-all cursor-pointer"
             >
               <Zap className="w-4 h-4" />
-              Generate Application Kit
+              Generate Kit
             </button>
             <button
               onClick={() => setPendingApplicationAction('skip-job')}

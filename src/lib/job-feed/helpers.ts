@@ -30,6 +30,16 @@ export function canAccessJobFeed(subscriptionTier?: string | null): boolean {
   return Boolean(subscriptionTier && PREMIUM_TIER_VALUES.has(subscriptionTier));
 }
 
+/**
+ * Discovery-level access: any authenticated user with a known subscription tier
+ * (free, plus, or max) can view the job feed inbox, run the feed, and see the
+ * summary badge. Premium-only actions (apply, saved, settings/suggest, etc.)
+ * still require canAccessJobFeed (plus/max only).
+ */
+export function canViewJobFeed(subscriptionTier?: string | null): boolean {
+  return subscriptionTier === 'free' || canAccessJobFeed(subscriptionTier);
+}
+
 export function isValidTimeZone(timeZone: string): boolean {
   try {
     new Intl.DateTimeFormat('en-US', { timeZone }).format(new Date());
@@ -117,12 +127,33 @@ export function getJobFeedOverviewState(params: {
   settings: JobFeedSettings | null;
   latestRun: JobFeedRun | null;
   jobsCount?: number;
+  /**
+   * Pass true for free-tier users. Free users get an automatic zero-config
+   * feed driven by their career profile, so we skip the settings-configured
+   * check. When true, `hasCareerProfile` determines whether they can run.
+   */
+  isFreeUser?: boolean;
+  /**
+   * Whether the user has a synthesized career profile (requires a primary CV).
+   * Only evaluated when `isFreeUser` is true.
+   */
+  hasCareerProfile?: boolean;
 }): JobFeedOverviewState {
-  const { canAccess, settings, latestRun, jobsCount = 0 } = params;
+  const { canAccess, settings, latestRun, jobsCount = 0, isFreeUser = false, hasCareerProfile = false } = params;
 
   if (!canAccess) return 'upgrade_required';
-  if (!isJobFeedConfigured(settings)) return 'setup_required';
-  if (!settings.enabled) return 'paused';
+
+  if (isFreeUser) {
+    // Free users never go through settings setup. Their feed is automatic.
+    // If no primary CV exists the career profile can't be synthesized, so
+    // the run would silently degrade - surface a clear "upload your CV" state.
+    if (!hasCareerProfile) return 'no_cv_required';
+    // Career profile exists: treat as configured and fall through to run checks.
+    // The run will auto-provision a minimal settings row on first click.
+  } else {
+    if (!isJobFeedConfigured(settings)) return 'setup_required';
+    if (!settings.enabled) return 'paused';
+  }
 
   if (!latestRun) return 'awaiting_first_run';
   if (latestRun.status === 'queued' || latestRun.status === 'running') return 'generating';
