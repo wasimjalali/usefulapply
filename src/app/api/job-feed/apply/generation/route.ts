@@ -39,6 +39,9 @@ export async function GET(request: NextRequest) {
       .single();
     subscriptionTier = profile?.subscription_tier ?? null;
 
+    // Intentionally canViewJobFeed (free + premium): free users reach the
+    // credit-gated generation handoff from feed cards. This route only reads the
+    // user's own generation context (scoped to userId). Paywall is downstream.
     if (profileError || !profile || !canViewJobFeed(profile.subscription_tier)) {
       captureJobFeedActionRejected({
         userId,

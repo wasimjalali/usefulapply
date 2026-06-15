@@ -31,10 +31,19 @@ export function canAccessJobFeed(subscriptionTier?: string | null): boolean {
 }
 
 /**
- * Discovery-level access: any authenticated user with a known subscription tier
- * (free, plus, or max) can view the job feed inbox, run the feed, and see the
- * summary badge. Premium-only actions (apply, saved, settings/suggest, etc.)
+ * Discovery + credit-gated apply access: any authenticated user with a known
+ * subscription tier (free, plus, or max). Covers viewing the inbox, running the
+ * feed (1/day for free), the summary badge, and the apply HANDOFF (apply,
+ * apply/generation, apply/status). The handoff only creates a session +
+ * generation intent and charges no credits here; the real paywall is the credit
+ * reservation enforced server-side in /api/agent-v2 before any generation runs,
+ * which is gated on session identity (a logged-in free user always pays).
+ *
+ * Truly premium-exclusive actions (saved jobs, settings + settings/suggest,
+ * search-strategy editing, the scheduled "search while you sleep" auto-apply)
  * still require canAccessJobFeed (plus/max only).
+ *
+ * Returns false for null/undefined/unknown tiers (fail-closed).
  */
 export function canViewJobFeed(subscriptionTier?: string | null): boolean {
   return subscriptionTier === 'free' || canAccessJobFeed(subscriptionTier);

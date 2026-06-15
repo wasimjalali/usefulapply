@@ -46,6 +46,9 @@ export async function POST(request: NextRequest) {
       .single();
     subscriptionTier = profile?.subscription_tier ?? null;
 
+    // Intentionally canViewJobFeed (free + premium): updates the status of the
+    // user's own credit-gated generation (scoped to userId). No premium-exclusive
+    // capability here; the paywall is enforced downstream in the agent flow.
     if (profileError || !profile || !canViewJobFeed(profile.subscription_tier)) {
       captureJobFeedActionRejected({
         userId,
