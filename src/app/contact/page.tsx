@@ -138,6 +138,7 @@ export default function ContactPage() {
                       type="text"
                       id="name"
                       required
+                      maxLength={200}
                       value={formState.name}
                       onChange={(e) => setFormState({ ...formState, name: e.target.value })}
                       className="w-full px-4 py-3 rounded-xl border border-cream-300 focus:border-navy-400 focus:ring-2 focus:ring-navy-100 outline-none transition-all"

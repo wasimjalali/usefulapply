@@ -229,6 +229,8 @@ export function SettingsScreen({ forcedSection }: SettingsScreenProps) {
     if (!error) {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
+    } else {
+      alert('We could not save your changes. Please try again.');
     }
   };
 

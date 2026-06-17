@@ -111,11 +111,11 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
         <div className="pt-16 px-4 sm:px-6 lg:px-8">
           <div className="max-w-5xl mx-auto">
             <Link
-              href="/blog"
+              href="/compare"
               className="inline-flex items-center gap-1.5 text-sm text-warm-gray hover:text-navy-600 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to Blog
+              Back to Comparisons
             </Link>
           </div>
         </div>

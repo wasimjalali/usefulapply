@@ -1480,6 +1480,12 @@ export async function runJobFeedFoundationWorkflow(params: {
     // (getOrSynthesizeCareerProfileAdmin is cached, so this is one synthesis).
     const careerProfileForSeed = await getOrSynthesizeCareerProfileAdmin(userId);
     const seedRoles = deriveFreeFeedSeedRoles(careerProfileForSeed);
+    if (seedRoles.length === 0) {
+      // Sparse CV (no inferred or aspirational titles). Provisioning would throw
+      // a developer-facing error that surfaces as an opaque 500. Throw a tagged
+      // error the route maps to a clear, user-actionable 422 instead.
+      throw new Error('JOB_FEED_INSUFFICIENT_CV');
+    }
     settings = await getOrProvisionFreeJobFeedSettingsAdmin(userId, seedRoles);
   } else {
     const loaded = await getJobFeedSettingsAdmin(userId);

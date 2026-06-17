@@ -90,6 +90,8 @@ function isOverviewStructurallyEqual(
     if (a.jobs[i].feedback?.appliedAt !== b.jobs[i].feedback?.appliedAt) return false;
     if (a.jobs[i].feedback?.dismissedAt !== b.jobs[i].feedback?.dismissedAt) return false;
     if (a.jobs[i].feedback?.savedAt !== b.jobs[i].feedback?.savedAt) return false;
+    if (a.jobs[i].feedback?.applyStartedAt !== b.jobs[i].feedback?.applyStartedAt) return false;
+    if (a.jobs[i].feedback?.generationStatus !== b.jobs[i].feedback?.generationStatus) return false;
   }
   return true;
 }
@@ -1516,7 +1518,7 @@ function FreeTierTeaserCard() {
         <div className="min-w-0">
           <h3 className="text-base font-semibold text-charcoal">Want more matches?</h3>
           <p className="mt-1 text-sm leading-relaxed text-warm-gray">
-            Pro searches more sources and surfaces more matches every day. Free shows your top 5.
+            Plus searches more sources and surfaces more matches every day. Free shows your top 5.
           </p>
         </div>
         <div className="shrink-0">

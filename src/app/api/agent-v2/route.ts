@@ -918,7 +918,7 @@ export async function POST(request: NextRequest) {
         } catch (_) { /* ignore PostHog errors */ }
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({
           type: 'error',
-          message: error instanceof Error ? error.message : 'Workflow failed'
+          message: 'Something went wrong while generating your application. Please try again.'
         })}\n\n`));
         controller.close();
       }

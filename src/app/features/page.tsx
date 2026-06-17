@@ -455,7 +455,7 @@ export default function FeaturesPage() {
                             row.free ? (
                               <Check className="w-5 h-5 text-green-600 mx-auto" />
                             ) : (
-                              <span className="text-warm-gray">—</span>
+                              <span className="text-warm-gray">-</span>
                             )
                           ) : (
                             <span className="text-sm text-charcoal font-medium">{row.free}</span>
@@ -466,7 +466,7 @@ export default function FeaturesPage() {
                             row.plus ? (
                               <Check className="w-5 h-5 text-green-600 mx-auto" />
                             ) : (
-                              <span className="text-warm-gray">—</span>
+                              <span className="text-warm-gray">-</span>
                             )
                           ) : (
                             <span className="text-sm text-charcoal font-medium">{row.plus}</span>
@@ -477,7 +477,7 @@ export default function FeaturesPage() {
                             row.max ? (
                               <Check className="w-5 h-5 text-green-600 mx-auto" />
                             ) : (
-                              <span className="text-warm-gray">—</span>
+                              <span className="text-warm-gray">-</span>
                             )
                           ) : (
                             <span className="text-sm text-charcoal font-medium">{row.max}</span>

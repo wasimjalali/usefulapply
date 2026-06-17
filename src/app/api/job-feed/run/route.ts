@@ -89,8 +89,12 @@ export async function POST(request: NextRequest) {
     });
 
     const diagnostics = getJobFeedRunDiagnostics(result.run);
+    // Anchor on `now` (the moment the run completed, always inside the user's
+    // current local day) rather than reconstructing noon-UTC from local_date,
+    // which lands on the next local day for UTC+12/+13 zones and pushed the
+    // unlock a full day late.
     const nextRunAt = result.run.local_date
-      ? getStartOfNextLocalDay(new Date(`${result.run.local_date}T12:00:00Z`), userTimeZone).toISOString()
+      ? getStartOfNextLocalDay(now, userTimeZone).toISOString()
       : null;
 
     return NextResponse.json({
@@ -114,6 +118,11 @@ export async function POST(request: NextRequest) {
       errorMessage: result.run.error_message,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'JOB_FEED_INSUFFICIENT_CV') {
+      return NextResponse.json({
+        error: "We couldn't find enough roles or experience in your CV to build your feed. Add your recent roles or key skills to your CV, then try again.",
+      }, { status: 422 });
+    }
     console.error('[job-feed/run] error:', error);
     return NextResponse.json({
       error: 'Failed to run Job Feed.',

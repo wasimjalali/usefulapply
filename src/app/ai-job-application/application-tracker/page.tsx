@@ -230,7 +230,7 @@ export default function ApplicationTrackerPage() {
               <div className="bg-cream-50 border border-cream-200 rounded-xl p-6">
                 <h3 className="text-lg font-bold text-charcoal mb-2">Status</h3>
                 <p className="text-warm-gray leading-relaxed">
-                  Applied, Interview, Rejected, Accepted, Follow-Up — so you know where each
+                  Applied, Interview, Rejected, Accepted, Follow-Up, so you know where each
                   application stands.
                 </p>
               </div>
