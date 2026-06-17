@@ -138,27 +138,28 @@ export function getJobFeedOverviewState(params: {
   jobsCount?: number;
   /**
    * Pass true for free-tier users. Free users get an automatic zero-config
-   * feed driven by their career profile, so we skip the settings-configured
-   * check. When true, `hasCareerProfile` determines whether they can run.
+   * feed driven by their CV, so we skip the settings-configured check. When
+   * true, `hasPrimaryCv` determines whether they can run.
    */
   isFreeUser?: boolean;
   /**
-   * Whether the user has a synthesized career profile (requires a primary CV).
-   * Only evaluated when `isFreeUser` is true.
+   * Whether the user has a primary CV on file. Only evaluated when `isFreeUser`
+   * is true. The career profile is synthesized on demand during the run, so a
+   * primary CV (not a pre-existing synthesized profile) is the real prerequisite.
    */
-  hasCareerProfile?: boolean;
+  hasPrimaryCv?: boolean;
 }): JobFeedOverviewState {
-  const { canAccess, settings, latestRun, jobsCount = 0, isFreeUser = false, hasCareerProfile = false } = params;
+  const { canAccess, settings, latestRun, jobsCount = 0, isFreeUser = false, hasPrimaryCv = false } = params;
 
   if (!canAccess) return 'upgrade_required';
 
   if (isFreeUser) {
     // Free users never go through settings setup. Their feed is automatic.
-    // If no primary CV exists the career profile can't be synthesized, so
-    // the run would silently degrade - surface a clear "upload your CV" state.
-    if (!hasCareerProfile) return 'no_cv_required';
-    // Career profile exists: treat as configured and fall through to run checks.
-    // The run will auto-provision a minimal settings row on first click.
+    // Without a primary CV the career profile can't be synthesized, so the run
+    // would silently degrade - surface a clear "upload your CV" state. With a
+    // CV, fall through to the run checks; the first run synthesizes the profile
+    // and auto-provisions a minimal settings row.
+    if (!hasPrimaryCv) return 'no_cv_required';
   } else {
     if (!isJobFeedConfigured(settings)) return 'setup_required';
     if (!settings.enabled) return 'paused';
