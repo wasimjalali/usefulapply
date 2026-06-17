@@ -415,33 +415,41 @@ export function extractOriginalHeaders(text: string): Record<string, string> {
 export function detectCVLanguage(text: string): 'en' | 'de' | 'fr' | 'es' | 'pt' | 'it' | 'nl' {
   const lower = text.toLowerCase();
 
-  // Count language-specific header matches
+  // Count language-specific header matches.
+  // Every token MUST be word-boundary anchored (\b...\b). Bare substrings like
+  // `und`/`oder` matched inside common English words (backgr*ound*, f*ound*ation,
+  // f*und*, m*oder*n), which made English CVs score as German and render German
+  // section titles. Anchoring keeps each token a real word in its own language.
   const scores: Record<string, number> = { en: 0, de: 0, fr: 0, es: 0, pt: 0, it: 0, nl: 0 };
 
   // German headers
-  if (/berufserfahrung|berufliche erfahrung|ausbildung|fähigkeiten|kenntnisse|sprachen|zertifikate|berufliches profil/i.test(lower)) scores.de += 3;
-  if (/heute|und|oder|bei\b/i.test(lower)) scores.de += 1;
+  if (/\b(berufserfahrung|berufliche erfahrung|ausbildung|fähigkeiten|kenntnisse|sprachen|zertifikate|berufliches profil)\b/i.test(lower)) scores.de += 3;
+  if (/\b(heute|und|oder|bei)\b/i.test(lower)) scores.de += 1;
 
-  // French headers
-  if (/expérience professionnelle|formation|compétences|langues|profil professionnel/i.test(lower)) scores.fr += 3;
-  if (/présent|chez|et\b/i.test(lower)) scores.fr += 1;
+  // French headers. "et" dropped from the +1 rule: it matches English "et al." /
+  // "et cetera" and would flip an English academic CV to French. "présent"
+  // (accented) and "chez" are distinctively French and safe.
+  if (/\b(expérience professionnelle|formation|compétences|langues|profil professionnel)\b/i.test(lower)) scores.fr += 3;
+  if (/\b(présent|chez)\b/i.test(lower)) scores.fr += 1;
 
-  // Spanish headers
-  if (/experiencia profesional|experiencia laboral|educación|formación|habilidades|idiomas/i.test(lower)) scores.es += 3;
-  if (/actual|en\b/i.test(lower)) scores.es += 1;
+  // Spanish headers. No +1 function-word rule: bare "actual" is a common English
+  // word and bare "en" is a standalone word in French/Dutch/Portuguese, so either
+  // would steal points and flip those CVs to Spanish. Spanish relies on its
+  // distinctive accented +3 headers, like pt/it/nl.
+  if (/\b(experiencia profesional|experiencia laboral|educación|formación|habilidades|idiomas)\b/i.test(lower)) scores.es += 3;
 
   // Portuguese headers
-  if (/experiência profissional|formação|educação|competências|línguas/i.test(lower)) scores.pt += 3;
+  if (/\b(experiência profissional|formação|educação|competências|línguas)\b/i.test(lower)) scores.pt += 3;
 
   // Italian headers
-  if (/esperienza professionale|istruzione|competenze|lingue|profilo/i.test(lower)) scores.it += 3;
+  if (/\b(esperienza professionale|istruzione|competenze|lingue|profilo)\b/i.test(lower)) scores.it += 3;
 
   // Dutch headers
-  if (/werkervaring|opleiding|vaardigheden|talen|profiel/i.test(lower)) scores.nl += 3;
+  if (/\b(werkervaring|opleiding|vaardigheden|talen|profiel)\b/i.test(lower)) scores.nl += 3;
 
   // English headers
-  if (/professional experience|work experience|education|skills|core competencies|certifications/i.test(lower)) scores.en += 3;
-  if (/present|current/i.test(lower)) scores.en += 1;
+  if (/\b(professional experience|work experience|education|skills|core competencies|certifications)\b/i.test(lower)) scores.en += 3;
+  if (/\b(present|current)\b/i.test(lower)) scores.en += 1;
 
   const best = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
   if (best[1] === 0) return 'en'; // default
