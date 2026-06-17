@@ -456,7 +456,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
       {!isEditMode && (
         <>
           <PortalTooltip text={activeCopyTooltip}>
-            <Button variant="primary" size="sm" onClick={activeCopyHandler} className="rounded-2xl shadow-sm flex-shrink-0">
+            <Button variant="gold" size="sm" onClick={activeCopyHandler} className="rounded-2xl shadow-sm flex-shrink-0">
               {activeCopyState ? <Check className="w-4 h-4 mr-1.5" /> : <Copy className="w-4 h-4 mr-1.5" />}
               {activeCopyLabel}
             </Button>

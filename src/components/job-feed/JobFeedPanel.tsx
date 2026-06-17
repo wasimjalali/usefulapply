@@ -1702,7 +1702,7 @@ function FeedPageHeader({
               className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 ${
                 hasCompletedToday
                   ? 'border border-cream-300 bg-white text-warm-gray'
-                  : 'border border-gold-500 bg-gold-500 text-white hover:bg-gold-600'
+                  : 'border border-gold-400 bg-gold-400 text-white hover:bg-gold-500'
               }`}
               title={runButtonTitle}
             >

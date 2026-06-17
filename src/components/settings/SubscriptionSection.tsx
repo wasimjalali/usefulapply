@@ -312,7 +312,7 @@ export function SubscriptionSection({
                   ) : onUpgrade ? (
                     <button
                       onClick={() => onUpgrade('plus')}
-                      className="w-full py-2 rounded-lg bg-gold-500 hover:bg-gold-600 text-white text-xs font-semibold transition-colors cursor-pointer"
+                      className="w-full py-2 rounded-lg bg-gold-400 hover:bg-gold-500 text-white text-xs font-semibold transition-colors cursor-pointer"
                     >
                       Get Plus →
                     </button>
@@ -326,7 +326,7 @@ export function SubscriptionSection({
                   ) : onUpgrade ? (
                     <button
                       onClick={() => onUpgrade('max')}
-                      className="w-full py-2 rounded-lg bg-navy-700 hover:bg-navy-800 text-white text-xs font-semibold transition-colors cursor-pointer"
+                      className="w-full py-2 rounded-lg bg-navy-600 hover:bg-navy-700 text-white text-xs font-semibold transition-colors cursor-pointer"
                     >
                       Get Max →
                     </button>

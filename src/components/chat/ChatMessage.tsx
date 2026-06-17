@@ -265,7 +265,7 @@ export function ChatMessage({
                     onClick={() => onAction(action.action)}
                     className={`flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition-all cursor-pointer ${
                       isPrimaryAction
-                        ? 'border-navy-700 bg-navy-700 text-white shadow-sm hover:bg-navy-800 hover:border-navy-800'
+                        ? 'border-gold-400 bg-gold-400 text-white shadow-sm hover:bg-gold-500 hover:border-gold-500'
                         : 'border-cream-200 bg-white text-charcoal hover:bg-cream-50 hover:border-gold-300'
                     }`}
                   >
