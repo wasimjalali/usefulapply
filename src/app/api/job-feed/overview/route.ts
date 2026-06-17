@@ -74,6 +74,7 @@ export async function GET(request: NextRequest) {
       { data: settings, error: settingsError },
       { data: latestRun, error: runError },
       { data: careerProfileRow },
+      { data: primaryCvRow },
     ] = await Promise.all([
       typedSupabase
         .from('job_feed_settings')
@@ -91,6 +92,17 @@ export async function GET(request: NextRequest) {
         .from('user_career_profiles')
         .select('profile')
         .eq('user_id', user.id)
+        .maybeSingle(),
+      // Free feeds are CV-driven. The career profile is synthesized on the
+      // first run, so the real prerequisite is "has a primary CV", not "has a
+      // synthesized profile" - gating on the profile would deadlock free users
+      // (no_cv_required hides the run button that would create the profile).
+      typedSupabase
+        .from('documents')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('type', 'primary_cv')
+        .limit(1)
         .maybeSingle(),
     ]);
 
@@ -168,9 +180,7 @@ export async function GET(request: NextRequest) {
         latestRun: runForState ?? null,
         jobsCount: totalCount,
         isFreeUser: !canAccess,
-        hasCareerProfile: Boolean(
-          careerProfileRow?.profile && isCurrentCareerProfile(careerProfileRow.profile)
-        ),
+        hasPrimaryCv: Boolean(primaryCvRow),
       }),
       foundationMode: true,
       feedCap: tierLimits.visibleCount,

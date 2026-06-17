@@ -1069,6 +1069,13 @@ export function JobFeedPanel() {
     // so prev should never be null here. The nullish coalesce is defensive only.
     setDraftForm((prev) => updater(prev ?? createDefaultJobFeedInput(getBrowserTimeZone())));
   }, []);
+  const handleUploadCv = useCallback(() => {
+    // The free feed is built from the user's CV. CV upload lives in the
+    // Application Kit workspace, so switch the dashboard there - a user with no
+    // CV lands on the "Upload your CV" onboarding screen.
+    posthog?.capture('job_feed_upload_cv_clicked', { foundation_mode: true });
+    useUIStore.getState().setActiveTab('cv');
+  }, [posthog]);
 
   const currentState = isSignedIn ? (overview?.state ?? 'setup_required') : 'sign_in_required';
   const setupOpen = isSignedIn && (isEditing || isSetupWizardOpen);
@@ -1124,6 +1131,7 @@ export function JobFeedPanel() {
             {!setupOpen && (
               <FeedPageHeader
                 currentState={currentState}
+                canEditSettings={canAccess}
                 form={shellForm}
                 jobsTodayCount={overview?.jobsTodayCount ?? 0}
                 jobsBacklogCount={overview?.jobsBacklogCount ?? 0}
@@ -1148,12 +1156,14 @@ export function JobFeedPanel() {
               <InlineStateMessage
                 state={overview?.state ?? 'setup_required'}
                 overview={overview}
+                canEditSettings={canAccess}
                 showManualRunAction={showCenteredRunButton}
                 isRunningManualFeed={isRunningManualFeed}
                 isPreparingToday={isPreparingToday}
                 isInManualRunCooldown={isInManualRunCooldown}
                 nextManualRunAt={manualRunCooldown.nextRunAt}
                 onStartSetup={openSetupWizard}
+                onUploadCv={handleUploadCv}
                 onRunTodayFeed={handleRunTodayFeed}
               />
             )}
@@ -1310,14 +1320,31 @@ function SignedOutStage() {
           Jobs picked for you, every day
         </h1>
         <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-warm-gray">
-          Tell Karko what you&apos;re looking for. Each morning, your best matches are ready when you open this page.
+          Upload your CV and Karko finds matching jobs for you. Fresh picks are ready every time you open this page.
         </p>
+
+        <ul className="mx-auto mt-6 flex max-w-sm flex-col gap-2 text-left text-sm text-charcoal">
+          <li className="flex items-start gap-2">
+            <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gold-400" />
+            Matched to your CV, not generic listings
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gold-400" />
+            A fresh set of picks every day
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gold-400" />
+            Apply with Karko in one click
+          </li>
+        </ul>
+
         <div className="mt-8 flex flex-col items-center gap-3">
           <Link href="/auth/signup" className="inline-flex">
             <Button variant="gold" className="px-7 py-3 text-base">
               Sign up free
             </Button>
           </Link>
+          <p className="text-xs text-warm-gray">Free to start. No card needed.</p>
           <Link
             href="/auth/login"
             className="text-sm font-medium text-navy-600 transition-colors hover:text-navy-700"
@@ -1507,6 +1534,7 @@ function FreeTierTeaserCard() {
 
 function FeedPageHeader({
   currentState,
+  canEditSettings,
   form,
   jobsTodayCount,
   jobsBacklogCount,
@@ -1526,6 +1554,9 @@ function FeedPageHeader({
   onShowSavedJobs,
 }: {
   currentState: string;
+  // Free feeds are zero-config and built from the CV, so the settings form's
+  // inputs are all locked. Hide the "Edit feed" entry point for free users.
+  canEditSettings: boolean;
   form: JobFeedSettingsInput;
   // Jobs today's run delivered, before user actions (0 when today has no
   // completed run yet).
@@ -1652,14 +1683,16 @@ function FeedPageHeader({
             </button>
           </div>
 
-          <button
-            type="button"
-            onClick={onEditSettings}
-            className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-4 py-2 text-sm font-semibold text-navy-700 shadow-sm transition-colors hover:border-navy-300 hover:bg-navy-50 cursor-pointer"
-          >
-            <Settings2 className="h-4 w-4" />
-            Edit feed
-          </button>
+          {canEditSettings && (
+            <button
+              type="button"
+              onClick={onEditSettings}
+              className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-4 py-2 text-sm font-semibold text-navy-700 shadow-sm transition-colors hover:border-navy-300 hover:bg-navy-50 cursor-pointer"
+            >
+              <Settings2 className="h-4 w-4" />
+              Edit feed
+            </button>
+          )}
 
           {canRunTodayFeed && (
             <button
@@ -1697,22 +1730,28 @@ function FeedPageHeader({
 function InlineStateMessage({
   state,
   overview,
+  canEditSettings,
   showManualRunAction,
   isRunningManualFeed,
   isPreparingToday,
   isInManualRunCooldown,
   nextManualRunAt,
   onStartSetup,
+  onUploadCv,
   onRunTodayFeed,
 }: {
   state: JobFeedOverviewState | 'setup_required';
   overview: JobFeedOverviewResponse | null;
+  // False for free users. Their feed is zero-config, so settings-editing CTAs
+  // (Adjust/Review settings) are suppressed - they have no settings to change.
+  canEditSettings: boolean;
   showManualRunAction: boolean;
   isRunningManualFeed: boolean;
   isPreparingToday: boolean;
   isInManualRunCooldown: boolean;
   nextManualRunAt: string | null;
   onStartSetup: () => void;
+  onUploadCv: () => void;
   onRunTodayFeed: () => void;
 }) {
   type Tone = 'neutral' | 'warning' | 'primary';
@@ -1732,8 +1771,10 @@ function InlineStateMessage({
     },
     no_cv_required: {
       icon: Settings2,
-      message: 'Upload your CV first. Karko builds your feed automatically from your CV - no setup needed.',
+      message: 'Upload your CV and Karko builds your daily feed automatically. No setup needed.',
+      action: 'Upload your CV',
       tone: 'primary',
+      ctaVariant: 'gold',
     },
     paused: {
       icon: PauseCircle,
@@ -1763,8 +1804,11 @@ function InlineStateMessage({
     },
     error: {
       icon: AlertCircle,
-      message: overview?.latestRun?.error_message || 'Something went wrong with the latest run. Try refreshing or checking your settings.',
-      action: 'Review settings',
+      message: overview?.latestRun?.error_message
+        || (canEditSettings
+          ? 'Something went wrong with the latest run. Try refreshing or checking your settings.'
+          : 'Something went wrong with the latest run. Try refreshing in a moment.'),
+      action: canEditSettings ? 'Review settings' : undefined,
       tone: 'warning',
       ctaVariant: 'outline',
     },
@@ -1843,7 +1887,7 @@ function InlineStateMessage({
         <Button
           variant={stateConfig.ctaVariant ?? 'outline'}
           size="sm"
-          onClick={onStartSetup}
+          onClick={state === 'no_cv_required' ? onUploadCv : onStartSetup}
           className="shrink-0"
         >
           {stateConfig.action}
