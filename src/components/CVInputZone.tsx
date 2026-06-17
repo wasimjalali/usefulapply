@@ -131,7 +131,7 @@ export function CVInputZone({
             onChange={(e) => setPastedText(e.target.value)}
             placeholder={
               'Paste your CV / resume content here...\n\n' +
-              'Include your name, contact info, experience, education, skills \u2014 everything from your CV. Plain text or Markdown.'
+              'Include your name, contact info, experience, education, skills, everything from your CV. Plain text or Markdown.'
             }
             className={`w-full bg-transparent text-sm text-charcoal placeholder:text-warm-gray/50 resize-none p-4 focus:outline-none ${
               compact ? 'h-40' : 'h-52'

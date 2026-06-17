@@ -28,7 +28,7 @@ const pillars = [
   {
     title: 'Free Test, No Sign-Up Required',
     description:
-      'Try 20 full applications without creating an account or entering payment details. Evaluate output quality before committing.',
+      'Try 2 full applications without creating an account or entering payment details. Evaluate output quality before committing.',
     href: '/ai-job-application/free-no-signup-test',
     linkText: 'Test without signing up →',
   },
