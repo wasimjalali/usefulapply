@@ -934,7 +934,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                     screeningUsageCount: dismissNow ? 2 : (currentSession?.screeningUsageCount ?? 0) + 1,
                   });
                 }}
-                className="flex items-center gap-2 rounded-full border border-navy-700 bg-navy-700 text-white px-4 py-2.5 text-sm font-medium shadow-sm hover:bg-navy-800 hover:border-navy-800 transition-all cursor-pointer"
+                className="flex items-center gap-2 rounded-full border border-gold-400 bg-gold-400 text-white px-4 py-2.5 text-sm font-medium shadow-sm hover:bg-gold-500 hover:border-gold-500 transition-all cursor-pointer"
               >
                 Answer Screening Questions
               </button>

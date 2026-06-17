@@ -623,7 +623,7 @@ ${letter.signatureName}`;
       {!isEditMode && (
         <>
           <Button
-            variant="primary"
+            variant="gold"
             size="sm"
             onClick={handleDownloadPDF}
             isLoading={downloadFormat === 'pdf'}
