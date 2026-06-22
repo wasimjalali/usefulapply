@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getJobFeedCardActions } from './feed-card-actions';
+import { getJobFeedCardActions, isFreshPendingFitAnalysis } from './feed-card-actions';
 
 const baseFeedback = {
   applyStartedAt: null,
@@ -87,4 +87,32 @@ test('keeps the default generate and check fit actions before handoff starts', (
     label: 'Check Fit',
     variant: 'outline',
   });
+});
+
+test('leads with check fit for free users on non-strong matches', () => {
+  const actions = getJobFeedCardActions({
+    feedback: baseFeedback,
+    session: null,
+    isFreeUser: true,
+    fitLabel: 'good',
+  });
+
+  assert.equal(actions.leadWithSecondary, true);
+});
+
+test('treats pending fit analysis as fresh for only 30 minutes', () => {
+  const createdAt = '2026-06-22T10:00:00.000Z';
+
+  assert.equal(
+    isFreshPendingFitAnalysis(createdAt, new Date('2026-06-22T10:29:00.000Z').getTime()),
+    true
+  );
+  assert.equal(
+    isFreshPendingFitAnalysis(createdAt, new Date('2026-06-22T10:30:00.000Z').getTime()),
+    false
+  );
+  assert.equal(
+    isFreshPendingFitAnalysis(createdAt, new Date('2026-06-22T10:31:00.000Z').getTime()),
+    false
+  );
 });
