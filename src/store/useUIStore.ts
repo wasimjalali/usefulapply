@@ -8,6 +8,12 @@
 
 import { create } from 'zustand';
 
+export type PendingApplicationAction =
+  | 'generate-full-application'
+  | 'skip-job'
+  | 'start-screening-flow'
+  | 'skip-screening';
+
 interface UIState {
   // Loading states
   isAnalyzing: boolean;
@@ -26,12 +32,12 @@ interface UIState {
   // Application Kit tab. Consumed-then-cleared by ChatPanel.
   pendingJobFeedAutostart: { sessionId: string; generationId?: string | null; generationAttempt?: number | null; mode?: 'apply' | 'analyze' } | null;
 
-  // Cross-component action signal: CoverLetterPanel/EmailPanel dispatch
-  // 'generate-full-application' or 'skip-job' after a fit analysis.
+  // Cross-component action signal: application panels and Job Feed cards
+  // dispatch ChatPanel-owned follow-up actions after fit analysis or kit generation.
   // Safe as a bare action because only one ChatPanel mounts at a time
   // (mobile viewport does not render ChatPanel at all — Application Kit is
   // desktop/tablet only).
-  pendingApplicationAction: 'generate-full-application' | 'skip-job' | null;
+  pendingApplicationAction: PendingApplicationAction | null;
 }
 
 interface UIActions {
@@ -49,8 +55,8 @@ interface UIActions {
   // Autostart signal
   setPendingJobFeedAutostart: (value: { sessionId: string; generationId?: string | null; generationAttempt?: number | null; mode?: 'apply' | 'analyze' } | null) => void;
 
-  // Panel action signal (fit analysis CTAs dispatched from Cover Letter / Email panels)
-  setPendingApplicationAction: (value: 'generate-full-application' | 'skip-job' | null) => void;
+  // Panel action signal (fit analysis and screening CTAs dispatched outside ChatPanel)
+  setPendingApplicationAction: (value: PendingApplicationAction | null) => void;
 
   // Reset
   resetUI: () => void;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { usePostHog } from 'posthog-js/react';
@@ -51,6 +51,11 @@ import {
   JobFeedDetailModal,
   RunStatPill,
 } from './feed-cards';
+import {
+  isFreshPendingFitAnalysis,
+  type JobFeedCardActionKind,
+  type JobFeedCardSessionState,
+} from './feed-card-actions';
 import { SmartFeedProgressCard } from './SmartFeedProgressCard';
 import { AISearchProfileCard } from './AISearchProfileCard';
 import { SearchStrategyPreviewCard } from './SearchStrategyPreviewCard';
@@ -100,6 +105,9 @@ export function JobFeedPanel() {
   const router = useRouter();
   const { user, profile } = useAuth();
   const currentCV = useCVStore((state) => state.currentCV);
+  const currentApplicationSession = useSessionStore((state) => state.currentSession);
+  const applicationSessions = useSessionStore((state) => state.sessions);
+  const loadApplicationSession = useSessionStore((state) => state.loadSession);
   const { toast } = useToast();
   const posthog = usePostHog();
   const [previewMode] = useState<JobFeedPreviewMode>(() => getJobFeedPreviewMode());
@@ -143,6 +151,16 @@ export function JobFeedPanel() {
   const pollDeadlineRef = useRef<number | null>(null);
   const isPreviewing = previewMode !== 'off';
   const isSignedIn = isPreviewing ? previewMode !== 'signed_out' : Boolean(user);
+  const applicationSessionById = useMemo(() => {
+    const map = new Map<string, StoreApplicationSession>();
+    for (const session of applicationSessions) {
+      map.set(session.id, session);
+    }
+    if (currentApplicationSession) {
+      map.set(currentApplicationSession.id, currentApplicationSession);
+    }
+    return map;
+  }, [applicationSessions, currentApplicationSession]);
 
   // Stable ref to the toast API. The `toast` object returned by useToast()
   // is a fresh literal on every ToastProvider render, which would otherwise
@@ -457,6 +475,18 @@ export function JobFeedPanel() {
         ? { ...prev, feedback }
         : prev
     ));
+    setAdditionalJobs((prev) => prev.map((job) => (
+      job.id === jobId
+        ? { ...job, feedback }
+        : job
+    )));
+    setSavedJobs((prev) => prev
+      ? prev.map((job) => (
+          job.id === jobId
+            ? { ...job, feedback }
+            : job
+        ))
+      : prev);
   }, []);
 
   const applyPreviewFeedback = useCallback((jobId: string, action: 'opened' | 'saved' | 'dismissed' | 'applied' | 'rated_helpful' | 'rated_not_relevant') => {
@@ -550,6 +580,46 @@ export function JobFeedPanel() {
     ]);
     sessionStore.loadSession(mappedSession.id);
   }, []);
+
+  const findApplicationSessionForJob = useCallback((job: JobFeedFeedItem): StoreApplicationSession | null => {
+    const sessionId = job.feedback.applicationSessionId;
+    if (!sessionId) return null;
+    return applicationSessionById.get(sessionId) ?? null;
+  }, [applicationSessionById]);
+
+  const getSessionStateForJob = useCallback((job: JobFeedFeedItem): JobFeedCardSessionState | null => {
+    const session = findApplicationSessionForJob(job);
+    if (!session) return null;
+    return {
+      generatedCV: Boolean(session.generatedCV),
+      generationStatus: session.generationStatus,
+      hasFreshPendingFitAnalysis: isFreshPendingFitAnalysis(session.pendingFitAnalysis?.createdAt),
+      screeningUsageCount: session.screeningUsageCount ?? 0,
+    };
+  }, [findApplicationSessionForJob]);
+
+  const createOrLoadKarkoApplication = useCallback(async (job: JobFeedFeedItem): Promise<JobFeedApplyResponse> => {
+    const response = await fetch('/api/job-feed/apply', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        jobId: job.id,
+        runId: overview?.feedRun?.id ?? null,
+      }),
+    });
+
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error || 'Failed to start the application handoff.');
+    }
+
+    const typedPayload = payload as JobFeedApplyResponse;
+    updateJobFeedbackState(job.id, typedPayload.feedback);
+    syncApplicationSession(typedPayload);
+    return typedPayload;
+  }, [overview?.feedRun?.id, syncApplicationSession, updateJobFeedbackState]);
 
   const recordJobFeedback = useCallback(async (
     job: JobFeedFeedItem,
@@ -752,25 +822,7 @@ export function JobFeedPanel() {
         });
       }
 
-      const response = await fetch('/api/job-feed/apply', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          jobId: job.id,
-          runId: overview?.feedRun?.id ?? null,
-        }),
-      });
-
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error || 'Failed to start the application handoff.');
-      }
-
-      const typedPayload = payload as JobFeedApplyResponse;
-      updateJobFeedbackState(job.id, typedPayload.feedback);
-      syncApplicationSession(typedPayload);
+      const typedPayload = await createOrLoadKarkoApplication(job);
       setSelectedJob(null);
       const shouldAutostartGeneration = Boolean(currentCV) && typedPayload.generation.status === 'intent_created';
 
@@ -815,7 +867,7 @@ export function JobFeedPanel() {
     } finally {
       setPendingJobAction(null);
     }
-  }, [applyPreviewFeedback, currentCV, isPreviewing, overview?.feedRun?.id, posthog, router, syncApplicationSession, updateJobFeedbackState]);
+  }, [applyPreviewFeedback, createOrLoadKarkoApplication, currentCV, isPreviewing, overview?.feedRun?.id, posthog, router]);
 
   const handleApplyWithKarko = useCallback(
     (job: JobFeedFeedItem) => startKarkoHandoff(job, 'apply'),
@@ -825,6 +877,91 @@ export function JobFeedPanel() {
     (job: JobFeedFeedItem) => startKarkoHandoff(job, 'analyze'),
     [startKarkoHandoff],
   );
+
+  const openApplicationSession = useCallback(async (job: JobFeedFeedItem): Promise<StoreApplicationSession | null> => {
+    if (isPreviewing) {
+      toastRef.current.success('Preview updated locally. This local preview does not create an application session.');
+      return null;
+    }
+
+    const existingSession = findApplicationSessionForJob(job);
+    if (existingSession) {
+      loadApplicationSession(existingSession.id);
+      return existingSession;
+    }
+
+    const payload = await createOrLoadKarkoApplication(job);
+    return toStoreApplicationSession(payload.session, payload.generation);
+  }, [createOrLoadKarkoApplication, findApplicationSessionForJob, isPreviewing, loadApplicationSession]);
+
+  const openApplicationPath = useCallback((sessionId: string) => {
+    router.push(`/dashboard?${new URLSearchParams({
+      workspace: 'application-kit',
+      tab: 'cv',
+      session: sessionId,
+    }).toString()}`);
+  }, [router]);
+
+  const dispatchApplicationAction = useCallback(async (
+    job: JobFeedFeedItem,
+    action: 'generate-full-application' | 'skip-job' | 'start-screening-flow' | 'skip-screening',
+  ) => {
+    setPendingJobAction({ jobId: job.id, action: 'apply' });
+
+    try {
+      const session = await openApplicationSession(job);
+      if (!session) return;
+      setSelectedJob(null);
+      useUIStore.getState().setPendingApplicationAction(action);
+      openApplicationPath(session.id);
+    } catch (error) {
+      toastRef.current.error(error instanceof Error ? error.message : 'Failed to open this application in Karko.');
+    } finally {
+      setPendingJobAction(null);
+    }
+  }, [openApplicationPath, openApplicationSession]);
+
+  const continueApplication = useCallback(async (job: JobFeedFeedItem) => {
+    setPendingJobAction({ jobId: job.id, action: 'apply' });
+
+    try {
+      const session = await openApplicationSession(job);
+      if (!session) return;
+      setSelectedJob(null);
+      openApplicationPath(session.id);
+    } catch (error) {
+      toastRef.current.error(error instanceof Error ? error.message : 'Failed to open this application in Karko.');
+    } finally {
+      setPendingJobAction(null);
+    }
+  }, [openApplicationPath, openApplicationSession]);
+
+  const handleJobCardAction = useCallback((job: JobFeedFeedItem, action: JobFeedCardActionKind) => {
+    switch (action) {
+      case 'generate':
+      case 'retry-generate':
+        void handleApplyWithKarko(job);
+        break;
+      case 'check-fit':
+        void handleAnalyzeFirst(job);
+        break;
+      case 'continue':
+        void continueApplication(job);
+        break;
+      case 'generate-after-fit':
+        void dispatchApplicationAction(job, 'generate-full-application');
+        break;
+      case 'new-search':
+        void dispatchApplicationAction(job, 'skip-job');
+        break;
+      case 'screening':
+        void dispatchApplicationAction(job, 'start-screening-flow');
+        break;
+      case 'skip-screening':
+        void dispatchApplicationAction(job, 'skip-screening');
+        break;
+    }
+  }, [continueApplication, dispatchApplicationAction, handleAnalyzeFirst, handleApplyWithKarko]);
 
   const handleExternalApply = useCallback((job: JobFeedFeedItem) => {
     if (isPreviewing) {
@@ -1225,10 +1362,10 @@ export function JobFeedPanel() {
                   pendingJobAction={pendingJobAction}
                   feedSummary={buildFeedSummary(shellForm)}
                   isFreeUser={!['plus', 'max'].includes(profile?.subscription_tier ?? '')}
+                  getSessionForJob={getSessionStateForJob}
                   onLoadMore={handleLoadMoreJobs}
                   onOpenDetails={handleOpenDetails}
-                  onApplyWithKarko={handleApplyWithKarko}
-                  onAnalyzeFirst={handleAnalyzeFirst}
+                  onJobAction={handleJobCardAction}
                   onExternalApply={handleExternalApply}
                 />
                 {!['plus', 'max'].includes(profile?.subscription_tier ?? '') && (
@@ -1243,9 +1380,9 @@ export function JobFeedPanel() {
                 isLoading={isLoadingSavedJobs}
                 pendingJobAction={pendingJobAction}
                 isFreeUser={!['plus', 'max'].includes(profile?.subscription_tier ?? '')}
+                getSessionForJob={getSessionStateForJob}
                 onOpenDetails={handleOpenDetails}
-                onApplyWithKarko={handleApplyWithKarko}
-                onAnalyzeFirst={handleAnalyzeFirst}
+                onJobAction={handleJobCardAction}
                 onExternalApply={handleExternalApply}
                 onBackToFeed={handleShowTodayFeed}
               />
@@ -1294,13 +1431,14 @@ export function JobFeedPanel() {
       {selectedJob && (
         <JobFeedDetailModal
           job={selectedJob}
+          session={getSessionStateForJob(selectedJob)}
           onClose={() => setSelectedJob(null)}
           isApplying={pendingJobAction?.jobId === selectedJob.id && pendingJobAction.action === 'apply'}
           isSaving={pendingJobAction?.jobId === selectedJob.id && pendingJobAction.action === 'save'}
           isDismissing={pendingJobAction?.jobId === selectedJob.id && pendingJobAction.action === 'dismiss'}
           isRating={pendingJobAction?.jobId === selectedJob.id && pendingJobAction.action === 'rate'}
-          onApplyWithKarko={() => handleApplyWithKarko(selectedJob)}
-          onAnalyzeFirst={() => handleAnalyzeFirst(selectedJob)}
+          isFreeUser={!['plus', 'max'].includes(profile?.subscription_tier ?? '')}
+          onAction={(action) => handleJobCardAction(selectedJob, action)}
           onSave={() => handleSaveJob(selectedJob)}
           onDismiss={() => handleDismissJob(selectedJob)}
           onExternalApply={() => handleExternalApply(selectedJob)}
@@ -1447,9 +1585,9 @@ function SavedJobsView({
   isLoading,
   pendingJobAction,
   isFreeUser,
+  getSessionForJob,
   onOpenDetails,
-  onApplyWithKarko,
-  onAnalyzeFirst,
+  onJobAction,
   onExternalApply,
   onBackToFeed,
 }: {
@@ -1457,9 +1595,9 @@ function SavedJobsView({
   isLoading: boolean;
   pendingJobAction: PendingJobAction;
   isFreeUser: boolean;
+  getSessionForJob: (job: JobFeedFeedItem) => JobFeedCardSessionState | null;
   onOpenDetails: (job: JobFeedFeedItem) => void;
-  onApplyWithKarko: (job: JobFeedFeedItem) => void;
-  onAnalyzeFirst: (job: JobFeedFeedItem) => void;
+  onJobAction: (job: JobFeedFeedItem, action: JobFeedCardActionKind) => void;
   onExternalApply: (job: JobFeedFeedItem) => void;
   onBackToFeed: () => void;
 }) {
@@ -1503,9 +1641,9 @@ function SavedJobsView({
       pendingJobAction={pendingJobAction}
       feedSummary={`${jobs.length} saved ${jobs.length === 1 ? 'job' : 'jobs'}`}
       isFreeUser={isFreeUser}
+      getSessionForJob={getSessionForJob}
       onOpenDetails={onOpenDetails}
-      onApplyWithKarko={onApplyWithKarko}
-      onAnalyzeFirst={onAnalyzeFirst}
+      onJobAction={onJobAction}
       onExternalApply={onExternalApply}
     />
   );
