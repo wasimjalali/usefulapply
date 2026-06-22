@@ -83,7 +83,6 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     v2TokenUsage,
     fitAnalysisContextId,
     fitAnalysisJD,
-    applicationMode,
     setApplicationMode,
     setAwaitingJobDescription,
     isScreeningMode,
@@ -538,6 +537,19 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
           content: '📋 **Screening Question Mode**\n\nPaste your screening questions below and I\'ll draft personalized answers based on your CV and this job description.\n\nI\'ll format each answer separately so you can copy and paste them individually.',
         });
         break;
+      case 'start-screening-flow': {
+        const isPaidPlan = profile?.subscription_tier === 'plus' || profile?.subscription_tier === 'max';
+        await handleAction(isPaidPlan ? 'screening-questions' : 'upgrade-for-screening');
+        useAppStore.getState().updateCurrentSession({
+          screeningUsageCount: isPaidPlan ? (currentSession?.screeningUsageCount ?? 0) + 1 : 2,
+        });
+        break;
+      }
+      case 'skip-screening':
+        useAppStore.getState().updateCurrentSession({
+          screeningUsageCount: 2,
+        });
+        break;
       case 'upgrade-for-screening':
         posthog?.capture('screening_upgrade_prompt_shown');
         addChatMessage({
@@ -927,12 +939,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
             <div className="flex justify-end gap-2 mt-2">
               <button
                 onClick={() => {
-                  const isPaidPlan = profile?.subscription_tier === 'plus' || profile?.subscription_tier === 'max';
-                  handleAction(isPaidPlan ? 'screening-questions' : 'upgrade-for-screening');
-                  const dismissNow = !isPaidPlan;
-                  useAppStore.getState().updateCurrentSession({
-                    screeningUsageCount: dismissNow ? 2 : (currentSession?.screeningUsageCount ?? 0) + 1,
-                  });
+                  void handleAction('start-screening-flow');
                 }}
                 className="flex items-center gap-2 rounded-full border border-gold-400 bg-gold-400 text-white px-4 py-2.5 text-sm font-medium shadow-sm hover:bg-gold-500 hover:border-gold-500 transition-all cursor-pointer"
               >
@@ -940,9 +947,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
               </button>
               <button
                 onClick={() => {
-                  useAppStore.getState().updateCurrentSession({
-                    screeningUsageCount: 2,
-                  });
+                  void handleAction('skip-screening');
                 }}
                 className="flex items-center gap-2 rounded-full border border-cream-200 bg-white text-charcoal px-4 py-2.5 text-sm font-medium hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer"
               >

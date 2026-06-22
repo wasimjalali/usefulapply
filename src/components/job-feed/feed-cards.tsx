@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import {
+  ArrowRight,
   Bookmark,
   Briefcase,
   Building2,
@@ -14,14 +15,22 @@ import {
   Globe,
   Loader2,
   MapPin,
+  MessageSquareText,
   Target,
   ThumbsDown,
   ThumbsUp,
   X,
+  Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import type { JobFeedFeedItem, JobFeedHighlight } from '@/lib/job-feed/types';
+import {
+  getJobFeedCardActions,
+  type JobFeedCardAction,
+  type JobFeedCardActionKind,
+  type JobFeedCardSessionState,
+} from './feed-card-actions';
 
 type PendingJobAction = {
   jobId: string;
@@ -326,31 +335,121 @@ function CopyJobButton({
   );
 }
 
+function JobFeedActionButton({
+  action,
+  disabled,
+  isApplying,
+  onClick,
+}: {
+  action: JobFeedCardAction;
+  disabled: boolean;
+  isApplying: boolean;
+  onClick: () => void;
+}) {
+  const Icon =
+    action.kind === 'check-fit' ? Target :
+    action.kind === 'screening' ? MessageSquareText :
+    action.kind === 'skip-screening' || action.kind === 'new-search' ? X :
+    action.kind === 'continue' ? ArrowRight :
+    Zap;
+  const label = isApplying ? 'Opening...' : action.label;
+  const title =
+    action.kind === 'check-fit'
+      ? 'Check the fit for 0.5 credits before generating'
+      : action.kind === 'screening'
+        ? 'Ask Karko to draft answers for screening questions'
+        : action.kind === 'new-search'
+          ? 'Start a different application in Karko'
+          : undefined;
+
+  if (action.variant === 'gold') {
+    return (
+      <Button
+        variant="gold"
+        onClick={onClick}
+        disabled={disabled}
+        title={title}
+      >
+        {isApplying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4" />}
+        {label}
+      </Button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-cream-300 bg-white px-4 py-2 text-sm font-medium text-navy-700 transition-colors hover:border-navy-300 hover:bg-cream-50 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {isApplying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Icon className="h-3.5 w-3.5" />}
+      {label}
+    </button>
+  );
+}
+
+function JobFeedActionControls({
+  actions,
+  disabled,
+  isApplying,
+  onAction,
+}: {
+  actions: ReturnType<typeof getJobFeedCardActions>;
+  disabled: boolean;
+  isApplying: boolean;
+  onAction: (action: JobFeedCardActionKind) => void;
+}) {
+  const orderedActions: JobFeedCardAction[] = actions.secondary
+    ? actions.leadWithSecondary
+      ? [actions.secondary, actions.primary]
+      : [actions.primary, actions.secondary]
+    : [actions.primary];
+
+  return (
+    <>
+      {orderedActions.map((action) => (
+        <JobFeedActionButton
+          key={action.kind}
+          action={action}
+          disabled={disabled}
+          isApplying={isApplying}
+          onClick={() => onAction(action.kind)}
+        />
+      ))}
+    </>
+  );
+}
+
 export function JobFeedCard({
   job,
+  session,
   isApplying,
   isAnotherJobBusy,
   isFreeUser,
   onOpenDetails,
-  onApplyWithKarko,
-  onAnalyzeFirst,
+  onAction,
   onExternalApply,
 }: {
   job: JobFeedFeedItem;
+  session: JobFeedCardSessionState | null;
   isApplying: boolean;
   isAnotherJobBusy: boolean;
   isFreeUser: boolean;
   onOpenDetails: () => void;
-  onApplyWithKarko: () => void;
-  onAnalyzeFirst: () => void;
+  onAction: (action: JobFeedCardActionKind) => void;
   onExternalApply: () => void;
 }) {
   const isSaved = Boolean(job.feedback.savedAt);
-  const isApplied = Boolean(job.feedback.appliedAt) || job.feedback.generationStatus === 'succeeded';
-  const isApplyStarted = Boolean(job.feedback.applyStartedAt) && !isApplied;
   const employerLink = job.applyUrl || job.sourceUrl;
   const karkoButtonsDisabled = isApplying || isAnotherJobBusy;
-  const continueLabel = isApplied || isApplyStarted;
+  const cardActions = getJobFeedCardActions({
+    feedback: job.feedback,
+    session,
+    isFreeUser,
+    fitLabel: job.fitLabel,
+  });
 
   return (
     <div className={`rounded-2xl border p-5 transition-colors duration-200 ${
@@ -367,15 +466,9 @@ export function JobFeedCard({
                 {job.fitLabel === 'strong' ? 'Strong match' : job.fitLabel === 'good' ? 'Good match' : 'Promising match'}
               </span>
             </span>
-            {isApplied ? (
+            {cardActions.badge ? (
               <span className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-medium text-navy-700">
-                Application ready
-              </span>
-            ) : isApplyStarted ? (
-              <span className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-medium text-navy-700">
-                {job.feedback.generationStatus === 'failed' || job.feedback.generationStatus === 'cancelled'
-                  ? 'Retry available'
-                  : 'Application started'}
+                {cardActions.badge}
               </span>
             ) : isSaved ? (
               <span className="inline-flex items-center gap-2 rounded-full border border-gold-200 bg-gold-50 px-3 py-1 text-xs font-medium text-gold-700">
@@ -402,41 +495,12 @@ export function JobFeedCard({
         </div>
 
         <div className="flex flex-col items-stretch gap-2 lg:w-[200px]">
-          {/* "Generate Kit" is always the gold primary and "Check Fit" the
-              outline secondary, so the same action keeps the same color on
-              every card. For free users on weaker matches we still surface the
-              cheaper "Check Fit" first (order only) to protect their credits. */}
-          {(() => {
-            const generateKit = (
-              <Button
-                variant="gold"
-                onClick={onApplyWithKarko}
-                disabled={karkoButtonsDisabled}
-                title={isAnotherJobBusy && !isApplying ? 'Finishing another application first…' : undefined}
-              >
-                {isApplying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isApplying ? 'Opening...' : continueLabel ? 'Continue in Karko' : 'Generate Kit'}
-              </Button>
-            );
-            const checkFit = !continueLabel ? (
-              <button
-                type="button"
-                onClick={onAnalyzeFirst}
-                disabled={karkoButtonsDisabled}
-                title={isAnotherJobBusy && !isApplying ? 'Finishing another application first…' : 'Check the fit for 0.5 credits before generating'}
-                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-cream-300 bg-white px-4 py-2 text-sm font-medium text-navy-700 transition-colors hover:border-navy-300 hover:bg-cream-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Target className="h-3.5 w-3.5" />
-                Check Fit
-              </button>
-            ) : null;
-            const leadWithCheckFit = isFreeUser && !continueLabel && job.fitLabel !== 'strong';
-            return leadWithCheckFit ? (
-              <>{checkFit}{generateKit}</>
-            ) : (
-              <>{generateKit}{checkFit}</>
-            );
-          })()}
+          <JobFeedActionControls
+            actions={cardActions}
+            disabled={karkoButtonsDisabled}
+            isApplying={isApplying}
+            onAction={onAction}
+          />
 
           {employerLink && (
             <a
@@ -465,26 +529,28 @@ export function JobFeedCard({
 
 export function JobFeedDetailModal({
   job,
+  session,
   isApplying,
   isSaving,
   isDismissing,
   isRating,
+  isFreeUser,
   onClose,
-  onApplyWithKarko,
-  onAnalyzeFirst,
+  onAction,
   onSave,
   onDismiss,
   onExternalApply,
   onRateMatch,
 }: {
   job: JobFeedFeedItem;
+  session: JobFeedCardSessionState | null;
   isApplying: boolean;
   isSaving: boolean;
   isDismissing: boolean;
   isRating: boolean;
+  isFreeUser: boolean;
   onClose: () => void;
-  onApplyWithKarko: () => void;
-  onAnalyzeFirst: () => void;
+  onAction: (action: JobFeedCardActionKind) => void;
   onSave: () => void;
   onDismiss: () => void;
   onExternalApply: () => void;
@@ -493,9 +559,14 @@ export function JobFeedDetailModal({
   const directApplyLink = job.applyUrl || job.sourceUrl;
   const isSaved = Boolean(job.feedback.savedAt);
   const isApplied = Boolean(job.feedback.appliedAt) || job.feedback.generationStatus === 'succeeded';
-  const isApplyStarted = Boolean(job.feedback.applyStartedAt) && !isApplied;
   const isJobActionPending = isApplying || isSaving || isDismissing || isRating;
   const matchRating = job.feedback.matchRating;
+  const cardActions = getJobFeedCardActions({
+    feedback: job.feedback,
+    session,
+    isFreeUser,
+    fitLabel: job.fitLabel,
+  });
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -526,15 +597,9 @@ export function JobFeedDetailModal({
                   {job.fitLabel === 'strong' ? 'Strong match' : job.fitLabel === 'good' ? 'Good match' : 'Promising match'}
                 </span>
               </span>
-              {isApplied ? (
+              {cardActions.badge ? (
                 <span className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-medium text-navy-700">
-                  Application ready
-                </span>
-              ) : isApplyStarted ? (
-                <span className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-medium text-navy-700">
-                  {job.feedback.generationStatus === 'failed' || job.feedback.generationStatus === 'cancelled'
-                    ? 'Retry available'
-                    : 'Application started'}
+                  {cardActions.badge}
                 </span>
               ) : isSaved ? (
                 <span className="inline-flex items-center gap-2 rounded-full border border-gold-200 bg-gold-50 px-3 py-1 text-xs font-medium text-gold-700">
@@ -686,22 +751,12 @@ export function JobFeedDetailModal({
             )}
           </div>
           <div className="flex items-center gap-2">
-            {!isApplied && !isApplyStarted && (
-              <button
-                type="button"
-                onClick={onAnalyzeFirst}
-                disabled={isJobActionPending}
-                title="Check the fit for 0.5 credits before generating"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-cream-300 bg-white px-4 py-2 text-sm font-medium text-navy-700 transition-colors hover:border-navy-300 hover:bg-cream-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Target className="h-3.5 w-3.5" />
-                Check Fit
-              </button>
-            )}
-            <Button variant="gold" onClick={onApplyWithKarko} disabled={isJobActionPending}>
-              {isApplying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isApplied || isApplyStarted ? 'Continue in Karko' : 'Generate Kit'}
-            </Button>
+            <JobFeedActionControls
+              actions={cardActions}
+              disabled={isJobActionPending}
+              isApplying={isApplying}
+              onAction={onAction}
+            />
           </div>
         </div>
       </div>
@@ -717,10 +772,10 @@ export function FeedResultsCard({
   pendingJobAction,
   feedSummary,
   isFreeUser,
+  getSessionForJob,
   onLoadMore,
   onOpenDetails,
-  onApplyWithKarko,
-  onAnalyzeFirst,
+  onJobAction,
   onExternalApply,
 }: {
   jobs: JobFeedFeedItem[];
@@ -730,10 +785,10 @@ export function FeedResultsCard({
   pendingJobAction: PendingJobAction;
   feedSummary: string;
   isFreeUser: boolean;
+  getSessionForJob: (job: JobFeedFeedItem) => JobFeedCardSessionState | null;
   onLoadMore: () => void;
   onOpenDetails: (job: JobFeedFeedItem) => void;
-  onApplyWithKarko: (job: JobFeedFeedItem) => void;
-  onAnalyzeFirst: (job: JobFeedFeedItem) => void;
+  onJobAction: (job: JobFeedFeedItem, action: JobFeedCardActionKind) => void;
   onExternalApply: (job: JobFeedFeedItem) => void;
 }) {
   const applyingJobId = pendingJobAction?.action === 'apply' ? pendingJobAction.jobId : null;
@@ -747,12 +802,12 @@ export function FeedResultsCard({
           <JobFeedCard
             key={job.id}
             job={job}
+            session={getSessionForJob(job)}
             isApplying={applyingJobId === job.id}
             isAnotherJobBusy={Boolean(applyingJobId) && applyingJobId !== job.id}
             isFreeUser={isFreeUser}
             onOpenDetails={() => onOpenDetails(job)}
-            onApplyWithKarko={() => onApplyWithKarko(job)}
-            onAnalyzeFirst={() => onAnalyzeFirst(job)}
+            onAction={(action) => onJobAction(job, action)}
             onExternalApply={() => onExternalApply(job)}
           />
         ))}
