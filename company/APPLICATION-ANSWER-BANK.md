@@ -1,0 +1,275 @@
+# Karko AI, application answer bank
+
+**Owner:** Wasim Jalali
+**Last updated:** 2026-07-25
+**Companion to:** `KARKO-AI-SOURCE-OF-TRUTH.md` (the fact layer). This file is the writing layer.
+**Use for:** Y Combinator, other accelerators, angel and pre-seed conversations, grants, startup competitions, press.
+
+---
+
+## 0. How to use this
+
+- Every answer below is built from facts in the source-of-truth file. If you change a number here, change it there first.
+- Answers are written to be pasted and lightly trimmed, not read out loud verbatim.
+- Anything in `[brackets]` is a blank you must fill before sending.
+- **Read §7 (landmines) before every submission.** It is a list of things that have already cost one rejection.
+
+---
+
+## 1. One-liners, by length
+
+| Constraint | Text | Chars |
+|---|---|---|
+| 50 char limit | `AI agent that runs your entire job search` | 41 |
+| 50 char limit, alt | `AI agent for the entire job search in one app` | 45 |
+| 50 char limit, alt | `AI job application agent. Search in one app.` | 44 |
+| Twitter bio style | The AI job application agent. Your entire job search, in one app. | |
+| Investor sentence | Karko AI is the AI job application agent. It replaces the seven-tool job search workflow with one loop: search, fit, tailor, screen, track. | |
+
+---
+
+## 2. The core answers
+
+### What is your company going to make?
+
+> Karko AI is an AI agent that runs the whole job search in one app. You upload your CV once. Every morning you get matched roles. Before you spend time, you see a fit score with real gaps. In about 90 seconds you get a complete application: tailored CV, cover letter, email and screening answers, with every line grounded in your actual experience. Nothing invented. Every application is tracked automatically. It replaces the seven tools job seekers juggle today: job board, resume builder, ATS checker, cover letter AI, email drafts, screening prep and a tracking spreadsheet.
+
+### Why did you pick this idea? Do you have domain expertise?
+
+> I needed it myself. I ran out of money building a startup in Germany, had no degree to fall back on, and generic applications got zero interviews. Tailoring by hand took 45 to 60 minutes each and still failed. I built the workflow manually inside Claude with my CV as context, then turned it into a product. Across 50+ applications I got roughly a 10% interview rate against a 2 to 3% baseline, and I was hired as an AI Specialist through an application my own product generated. That is the job I hold today. Domain proof is personal use plus a live product, not recruiting theory.
+
+### Who are your competitors? What do you understand that they don't?
+
+> Resume builders like Teal, Kickresume and Rezi help you format and score, but you still do the skilled middle by hand. Auto-apply bots optimize volume and get candidates flagged or embarrassed in interviews. Point tools like Jobscan or DIY ChatGPT solve one slice and lose context between steps. What they miss: the problem is the 45 minutes of skilled work between finding a role and sending a personalized application, plus discovery and tracking, as one loop grounded in real experience. I don't claim competitors don't exist. I claim the full quality-plus-speed workflow with anti-hallucination is the product, not a feature.
+
+### How do you make money? How much could you make?
+
+> Credit-based subscription. Free, Plus at $19.99 a month, Max at $79.99 a month, plus credit top-ups on paid plans. Job search is episodic, so churn is real and I don't pretend otherwise. Near-term growth is activation and free-to-paid conversion, not market-size slides. The number that matters is LLM cost per full application kit against the plan price, and I treat that as a product problem rather than something cloud credits erase.
+
+### How far along are you?
+
+> Live at karkoai.com with paid billing. Since my Spring 2026 application I rebuilt Karko from a one-step application generator into a full loop: matched job feed, fit analysis, a 90-second application kit with CV, cover letter, emails and screening answers, a tracker, and anti-hallucination so output only uses the user's real CV. About 120 people reach the app in a typical week, all organic through Google and direct, with zero paid marketing. One paying customer. I used Karko in my own job search and was hired as an AI Specialist through it. Honest gap: most visitors don't activate past the first page and early retention is near zero. Activation is the current hill, and I know where the funnel breaks.
+
+### Progress bullets (short-field version)
+
+> - Live at karkoai.com with paid billing. Free / Plus $19.99 / Max $79.99, credit-based.
+> - Rebuilt since Spring 2026 into the full loop: feed, fit, 90-second kit, screening, tracker.
+> - About 120 people reach the app in a typical week, all organic. Zero paid marketing, no launch push yet.
+> - 1 paying customer.
+> - Used Karko myself: about a 10% interview rate on 50+ applications versus a 2 to 3% baseline, and I was hired as an AI Specialist through it.
+> - Honest gap: most visitors don't activate past the first page and early retention is near zero. Activation is the hill.
+
+### How many users, how many paying, who pays the most?
+
+> About 120 people reach the product in a typical week, organic only through Google and direct. One paying customer. I don't claim 122 weekly active users in the product sense, because most first visits don't go deep yet. Activation and free-to-paid conversion are the open problems. The single paying customer is on [plan] at [$X] a month.
+
+### Do you have revenue?
+
+> Yes, minimal. One paying customer on a paid subscription. MRR is under $100 today.
+
+### How long have you been working on this, and how much full-time?
+
+> I have been building Karko since January 2026, so about seven months, and it has been live and evolving for roughly five of those. I am currently employed full-time as an AI Specialist, and that job came through using Karko. I build around the job. If accepted I will leave the job and work exclusively on Karko.
+
+### Tech stack
+
+> Next.js 16 with React 19 and TypeScript, Tailwind CSS 4, Supabase for Postgres, auth and storage, Vercel for hosting, Stripe for payments, PostHog for analytics, Resend for transactional email, Inngest for background jobs. Generation runs on Claude Sonnet 4.6 through Amazon Bedrock in production and the Anthropic API directly in development, with Haiku 4.5 as a fallback. Job feed ranking uses GPT-4.1-mini on Azure OpenAI, with SerpAPI for job data. I write all the code with Claude Code, Cursor and similar AI coding tools.
+
+### Who writes the code?
+
+> I write all of it. I taught myself full-stack development in about three months and ship with AI coding tools. No non-founder has contributed technical work. 383 commits, all mine.
+
+### Are you looking for a co-founder?
+
+> Not actively. I ship solo, and the company reflects that: I hold 100% of the stock, I am the sole director and I write all the code. I may bring co-founders on later with meaningful equity, but I am not going to promise named co-founders on a future-tense timeline.
+
+*(Confirmed solo as of 2026-07-25. The plan to bring his brothers Zaeem and Samim in after funding is real, but it stays out of form fields. Say it in conversation if asked how the money gets used, never on the application itself.)*
+
+### Where do you live, where would the company be based?
+
+> Kaiserslautern, Germany. The company is Karko AI Inc., a Delaware C-Corp. [After the program: San Francisco.]
+
+### Explain your location decision
+
+> I am based in Germany and the company is a Delaware C-Corp. The product targets English-speaking markets first: US, UK and Canada. I want to be in San Francisco for the network, the investors and the AI ecosystem. As an Afghan national with a German residence permit I may need visa support to be in the US, I will do everything on my end to make it work and would appreciate any help you can provide.
+
+### Commit exclusively for the next year?
+
+> Yes. If accepted I will leave my job and work exclusively on Karko AI for the next year.
+
+### Equity and entity
+
+> Karko AI Inc. is a Delaware C-Corp, incorporated February 9, 2026 via Stripe Atlas. 10,000,000 shares of Common Stock authorized at $0.00001 par. I hold 7,000,000 shares, which is 100% of the issued and outstanding stock, on a standard 4-year vest with a 1-year cliff and a filed 83(b). Sole director, and I hold both officer roles. No option pool has been adopted yet.
+
+**Equity percentage on a form: 100%.** Not 70%. The other 3,000,000 shares are authorized but unissued, and no equity incentive plan exists, so there is no pool to subtract. Earlier drafts said 70% and that was wrong.
+
+### Investment and fundraising status
+
+> No investment taken. No SAFE has ever been signed. Not running a raise right now; the focus is product activation.
+
+*(The $500K on a $5M cap announced in February 2026 was never signed and raised nothing. Never repeat it.)*
+
+### Why this accelerator / why now?
+
+> I can start and ship products. I have not yet scaled one. I don't have a network of people who have raised funding, scaled companies or exited. That environment is what I am missing, along with the pressure to make activation and revenue real. I learned the product mindset largely from public content, mostly Michael Seibel and Dalton Caldwell.
+
+---
+
+## 3. The founder story, three lengths
+
+### One sentence
+
+> I ran out of money building a startup in Germany, got zero interviews from generic job applications, built the tool I needed, and was hired as an AI Specialist through an application my own product generated.
+
+### One paragraph
+
+> I left Afghanistan and built a life in Germany with no degree. At 17 I started with 200 EUR in Amazon retail arbitrage and scaled it to 150,000+ EUR across four marketplaces over three years, then turned a 30,000-follower audience into an AZAV-certified training company that did another 30,000 EUR. I taught myself full-stack development in three months and built Kursfind AI, an AI marketplace for German vocational training. I paused it: two-sided marketplace, one regulated market, and I ran out of money. So I started applying for jobs. Generic applications got zero interviews and hand-tailoring took 45 to 60 minutes each. I built the workflow inside Claude, then turned it into Karko AI. Over 50+ applications I hit roughly a 10% interview rate against a 2 to 3% baseline, and I got hired as an AI Specialist through it. That is the job I have today, and Karko is the product I keep building.
+
+### Long version
+
+Use §4.5 of `KARKO-AI-SOURCE-OF-TRUTH.md`, the eight-step timeline.
+
+### The best single line to lead with
+
+> I was hired as an AI Specialist through an application my own product generated.
+
+---
+
+## 4. Standard credential answers
+
+**Most impressive thing built other than this startup**
+
+> A 180,000+ EUR business, 150K in e-commerce and 30K in courses, starting from 200 EUR and zero experience, while growing 30,000+ followers teaching Amazon FBA and AI, all self-taught as a non-native speaker in Germany.
+
+**A time you hacked a non-computer system**
+
+> During the AZAV certification audit for my training company, my documentation had problems serious enough to fail. Instead of trying to fix everything on the spot, I noticed the auditor was overwhelmed with manual review work, and I showed him AI tools and techniques that would make his job dramatically easier. He was genuinely impressed. The dynamic shifted from adversarial to collaborative. He helped me fix issues, overlooked minor problems, and I passed. I turned a gatekeeper into an ally by giving him something valuable he didn't know existed.
+
+**Things you have built**
+
+> - Karko AI, karkoai.com. AI job application agent, built solo. Unified agent architecture with function calling, anti-hallucination constraints, fit assessment, multi-market output in 7 languages. Live with paid billing.
+> - Kursfind AI, kursfind.de. Germany's first AI-native marketplace for government-funded vocational training. Full-stack MVP solo in 4 weeks on Next.js with AI course matching.
+> - Wasim Academy, wasimacademy.org. AZAV-certified training provider delivering AI and e-commerce courses in German and English. 30K EUR revenue.
+> - Useful Build, usefulbuild.com. Applied AI systems firm for SMBs. Site live, no clients yet.
+> - Self-taught full-stack development in 3 months, from zero coding knowledge to production applications.
+
+**Competitions, awards, papers**
+
+> None. I have been building instead of competing.
+
+**Test scores**
+
+> High school graduation, 92% overall across the final three years.
+
+**Entrepreneurship programs, clubs, hacker houses**
+
+> None. I have been building businesses independently since finishing high school: e-commerce, then a training company, then Kursfind AI, now Karko AI.
+
+**Accelerators participated in**
+
+> None.
+
+---
+
+## 5. Application history (answer "what changed since last time" from this)
+
+### Y Combinator, Spring 2026, Karko AI. Rejected.
+
+What was submitted: a one-line pitch of "AI that tailors your full job application in 90sec", a live product where the founder was the only real user, zero revenue, pricing at Free 20 apps / $29.99 for 60 / $49.99 for 120, no legal entity at submit time, and a mid-process update announcing a $500K post-money SAFE at a $5M cap.
+
+Why it likely failed:
+1. Almost no external usage and no revenue. "I'm the primary user" in a crowded category.
+2. Two weeks on the idea, product built in 3 days. Fast shipping, weak proof of durable demand.
+3. Sole founder, with co-founders only in the future tense.
+4. Market-size theater (Indeed billions, 9,000 applications per minute) with no unit economics.
+5. "No one has built this", which is easy to disbelieve.
+6. Cloud credits presented as economics, which underplays real COGS.
+7. A live account password pasted into the application form.
+8. A fundraise announced that, per the record, closed nothing.
+
+### Y Combinator, earlier, Kursfind AI. Rejected.
+
+> I applied with Kursfind AI, an AI marketplace for government-funded vocational training in Germany. I paused it: two-sided marketplace, a single regulated market, and I ran out of money. What it taught me was how to build full-stack AI products, how to evaluate a market, and that the best ideas come from problems you are desperate to solve.
+
+### The "what changed" answer
+
+> I applied in Spring 2026 with Karko when I was essentially the only user, the product was a one-step generator (paste a job, get a CV, cover letter and email), and revenue was zero. Since then: the full job-search loop is live (feed, fit, kit, screening, tracker), paid plans are live, people find it organically without any marketing, there is a first paying customer, and I used Karko to land my AI Specialist role. Karko is the company I am applying with now.
+
+---
+
+## 6. Investor question prep (the ones that will actually be asked)
+
+| Question | The honest answer |
+|---|---|
+| Why does nobody get past page one? | Name it as the top product problem, say what you are testing next. Do not deflect. |
+| One paying customer after five months, why? | Weak conversion, not just early conversion. The activation funnel answers it: almost nobody reaches the moment of value. |
+| Job search ends when someone gets hired. What's the retention story? | Acknowledge the built-in churn event, and that you are the example. Then give the actual plan: re-engagement, or B2B2C through bootcamps/universities/outplacement. **[confirm] which one you actually believe.** |
+| What does a full application kit cost you in LLM spend? | **[confirm] compute this.** Never answer with cloud credits. |
+| Why do you win in a category with hundreds of entrants? | Mechanism, not absence of competitors: the full grounded loop with anti-hallucination as the product, and a data flywheel from fit analyses. Concede both are early. |
+| You are solo and employed. Is this real? | The job came through the product and it seeded real applied-AI experience. If funded, you leave. Say it plainly. |
+| What is your cap table? | 7,000,000 shares issued to you, 100% of outstanding, of 10,000,000 authorized. No pool adopted. 4-year vest, 1-year cliff, 83(b) filed on time. Clean and boring, which is what you want. |
+| Have you raised or signed a SAFE? | No. Never. Verified against the Drive folder: the SAFE files there are blank templates. |
+| What jurisdictions do you operate in? | US entity, you are resident in Germany. **[confirm]** the German tax registration status first, see §3.6 of the source-of-truth file. |
+
+---
+
+## 7. Landmines: do not do these again
+
+1. **No credentials on any form, ever.** Rotate the Spring 2026 test-account password, it was committed to git. Use a clean demo account plus a short Loom.
+2. **No market-size theater.** No Indeed billions, no applications-per-minute. Use unit-level proof: the interview rate, the hire, the funnel you understand.
+3. **Never say "no one has built this."**
+4. **Never present cloud credits as unit economics.**
+5. **No future-tense co-founders.** Names and dates, or clean solo.
+6. **Never headline shipping velocity.** "Built in 3 days" advertises thin demand proof.
+7. **One clean entity fact:** Karko AI Inc., Delaware C-Corp, operating, Stripe live. No contradictions between fields.
+8. **Never announce a fundraise that isn't moving.**
+9. **Pricing must match the live site:** $19.99 and $79.99, never the old $29.99 / $49.99.
+10. **Never claim full-time.** You are employed. Own it, the job is the best story you have.
+11. **Never quote 122 WAU or 122 DAU.** Use the visitor framing in §8.1 of the source-of-truth file.
+12. **Never write Cargo or Carco.** The name is Karko AI.
+13. **Never write Claude Sonnet 4.5.** Production is 4.6.
+14. **Never write 70% equity.** You own 100% of the issued stock.
+15. **No em dashes** in any application text.
+
+---
+
+## 8. Pre-submission checklist
+
+Run this every time, for any application.
+
+- [ ] Pull fresh PostHog numbers. The ones in the source-of-truth file are dated.
+- [ ] Confirm exact Stripe MRR, plan and paying-customer count.
+- [ ] Equity percentage says **100%**, not 70%.
+- [ ] Confirm current age, city and visa wording.
+- [ ] Confirm employment status and the exclusivity answer.
+- [ ] Pricing on the form matches the live site.
+- [ ] Test-account password rotated. No credentials anywhere in the text.
+- [ ] Demo path ready. A 2-minute demo already exists at `Karko AI/05_Marketing/2026-05-01_karkoai_2min_demo.mp4`, plus 4K full demos. Use one of those or a fresh Loom, with a clean demo account.
+- [ ] Read §7 landmines top to bottom.
+- [ ] Proofread for em dashes, for "Cargo/Carco", and for "Sonnet 4.5".
+- [ ] Deadline and timezone double-checked.
+
+---
+
+## 9. Live application: YC Fall 2026
+
+**Deadline: July 27, 2026, 8pm PT.** Slots locked on 2026-07-22 after a Grok and Fable 5 review of the full decision pack.
+
+| Field | Value |
+|---|---|
+| Primary | Karko AI |
+| Company name on form | Karko AI |
+| Secondary / other ideas | Useful Build |
+| Category | Recruiting |
+| Batch | Fall 2026 / current |
+| 12-month focus if funded | Karko AI exclusively. Useful Build parked under the same entity, no client commitments. |
+
+**Why Karko is primary, in one line:** it is the only asset with evidence a partner can verify tonight (live full-loop product, organic discovery, a paying customer, and a founder hired through his own tool), and the Spring-to-Fall re-application arc only exists for Karko.
+
+All answers for this application are in §2 through §5 above. The only field not covered there is the "other ideas" paragraph:
+
+> Useful Build: an applied AI systems firm for small and mid-size businesses. Companies buy ChatGPT and Claude seats and still run on email, spreadsheets and tribal knowledge. I live this daily: as an AI Specialist I shipped more than six internal systems in my first two months because my employer had AI seats but no systems. Useful Build builds owned internal tools, agents and document Q&A around one real workflow, with fixed scope and fixed price, then trains the team on what we built and on tools like Claude Code. The client owns the source. The site is live at usefulbuild.com; no clients yet, outreach starting now. It sits next to the interest in AI-native services and SaaS challengers, and it stays a parked brand under Karko AI Inc. while I build Karko.
+
+**One rule for that paragraph:** it shows range, it never hedges against the primary. No sentence suggesting Karko might be the wrong market.
+
+**After submission:** don't treat an interview invite as validation of soft metrics. Work activation first, the first-page drop, then free-to-paid.
