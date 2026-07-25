@@ -714,6 +714,28 @@ Between February and July 2026, **no candidate-side consumer-paid subscription r
 
 **Know this before a partner says it.** The honest response is not to dispute it. It is to say why consumer-paid is the right call here anyway: the candidate's interests and the employer's are not aligned, and a product paid for by the employer will eventually optimise for the employer. Charging the candidate is what makes "never a word you didn't earn" credible. If that argument does not convince, an employer-paid or B2B2C route (universities, bootcamps, outplacement) is the obvious pivot and should be named as a live option rather than a retreat.
 
+### 9.9b The expansion thesis, and why it matters more than it looks
+
+**Founder position, 2026-07-25.** Consumer job search alone does not build a $100M company. The churn arithmetic in §10 risk 3 says so plainly, and the founder agrees. The plan is a sequence, not a single product:
+
+| Stage | What | Who pays | Why it fixes the problem |
+|---|---|---|---|
+| **1. Now** | Consumer subscription | Job seeker | Proves the product works and generates the outcome data |
+| **2. Next** | Institutions: universities, bootcamps, outplacement | The institution | **The institution renews, the individual does not have to.** Kills the episodic churn problem outright |
+| **3. Later** | B2B and a talent marketplace | Employer | Karko already sees which candidates are genuinely strong against a role. Handpick and route them |
+
+**Do not treat this as a hedge. It is the answer to the hardest question in the pack.**
+
+An investor who understands consumer subscription will reach the churn objection within minutes. §10 risk 3 quantifies how bad it is: an 11-week median need window, a $30.16 median Year-1 LTV for AI apps, and Bumble and Match showing the terminal state after twenty years. A founder who has no answer looks naive. A founder who says *"the individual churns by design, so eventually the institution becomes the subscriber and the individual stays free"* has thought about the shape of the business.
+
+**Stage 2 is also where the category's money already is.** §9.9 records that no candidate-side consumer subscription raised $10M+ in the window, while every large cheque went to employer-paid models. That is not an argument against Karko's stage 1. It is evidence that stage 2 is where this becomes venture-scale.
+
+**How to say it without undercutting the primary.** Never frame it as "if consumer does not work". Frame it as sequence:
+
+> Job seekers pay us today because that keeps the product honest. Nobody optimises for the candidate if the employer is paying. Once we have the outcome data, universities, bootcamps and outplacement firms are the natural buyer, because they already carry the placement obligation and they renew every year whether or not any individual student got hired. The marketplace comes after that, when we know which candidates are genuinely strong for which roles.
+
+**What would make this credible rather than aspirational** [?]: one conversation with a careers service or a bootcamp, even unpaid, even exploratory. A single named institution that has said "come back when you have outcome data" is worth more than a paragraph of intent.
+
 ### 9.10 Moats claimed
 
 1. **Trust posture while auto-apply is closed off.** Anti-hallucination as the product, not a feature.
@@ -746,7 +768,7 @@ Know these cold. Being the first to name them is a strength in every investor co
 
    **The category has already priced this in.** Rezi sells a $149 lifetime licence. Teal bills by the week. You only do that when you know the customer is gone by month three.
 
-   **This needs an answer, and "we'll improve retention" is not one.** The credible answers are an annual plan, a lifetime tier, or a B2B2C channel where the institution renews instead of the individual.
+   **This needs an answer, and "we'll improve retention" is not one.** The credible answers are an annual plan, a lifetime tier, or a B2B2C channel where the institution renews instead of the individual. **The founder's answer is the third one. See §9.9b, which should be read as part of this risk rather than separately.**
 4. **Crowded, fatigued category.** AI job application tools are among the most common startup pitches since 2023.
 5. **Solo founder, part-time.** He holds a full-time job. Real constraint, and the job itself is the proof point, so own it.
 6. **Blended economics sit on the break-even line.** Paid users are fine at 73-80% margin, but the free tier pushes break-even to about 4.7% free-to-paid conversion against a 2-5% freemium norm (§6.2). Current conversion is well below that. This is the same problem as activation, seen from the P&L rather than the funnel, and it is the single most important number in the business.
