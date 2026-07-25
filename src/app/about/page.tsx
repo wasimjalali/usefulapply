@@ -11,7 +11,7 @@ import { buildPageMetadata } from '@/lib/seo/metadata';
 export const metadata: Metadata = buildPageMetadata({
   title: 'About Karko AI: The AI Job Application Agent Built by a Job Seeker',
   description:
-    'Karko AI is the AI job application agent that replaces the seven tools job seekers stitch together. Find roles, check fit, write the full application, track everything. Built by a founder who got 5 interviews from 50+ applications using it.',
+    'Karko AI is the AI job application agent that replaces the seven tools job seekers stitch together. Find roles, check fit, write the full application, track everything. Built by a founder who got 5 interviews from 50+ applications using it, then got hired through it.',
   canonical: '/about',
 });
 
@@ -30,7 +30,7 @@ const founderPersonJsonLd = {
     url: SITE_URL,
   },
   description:
-    'Wasim Jalali is the founder of Karko AI. He built the early version of the tool for his own job search and got 5 interviews from 50+ applications using it.',
+    'Wasim Jalali is the founder of Karko AI. He built the early version of the tool for his own job search, got 5 interviews from 50+ applications using it, and was hired as an AI Specialist through an application Karko generated.',
 };
 
 const aboutBreadcrumbJsonLd = {
@@ -203,10 +203,13 @@ export default function AboutPage() {
               </h2>
               <div className="border-l-2 border-gold-400 pl-6 space-y-4">
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  I ran out of money building a startup in Germany. No savings, no degree to fall back on. Generic applications got me zero interviews. Tailoring each one by hand took 45 to 60 minutes, and it still was not working.
+                  I ran out of money building a startup in Germany. No savings, no degree to fall back on. I had taught myself to code in three months and shipped real products, and none of it helped. Generic applications got me zero interviews. Tailoring each one by hand took 45 to 60 minutes and still was not working.
                 </p>
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  So I built Karko to do the whole workflow automatically. Over 50 applications, I got 5 interviews. That is roughly 10 percent, against an industry baseline of 2 to 3 percent. First-time job seeker, no formal background. That is when I knew every job seeker needed this.
+                  So I built Karko to run the whole workflow. Over 50 applications, I got 5 interviews. That is roughly 10 percent, against an industry baseline of 2 to 3 percent. First-time job seeker, no formal background.
+                </p>
+                <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
+                  Then it did the thing I actually built it for. I was hired as an AI Specialist through an application Karko generated. That is the job I have today. Karko is the tool I wish I had on day one of that search, and it is the one I keep building.
                 </p>
               </div>
             </div>
@@ -223,7 +226,7 @@ export default function AboutPage() {
               { value: '7 → 1', label: 'Tools Collapsed Into One App' },
               { value: '90 sec', label: 'To Write Your Full Application' },
               { value: '40x', label: 'Faster Than Writing By Hand' },
-              { value: '25 / day', label: 'Roles Picked For You (Max)' },
+              { value: '25 / day', label: 'Roles Picked For You (Plus and Max)' },
             ].map((stat, i) => (
               <ScrollReveal key={i} delay={i * 150}>
               <div>

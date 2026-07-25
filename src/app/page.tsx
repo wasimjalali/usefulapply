@@ -332,7 +332,7 @@ export default function Home() {
                   I ran out of money building a startup in Germany. No savings, no degree to fall back on. Generic applications got me zero interviews. Tailoring each one by hand took 45 to 60 minutes, and it still was not working.
                 </p>
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  So I built Karko to do the whole workflow automatically. Sixty applications later, I landed my first job. First-time job seeker, no formal background, in a market where most people send hundreds and never hear back. That is when I knew Karko could not stay a personal tool. Every job seeker stuck where I was deserves the same shot.
+                  So I built Karko to run the whole workflow. Over 50 applications, I got 5 interviews, roughly 10 percent against an industry baseline of 2 to 3 percent. Then I was hired as an AI Specialist through an application Karko generated. First-time job seeker, no formal background, in a market where most people send hundreds and never hear back. That is when I knew Karko could not stay a personal tool.
                 </p>
               </div>
             </div>
