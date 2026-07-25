@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import { Card } from './ui/Card';
 import { MarkdownText } from './MarkdownText';
 import { ChatMessage, type ChatMessageData } from './chat/ChatMessage';
@@ -21,6 +20,7 @@ import {
   History,
   Sparkles,
   ArrowDown,
+  ArrowRight,
   Zap,
   Search,
 } from 'lucide-react';
@@ -52,11 +52,11 @@ function buildJobFeedAutostartKey(params: {
 interface ChatPanelProps {
   onTabChange?: (tab: 'cv' | 'cover-letter' | 'email') => void;
   isMobileDrawer?: boolean;
-  /** When provided, History + New Application buttons are portalled into this DOM node (desktop nav bar). Header is hidden. */
-  navBarPortal?: HTMLDivElement | null;
+  /** True when the panel is docked as the desktop right-hand column. */
+  docked?: boolean;
 }
 
-export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }: ChatPanelProps) {
+export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false }: ChatPanelProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, profile } = useAuth();
@@ -142,13 +142,15 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
-  const isDesktopDocked = !!navBarPortal && !isMobileDrawer;
+  const isDesktopDocked = docked && !isMobileDrawer;
 
   // Welcome-hero action state: the JD lives in the same input box the user
   // already types into. Actions stay inert until a real JD is present, then
   // light up once (no looping animation).
   const HERO_MIN_JD = 80;
-  const heroJdValid = inputValue.trim().length >= HERO_MIN_JD;
+  const heroJdLength = inputValue.trim().length;
+  const heroJdValid = heroJdLength >= HERO_MIN_JD;
+  const heroJdTooShort = heroJdLength > 0 && !heroJdValid;
   const [heroJustActivated, setHeroJustActivated] = useState(false);
   const heroPrevValidRef = useRef(false);
   useEffect(() => {
@@ -258,6 +260,50 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     currentSession?.pendingFitAnalysis?.createdAt
     && nowMs < new Date(currentSession.pendingFitAnalysis.createdAt).getTime() + 30 * 60 * 1000
   );
+
+  // The launchpad owns the JD input, so the composer stays hidden while it is
+  // on screen. Shown when nothing is in flight: no session at all, or a session
+  // that never received a job description and produced nothing.
+  //
+  // Deliberately NOT keyed on `messages.length === 0` alone. A session loaded
+  // from history has an empty local message array until the Supabase fetch
+  // resolves (see onSelectSession below), and the Job Feed handoff arrives with
+  // a saved job description and no messages — both would flash the launchpad
+  // over real work.
+  const isLaunchpadState = Boolean(
+    currentCV
+    && (
+      !currentSession
+      || (
+        !currentSession.jobDescription
+        && !currentSession.generatedCV
+        && messages.length === 0
+      )
+    )
+  );
+
+  // Without a CV there is no JD form to show, only the upload prompt — but that
+  // prompt still belongs in this same welcome block.
+  const showWelcomeHero = isLaunchpadState || !currentSession;
+
+  // Cross-panel focus: the CV panel's "Tailor for a job" CTA lands here. Focus
+  // whichever JD field is mounted and ring it once so the eye follows across
+  // the ~440px gap between the two columns.
+  const jdFocusRequest = useUIStore((state) => state.jdFocusRequest);
+  const heroTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [heroFocusRing, setHeroFocusRing] = useState(false);
+  // Seeded from the current value, not from 0. The store is module-level and
+  // survives client-side navigation, so comparing against 0 would re-fire the
+  // focus on every remount (e.g. returning from /documents) with no user click.
+  const handledJdFocusRef = useRef(jdFocusRequest);
+  useEffect(() => {
+    if (jdFocusRequest === handledJdFocusRef.current) return;
+    handledJdFocusRef.current = jdFocusRequest;
+    heroTextareaRef.current?.focus();
+    setHeroFocusRing(true);
+    const t = setTimeout(() => setHeroFocusRing(false), 1200);
+    return () => clearTimeout(t);
+  }, [jdFocusRequest]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -588,6 +634,8 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     }
     useAppStore.getState().clearCurrentSession();
     useAppStore.getState().resetGenerated();
+    useAppStore.getState().setJobDescription('');
+    setJobDescription('');
     // Reset workflow-local state so the new session starts with a clean slate.
     // Without these, flags set by the previous run (e.g. autostart setting
     // awaitingJobDescription=false) leak into the next session and break
@@ -595,28 +643,39 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
     setAwaitingJobDescription(false);
     setApplicationMode('apply_directly');
     setAgentSteps([]);
+    // Fit-analysis state is component-local and survives clearCurrentSession.
+    // Leaving it set strands a live "Generate Kit" button next to the fresh
+    // launchpad: clicking it charges 2 credits, then every store write is a
+    // no-op because there is no current session to write into.
+    setFitAnalysisContextId(null);
+    setFitAnalysisJD('');
+    setFitAnalysisContextData(null);
     autostartedApplySessionRef.current = null;
     setShowHistory(false);
   };
 
-  // History + New Application buttons — rendered in mobile header OR portalled into nav bar on desktop
+  // Panel controls. "New Application" is the most-repeated action in the
+  // product (job seekers apply 10-30 times), so it carries a label rather than
+  // sitting as a bare icon in the global nav where it read as account chrome.
   const chatNavButtons = (
     <div className="flex items-center gap-1">
       <button
         onClick={() => setShowHistory(!showHistory)}
-        className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-          showHistory ? 'bg-navy-50 text-navy-600 shadow-sm' : 'text-warm-gray hover:bg-cream-100 hover:text-navy-600'
+        className={`p-1.5 rounded-lg transition-colors duration-200 cursor-pointer ${
+          showHistory ? 'bg-navy-50 text-navy-600' : 'text-warm-gray hover:bg-cream-100 hover:text-navy-600'
         }`}
-        title="Application History"
+        title="Application history"
+        aria-label="Application history"
       >
         <History className="w-4 h-4" />
       </button>
       <button
         onClick={handleNewApplication}
-        className="p-1.5 rounded-lg text-warm-gray hover:bg-cream-100 hover:text-navy-600 transition-all cursor-pointer"
-        title="New Application"
+        className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-navy-600 hover:bg-cream-100 transition-colors duration-200 cursor-pointer"
+        title="Start a new application"
       >
         <Plus className="w-4 h-4" />
+        New
       </button>
     </div>
   );
@@ -632,22 +691,19 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
         />
       )}
 
-      {/* Portal nav buttons into main nav bar when on desktop (navBarPortal provided) */}
-      {navBarPortal && createPortal(chatNavButtons, navBarPortal)}
-
-      <div className={`h-full flex flex-col ${isDesktopDocked ? 'bg-transparent' : 'bg-cream-50'} ${isMobileDrawer ? '' : navBarPortal ? '' : 'border-l border-cream-200'}`}>
-        {/* Chat Header — only shown when navBarPortal is not provided (mobile layout) */}
-        {navBarPortal === undefined && (
-          <div className="relative px-4 py-2.5 glass-header">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-gold-500" />
-                <span className="text-sm font-semibold text-navy-700">Chat</span>
-              </div>
-              {chatNavButtons}
-            </div>
+      <div className={`h-full flex flex-col bg-cream-50 ${isMobileDrawer || isDesktopDocked ? '' : 'border-l border-cream-200'}`}>
+        {/* Panel header. The column previously opened with no title at all,
+            which left it reading as a leftover sidebar next to a finished
+            document. Naming it is what tells the user this column has a job. */}
+        <div className="flex-shrink-0 flex items-center justify-between gap-2 border-b border-cream-200 bg-cream-50 px-4 py-2.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles className="w-4 h-4 text-gold-500 flex-shrink-0" />
+            <span className="text-sm font-semibold text-navy-700 truncate">
+              {currentSession?.jobTitle || 'New Application'}
+            </span>
           </div>
-        )}
+          {chatNavButtons}
+        </div>
 
         {/* History Overlay */}
         <div className="relative">
@@ -704,87 +760,122 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
           ref={messagesContainerRef}
           onScroll={handleScroll}
           className={`flex-1 overflow-auto space-y-4 relative ${
-            isDesktopDocked
-              ? 'px-4 pt-4 pb-3 bg-[linear-gradient(180deg,rgba(255,255,255,0.78),rgba(248,244,234,0.22))]'
-              : 'p-4'
+            isDesktopDocked ? 'px-4 pt-4 pb-3' : 'p-4'
           }`}
         >
           {/* Welcome Hero */}
-          {!currentSession && messages.length === 0 && (
-            <div className="flex-1 flex items-center justify-center min-h-[280px]">
-              <div className="text-center max-w-sm px-6 py-8">
+          {showWelcomeHero ? (
+            <div className="flex flex-col">
+              <div className="px-1 pt-1">
                 {currentCV ? (
                   <>
-                    <p className="text-sm text-warm-gray leading-relaxed mb-4">
-                      Paste a job description and Karko tailors your CV, cover letter and emails.
+                    <p className="text-sm text-warm-gray leading-relaxed mb-3">
+                      Paste a job ad and Karko tailors your CV, cover letter and emails to it.
                     </p>
 
                     {/* JD input sits directly above the actions (top-to-bottom path) */}
-                    <div className="text-left">
-                      <textarea
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            if (heroJdValid) void heroSubmit('apply_directly');
-                          }
-                        }}
-                        rows={5}
-                        placeholder="Paste the job description here..."
-                        className="w-full resize-none rounded-lg border border-cream-200 bg-cream-50 px-3.5 py-3 text-sm text-charcoal placeholder:text-warm-gray/70 focus:outline-none focus:ring-2 focus:ring-gold-300/50 focus:border-gold-300 transition-colors"
-                      />
-                      <p className="mt-1.5 text-[11px] text-warm-gray/80">
-                        Paste a job description, then Generate or Check Fit.
-                      </p>
-                    </div>
+                    <textarea
+                      ref={heroTextareaRef}
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          if (heroJdValid) void heroSubmit('apply_directly');
+                        }
+                      }}
+                      rows={8}
+                      placeholder="Paste the job ad here. Title, requirements, the whole posting is fine."
+                      className={`w-full resize-none rounded-lg border bg-white px-3.5 py-3 text-sm text-charcoal placeholder:text-warm-gray/70 focus:outline-none transition-colors duration-200 ${
+                        heroFocusRing
+                          ? 'border-gold-400 ring-2 ring-gold-300'
+                          : 'border-cream-200 focus:border-gold-300 focus:ring-2 focus:ring-gold-300/50'
+                      }`}
+                    />
 
-                    <div className="flex flex-col gap-2.5 mt-3">
+                    {/* Helper copy carries the state of the field. Without this
+                        the two actions below just sit dead below the threshold
+                        with no explanation, which reads as a broken UI. */}
+                    <p
+                      aria-live="polite"
+                      className={`mt-1.5 text-[11px] leading-relaxed ${
+                        heroJdTooShort ? 'text-navy-600' : 'text-warm-gray/80'
+                      }`}
+                    >
+                      {heroJdValid
+                        ? 'Ready. Pick how you want to start.'
+                        : heroJdTooShort
+                          ? 'That looks too short. Paste the whole posting for a better result.'
+                          : 'Your CV stays the source of truth. Karko never invents experience.'}
+                    </p>
+
+                    <div className="flex flex-col gap-2 mt-3">
                       <button
                         onClick={() => heroSubmit('apply_directly')}
                         disabled={!heroJdValid}
-                        title="Generates your tailored CV, cover letter and email (2 credits)."
-                        className={`w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium rounded-lg bg-gold-400 text-white shadow-sm transition-all duration-200 enabled:hover:bg-gold-500 enabled:hover:-translate-y-0.5 enabled:hover:shadow-md enabled:active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${heroJustActivated ? 'ring-2 ring-gold-300' : ''}`}
+                        className={`w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold rounded-lg shadow-sm transition-colors duration-200 cursor-pointer ${
+                          heroJdValid
+                            ? 'bg-gold-400 text-navy-900 hover:bg-gold-500'
+                            : 'bg-cream-200 text-warm-gray cursor-not-allowed'
+                        } ${heroJustActivated ? 'ring-2 ring-gold-300' : ''}`}
                       >
                         <Zap className="w-4 h-4" />
-                        Generate Kit
+                        Generate application kit
                       </button>
                       <button
                         onClick={() => heroSubmit('analyze_first')}
                         disabled={!heroJdValid}
-                        title="Shows your match score and skill gaps first (0.5 credits, then +2 if you continue)."
-                        className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium rounded-lg bg-navy-50 text-navy-600 border-2 border-navy-600 shadow-sm transition-all duration-200 enabled:hover:bg-navy-100 enabled:hover:-translate-y-0.5 enabled:hover:shadow-md enabled:active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        className={`w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium rounded-lg border transition-colors duration-200 cursor-pointer ${
+                          heroJdValid
+                            ? 'border-cream-200 bg-white text-navy-600 hover:bg-cream-100'
+                            : 'border-cream-200 bg-cream-50 text-warm-gray cursor-not-allowed'
+                        }`}
                       >
                         <Search className="w-4 h-4" />
-                        Check Fit
+                        Check fit first
                       </button>
-                      <p className="mt-1 text-[11px] leading-relaxed text-warm-gray/80">
-                        Check Fit costs less and shows your match before you generate.
+
+                      {/* Costs stay quiet and secondary. Free tier is 4 credits
+                          a month, so a loud "2 credits" on the primary button
+                          reads as "half your month" and suppresses the action
+                          we most want new users to take. */}
+                      <p className="mt-0.5 text-[11px] leading-relaxed text-warm-gray/80">
+                        Full kit costs 2 credits. Checking fit first costs 0.5 and shows your match before you commit.
                       </p>
                     </div>
+
+                    {/* A user with no job ad in hand has nowhere to go from
+                        here. One text line, not a competing card. */}
+                    <button
+                      onClick={() => useUIStore.getState().setActiveTab('jobs')}
+                      className="mt-5 inline-flex items-center gap-1.5 text-xs text-warm-gray hover:text-navy-600 transition-colors duration-200 cursor-pointer"
+                    >
+                      No job in mind? Pick one from your Job Feed
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
                   </>
                 ) : (
-                  <>
+                  <div className="text-center px-5 py-8">
                     <div className="flex items-center justify-center gap-3 mb-3">
                       <KarkoIcon size="md" theme="light" />
-                      <h2 className="text-lg font-bold tracking-tight text-navy-800">
-                        {user ? 'Upload your CV to get started' : 'Your AI Job Application Assistant'}
+                      <h2 className="text-lg font-semibold tracking-tight text-navy-800">
+                        {user ? 'Upload your CV to get started' : 'Your AI job application assistant'}
                       </h2>
                     </div>
-                    <p className="text-sm text-warm-gray leading-relaxed mb-4">
+                    <p className="text-sm text-warm-gray leading-relaxed">
                       {user
                         ? 'Upload your CV from the left panel, then come back here to apply for jobs.'
-                        : 'Upload your CV, paste a job description, and I\'ll create a tailored CV, cover letter, and application emails.'}
+                        : 'Upload your CV, paste a job ad, and Karko creates a tailored CV, cover letter and application emails.'}
                     </p>
-                  </>
+                  </div>
                 )}
                 {!user && (
-                  <div className="mt-6 pt-5 border-t border-cream-200">
+                  <div className="mt-6 pt-5 border-t border-cream-200 text-center">
                     <button
                       onClick={() => { setSignUpWallTrigger('general'); setShowSignUpWall(true); }}
-                      className="cta-gold w-full px-4 py-2.5 text-sm font-semibold bg-gold-400 text-white rounded-2xl hover:bg-gold-500 shadow-md cursor-pointer"
+                      className="cta-gold w-full px-4 py-2.5 text-sm font-semibold bg-gold-400 text-navy-900 rounded-lg hover:bg-gold-500 shadow-sm cursor-pointer"
                     >
-                      Sign Up Free
+                      Sign up free
                     </button>
                     <p className="text-xs text-warm-gray mt-3">
                       Already have an account?{' '}
@@ -795,16 +886,16 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                         Sign in
                       </button>
                     </p>
-                    <p className="text-[11px] text-warm-gray/70 mt-2 italic">
-                      Try one application free, no account needed
+                    <p className="text-[11px] text-warm-gray/70 mt-2">
+                      Try one application free, no account needed.
                     </p>
                   </div>
                 )}
               </div>
             </div>
-          )}
+          ) : null}
 
-          {currentSession && messages.length === 0 && (
+          {currentSession && messages.length === 0 && !showWelcomeHero && (
             <div className="flex gap-3">
               <div className="flex-shrink-0 h-fit">
                 <KarkoIcon size="xs" theme="light" />
@@ -853,8 +944,8 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                   </div>
                   {v2Progress.percent > 0 && (
                     <div className="mt-3 h-1.5 bg-cream-200 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-gold-400 to-gold-500 transition-all duration-300"
+                      <div
+                        className="h-full bg-gold-400 transition-all duration-300"
                         style={{ width: `${v2Progress.percent}%` }}
                       />
                     </div>
@@ -916,7 +1007,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
             <div className="flex justify-end gap-2 mt-2">
               <button
                 onClick={() => handleAction('generate-full-application')}
-                className="flex items-center gap-2 rounded-full bg-gold-400 text-white px-4 py-2.5 text-sm font-medium shadow-sm hover:bg-gold-500 transition-all cursor-pointer"
+                className="flex items-center gap-2 rounded-full bg-gold-400 text-navy-900 px-4 py-2.5 text-sm font-semibold shadow-sm hover:bg-gold-500 transition-colors duration-200 cursor-pointer"
               >
                 <Zap className="w-4 h-4" />
                 Generate Kit
@@ -941,7 +1032,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
                 onClick={() => {
                   void handleAction('start-screening-flow');
                 }}
-                className="flex items-center gap-2 rounded-full border border-gold-400 bg-gold-400 text-white px-4 py-2.5 text-sm font-medium shadow-sm hover:bg-gold-500 hover:border-gold-500 transition-all cursor-pointer"
+                className="flex items-center gap-2 rounded-full border border-gold-400 bg-gold-400 text-navy-900 px-4 py-2.5 text-sm font-semibold shadow-sm hover:bg-gold-500 hover:border-gold-500 transition-colors duration-200 cursor-pointer"
               >
                 Answer Screening Questions
               </button>
@@ -972,8 +1063,8 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
           </div>
         )}
 
-        {/* Input Area — hidden while the welcome hero owns the JD input */}
-        {!(!currentSession && messages.length === 0 && currentCV) && (
+        {/* Input Area — hidden while the launchpad owns the JD input */}
+        {!isLaunchpadState && (
         <div className={isDesktopDocked ? 'border-t border-cream-200 bg-cream-50 px-3 pt-2.5 pb-3' : ''}>
           <ChatInput
             value={inputValue}
@@ -988,6 +1079,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, navBarPortal }:
             }
             compact={messages.length > 0}
             surface={isDesktopDocked ? 'embedded' : 'floating'}
+            focusSignal={jdFocusRequest}
           />
         </div>
         )}

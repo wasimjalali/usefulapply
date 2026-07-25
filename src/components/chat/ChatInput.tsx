@@ -15,6 +15,8 @@ interface ChatInputProps {
   compact?: boolean;
   /** Embedded composer style for docked desktop panels */
   surface?: 'floating' | 'embedded';
+  /** Monotonic counter — focuses the textarea whenever it changes (see useUIStore.jdFocusRequest) */
+  focusSignal?: number;
 }
 
 export function ChatInput({
@@ -27,8 +29,18 @@ export function ChatInput({
   placeholder = "Type a message...",
   compact = false,
   surface = 'floating',
+  focusSignal = 0,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Seeded from the current value so a remount with an already-incremented
+  // signal does not steal focus without the user asking for it.
+  const handledFocusSignalRef = useRef(focusSignal);
+  useEffect(() => {
+    if (focusSignal === handledFocusSignalRef.current) return;
+    handledFocusSignalRef.current = focusSignal;
+    textareaRef.current?.focus();
+  }, [focusSignal]);
 
   useLayoutEffect(() => {
     if (textareaRef.current) {
@@ -83,7 +95,7 @@ export function ChatInput({
       }`;
 
   return (
-    <div className={`${isEmbedded ? 'p-0 bg-transparent' : `${compact ? 'p-2' : 'p-4'} bg-gradient-to-t from-cream-100/80 to-transparent backdrop-blur-sm`}`}>
+    <div className={`${isEmbedded ? 'p-0 bg-transparent' : `${compact ? 'p-2' : 'p-4'} bg-cream-50`}`}>
       <div className="relative">
         <div id="tour-mode-selector" className={isEmbedded ? 'space-y-2' : ''}>
           <div className={inputShellClassName}>
@@ -106,9 +118,9 @@ export function ChatInput({
                   onClick={onStop}
                   title="Stop generation"
                   aria-label="Stop generation"
-                  className="flex-shrink-0 w-9 h-9 rounded-full bg-gold-400 hover:bg-gold-500 flex items-center justify-center shadow-md transition-all duration-200 hover:shadow-lg animate-pulse cursor-pointer"
+                  className="flex-shrink-0 w-9 h-9 rounded-full bg-gold-400 hover:bg-gold-500 flex items-center justify-center shadow-sm transition-colors duration-200 animate-pulse cursor-pointer"
                 >
-                  <Square className="w-3.5 h-3.5 text-white fill-white" />
+                  <Square className="w-3.5 h-3.5 text-navy-900 fill-current" />
                 </button>
               ) : (
                 <button
@@ -116,9 +128,9 @@ export function ChatInput({
                   disabled={!value.trim() || disabled}
                   title="Send message"
                   aria-label="Send message"
-                  className="flex-shrink-0 w-9 h-9 rounded-full bg-gold-400 hover:bg-gold-500 disabled:bg-cream-300 disabled:cursor-not-allowed flex items-center justify-center shadow-md transition-all duration-200 hover:shadow-lg hover:scale-105 disabled:hover:scale-100"
+                  className="flex-shrink-0 w-9 h-9 rounded-full bg-gold-400 hover:bg-gold-500 disabled:bg-cream-200 disabled:text-warm-gray disabled:cursor-not-allowed flex items-center justify-center shadow-sm transition-colors duration-200 cursor-pointer"
                 >
-                  <Send className="w-4 h-4 text-white" />
+                  <Send className={`w-4 h-4 ${!value.trim() || disabled ? 'text-warm-gray' : 'text-navy-900'}`} />
                 </button>
               )}
             </div>

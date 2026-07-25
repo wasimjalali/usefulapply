@@ -11,6 +11,7 @@ import { JobBoardPanel } from '@/components/JobBoardPanel';
 import { ChatPanel } from '@/components/ChatPanel';
 import { CVInputZone } from '@/components/CVInputZone';
 import { useAppStore, useCVStore } from '@/store/useAppStore';
+import { useUIStore } from '@/store/useUIStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import { uploadCVFile, saveDocument } from '@/lib/supabase';
@@ -380,9 +381,6 @@ export default function Dashboard() {
   // Toolbar portal: panels render their controls into this slot in the tab bar
   const [toolbarNode, setToolbarNode] = useState<HTMLDivElement | null>(null);
 
-  // Chat nav portal: ChatPanel renders History + New Application buttons into this slot in the nav bar
-  const [chatNavNode, setChatNavNode] = useState<HTMLDivElement | null>(null);
-
   // Resizable chat panel state - ALL HOOKS MUST BE BEFORE EARLY RETURNS
   const [chatPanelWidth, setChatPanelWidth] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -494,6 +492,15 @@ export default function Dashboard() {
       setIsChatCollapsed(chatCollapsedBeforeFullWidthRef.current);
     }
   }, [activeTab, isChatCollapsed]);
+
+  // The CV panel's "Tailor for a job" CTA points at the JD input in the chat
+  // panel. If the user has collapsed the chat, expand it first so the focus
+  // that ChatPanel performs actually lands somewhere visible.
+  const jdFocusRequest = useUIStore((state) => state.jdFocusRequest);
+  useEffect(() => {
+    if (jdFocusRequest === 0) return;
+    setIsChatCollapsed(false);
+  }, [jdFocusRequest]);
 
   // Mobile tab state — must be before any early returns (Rules of Hooks)
   const [mobileView, setMobileView] = useState<MobileView>('desktop-required');
@@ -784,8 +791,6 @@ export default function Dashboard() {
 
         {!isSignedOutJobFeedMode && user && <div className="w-px h-5 bg-cream-300 mx-1.5" />}
 
-        {!isSignedOutJobFeedMode && <div ref={setChatNavNode} className="flex items-center gap-2" />}
-
         {!isSignedOutJobFeedMode && !isChatCollapsed && (
           <button
             onClick={() => setIsChatCollapsed(true)}
@@ -996,7 +1001,7 @@ export default function Dashboard() {
               </div>
             )}
 
-            <div className={`absolute inset-0 flex flex-col items-center justify-start py-2.5 border-l border-gold-300/70 bg-cream-50/96 transition-opacity duration-200 ${
+            <div className={`absolute inset-0 flex flex-col items-center justify-start py-2.5 border-l border-cream-200 bg-cream-50 transition-opacity duration-200 ${
               isChatCollapsed ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
             }`}>
               <button
@@ -1011,12 +1016,12 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div id="tour-chat-panel" className={`absolute inset-0 overflow-hidden border-l border-gold-300/70 bg-cream-50/96 backdrop-blur-[6px] transition-opacity duration-200 ${
+            <div id="tour-chat-panel" className={`absolute inset-0 overflow-hidden border-l border-cream-200 bg-cream-50 transition-opacity duration-200 ${
               isChatCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
             }`}>
               <ChatPanel
                 onTabChange={handleTabChange}
-                navBarPortal={chatNavNode}
+                docked
               />
             </div>
           </div>

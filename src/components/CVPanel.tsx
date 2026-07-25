@@ -8,6 +8,7 @@ import { Button } from './ui/Button';
 import { useAppStore } from '@/store/useAppStore';
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore } from '@/store/useSessionStore';
+import { useUIStore } from '@/store/useUIStore';
 import { CVTemplateRenderer, CV_TEMPLATE_DEFINITIONS } from './cv-templates';
 import { TemplateSelector } from './cv-templates/TemplateSelector';
 import { structuredCVToCVData } from '@/lib/cv-templates/parser';
@@ -27,6 +28,7 @@ import {
   X,
   Camera,
   Trash2,
+  Sparkles,
 } from 'lucide-react';
 import { uploadProfilePhoto } from '@/lib/supabase/storage';
 import type { ProfilePhoto } from '@/store/useCVStore';
@@ -174,6 +176,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
     setProfilePhoto,
   } = useAppStore();
   const editedOriginalCVData = useCVStore(state => state.editedOriginalCVData);
+  const requestJdFocus = useUIStore(state => state.requestJdFocus);
   const { user, profile, updateProfile } = useAuth();
   const { toast } = useToast();
   const generatedCV = currentSession?.generatedCV;
@@ -1056,13 +1059,19 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
             {copied ? <Check className="w-4 h-4 text-gold-600 mr-1.5" /> : <Copy className="w-4 h-4 mr-1.5" />}
             Copy
           </Button>
+          {/* Download stays available for the base CV, but only carries the
+              gold primary treatment once a tailored kit exists. Pre-generation
+              a gold "Download PDF" is the loudest thing on screen and tells a
+              brand-new user their work here is finished. */}
           <Button
-            variant="gold"
+            variant={generatedCV ? 'gold' : 'ghost'}
             size="sm"
             onClick={handleDownloadPDF}
             disabled={isDownloading || !cvData}
             title="Download as PDF"
-            className="flex-shrink-0 rounded-2xl shadow-sm"
+            className={`flex-shrink-0 rounded-2xl shadow-sm ${
+              generatedCV ? '' : 'bg-white border border-cream-200 hover:bg-cream-50'
+            }`}
           >
             {isDownloading ? (
               <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
@@ -1143,6 +1152,37 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
           />
         ) : (
           <div className="h-full flex flex-col">
+
+            {/* Pre-generation state. Without this, a freshly uploaded CV renders
+                as a finished, typeset document and the whole left column reads
+                "you're done" — which is why users never notice that pasting a
+                job ad in the chat panel is the point of the product.
+
+                The condition mirrors ChatPanel's launchpad state on purpose, so
+                the CTA always lands on a mounted, enabled job-description
+                field. Keying on `!generatedCV` alone would show it after a fit
+                analysis too, where the real next action is "Generate Kit" and
+                re-pasting the job ad silently discards the 0.5 credits the user
+                already spent. */}
+            {!generatedCV
+              && !isEditMode
+              && !currentSession?.jobDescription
+              && !currentSession?.chatMessages?.length && (
+              <div className="flex-shrink-0 flex flex-wrap items-center justify-between gap-3 border-b border-cream-200 bg-cream-50 px-4 py-2.5 sm:px-6">
+                <p className="text-sm text-warm-gray">
+                  <span className="font-semibold text-navy-700">This is your base CV.</span>{' '}
+                  It isn&apos;t tailored to a job yet.
+                </p>
+                <button
+                  type="button"
+                  onClick={requestJdFocus}
+                  className="inline-flex flex-shrink-0 items-center gap-2 rounded-lg bg-gold-400 px-3.5 py-2 text-sm font-semibold text-navy-900 shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Tailor for a job
+                </button>
+              </div>
+            )}
 
             {/* CV Content - View Mode or Edit Mode */}
             <div className="flex-1 overflow-auto bg-cream-100 p-2 sm:p-6">

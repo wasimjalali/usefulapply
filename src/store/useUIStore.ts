@@ -38,6 +38,13 @@ interface UIState {
   // (mobile viewport does not render ChatPanel at all — Application Kit is
   // desktop/tablet only).
   pendingApplicationAction: PendingApplicationAction | null;
+
+  // Cross-panel focus signal: the CV panel's "Tailor for a job" CTA points the
+  // user at the job-description input, which lives in the chat panel. A
+  // monotonic counter rather than a boolean so repeat clicks re-fire.
+  // The dashboard shell expands a collapsed chat panel on change; ChatPanel
+  // focuses whichever JD field is mounted (launchpad textarea or composer).
+  jdFocusRequest: number;
 }
 
 interface UIActions {
@@ -58,6 +65,9 @@ interface UIActions {
   // Panel action signal (fit analysis and screening CTAs dispatched outside ChatPanel)
   setPendingApplicationAction: (value: PendingApplicationAction | null) => void;
 
+  // Focus signal for the job-description input (see jdFocusRequest)
+  requestJdFocus: () => void;
+
   // Reset
   resetUI: () => void;
 }
@@ -72,6 +82,7 @@ const initialState: UIState = {
   error: null,
   pendingJobFeedAutostart: null,
   pendingApplicationAction: null,
+  jdFocusRequest: 0,
 };
 
 /**
@@ -97,6 +108,9 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
 
   // Panel action signal
   setPendingApplicationAction: (value) => set({ pendingApplicationAction: value }),
+
+  // Focus signal
+  requestJdFocus: () => set((state) => ({ jdFocusRequest: state.jdFocusRequest + 1 })),
 
   // Reset
   resetUI: () => set(initialState),
