@@ -560,20 +560,11 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
         });
         break;
       case 'start-new-application':
-        // Gate: If anonymous user has already used their free generation, show signup wall
-        if (!user && hasUsedFreeGeneration()) {
-          setSignUpWallTrigger('new-application');
-          setShowSignUpWall(true);
-          return;
-        }
-        posthog?.capture('new_application_started');
-        setFitAnalysisContextId(null);
-        setFitAnalysisJD('');
-        setAwaitingJobDescription(false);
-        useAppStore.getState().clearCurrentSession();
-        useAppStore.getState().setJobDescription('');
-        setJobDescription('');
-        setAgentSteps([]);
+        // Delegates to the single reset path. This case used to duplicate it
+        // and the two drifted apart, which is how component-local state
+        // (fit analysis, screening mode, the composer draft) started leaking
+        // into the next application.
+        handleNewApplication();
         break;
       case 'screening-questions':
         posthog?.capture('screening_questions_started');
@@ -625,6 +616,10 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingApplicationAction]);
 
+  // Single reset path for starting a new application, shared by the panel
+  // header button and the in-chat "start-new-application" action. Every piece
+  // of component-local workflow state must be reset here: it survives
+  // clearCurrentSession() and otherwise leaks into the next application.
   const handleNewApplication = () => {
     // Gate: If anonymous user has already used their free generation, show signup wall
     if (!user && hasUsedFreeGeneration()) {
@@ -632,6 +627,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
       setShowSignUpWall(true);
       return;
     }
+    posthog?.capture('new_application_started');
     useAppStore.getState().clearCurrentSession();
     useAppStore.getState().resetGenerated();
     useAppStore.getState().setJobDescription('');
@@ -650,6 +646,13 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
     setFitAnalysisContextId(null);
     setFitAnalysisJD('');
     setFitAnalysisContextData(null);
+    // Screening mode gates the JD detection path off entirely
+    // (useAgentWorkflow.ts:893), so a stale flag would route the next paste as
+    // screening answers and break the launchpad's primary action.
+    setIsScreeningMode(false);
+    // A leftover draft would pre-fill the launchpad textarea and could enable
+    // "Generate application kit" for a job the user never pasted.
+    setInputValue('');
     autostartedApplySessionRef.current = null;
     setShowHistory(false);
   };
