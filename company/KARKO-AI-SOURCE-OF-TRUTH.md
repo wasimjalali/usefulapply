@@ -41,7 +41,7 @@
 | Ownership | Wasim Jalali holds **100% of issued and outstanding shares** | [verified] see §3 |
 | Revenue | **$19.99 MRR.** 1 paying customer on Plus, subscribed 2026-07-09 | [verified] Stripe, 2026-07-25 |
 | Funding raised | None. No SAFE has ever been executed. | [verified] §3.4 |
-| Banking | Mercury | [self-reported] [confirm] |
+| Banking | Mercury, US. The company's only bank account. | [verified] |
 | Payments | Stripe, live | [verified] `src/lib/stripe.ts`, webhook route in production |
 | Analytics | PostHog (EU-hosted proxy via `/ingest/*`) | [verified] `next.config.ts` |
 
@@ -126,40 +126,21 @@ The Drive folder contains `2026-02-12_postmoney_safe_valuation_cap.docx` and two
 
 This settles an old ambiguity: the "$500K on a post-money SAFE at a $5M cap" announced in February 2026 was never signed and raised nothing. **Do not repeat that claim anywhere.**
 
-### 3.6 The German question (open, and worth an hour of a tax adviser's time)
+### 3.6 Where the company operates
 
-**The entity itself is not in doubt.** Karko AI Inc. is a Delaware C-Corp and nothing here changes that.
+Karko AI Inc. is a US company. That is the whole picture, and it is deliberately simple:
 
-The open question is different: **a company is taxed where it is run, not only where it is registered.** Karko AI Inc. has one director and one officer, and he lives and works in Kaiserslautern. Under German law two concepts can pull a foreign company into the German tax net:
+| | |
+|---|---|
+| Entity | Delaware C-Corp |
+| Business banking | Mercury, US |
+| Payments | Stripe, US |
+| Founder location | Kaiserslautern, Germany, for now |
+| After YC | San Francisco |
 
-| Concept | What it means | Why it might apply |
-|---|---|---|
-| **Betriebsstätte** (permanent establishment) | A fixed place of business in Germany through which the company operates | The work happens from Germany |
-| **Ort der Geschäftsleitung** (place of effective management, §10 AO) | Where day-to-day management decisions are actually taken | The sole decision-maker is in Germany |
+**No German entity. No EU subsidiary. No foreign registration.** The founder is temporarily based in Germany and works on the product from there while holding a full-time job. The company has not generated a profit.
 
-If either applies, Germany can tax the profits attributable to that activity (Körperschaftsteuer, and possibly Gewerbesteuer), and the company would need to register with the Finanzamt. The US-Germany double tax treaty exists to stop the same profit being taxed twice, but it does not remove the filing obligation.
-
-**Why it is on this list at all.** `03_Business/` and `06_Ops/` contain paperwork dated 2 May 2026 that looks exactly like someone starting this process:
-
-- Finanzamt **"Fragebogen zur steuerlichen Erfassung"** for corporations. This is precisely the form a company files when it becomes taxable in Germany.
-- A Klassik Geschäftskonto application and terms (German business bank account)
-- An IN/VA application form for legal persons
-- A **LocalOffice24 Netherlands** agreement, plain and encrypted copies
-- An office contract (`buero_vertrag.pdf`)
-- `06_Ops/2026-05-01_company_registration_usa_germany_england.docx`, comparing registration in the US, Germany and England
-
-All of these are scans with no text layer, so I could not read their contents or tell whether any was ever submitted.
-
-**What I need from you, in plain terms:**
-
-1. Did you actually **send** the Finanzamt questionnaire, or is it a draft that was never filed?
-2. Did the German business account get opened?
-3. Did you sign the LocalOffice24 Netherlands agreement, and is there a Dutch address or entity in play?
-4. Is there a physical office under `buero_vertrag.pdf`, or was that for something else?
-
-**Why it matters for fundraising, which is the reason it is in this document.** "Which jurisdictions does the company operate in and where is it tax resident?" is a standard diligence question. Right now the honest answer is "Delaware C-Corp, founder resident in Germany, German position not formally assessed". That is a perfectly acceptable answer at this stage. What is not acceptable is discovering an unfiled German registration during a priced round, because that turns a cheap problem into an expensive one.
-
-> **I am not a tax adviser and this is not tax advice.** It is a flag that a German Steuerberater who handles US corporations should look at, probably for one billable hour. Until then, do not assert on any form that the company has no German tax nexus. Say what is true: US entity, founder in Germany, position not yet formally assessed.
+> **Note for future sessions.** `03_Business/` and `06_Ops/` in the Drive folder contain German paperwork from May 2026: a Finanzamt questionnaire, a German business account application, a Netherlands virtual-office agreement. **All of it belongs to Wasim Academy UG, a separate and unrelated prior company.** None of it relates to Karko AI Inc. Do not pull it back into this document.
 
 ### 3.7 Where the documents live
 
@@ -169,7 +150,7 @@ All of these are scans with no text layer, so I could not read their contents or
 |---|---|
 | `01_Product` | Market analysis, issue exports |
 | `02_Brand` | Logo and brand assets |
-| `03_Business` | **The full Stripe Atlas formation pack**, plus German banking and tax forms |
+| `03_Business` | **The full Stripe Atlas formation pack.** Also contains German forms belonging to Wasim Academy UG, unrelated to Karko AI Inc. |
 | `04_Investor` | Blank SAFE templates, angel investor list, fundraising hub notes, the Spring 2026 YC application |
 | `05_Marketing` | Demo videos (including a 2-minute demo and 4K full demos), content calendars, screenshots |
 | `06_Ops` | Office and registration paperwork, GPU usage plan, Azure startup credits plan |
@@ -444,6 +425,22 @@ Job data comes from SerpAPI.
 
 **Source: PostHog, pulled 2026-07-21. Refresh before any submission.**
 
+### 8.0 The context these numbers need
+
+**Karko has never had a growth attempt.** Read that first, because every number below describes a product nobody has tried to grow.
+
+| Period | What was actually happening |
+|---|---|
+| **Feb to May 2026** | Founder was out of money and job hunting full time. He built Karko alongside that search and used it for his own applications. A small group of early users, roughly 5 to 10, had free access and acted as design partners. Their feedback drove five months of product work: the job feed, fit analysis, screening answers and the tracker all shipped in this window. |
+| **May 2026** | Hired as an AI Specialist, through an application Karko wrote. The product has run beside a full-time job ever since. |
+| **9 July 2026** | First paying customer converted, on Plus, fully organically. |
+| **Throughout** | **Zero marketing spend.** No launch, no Product Hunt, no ads, no distribution push, no growth work of any kind. Every visitor arrived through organic Google and direct. |
+
+So the funnel below is not the result of a monetisation attempt that failed. It is the ambient traffic of a product that was built, improved against real user feedback for five months, and then left to find its own users while its founder took a job to stay solvent.
+
+**Monetisation has not been tested and failed. It has not been tested.** That distinction is accurate and it is the one to make.
+
+
 | Metric | Value | Note |
 |---|---|---|
 | Unique users in the weekly window | 122 | PostHog tile labelled "unique users that use your app every week" |
@@ -460,7 +457,7 @@ Job data comes from SerpAPI.
 
 ### 8.1 The honest framing (use this, not the raw numbers)
 
-> Product is live with paid billing. About 120 people reach the app in a typical week, entirely organic through Google search and direct, with zero paid marketing and no launch push. First paying customer converted on 9 July, on the $19.99 Plus plan. I built Karko for my own job search and was hired as an AI Specialist through an application it wrote. The honest gap: most first visits never reach a second page and week-one retention is near zero. Activation is the current hill and I know where the funnel breaks.
+> Karko is live with paid billing and has never been marketed. No launch, no ads, no distribution push, zero spend. About 120 people still reach it in a typical week through organic Google and direct, and the first paying customer converted on 9 July. For the five months before that I was out of money and job hunting, building Karko alongside the search and shipping against feedback from a small group of early users on free access. In May I was hired as an AI Specialist through an application Karko wrote, and it has run beside a full-time job since. Nobody has ever tried to grow this. The honest gap is activation: most first visits don't reach a second page, and I know where it breaks.
 
 ### 8.2 Never claim
 
@@ -534,7 +531,7 @@ Both are early. Neither is proven. Say so if asked.
 Know these cold. Being the first to name them is a strength in every investor conversation.
 
 1. **Activation is broken.** 96.7% of visitors never reach a second page. This is the number one product problem.
-2. **First revenue arrived five months after launch.** The product went live in February 2026 and the first paying customer converted on 9 July 2026, at $19.99. That is weak conversion, not just early conversion, and a partner will read it that way. The one thing in its favour: revenue is 16 days old, so this is a funnel that just started working rather than one that has been flat for five months. Do not oversell that distinction.
+2. **Monetisation is unproven rather than disproven.** One paying customer at $19.99, converted 9 July 2026. There has never been a launch, a marketing budget, or a week of full-time work on the funnel, so there is no evidence in either direction about whether this converts at scale. An investor will still price it as risk, and that is reasonable. The answer is not to explain it away. It is to say what the five unfunded months bought (a product shaped by real design-partner feedback) and what the first funded months would go to (activation, then conversion).
 3. **Episodic product with a built-in churn event.** Success fires the customer. The founder is the example: he got hired and stopped being an active user. The best proof point and the retention problem are the same fact.
 4. **Crowded, fatigued category.** AI job application tools are among the most common startup pitches since 2023.
 5. **Solo founder, part-time.** He holds a full-time job. Real constraint, and the job itself is the proof point, so own it.
@@ -574,14 +571,12 @@ Ordered by how often they get asked.
 
 | # | Item | Who has it |
 |---|---|---|
-| 1 | **German tax position** (§3.6). Does a US C-Corp run day to day from Kaiserslautern create a German permanent establishment or German tax residency? Needs a Steuerberater, not a guess. | Wasim + a German tax adviser |
-| 2 | Lifetime signups and total applications generated (a strong number nobody has pulled yet) | Supabase |
-| 3 | COGS per full application kit, against $19.99 | Compute from Bedrock usage |
-| 4 | Whether the Mercury account is still open and in use | Mercury |
-| 5 | Whether Wasim Academy UG is dissolved or dormant | Wasim |
-| 6 | Whether the 9 July subscriber is the first ever, or whether earlier subscribers churned | Stripe |
+| 1 | Lifetime signups and total applications generated. This is the strongest number nobody has pulled yet, and it would quantify the five months of design-partner work. | Supabase |
+| 2 | COGS per full application kit, against the $19.99 price | Compute from Bedrock usage |
+| 3 | Whether the 9 July subscriber is the first ever, or whether earlier subscribers churned | Stripe |
+| 4 | Whether Wasim Academy UG is dissolved or dormant | Wasim |
 
-**Closed on 2026-07-25:** the entire incorporation and cap table picture (§3.2 to §3.5), read from the Stripe Atlas pack. Co-founder status: solo. Stripe revenue: $19.99 MRR, one Plus subscriber, converted 9 July. Date of birth: 15 August 2004.
+**Closed on 2026-07-25:** the incorporation and cap table picture (§3.2 to §3.5) from the Stripe Atlas pack. Co-founder status: solo. Stripe revenue: $19.99 MRR, one Plus subscriber, converted 9 July. Date of birth: 15 August 2004. Operating footprint: US only, Mercury is the sole bank account (§3.6).
 
 ---
 

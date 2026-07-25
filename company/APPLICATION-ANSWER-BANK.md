@@ -48,7 +48,7 @@
 
 ### How far along are you?
 
-> Live at karkoai.com with paid billing. Since my Spring 2026 application I rebuilt Karko from a one-step application generator into a full loop: matched job feed, fit analysis, a 90-second application kit with CV, cover letter, emails and screening answers, a tracker, and anti-hallucination so output only uses the user's real CV. About 120 people reach the app in a typical week, all organic through Google and direct, with zero paid marketing. One paying customer. I used Karko in my own job search and was hired as an AI Specialist through it. Honest gap: most visitors don't activate past the first page and early retention is near zero. Activation is the current hill, and I know where the funnel breaks.
+> Live at karkoai.com with paid billing. Since my Spring 2026 application I rebuilt Karko from a one-step application generator into the full loop: matched job feed, fit analysis, a 90-second application kit with CV, cover letter, emails and screening answers, a tracker, and anti-hallucination so output only uses the user's real CV. Most of that came out of five months shipping against feedback from a small group of early users on free access, while I was out of money and job hunting. I was hired as an AI Specialist in May through an application Karko wrote, and have built around that job since. About 120 people reach the app in a typical week, all organic, with zero marketing spend ever. First paying customer converted 9 July. Honest gap: activation. Most visitors don't reach a second page. Nobody has tried to grow this yet, which is the opportunity and the risk in the same sentence.
 
 ### Progress bullets (short-field version)
 
@@ -57,15 +57,18 @@
 > - About 120 people reach the app in a typical week, all organic. Zero paid marketing, no launch push yet.
 > - 1 paying customer.
 > - **I was hired as an AI Specialist through an application Karko wrote.** 60+ applications through the product, 5 interviews, one offer. First-time job seeker, no degree.
+> - Five months of product work driven by a small design-partner cohort on free access, while I was unfunded and job hunting.
+> - Zero marketing spend, ever. No launch, no ads. All traffic organic.
+> - First paying customer converted 9 July, organically, at $19.99.
 > - Honest gap: most visitors don't activate past the first page and early retention is near zero. Activation is the hill.
 
 ### How many users, how many paying, who pays the most?
 
-> About 120 people reach the product in a typical week, organic only through Google and direct. One paying customer, on the $19.99 Plus plan, converted on 9 July. I don't claim 122 weekly active users in the product sense, because most first visits don't go deep yet. Activation and free-to-paid conversion are the open problems.
+> About 120 people reach the product in a typical week, organic only through Google and direct, with zero marketing spend ever. One paying customer, on the $19.99 Plus plan, converted 9 July. Before that a small group of early users, around 5 to 10, had free access and acted as design partners; their feedback drove five months of product work. I don't claim 122 weekly active users in the product sense, because most first visits don't go deep yet. Activation is the open problem and I know where the funnel breaks.
 
 ### Do you have revenue?
 
-> Yes, $19.99 MRR. One paying customer on the Plus plan, converted on 9 July 2026. That is the first revenue the product has taken, five months after launch, so I treat free-to-paid conversion as the open problem rather than a solved one.
+> Yes, $19.99 MRR. One paying customer on Plus, converted 9 July 2026, entirely organic. Context worth giving: Karko has never been marketed. No launch, no ads, no distribution push, zero spend. For the first five months I was out of money and job hunting, building the product alongside my own search with a small group of early users on free access shaping it. Since May it has run beside a full-time job. So conversion isn't a thing I tried and failed at. It's a thing nobody has tried yet.
 
 ### How long have you been working on this, and how much full-time?
 
@@ -204,7 +207,7 @@ Why it likely failed:
 | Question | The honest answer |
 |---|---|
 | Why does nobody get past page one? | Name it as the top product problem, say what you are testing next. Do not deflect. |
-| One paying customer after five months, why? | Weak conversion, not just early conversion. The activation funnel answers it: almost nobody reaches the moment of value. |
+| One paying customer, why so few? | Because nobody has tried yet. Zero marketing spend to date, no launch, and I was unfunded and job hunting for the first five months, then employed full time. That's the honest answer, and it's better than it sounds: it means the conversion question is still open rather than already answered badly. Then point at what the first funded months go to: activation first, conversion second. |
 | Job search ends when someone gets hired. What's the retention story? | Acknowledge the built-in churn event, and that you are the example. Then give the actual plan: re-engagement, or B2B2C through bootcamps/universities/outplacement. **[confirm] which one you actually believe.** |
 | What does a full application kit cost you in LLM spend? | **[confirm] compute this.** Never answer with cloud credits. |
 | Why do you win in a category with hundreds of entrants? | Mechanism, not absence of competitors: the full grounded loop with anti-hallucination as the product, and a data flywheel from fit analyses. Concede both are early. |
