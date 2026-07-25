@@ -44,7 +44,7 @@
 
 ### How do you make money? How much could you make?
 
-> Credit-based subscription. Free, Plus at $19.99 a month, Max at $79.99 a month, plus credit top-ups on paid plans. Both paid plans get the Smart Job Feed at up to 25 roles a day, and Max searches twice as wide, 4 job titles across 4 countries. Job search is episodic, so churn is real and I don't pretend otherwise. Near-term growth is activation and free-to-paid conversion, not market-size slides. The number that matters is LLM cost per full application kit against the plan price, and I treat that as a product problem rather than something cloud credits erase.
+> Credit-based subscription. Free, Plus at $19.99 a month, Max at $79.99 a month, plus credit top-ups on paid plans. Both paid plans get the Smart Job Feed at up to 25 roles a day, and Max searches twice as wide, 4 job titles across 4 countries. Job search is episodic, so churn is real and I don't pretend otherwise. Near-term growth is activation and free-to-paid conversion, not market-size slides. The economics are modelled, not guessed: $0.21 of inference per full application today, $0.40 revenue per credit, and 73 to 80% gross margin on a paid subscription at realistic utilization. The number I actually watch is free-to-paid conversion, because blended break-even sits at about 4.7% and that is where the business is won or lost.
 
 ### How far along are you?
 
@@ -209,7 +209,9 @@ Why it likely failed:
 | Why does nobody get past page one? | Name it as the top product problem, say what you are testing next. Do not deflect. |
 | One paying customer, why so few? | Because nobody has tried yet. Zero marketing spend to date, no launch, and I was unfunded and job hunting for the first five months, then employed full time. That's the honest answer, and it's better than it sounds: it means the conversion question is still open rather than already answered badly. Then point at what the first funded months go to: activation first, conversion second. |
 | Job search ends when someone gets hired. What's the retention story? | Acknowledge the built-in churn event, and that you are the example. Then give the actual plan: re-engagement, or B2B2C through bootcamps/universities/outplacement. **[confirm] which one you actually believe.** |
-| What does a full application kit cost you in LLM spend? | **[confirm] compute this.** Never answer with cloud credits. |
+| What does a full application kit cost you? | $0.21 today on Sonnet 4.6, going to $0.32 when the Opus 5 migration ships. Revenue is $0.40 per credit, so a paid subscription runs 73 to 80% gross margin at realistic utilization. |
+| So the economics work? | For paid users, yes. Blended is the honest answer: free is 4 credits against zero revenue, so break-even is about 4.7% free-to-paid against a 2-5% freemium norm. We sit on that line. Halving the free tier moves break-even to 2.9%, which is a bigger lever than the entire model decision. |
+| What do the AWS credits do for you? | They don't change unit economics, they postpone them by about 13,000 applications. The point of that window is to measure real utilization and real conversion, which no spreadsheet can give you. |
 | Why do you win in a category with hundreds of entrants? | Mechanism, not absence of competitors: the full grounded loop with anti-hallucination as the product, and a data flywheel from fit analyses. Concede both are early. |
 | You are solo and employed. Is this real? | The job came through the product and it seeded real applied-AI experience. If funded, you leave. Say it plainly. |
 | What is your cap table? | 7,000,000 shares issued to you, 100% of outstanding, of 10,000,000 authorized. No pool adopted. 4-year vest, 1-year cliff, 83(b) filed on time. Clean and boring, which is what you want. |

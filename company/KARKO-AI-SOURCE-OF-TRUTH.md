@@ -347,7 +347,56 @@ Source: `src/lib/stripe.ts`. Stripe price IDs come from environment variables, n
 
 Credits roll over while the subscription is active. Top-ups are available on paid plans.
 
-**Unit economics are the open question.** LLM cost per full application kit against a $19.99 or $79.99 plan has not been calculated in a document anywhere. Any investor will ask. Never answer this with "AWS credits cover it", that answer aged badly in the Spring application. [confirm] compute real COGS per kit.
+### 6.1 Unit economics [modelled in `docs/model-selection-analysis.md`, 2026-07-25]
+
+Every tier prices credits identically at **$0.40 revenue per credit**. That is deliberate and it makes the margin analysis simple.
+
+**Cost per full application:**
+
+| Configuration | Cost / application |
+|---|---:|
+| **Today**, all Sonnet 4.6 | **$0.210** |
+| After the locked Opus 5 migration, warm cache | $0.323 |
+| After migration, cold cache | $0.436 |
+
+The Opus 5 move raises cost per application by **54%**. Step 6 (CV optimization) alone is 46% of the bill.
+
+**Paid subscription margin**, post-migration, including roughly 3-4% Stripe fees:
+
+| Credit utilization | Plus margin | Max margin |
+|---|---:|---:|
+| 100% | 62% | 63% |
+| 70% | 73% | 74% |
+| 50% | 79% | 80% |
+
+**Paid users are not the problem.** 73-80% at realistic utilization is healthy SaaS territory.
+
+### 6.2 The number that actually matters: 4.7%
+
+The free tier is 4 credits a month against zero revenue, and it dominates blended economics.
+
+| Free-to-paid conversion | Blended margin per 100 signups |
+|---:|---|
+| 3% | **negative** |
+| **4.7%** | **break-even** |
+| 8% | 33% |
+| 15% | 55% |
+
+**Break-even sits at about 4.7% free-to-paid conversion.** Typical freemium SaaS converts at 2-5%, so the business sits directly on that line, before fixed infrastructure. Below 4.7%, every additional free signup loses money.
+
+Three consequences worth stating plainly:
+
+1. **Activation is not a growth problem, it is a solvency problem.** The 96.7% first-page drop is what keeps conversion under the line.
+2. **The free tier is a bigger lever than the entire model decision.** Cutting free from 4 credits to 2 moves break-even from 4.7% to about 2.9%. The Sonnet-versus-Opus choice moves cost per application by $0.10; the free tier moves the required conversion rate by nearly two points. Not yet shipped.
+3. **One cost is still unmeasured.** The daily job feed runs SerpAPI, Azure `gpt-4.1-mini` ranking and two Sonnet calls for free users, and none of it is charged against credits. The working figure is $0.75 per active free user per month. Treat it as an estimate.
+
+### 6.3 What the AWS credits actually buy
+
+The honest answer, and a direct upgrade on the Spring 2026 application, which claimed variable costs were near zero because of cloud credits:
+
+> The credits do not change the unit economics. They postpone them by roughly 13,000 applications. The right use of that window is to measure the two numbers the model is guessing at: real credit utilization per paid user, and real free-to-paid conversion. Both swing blended margin from negative to 55%, and neither can be estimated from a spreadsheet.
+
+If an investor asks about economics, that paragraph is the answer. It shows the founder has modelled the business rather than waved at it.
 
 ---
 
@@ -388,6 +437,8 @@ Sources: `src/lib/models/anthropic.ts`, `src/lib/models/types.ts`, `src/lib/job-
 > Claude Opus 5 generates the four documents the user sends to an employer (CV, cover letter, application email, follow-up). Everything upstream stays on Sonnet 4.6. Chat moves to Haiku 4.5.
 
 Only 4 of 14 call sites migrate. The reasoning rests on GDPval-AA v2, the benchmark that grades human-expert-scored professional deliverables, where Opus 5 leads Sonnet 5 by 243 Elo. SWE-bench Pro is the headline number everywhere and is irrelevant here, because Karko writes no code.
+
+**Cost consequence, which is a decision not a detail.** The migration raises cost per application from $0.210 to $0.323 warm, $0.436 cold, a 54% increase. The plan was deliberately shaped around this: keeping Phase 1 on Sonnet 4.6 avoids a fit analysis that would cost $0.209 against $0.200 of revenue, a loss on every screen. See §6.1.
 
 **Blocked.** The AWS account returns HTTP 403 for every Claude model on Bedrock. Both self-serve prerequisites are done and an escalation is drafted (`docs/bedrock-claude5-access.md`). Implementation happens the day access lands, not before.
 
@@ -535,7 +586,7 @@ Know these cold. Being the first to name them is a strength in every investor co
 3. **Episodic product with a built-in churn event.** Success fires the customer. The founder is the example: he got hired and stopped being an active user. The best proof point and the retention problem are the same fact.
 4. **Crowded, fatigued category.** AI job application tools are among the most common startup pitches since 2023.
 5. **Solo founder, part-time.** He holds a full-time job. Real constraint, and the job itself is the proof point, so own it.
-6. **Unit economics undefined.** No COGS-per-kit number exists yet.
+6. **Blended economics sit on the break-even line.** Paid users are fine at 73-80% margin, but the free tier pushes break-even to about 4.7% free-to-paid conversion against a 2-5% freemium norm (§6.2). Current conversion is well below that. This is the same problem as activation, seen from the P&L rather than the funnel, and it is the single most important number in the business.
 7. **Previously rejected with the same idea.** Spring 2026. The delta is real but modest in absolute terms.
 8. **Visa and location friction.** Afghan national with a German residence permit. US travel may need support.
 9. **No option pool exists.** Any hire or co-founder needs a board-adopted equity incentive plan first. Not a problem today, but it is a step that has to happen before equity can be offered to anyone.
@@ -572,9 +623,10 @@ Ordered by how often they get asked.
 | # | Item | Who has it |
 |---|---|---|
 | 1 | Lifetime signups and total applications generated. This is the strongest number nobody has pulled yet, and it would quantify the five months of design-partner work. | Supabase |
-| 2 | COGS per full application kit, against the $19.99 price | Compute from Bedrock usage |
-| 3 | Whether the 9 July subscriber is the first ever, or whether earlier subscribers churned | Stripe |
-| 4 | Whether Wasim Academy UG is dissolved or dormant | Wasim |
+| 2 | **Real credit utilization per paid user, and real free-to-paid conversion.** The margin model guesses both, and they swing blended margin from negative to 55%. Needs PostHog instrumentation before the AWS credits burn down. | Supabase + PostHog |
+| 3 | Cost of the daily job feed for free users. Currently unmeasured and uncharged; working estimate $0.75 per active free user per month. | Instrument the feed |
+| 4 | Whether the 9 July subscriber is the first ever, or whether earlier subscribers churned | Stripe |
+| 5 | Whether Wasim Academy UG is dissolved or dormant | Wasim |
 
 **Closed on 2026-07-25:** the incorporation and cap table picture (§3.2 to §3.5) from the Stripe Atlas pack. Co-founder status: solo. Stripe revenue: $19.99 MRR, one Plus subscriber, converted 9 July. Date of birth: 15 August 2004. Operating footprint: US only, Mercury is the sole bank account (§3.6).
 
