@@ -203,13 +203,13 @@ export default function AboutPage() {
               </h2>
               <div className="border-l-2 border-gold-400 pl-6 space-y-4">
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  I ran out of money building a startup in Germany. No savings, no degree to fall back on. I had taught myself to code in three months and shipped real products, and none of it helped. Generic applications got me zero interviews. Tailoring each one by hand took 45 to 60 minutes and still was not working.
+                  I ran out of money building a startup in Germany. No savings, no degree to fall back on. I&apos;d taught myself to code in three months and shipped real products. None of it helped. Generic applications got me zero interviews, and tailoring each one by hand took 45 to 60 minutes.
                 </p>
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  So I built Karko to run the whole workflow. Over 50 applications, I got 5 interviews. That is roughly 10 percent, against an industry baseline of 2 to 3 percent. First-time job seeker, no formal background.
+                  So I built Karko to run the whole workflow. Over 50 applications, I got 5 interviews. That&apos;s roughly 10 percent, against an industry baseline of 2 to 3 percent. First-time job seeker, no formal background.
                 </p>
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  Then it did the thing I actually built it for. I was hired as an AI Specialist through an application Karko generated. That is the job I have today. Karko is the tool I wish I had on day one of that search, and it is the one I keep building.
+                  Then it did the thing I actually built it for. I was hired as an AI Specialist through an application Karko generated. That&apos;s the job I have today. Karko is the tool I wish I&apos;d had on day one of that search. It&apos;s the one I keep building.
                 </p>
               </div>
             </div>

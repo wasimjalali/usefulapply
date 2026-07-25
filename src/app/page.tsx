@@ -233,7 +233,7 @@ export default function Home() {
               {
                 step: 2,
                 title: 'Skip the job boards',
-                description: 'Every morning, up to 25 roles picked for you. Matched to your CV, your goals, your location. No keyword searches.',
+                description: 'Every morning, up to 25 roles picked for you on Plus and Max. Matched to your CV, your goals, your location. No keyword searches.',
                 accent: '/images/gpt-03-compass-card.webp',
                 accentAlt: 'Compass brand illustration',
               },
@@ -329,10 +329,10 @@ export default function Home() {
               </h2>
               <div className="border-l-2 border-gold-400 pl-6 space-y-4">
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  I ran out of money building a startup in Germany. No savings, no degree to fall back on. Generic applications got me zero interviews. Tailoring each one by hand took 45 to 60 minutes, and it still was not working.
+                  I ran out of money building a startup in Germany. No savings, no degree to fall back on. Generic applications got me zero interviews. Tailoring each one by hand took 45 to 60 minutes, and it still wasn&apos;t working.
                 </p>
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  So I built Karko to run the whole workflow. Over 50 applications, I got 5 interviews, roughly 10 percent against an industry baseline of 2 to 3 percent. Then I was hired as an AI Specialist through an application Karko generated. First-time job seeker, no formal background, in a market where most people send hundreds and never hear back. That is when I knew Karko could not stay a personal tool.
+                  So I built Karko to run the whole workflow. Over 50 applications, I got 5 interviews. That&apos;s roughly 10 percent, against a baseline of 2 to 3 percent. Then I was hired as an AI Specialist through an application Karko generated. First-time job seeker, no formal background, in a market where most people send hundreds and never hear back. That&apos;s when I knew Karko couldn&apos;t stay a personal tool.
                 </p>
               </div>
             </div>
