@@ -390,6 +390,26 @@ Three consequences worth stating plainly:
 2. **The free tier is a bigger lever than the entire model decision.** Cutting free from 4 credits to 2 moves break-even from 4.7% to about 2.9%. The Sonnet-versus-Opus choice moves cost per application by $0.10; the free tier moves the required conversion rate by nearly two points. Not yet shipped.
 3. **One cost is still unmeasured.** The daily job feed runs SerpAPI, Azure `gpt-4.1-mini` ranking and two Sonnet calls for free users, and none of it is charged against credits. The working figure is $0.75 per active free user per month. Treat it as an estimate.
 
+### 6.4 Pricing strategy [founder decision, 2026-07-25]
+
+**The decision:** ship the Opus 5 migration and accept the lower margin now, in exchange for the best output quality on the four documents a user actually sends. Use the $5,000 of AWS inference credits as the cushion. Raise prices later, once there is a real user base, to recover the 80% margin band.
+
+The logic is sound and it is consistent with the positioning: the product's whole claim is quality that survives both an ATS and a recruiter, so paying for the better model on the documents that get read is on-brand rather than indulgent.
+
+Three exposures worth holding in view.
+
+**1. The credit cushion is about 7 months, not a safety net.** $5,000 buys roughly 13,000 applications post-migration, or **6,700 to 7,700 free-user-months** at 4 credits each. At 1,000 monthly active free users that is around 7 months. If growth works, it burns faster, not slower. The credits are a runway, and runway has an end date that should be on a calendar.
+
+**2. Price increases rarely recover margin on the base you acquired cheaply.** Standard practice is to grandfather existing subscribers, so a later increase applies to new cohorts only. In an episodic consumer product bought largely by people between incomes, ungrandfathered increases churn users at exactly the wrong moment. Plan the increase as applying to future cohorts and price the current cohort as a permanent acquisition cost.
+
+**3. The strategy pulls the smaller lever.** Raising the paid price improves revenue per converted user. But §6.2 shows blended break-even is driven by the free tier, and halving free credits from 4 to 2 moves break-even from 4.7% to 2.9% at zero churn risk, because it only affects new free users.
+
+> **Sequencing suggestion.** Cut the free tier to 2 credits **before** shipping Opus 5, not after. Done in that order, the free-tier change creates the margin headroom the migration consumes, and the credit runway roughly doubles from about 7 months to about 15 at the same user count. Done in the other order, the credits burn 54% faster on exactly the free users who are least likely to convert.
+
+**Ceiling check.** LinkedIn Premium Career is $39.99/month. Karko Plus at $19.99 is deliberately half of that, so there is real headroom, but it is not unlimited and the buyer is often between incomes.
+
+**Define the trigger.** "Once we hit 1,000+ users" needs to say which. At 4.7% conversion, 1,000 signups is about 47 paying users and roughly $940 MRR, which is not yet a business. 1,000 *paying* users is about $20k MRR, which is. Write the trigger as a paid-user or MRR number, not a signup number.
+
 ### 6.3 What the AWS credits actually buy
 
 The honest answer, and a direct upgrade on the Spring 2026 application, which claimed variable costs were near zero because of cloud credits:
