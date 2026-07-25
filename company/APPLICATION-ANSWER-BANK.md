@@ -40,7 +40,13 @@
 
 ### Who are your competitors? What do you understand that they don't?
 
-> Resume builders like Teal, Kickresume and Rezi help you format and score, but you still do the skilled middle by hand. Auto-apply bots optimize volume and get candidates flagged or embarrassed in interviews. Point tools like Jobscan or DIY ChatGPT solve one slice and lose context between steps. What they miss: the problem is the 45 minutes of skilled work between finding a role and sending a personalized application, plus discovery and tracking, as one loop grounded in real experience. I don't claim competitors don't exist. I claim the full quality-plus-speed workflow with anti-hallucination is the product, not a feature.
+> The real competition isn't the resume builders, it's the free platform features. ChatGPT has tailored a CV to a posting since June, free, but English only and web only. Indeed Career Scout is free inside the Indeed app. LinkedIn's AI job search went free to everyone in January. Those three give away a slice of what we charge for, and any answer that ignores them isn't serious.
+>
+> Where they stop is where we live. ChatGPT's resume tool is English only; we generate in seven languages with German CV conventions and two German templates, and LinkedIn only reached German in January. None of them writes the application email, the follow-up or the screening answers. And a general chatbot will invent a metric if you push it, whereas refusing to is our highest-priority generation rule.
+>
+> ChatGPT can build a website too. Lovable and Replit still win, because purpose-built beats general at a specific job. That's the bet.
+>
+> Then there's the auto-apply group, including Sorce and Tsenta from your own batches. They automate submission. We deliberately don't, and that's a considered call: Greenhouse now silently deprioritises applications submitted by AI at scale, Cloudflare is shipping agent detection, and Indeed's terms ban automating Indeed Apply. They're automating the layer that's closing. We automate the part that isn't, which is the skilled work between finding a role and sending something worth reading.
 
 ### How do you make money? How much could you make?
 

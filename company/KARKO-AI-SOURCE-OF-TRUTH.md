@@ -572,49 +572,146 @@ So the funnel below is not the result of a monetisation attempt that failed. It 
 
 ## 9. Market and competition
 
-### 9.1 The thesis
+**Researched and verified 2026-07-25.** Claims are tagged: **[V]** verified directly against a primary source, **[R]** from research and not independently confirmed, **[?]** open question. Do not put an **[R]** number in front of an investor without checking it first.
 
-The market forces a false choice between speed and quality.
+### 9.1 What market Karko is actually in
 
-| | Low quality | High quality |
+**Candidate-side software, paid for by the candidate.** That is the whole definition and it does the most important work in this section.
+
+**Indeed, LinkedIn's job board and Google Jobs are not competitors.** They are where jobs live, and Karko consumes them through SerpAPI. Calling them competitors makes the company sound naive and invites a partner to correct you. **LinkedIn *Premium* is a competitor.** The job board is not.
+
+The anchor for willingness to pay is LinkedIn Premium Career at **$29.99 to $39.99 a month** [R], with LinkedIn's consumer tiers reportedly clearing $1.5B a year [R]. That is the proof that job seekers pay real money for job-search software. Karko Plus at $19.99 is deliberately below it.
+
+### 9.2 The demand signal
+
+| Finding | Source | Tag |
 |---|---|---|
-| **High speed** | Auto-apply bots (LazyApply, Sonara) | **Karko AI** |
-| **Low speed** | ChatGPT plus manual midnight rewriting | Resume writers and coaches, $100 to $500 per CV |
+| Applications per job went **115 to 244** between 2022 and 2025, +111% | Greenhouse benchmark, Mar 2026, 640M applications across 6,000+ orgs | [R] |
+| Recruiters per organisation fell **55.6%** over the same period | Same | [R] |
+| Applicants per posting roughly doubled, 46 to 95; hiring rate fell 4.5% to 2.8% | BambooHR State of Hiring, Apr 2026 | [R] |
+| **39% of candidates** already use AI during the application process | Gartner, 2024, n=3,290 | [R] |
+| External job boards drive **49.9% of applications but only 22.6% of hires** | Greenhouse, Mar 2026 | [R] |
 
-### 9.2 Why now
+**Peer-reviewed support for the core claim:** *"Algorithmic Writing Assistance on Jobseekers' Resumes Increases Hires"*, INFORMS **Management Science**, 18 Apr 2025. Causal, independent, and directly on-thesis. Paywalled; **buy it before pitching**. Effect size not yet extracted. [R]
 
-1. Agentic models can run full workflows, not just chat.
-2. Auto-apply backlash. Candidates get flagged, ATS vendors harden.
-3. AI copy fatigue. Recruiters recognise generic ChatGPT letters instantly.
-4. Candidates apply more and for longer. They need compression, not another tool.
+**The honest counter-datapoint:** iCIMS reported in May 2026 that application volume fell about 10% year on year while openings hit a 12-month peak [R]. That cuts against the universal-flood narrative. Know it before someone else raises it.
 
-### 9.3 Competitors
+### 9.3 The competitive map
 
-| Bucket | Examples | What they optimize | What they miss |
+Five rings. Most pitches in this category collapse them, which is why they sound unconvincing.
+
+| Ring | Who | Relationship |
+|---|---|---|
+| **0. Substrate** | Indeed, LinkedIn job board, Google Jobs | **Not competitors.** Supply. Karko reads them. |
+| **1. Free platform features** | ChatGPT, Indeed Career Scout, LinkedIn free | **The real threat.** Free, huge distribution, good enough for some users. |
+| **2. Auto-apply** | Sorce (YC F2025), Tsenta (YC S2026), LazyApply, Sonara, Simplify | Different bet. Volume over quality. Being engineered against. |
+| **3. Point tools and builders** | Teal, Rezi, Kickresume, Enhancv, Resume.io, Jobscan, Huntr | Solve one slice. Context lost between them. |
+| **4. Human services** | CV writers, career coaches, $100-500 per CV | Quality without speed or scale. |
+
+### 9.4 Ring 1 is the section that matters
+
+**All three verified by Wasim on 2026-07-25.**
+
+**ChatGPT**, release note dated 1 Jun 2026. Job search over Indeed, Upwork, Appcast and the open web, **US only**, on Free/Go/Plus/Pro. Resume upload, creation, tailoring to a role and formatted download, **English only, globally, web only**. Applications still happen on the source site. **[V]**
+
+**Indeed Career Scout**, launched 10 Sep 2025. Free. Career quiz, personalised recommendations, company insights, AI resume builder, application auto-fill, AI mock interviews. **In the Indeed app only, no desktop or mobile web.** Country coverage unconfirmed. **[V]** on features, **[?]** on geography.
+
+**LinkedIn.** AI job search launched **May 2025, Premium first**. Free to all members from **early January 2026**, English first, then Spanish, French, German and Portuguese. The deeper assistant layer, where you interrogate a specific posting, **remains Premium**. **[V]**
+
+> **Correct a common error:** LinkedIn's free AI job search is January 2026, not November 2025. November 2025 was AI *people* search. A wrong competitor date in front of a partner who knows this space costs credibility on everything else you say.
+
+**Where the free tier actually stops:**
+
+| Capability | ChatGPT free | Indeed Career Scout | LinkedIn free | **Karko** |
+|---|---|---|---|---|
+| Job discovery | US only | App only | Global, 5 languages | Global |
+| CV tailoring | **English only**, web only | App only | Premium | **7 languages** |
+| Cover letter | Generic | No | Premium | Grounded in real CV |
+| Application email | No | No | No | Yes |
+| Follow-up email | No | No | No | Yes |
+| Screening answers | No | No | No | Yes, Plus and Max |
+| Tracker | No | No | Yes | Yes |
+| German CV conventions | **No** | Unknown | Search only | **2 German templates** |
+| Anti-fabrication rule | No | No | No | Architectural |
+
+**Three gaps are real and defensible:**
+
+1. **Non-English tailoring.** ChatGPT's resume tool is English-only. LinkedIn's tailoring is behind Premium. Karko generates in English, German, French, Spanish, Portuguese, Italian and Dutch, with tone rules split between US/UK/Canada and German conventions, plus two German templates. **LinkedIn reached German in January 2026, OpenAI has not.** This is the clearest gap in the incumbent stack and it happens to be the market the founder lives in.
+2. **The rest of the kit.** Nobody free writes the application email, the follow-up, or the screening answers. Those are the parts candidates most dread.
+3. **Grounding as a rule, not a preference.** A general chatbot will invent a metric if the prompt pushes it. Karko's generation prompt forbids it as a highest-priority constraint (§7.3).
+
+### 9.5 Specialised beats generic, and there is a familiar precedent
+
+The strongest available answer to "why won't ChatGPT eat this?" is not a feature list. It is a pattern investors already accept:
+
+> ChatGPT can build a website. Lovable and Replit still exist and still win, because a purpose-built tool beats a general one at a specific job. Karko is that for job applications.
+
+Generic polish from a general chatbot is also increasingly recognisable to recruiters, which is the exact failure mode Karko is built against. The claim is not that ChatGPT cannot produce a CV. It is that a specialised, grounded, multi-market system produces a materially better one, and that the difference is what gets read.
+
+**This is a claim, not a proven fact.** The strongest evidence for it today is the founder's own hire. The strongest evidence available to buy is the Management Science paper.
+
+### 9.6 The two YC-funded competitors, and the answer
+
+**Verified directly against YC's own directory on 2026-07-25.** [V]
+
+| Company | Batch | Own words | Traction |
 |---|---|---|---|
-| Resume builders | Teal, Kickresume, Rezi, Enhancv, Resume.io | Format and scores | The user still does all the tailoring |
-| Auto-apply bots | LazyApply, Sonara | Volume | Quality, trust, ATS flags, interview embarrassment |
-| Point AI tools | Jobscan, ChatGPT DIY | One slice | Context is lost between tools |
-| Coaches and writers | Human services | Quality | Cost, speed, scale |
+| **Sorce** | YC **Fall 2025** | *"Tinder for jobs. Swipe right, AI applies on your behalf."* | 20M+ swipes, 1,000+ hired, interviews at Figma, OpenAI, DoorDash, Coinbase |
+| **Tsenta** | YC **Summer 2026, current batch** | *"We match you with jobs and apply automatically."* | 2 founders. Web, iMessage, MCP, Chrome extension |
 
-**The claim:** the problem is not formatting and it is not spray volume. It is the 45 to 60 minutes of skilled work between finding a role and sending a personalized application, plus discovery and tracking. That is an agent workflow, grounded in real experience.
+**A YC partner has funded this category twice, once this year. Expect the question.**
 
-**Never say "no one has built this."** Partners disbelieve it in one second in this category. Differentiate by mechanism, not by claimed absence of competitors.
+The answer, and it is a strong one:
 
-### 9.4 Moats claimed
+> Both automate submission. We deliberately do not. They are optimising volume; we are optimising whether the application is worth reading. And the submission layer is exactly the part of the stack that is being closed off, so automating it is a bet against where the industry is moving.
 
-1. A trust posture while auto-apply dies (anti-hallucination as the product, not a feature).
-2. A data flywheel: every fit analysis and accepted application can sharpen ranking and matching over time.
+### 9.7 Why not auto-applying is a strategic asset
 
-Both are early. Neither is proven. Say so if asked.
+The submission layer is being actively defended, and the failure mode is silent [R]:
 
-### 9.5 Positioning statement
+- **Greenhouse Real Talent** flags applications submitted using AI or third parties at scale. It does not block them, it **deprioritises them quietly**. The candidate pays and never learns why nothing landed.
+- **Cloudflare** is shipping behavioural agent detection that defeats fingerprint spoofing, with cryptographic agent identity being standardised alongside Google.
+- **Indeed's terms** prohibit automating Indeed Apply.
+
+Every one of those makes Sorce's and Tsenta's core mechanic more fragile over time, and makes Karko's abstention look less like a missing feature and more like a correct read.
+
+### 9.8 Market size, bottom-up and deliberately conservative
+
+**No TAM theater.** No Indeed billions, no applications-per-minute. Those were landmines in the Spring 2026 application and they stay out.
+
+The defensible framing is a **wallet you can point at**, not a population:
+
+> Karko competes for the money job seekers **already spend**. LinkedIn Premium Career runs $29.99 to $39.99 a month and LinkedIn's consumer tiers reportedly clear $1.5B a year. A human CV writer costs $100 to $500 once. Resume builders charge monthly. Karko at $19.99 sits below the anchor with materially more function, in seven languages, for the same buyer who is already paying someone.
+
+**What is still missing to size this properly** [?], and it should be built before a seed deck:
+
+1. Active job seekers in the US, UK, Canada and EU, split employed-but-searching versus unemployed.
+2. What share already pays for any job-search tool. LinkedIn Premium subscriber count is the best available proxy.
+3. Realistic ARPU and subscription duration. Job search is episodic, so lifetime is measured in months, not years, and that is the number that decides whether this is a good business.
+
+Until those three exist, use the wallet framing and say the bottom-up model is being built. **That is a better answer than a number you cannot defend.**
+
+### 9.9 What the money says, and it is not flattering
+
+Between February and July 2026, **no candidate-side consumer-paid subscription raised $10M or more** [R]. The large cheques all went to employer-paid models: Humanly $25M (Apr 2026), Yoodli $40M (Dec 2025), Jack & Jill $20M (Oct 2025). Fika Jobs raised $4M in June 2026 for a model that is **free to job seekers**, with employers paying 10% of first-year salary.
+
+**Know this before a partner says it.** The honest response is not to dispute it. It is to say why consumer-paid is the right call here anyway: the candidate's interests and the employer's are not aligned, and a product paid for by the employer will eventually optimise for the employer. Charging the candidate is what makes "never a word you didn't earn" credible. If that argument does not convince, an employer-paid or B2B2C route (universities, bootcamps, outplacement) is the obvious pivot and should be named as a live option rather than a retreat.
+
+### 9.10 Moats claimed
+
+1. **Trust posture while auto-apply is closed off.** Anti-hallucination as the product, not a feature.
+2. **Multi-market depth.** Seven languages and German conventions, which the free incumbents do not cover.
+3. **Data flywheel.** Every fit analysis and accepted application can sharpen ranking over time.
+
+All three are early. The third is aspirational until there is volume. Say so if asked.
+
+### 9.11 Positioning statement
 
 > **For** active job seekers who want quality applications without spending evenings rewriting CVs,
 > **Karko AI** is an AI job application agent
 > **that** collapses the seven-tool job search workflow into one loop, from matched role discovery to tracked application, in under two minutes per job.
-> **Unlike** auto-apply bots that sacrifice quality for volume, or resume writers that cost hundreds and take days,
-> **Karko** gives speed and quality, grounded in real experience, with every word traceable to the actual CV.
+> **Unlike** general chatbots that give generic polish, auto-apply bots that trade quality for volume, or CV writers that cost hundreds and take days,
+> **Karko** is purpose-built for the job, in seven languages, with every word traceable to the actual CV.
 
 ---
 
@@ -673,12 +770,85 @@ Ordered by how often they get asked.
 
 ---
 
-## 13. Change log
+## 13. Fundraising position
+
+**Written 2026-07-25.** This is a strategy section, not a fact section. It records the reasoning and the numbers behind it so a future decision can be argued with rather than re-guessed.
+
+### 13.1 What the money is actually for
+
+Not hiring. The honest use of funds, in order:
+
+1. **Inference.** The dominant variable cost. $0.21 per application today, $0.32 after the Opus 5 migration (§6.1). Growth costs money in direct proportion to usage.
+2. **Product.** Activation is the binding constraint and fixing it is engineering time.
+3. **Influencer marketing.** The founder has built a 30,000+ follower audience before, so this is a channel he has executed, not a guess.
+4. **Founder salary**, so the work can be full time.
+
+### 13.2 The commitment problem, and why it is smaller than it looks
+
+Most pre-seed investors want a full-time founder before they wire. "Fund me and I'll quit" reads as asking the investor to de-risk the founder rather than the reverse.
+
+**The rebuttal is output, not a claim about hours.** 383 commits. The entire job feed, fit analysis, screening answers and tracker were built while employed. Karko also **predates the job by four months** and the employment contract explicitly names it as a permitted side project, so there is no IP or moonlighting question.
+
+> **Say it as capacity plus capital constraint, never as "my employer only gets a few hours of me".** The second version invites an investor to wonder what they would get, and it puts in writing something that reads badly when forwarded. The commit history proves the point and carries no downside.
+
+### 13.3 Accelerators: fixed terms, best fit
+
+**Y Combinator standard deal:** $500k as **$125k for 7%** on a post-money SAFE, plus **$375k on an uncapped SAFE with MFN**. Every company gets identical terms. The $125k for 7% implies roughly a **$1.79M post-money** on the priced tranche.
+
+YC is structurally the right instrument for this exact situation, more than angels are, because it solves three problems at once: capital, the full-time commitment, and credibility for a founder with no investor network. **Note also that YC has funded this category twice** (Sorce F2025, Tsenta S2026), which cuts both ways: the category is fundable to them, and they have seen the pitch before.
+
+### 13.4 The angel target, tested
+
+**Wasim's stated target: $500k for 5 to 10%.** That implies a **$5M to $10M post-money**.
+
+| Reference point | Figure |
+|---|---|
+| YC's own price for equity | ~$1.79M post |
+| Median pre-seed post-money SAFE cap, rounds under $1M | ~$10M [R] |
+| Consumer seed valuations | ~$10-11M, below the general median [R] |
+| AI premium at seed | ~+42% [R] |
+
+Those medians describe companies that **successfully raised**, which is heavy selection bias. The profile here is solo, part-time, $19.99 MRR, one customer, twice rejected by YC. That is materially below the median company in those datasets.
+
+**Honest read:** $10M post is not achievable today. $5M post is at the optimistic edge and would rest almost entirely on the founder story rather than the numbers. A realistic angel outcome right now is smaller: **$150k to $350k on a SAFE with a $3M to $5M cap**, probably conditional on going full time.
+
+### 13.5 The contrarian option worth considering
+
+**Raise less.** A solo founder in Germany is not a team in San Francisco. Something like **$250k to $300k** may buy the same 18 to 24 months, close far more easily, and cost meaningfully less equity than $500k at a cap he cannot yet defend.
+
+The counter-argument is real: too small a raise funds survival rather than growth, and inference cost scales with usage, so a growth push needs a budget. **Both readings are defensible. This is a genuine decision, not a solved problem.**
+
+### 13.6 What makes $500k at $5M+ an easy yes
+
+Rather than argue valuation, build the four things that make it stop being an argument:
+
+1. **Activation fixed.** The 96.7% first-page drop is the single biggest blocker, and §6.2 shows it is a solvency issue, not just growth.
+2. **Free-to-paid above break-even.** Post free-tier cut that means clearing ~2.9%.
+3. **Real MRR.** Even $2-3k changes the conversation completely.
+4. **Evidence the outcome generalises.** The founder's hire is powerful but n=1. A handful of users who landed roles through Karko turns an anecdote into a pattern.
+
+### 13.7 Recommended sequence
+
+1. **YC Fall 2026 is the main event.** Submit by 27 Jul, 8pm PT.
+2. **Do not run a parallel angel process this quarter.** Pitching $500k on one paying customer repeats the Spring 2026 mistake, where a $500k on $5M cap raise was announced and closed nothing. That burns angel credibility that will be needed later.
+3. **If YC rejects, do not immediately raise.** Ship the free-tier cut, fix activation, get a real conversion number. Then raise on evidence in early 2027.
+4. **Keep the B2B2C option named.** Universities, bootcamps and outplacement firms are the obvious employer-paid route, and §9.9 shows that is where the category's large cheques are going. Naming it as a live option is strength; discovering it under pressure is not.
+
+### 13.8 Dilution to keep in view
+
+Wasim owns **100% of issued stock** and **no option pool exists** (§3.3). A YC round plus a $500k pre-seed plus a standard 10% pool would put him somewhere in the 70s before a seed. That is normal. It is worth modelling once rather than discovering later, and the pool has to be board-adopted before equity can be offered to anyone, including his brothers.
+
+> **Not investment advice.** Valuation is set by what an investor will actually pay, not by a framework. Sanity-check this with founders who have raised in the last six months.
+
+---
+
+## 14. Change log
 
 | Date | Change |
 |---|---|
 | 2026-07-25 | Created. Consolidated from 14 files in the old `yc-fall-2026-decision` folder, verified against the Karko AI codebase (383 commits, HEAD 2026-07-25) and Wasim's live LinkedIn profile. Useful Build material removed except for the entity-structure line in §3.8. |
 | 2026-07-25 | Moved into the Karko AI product repo at `company/`, out of the Useful Build repo, so the facts sit next to the code they describe. |
+| 2026-07-25 | Section 9 rewritten from research: five-ring competitive map, the free-platform threat (ChatGPT, Indeed Career Scout, LinkedIn) verified by Wasim, the two YC-funded competitors Sorce and Tsenta verified against YC directory, why not auto-applying is an asset, and a wallet-based market frame instead of TAM theater. New section 13 on fundraising position. |
 | 2026-07-25 | Stripe connected. Revenue is $19.99 MRR, one Plus subscriber, converted 9 July 2026, five months after launch. Date of birth confirmed: 15 August 2004, so 21 today. Section 3.6 rewritten to explain the German permanent-establishment question properly rather than just listing the paperwork. |
 | 2026-07-25 | **Founder story corrected and re-anchored.** Confirmed with Wasim: 60+ applications through Karko, 5 interviews, hired as an AI Specialist through an application the product wrote. Earlier material said 50+ applications at a 10% rate and led with the interview count. The hire is now the headline on every surface and in this document. |
 | 2026-07-25 | First pass of the drift list actioned. Job feed corrected to 25/day on both plans across 13 surfaces, founder story now includes the hire, screening-answer gating corrected, model decision docs committed (PRs #76 and #77). Pricing table now carries feed search breadth. Model section states Sonnet 4.6 in production with the Opus 5 move locked and blocked. |
