@@ -40,6 +40,7 @@
 | Employees | 0 | [self-reported] |
 | Ownership | Wasim Jalali holds **100% of issued and outstanding shares** | [verified] see §3 |
 | Revenue | **$19.99 MRR.** 1 paying customer on Plus, subscribed 2026-07-09 | [verified] Stripe, 2026-07-25 |
+| Users | **27 external signups**, 8 of whom have generated a complete application. 32 accounts total, 5 internal | [verified] Supabase, 2026-07-25, see §8.4 |
 | Funding raised | None. No SAFE has ever been executed. | [verified] §3.4 |
 | Banking | Mercury, US. The company's only bank account. | [verified] |
 | Payments | Stripe, live | [verified] `src/lib/stripe.ts`, webhook route in production |
@@ -390,6 +391,28 @@ Three consequences worth stating plainly:
 2. **The free tier is a bigger lever than the entire model decision.** Cutting free from 4 credits to 2 moves break-even from 4.7% to about 2.9%. The Sonnet-versus-Opus choice moves cost per application by $0.10; the free tier moves the required conversion rate by nearly two points. Not yet shipped.
 3. **One cost is still unmeasured.** The daily job feed runs SerpAPI, Azure `gpt-4.1-mini` ranking and two Sonnet calls for free users, and none of it is charged against credits. The working figure is $0.75 per active free user per month. Treat it as an estimate.
 
+#### 6.2a What the database actually says about those two numbers [V, 2026-07-25]
+
+Both inputs were pulled from production on 2026-07-25. **Both came back at n=1, so neither replaces the model.** Read this section as evidence, not as a measurement.
+
+| Input | Modelled | Observed | Sample |
+|---|---|---|---|
+| Free-to-paid conversion | 4.7% needed to break even | 1 of 27 external signups, **3.7%** | 1 conversion |
+| Credit utilization per paid user | 50% to 100% band | **0 of 50 credits**, 0% | 1 user, 16 days |
+
+**The conversion number is not a rate.** One conversion out of 27 signups produces 3.7% arithmetically, and 3.7% happens to land just under the 4.7% break-even line. That proximity is a coincidence of small numbers and nothing more. One more conversion makes it 7.4%. Zero conversions next month makes it 2.9%. **Do not present 3.7% to an investor as a measured conversion rate, and do not present it as confirmation that the model was right.** The honest sentence is "one of the 27 people who signed up has paid".
+
+**The utilization number is real but it measures the wrong thing.** The single paid user has consumed zero credits (§8.4). Zero utilization is technically the best possible margin and it is obviously the worst possible outcome, because a customer who never uses the product churns. This is the clearest evidence in the pack that **utilization was the wrong variable to worry about**. The model asked "will paid users burn enough credits to compress margin?" and the answer so far is that they do not burn any. The risk is not margin compression, it is that paid users never activate.
+
+**What this changes and what it does not:**
+
+- **§6.1 margins stand as modelled.** They were computed per application, and nothing measured here touches cost per application.
+- **The 4.7% break-even stands.** It is arithmetic from the free tier and cost per application, not an estimate from usage.
+- **§6.4 stands, and gets stronger.** The free-tier cut from 4 credits to 2 was justified on break-even. The activation ladder in §8.4 adds a second reason: most free credits are never spent at all, so the cut costs less than it looks.
+- **What should now be modelled instead** is paid activation and month-2 retention. Both are unmeasured, both are worse-looking than utilization, and neither is in the current model.
+
+**Item 2 in §12 stays open.** It is now sharper, not closed: the numbers exist, they are just n=1.
+
 ### 6.4 Pricing strategy [locked, 2026-07-25]
 
 **Two decisions, in this order:**
@@ -515,7 +538,9 @@ Job data comes from SerpAPI.
 
 ## 8. Traction and metrics
 
-**Source: PostHog, pulled 2026-07-21. Refresh before any submission.**
+**Two sources, and they are not equally strong.** Product usage in §8.4 is queried straight from the production Supabase database on 2026-07-25 and is **[V]**. The funnel numbers in the table below come from PostHog, pulled 2026-07-21, and have **not** been refreshed since. There was no PostHog access in the session that pulled the database figures, so treat the PostHog block as 4 days stale and refresh it before any submission. See §12 item 6.
+
+**Where the two disagree, the database wins.** PostHog measures visitors. Supabase measures what people actually did.
 
 ### 8.0 The context these numbers need
 
@@ -533,6 +558,8 @@ So the funnel below is not the result of a monetisation attempt that failed. It 
 **Monetisation has not been tested and failed. It has not been tested.** That distinction is accurate and it is the one to make.
 
 
+**Funnel and traffic [V as of 2026-07-21, PostHog, stale]**
+
 | Metric | Value | Note |
 |---|---|---|
 | Unique users in the weekly window | 122 | PostHog tile labelled "unique users that use your app every week" |
@@ -549,14 +576,18 @@ So the funnel below is not the result of a monetisation attempt that failed. It 
 
 ### 8.1 The honest framing (use this, not the raw numbers)
 
-> Karko is live with paid billing and has never been marketed. No launch, no ads, no distribution push, zero spend. About 120 people still reach it in a typical week through organic Google and direct, and the first paying customer converted on 9 July. For the five months before that I was out of money and job hunting, building Karko alongside the search and shipping against feedback from a small group of early users on free access. In May I was hired as an AI Specialist through an application Karko wrote, and it has run beside a full-time job since. Nobody has ever tried to grow this. The honest gap is activation: most first visits don't reach a second page, and I know where it breaks.
+> Karko is live with paid billing and has never been marketed. No launch, no ads, no distribution push, zero spend. About 120 people still reach it in a typical week through organic Google and direct. 32 accounts exist in total, 27 of them belonging to people outside my own family, and 8 of those people have generated at least one complete application. The first paying customer converted on 9 July. For the five months before that I was out of money and job hunting, building Karko alongside the search and shipping against feedback from a small group of early users on free access. In May I was hired as an AI Specialist through an application Karko wrote, and it has run beside a full-time job since. Nobody has ever tried to grow this. The honest gap is activation: most first visits don't reach a second page, and of the people who do sign up, most upload a CV and never come back.
+
+**Do not quote the raw totals without the split.** 202 full applications and 304 fit analyses have been generated all time. 95% of the applications and 97% of the fit analyses came from five internal accounts, and the founder's own two are nearly all of that. The number that describes other people is **11 applications generated by 8 users**. Use that one. Full breakdown in §8.4.
 
 ### 8.2 Never claim
 
 - "122 weekly active users" in the product sense. The funnel contradicts it.
 - "122 DAU and 122 WAU" as two independent growth facts.
 - "Strong retention" or anything implying stickiness.
-- Any monthly active number. There is no verified MAU.
+- **"202 applications generated" or "304 fit analyses" without saying most of it is the founder.** This is now the easiest number in the pack to misuse. See §8.4.
+- **Anything implying the paying customer uses Karko.** They have consumed 0 credits and run 0 generations. "One paying customer" is true. "One paying user" is not.
+- **"32 users."** 5 of the 32 accounts are the founder's, his brother's or an internal test account. The external figure is 27, and 22 of those confirmed an email.
 
 ### 8.3 Founder dogfood metrics [self-reported]
 
@@ -567,6 +598,87 @@ So the funnel below is not the result of a monetisation attempt that failed. It 
 - First-time job seeker, no degree
 
 **Numbers confirmed with Wasim 2026-07-25.** Earlier material variously said "50+", "over 50" and "sixty" applications with a 10% rate. 60+ and ~8% are correct. Do not reintroduce the old figures.
+
+The database does not corroborate the 60+ figure and it cannot. The founder's accounts show 191 charged application generations, far more than 60, because that total mixes real applications with five months of testing. The two numbers do not conflict. Nothing in the database can separate a job he applied to from a run he did to check a prompt change, so **60+ stays [self-reported]** and should not be dressed up as verified.
+
+### 8.4 Product usage, measured in the database [V, 2026-07-25]
+
+**Method.** Queried directly against the production Supabase project on 2026-07-25. **Internal** means five accounts: the founder's two, his brother's two and one account named "Karko AI". **External** means everyone else. Every table below splits them, because the split is the whole story.
+
+**One counting caveat, stated up front.** There are two independent counters for applications and they disagree. `credit_transactions` records every charged generation, including repeat generations on the same job and sessions later deleted. `application_sessions` records surviving sessions that finished. The ledger is the upper bound, the sessions table is the floor. Both are given. Never quote one as if the other did not exist.
+
+**Accounts**
+
+| | Internal | External | Total |
+|---|---:|---:|---:|
+| Registered accounts, all time | 5 | 27 | **32** |
+| Email confirmed | 5 | 22 | 27 |
+| Uploaded a CV | 4 | 18 | 22 |
+| Ever spent a credit | 4 | 12 | 16 |
+| Paying | 0 | **1** | **1** |
+
+The founder's two accounts sit on the Max tier, but they were granted it manually. Neither has a Stripe subscription. The one real subscription in the database is the 9 July Plus customer.
+
+**What was generated, all time**
+
+| | Internal | External | Total |
+|---|---:|---:|---:|
+| Full applications, credit ledger | 191 | **11** | 202 |
+| Application sessions with a completed generation | 54 | **8** | 62 |
+| Fit analyses | 296 | **8** | 304 |
+| Document regenerations (cover letter, email, follow-up) | 91 | 1 | 92 |
+| CVs stored (23 primary, 2 master) | 5 | 20 | 25 |
+| Logged-out generations, no account | n/a | n/a | 11 |
+| Chat messages | 397 | 35 | 432 |
+
+**"CVs stored" is not "CVs parsed".** The `documents` table holds one primary CV per user and replaces it on re-upload, so 25 is a count of CVs currently on file, not of parse runs. Every parse is a real LLM call and the true parse count is higher. Nothing logs it. If parse volume ever matters for a cost conversation, it needs instrumenting first.
+
+**By month, external only**
+
+| Month | New signups | Users who spent a credit | Applications | Fit analyses | CVs stored (all users) |
+|---|---:|---:|---:|---:|---:|
+| 2026-02 | 0 | 0 | 0 | 0 | 0 |
+| 2026-03 | 3 | 2 | 0 | 2 | 3 |
+| 2026-04 | 5 | 3 | 2 | 1 | 5 |
+| 2026-05 | 8 | 3 | 4 | 1 | 7 |
+| 2026-06 | 5 | 1 | 1 | 0 | 4 |
+| 2026-07 (to the 25th) | 6 | 3 | 4 | 4 | 6 |
+
+**Signups are flat at roughly 5 a month and have been since March.** No trend up, no trend down. That is what zero distribution work looks like. Monthly actives never exceed 3. **There is still no MAU worth the name**, and §8.2 stands.
+
+**The activation ladder, 27 external signups, all time**
+
+| Step | People | Of the previous step |
+|---|---:|---:|
+| Signed up | 27 | |
+| Confirmed their email | 22 | 81% |
+| Uploaded a CV | 18 | 82% |
+| Spent a credit on anything | 12 | 67% |
+| Generated a full application | **8** | 67% |
+| Generated more than one | 3 | 38% |
+| Came back on a second day | **2** | |
+| Paid | **1** | |
+
+**This is the most useful table in the document.** The PostHog funnel says the drop happens before signup. The database says it keeps happening after. 18 people uploaded a CV, which is real intent and real effort, and 10 of them never generated anything with it. Two people out of 27 ever came back on a second day.
+
+It also sharpens the activation claim. The story is not only "visitors bounce off the landing page". It is "people who sign up, upload a CV and get most of the way there still walk away". That is a narrower and more fixable problem, and it is worth saying so.
+
+**The paying customer**
+
+| | |
+|---|---|
+| Converted | 2026-07-09, Plus, $19.99/mo, active, Stripe-backed |
+| Path | Uploaded a CV at 14:15, paid at 14:19 |
+| Credits used since | **0 of 50** |
+| Applications generated | **0** |
+| Fit analyses run | **0** |
+| Return visits | none, last sign-in is the day they paid |
+
+**Read both halves of this.** Someone paid four minutes after uploading a CV, having generated nothing and seen no output. That is a strong willingness-to-pay signal on the pricing page alone. Then they never used what they bought, and they have not been back in 16 days.
+
+**Treat this as a churn risk, not a revenue line.** The renewal is 9 August. If an application asks about revenue, $19.99 MRR is true and it is fine to say so. Volunteering "and they haven't used it" is not required, but never imply usage, and expect a diligent investor to ask.
+
+**The action this creates.** It is now the highest-value thing to do after the outcome question in §12 item 1b: contact this customer, find out what stopped them and either fix it or refund them. One paying customer who never activated is a product interview waiting to happen.
 
 ---
 
@@ -771,7 +883,7 @@ Know these cold. Being the first to name them is a strength in every investor co
    **This needs an answer, and "we'll improve retention" is not one.** The credible answers are an annual plan, a lifetime tier, or a B2B2C channel where the institution renews instead of the individual. **The founder's answer is the third one. See §9.9b, which should be read as part of this risk rather than separately.**
 4. **Crowded, fatigued category.** AI job application tools are among the most common startup pitches since 2023.
 5. **Solo founder, part-time.** He holds a full-time job. Real constraint, and the job itself is the proof point, so own it.
-6. **Blended economics sit on the break-even line.** Paid users are fine at 73-80% margin, but the free tier pushes break-even to about 4.7% free-to-paid conversion against a 2-5% freemium norm (§6.2). Current conversion is well below that. This is the same problem as activation, seen from the P&L rather than the funnel, and it is the single most important number in the business.
+6. **Blended economics sit on the break-even line.** Paid users are fine at 73-80% margin, but the free tier pushes break-even to about 4.7% free-to-paid conversion against a 2-5% freemium norm (§6.2). Measured conversion is 1 of 27 external signups, which is arithmetically 3.7% and at n=1 is not a rate at all (§6.2a). This is the same problem as activation, seen from the P&L rather than the funnel, and it is the single most important number in the business.
 7. **Previously rejected with the same idea.** Spring 2026. The delta is real but modest in absolute terms.
 8. **Visa and location friction.** Afghan national with a German residence permit. US travel may need support.
 9. **There is no distribution thesis.** This is the hole both reviewers found independently and it is arguably the real one. Consumer subscription lives or dies on a channel, and the entire pack's answer is one line about influencer marketing. LinkedIn Premium works because LinkedIn owns the audience. Karko owns nothing yet. A seed investor reaches this question before they reach anything in §9.
@@ -813,15 +925,17 @@ Ordered by how often they get asked.
 
 | # | Item | Who has it |
 |---|---|---|
-| 1 | **Lifetime signups, total applications generated, total fit analyses.** The strongest number nobody has pulled. Turns "120 visitors a week" into "X people have generated Y real applications". A few hours of Supabase queries. **Do this first.** | Supabase |
-| 1b | **Outcomes from the design partners and the paying customer.** One question each: did you get an interview or an offer using Karko, and can I say so? A single yes takes the evidence base from n=1 to n=2. Highest-value action available before any application. | Ask them |
-| 1c | **A distribution thesis.** How job seekers find Karko at scale, beyond one line about influencer marketing. Both reviewers flagged its absence as the biggest hole. | Wasim |
-| 2 | **Real credit utilization per paid user, and real free-to-paid conversion.** The margin model guesses both, and they swing blended margin from negative to 55%. Needs PostHog instrumentation before the AWS credits burn down. | Supabase + PostHog |
+| ~~1~~ | ~~**Lifetime signups, total applications generated, total fit analyses.**~~ **Closed 2026-07-25.** Pulled from production Supabase. 32 accounts, 27 external. 202 applications and 304 fit analyses all time, of which 11 and 8 are external. 25 CVs stored. Full tables and the activation ladder are in §8.4. | Closed |
+| 1b | **Outcomes from the design partners and the paying customer.** One question each: did you get an interview or an offer using Karko, and can I say so? A single yes takes the evidence base from n=1 to n=2. **Still the highest-value action available, and §8.4 narrowed the target list**: only 8 external people have ever generated a full application and only 3 generated more than one. Ask those 8, not a vague "5 to 10 design partners". Ask the paying customer separately, and ask them why they stopped instead. | Ask them |
+| 1c | **A distribution thesis.** How job seekers find Karko at scale, beyond one line about influencer marketing. Both reviewers flagged its absence as the biggest hole. **Unchanged and now the clear number one.** External signups have sat flat at about 5 a month since March with zero growth work (§8.4). | Wasim |
+| 2 | **Real credit utilization per paid user, and real free-to-paid conversion.** **Partly answered on 2026-07-25 and still open.** Both came back at n=1: 1 conversion in 27 external signups, and 0 of 50 credits used by the only paid user. See §6.2a. Neither is a rate. The finding that matters is that **utilization was the wrong variable**: paid users are not burning margin, they are not activating at all. **Replace this item with instrumenting paid activation and month-2 retention.** | Supabase + PostHog |
 | 3 | Cost of the daily job feed for free users. Currently unmeasured and uncharged; working estimate $0.75 per active free user per month. | Instrument the feed |
-| 4 | Whether the 9 July subscriber is the first ever, or whether earlier subscribers churned | Stripe |
+| 4 | Whether the 9 July subscriber is the first ever, or whether earlier subscribers churned. **Narrowed 2026-07-25.** No other account has ever held a Stripe subscription ID, so the 9 July customer is the first external subscriber. But `webhook_events` logs a `customer.subscription.deleted` on 2026-03-19, and the two other Stripe customers on file are both founder accounts. Almost certainly a founder test subscription. **Confirm in Stripe before saying "first ever".** | Stripe |
 | 5 | Whether Wasim Academy UG is dissolved or dormant | Wasim |
+| 6 | **PostHog refresh.** The §8 funnel and traffic block is from 2026-07-21 and was not refreshed alongside the database pull. Refresh before any submission. | PostHog |
+| 7 | **Why the paying customer never used what they bought.** Renewal is 9 August. Contact them, fix it or refund them. | Wasim |
 
-**Closed on 2026-07-25:** the incorporation and cap table picture (§3.2 to §3.5) from the Stripe Atlas pack. Co-founder status: solo. Stripe revenue: $19.99 MRR, one Plus subscriber, converted 9 July. Date of birth: 15 August 2004. Operating footprint: US only, Mercury is the sole bank account (§3.6).
+**Closed on 2026-07-25:** the incorporation and cap table picture (§3.2 to §3.5) from the Stripe Atlas pack. Co-founder status: solo. Stripe revenue: $19.99 MRR, one Plus subscriber, converted 9 July. Date of birth: 15 August 2004. Operating footprint: US only, Mercury is the sole bank account (§3.6). Product usage from the database (§8.4): lifetime signups, applications, fit analyses, CVs parsed, monthly actives and the full activation ladder.
 
 ---
 
@@ -909,3 +1023,4 @@ Wasim owns **100% of issued stock** and **no option pool exists** (§3.3). A YC 
 | 2026-07-25 | **Founder story corrected and re-anchored.** Confirmed with Wasim: 60+ applications through Karko, 5 interviews, hired as an AI Specialist through an application the product wrote. Earlier material said 50+ applications at a 10% rate and led with the interview count. The hire is now the headline on every surface and in this document. |
 | 2026-07-25 | First pass of the drift list actioned. Job feed corrected to 25/day on both plans across 13 surfaces, founder story now includes the hire, screening-answer gating corrected, model decision docs committed (PRs #76 and #77). Pricing table now carries feed search breadth. Model section states Sonnet 4.6 in production with the Opus 5 move locked and blocked. |
 | 2026-07-25 | Legal section rewritten from the actual Stripe Atlas formation pack in Google Drive. Incorporation date, registered agent, authorized and issued shares, officers, board, bylaws, EIN, IP assignment, vesting schedule and 83(b) filing all moved from [confirm] to [verified]. **Two corrections: ownership is 100%, not 70%, and there is no option pool.** Confirmed no SAFE was ever executed. Co-founder status confirmed solo. |
+| 2026-07-25 | **Outcome evidence pulled from production Supabase. New §8.4 and §6.2a.** Open item 1 closed. 32 accounts, 27 external, 5 internal. 202 applications and 304 fit analyses all time, but only 11 and 8 from people outside the founder's own accounts. New activation ladder: of 27 external signups, 18 uploaded a CV, 8 generated an application, 2 came back on a second day, 1 paid. **Two findings changed the picture.** The paying customer has used 0 of 50 credits and has not returned since the day they paid, so credit utilization was the wrong variable to model and paid activation is the real risk. And the raw totals are now the easiest number in the pack to misuse, so §8.2 gained three new "never claim" lines. Free-to-paid measured at 1 of 27, which is not a rate at n=1 and must not be presented as one. PostHog was not refreshed in this pass and is still on the 2026-07-21 pull (§12 item 6). |

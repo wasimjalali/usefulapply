@@ -54,23 +54,23 @@
 
 ### How far along are you?
 
-> Live at karkoai.com with paid billing. Since my Spring 2026 application I rebuilt Karko from a one-step application generator into the full loop: matched job feed, fit analysis, a 90-second application kit with CV, cover letter, emails and screening answers, a tracker, and anti-hallucination so output only uses the user's real CV. Most of that came out of five months shipping against feedback from a small group of early users on free access, while I was out of money and job hunting. I was hired as an AI Specialist in May through an application Karko wrote, and have built around that job since. About 120 people reach the site in a typical week, all organic, with zero marketing spend ever. First paying customer converted 9 July. Honest gap: activation. Most visitors don't reach a second page. Nobody has tried to grow this yet, which is the opportunity and the risk in the same sentence.
+> Live at karkoai.com with paid billing. Since my Spring 2026 application I rebuilt Karko from a one-step application generator into the full loop: matched job feed, fit analysis, a 90-second application kit with CV, cover letter, emails and screening answers, a tracker, and anti-hallucination so output only uses the user's real CV. Most of that came out of five months shipping against feedback from a small group of early users on free access, while I was out of money and job hunting. I was hired as an AI Specialist in May through an application Karko wrote, and have built around that job since. About 120 people reach the site in a typical week, all organic, with zero marketing spend ever. 27 people have signed up, 18 uploaded a CV, 8 generated a complete application and one is paying, converted 9 July. Honest gap: activation, and I have the numbers on exactly where it breaks. Most visitors never reach a second page, and of the ones who sign up and upload a CV, more than half never generate anything with it. Nobody has tried to grow this yet, which is the opportunity and the risk in the same sentence.
 
 ### Progress bullets (short-field version)
 
 > - Live at karkoai.com with paid billing. Free / Plus $19.99 / Max $79.99, credit-based.
 > - Rebuilt since Spring 2026 into the full loop: feed, fit, 90-second kit, screening, tracker.
 > - About 120 people reach the site in a typical week, all organic. Zero paid marketing, no launch push yet.
-> - 1 paying customer.
+> - 27 signups, 18 CVs uploaded, 8 people have generated a complete application, 1 paying.
 > - **I was hired as an AI Specialist through an application Karko wrote.** 60+ applications through the product, 5 interviews, one offer. First-time job seeker, no degree.
 > - Five months of product work driven by a small design-partner cohort on free access, while I was unfunded and job hunting.
 > - Zero marketing spend, ever. No launch, no ads. All traffic organic.
-> - First paying customer converted 9 July, organically, at $19.99.
-> - Honest gap: most visitors don't activate past the first page and early retention is near zero. Activation is the hill.
+> - First paying customer converted 9 July, organically, at $19.99, four minutes after uploading a CV.
+> - Honest gap: activation, measured end to end. Most visitors don't reach a second page, and of the people who sign up and upload a CV, more than half never generate anything. Activation is the hill.
 
 ### How many users, how many paying, who pays the most?
 
-> About 120 people reach the site in a typical week, organic only through Google and direct, with zero marketing spend ever. One paying customer, on the $19.99 Plus plan, converted 9 July. Before that a small group of early users, around 5 to 10, had free access and acted as design partners; their feedback drove five months of product work. I don't claim 122 weekly active users in the product sense, because most first visits don't go deep yet. Activation is the open problem and I know where the funnel breaks.
+> About 120 people reach the site in a typical week, organic only through Google and direct, with zero marketing spend ever. 27 have signed up, 18 uploaded a CV and 8 have generated a complete application. One is paying, on the $19.99 Plus plan, converted 9 July. Before that a small group of early users had free access and acted as design partners; their feedback drove five months of product work. I don't claim 122 weekly active users in the product sense, because most first visits don't go deep yet. Activation is the open problem and I can show you exactly where the funnel breaks, before signup and after it.
 
 ### Do you have revenue?
 
@@ -243,6 +243,9 @@ Why it likely failed:
 13. **Never write Claude Sonnet 4.5.** Production is 4.6.
 14. **Never write 70% equity.** You own 100% of the issued stock.
 15. **No em dashes** in any application text.
+16. **Never quote "202 applications generated" or "304 fit analyses".** Those are lifetime totals and 95% of them are Wasim's own. The external numbers are 11 applications by 8 people. Quoting the raw total is the fastest way to get caught. See §8.4 of the source-of-truth file.
+17. **Never imply the paying customer uses Karko.** They have run zero generations and have not returned since the day they paid. "One paying customer" and "$19.99 MRR" are both true. "One paying user" is not.
+18. **Never say "32 users".** 5 of the 32 accounts are Wasim's, his brother's or an internal test account. The number to use is 27.
 
 ---
 
@@ -250,8 +253,10 @@ Why it likely failed:
 
 Run this every time, for any application.
 
-- [ ] Pull fresh PostHog numbers. The ones in the source-of-truth file are dated.
-- [ ] Confirm exact Stripe MRR, plan and paying-customer count.
+- [ ] Pull fresh PostHog numbers. The ones in the source-of-truth file are dated (2026-07-21).
+- [ ] Re-pull the Supabase usage figures in §8.4 if more than a couple of weeks have passed. Signups run at about 5 a month, so the activation ladder moves.
+- [ ] Confirm exact Stripe MRR, plan and paying-customer count. Check the 9 July subscription is still active, renewal is 9 August.
+- [ ] Every user number is the external one, not the raw total. 27 signups, not 32. 11 applications by other people, not 202.
 - [ ] Equity percentage says **100%**, not 70%.
 - [ ] Confirm current age, city and visa wording.
 - [ ] Confirm employment status and the exclusivity answer.
