@@ -36,7 +36,7 @@
 
 ### Why did you pick this idea? Do you have domain expertise?
 
-> I needed it myself. I ran out of money building a startup in Germany, had no degree to fall back on, and generic applications got zero interviews. Tailoring by hand took 45 to 60 minutes each and still failed. I built the workflow manually inside Claude with my CV as context, then turned it into a product. Across 50+ applications I got roughly a 10% interview rate against a 2 to 3% baseline, and I was hired as an AI Specialist through an application my own product generated. That is the job I hold today. Domain proof is personal use plus a live product, not recruiting theory.
+> I needed it myself. I ran out of money building a startup in Germany, had no degree to fall back on, and generic applications got zero interviews. Tailoring by hand took 45 to 60 minutes each and still failed. I built the workflow manually inside Claude with my CV as context, then turned it into a product. Then I pointed it at my own search: 60+ applications, every one written by Karko, 5 interviews, and I was hired as an AI Specialist through one of them. That is the job I hold today. The product didn't just help me apply, it got me the job. Domain proof is personal use plus a live product, not recruiting theory.
 
 ### Who are your competitors? What do you understand that they don't?
 
@@ -56,7 +56,7 @@
 > - Rebuilt since Spring 2026 into the full loop: feed, fit, 90-second kit, screening, tracker.
 > - About 120 people reach the app in a typical week, all organic. Zero paid marketing, no launch push yet.
 > - 1 paying customer.
-> - Used Karko myself: about a 10% interview rate on 50+ applications versus a 2 to 3% baseline, and I was hired as an AI Specialist through it.
+> - **I was hired as an AI Specialist through an application Karko wrote.** 60+ applications through the product, 5 interviews, one offer. First-time job seeker, no degree.
 > - Honest gap: most visitors don't activate past the first page and early retention is near zero. Activation is the hill.
 
 ### How many users, how many paying, who pays the most?
@@ -125,7 +125,7 @@
 
 ### One paragraph
 
-> I left Afghanistan and built a life in Germany with no degree. At 17 I started with 200 EUR in Amazon retail arbitrage and scaled it to 150,000+ EUR across four marketplaces over three years, then turned a 30,000-follower audience into an AZAV-certified training company that did another 30,000 EUR. I taught myself full-stack development in three months and built Kursfind AI, an AI marketplace for German vocational training. I paused it: two-sided marketplace, one regulated market, and I ran out of money. So I started applying for jobs. Generic applications got zero interviews and hand-tailoring took 45 to 60 minutes each. I built the workflow inside Claude, then turned it into Karko AI. Over 50+ applications I hit roughly a 10% interview rate against a 2 to 3% baseline, and I got hired as an AI Specialist through it. That is the job I have today, and Karko is the product I keep building.
+> I left Afghanistan and built a life in Germany with no degree. At 17 I started with 200 EUR in Amazon retail arbitrage and scaled it to 150,000+ EUR across four marketplaces over three years, then turned a 30,000-follower audience into an AZAV-certified training company that did another 30,000 EUR. I taught myself full-stack development in three months and built Kursfind AI, an AI marketplace for German vocational training. I paused it: two-sided marketplace, one regulated market, and I ran out of money. So I started applying for jobs. Generic applications got zero interviews and hand-tailoring took 45 to 60 minutes each. I built the workflow inside Claude, then turned it into Karko AI. Sixty-plus applications through it, 5 interviews, and then the offer: I was hired as an AI Specialist through an application my own product wrote. That is the job I have today, and Karko is the product I keep building.
 
 ### Long version
 
@@ -218,7 +218,7 @@ Why it likely failed:
 ## 7. Landmines: do not do these again
 
 1. **No credentials on any form, ever.** Rotate the Spring 2026 test-account password, it was committed to git. Use a clean demo account plus a short Loom.
-2. **No market-size theater.** No Indeed billions, no applications-per-minute. Use unit-level proof: the interview rate, the hire, the funnel you understand.
+2. **No market-size theater.** No Indeed billions, no applications-per-minute. Use unit-level proof: the hire, the funnel you understand, the interview rate as support.
 3. **Never say "no one has built this."**
 4. **Never present cloud credits as unit economics.**
 5. **No future-tense co-founders.** Names and dates, or clean solo.
