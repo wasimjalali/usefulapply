@@ -316,12 +316,14 @@ Not a resume builder. Not an auto-apply bot. Not a generic AI writer. Not a care
 
 ## 6. Pricing and unit model [verified in code]
 
-| Plan | Price | Credits | Full applications / mo | Job feed | Screening answers |
-|---|---|---|---|---|---|
-| Free | $0 | 4 | 2 | No | No |
-| Plus | $19.99 / mo | 50 | 25 | Yes | Yes |
-| Max | $79.99 / mo | 200 | 100 | Yes | Yes |
-| Credit add-on pack | $19.99 one-time | 50 | n/a | n/a | n/a |
+| Plan | Price | Credits | Full applications / mo | Job feed | Feed search breadth | Screening answers |
+|---|---|---|---|---|---|---|
+| Free | $0 | 4 | 2 | No | n/a | No |
+| Plus | $19.99 / mo | 50 | 25 | Up to 25/day | 2 job titles, 2 countries | Yes |
+| Max | $79.99 / mo | 200 | 100 | Up to 25/day | 4 job titles, 4 countries | Yes |
+| Credit add-on pack | $19.99 one-time | 50 | n/a | n/a | n/a | n/a |
+
+**Max's differentiator is not feed size.** Both paid plans surface up to 25 roles a day. Max runs 4 SerpAPI queries a day against Plus's 2, so it covers twice as many job titles and countries. It also carries 4x the credits and premium support.
 
 Source: `src/lib/stripe.ts`. Stripe price IDs come from environment variables, nothing hardcoded.
 
@@ -375,7 +377,15 @@ Sources: `src/lib/models/anthropic.ts`, `src/lib/models/types.ts`, `src/lib/job-
 
 > **Correction to older material:** several documents say "Claude Sonnet 4.5". Production has been on **Sonnet 4.6** for a while. 4.5 exists only as a disabled rollback flag. Do not write 4.5 in any application.
 
-**Pending model decision:** `docs/model-selection-analysis.md` (dated 2026-07-25) locks a plan to move CV, cover letter, email and follow-up generation to Claude Opus 5 and chat to Haiku 4.5. It is **not implemented**, blocked on AWS Bedrock returning HTTP 403 for Claude 5 models (`docs/bedrock-claude5-access.md`).
+**Pending model decision (locked, not implemented).** `docs/model-selection-analysis.md`, decided 2026-07-25:
+
+> Claude Opus 5 generates the four documents the user sends to an employer (CV, cover letter, application email, follow-up). Everything upstream stays on Sonnet 4.6. Chat moves to Haiku 4.5.
+
+Only 4 of 14 call sites migrate. The reasoning rests on GDPval-AA v2, the benchmark that grades human-expert-scored professional deliverables, where Opus 5 leads Sonnet 5 by 243 Elo. SWE-bench Pro is the headline number everywhere and is irrelevant here, because Karko writes no code.
+
+**Blocked.** The AWS account returns HTTP 403 for every Claude model on Bedrock. Both self-serve prerequisites are done and an escalation is drafted (`docs/bedrock-claude5-access.md`). Implementation happens the day access lands, not before.
+
+> **For applications and investor conversations:** say production runs Claude Sonnet 4.6, with a locked plan to move the user-facing document generation to Opus 5. Do not say Karko runs Opus 5. It does not yet.
 
 ### 7.3 Anti-hallucination, precisely
 
@@ -508,16 +518,24 @@ Know these cold. Being the first to name them is a strength in every investor co
 
 ## 11. Known drift to fix (code versus copy)
 
-Real inconsistencies found on 2026-07-25. Fix these in the product, then delete them from this list.
+Found on 2026-07-25. Delete a row once the fix is merged.
+
+### Fixed, awaiting merge
+
+| # | Issue | Resolution |
+|---|---|---|
+| 1 | **Job feed daily limit** | Thirteen surfaces promised Plus 15 jobs/day. The backend has served **25 to both plans** since `dbab57bc` (2026-05-28). Decided: 25/day is correct for both, and Max's real differentiator is search breadth (4 job titles across 4 countries against Plus's 2 and 2, so 4 SerpAPI queries a day against 2). All surfaces corrected including `llms.txt` and `llms-full.txt`. **PR #76.** |
+| 2 | **Founder story stopped before the payoff** | Every surface ended at "5 interviews from 50+ applications" and never mentioned the hire. The homepage also said "sixty applications" against the About page's "over 50". Both fixed, and the AI Specialist hire is now on the About page, the homepage, the Person JSON-LD and both llms files. **PR #76.** |
+| 3 | **Screening answers wrongly attributed to Free** | The plan-comparison FAQ said every plan gets screening question answers. They are gated to Plus and Max. **PR #76.** |
+| 4 | **Model decision untracked** | `docs/model-selection-analysis.md` and `docs/bedrock-claude5-access.md` existed only as untracked files. Now committed. **PR #77.** |
+
+### Still open
 
 | # | Issue | Detail |
 |---|---|---|
-| 1 | **Job feed daily limit** | Marketing says Plus gets 15 jobs/day and Max gets 25. The backend (`src/lib/job-feed/constants.ts`) sets **both to 25**. Commit `dbab57bc` on 2026-05-28 raised Plus from 15 to 25 and no user-facing surface was updated. Six places still say 15: `src/lib/stripe.ts:82`, `src/app/features/page.tsx:42` and `:248`, `src/components/settings/SubscriptionSection.tsx:243`, `src/components/job-feed/JobFeedPanel.tsx:1529`, `src/lib/blog/posts.ts:441`, plus `KARKO_POSITIONING.md` §15. **Decide: is the differentiator search volume (4 queries vs 2) or visible count? Then make copy and code agree.** |
-| 2 | **Model version in docs** | Multiple docs say Claude Sonnet 4.5. Production is Sonnet 4.6. |
-| 3 | **Language support undersold** | Copy says "US, UK, Canada, EU". Code generates in 7 languages. |
-| 4 | **Anti-hallucination described as architectural** | It is a highest-priority prompt constraint plus a fit-score guard. No post-generation validator. See §7.3. |
-| 5 | **`KARKO_POSITIONING.md` is dated April 2026** | Its pricing still matches, but the job feed limit does not. Refresh it. |
-| 6 | **Exposed test-account password** | A live test-account password was included in the Spring 2026 YC application text and committed to git. **Rotate it.** Never put credentials in an application again. Use a clean demo account plus a Loom. |
+| 5 | **Language support undersold** | Copy says "US, UK, Canada, EU". The code generates in 7 languages: English, German, French, Spanish, Portuguese, Italian, Dutch. Worth claiming. |
+| 6 | **Anti-hallucination described as architectural** | It is a highest-priority prompt constraint plus a fit-score guard, not a post-generation validator. See §7.3. Either build the validator or soften the claim. |
+| 7 | **Exposed test-account password** | A live test-account password was included in the Spring 2026 YC application text and committed to git. **Rotate it.** Never put credentials in an application again. Use a clean demo account plus the existing 2-minute demo video. |
 
 ---
 
@@ -545,4 +563,5 @@ Ordered by how often they get asked.
 |---|---|
 | 2026-07-25 | Created. Consolidated from 14 files in the old `yc-fall-2026-decision` folder, verified against the Karko AI codebase (383 commits, HEAD 2026-07-25) and Wasim's live LinkedIn profile. Useful Build material removed except for the entity-structure line in §3.8. |
 | 2026-07-25 | Moved into the Karko AI product repo at `company/`, out of the Useful Build repo, so the facts sit next to the code they describe. |
+| 2026-07-25 | First pass of the drift list actioned. Job feed corrected to 25/day on both plans across 13 surfaces, founder story now includes the hire, screening-answer gating corrected, model decision docs committed (PRs #76 and #77). Pricing table now carries feed search breadth. Model section states Sonnet 4.6 in production with the Opus 5 move locked and blocked. |
 | 2026-07-25 | Legal section rewritten from the actual Stripe Atlas formation pack in Google Drive. Incorporation date, registered agent, authorized and issued shares, officers, board, bylaws, EIN, IP assignment, vesting schedule and 83(b) filing all moved from [confirm] to [verified]. **Two corrections: ownership is 100%, not 70%, and there is no option pool.** Confirmed no SAFE was ever executed. Co-founder status confirmed solo. |

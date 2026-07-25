@@ -44,7 +44,7 @@
 
 ### How do you make money? How much could you make?
 
-> Credit-based subscription. Free, Plus at $19.99 a month, Max at $79.99 a month, plus credit top-ups on paid plans. Job search is episodic, so churn is real and I don't pretend otherwise. Near-term growth is activation and free-to-paid conversion, not market-size slides. The number that matters is LLM cost per full application kit against the plan price, and I treat that as a product problem rather than something cloud credits erase.
+> Credit-based subscription. Free, Plus at $19.99 a month, Max at $79.99 a month, plus credit top-ups on paid plans. Both paid plans get the Smart Job Feed at up to 25 roles a day, and Max searches twice as wide, 4 job titles across 4 countries. Job search is episodic, so churn is real and I don't pretend otherwise. Near-term growth is activation and free-to-paid conversion, not market-size slides. The number that matters is LLM cost per full application kit against the plan price, and I treat that as a product problem rather than something cloud credits erase.
 
 ### How far along are you?
 
@@ -74,6 +74,8 @@
 ### Tech stack
 
 > Next.js 16 with React 19 and TypeScript, Tailwind CSS 4, Supabase for Postgres, auth and storage, Vercel for hosting, Stripe for payments, PostHog for analytics, Resend for transactional email, Inngest for background jobs. Generation runs on Claude Sonnet 4.6 through Amazon Bedrock in production and the Anthropic API directly in development, with Haiku 4.5 as a fallback. Job feed ranking uses GPT-4.1-mini on Azure OpenAI, with SerpAPI for job data. I write all the code with Claude Code, Cursor and similar AI coding tools.
+
+*If they push on model choice, this is a strong answer:* the four documents a user actually sends to an employer are moving to Claude Opus 5, and everything upstream stays on Sonnet 4.6. That call was made on GDPval-AA v2, the benchmark that grades human-expert-scored professional deliverables, not on SWE-bench, which is the number everyone quotes and is irrelevant to a product that writes no code. Only 4 of 14 call sites migrate. It ships when the Bedrock access request clears. **Do not claim Karko runs Opus 5 today. It does not.**
 
 ### Who writes the code?
 
