@@ -25,7 +25,7 @@ A single full application costs 2 credits. A standalone Fit Analysis costs 0.5 c
 
 ## Core Features
 
-- **Smart Job Feed**: AI-curated daily job matches based on your Master CV (Plus: 15 per day, Max: 25 per day).
+- **Smart Job Feed**: AI-curated daily job matches based on your Master CV (up to 25 per day on Plus and Max; Plus searches 2 job titles across 2 countries, Max searches 4 across 4).
 - **AI CV Optimization**: Tailors your CV to each job description while preserving your real experience. Zero fabrication.
 - **Smart Fit Analysis**: Scores your match against job requirements (0 to 100), identifies gaps, gives honest go or no-go assessments before you apply.
 - **Personalized Cover Letters**: Human-sounding cover letters that reference specific company and role details, built from your real CV.

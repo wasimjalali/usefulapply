@@ -293,7 +293,7 @@ const faqs = [
   {
     question: 'What is the difference between Free, Plus and Max?',
     answer:
-      'Every plan gets the full workflow: tailored CV, cover letter, application email, follow-up, screening question answers, fit analysis, ATS templates, and the application tracker. Plus and Max both add the Smart Job Feed at up to 25 roles a day, plus add-on credit packs. Max searches wider, 4 job titles across 4 countries against Plus at 2 and 2, and adds premium dedicated support. The main difference between plans is how many applications you can generate each month.',
+      'Free gets the core workflow: tailored CV, cover letter, application email, follow-up, fit analysis, ATS templates and the application tracker. Plus and Max add screening question answers, add-on credit packs and the Smart Job Feed at up to 25 roles a day. Max searches wider, 4 job titles across 4 countries against Plus at 2 and 2, and adds premium dedicated support. The main difference between plans is how many applications you can generate each month.',
   },
   {
     question: 'How does fit analysis work?',
