@@ -11,7 +11,7 @@ import { buildPageMetadata } from '@/lib/seo/metadata';
 export const metadata: Metadata = buildPageMetadata({
   title: 'About Karko AI: The AI Job Application Agent Built by a Job Seeker',
   description:
-    'Karko AI is the AI job application agent that replaces the seven tools job seekers stitch together. Find roles, check fit, write the full application, track everything. Built by a founder who got 5 interviews from 50+ applications using it, then got hired through it.',
+    'Karko AI is the AI job application agent that replaces the seven tools job seekers stitch together. Find roles, check fit, write the full application, track everything. Built by a founder who was hired as an AI Specialist through an application Karko wrote, after 60+ applications as a first-time job seeker.',
   canonical: '/about',
 });
 
@@ -30,7 +30,7 @@ const founderPersonJsonLd = {
     url: SITE_URL,
   },
   description:
-    'Wasim Jalali is the founder of Karko AI. He built the early version of the tool for his own job search, got 5 interviews from 50+ applications using it, and was hired as an AI Specialist through an application Karko generated.',
+    'Wasim Jalali is the founder of Karko AI. He built the tool for his own job search as a first-time job seeker, sent 60+ applications through it, got 5 interviews, and was hired as an AI Specialist through an application Karko generated.',
 };
 
 const aboutBreadcrumbJsonLd = {
@@ -199,17 +199,17 @@ export default function AboutPage() {
                 Founder&apos;s story
               </p>
               <h2 className="font-bold text-navy-600 text-[28px] md:text-[32px] leading-[1.15] mb-6">
-                The tool I wished I had.
+                The tool I built got me hired.
               </h2>
               <div className="border-l-2 border-gold-400 pl-6 space-y-4">
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
                   I ran out of money building a startup in Germany. No savings, no degree to fall back on. I&apos;d taught myself to code in three months and shipped real products. None of it helped. Generic applications got me zero interviews, and tailoring each one by hand took 45 to 60 minutes.
                 </p>
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  So I built Karko to run the whole workflow. Over 50 applications, I got 5 interviews. That&apos;s roughly 10 percent, against an industry baseline of 2 to 3 percent. First-time job seeker, no formal background.
+                  So I built Karko to run the whole workflow, then pointed it at my own search. Sixty-plus applications, every one written by Karko. Five came back as interviews. One became the offer I took.
                 </p>
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  Then it did the thing I actually built it for. I was hired as an AI Specialist through an application Karko generated. That&apos;s the job I have today. Karko is the tool I wish I&apos;d had on day one of that search. It&apos;s the one I keep building.
+                  <strong className="font-semibold">I was hired as an AI Specialist through an application my own product wrote.</strong> First-time job seeker, no degree, in a market where most people send hundreds and never hear back. That&apos;s the job I have today. The product didn&apos;t just help me apply. It got me the job.
                 </p>
               </div>
             </div>

@@ -175,9 +175,9 @@ Together, these two scores collapse the entire "am I wasting my time on this app
 
 ## What the math actually looks like
 
-One of the few specific numbers the founder uses about Karko is his own. Over 50 applications sent through the agent, he got 5 interviews. Roughly a 10% interview rate. The industry baseline for tailored applications sits at 2 to 3%. He did not fudge the CV. He was a first-time job seeker with a founder background and no degree, applying in Germany. The only variable was the tool.
+One of the few specific numbers the founder uses about Karko is his own. Sixty-plus applications sent through the agent, 5 interviews, and the job he holds today. He was hired as an AI Specialist through an application Karko wrote. The interview rate works out around 8%, against an industry baseline of 2 to 3% for tailored applications. He did not fudge the CV. He was a first-time job seeker with a founder background and no degree, applying in Germany. The only variable was the tool.
 
-Here is another way to think about the same thing. Manual tailoring of a single application runs about 60 minutes if you are disciplined, more if you are tired. Karko does it in 90 seconds. That is roughly 40x faster. Multiply over 50 applications and you are looking at the difference between two weekends and two full work weeks.
+Here is another way to think about the same thing. Manual tailoring of a single application runs about 60 minutes if you are disciplined, more if you are tired. Karko does it in 90 seconds. That is roughly 40x faster. Multiply over 60 applications and you are looking at the difference between two weekends and two full work weeks.
 
 Time saved is not the whole story, though. The quieter win is what you do with the time. You spend it preparing for the interview. You spend it researching the company beyond the careers page. You spend it calling a friend who worked there. You spend it sleeping.
 
@@ -223,7 +223,7 @@ One app for your entire job search.
 
 ---
 
-*Wasim Jalali is the founder of Karko AI, the AI job application agent. He built Karko after running out of money on a startup in Germany and spending months applying to jobs by hand. Over 50 applications through Karko, he got 5 interviews. Roughly 10%, against an industry baseline of 2 to 3%.*`,
+*Wasim Jalali is the founder of Karko AI, the AI job application agent. He built Karko after running out of money on a startup in Germany and spending months applying to jobs by hand. Sixty-plus applications through Karko later, he was hired as an AI Specialist through an application his own product wrote.*`,
     author: {
       name: 'Wasim Jalali',
       role: 'Founder, Karko AI',

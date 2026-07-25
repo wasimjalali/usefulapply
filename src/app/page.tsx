@@ -325,14 +325,14 @@ export default function Home() {
                 A note from the founder
               </p>
               <h2 className="font-bold text-navy-600 text-[28px] md:text-[32px] leading-[1.15] mb-6">
-                The tool I wished I had.
+                The tool I built got me hired.
               </h2>
               <div className="border-l-2 border-gold-400 pl-6 space-y-4">
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
                   I ran out of money building a startup in Germany. No savings, no degree to fall back on. Generic applications got me zero interviews. Tailoring each one by hand took 45 to 60 minutes, and it still wasn&apos;t working.
                 </p>
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  So I built Karko to run the whole workflow. Over 50 applications, I got 5 interviews. That&apos;s roughly 10 percent, against a baseline of 2 to 3 percent. Then I was hired as an AI Specialist through an application Karko generated. First-time job seeker, no formal background, in a market where most people send hundreds and never hear back. That&apos;s when I knew Karko couldn&apos;t stay a personal tool.
+                  So I built Karko to run the whole workflow. Then it got me hired. Sixty-plus applications, every one written by Karko. Five interviews. And the job I have today, as an AI Specialist, from an application my own product wrote. First-time job seeker, no formal background, in a market where most people send hundreds and never hear back. That&apos;s when I knew Karko couldn&apos;t stay a personal tool.
                 </p>
               </div>
             </div>

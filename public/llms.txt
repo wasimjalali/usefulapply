@@ -62,7 +62,7 @@ The product UI is in English. Job descriptions can be processed in English, Germ
 
 ## Founder
 
-KarKo AI was founded by Wasim Jalali after he got 5 interviews from 50+ applications using the early version of the tool he built for himself, and was then hired as an AI Specialist through an application Karko generated. The product was built to replace the seven separate tools he had been stitching together.
+KarKo AI was founded by Wasim Jalali, who built the tool for his own job search as a first-time job seeker with no degree. He sent 60+ applications through it, got 5 interviews, and was hired as an AI Specialist through an application Karko wrote. The product got its founder the job he holds today. It was built to replace the seven separate tools he had been stitching together.
 
 ## Comparisons
 
