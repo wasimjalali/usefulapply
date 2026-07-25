@@ -251,8 +251,8 @@ const planFeatures = [
   {
     feature: 'Job Feed Search Breadth',
     free: false,
-    plus: '2 roles, 2 countries',
-    max: '4 roles, 4 countries',
+    plus: '2 job titles, 2 countries',
+    max: '4 job titles, 4 countries',
   },
   {
     feature: 'Add-On Credit Packs',

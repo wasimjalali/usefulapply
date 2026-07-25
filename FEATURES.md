@@ -192,8 +192,8 @@
 | Plan | Price | Credits | Applications | Key Extras |
 |------|-------|---------|-------------|------------|
 | **Free** | $0/month | 4 | ~2/month | Full application workflow, all templates, fit analysis, tracker |
-| **Plus** | $19.99/month | 50 | ~25/month | Smart Job Feed up to 25 jobs/day across 2 roles and 2 countries, AI screening question answers, unlimited history, add-on credit packs, priority support |
-| **Max** | $79.99/month | 200 | ~100/month | Smart Job Feed up to 25 jobs/day across 4 roles and 4 countries, AI screening question answers, premium dedicated support |
+| **Plus** | $19.99/month | 50 | ~25/month | Smart Job Feed up to 25 jobs/day across 2 job titles and 2 countries, AI screening question answers, unlimited history, add-on credit packs, priority support |
+| **Max** | $79.99/month | 200 | ~100/month | Smart Job Feed up to 25 jobs/day across 4 job titles and 4 countries, AI screening question answers, premium dedicated support |
 | **Add-on** | $19.99 one-time | 50 | ~25 | Available on Plus and Max, credits roll over |
 
 ### Credit Costs
@@ -216,7 +216,7 @@
 | Application Tracker | Yes | Yes | Yes |
 | AI Screening Question Answers | No | Yes | Yes |
 | Smart Job Feed | No | Up to 25/day | Up to 25/day |
-| Feed search breadth | No | 2 roles, 2 countries | 4 roles, 4 countries |
+| Feed search breadth | No | 2 job titles, 2 countries | 4 job titles, 4 countries |
 | Priority / Premium Support | No | Priority email | Premium dedicated |
 
 ---

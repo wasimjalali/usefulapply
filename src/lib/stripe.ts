@@ -79,7 +79,7 @@ export const PLANS = {
     credits: 50,
     features: [
       '25 applications/month',
-      'Smart Job Feed: 25 jobs/day, 2 roles x 2 countries',
+      'Smart Job Feed: 25 jobs/day, 2 job titles x 2 countries',
       'Full application workflow',
       'Screening question answers',
       'Application tracker',
@@ -94,7 +94,7 @@ export const PLANS = {
     credits: 200,
     features: [
       '100 applications/month',
-      'Smart Job Feed: 25 jobs/day, 4 roles x 4 countries',
+      'Smart Job Feed: 25 jobs/day, 4 job titles x 4 countries',
       'Full application workflow',
       'Screening question answers',
       'Application tracker',
