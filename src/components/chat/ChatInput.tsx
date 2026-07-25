@@ -120,7 +120,7 @@ export function ChatInput({
                   aria-label="Stop generation"
                   className="flex-shrink-0 w-9 h-9 rounded-full bg-gold-400 hover:bg-gold-500 flex items-center justify-center shadow-sm transition-colors duration-200 animate-pulse cursor-pointer"
                 >
-                  <Square className="w-3.5 h-3.5 text-navy-900 fill-current" />
+                  <Square className="w-3.5 h-3.5 text-white fill-current" />
                 </button>
               ) : (
                 <button
@@ -130,7 +130,7 @@ export function ChatInput({
                   aria-label="Send message"
                   className="flex-shrink-0 w-9 h-9 rounded-full bg-gold-400 hover:bg-gold-500 disabled:bg-cream-200 disabled:text-warm-gray disabled:cursor-not-allowed flex items-center justify-center shadow-sm transition-colors duration-200 cursor-pointer"
                 >
-                  <Send className={`w-4 h-4 ${!value.trim() || disabled ? 'text-warm-gray' : 'text-navy-900'}`} />
+                  <Send className={`w-4 h-4 ${!value.trim() || disabled ? 'text-warm-gray' : 'text-white'}`} />
                 </button>
               )}
             </div>

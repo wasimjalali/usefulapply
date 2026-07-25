@@ -93,7 +93,7 @@ export function InsufficientCreditsModal({
 
           {/* === PLUS === */}
           <div className="relative flex flex-col bg-cream-50 rounded-2xl border-2 border-gold-400 shadow-xl overflow-hidden">
-            <div className="h-[36px] flex items-center justify-center bg-gold-400 text-navy-900 text-[11px] font-bold tracking-[0.14em]">
+            <div className="h-[36px] flex items-center justify-center bg-gold-400 text-white text-[11px] font-bold tracking-[0.14em]">
               MOST POPULAR
             </div>
             <div className="p-6 pt-4 flex flex-col flex-1">
@@ -162,7 +162,7 @@ export function InsufficientCreditsModal({
               <button
                 onClick={() => handleUpgrade('max')}
                 disabled={loadingPlan !== null}
-                className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-navy-900 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-60 mb-5 group"
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-white shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-60 mb-5 group"
               >
                 {loadingPlan === 'max'
                   ? <Loader2 className="w-4 h-4 animate-spin" />

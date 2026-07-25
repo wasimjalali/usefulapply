@@ -216,7 +216,7 @@ export default function PricingPage() {
             {/* === PLUS === */}
             <ScrollReveal delay={100} className="h-full">
             <div className="relative h-full flex flex-col bg-cream-50 rounded-2xl border-2 border-gold-400 shadow-xl overflow-hidden">
-              <div className="h-[36px] flex items-center justify-center bg-gold-400 text-navy-900 text-[11px] font-bold tracking-[0.14em]">
+              <div className="h-[36px] flex items-center justify-center bg-gold-400 text-white text-[11px] font-bold tracking-[0.14em]">
                 MOST POPULAR
               </div>
               <div className="p-7 pt-5 flex flex-col h-full">
@@ -284,7 +284,7 @@ export default function PricingPage() {
                 <button
                   onClick={() => handleSubscribe('max')}
                   disabled={loadingPlan === 'max'}
-                  className="cta-gold w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-navy-900 shadow-sm cursor-pointer disabled:opacity-60 mb-6 group"
+                  className="cta-gold w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-white shadow-sm cursor-pointer disabled:opacity-60 mb-6 group"
                 >
                   {loadingPlan === 'max' ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Max <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
                 </button>
@@ -348,7 +348,7 @@ export default function PricingPage() {
                   <button
                     onClick={() => handleBuyAddon(pack.name.split(' ')[0].toLowerCase())}
                     disabled={loadingAddon === pack.name.split(' ')[0].toLowerCase()}
-                    className="cta-gold px-6 py-4 rounded-xl bg-gold-400 hover:bg-gold-500 text-navy-900 font-bold text-[18px] shadow-sm cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2 group"
+                    className="cta-gold px-6 py-4 rounded-xl bg-gold-400 hover:bg-gold-500 text-white font-bold text-[18px] shadow-sm cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2 group"
                   >
                     {loadingAddon === pack.name.split(' ')[0].toLowerCase()
                       ? <Loader2 className="w-5 h-5 animate-spin" />

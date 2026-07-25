@@ -298,7 +298,7 @@ function Footer({
           type="button"
           disabled={!canSave || isSaving}
           onClick={onSave}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-gold-400 px-6 py-2.5 text-sm font-semibold text-navy-900 shadow-sm transition-all duration-200 hover:bg-gold-500 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-gold-400 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-gold-500 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           {isSaving ? 'Saving' : cta}

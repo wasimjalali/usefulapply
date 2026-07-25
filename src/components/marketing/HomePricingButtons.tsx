@@ -80,7 +80,7 @@ export function MaxPlanButton() {
     <button
       onClick={handleClick}
       disabled={loading}
-      className="cta-gold w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-navy-900 shadow-sm cursor-pointer disabled:opacity-70 group"
+      className="cta-gold w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-white shadow-sm cursor-pointer disabled:opacity-70 group"
     >
       {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Max <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
     </button>

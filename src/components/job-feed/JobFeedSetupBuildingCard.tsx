@@ -89,7 +89,7 @@ export function JobFeedSetupBuildingCard() {
                 <div
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
                     state === 'done'
-                      ? 'bg-gold-400 text-navy-900'
+                      ? 'bg-gold-400 text-white'
                       : state === 'in_progress'
                         ? 'bg-navy-50 text-navy-700'
                         : 'bg-cream-100 text-warm-gray'

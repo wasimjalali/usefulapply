@@ -818,7 +818,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
                         disabled={!heroJdValid}
                         className={`w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold rounded-lg shadow-sm transition-colors duration-200 cursor-pointer ${
                           heroJdValid
-                            ? 'bg-gold-400 text-navy-900 hover:bg-gold-500'
+                            ? 'bg-gold-400 text-white hover:bg-gold-500'
                             : 'bg-cream-200 text-warm-gray cursor-not-allowed'
                         } ${heroJustActivated ? 'ring-2 ring-gold-300' : ''}`}
                       >
@@ -876,7 +876,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
                   <div className="mt-6 pt-5 border-t border-cream-200 text-center">
                     <button
                       onClick={() => { setSignUpWallTrigger('general'); setShowSignUpWall(true); }}
-                      className="cta-gold w-full px-4 py-2.5 text-sm font-semibold bg-gold-400 text-navy-900 rounded-lg hover:bg-gold-500 shadow-sm cursor-pointer"
+                      className="cta-gold w-full px-4 py-2.5 text-sm font-semibold bg-gold-400 text-white rounded-lg hover:bg-gold-500 shadow-sm cursor-pointer"
                     >
                       Sign up free
                     </button>
@@ -1010,7 +1010,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
             <div className="flex justify-end gap-2 mt-2">
               <button
                 onClick={() => handleAction('generate-full-application')}
-                className="flex items-center gap-2 rounded-full bg-gold-400 text-navy-900 px-4 py-2.5 text-sm font-semibold shadow-sm hover:bg-gold-500 transition-colors duration-200 cursor-pointer"
+                className="flex items-center gap-2 rounded-full bg-gold-400 text-white px-4 py-2.5 text-sm font-semibold shadow-sm hover:bg-gold-500 transition-colors duration-200 cursor-pointer"
               >
                 <Zap className="w-4 h-4" />
                 Generate Kit
@@ -1035,7 +1035,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
                 onClick={() => {
                   void handleAction('start-screening-flow');
                 }}
-                className="flex items-center gap-2 rounded-full border border-gold-400 bg-gold-400 text-navy-900 px-4 py-2.5 text-sm font-semibold shadow-sm hover:bg-gold-500 hover:border-gold-500 transition-colors duration-200 cursor-pointer"
+                className="flex items-center gap-2 rounded-full border border-gold-400 bg-gold-400 text-white px-4 py-2.5 text-sm font-semibold shadow-sm hover:bg-gold-500 hover:border-gold-500 transition-colors duration-200 cursor-pointer"
               >
                 Answer Screening Questions
               </button>

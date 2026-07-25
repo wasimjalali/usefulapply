@@ -1176,7 +1176,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
                 <button
                   type="button"
                   onClick={requestJdFocus}
-                  className="inline-flex flex-shrink-0 items-center gap-2 rounded-lg bg-gold-400 px-3.5 py-2 text-sm font-semibold text-navy-900 shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer"
+                  className="inline-flex flex-shrink-0 items-center gap-2 rounded-lg bg-gold-400 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4" />
                   Tailor for a job
