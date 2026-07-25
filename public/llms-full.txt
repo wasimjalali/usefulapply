@@ -40,7 +40,7 @@ All prices are in USD. A single full application costs 2 credits. A standalone F
 ### Plus
 - **$19.99 / month**
 - 50 credits per month (about 25 full applications)
-- Smart Job Feed: 15 hand-picked roles per day
+- Smart Job Feed: up to 25 hand-picked roles per day, searching 2 job titles across 2 countries
 - AI-drafted screening question answers (up to 2 sessions per application)
 - Priority support
 - Can buy add-on credit packs
@@ -118,8 +118,8 @@ Read more: https://www.karkoai.com/ai-job-application/zero-fabrication.
 
 The Smart Job Feed (Plus and Max only) returns hand-picked roles every day based on the user's Master CV.
 
-- Plus: 15 roles per day
-- Max: 25 roles per day
+- Plus: up to 25 roles per day, searched across 2 job titles and 2 countries
+- Max: up to 25 roles per day, searched across 4 job titles and 4 countries
 
 The feed uses a five-layer pipeline: ingestion from public job sources, a prefilter for hard 99%+ reliable constraints (employment type, salary floor, sponsorship language), an LLM ranker that reads the job description against the Master CV, batch reconciliation, and a daily settings flow.
 
@@ -183,7 +183,7 @@ Resume.io is a template-based resume builder. KarKo replaces seven separate job-
 
 ## 10. The Founder
 
-KarKo AI was founded by Wasim Jalali after he got 5 interviews from 50+ applications using the early version of the tool he built for his own job search. The product was built to replace the seven separate tools he had been stitching together.
+KarKo AI was founded by Wasim Jalali, who built the tool for his own job search as a first-time job seeker with no degree. He sent 60+ applications through it, got 5 interviews, and was hired as an AI Specialist through an application Karko wrote. The product got its founder the job he holds today. It was built to replace the seven separate tools he had been stitching together.
 
 The founder story is at https://www.karkoai.com/about.
 

@@ -240,7 +240,8 @@ export function SubscriptionSection({
             <tbody>
               {([
                 { label: 'Applications/month',            free: '2',      plus: '25',     max: '100' },
-                { label: 'Smart Job Feed',                free: false,    plus: '15/day', max: '25/day' },
+                { label: 'Smart Job Feed',                free: false,    plus: '25/day', max: '25/day' },
+                { label: 'Feed search breadth',           free: false,    plus: '2 job titles, 2 countries', max: '4 job titles, 4 countries' },
                 { label: 'CV + Cover Letter + Email + Follow-up', free: true, plus: true, max: true },
                 { label: 'Match score',                    free: true,     plus: true,     max: true },
                 { label: 'ATS-optimized templates',       free: true,     plus: true,     max: true },

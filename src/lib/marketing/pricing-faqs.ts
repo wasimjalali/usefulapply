@@ -12,7 +12,7 @@ export const pricingFAQs: PricingFAQ[] = [
   {
     question: 'Are all features the same across plans?',
     answer:
-      'Yes. Every plan gets the full workflow: tailored CV, cover letter, application email, follow-up, screening question answers, fit analysis, ATS templates, and the application tracker. Plus and Max add the Smart Job Feed (15 roles a day on Plus, 25 on Max). The main difference between plans is how many applications you can generate each month.',
+      'Nearly. Free gets the core workflow: tailored CV, cover letter, application email, follow-up, fit analysis, ATS templates and the application tracker. Plus and Max add screening question answers and the Smart Job Feed at up to 25 roles a day. Max searches wider, 4 job titles across 4 countries against Plus at 2 and 2. The main difference between plans is how many applications you can generate each month.',
   },
   {
     question: 'What happens if I run out of credits?',

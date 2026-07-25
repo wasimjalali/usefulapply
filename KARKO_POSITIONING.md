@@ -208,7 +208,7 @@ This section exists so any future session can immediately see the drift and fix 
 
 | Old (wrong) framing | Current (correct) framing | Why we changed |
 |---|---|---|
-| "Within about 20 applications, I got my first interview" | "Over 50 applications, I got 5 interviews. Roughly 10%, against an industry baseline of 2-3%" | The old number is softer and doesn't prove the thesis. The new number is the actual result, with a benchmark that makes the 10% number mean something. |
+| "Within about 20 applications, I got my first interview" | "60+ applications through Karko, 5 interviews, and the job I hold today" | An interview is a step. A hire is the outcome, and it is the one number that proves the product works. Updated 2026-07-25: lead with the hire, keep the interview count as support. |
 
 ### Voice
 
@@ -296,7 +296,7 @@ All bios use the two-tagline system: "Founder, Karko AI" as the anchor, then the
 >
 > Karko replaces the seven tools job seekers stitch together today (job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, tracker) with one loop: find the role, check the fit, write the full application, track everything. Every word traces back to your real CV. Nothing invented.
 >
-> I built Karko because I needed it myself. First-time job seeker with a founder background, no degree, applying in Germany. Generic applications got me zero interviews. Tailoring each one by hand took an hour and still did not work. So I built the thing. Over 50 applications through Karko, I got 5 interviews, roughly 10% versus a 2-3% industry baseline. That's when I knew every job seeker needed this.
+> I built Karko because I needed it myself. First-time job seeker with a founder background, no degree, applying in Germany. Generic applications got me zero interviews. Tailoring each one by hand took an hour and still did not work. So I built the thing, then pointed it at my own search. Sixty-plus applications through Karko, 5 interviews, and the job I hold today. I was hired as an AI Specialist through an application my own product wrote. That's when I knew every job seeker needed this.
 >
 > I post about AI, job search strategy, and what actually works in 2026. If you're in the middle of a search, follow along.
 >
@@ -321,7 +321,7 @@ All bios use the two-tagline system: "Founder, Karko AI" as the anchor, then the
 ### Rules for updating bios
 
 - If the taglines in §1.5 change, update every bio in this section to match. Tagline changes must cascade everywhere.
-- Never add buzzwords ("passionate," "visionary," "disruptor," "game-changer") to any bio. The founder dogfood stat (5 interviews from 50+ applications, ~10% vs 2-3%) is the credibility, not adjectives.
+- Never add buzzwords ("passionate," "visionary," "disruptor," "game-changer") to any bio. The founder outcome (hired as an AI Specialist through an application Karko wrote, after 60+ applications and 5 interviews) is the credibility, not adjectives. Lead with the hire, not the interview rate.
 - Platforms where you actively post (YouTube and LinkedIn as of April 2026) get full content. Platforms you do not focus on (X, Facebook) do not need bios; add them only when you decide to activate.
 - The YouTube long bio and LinkedIn About both include the founder origin story because those platforms reward narrative. The short bios do not, because those platforms reward brevity.
 
@@ -376,7 +376,7 @@ All bios use the two-tagline system: "Founder, Karko AI" as the anchor, then the
 
 ### Do
 - **Use second person.** "You," not "users," "candidates," or "job seekers."
-- **Use specific numbers.** 25 jobs, 90 seconds, 7 tools, 10 percent. Specifics beat adjectives.
+- **Use specific numbers.** 25 jobs, 90 seconds, 7 tools, 60+ applications, one hire. Specifics beat adjectives.
 - **Use contractions.** "You're," "it's," "we'll," "don't."
 - **Short sentences. One idea per sentence.**
 - **Describe the user's current reality before introducing Karko.** Recognition beats persuasion.
@@ -431,7 +431,7 @@ Build a library of 10 short videos. Each one picks ONE feature and ONE pain. All
 6. **Follow-up email** — Hook: "Most candidates never follow up." Reveal: Karko pre-drafts the follow-up for 7 to 10 days after you apply.
 7. **Tracker** — Hook: "Which company was that one again?" Reveal: Every application saves automatically with match score and status.
 8. **ATS templates** — Hook: "76% of resumes get rejected by robots." Reveal: Every Karko template is ATS-safe by default.
-9. **Founder story** — Hook: "I ran out of money in Germany building a startup." Reveal: 10% interview rate using Karko vs 2-3% industry baseline.
+9. **Founder story** — Hook: "I ran out of money in Germany building a startup." Reveal: the tool I built got me hired. 60+ applications through Karko, 5 interviews, and the AI Specialist job I hold today.
 10. **Real output** — Screen-record a 90-second generation end to end. No voice, just text overlays and the product. Pure proof.
 
 **Every one of the 10 ends with:** a 2-second end card showing the Karko logo + the tagline **"Your entire job search, in one app."**
@@ -468,7 +468,7 @@ Pick the taglines. Pick the end-card. Ship every piece of content with both. Do 
 
 Use these wherever credibility matters. They're ranked by strength.
 
-1. **Founder dogfood:** 5 interviews from 50+ applications as a first-time job seeker with a founder background. Roughly 10% conversion rate vs 2-3% industry baseline. *(User-facing: "Built by a founder who used it to land interviews at a 10% rate, against an industry baseline of 2-3%.")*
+1. **Founder dogfood, and the strongest proof we have:** Wasim was **hired as an AI Specialist through an application Karko wrote**, as a first-time job seeker with no degree. 60+ applications through Karko, 5 interviews (roughly 8% against a 2-3% industry baseline), one offer, accepted. *(User-facing: "Built by a founder who got hired through it.")* **Always lead with the hire.** The interview rate is the supporting number, not the headline. An interview rate is a metric; a job is an outcome, and the outcome is what validates the product.
 2. **Tool replacement count:** 7-8 tools replaced by 1 workflow.
 3. **Time per application:** Under 2 minutes (90 seconds generation + review). Roughly 40x faster than manual tailoring.
 4. **Daily role discovery:** Up to 25 personalized roles per day.
@@ -541,7 +541,7 @@ These are the five categories people might file Karko under that are all wrong. 
 
 ---
 
-## 15. Current state of the website (as of April 2026)
+## 15. Current state of the website (April 2026 snapshot, pricing gating current as of 2026-07-25)
 
 Reference snapshot so future sessions know what's already been aligned and what hasn't.
 
@@ -556,11 +556,14 @@ Reference snapshot so future sessions know what's already been aligned and what 
 | ATS-optimized templates (6 designs) | ✅ | ✅ | ✅ |
 | Application tracker | ✅ | ✅ | ✅ |
 | **Screening question answers** | ❌ | **✅** | ✅ |
-| Smart Job Feed | ❌ | Up to 15/day | Up to 25/day |
+| Smart Job Feed | ❌ | Up to 25/day | Up to 25/day |
+| Feed search breadth | ❌ | 2 job titles, 2 countries | 4 job titles, 4 countries |
 | Add-on credit packs | ❌ | ✅ | ✅ |
 | Support | Standard | Priority email | Premium dedicated |
 
-**Key decision (April 2026):** Screening question answers moved from Max-only to Plus+. This made the "Every plan, every feature. Pick your volume." headline accurate and honest. Max's differentiation now rests on volume (4x credits), Feed size (25 vs 15/day), and support tier.
+**Key decision (April 2026):** Screening question answers moved from Max-only to Plus+. This made the "Every plan, every feature. Pick your volume." headline accurate and honest.
+
+**Key decision (May 2026, copy corrected 2026-07-25):** Plus was raised to the same 25/day visible cap as Max in commit `dbab57bc`, so a strong day's genuine matches are never truncated on either plan. **Max's differentiation is no longer feed size.** It now rests on volume (4x credits), **feed search breadth** (4 job titles and 4 countries against Plus's 2 and 2, which is 4 SerpAPI queries a day against 2), and support tier. Every surface still saying "15/day" had been stale for two months and was corrected on 2026-07-25.
 
 ### Aligned with this doc
 - Homepage hero H1 + sub-head
@@ -630,7 +633,7 @@ These appeared on the features page and were removed because they cannot be defe
 - "Sending application emails increases response rates by up to 40%"
 - Any phrasing like "Nobody else offers this" or "Unique feature (only Karko AI offers this)" — absolute claims that are either untrue or unfalsifiable
 
-Acceptable substitutes: "another thing the other tools do not do," "roughly 40x faster" (math-defensible: 60 min manual ÷ 90 sec Karko ≈ 40x), "10% interview rate vs 2-3% industry baseline" (founder's real number).
+Acceptable substitutes: "another thing the other tools do not do," "roughly 40x faster" (math-defensible: 60 min manual ÷ 90 sec Karko ≈ 40x), "hired as an AI Specialist through an application Karko wrote" (the founder's real outcome, and the strongest claim we own).
 
 If you audit any of these, use §5 (old vs new framing) to spot-fix, and §12 (the test) to validate.
 

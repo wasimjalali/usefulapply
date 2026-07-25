@@ -233,7 +233,7 @@ export default function Home() {
               {
                 step: 2,
                 title: 'Skip the job boards',
-                description: 'Every morning, up to 25 roles picked for you. Matched to your CV, your goals, your location. No keyword searches.',
+                description: 'Every morning, up to 25 roles picked for you on Plus and Max. Matched to your CV, your goals, your location. No keyword searches.',
                 accent: '/images/gpt-03-compass-card.webp',
                 accentAlt: 'Compass brand illustration',
               },
@@ -325,14 +325,14 @@ export default function Home() {
                 A note from the founder
               </p>
               <h2 className="font-bold text-navy-600 text-[28px] md:text-[32px] leading-[1.15] mb-6">
-                The tool I wished I had.
+                The tool I built got me hired.
               </h2>
               <div className="border-l-2 border-gold-400 pl-6 space-y-4">
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  I ran out of money building a startup in Germany. No savings, no degree to fall back on. Generic applications got me zero interviews. Tailoring each one by hand took 45 to 60 minutes, and it still was not working.
+                  I ran out of money building a startup in Germany. No savings, no degree to fall back on. Generic applications got me zero interviews. Tailoring each one by hand took 45 to 60 minutes, and it still wasn&apos;t working.
                 </p>
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  So I built Karko to do the whole workflow automatically. Sixty applications later, I landed my first job. First-time job seeker, no formal background, in a market where most people send hundreds and never hear back. That is when I knew Karko could not stay a personal tool. Every job seeker stuck where I was deserves the same shot.
+                  So I built Karko to run the whole workflow. Then it got me hired. Sixty-plus applications, every one written by Karko. Five interviews. And the job I have today, as an AI Specialist, from an application my own product wrote. First-time job seeker, no formal background, in a market where most people send hundreds and never hear back. That&apos;s when I knew Karko couldn&apos;t stay a personal tool.
                 </p>
               </div>
             </div>

@@ -246,7 +246,8 @@ export default function PricingPage() {
                   {[
                     { label: '50 credits per month', emphasis: true },
                     { label: '25 full applications per month' },
-                    { label: 'Smart Job Feed: up to 15 roles a day' },
+                    { label: 'Smart Job Feed: up to 25 roles a day' },
+                    { label: 'Feed searches 2 job titles across 2 countries' },
                     { label: 'Screening question answers' },
                     { label: 'Unlimited application tracker' },
                     { label: 'Add-on credit packs (credits roll over)' },
@@ -293,7 +294,7 @@ export default function PricingPage() {
                   {[
                     { label: '200 credits per month', emphasis: true },
                     { label: '100 full applications per month' },
-                    { label: 'Smart Job Feed: up to 25 roles a day' },
+                    { label: 'Feed searches 4 job titles across 4 countries' },
                     { label: 'Premium dedicated support' },
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">
