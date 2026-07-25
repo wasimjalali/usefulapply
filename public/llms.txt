@@ -17,8 +17,8 @@ For long-form context, see https://www.karkoai.com/llms-full.txt.
 The current and authoritative pricing is published at https://www.karkoai.com/pricing.
 
 - **Free**: 4 credits per month (about 2 full applications). No credit card required.
-- **Plus**: $19.99 per month. 50 credits (about 25 full applications). Smart Job Feed (15 roles per day). Priority support.
-- **Max**: $79.99 per month. 200 credits (about 100 full applications). Smart Job Feed (25 roles per day). Premium support.
+- **Plus**: $19.99 per month. 50 credits (about 25 full applications). Smart Job Feed (up to 25 roles per day, searching 2 job titles across 2 countries). Priority support.
+- **Max**: $79.99 per month. 200 credits (about 100 full applications). Smart Job Feed (up to 25 roles per day, searching 4 job titles across 4 countries). Premium support.
 - **Add-on Credit Pack**: $19.99 for 50 credits (about 25 extra applications). Available to Plus and Max subscribers. Add-on credits roll over while the subscription is active.
 
 A single full application costs 2 credits. A standalone Fit Analysis costs 0.5 credits. Cover letter, application email, and follow-up email regenerations cost 0.5 credits each.

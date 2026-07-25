@@ -40,7 +40,7 @@ All prices are in USD. A single full application costs 2 credits. A standalone F
 ### Plus
 - **$19.99 / month**
 - 50 credits per month (about 25 full applications)
-- Smart Job Feed: 15 hand-picked roles per day
+- Smart Job Feed: up to 25 hand-picked roles per day, searching 2 job titles across 2 countries
 - AI-drafted screening question answers (up to 2 sessions per application)
 - Priority support
 - Can buy add-on credit packs
@@ -118,8 +118,8 @@ Read more: https://www.karkoai.com/ai-job-application/zero-fabrication.
 
 The Smart Job Feed (Plus and Max only) returns hand-picked roles every day based on the user's Master CV.
 
-- Plus: 15 roles per day
-- Max: 25 roles per day
+- Plus: up to 25 roles per day, searched across 2 job titles and 2 countries
+- Max: up to 25 roles per day, searched across 4 job titles and 4 countries
 
 The feed uses a five-layer pipeline: ingestion from public job sources, a prefilter for hard 99%+ reliable constraints (employment type, salary floor, sponsorship language), an LLM ranker that reads the job description against the Master CV, batch reconciliation, and a daily settings flow.
 

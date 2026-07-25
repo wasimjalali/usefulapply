@@ -556,11 +556,14 @@ Reference snapshot so future sessions know what's already been aligned and what 
 | ATS-optimized templates (6 designs) | ✅ | ✅ | ✅ |
 | Application tracker | ✅ | ✅ | ✅ |
 | **Screening question answers** | ❌ | **✅** | ✅ |
-| Smart Job Feed | ❌ | Up to 15/day | Up to 25/day |
+| Smart Job Feed | ❌ | Up to 25/day | Up to 25/day |
+| Feed search breadth | ❌ | 2 roles, 2 countries | 4 roles, 4 countries |
 | Add-on credit packs | ❌ | ✅ | ✅ |
 | Support | Standard | Priority email | Premium dedicated |
 
-**Key decision (April 2026):** Screening question answers moved from Max-only to Plus+. This made the "Every plan, every feature. Pick your volume." headline accurate and honest. Max's differentiation now rests on volume (4x credits), Feed size (25 vs 15/day), and support tier.
+**Key decision (April 2026):** Screening question answers moved from Max-only to Plus+. This made the "Every plan, every feature. Pick your volume." headline accurate and honest.
+
+**Key decision (May 2026, copy corrected 2026-07-25):** Plus was raised to the same 25/day visible cap as Max in commit `dbab57bc`, so a strong day's genuine matches are never truncated on either plan. **Max's differentiation is no longer feed size.** It now rests on volume (4x credits), **feed search breadth** (4 roles and 4 countries against Plus's 2 and 2, which is 4 SerpAPI queries a day against 2), and support tier. Every surface still saying "15/day" had been stale for two months and was corrected on 2026-07-25.
 
 ### Aligned with this doc
 - Homepage hero H1 + sub-head

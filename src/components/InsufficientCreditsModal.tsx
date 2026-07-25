@@ -126,7 +126,7 @@ export function InsufficientCreditsModal({
                 {[
                   { label: '50 credits per month', emphasis: true },
                   { label: '25 full applications per month' },
-                  { label: 'Smart Job Feed: up to 15 roles a day' },
+                  { label: 'Smart Job Feed: up to 25 roles a day' },
                   { label: 'Screening question answers' },
                   { label: 'Unlimited application tracker' },
                   { label: 'Add-on credit packs (credits roll over)' },

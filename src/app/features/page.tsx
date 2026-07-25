@@ -39,7 +39,7 @@ const features = [
     benefits: [
       'Delivered every morning at your chosen hour',
       'Ranked by real fit against your CV, not keyword match',
-      'Up to 15 roles a day on Plus, up to 25 on Max',
+      'Up to 25 roles a day on Plus and Max',
       'Save roles, dismiss misses, or apply with one click',
     ],
     cost: 'Included with Plus and Max',
@@ -245,8 +245,14 @@ const planFeatures = [
   {
     feature: 'Smart Job Feed',
     free: false,
-    plus: 'Up to 15/day',
+    plus: 'Up to 25/day',
     max: 'Up to 25/day',
+  },
+  {
+    feature: 'Job Feed Search Breadth',
+    free: false,
+    plus: '2 roles, 2 countries',
+    max: '4 roles, 4 countries',
   },
   {
     feature: 'Add-On Credit Packs',
@@ -287,7 +293,7 @@ const faqs = [
   {
     question: 'What is the difference between Free, Plus and Max?',
     answer:
-      'Every plan gets the full workflow: tailored CV, cover letter, application email, follow-up, screening question answers, fit analysis, ATS templates, and the application tracker. Plus adds the Smart Job Feed (up to 15 roles a day) and add-on credit packs. Max gets the Smart Job Feed at 25 roles a day and premium dedicated support. The main difference between plans is how many applications you can generate each month.',
+      'Every plan gets the full workflow: tailored CV, cover letter, application email, follow-up, screening question answers, fit analysis, ATS templates, and the application tracker. Plus and Max both add the Smart Job Feed at up to 25 roles a day, plus add-on credit packs. Max searches wider, 4 job titles across 4 countries against Plus at 2 and 2, and adds premium dedicated support. The main difference between plans is how many applications you can generate each month.',
   },
   {
     question: 'How does fit analysis work?',
