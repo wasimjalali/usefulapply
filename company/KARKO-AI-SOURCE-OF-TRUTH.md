@@ -324,7 +324,7 @@ Not a resume builder. Not an auto-apply bot. Not a generic AI writer. Not a care
 
 | Plan | Price | Credits | Full applications / mo | Job feed | Feed search breadth | Screening answers |
 |---|---|---|---|---|---|---|
-| Free | $0 | 4 (**dropping to 2**, see §6.4) | 2 (**dropping to 1**) | No | n/a | No |
+| Free | $0 | 4 (**dropping to 2**, see §6.4) | 2 (**dropping to 1**) | **Limited: 1 search/day, 5 jobs** | n/a | No |
 | Plus | $19.99 / mo | 50 | 25 | Up to 25/day | 2 job titles, 2 countries | Yes |
 | Max | $79.99 / mo | 200 | 100 | Up to 25/day | 4 job titles, 4 countries | Yes |
 | Credit add-on pack | $19.99 one-time | 50 | n/a | n/a | n/a | n/a |
@@ -397,7 +397,7 @@ Three consequences worth stating plainly:
 1. **Cut the free tier from 4 credits to 2**, which is exactly one full application. Ship this **first**.
 2. **Then ship the Opus 5 migration**, accepting lower margin per application in exchange for the best output quality on the four documents a user actually sends.
 
-Then raise prices later, once there is a real paying base, to recover the 80% margin band. The $5,000 of AWS inference credits is the cushion for the transition.
+Then raise prices later, once there is a real paying base, to recover the 80% margin band. The $5,000 of AWS inference credits is the cushion for the transition. **[?] Confirm which AWS account holds those credits.** `docs/bedrock-claude5-access.md` says account 514985057171 returns 403 on every Claude model. If the credits sit on the blocked account, the cushion is not currently spendable and should not be quoted to anyone.
 
 **Why this order matters.** The free-tier cut creates exactly the margin headroom the migration consumes, and it costs nothing to make: it applies only to new free users, so there is no churn risk. Sequenced the other way, the credits burn 54% faster on the users least likely to convert.
 
@@ -427,7 +427,7 @@ Three exposures worth holding in view.
 
 **3. The free tier was the bigger lever, and it is now being pulled.** Resolved above: free drops to 2 credits before the migration ships.
 
-**Ceiling check.** LinkedIn Premium Career is $39.99/month. Karko Plus at $19.99 is deliberately half of that, so there is real headroom, but it is not unlimited and the buyer is often between incomes.
+**Ceiling check, and it is tighter than it looks.** LinkedIn Premium Career is $39.99 monthly **but $239.88 a year, which is exactly $19.99 a month**. Karko Plus is priced at *parity* with LinkedIn's annual rate, not at half of it, and LinkedIn bundles fit scoring, resume AI and apply assistance at that price. Never say "half the price of LinkedIn" without specifying monthly billing. Headroom exists but it is smaller than the monthly comparison suggests, and the buyer is often between incomes.
 
 **Define the trigger.** "Once we hit 1,000+ users" needs to say which. At 4.7% conversion, 1,000 signups is about 47 paying users and roughly $940 MRR, which is not yet a business. 1,000 *paying* users is about $20k MRR, which is. Write the trigger as a paid-user or MRR number, not a signup number.
 
@@ -580,7 +580,9 @@ So the funnel below is not the result of a monetisation attempt that failed. It 
 
 **Indeed, LinkedIn's job board and Google Jobs are not competitors.** They are where jobs live, and Karko consumes them through SerpAPI. Calling them competitors makes the company sound naive and invites a partner to correct you. **LinkedIn *Premium* is a competitor.** The job board is not.
 
-The anchor for willingness to pay is LinkedIn Premium Career at **$29.99 to $39.99 a month** [R], with LinkedIn's consumer tiers reportedly clearing $1.5B a year [R]. That is the proof that job seekers pay real money for job-search software. Karko Plus at $19.99 is deliberately below it.
+The anchor for willingness to pay is LinkedIn Premium Career: **$39.99 monthly, or $239.88 a year which works out at $19.99 a month** [R]. LinkedIn Premium passed **$2B in trailing twelve-month revenue** (Nadella, Microsoft earnings call, 29 Jan 2025) [R]. That is the proof that job seekers pay real money for job-search software.
+
+> **Karko Plus is at parity with LinkedIn's annual rate, not below it.** Price the comparison honestly. LinkedIn also bundles fit scoring, resume AI and a Premium Apply Assistant into that number.
 
 ### 9.2 The demand signal
 
@@ -592,7 +594,9 @@ The anchor for willingness to pay is LinkedIn Premium Career at **$29.99 to $39.
 | **39% of candidates** already use AI during the application process | Gartner, 2024, n=3,290 | [R] |
 | External job boards drive **49.9% of applications but only 22.6% of hires** | Greenhouse, Mar 2026 | [R] |
 
-**Peer-reviewed support for the core claim:** *"Algorithmic Writing Assistance on Jobseekers' Resumes Increases Hires"*, INFORMS **Management Science**, 18 Apr 2025. Causal, independent, and directly on-thesis. Paywalled; **buy it before pitching**. Effect size not yet extracted. [R]
+**Peer-reviewed evidence, with limits you must know before citing it.** *"Algorithmic Writing Assistance on Jobseekers' Resumes Increases Hires"*, van Inwegen, Munyikwa & Horton, INFORMS **Management Science**, 18 Apr 2025 (arXiv 2301.08083). Abstract verified directly: **8% increase in the probability of getting hired**, and no evidence employers were less satisfied. N is roughly half a million. **[V]** on the headline finding.
+
+> **Do not oversell it.** It studies an **online freelance labour market**, not corporate hiring through an ATS, the subjects are new labour market entrants skewed towards non-native English speakers, and the intervention is **nongenerative** writing assistance rather than AI tailoring. Research also suggests the interview and invitation coefficients in the body are near zero, which I could not verify from the abstract [?]. Cite it as supporting evidence for the mechanism, never as proof that Karko works. A partner who has read it will raise every one of these.
 
 **The honest counter-datapoint:** iCIMS reported in May 2026 that application volume fell about 10% year on year while openings hit a 12-month peak [R]. That cuts against the universal-flood narrative. Know it before someone else raises it.
 
@@ -605,7 +609,8 @@ Five rings. Most pitches in this category collapse them, which is why they sound
 | **0. Substrate** | Indeed, LinkedIn job board, Google Jobs | **Not competitors.** Supply. Karko reads them. |
 | **1. Free platform features** | ChatGPT, Indeed Career Scout, LinkedIn free | **The real threat.** Free, huge distribution, good enough for some users. |
 | **2. Auto-apply** | Sorce (YC F2025), Tsenta (YC S2026), LazyApply, Sonara, Simplify | Different bet. Volume over quality. Being engineered against. |
-| **3. Point tools and builders** | Teal, Rezi, Kickresume, Enhancv, Resume.io, Jobscan, Huntr | Solve one slice. Context lost between them. |
+| **3. Point tools and builders** | Teal, Rezi, Kickresume, Enhancv, Resume.io, Huntr | Solve one slice. Context lost between them. |
+| **3b. Full loop already shipped** | **Jobscan**, **Career.io** | **Name these yourself.** See below. |
 | **4. Human services** | CV writers, career coaches, $100-500 per CV | Quality without speed or scale. |
 
 ### 9.4 Ring 1 is the section that matters
@@ -634,9 +639,9 @@ Five rings. Most pitches in this category collapse them, which is why they sound
 | German CV conventions | **No** | Unknown | Search only | **2 German templates** |
 | Anti-fabrication rule | No | No | No | Architectural |
 
-**Three gaps are real and defensible:**
+**Three gaps are real. Call them a wedge, not a moat.** Gaps 1 and 2 have a shelf life measured in quarters, because they are roadmap items for OpenAI rather than structural barriers. Gap 3 is the only candidate for durability, and §7.3 concedes it is a prompt constraint rather than a validator, which is copyable in an afternoon. Overclaiming here is the one place this section would break its own honesty rule.
 
-1. **Non-English tailoring.** ChatGPT's resume tool is English-only. LinkedIn's tailoring is behind Premium. Karko generates in English, German, French, Spanish, Portuguese, Italian and Dutch, with tone rules split between US/UK/Canada and German conventions, plus two German templates. **LinkedIn reached German in January 2026, OpenAI has not.** This is the clearest gap in the incumbent stack and it happens to be the market the founder lives in.
+1. **Non-English application workflow with market conventions.** State it this way, not as "ChatGPT can't do German". ChatGPT the chatbot writes a fluent German Lebenslauf today if you ask it in German, so the language claim collapses the moment a partner types one sentence into it. What ChatGPT's *structured resume feature* lacks, and what LinkedIn gates behind Premium, is the packaged workflow: German CV conventions, tabular Lebenslauf formats, CEFR-accurate language-level handling, two German ATS templates, and market-specific tone rules, all inside a grounded pipeline. **LinkedIn reached German in January 2026, OpenAI's resume tool has not.** That is a wedge in the market the founder lives in.
 2. **The rest of the kit.** Nobody free writes the application email, the follow-up, or the screening answers. Those are the parts candidates most dread.
 3. **Grounding as a rule, not a preference.** A general chatbot will invent a metric if the prompt pushes it. Karko's generation prompt forbids it as a highest-priority constraint (§7.3).
 
@@ -664,6 +669,18 @@ Generic polish from a general chatbot is also increasingly recognisable to recru
 The answer, and it is a strong one:
 
 > Both automate submission. We deliberately do not. They are optimising volume; we are optimising whether the application is worth reading. And the submission layer is exactly the part of the stack that is being closed off, so automating it is a bet against where the industry is moving.
+
+### 9.6b Karko is not the only full loop, and pretending otherwise is a one-search rebuttal
+
+**Jobscan** already markets AI job discovery, tailored responses generated from your CV against the posting, a human approval gate ("The Submit button is always yours") and centralised tracking. That is Karko's loop, shipped, bootstrapped, at $49.95 a month. **Career.io** (Resume.io's PE-owned parent, a roll-up of TopResume, TopCV and ZipJob) sells the same loop delivered by **1,500 human writers** at 20, 50 or 100 applications a month. **AIApply, JobCopilot and Massive** run the loop with autonomous submission. [R]
+
+**Never claim to be the only full loop.** Name Jobscan and Career.io before a partner does. The honest claim is narrower and still good:
+
+> We are not the first full loop. We are trying to be the first one a job seeker can trust: honest public pricing, nothing fabricated, a human gate on every send, and a grounding rule the product refuses to break.
+
+**The reputation data supports that positioning** [R]. Trustpilot: AIApply 4.3, Sonara 3.9, Simplify 3.4, JobCopilot 3.0, LazyApply 2.1, **Massive 1.8**. The more autonomous the product, the worse the reviews, with complaints that the AI "completely lies and invents a bunch of stuff when applying for jobs on your behalf". That is the exact failure Karko is built against.
+
+**The ceiling signal, and it is sobering.** Rezi, the most successful independent in the resume cohort, is at roughly **$260k MRR and $3.1M ARR after eleven years**, bootstrapped, at about 1% paid conversion [R]. Know that number before quoting anyone a hockey stick.
 
 ### 9.7 Why not auto-applying is a strategic asset
 
@@ -721,13 +738,27 @@ Know these cold. Being the first to name them is a strength in every investor co
 
 1. **Activation is broken.** 96.7% of visitors never reach a second page. This is the number one product problem.
 2. **Monetisation is unproven rather than disproven.** One paying customer at $19.99, converted 9 July 2026. There has never been a launch, a marketing budget, or a week of full-time work on the funnel, so there is no evidence in either direction about whether this converts at scale. An investor will still price it as risk, and that is reasonable. The answer is not to explain it away. It is to say what the five unfunded months bought (a product shaped by real design-partner feedback) and what the first funded months would go to (activation, then conversion).
-3. **Episodic product with a built-in churn event.** Success fires the customer. The founder is the example: he got hired and stopped being an active user. The best proof point and the retention problem are the same fact.
+3. **Episodic churn is the strongest argument against this company, and it is quantified.** Success fires the customer. The founder is the example: he got hired and stopped being an active user.
+
+   The numbers make it worse than intuition suggests [R]. US median unemployment duration is **11.0 weeks**, about 2.5 months (BLS, June 2026), so at $19.99 the entire need window is worth roughly $50 of gross revenue. RevenueCat's 2026 benchmark across 115,000+ apps stacks four penalties on exactly this profile: Productivity has the **worst annual first-renewal rate of eleven categories at 23%**, monthly plans retain **17% at twelve months** against 44% for annual, higher-priced monthly retains **12.2%**, and AI apps churn **36% faster** than non-AI. Median Year-1 realised LTV for an AI app is **$30.16**.
+
+   Two incumbents show the terminal state: Bumble Q1 2026 revenue down 14.1% with payers down 21.1%, Match payers down 5%. Twenty years and the best brands in episodic consumer subscription run a pricing treadmill to stand still.
+
+   **The category has already priced this in.** Rezi sells a $149 lifetime licence. Teal bills by the week. You only do that when you know the customer is gone by month three.
+
+   **This needs an answer, and "we'll improve retention" is not one.** The credible answers are an annual plan, a lifetime tier, or a B2B2C channel where the institution renews instead of the individual.
 4. **Crowded, fatigued category.** AI job application tools are among the most common startup pitches since 2023.
 5. **Solo founder, part-time.** He holds a full-time job. Real constraint, and the job itself is the proof point, so own it.
 6. **Blended economics sit on the break-even line.** Paid users are fine at 73-80% margin, but the free tier pushes break-even to about 4.7% free-to-paid conversion against a 2-5% freemium norm (§6.2). Current conversion is well below that. This is the same problem as activation, seen from the P&L rather than the funnel, and it is the single most important number in the business.
 7. **Previously rejected with the same idea.** Spring 2026. The delta is real but modest in absolute terms.
 8. **Visa and location friction.** Afghan national with a German residence permit. US travel may need support.
-9. **No option pool exists.** Any hire or co-founder needs a board-adopted equity incentive plan first. Not a problem today, but it is a step that has to happen before equity can be offered to anyone.
+9. **There is no distribution thesis.** This is the hole both reviewers found independently and it is arguably the real one. Consumer subscription lives or dies on a channel, and the entire pack's answer is one line about influencer marketing. LinkedIn Premium works because LinkedIn owns the audience. Karko owns nothing yet. A seed investor reaches this question before they reach anything in §9.
+
+10. **Marketing claims carry a real FTC exposure** [R]. In *FTC v. Worldwide Executive Job Search Solutions* (2019) the operators were permanently banned and took a **$1.74M judgment**, partly for advertising interview and placement rates. Any callback or placement claim Karko makes that is not backed by a controlled study sits in that lane. The founder's own outcome is fine to state as his experience. "Users get X% more interviews" is not, unless it is measured.
+
+11. **AI-detection tools now target the CV layer** [R]. Pangram Labs sells recruiters an AI likelihood score for resumes and cover letters. Detectors also falsely flag **non-native English writers at very high rates**, and non-native speakers are one of Karko's most plausible segments. That is a product risk worth understanding even though detection accuracy is poor.
+
+12. **No option pool exists.** Any hire or co-founder needs a board-adopted equity incentive plan first. Not a problem today, but it is a step that has to happen before equity can be offered to anyone.
 
 ---
 
@@ -760,7 +791,9 @@ Ordered by how often they get asked.
 
 | # | Item | Who has it |
 |---|---|---|
-| 1 | Lifetime signups and total applications generated. This is the strongest number nobody has pulled yet, and it would quantify the five months of design-partner work. | Supabase |
+| 1 | **Lifetime signups, total applications generated, total fit analyses.** The strongest number nobody has pulled. Turns "120 visitors a week" into "X people have generated Y real applications". A few hours of Supabase queries. **Do this first.** | Supabase |
+| 1b | **Outcomes from the design partners and the paying customer.** One question each: did you get an interview or an offer using Karko, and can I say so? A single yes takes the evidence base from n=1 to n=2. Highest-value action available before any application. | Ask them |
+| 1c | **A distribution thesis.** How job seekers find Karko at scale, beyond one line about influencer marketing. Both reviewers flagged its absence as the biggest hole. | Wasim |
 | 2 | **Real credit utilization per paid user, and real free-to-paid conversion.** The margin model guesses both, and they swing blended margin from negative to 55%. Needs PostHog instrumentation before the AWS credits burn down. | Supabase + PostHog |
 | 3 | Cost of the daily job feed for free users. Currently unmeasured and uncharged; working estimate $0.75 per active free user per month. | Instrument the feed |
 | 4 | Whether the 9 July subscriber is the first ever, or whether earlier subscribers churned | Stripe |
@@ -848,6 +881,7 @@ Wasim owns **100% of issued stock** and **no option pool exists** (§3.3). A YC 
 |---|---|
 | 2026-07-25 | Created. Consolidated from 14 files in the old `yc-fall-2026-decision` folder, verified against the Karko AI codebase (383 commits, HEAD 2026-07-25) and Wasim's live LinkedIn profile. Useful Build material removed except for the entity-structure line in §3.8. |
 | 2026-07-25 | Moved into the Karko AI product repo at `company/`, out of the Useful Build repo, so the facts sit next to the code they describe. |
+| 2026-07-25 | **Reviewed by Fable 5 and a research pass, then corrected.** Management Science citation walked back from "directly on-thesis" to supporting evidence with stated limits. The English-only gap reframed as a workflow gap, because ChatGPT writes German fine if asked. "Defensible" downgraded to "wedge". Jobscan and Career.io named as existing full loops. LinkedIn anchor corrected to parity, not half price. Free job feed corrected in the pricing table after checking the code. Churn bear case, distribution gap and FTC exposure added to risks. |
 | 2026-07-25 | Section 9 rewritten from research: five-ring competitive map, the free-platform threat (ChatGPT, Indeed Career Scout, LinkedIn) verified by Wasim, the two YC-funded competitors Sorce and Tsenta verified against YC directory, why not auto-applying is an asset, and a wallet-based market frame instead of TAM theater. New section 13 on fundraising position. |
 | 2026-07-25 | Stripe connected. Revenue is $19.99 MRR, one Plus subscriber, converted 9 July 2026, five months after launch. Date of birth confirmed: 15 August 2004, so 21 today. Section 3.6 rewritten to explain the German permanent-establishment question properly rather than just listing the paperwork. |
 | 2026-07-25 | **Founder story corrected and re-anchored.** Confirmed with Wasim: 60+ applications through Karko, 5 interviews, hired as an AI Specialist through an application the product wrote. Earlier material said 50+ applications at a 10% rate and led with the interview count. The hire is now the headline on every surface and in this document. |

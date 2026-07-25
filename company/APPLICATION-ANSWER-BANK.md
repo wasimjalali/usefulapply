@@ -46,7 +46,7 @@
 >
 > ChatGPT can build a website too. Lovable and Replit still win, because purpose-built beats general at a specific job. That's the bet.
 >
-> Then there's the auto-apply group, including Sorce and Tsenta from your own batches. They automate submission. We deliberately don't, and that's a considered call: Greenhouse now silently deprioritises applications submitted by AI at scale, Cloudflare is shipping agent detection, and Indeed's terms ban automating Indeed Apply. They're automating the layer that's closing. We automate the part that isn't, which is the skilled work between finding a role and sending something worth reading.
+> Then there's the auto-apply group, including Sorce and Tsenta from your own batches. They automate submission. We deliberately don't, and that's a considered call: Indeed's terms now explicitly prohibit automating Indeed Apply, and Cloudflare has said it will block agent-class bots by default from September. My read is that the submission layer is closing. They're automating the layer that's closing. We automate the part that isn't, which is the skilled work between finding a role and sending something worth reading.
 
 ### How do you make money? How much could you make?
 
@@ -54,13 +54,13 @@
 
 ### How far along are you?
 
-> Live at karkoai.com with paid billing. Since my Spring 2026 application I rebuilt Karko from a one-step application generator into the full loop: matched job feed, fit analysis, a 90-second application kit with CV, cover letter, emails and screening answers, a tracker, and anti-hallucination so output only uses the user's real CV. Most of that came out of five months shipping against feedback from a small group of early users on free access, while I was out of money and job hunting. I was hired as an AI Specialist in May through an application Karko wrote, and have built around that job since. About 120 people reach the app in a typical week, all organic, with zero marketing spend ever. First paying customer converted 9 July. Honest gap: activation. Most visitors don't reach a second page. Nobody has tried to grow this yet, which is the opportunity and the risk in the same sentence.
+> Live at karkoai.com with paid billing. Since my Spring 2026 application I rebuilt Karko from a one-step application generator into the full loop: matched job feed, fit analysis, a 90-second application kit with CV, cover letter, emails and screening answers, a tracker, and anti-hallucination so output only uses the user's real CV. Most of that came out of five months shipping against feedback from a small group of early users on free access, while I was out of money and job hunting. I was hired as an AI Specialist in May through an application Karko wrote, and have built around that job since. About 120 people reach the site in a typical week, all organic, with zero marketing spend ever. First paying customer converted 9 July. Honest gap: activation. Most visitors don't reach a second page. Nobody has tried to grow this yet, which is the opportunity and the risk in the same sentence.
 
 ### Progress bullets (short-field version)
 
 > - Live at karkoai.com with paid billing. Free / Plus $19.99 / Max $79.99, credit-based.
 > - Rebuilt since Spring 2026 into the full loop: feed, fit, 90-second kit, screening, tracker.
-> - About 120 people reach the app in a typical week, all organic. Zero paid marketing, no launch push yet.
+> - About 120 people reach the site in a typical week, all organic. Zero paid marketing, no launch push yet.
 > - 1 paying customer.
 > - **I was hired as an AI Specialist through an application Karko wrote.** 60+ applications through the product, 5 interviews, one offer. First-time job seeker, no degree.
 > - Five months of product work driven by a small design-partner cohort on free access, while I was unfunded and job hunting.
@@ -70,11 +70,11 @@
 
 ### How many users, how many paying, who pays the most?
 
-> About 120 people reach the product in a typical week, organic only through Google and direct, with zero marketing spend ever. One paying customer, on the $19.99 Plus plan, converted 9 July. Before that a small group of early users, around 5 to 10, had free access and acted as design partners; their feedback drove five months of product work. I don't claim 122 weekly active users in the product sense, because most first visits don't go deep yet. Activation is the open problem and I know where the funnel breaks.
+> About 120 people reach the site in a typical week, organic only through Google and direct, with zero marketing spend ever. One paying customer, on the $19.99 Plus plan, converted 9 July. Before that a small group of early users, around 5 to 10, had free access and acted as design partners; their feedback drove five months of product work. I don't claim 122 weekly active users in the product sense, because most first visits don't go deep yet. Activation is the open problem and I know where the funnel breaks.
 
 ### Do you have revenue?
 
-> Yes, $19.99 MRR. One paying customer on Plus, converted 9 July 2026, entirely organic. Context worth giving: Karko has never been marketed. No launch, no ads, no distribution push, zero spend. For the first five months I was out of money and job hunting, building the product alongside my own search with a small group of early users on free access shaping it. Since May it has run beside a full-time job. So conversion isn't a thing I tried and failed at. It's a thing nobody has tried yet.
+> Yes, $19.99 MRR. One paying customer on Plus, converted 9 July 2026, entirely organic. Context worth giving: Karko has never been marketed. No launch, no ads, no distribution push, zero spend. For the first three months I was out of money and job hunting, building the product alongside my own search with a small group of early users on free access shaping it. Since May it has run beside a full-time job. So conversion isn't a thing I tried and failed at. It's a thing nobody has tried yet.
 
 ### How long have you been working on this, and how much full-time?
 
