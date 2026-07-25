@@ -39,7 +39,7 @@
 | Team size | 1 | [verified] |
 | Employees | 0 | [self-reported] |
 | Ownership | Wasim Jalali holds **100% of issued and outstanding shares** | [verified] see §3 |
-| Revenue | 1 paying customer, under $100 MRR | [confirm] exact Stripe figure |
+| Revenue | **$19.99 MRR.** 1 paying customer on Plus, subscribed 2026-07-09 | [verified] Stripe, 2026-07-25 |
 | Funding raised | None. No SAFE has ever been executed. | [verified] §3.4 |
 | Banking | Mercury | [self-reported] [confirm] |
 | Payments | Stripe, live | [verified] `src/lib/stripe.ts`, webhook route in production |
@@ -126,20 +126,40 @@ The Drive folder contains `2026-02-12_postmoney_safe_valuation_cap.docx` and two
 
 This settles an old ambiguity: the "$500K on a post-money SAFE at a $5M cap" announced in February 2026 was never signed and raised nothing. **Do not repeat that claim anywhere.**
 
-### 3.6 German-side registration (status unclear, needs your input)
+### 3.6 The German question (open, and worth an hour of a tax adviser's time)
 
-`03_Business/` and `06_Ops/` contain May 2026 paperwork suggesting an effort to give the US corporation a German or EU footprint:
+**The entity itself is not in doubt.** Karko AI Inc. is a Delaware C-Corp and nothing here changes that.
 
-- Finanzamt "Fragebogen zur steuerlichen Erfassung" for corporations (German tax registration)
-- Klassik Geschäftskonto application and terms (German business bank account)
-- An IN/VA application form for legal entities
-- A LocalOffice24 Netherlands agreement (encrypted and plain copies)
+The open question is different: **a company is taxed where it is run, not only where it is registered.** Karko AI Inc. has one director and one officer, and he lives and works in Kaiserslautern. Under German law two concepts can pull a foreign company into the German tax net:
+
+| Concept | What it means | Why it might apply |
+|---|---|---|
+| **Betriebsstätte** (permanent establishment) | A fixed place of business in Germany through which the company operates | The work happens from Germany |
+| **Ort der Geschäftsleitung** (place of effective management, §10 AO) | Where day-to-day management decisions are actually taken | The sole decision-maker is in Germany |
+
+If either applies, Germany can tax the profits attributable to that activity (Körperschaftsteuer, and possibly Gewerbesteuer), and the company would need to register with the Finanzamt. The US-Germany double tax treaty exists to stop the same profit being taxed twice, but it does not remove the filing obligation.
+
+**Why it is on this list at all.** `03_Business/` and `06_Ops/` contain paperwork dated 2 May 2026 that looks exactly like someone starting this process:
+
+- Finanzamt **"Fragebogen zur steuerlichen Erfassung"** for corporations. This is precisely the form a company files when it becomes taxable in Germany.
+- A Klassik Geschäftskonto application and terms (German business bank account)
+- An IN/VA application form for legal persons
+- A **LocalOffice24 Netherlands** agreement, plain and encrypted copies
 - An office contract (`buero_vertrag.pdf`)
-- `06_Ops/2026-05-01_company_registration_usa_germany_england.docx`
+- `06_Ops/2026-05-01_company_registration_usa_germany_england.docx`, comparing registration in the US, Germany and England
 
-These are all scanned forms with no text layer, so I could not read their contents or tell whether they were submitted.
+All of these are scans with no text layer, so I could not read their contents or tell whether any was ever submitted.
 
-> **[confirm]** Did any of this complete? Specifically: is Karko AI Inc. registered for tax in Germany, does it have a German permanent establishment, and is there a Netherlands entity or virtual office? This matters, because a US C-Corp with a German permanent establishment has real tax consequences, and an investor will ask what jurisdictions the company operates in.
+**What I need from you, in plain terms:**
+
+1. Did you actually **send** the Finanzamt questionnaire, or is it a draft that was never filed?
+2. Did the German business account get opened?
+3. Did you sign the LocalOffice24 Netherlands agreement, and is there a Dutch address or entity in play?
+4. Is there a physical office under `buero_vertrag.pdf`, or was that for something else?
+
+**Why it matters for fundraising, which is the reason it is in this document.** "Which jurisdictions does the company operate in and where is it tax resident?" is a standard diligence question. Right now the honest answer is "Delaware C-Corp, founder resident in Germany, German position not formally assessed". That is a perfectly acceptable answer at this stage. What is not acceptable is discovering an unfiled German registration during a priced round, because that turns a cheap problem into an expensive one.
+
+> **I am not a tax adviser and this is not tax advice.** It is a flag that a German Steuerberater who handles US corporations should look at, probably for one billable hour. Until then, do not assert on any form that the company has no German tax nexus. Say what is true: US entity, founder in Germany, position not yet formally assessed.
 
 ### 3.7 Where the documents live
 
@@ -178,7 +198,8 @@ These are all scanned forms with no text layer, so I could not read their conten
 | Pronouns | He/Him | LinkedIn |
 | Nationality | Afghan, with a German residence permit | Spring 2026 application |
 | Location | Greater Kaiserslautern Area, Germany | LinkedIn |
-| Age | 21 as of the Spring 2026 application | [confirm] current age and date of birth |
+| Date of birth | 15 August 2004 | [verified] |
+| Age | **21** (turns 22 on 2026-08-15) | [verified] |
 | Role | Founder and CEO, Karko AI Inc. Sole founder, technical. | |
 | Currently in school | No | |
 | Languages | Dari (native/bilingual), English (full professional), German (limited working), Urdu (elementary) | LinkedIn |
@@ -433,12 +454,13 @@ Job data comes from SerpAPI.
 | Weekly retention | ~0.9% day 1, ~1% day 2, ~0% days 5 to 7 | Cohort Jul 14 to 20. Almost everyone is day-0 only. |
 | Referrers, last 14 days | Google 56, direct 55, YouTube 6, Bing 2, Android Google 1, DuckDuckGo 1 | Fully organic |
 | Paid marketing spend | 0 | |
-| Paying customers | 1 | [confirm] plan and exact amount |
-| MRR | Under $100 | [confirm] |
+| Paying customers | **1**, on the Plus plan | [verified] Stripe |
+| MRR | **$19.99** (ARR about $240) | [verified] Stripe |
+| First paid conversion | **2026-07-09**, about 16 days before this snapshot | [verified] Stripe |
 
 ### 8.1 The honest framing (use this, not the raw numbers)
 
-> Product is live with paid billing. About 120 people reach the app in a typical week, entirely organic through Google search and direct, with zero paid marketing and no launch push. One paying customer. I used Karko in my own job search and was hired as an AI Specialist through it. The honest gap: most first visits never reach a second page and week-one retention is near zero. Activation is the current hill and I know where the funnel breaks.
+> Product is live with paid billing. About 120 people reach the app in a typical week, entirely organic through Google search and direct, with zero paid marketing and no launch push. First paying customer converted on 9 July, on the $19.99 Plus plan. I built Karko for my own job search and was hired as an AI Specialist through an application it wrote. The honest gap: most first visits never reach a second page and week-one retention is near zero. Activation is the current hill and I know where the funnel breaks.
 
 ### 8.2 Never claim
 
@@ -512,7 +534,7 @@ Both are early. Neither is proven. Say so if asked.
 Know these cold. Being the first to name them is a strength in every investor conversation.
 
 1. **Activation is broken.** 96.7% of visitors never reach a second page. This is the number one product problem.
-2. **One paying customer roughly five months after launch** is weak conversion, not just early conversion.
+2. **First revenue arrived five months after launch.** The product went live in February 2026 and the first paying customer converted on 9 July 2026, at $19.99. That is weak conversion, not just early conversion, and a partner will read it that way. The one thing in its favour: revenue is 16 days old, so this is a funnel that just started working rather than one that has been flat for five months. Do not oversell that distinction.
 3. **Episodic product with a built-in churn event.** Success fires the customer. The founder is the example: he got hired and stopped being an active user. The best proof point and the retention problem are the same fact.
 4. **Crowded, fatigued category.** AI job application tools are among the most common startup pitches since 2023.
 5. **Solo founder, part-time.** He holds a full-time job. Real constraint, and the job itself is the proof point, so own it.
@@ -552,15 +574,14 @@ Ordered by how often they get asked.
 
 | # | Item | Who has it |
 |---|---|---|
-| 1 | Exact Stripe MRR, plan and start date of the one paying customer | Stripe dashboard |
-| 2 | Current age and date of birth | Wasim |
-| 3 | Lifetime signups and total applications generated (a strong number nobody has pulled yet) | Supabase |
-| 4 | COGS per full application kit | Compute from Bedrock usage |
-| 5 | German-side registration status: tax registration, permanent establishment, any NL entity or virtual office (§3.6) | Wasim |
-| 6 | Whether the Mercury account is still open and in use | Mercury |
-| 7 | Whether Wasim Academy UG is dissolved or dormant | Wasim |
+| 1 | **German tax position** (§3.6). Does a US C-Corp run day to day from Kaiserslautern create a German permanent establishment or German tax residency? Needs a Steuerberater, not a guess. | Wasim + a German tax adviser |
+| 2 | Lifetime signups and total applications generated (a strong number nobody has pulled yet) | Supabase |
+| 3 | COGS per full application kit, against $19.99 | Compute from Bedrock usage |
+| 4 | Whether the Mercury account is still open and in use | Mercury |
+| 5 | Whether Wasim Academy UG is dissolved or dormant | Wasim |
+| 6 | Whether the 9 July subscriber is the first ever, or whether earlier subscribers churned | Stripe |
 
-**Closed on 2026-07-25:** the entire incorporation and cap table picture (§3.2 to §3.5), read directly from the Stripe Atlas pack. Co-founder status: confirmed solo.
+**Closed on 2026-07-25:** the entire incorporation and cap table picture (§3.2 to §3.5), read from the Stripe Atlas pack. Co-founder status: solo. Stripe revenue: $19.99 MRR, one Plus subscriber, converted 9 July. Date of birth: 15 August 2004.
 
 ---
 
@@ -570,6 +591,7 @@ Ordered by how often they get asked.
 |---|---|
 | 2026-07-25 | Created. Consolidated from 14 files in the old `yc-fall-2026-decision` folder, verified against the Karko AI codebase (383 commits, HEAD 2026-07-25) and Wasim's live LinkedIn profile. Useful Build material removed except for the entity-structure line in §3.8. |
 | 2026-07-25 | Moved into the Karko AI product repo at `company/`, out of the Useful Build repo, so the facts sit next to the code they describe. |
+| 2026-07-25 | Stripe connected. Revenue is $19.99 MRR, one Plus subscriber, converted 9 July 2026, five months after launch. Date of birth confirmed: 15 August 2004, so 21 today. Section 3.6 rewritten to explain the German permanent-establishment question properly rather than just listing the paperwork. |
 | 2026-07-25 | **Founder story corrected and re-anchored.** Confirmed with Wasim: 60+ applications through Karko, 5 interviews, hired as an AI Specialist through an application the product wrote. Earlier material said 50+ applications at a 10% rate and led with the interview count. The hire is now the headline on every surface and in this document. |
 | 2026-07-25 | First pass of the drift list actioned. Job feed corrected to 25/day on both plans across 13 surfaces, founder story now includes the hire, screening-answer gating corrected, model decision docs committed (PRs #76 and #77). Pricing table now carries feed search breadth. Model section states Sonnet 4.6 in production with the Opus 5 move locked and blocked. |
 | 2026-07-25 | Legal section rewritten from the actual Stripe Atlas formation pack in Google Drive. Incorporation date, registered agent, authorized and issued shares, officers, board, bylaws, EIN, IP assignment, vesting schedule and 83(b) filing all moved from [confirm] to [verified]. **Two corrections: ownership is 100%, not 70%, and there is no option pool.** Confirmed no SAFE was ever executed. Co-founder status confirmed solo. |

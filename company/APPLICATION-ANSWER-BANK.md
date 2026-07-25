@@ -61,11 +61,11 @@
 
 ### How many users, how many paying, who pays the most?
 
-> About 120 people reach the product in a typical week, organic only through Google and direct. One paying customer. I don't claim 122 weekly active users in the product sense, because most first visits don't go deep yet. Activation and free-to-paid conversion are the open problems. The single paying customer is on [plan] at [$X] a month.
+> About 120 people reach the product in a typical week, organic only through Google and direct. One paying customer, on the $19.99 Plus plan, converted on 9 July. I don't claim 122 weekly active users in the product sense, because most first visits don't go deep yet. Activation and free-to-paid conversion are the open problems.
 
 ### Do you have revenue?
 
-> Yes, minimal. One paying customer on a paid subscription. MRR is under $100 today.
+> Yes, $19.99 MRR. One paying customer on the Plus plan, converted on 9 July 2026. That is the first revenue the product has taken, five months after launch, so I treat free-to-paid conversion as the open problem rather than a solved one.
 
 ### How long have you been working on this, and how much full-time?
 
