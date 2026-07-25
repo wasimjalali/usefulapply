@@ -40,21 +40,27 @@
 
 ### Who are your competitors? What do you understand that they don't?
 
-> Resume builders like Teal, Kickresume and Rezi help you format and score, but you still do the skilled middle by hand. Auto-apply bots optimize volume and get candidates flagged or embarrassed in interviews. Point tools like Jobscan or DIY ChatGPT solve one slice and lose context between steps. What they miss: the problem is the 45 minutes of skilled work between finding a role and sending a personalized application, plus discovery and tracking, as one loop grounded in real experience. I don't claim competitors don't exist. I claim the full quality-plus-speed workflow with anti-hallucination is the product, not a feature.
+> The real competition isn't the resume builders, it's the free platform features. ChatGPT has tailored a CV to a posting since June, free, but English only and web only. Indeed Career Scout is free inside the Indeed app. LinkedIn's AI job search went free to everyone in January. Those three give away a slice of what we charge for, and any answer that ignores them isn't serious.
+>
+> Where they stop is where we live. ChatGPT's resume tool is English only; we generate in seven languages with German CV conventions and two German templates, and LinkedIn only reached German in January. None of them writes the application email, the follow-up or the screening answers. And a general chatbot will invent a metric if you push it, whereas refusing to is our highest-priority generation rule.
+>
+> ChatGPT can build a website too. Lovable and Replit still win, because purpose-built beats general at a specific job. That's the bet.
+>
+> Then there's the auto-apply group, including Sorce and Tsenta from your own batches. They automate submission. We deliberately don't, and that's a considered call: Indeed's terms now explicitly prohibit automating Indeed Apply, and Cloudflare has said it will block agent-class bots by default from September. My read is that the submission layer is closing. They're automating the layer that's closing. We automate the part that isn't, which is the skilled work between finding a role and sending something worth reading.
 
 ### How do you make money? How much could you make?
 
-> Credit-based subscription. Free, Plus at $19.99 a month, Max at $79.99 a month, plus credit top-ups on paid plans. Both paid plans get the Smart Job Feed at up to 25 roles a day, and Max searches twice as wide, 4 job titles across 4 countries. Job search is episodic, so churn is real and I don't pretend otherwise. Near-term growth is activation and free-to-paid conversion, not market-size slides. The number that matters is LLM cost per full application kit against the plan price, and I treat that as a product problem rather than something cloud credits erase.
+> Credit-based subscription. Free, Plus at $19.99 a month, Max at $79.99 a month, plus credit top-ups on paid plans. Both paid plans get the Smart Job Feed at up to 25 roles a day, and Max searches twice as wide, 4 job titles across 4 countries. Job search is episodic, so churn is real and I don't pretend otherwise. Near-term growth is activation and free-to-paid conversion, not market-size slides. The economics are modelled, not guessed: $0.21 of inference per full application today, $0.40 revenue per credit, and 73 to 80% gross margin on a paid subscription at realistic utilization. The number I actually watch is free-to-paid conversion, because blended break-even sits at about 4.7% and that is where the business is won or lost.
 
 ### How far along are you?
 
-> Live at karkoai.com with paid billing. Since my Spring 2026 application I rebuilt Karko from a one-step application generator into the full loop: matched job feed, fit analysis, a 90-second application kit with CV, cover letter, emails and screening answers, a tracker, and anti-hallucination so output only uses the user's real CV. Most of that came out of five months shipping against feedback from a small group of early users on free access, while I was out of money and job hunting. I was hired as an AI Specialist in May through an application Karko wrote, and have built around that job since. About 120 people reach the app in a typical week, all organic, with zero marketing spend ever. First paying customer converted 9 July. Honest gap: activation. Most visitors don't reach a second page. Nobody has tried to grow this yet, which is the opportunity and the risk in the same sentence.
+> Live at karkoai.com with paid billing. Since my Spring 2026 application I rebuilt Karko from a one-step application generator into the full loop: matched job feed, fit analysis, a 90-second application kit with CV, cover letter, emails and screening answers, a tracker, and anti-hallucination so output only uses the user's real CV. Most of that came out of five months shipping against feedback from a small group of early users on free access, while I was out of money and job hunting. I was hired as an AI Specialist in May through an application Karko wrote, and have built around that job since. About 120 people reach the site in a typical week, all organic, with zero marketing spend ever. First paying customer converted 9 July. Honest gap: activation. Most visitors don't reach a second page. Nobody has tried to grow this yet, which is the opportunity and the risk in the same sentence.
 
 ### Progress bullets (short-field version)
 
 > - Live at karkoai.com with paid billing. Free / Plus $19.99 / Max $79.99, credit-based.
 > - Rebuilt since Spring 2026 into the full loop: feed, fit, 90-second kit, screening, tracker.
-> - About 120 people reach the app in a typical week, all organic. Zero paid marketing, no launch push yet.
+> - About 120 people reach the site in a typical week, all organic. Zero paid marketing, no launch push yet.
 > - 1 paying customer.
 > - **I was hired as an AI Specialist through an application Karko wrote.** 60+ applications through the product, 5 interviews, one offer. First-time job seeker, no degree.
 > - Five months of product work driven by a small design-partner cohort on free access, while I was unfunded and job hunting.
@@ -64,11 +70,11 @@
 
 ### How many users, how many paying, who pays the most?
 
-> About 120 people reach the product in a typical week, organic only through Google and direct, with zero marketing spend ever. One paying customer, on the $19.99 Plus plan, converted 9 July. Before that a small group of early users, around 5 to 10, had free access and acted as design partners; their feedback drove five months of product work. I don't claim 122 weekly active users in the product sense, because most first visits don't go deep yet. Activation is the open problem and I know where the funnel breaks.
+> About 120 people reach the site in a typical week, organic only through Google and direct, with zero marketing spend ever. One paying customer, on the $19.99 Plus plan, converted 9 July. Before that a small group of early users, around 5 to 10, had free access and acted as design partners; their feedback drove five months of product work. I don't claim 122 weekly active users in the product sense, because most first visits don't go deep yet. Activation is the open problem and I know where the funnel breaks.
 
 ### Do you have revenue?
 
-> Yes, $19.99 MRR. One paying customer on Plus, converted 9 July 2026, entirely organic. Context worth giving: Karko has never been marketed. No launch, no ads, no distribution push, zero spend. For the first five months I was out of money and job hunting, building the product alongside my own search with a small group of early users on free access shaping it. Since May it has run beside a full-time job. So conversion isn't a thing I tried and failed at. It's a thing nobody has tried yet.
+> Yes, $19.99 MRR. One paying customer on Plus, converted 9 July 2026, entirely organic. Context worth giving: Karko has never been marketed. No launch, no ads, no distribution push, zero spend. For the first three months I was out of money and job hunting, building the product alongside my own search with a small group of early users on free access shaping it. Since May it has run beside a full-time job. So conversion isn't a thing I tried and failed at. It's a thing nobody has tried yet.
 
 ### How long have you been working on this, and how much full-time?
 
@@ -209,7 +215,9 @@ Why it likely failed:
 | Why does nobody get past page one? | Name it as the top product problem, say what you are testing next. Do not deflect. |
 | One paying customer, why so few? | Because nobody has tried yet. Zero marketing spend to date, no launch, and I was unfunded and job hunting for the first five months, then employed full time. That's the honest answer, and it's better than it sounds: it means the conversion question is still open rather than already answered badly. Then point at what the first funded months go to: activation first, conversion second. |
 | Job search ends when someone gets hired. What's the retention story? | Acknowledge the built-in churn event, and that you are the example. Then give the actual plan: re-engagement, or B2B2C through bootcamps/universities/outplacement. **[confirm] which one you actually believe.** |
-| What does a full application kit cost you in LLM spend? | **[confirm] compute this.** Never answer with cloud credits. |
+| What does a full application kit cost you? | $0.21 today on Sonnet 4.6, going to $0.32 when the Opus 5 migration ships. Revenue is $0.40 per credit, so a paid subscription runs 73 to 80% gross margin at realistic utilization. |
+| So the economics work? | For paid users, yes. Blended is the honest answer: free is 4 credits against zero revenue, so break-even is about 4.7% free-to-paid against a 2-5% freemium norm. We sit on that line. Halving the free tier moves break-even to 2.9%, which is a bigger lever than the entire model decision. |
+| What do the AWS credits do for you? | They don't change unit economics, they postpone them by about 13,000 applications. The point of that window is to measure real utilization and real conversion, which no spreadsheet can give you. |
 | Why do you win in a category with hundreds of entrants? | Mechanism, not absence of competitors: the full grounded loop with anti-hallucination as the product, and a data flywheel from fit analyses. Concede both are early. |
 | You are solo and employed. Is this real? | The job came through the product and it seeded real applied-AI experience. If funded, you leave. Say it plainly. |
 | What is your cap table? | 7,000,000 shares issued to you, 100% of outstanding, of 10,000,000 authorized. No pool adopted. 4-year vest, 1-year cliff, 83(b) filed on time. Clean and boring, which is what you want. |
