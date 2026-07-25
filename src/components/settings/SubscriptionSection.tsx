@@ -144,7 +144,7 @@ export function SubscriptionSection({
                     <button
                       onClick={() => handleBuyAddon(pack.name.toLowerCase())}
                       disabled={loadingAddon === pack.name.toLowerCase()}
-                      className="px-5 py-3.5 rounded-xl bg-gold-400 hover:bg-gold-500 text-navy-900 font-bold text-[16px] shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-60 flex items-center gap-2 group"
+                      className="px-5 py-3.5 rounded-xl bg-gold-400 hover:bg-gold-500 text-white font-bold text-[16px] shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-60 flex items-center gap-2 group"
                     >
                       {loadingAddon === pack.name.toLowerCase()
                         ? <Loader2 className="w-4 h-4 animate-spin" />

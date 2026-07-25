@@ -65,7 +65,7 @@ export default function BlogPage() {
                 </p>
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 hover:bg-gold-500 text-navy-900 font-semibold rounded-lg shadow-sm transition-colors"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors"
                 >
                   Try Karko AI free
                   <ArrowRight className="w-4 h-4" />
@@ -96,7 +96,7 @@ export default function BlogPage() {
                           </div>
                         )}
                         <div className="absolute top-4 left-4">
-                          <span className="px-3 py-1 text-xs font-semibold bg-gold-400 text-navy-900 rounded-full shadow-sm">
+                          <span className="px-3 py-1 text-xs font-semibold bg-gold-400 text-white rounded-full shadow-sm">
                             Featured
                           </span>
                         </div>
@@ -285,7 +285,7 @@ export default function BlogPage() {
             </p>
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 hover:bg-gold-500 text-navy-900 font-semibold rounded-lg shadow-sm transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors"
             >
               Start free, no credit card
               <ArrowRight className="w-4 h-4" />

@@ -42,8 +42,14 @@ Do NOT use: `rounded-md`, `rounded-xl`, `rounded-3xl`, `rounded-[14px]`, `rounde
 ### CTA treatments (one each — no gradients)
 | CTA | Class | Use |
 |-----|-------|-----|
-| **Primary (Gold)** | `bg-gold-400 hover:bg-gold-500 text-navy-900` | Main action per surface ("Apply with Karko", "Start my daily feed", "Upgrade to Plus") |
+| **Primary (Gold)** | `bg-gold-400 hover:bg-gold-500 text-white` | Main action per surface ("Apply with Karko", "Start my daily feed", "Upgrade to Plus") |
 | **Primary (Navy)** | `bg-navy-600 hover:bg-navy-700 text-white` | Secondary primary ("Sign up", "Save changes", sidebar highlights) |
+
+**Button label colour is always `text-white`** on any solid brand fill, gold or navy. This is a deliberate brand-consistency decision: a screen mixing white-on-navy with dark-on-gold reads as inconsistent. Never use `text-navy-900`, `text-charcoal` or any dark token on `bg-gold-400` / `bg-gold-500`. The same applies to icons inside those buttons.
+
+Known tradeoff: white on `gold-400` (`#D4A853`) measures ~2.2:1, below the WCAG AA 4.5:1 threshold for normal text. Consistency was chosen over the contrast ratio here. If we ever want white labels that also pass AA, the fill has to darken to roughly `gold-700` (`#825E1C`, ~5.9:1) — that's a brand decision, not something to change per-component. Do not "fix" individual buttons back to dark text.
+
+Light gold tints (`bg-gold-50`, `bg-gold-100`, `bg-gold-200`) are a different role: they are badges, chips and status tiles, not CTAs, and they keep dark text (`text-gold-700`, `text-charcoal`). White on a light tint is unreadable.
 
 Do NOT use: `bg-gradient-to-r from-gold-400 to-gold-500`, `bg-gradient-to-r from-navy-600 to-navy-700`, `bg-gold-500` / `bg-navy-700` as default base. Gradients on CTAs read as AI-slop; flat brand colors read as confident.
 
