@@ -164,20 +164,29 @@ export async function changePassword(newPassword: string): Promise<{ error: Erro
 }
 
 /**
- * Send password reset email
+ * Send password reset email via server route.
+ * Uses admin generateLink + token_hash (not client PKCE) so the link works
+ * when opened on a different device/browser than the one that requested it.
  */
 export async function sendPasswordResetEmail(email: string): Promise<{ error: Error | null }> {
-  const supabase = getSupabase();
+  try {
+    const res = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim().toLowerCase() }),
+    });
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
-  });
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      return {
+        error: new Error(data.error || 'Failed to send reset email. Please try again.'),
+      };
+    }
 
-  if (error) {
-    return { error: new Error(error.message) };
+    return { error: null };
+  } catch {
+    return { error: new Error('Failed to send reset email. Please try again.') };
   }
-
-  return { error: null };
 }
 
 /**

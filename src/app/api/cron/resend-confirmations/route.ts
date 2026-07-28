@@ -3,6 +3,7 @@ import { timingSafeEqual } from 'crypto';
 import { Resend } from 'resend';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { buildConfirmationEmail } from '@/lib/email/templates/confirmation';
+import { getSiteUrl } from '@/lib/auth/site-url';
 
 export const runtime = 'nodejs';
 
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
   try {
     const supabaseAdmin = createAdminClient();
     const resend = new Resend(apiKey);
-    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://karkoai.com').replace(/\/$/, '');
+    const siteUrl = getSiteUrl();
     const now = Date.now();
 
     // 1. Page through every auth user (10-12 today, plan for growth).
@@ -128,13 +129,14 @@ export async function POST(request: NextRequest) {
       }
 
       // Generate fresh confirmation link via admin API (24h-valid).
+      // token_hash + /auth/confirm works cross-device (no PKCE verifier).
       const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
         type: 'magiclink',
         email: user.email!,
         options: { redirectTo: `${siteUrl}/auth/callback` },
       });
-      if (linkError || !linkData?.properties?.action_link) {
-        console.error(`[cron/resend-confirmations] generateLink failed for ${user.email}: ${linkError?.message ?? 'no action_link'}`);
+      if (linkError || !linkData?.properties?.hashed_token) {
+        console.error(`[cron/resend-confirmations] generateLink failed for ${user.email}: ${linkError?.message ?? 'no hashed_token'}`);
         errors += 1;
         continue;
       }
@@ -142,8 +144,14 @@ export async function POST(request: NextRequest) {
       const fullName = (profile?.full_name ?? String(user.user_metadata?.full_name ?? '')).trim();
       const firstName = fullName.split(/\s+/).filter(Boolean)[0] ?? '';
 
+      const confirmationLink =
+        `${siteUrl}/auth/confirm` +
+        `?token_hash=${encodeURIComponent(linkData.properties.hashed_token)}` +
+        `&type=magiclink` +
+        `&next=${encodeURIComponent('/dashboard')}`;
+
       const email = buildConfirmationEmail({
-        confirmationLink: linkData.properties.action_link,
+        confirmationLink,
         firstName,
         isReminder: count > 0,
       });
