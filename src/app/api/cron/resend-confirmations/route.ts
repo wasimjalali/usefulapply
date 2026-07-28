@@ -7,7 +7,6 @@ import { getSiteUrl } from '@/lib/auth/site-url';
 
 export const runtime = 'nodejs';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 const SIGNUP_GRACE_HOURS = 24;
 const NUDGE_THROTTLE_HOURS = 24;
 const MAX_NUDGES_PER_USER = 2;
@@ -168,6 +167,7 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- profiles resend counters not in generated types
       const { error: updateError } = await (supabaseAdmin as any)
         .from('profiles')
         .update({

@@ -99,6 +99,8 @@ export async function POST(request: NextRequest) {
     // Root cause fix: DB trigger handle_new_user() silently swallows errors, leaving
     // the profiles table empty. We guarantee the profile exists here.
     if (linkData.user?.id) {
+      // profiles typing lags the live schema; admin client is untyped here by design.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- service-role upsert outside generated Database types
       const { error: profileError } = await (supabaseAdmin as any)
         .from('profiles')
         .upsert(

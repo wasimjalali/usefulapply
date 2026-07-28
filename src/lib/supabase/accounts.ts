@@ -2,6 +2,7 @@ import { getSupabase } from './client';
 import type { SubscriptionTier } from './types';
 
 // Get untyped supabase client for tables not in generated types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- connected_accounts / subscriptions lag Database types
 const getUntypedSupabase = () => getSupabase() as any;
 
 export interface ConnectedAccount {
@@ -257,6 +258,7 @@ export async function deleteUserAccount(userId: string): Promise<{ error: Error 
 
     for (const table of tablesWithUserId) {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic table name for cascade delete
         const { error } = await (supabase as any)
           .from(table)
           .delete()
@@ -272,6 +274,7 @@ export async function deleteUserAccount(userId: string): Promise<{ error: Error 
 
     // profiles table uses `id` (not `user_id`) as the primary key
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- profiles delete outside generated helpers
       const { error } = await (supabase as any)
         .from('profiles')
         .delete()
