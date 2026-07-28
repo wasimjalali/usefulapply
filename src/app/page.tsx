@@ -299,7 +299,7 @@ export default function Home() {
       {/* Platform scroll-stack — three panels that pin and layer as you scroll */}
       <PlatformScrollStack />
 
-      {/* Founder Story — signed-card aesthetic, copy unchanged */}
+      {/* Founder Story — signed-card aesthetic */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 bg-cream-50">
         <div className="max-w-5xl mx-auto">
           <ScrollReveal>
@@ -327,12 +327,9 @@ export default function Home() {
               <h2 className="font-bold text-navy-600 text-[28px] md:text-[32px] leading-[1.15] mb-6">
                 The tool I built got me hired.
               </h2>
-              <div className="border-l-2 border-gold-400 pl-6 space-y-4">
+              <div className="border-l-2 border-gold-400 pl-6">
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  I ran out of money building a startup in Germany. No savings, no degree to fall back on. Generic applications got me zero interviews. Tailoring each one by hand took 45 to 60 minutes, and it still wasn&apos;t working.
-                </p>
-                <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  So I built Karko to run the whole workflow. Then it got me hired. Sixty-plus applications, every one written by Karko. Five interviews. And the job I have today, as an AI Specialist, from an application my own product wrote. First-time job seeker, no formal background, in a market where most people send hundreds and never hear back. That&apos;s when I knew Karko couldn&apos;t stay a personal tool.
+                  I built Karko for my own search. Sixty-plus applications, every one written by the product. Five interviews. Then I was hired as an AI Specialist through an application Karko wrote. If it can do that for a first-time job seeker with no degree, it can do it for you.
                 </p>
               </div>
             </div>
