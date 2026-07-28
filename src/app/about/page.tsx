@@ -201,15 +201,9 @@ export default function AboutPage() {
               <h2 className="font-bold text-navy-600 text-[28px] md:text-[32px] leading-[1.15] mb-6">
                 The tool I built got me hired.
               </h2>
-              <div className="border-l-2 border-gold-400 pl-6 space-y-4">
+              <div className="border-l-2 border-gold-400 pl-6">
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  I ran out of money building a startup in Germany. No savings, no degree to fall back on. I&apos;d taught myself to code in three months and shipped real products. None of it helped. Generic applications got me zero interviews, and tailoring each one by hand took 45 to 60 minutes.
-                </p>
-                <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  So I built Karko to run the whole workflow, then pointed it at my own search. Sixty-plus applications, every one written by Karko. Five came back as interviews. One became the offer I took.
-                </p>
-                <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  <strong className="font-semibold">I was hired as an AI Specialist through an application my own product wrote.</strong> First-time job seeker, no degree, in a market where most people send hundreds and never hear back. That&apos;s the job I have today. The product didn&apos;t just help me apply. It got me the job.
+                  I built Karko for my own search. Sixty-plus applications, every one written by the product. Five interviews. Then I was hired as an AI Specialist through an application Karko wrote. If it can do that for a first-time job seeker with no degree, it can do it for you.
                 </p>
               </div>
             </div>
