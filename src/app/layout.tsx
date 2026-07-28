@@ -119,7 +119,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" translate="no">
+    <html lang="en" translate="no" suppressHydrationWarning>
       <head>
         {/* Disable browser translation. Translation extensions (Google Translate,
             Edge, Safari, Firefox) replace text nodes with <font> wrappers, which

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { getSiteUrl } from '@/lib/auth/site-url';
 
 export const runtime = 'nodejs';
 
@@ -27,8 +28,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json() as { email?: string; password?: string; fullName?: string };
-    const { email, password, fullName } = body;
+    const body = (await request.json()) as {
+      email?: string;
+      password?: string;
+      fullName?: string;
+      resendOnly?: boolean;
+    };
+    const { email, password, fullName, resendOnly } = body;
 
     // Input validation
     if (!email || !password) {
@@ -44,34 +50,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Name is too long.' }, { status: 400 });
     }
 
-    // Use NEXT_PUBLIC_SITE_URL env var so redirectTo is always the canonical
+    // Use NEXT_PUBLIC_SITE_URL so redirectTo is always the canonical
     // production URL — never a Vercel preview URL that isn't in Supabase's allowlist.
-    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin).replace(/\/$/, '');
+    const siteUrl = getSiteUrl(new URL(request.url).origin);
     const supabaseAdmin = createAdminClient();
 
     // Generate a signup confirmation link via admin API.
     // generateLink handles all cases correctly:
     //   - New email → creates user + generates confirmation link
     //   - Existing unconfirmed email → regenerates confirmation link (resend flow)
-    //   - Existing confirmed email → returns error (surfaced to client)
+    //   - Existing confirmed email → returns error (surfaced carefully)
     // Creates user in auth.users (email_confirmed_at = null) and returns
-    // a one-time confirmation URL we send via Resend instead of Supabase SMTP.
+    // hashed_token we send via Resend instead of Supabase SMTP.
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'signup',
       email,
       password,
       options: {
+        // After /auth/confirm, land on dashboard. redirectTo is a fallback for
+        // any provider-side hops; the email itself uses token_hash on our domain.
         redirectTo: `${siteUrl}/auth/callback`,
         data: { full_name: fullName ?? '' },
       },
     });
 
-    if (linkError) {
+    if (linkError || !linkData?.properties?.hashed_token) {
       console.error('[/api/auth/signup] generateLink error:', {
-        message: linkError.message,
-        status: linkError.status,
-        name: linkError.name,
+        message: linkError?.message,
+        status: linkError?.status,
+        name: linkError?.name,
+        resendOnly: Boolean(resendOnly),
       });
+
+      // Resend from login: never reveal whether the account exists / is confirmed.
+      if (resendOnly) {
+        return NextResponse.json({ success: true });
+      }
+
       // Return generic message — never expose raw provider errors to prevent
       // account enumeration and leaking backend configuration details.
       return NextResponse.json(
@@ -83,17 +98,26 @@ export async function POST(request: NextRequest) {
     // Create profile immediately with service role key — no RLS, no trigger dependency.
     // Root cause fix: DB trigger handle_new_user() silently swallows errors, leaving
     // the profiles table empty. We guarantee the profile exists here.
-    const { error: profileError } = await (supabaseAdmin as any)
-      .from('profiles')
-      .upsert(
-        { id: linkData.user.id, email, full_name: fullName ?? '' },
-        { onConflict: 'id' }
-      );
+    if (linkData.user?.id) {
+      const { error: profileError } = await (supabaseAdmin as any)
+        .from('profiles')
+        .upsert(
+          { id: linkData.user.id, email, full_name: fullName ?? '' },
+          { onConflict: 'id' }
+        );
 
-    if (profileError) {
-      console.error('[/api/auth/signup] Profile upsert error:', profileError.message);
-      // Non-fatal — user can still confirm email and profile will be created on login
+      if (profileError) {
+        console.error('[/api/auth/signup] Profile upsert error:', profileError.message);
+        // Non-fatal — user can still confirm email and profile will be created on login
+      }
     }
+
+    // token_hash path: works cross-device (no PKCE code_verifier required).
+    const confirmationLink =
+      `${siteUrl}/auth/confirm` +
+      `?token_hash=${encodeURIComponent(linkData.properties.hashed_token)}` +
+      `&type=signup` +
+      `&next=${encodeURIComponent('/dashboard')}`;
 
     // Send confirmation email via Resend (no rate limit, unlike Supabase built-in SMTP)
     const resendApiKey = process.env.RESEND_API_KEY;
@@ -104,14 +128,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
     const resend = new Resend(resendApiKey);
-    const confirmationLink = linkData.properties.action_link;
     const safeName = escapeHtml(fullName ?? '');
     const greeting = safeName ? `Hi ${safeName},` : 'Hi there,';
+    const subject = resendOnly
+      ? 'Confirm your KarKo AI account (reminder)'
+      : 'Confirm your KarKo AI account';
 
     const { error: emailError } = await resend.emails.send({
       from: 'KarKo AI <noreply@karkoai.com>',
       to: email,
-      subject: 'Confirm your KarKo AI account',
+      subject,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fafaf8; padding: 40px 20px;">
           <div style="text-align: center; margin-bottom: 32px;">

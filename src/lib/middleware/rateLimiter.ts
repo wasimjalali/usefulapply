@@ -106,6 +106,7 @@ export const RATE_LIMITS = {
   'generate-pdf':       { limit: 10, windowMs: 60_000 },
   'regenerate':         { limit: 10, windowMs: 60_000 },
   'signup':             { limit: 3,  windowMs: 60_000 },
+  'forgot-password':    { limit: 5,  windowMs: 60_000 },
   'post-confirm':       { limit: 5,  windowMs: 60_000 },
   'job-feed-settings':  { limit: 10, windowMs: 60_000 },
   'job-feed-overview':  { limit: 15, windowMs: 60_000 },

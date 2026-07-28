@@ -3,6 +3,20 @@
 import { useEffect } from 'react';
 import posthog from 'posthog-js';
 
+const CHUNK_RELOAD_KEY = 'karko_chunk_reload';
+
+function isChunkLoadError(error: Error): boolean {
+  const name = error.name || '';
+  const message = error.message || '';
+  return (
+    name === 'ChunkLoadError' ||
+    message.includes('ChunkLoadError') ||
+    message.includes('Loading chunk') ||
+    message.includes('Failed to load chunk') ||
+    message.includes('Loading CSS chunk')
+  );
+}
+
 export default function GlobalError({
   error,
   reset,
@@ -11,10 +25,26 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    posthog.captureException(error, {
-      source: 'global_error_boundary',
-      error_digest: error.digest,
-    });
+    try {
+      posthog.captureException(error, {
+        source: 'global_error_boundary',
+        error_digest: error.digest,
+        is_chunk_load_error: isChunkLoadError(error),
+      });
+    } catch {
+      // PostHog may not be ready
+    }
+
+    if (typeof window !== 'undefined' && isChunkLoadError(error)) {
+      try {
+        if (!sessionStorage.getItem(CHUNK_RELOAD_KEY)) {
+          sessionStorage.setItem(CHUNK_RELOAD_KEY, '1');
+          window.location.reload();
+        }
+      } catch {
+        // ignore
+      }
+    }
   }, [error]);
 
   return (
@@ -30,7 +60,14 @@ export default function GlobalError({
               A critical error occurred. Our team has been notified.
             </p>
             <button
-              onClick={() => reset()}
+              onClick={() => {
+                try {
+                  sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+                } catch {
+                  // ignore
+                }
+                reset();
+              }}
               style={{
                 padding: '0.75rem 1.5rem',
                 backgroundColor: '#2563eb',

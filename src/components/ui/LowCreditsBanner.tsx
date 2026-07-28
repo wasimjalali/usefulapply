@@ -11,10 +11,22 @@ export function LowCreditsBanner() {
   const { user } = useAuth();
   const [totalCredits, setTotalCredits] = useState<number | null>(null);
   const [planTier, setPlanTier] = useState<string | null>(null);
-  const [dismissed, setDismissed] = useState(
-    () => typeof window !== 'undefined' && sessionStorage.getItem(BANNER_DISMISSED_KEY) === '1'
-  );
+  const [dismissed, setDismissed] = useState(false);
   const [loadingAction, setLoadingAction] = useState<'addon' | 'max' | null>(null);
+
+  // Read sessionStorage after mount to avoid SSR/client hydration mismatch (#418).
+  // queueMicrotask keeps setState out of the effect body (react-hooks/set-state-in-effect).
+  useEffect(() => {
+    queueMicrotask(() => {
+      try {
+        if (sessionStorage.getItem(BANNER_DISMISSED_KEY) === '1') {
+          setDismissed(true);
+        }
+      } catch {
+        // sessionStorage unavailable
+      }
+    });
+  }, []);
 
   useEffect(() => {
     if (!user) return;
