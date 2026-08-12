@@ -393,6 +393,8 @@ export default function Dashboard() {
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
   const [showATSModal, setShowATSModal] = useState(false);
   const lastResizeClickRef = useRef(0);
+  const resizeGrabOffsetRef = useRef(0);
+  const chatWrapperRef = useRef<HTMLDivElement>(null);
   const MIN_CHAT_WIDTH = 360;
   const MAX_CHAT_WIDTH = 650;
   const COLLAPSED_WIDTH = 48;
@@ -428,7 +430,9 @@ export default function Dashboard() {
     </button>
   ) : null;
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  // Pointer events, not mouse events, so the sash also works with touch and pen
+  // on tablets (the desktop layout renders from 768px up).
+  const handleSashPointerDown = useCallback((e: React.PointerEvent) => {
     // Double-click to toggle collapse
     const now = Date.now();
     if (now - lastResizeClickRef.current < 300) {
@@ -437,8 +441,32 @@ export default function Dashboard() {
       return;
     }
     lastResizeClickRef.current = now;
+    // Remember where inside the sash the user grabbed, so the panel keeps its
+    // current width on the first move. Without this the panel snaps to the raw
+    // pointer position, and since the sash sits entirely right of the divider
+    // that snap can only ever shrink the panel.
+    resizeGrabOffsetRef.current = e.clientX - e.currentTarget.getBoundingClientRect().left;
     e.preventDefault();
     setIsResizing(true);
+  }, []);
+
+  const handleSashKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    const next = Math.min(
+      MAX_CHAT_WIDTH,
+      Math.max(MIN_CHAT_WIDTH, chatPanelWidth + (e.key === 'ArrowLeft' ? 16 : -16))
+    );
+    setChatPanelWidth(next);
+    localStorage.setItem('karko_chat_width', String(next));
+  }, [chatPanelWidth]);
+
+  // The sash is a sibling of the chat content, so it sits in no scrollable
+  // ancestor and a wheel over it would scroll nothing. Forward it to the chat
+  // message list so the panel's leftmost pixels aren't a scroll dead zone.
+  const handleSashWheel = useCallback((e: React.WheelEvent) => {
+    const scroller = chatWrapperRef.current?.querySelector<HTMLElement>('[data-chat-scroll]');
+    if (scroller) scroller.scrollTop += e.deltaY;
   }, []);
 
   const handleTabChange = useCallback((tab: ApplicationTab) => {
@@ -507,28 +535,35 @@ export default function Dashboard() {
 
   // Resize effect (desktop only)
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
-      const newWidth = window.innerWidth - e.clientX;
+    if (!isResizing) return;
+
+    let latestWidth: number | null = null;
+
+    const handlePointerMove = (e: PointerEvent) => {
+      const newWidth = window.innerWidth - (e.clientX - resizeGrabOffsetRef.current);
       const clamped = Math.min(MAX_CHAT_WIDTH, Math.max(MIN_CHAT_WIDTH, newWidth));
+      latestWidth = clamped;
       setChatPanelWidth(clamped);
-      localStorage.setItem('karko_chat_width', String(clamped));
     };
 
-    const handleMouseUp = () => {
+    const handlePointerUp = () => {
+      // Persist once on release, not on every pointermove.
+      if (latestWidth !== null) {
+        localStorage.setItem('karko_chat_width', String(latestWidth));
+      }
       setIsResizing(false);
     };
 
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    }
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', handlePointerUp);
+    document.addEventListener('pointercancel', handlePointerUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
+      document.removeEventListener('pointercancel', handlePointerUp);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
@@ -981,22 +1016,41 @@ export default function Dashboard() {
         </div>
 
         {!isSignedOutJobFeedMode && (
-          <div className="relative h-full flex-shrink-0 transition-[width] duration-300 ease-in-out" style={{ width: isChatCollapsed ? COLLAPSED_WIDTH : chatPanelWidth }}>
+          /* No width transition while dragging: it would make the panel edge
+             trail the pointer by the transition duration. */
+          <div
+            ref={chatWrapperRef}
+            className={`relative h-full flex-shrink-0 ${isResizing ? '' : 'transition-[width] duration-300 ease-in-out'}`}
+            style={{ width: isChatCollapsed ? COLLAPSED_WIDTH : chatPanelWidth }}
+          >
             {!isChatCollapsed && (
               /* The sash sits entirely inside the chat panel. It must never
-                 overhang the left panel, whose 8px scrollbar runs along that
-                 same edge. An overhang swallows scrollbar clicks and wheel
-                 events, so the user gets a resize instead of a scroll. */
+                 overhang the left panel, whose scrollbar runs along that same
+                 edge. An overhang swallows scrollbar clicks and wheel events,
+                 so the user gets a resize instead of a scroll. */
               <div
-                onMouseDown={handleMouseDown}
-                className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize z-10 group/resize"
-                title="Drag to resize · Double-click to collapse"
+                onPointerDown={handleSashPointerDown}
+                onKeyDown={handleSashKeyDown}
+                onWheel={handleSashWheel}
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Resize chat panel"
+                aria-valuenow={chatPanelWidth}
+                aria-valuemin={MIN_CHAT_WIDTH}
+                aria-valuemax={MAX_CHAT_WIDTH}
+                tabIndex={0}
+                style={{ touchAction: 'none' }}
+                className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize z-10 group/resize focus:outline-none"
+                title="Drag to resize · Arrow keys to adjust · Double-click to collapse"
               >
                 <div className={`absolute left-0 top-0 bottom-0 w-px transition-all duration-200 ${
-                  isResizing ? 'bg-gold-400 opacity-100' : 'bg-gold-300 opacity-0 group-hover/resize:opacity-100'
+                  isResizing ? 'bg-gold-400 opacity-100' : 'bg-gold-300 opacity-0 group-hover/resize:opacity-100 group-focus-visible/resize:opacity-100'
                 }`} />
+                {/* Dots rest at low opacity so the seam still reads as draggable.
+                    The hit area is narrower now, so a hover-only affordance would
+                    be hard to find. */}
                 <div className={`absolute left-0.5 top-1/2 -translate-y-1/2 flex flex-col gap-1 transition-opacity duration-200 ${
-                  isResizing ? 'opacity-100' : 'opacity-0 group-hover/resize:opacity-100'
+                  isResizing ? 'opacity-100' : 'opacity-40 group-hover/resize:opacity-100 group-focus-visible/resize:opacity-100'
                 }`}>
                   <div className={`w-1 h-1 rounded-full ${isResizing ? 'bg-gold-500' : 'bg-gold-400'}`} />
                   <div className={`w-1 h-1 rounded-full ${isResizing ? 'bg-gold-500' : 'bg-gold-400'}`} />

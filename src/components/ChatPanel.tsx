@@ -762,6 +762,9 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
         <div
           ref={messagesContainerRef}
           onScroll={handleScroll}
+          // The dashboard's resize sash overlays this panel's left edge and
+          // forwards wheel events here, so it needs to find this scroller.
+          data-chat-scroll
           className={`flex-1 overflow-auto space-y-4 relative ${
             isDesktopDocked ? 'px-4 pt-4 pb-3' : 'p-4'
           }`}
