@@ -464,7 +464,7 @@ export default function MasterCVPage() {
                 )}
               </button>
             </div>
-            <div className="p-6 max-h-96 overflow-auto">
+            <div className="p-6 max-h-96 overflow-auto scrollbar-on-dark">
               <pre className="text-sm text-navy-100 whitespace-pre-wrap font-mono leading-relaxed">
                 {MASTER_CV_PROMPT}
               </pre>

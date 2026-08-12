@@ -383,20 +383,45 @@ export default function Dashboard() {
 
   // Resizable chat panel state - ALL HOOKS MUST BE BEFORE EARLY RETURNS
   const [chatPanelWidth, setChatPanelWidth] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('karko_chat_width');
-      return saved ? Math.max(360, Math.min(650, Number(saved))) : 440;
-    }
-    return 440;
+    if (typeof window === 'undefined') return 440;
+    // Guard the parse: Math.min/max propagate NaN, so a corrupt stored value
+    // would render the chat panel at zero width with no way back.
+    const saved = Number(localStorage.getItem('karko_chat_width'));
+    return Number.isFinite(saved) && saved > 0 ? Math.max(360, Math.min(650, saved)) : 440;
   });
   const [isResizing, setIsResizing] = useState(false);
+  const [isKeyResizing, setIsKeyResizing] = useState(false);
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
   const [showATSModal, setShowATSModal] = useState(false);
   const lastResizeClickRef = useRef(0);
+  const resizeGrabOffsetRef = useRef(0);
+  const resizeStartXRef = useRef(0);
+  const resizePointerIdRef = useRef<number | null>(null);
+  const chatWrapperRef = useRef<HTMLDivElement>(null);
+  // Mirrors of the two pieces of resize state that event handlers read. Both a
+  // pointer drag and a held arrow key fire faster than React re-renders, so a
+  // handler closing over state would read a stale value.
+  const chatPanelWidthRef = useRef(chatPanelWidth);
+  const keyResizingRef = useRef(false);
   const MIN_CHAT_WIDTH = 360;
   const MAX_CHAT_WIDTH = 650;
   const COLLAPSED_WIDTH = 48;
   const lastApplicationTabRef = useRef<ApplicationTab>('cv');
+
+  const applyChatWidth = useCallback((next: number) => {
+    const clamped = Math.min(MAX_CHAT_WIDTH, Math.max(MIN_CHAT_WIDTH, next));
+    chatPanelWidthRef.current = clamped;
+    setChatPanelWidth(clamped);
+  }, []);
+
+  const persistChatWidth = useCallback(() => {
+    try {
+      localStorage.setItem('karko_chat_width', String(chatPanelWidthRef.current));
+    } catch {
+      // Blocked storage or quota. The width just won't survive a reload, which
+      // is not worth interrupting the user over.
+    }
+  }, []);
 
   const isApplicationTab = activeTab === 'cv' || activeTab === 'cover-letter' || activeTab === 'email';
   const activeWorkspace: Workspace = activeTab === 'jobs'
@@ -428,7 +453,18 @@ export default function Dashboard() {
     </button>
   ) : null;
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  // Pointer events, not mouse events, so the sash also works with touch and pen
+  // on tablets (the desktop layout renders from 768px up).
+  const handleSashPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    // Primary button only. A right or middle press would arm the drag and then
+    // never get a matching pointerup (the context menu eats it), leaving the
+    // panel resizing on plain mouse movement.
+    if (e.button !== 0 || !e.isPrimary) return;
+    // One pointer owns the drag. Without this, a second finger landing on a
+    // tablet would yank the panel to follow it, and lifting that finger would
+    // end the first finger's drag.
+    if (resizePointerIdRef.current !== null) return;
+
     // Double-click to toggle collapse
     const now = Date.now();
     if (now - lastResizeClickRef.current < 300) {
@@ -437,8 +473,91 @@ export default function Dashboard() {
       return;
     }
     lastResizeClickRef.current = now;
+    // Remember where inside the sash the user grabbed, so the panel keeps its
+    // current width on the first move. Without this the panel snaps to the raw
+    // pointer position, and since the sash sits entirely right of the divider
+    // that snap can only ever shrink the panel.
+    resizeGrabOffsetRef.current = e.clientX - e.currentTarget.getBoundingClientRect().left;
+    resizeStartXRef.current = e.clientX;
+    resizePointerIdRef.current = e.pointerId;
+    // Cancelling pointerdown suppresses the compatibility mousedown, which
+    // blocks the native selection drag. It also blocks the focus mousedown
+    // would have moved here, and that is deliberate: focusing the sash on a
+    // grab would pull focus out of the chat composer, so "paste a job ad,
+    // widen the panel to read it, press Enter to send" would stop sending.
+    // Keyboard users reach the sash by tabbing to it, which is the standard
+    // route for a separator.
     e.preventDefault();
+    // Redundant once pointerdown is cancelled, kept as a cheap guard. The
+    // effect's cleanup restores it.
+    document.body.style.userSelect = 'none';
     setIsResizing(true);
+    // Capture keeps the drag alive when the pointer leaves the 8px sash and
+    // guarantees a lostpointercapture we can treat as a release. It is an
+    // enhancement though: the document listeners drive the drag either way, so
+    // a throw here (NotFoundError when the id has no active pointer) must not
+    // abort the gesture. Hence last, and guarded.
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // Drag proceeds without capture.
+    }
+  }, []);
+
+  const handleSashKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // No Enter-to-collapse, deliberately. Enter is optional in the ARIA
+    // window-splitter pattern, and collapse is already covered from anywhere by
+    // ⌘⇧C, by double-clicking the sash, and by the header button. Binding it
+    // here would only add a way to collapse the panel by accident.
+    if (e.key === 'Home' || e.key === 'End') {
+      e.preventDefault();
+      applyChatWidth(e.key === 'Home' ? MIN_CHAT_WIDTH : MAX_CHAT_WIDTH);
+      persistChatWidth();
+      return;
+    }
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
+      // Any other key ends a key resize. On macOS, holding Cmd suppresses keyup
+      // for other keys, so an arrow released under Cmd would otherwise latch.
+      endKeyResizeRef.current();
+      return;
+    }
+    e.preventDefault();
+    // Held arrow keys repeat ~30x/sec. Suppress the width transition for the
+    // same reason the drag does, and persist on keyup rather than per repeat.
+    keyResizingRef.current = true;
+    setIsKeyResizing(true);
+    applyChatWidth(chatPanelWidthRef.current + (e.key === 'ArrowLeft' ? 16 : -16));
+  }, [applyChatWidth, persistChatWidth]);
+
+  const endKeyResize = useCallback(() => {
+    if (!keyResizingRef.current) return;
+    keyResizingRef.current = false;
+    setIsKeyResizing(false);
+    persistChatWidth();
+  }, [persistChatWidth]);
+  const endKeyResizeRef = useRef(endKeyResize);
+  endKeyResizeRef.current = endKeyResize;
+
+  // The sash unmounts when the chat collapses, and browsers fire no blur for a
+  // focused element that is removed. Without this, a key resize interrupted by
+  // a collapse would latch isKeyResizing and kill the width transition for the
+  // rest of the session.
+  useEffect(() => {
+    if (isChatCollapsed) endKeyResize();
+  }, [isChatCollapsed, endKeyResize]);
+
+  // The sash is a sibling of the chat content, so it sits in no scrollable
+  // ancestor and a wheel over it would scroll nothing. Forward it to the chat
+  // message list so the panel's leftmost pixels aren't a scroll dead zone.
+  // Note: React registers wheel passively at the root, so preventDefault() here
+  // would silently no-op. Nothing needs it - the dashboard row is
+  // overflow-hidden, so there is no ancestor that could double-scroll.
+  const handleSashWheel = useCallback((e: React.WheelEvent) => {
+    const scroller = chatWrapperRef.current?.querySelector<HTMLElement>('[data-chat-scroll]');
+    if (!scroller) return;
+    // Firefox reports line (1) or page (2) deltas for mouse wheels, not pixels.
+    const scale = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? scroller.clientHeight : 1;
+    scroller.scrollTop += e.deltaY * scale;
   }, []);
 
   const handleTabChange = useCallback((tab: ApplicationTab) => {
@@ -507,37 +626,70 @@ export default function Dashboard() {
 
   // Resize effect (desktop only)
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
-      const newWidth = window.innerWidth - e.clientX;
-      const clamped = Math.min(MAX_CHAT_WIDTH, Math.max(MIN_CHAT_WIDTH, newWidth));
-      setChatPanelWidth(clamped);
-      localStorage.setItem('karko_chat_width', String(clamped));
-    };
+    if (!isResizing) return;
 
-    const handleMouseUp = () => {
+    // Only the pointer that started the drag drives or ends it. The ref doubles
+    // as the "already ended" guard, which pointerup plus the implicit
+    // lostpointercapture in the same task both need. Deliberately a ref and not
+    // an effect-local flag: if a new press lands before isResizing=false
+    // commits, the effect does not re-run, and a local flag would stay latched
+    // and leave the still-attached listener resizing on hover forever.
+    const isDragPointer = (e: PointerEvent) => e.pointerId === resizePointerIdRef.current;
+
+    const endResize = (e: PointerEvent) => {
+      if (!isDragPointer(e)) return;
+      resizePointerIdRef.current = null;
+      // Release the drag before touching storage: a localStorage throw (Safari
+      // with cookies blocked, quota exhaustion) must not leave it armed.
       setIsResizing(false);
+      persistChatWidth();
     };
 
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    }
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!isDragPointer(e)) return;
+      // Once the pointer has really travelled, this press is a drag, not the
+      // first half of a double-click. Otherwise a quick nudge-and-regrab (press,
+      // drag, release, press again within 300ms) collapses the panel instead of
+      // resizing it, which is exactly the gesture for fine-tuning the width.
+      if (Math.abs(e.clientX - resizeStartXRef.current) > 4) {
+        lastResizeClickRef.current = 0;
+      }
+      // Failsafe: if every button is up and we never saw a pointerup, end the
+      // drag rather than resizing on plain hover. Chorded clicks (press right
+      // mid-drag, then release left) suppress pointerup entirely for mouse.
+      if (e.pointerType === 'mouse' && e.buttons === 0) {
+        endResize(e);
+        return;
+      }
+      applyChatWidth(window.innerWidth - (e.clientX - resizeGrabOffsetRef.current));
+    };
+
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', endResize);
+    document.addEventListener('pointercancel', endResize);
+    document.addEventListener('lostpointercapture', endResize);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', endResize);
+      document.removeEventListener('pointercancel', endResize);
+      document.removeEventListener('lostpointercapture', endResize);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
+      // Unmount mid-drag would otherwise leave the id set and block every
+      // future grab.
+      resizePointerIdRef.current = null;
     };
-  }, [isResizing]);
+  }, [isResizing, applyChatWidth, persistChatWidth]);
 
   // Keyboard shortcut: Cmd+Shift+C to toggle chat collapse
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'c') {
+      // Shift makes e.key 'C', so a bare 'c' comparison never matched and the
+      // shortcut was dead. It is the advertised way back from a collapse.
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'c') {
         e.preventDefault();
         setIsChatCollapsed(prev => !prev);
       }
@@ -981,22 +1133,62 @@ export default function Dashboard() {
         </div>
 
         {!isSignedOutJobFeedMode && (
-          <div className="relative h-full flex-shrink-0 transition-[width] duration-300 ease-in-out" style={{ width: isChatCollapsed ? COLLAPSED_WIDTH : chatPanelWidth }}>
+          /* No width transition while dragging: it would make the panel edge
+             trail the pointer by the transition duration. */
+          <div
+            ref={chatWrapperRef}
+            className={`relative h-full flex-shrink-0 ${isResizing || isKeyResizing ? '' : 'transition-[width] duration-300 ease-in-out'}`}
+            style={{ width: isChatCollapsed ? COLLAPSED_WIDTH : chatPanelWidth }}
+          >
             {!isChatCollapsed && (
+              /* The sash sits entirely inside the chat panel. It must never
+                 overhang the left panel, whose scrollbar runs along that same
+                 edge. An overhang swallows scrollbar clicks and wheel events,
+                 so the user gets a resize instead of a scroll. */
               <div
-                onMouseDown={handleMouseDown}
-                className="absolute left-0 top-0 bottom-0 w-3 -ml-1.5 cursor-col-resize z-10 group/resize"
-                title="Drag to resize · Double-click to collapse"
+                onPointerDown={handleSashPointerDown}
+                onKeyDown={handleSashKeyDown}
+                onKeyUp={endKeyResize}
+                onBlur={endKeyResize}
+                onWheel={handleSashWheel}
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Resize chat panel"
+                aria-valuenow={chatPanelWidth}
+                aria-valuemin={MIN_CHAT_WIDTH}
+                aria-valuemax={MAX_CHAT_WIDTH}
+                // The raw number is the chat panel's width, so it falls as the
+                // separator moves right. Spell that out rather than reading a
+                // bare number that seems to run backwards.
+                aria-valuetext={`Chat panel ${chatPanelWidth} pixels wide`}
+                tabIndex={0}
+                style={{ touchAction: 'none' }}
+                className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize z-10 group/resize focus:outline-none"
+                title="Drag to resize · Arrow keys to adjust · Double-click to collapse"
               >
-                <div className={`absolute left-1.5 top-0 bottom-0 w-px transition-all duration-200 ${
-                  isResizing ? 'bg-gold-400 opacity-100' : 'bg-gold-300 opacity-0 group-hover/resize:opacity-100'
+                {/* Focus gets a 2px gold-500 line rather than the 1px gold-300
+                    hover hairline, which measures 1.64:1 and is too faint to be
+                    the only focus affordance once focus:outline-none is set. */}
+                <div className={`absolute left-0 top-0 bottom-0 transition-all duration-200 ${
+                  isResizing
+                    ? 'w-px bg-gold-400 opacity-100'
+                    : 'w-px bg-gold-300 opacity-0 group-hover/resize:opacity-100 group-focus-visible/resize:w-0.5 group-focus-visible/resize:bg-gold-500 group-focus-visible/resize:opacity-100'
                 }`} />
-                <div className={`absolute left-0.5 top-1/2 -translate-y-1/2 flex flex-col gap-1 transition-opacity duration-200 ${
-                  isResizing ? 'opacity-100' : 'opacity-0 group-hover/resize:opacity-100'
-                }`}>
-                  <div className={`w-1 h-1 rounded-full ${isResizing ? 'bg-gold-500' : 'bg-gold-400'}`} />
-                  <div className={`w-1 h-1 rounded-full ${isResizing ? 'bg-gold-500' : 'bg-gold-400'}`} />
-                  <div className={`w-1 h-1 rounded-full ${isResizing ? 'bg-gold-500' : 'bg-gold-400'}`} />
+                {/* Dots rest visible so the seam reads as draggable: a hover-only
+                    affordance on an 8px strip is a chicken-and-egg problem. They
+                    rest in navy, not gold, because gold is the CTA accent and
+                    there are gold buttons a few hundred pixels away. */}
+                <div className="absolute left-0.5 top-1/2 -translate-y-1/2 flex flex-col gap-1">
+                  {[0, 1, 2].map(i => (
+                    <div
+                      key={i}
+                      className={`w-1 h-1 rounded-full transition-colors duration-200 ${
+                        isResizing
+                          ? 'bg-gold-500'
+                          : 'bg-navy-200 group-hover/resize:bg-gold-400 group-focus-visible/resize:bg-gold-400'
+                      }`}
+                    />
+                  ))}
                 </div>
               </div>
             )}

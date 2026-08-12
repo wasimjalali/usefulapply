@@ -30,7 +30,8 @@ Every panel, card, and document picks **one** role and stays in it:
 Forbidden:
 - **`bg-white/85`, `bg-white/90`, `bg-white/92`, `bg-white/95` over cream.** They create subtle tint shifts the eye feels but cannot name. Use solid `bg-cream-50` or solid `bg-white` — pick a role.
 - **Gradients on canvas or surface.** No `bg-gradient-to-b from-cream-100 to-cream-50`, no custom `bg-[radial-gradient(...)]` shells. Gradients exist only for the gold CTA, and even then flat is preferred (see CTA section).
-- **`cream-300` / `cream-400` on large fills** — they read as aged paper / dingy. Reserved for dividers and scrollbar thumbs.
+- **`cream-300` / `cream-400` on large fills** — they read as aged paper / dingy. Reserved for dividers.
+- **Cream scrollbar thumbs.** Scrollbars are navy: `navy-400` thumb, `navy-600` hover, transparent track (`globals.css`). A cream thumb on a cream track is 1.29:1, invisible rather than subtle. Scrollable dark panels take `.scrollbar-on-dark`, which flips the ramp.
 - **`border-cream-300` and darker** on new work. Borders use `border-cream-200`.
 
 ### Typography
