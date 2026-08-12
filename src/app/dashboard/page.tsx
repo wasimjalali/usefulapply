@@ -455,7 +455,7 @@ export default function Dashboard() {
 
   // Pointer events, not mouse events, so the sash also works with touch and pen
   // on tablets (the desktop layout renders from 768px up).
-  const handleSashPointerDown = useCallback((e: React.PointerEvent) => {
+  const handleSashPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     // Primary button only. A right or middle press would arm the drag and then
     // never get a matching pointerup (the context menu eats it), leaving the
     // panel resizing on plain mouse movement.
@@ -481,6 +481,11 @@ export default function Dashboard() {
     resizeStartXRef.current = e.clientX;
     resizePointerIdRef.current = e.pointerId;
     e.preventDefault();
+    // preventDefault suppresses the compatibility mousedown, which is what
+    // would normally focus the sash. Focus it explicitly so a user who grabs it
+    // with the mouse can then fine-tune with the arrow keys. Programmatic focus
+    // after a pointer press does not match :focus-visible, so no ring appears.
+    e.currentTarget.focus();
     // Cancelling pointerdown does not cancel the compatibility mousedown, so
     // block the native selection drag here. The effect below runs after paint,
     // which is a frame too late to stop a selection that already started.
@@ -625,16 +630,16 @@ export default function Dashboard() {
   useEffect(() => {
     if (!isResizing) return;
 
-    // pointerup and the implicit lostpointercapture both land in the same task,
-    // so guard against ending the same drag twice.
-    let ended = false;
-
-    // Only the pointer that started the drag drives or ends it.
+    // Only the pointer that started the drag drives or ends it. The ref doubles
+    // as the "already ended" guard, which pointerup plus the implicit
+    // lostpointercapture in the same task both need. Deliberately a ref and not
+    // an effect-local flag: if a new press lands before isResizing=false
+    // commits, the effect does not re-run, and a local flag would stay latched
+    // and leave the still-attached listener resizing on hover forever.
     const isDragPointer = (e: PointerEvent) => e.pointerId === resizePointerIdRef.current;
 
     const endResize = (e: PointerEvent) => {
-      if (ended || !isDragPointer(e)) return;
-      ended = true;
+      if (!isDragPointer(e)) return;
       resizePointerIdRef.current = null;
       // Release the drag before touching storage: a localStorage throw (Safari
       // with cookies blocked, quota exhaustion) must not leave it armed.
