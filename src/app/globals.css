@@ -101,20 +101,29 @@ body {
   background-clip: padding-box;
 }
 
+/* The background shorthand above resets background-clip, so repeat it here or
+   the thumb jumps from 8px to 12px on hover. */
 ::-webkit-scrollbar-thumb:hover {
   background: #C5D1E3; /* navy-100 */
   background-clip: padding-box;
 }
 
-/* Firefox ignores ::-webkit-scrollbar entirely, so it needs the standard
-   properties. This must stay out of Chrome's reach: Chrome drops all
-   ::-webkit-scrollbar styling on any element where scrollbar-color is set, so
-   applying it globally would silently revert the app to OS scrollbars. Firefox
-   fails the selector() test, Chrome and Safari pass it. scrollbar-color is
-   inherited, so html carries it through the tree. */
-@supports not selector(::-webkit-scrollbar) {
+::-webkit-scrollbar-corner {
+  background: #F5F0E8; /* cream-200, matches the track */
+}
+
+/* Firefox ignores ::-webkit-scrollbar, so it needs the standard properties.
+   This has to stay out of Chrome's reach: Chrome drops all ::-webkit-scrollbar
+   styling on any element where scrollbar-color is set, so an unguarded rule
+   silently reverts the whole app to OS scrollbars.
+   The guard is a Firefox-only property, NOT @supports selector(::-webkit-
+   scrollbar): Firefox 153 recognizes that selector while still not honouring
+   it, so a selector() test lands on the wrong side.
+   Only the colours are set. scrollbar-width does not inherit, so on html it
+   would reach the root scrollbar and nothing else, and Firefox's default width
+   is already wider than 12px, which is the target size we were after. */
+@supports (-moz-orient: inline) {
   html {
-    scrollbar-width: thin;
     scrollbar-color: #DED4C3 #F5F0E8; /* cream-400 thumb, cream-200 track */
   }
 }

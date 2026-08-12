@@ -383,22 +383,43 @@ export default function Dashboard() {
 
   // Resizable chat panel state - ALL HOOKS MUST BE BEFORE EARLY RETURNS
   const [chatPanelWidth, setChatPanelWidth] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('karko_chat_width');
-      return saved ? Math.max(360, Math.min(650, Number(saved))) : 440;
-    }
-    return 440;
+    if (typeof window === 'undefined') return 440;
+    // Guard the parse: Math.min/max propagate NaN, so a corrupt stored value
+    // would render the chat panel at zero width with no way back.
+    const saved = Number(localStorage.getItem('karko_chat_width'));
+    return Number.isFinite(saved) && saved > 0 ? Math.max(360, Math.min(650, saved)) : 440;
   });
   const [isResizing, setIsResizing] = useState(false);
+  const [isKeyResizing, setIsKeyResizing] = useState(false);
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
   const [showATSModal, setShowATSModal] = useState(false);
   const lastResizeClickRef = useRef(0);
   const resizeGrabOffsetRef = useRef(0);
   const chatWrapperRef = useRef<HTMLDivElement>(null);
+  // Mirrors of the two pieces of resize state that event handlers read. Both a
+  // pointer drag and a held arrow key fire faster than React re-renders, so a
+  // handler closing over state would read a stale value.
+  const chatPanelWidthRef = useRef(chatPanelWidth);
+  const keyResizingRef = useRef(false);
   const MIN_CHAT_WIDTH = 360;
   const MAX_CHAT_WIDTH = 650;
   const COLLAPSED_WIDTH = 48;
   const lastApplicationTabRef = useRef<ApplicationTab>('cv');
+
+  const applyChatWidth = useCallback((next: number) => {
+    const clamped = Math.min(MAX_CHAT_WIDTH, Math.max(MIN_CHAT_WIDTH, next));
+    chatPanelWidthRef.current = clamped;
+    setChatPanelWidth(clamped);
+  }, []);
+
+  const persistChatWidth = useCallback(() => {
+    try {
+      localStorage.setItem('karko_chat_width', String(chatPanelWidthRef.current));
+    } catch {
+      // Blocked storage or quota. The width just won't survive a reload, which
+      // is not worth interrupting the user over.
+    }
+  }, []);
 
   const isApplicationTab = activeTab === 'cv' || activeTab === 'cover-letter' || activeTab === 'email';
   const activeWorkspace: Workspace = activeTab === 'jobs'
@@ -433,6 +454,11 @@ export default function Dashboard() {
   // Pointer events, not mouse events, so the sash also works with touch and pen
   // on tablets (the desktop layout renders from 768px up).
   const handleSashPointerDown = useCallback((e: React.PointerEvent) => {
+    // Primary button only. A right or middle press would arm the drag and then
+    // never get a matching pointerup (the context menu eats it), leaving the
+    // panel resizing on plain mouse movement.
+    if (e.button !== 0 || !e.isPrimary) return;
+
     // Double-click to toggle collapse
     const now = Date.now();
     if (now - lastResizeClickRef.current < 300) {
@@ -446,27 +472,46 @@ export default function Dashboard() {
     // pointer position, and since the sash sits entirely right of the divider
     // that snap can only ever shrink the panel.
     resizeGrabOffsetRef.current = e.clientX - e.currentTarget.getBoundingClientRect().left;
+    // Capture keeps the drag alive when the pointer leaves the 8px sash, and
+    // guarantees a lostpointercapture we can treat as a release.
+    e.currentTarget.setPointerCapture(e.pointerId);
     e.preventDefault();
+    // Cancelling pointerdown does not cancel the compatibility mousedown, so
+    // block the native selection drag here. The effect below runs after paint,
+    // which is a frame too late to stop a selection that already started.
+    document.body.style.userSelect = 'none';
     setIsResizing(true);
   }, []);
 
   const handleSashKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
     e.preventDefault();
-    const next = Math.min(
-      MAX_CHAT_WIDTH,
-      Math.max(MIN_CHAT_WIDTH, chatPanelWidth + (e.key === 'ArrowLeft' ? 16 : -16))
-    );
-    setChatPanelWidth(next);
-    localStorage.setItem('karko_chat_width', String(next));
-  }, [chatPanelWidth]);
+    // Held arrow keys repeat ~30x/sec. Suppress the width transition for the
+    // same reason the drag does, and persist on keyup rather than per repeat.
+    keyResizingRef.current = true;
+    setIsKeyResizing(true);
+    applyChatWidth(chatPanelWidthRef.current + (e.key === 'ArrowLeft' ? 16 : -16));
+  }, [applyChatWidth]);
+
+  const endKeyResize = useCallback(() => {
+    if (!keyResizingRef.current) return;
+    keyResizingRef.current = false;
+    setIsKeyResizing(false);
+    persistChatWidth();
+  }, [persistChatWidth]);
 
   // The sash is a sibling of the chat content, so it sits in no scrollable
   // ancestor and a wheel over it would scroll nothing. Forward it to the chat
   // message list so the panel's leftmost pixels aren't a scroll dead zone.
+  // Note: React registers wheel passively at the root, so preventDefault() here
+  // would silently no-op. Nothing needs it - the dashboard row is
+  // overflow-hidden, so there is no ancestor that could double-scroll.
   const handleSashWheel = useCallback((e: React.WheelEvent) => {
     const scroller = chatWrapperRef.current?.querySelector<HTMLElement>('[data-chat-scroll]');
-    if (scroller) scroller.scrollTop += e.deltaY;
+    if (!scroller) return;
+    // Firefox reports line (1) or page (2) deltas for mouse wheels, not pixels.
+    const scale = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? scroller.clientHeight : 1;
+    scroller.scrollTop += e.deltaY * scale;
   }, []);
 
   const handleTabChange = useCallback((tab: ApplicationTab) => {
@@ -537,37 +582,40 @@ export default function Dashboard() {
   useEffect(() => {
     if (!isResizing) return;
 
-    let latestWidth: number | null = null;
-
-    const handlePointerMove = (e: PointerEvent) => {
-      const newWidth = window.innerWidth - (e.clientX - resizeGrabOffsetRef.current);
-      const clamped = Math.min(MAX_CHAT_WIDTH, Math.max(MIN_CHAT_WIDTH, newWidth));
-      latestWidth = clamped;
-      setChatPanelWidth(clamped);
+    const endResize = () => {
+      // Release the drag before touching storage: a localStorage throw (Safari
+      // with cookies blocked, quota exhaustion) must not leave it armed.
+      setIsResizing(false);
+      persistChatWidth();
     };
 
-    const handlePointerUp = () => {
-      // Persist once on release, not on every pointermove.
-      if (latestWidth !== null) {
-        localStorage.setItem('karko_chat_width', String(latestWidth));
+    const handlePointerMove = (e: PointerEvent) => {
+      // Failsafe: if every button is up and we never saw a pointerup, end the
+      // drag rather than resizing on plain hover. Chorded clicks (press right
+      // mid-drag, then release left) suppress pointerup entirely for mouse.
+      if (e.pointerType === 'mouse' && e.buttons === 0) {
+        endResize();
+        return;
       }
-      setIsResizing(false);
+      applyChatWidth(window.innerWidth - (e.clientX - resizeGrabOffsetRef.current));
     };
 
     document.addEventListener('pointermove', handlePointerMove);
-    document.addEventListener('pointerup', handlePointerUp);
-    document.addEventListener('pointercancel', handlePointerUp);
+    document.addEventListener('pointerup', endResize);
+    document.addEventListener('pointercancel', endResize);
+    document.addEventListener('lostpointercapture', endResize);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
 
     return () => {
       document.removeEventListener('pointermove', handlePointerMove);
-      document.removeEventListener('pointerup', handlePointerUp);
-      document.removeEventListener('pointercancel', handlePointerUp);
+      document.removeEventListener('pointerup', endResize);
+      document.removeEventListener('pointercancel', endResize);
+      document.removeEventListener('lostpointercapture', endResize);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
-  }, [isResizing]);
+  }, [isResizing, applyChatWidth, persistChatWidth]);
 
   // Keyboard shortcut: Cmd+Shift+C to toggle chat collapse
   useEffect(() => {
@@ -1020,7 +1068,7 @@ export default function Dashboard() {
              trail the pointer by the transition duration. */
           <div
             ref={chatWrapperRef}
-            className={`relative h-full flex-shrink-0 ${isResizing ? '' : 'transition-[width] duration-300 ease-in-out'}`}
+            className={`relative h-full flex-shrink-0 ${isResizing || isKeyResizing ? '' : 'transition-[width] duration-300 ease-in-out'}`}
             style={{ width: isChatCollapsed ? COLLAPSED_WIDTH : chatPanelWidth }}
           >
             {!isChatCollapsed && (
@@ -1031,6 +1079,8 @@ export default function Dashboard() {
               <div
                 onPointerDown={handleSashPointerDown}
                 onKeyDown={handleSashKeyDown}
+                onKeyUp={endKeyResize}
+                onBlur={endKeyResize}
                 onWheel={handleSashWheel}
                 role="separator"
                 aria-orientation="vertical"
