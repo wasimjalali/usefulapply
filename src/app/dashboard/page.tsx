@@ -480,15 +480,15 @@ export default function Dashboard() {
     resizeGrabOffsetRef.current = e.clientX - e.currentTarget.getBoundingClientRect().left;
     resizeStartXRef.current = e.clientX;
     resizePointerIdRef.current = e.pointerId;
+    // Cancelling pointerdown suppresses the compatibility mousedown, so it
+    // blocks the native selection drag, but it also blocks the focus that
+    // mousedown would have moved here. Focus explicitly so a mouse grab can
+    // chain into arrow-key fine-tuning. Programmatic focus during a pointer
+    // press does not match :focus-visible, so no ring appears.
     e.preventDefault();
-    // preventDefault suppresses the compatibility mousedown, which is what
-    // would normally focus the sash. Focus it explicitly so a user who grabs it
-    // with the mouse can then fine-tune with the arrow keys. Programmatic focus
-    // after a pointer press does not match :focus-visible, so no ring appears.
-    e.currentTarget.focus();
-    // Cancelling pointerdown does not cancel the compatibility mousedown, so
-    // block the native selection drag here. The effect below runs after paint,
-    // which is a frame too late to stop a selection that already started.
+    e.currentTarget.focus({ preventScroll: true });
+    // Belt-and-braces against a selection that started before this handler ran.
+    // The effect's cleanup restores it.
     document.body.style.userSelect = 'none';
     setIsResizing(true);
     // Capture keeps the drag alive when the pointer leaves the 8px sash and
@@ -504,13 +504,10 @@ export default function Dashboard() {
   }, []);
 
   const handleSashKeyDown = useCallback((e: React.KeyboardEvent) => {
-    // The rest of the WAI-ARIA window-splitter map. Enter matters most: collapse
-    // was double-click only, so a keyboard user could resize but not collapse.
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      setIsChatCollapsed(prev => !prev);
-      return;
-    }
+    // No Enter-to-collapse, deliberately. The sash takes focus on a mouse grab,
+    // so binding Enter would mean "drag the panel wider, press Enter to send
+    // the job ad" collapses the chat instead. Enter is optional in the ARIA
+    // window-splitter pattern and ⌘⇧C already toggles collapse from anywhere.
     if (e.key === 'Home' || e.key === 'End') {
       e.preventDefault();
       applyChatWidth(e.key === 'Home' ? MIN_CHAT_WIDTH : MAX_CHAT_WIDTH);
