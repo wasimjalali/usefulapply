@@ -480,15 +480,16 @@ export default function Dashboard() {
     resizeGrabOffsetRef.current = e.clientX - e.currentTarget.getBoundingClientRect().left;
     resizeStartXRef.current = e.clientX;
     resizePointerIdRef.current = e.pointerId;
-    // Cancelling pointerdown suppresses the compatibility mousedown, so it
-    // blocks the native selection drag, but it also blocks the focus that
-    // mousedown would have moved here. Focus explicitly so a mouse grab can
-    // chain into arrow-key fine-tuning. Programmatic focus during a pointer
-    // press does not match :focus-visible, so no ring appears.
+    // Cancelling pointerdown suppresses the compatibility mousedown, which
+    // blocks the native selection drag. It also blocks the focus mousedown
+    // would have moved here, and that is deliberate: focusing the sash on a
+    // grab would pull focus out of the chat composer, so "paste a job ad,
+    // widen the panel to read it, press Enter to send" would stop sending.
+    // Keyboard users reach the sash by tabbing to it, which is the standard
+    // route for a separator.
     e.preventDefault();
-    e.currentTarget.focus({ preventScroll: true });
-    // Belt-and-braces against a selection that started before this handler ran.
-    // The effect's cleanup restores it.
+    // Redundant once pointerdown is cancelled, kept as a cheap guard. The
+    // effect's cleanup restores it.
     document.body.style.userSelect = 'none';
     setIsResizing(true);
     // Capture keeps the drag alive when the pointer leaves the 8px sash and
