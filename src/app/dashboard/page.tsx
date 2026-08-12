@@ -396,6 +396,7 @@ export default function Dashboard() {
   const lastResizeClickRef = useRef(0);
   const resizeGrabOffsetRef = useRef(0);
   const resizeStartXRef = useRef(0);
+  const resizePointerIdRef = useRef<number | null>(null);
   const chatWrapperRef = useRef<HTMLDivElement>(null);
   // Mirrors of the two pieces of resize state that event handlers read. Both a
   // pointer drag and a held arrow key fire faster than React re-renders, so a
@@ -459,6 +460,10 @@ export default function Dashboard() {
     // never get a matching pointerup (the context menu eats it), leaving the
     // panel resizing on plain mouse movement.
     if (e.button !== 0 || !e.isPrimary) return;
+    // One pointer owns the drag. Without this, a second finger landing on a
+    // tablet would yank the panel to follow it, and lifting that finger would
+    // end the first finger's drag.
+    if (resizePointerIdRef.current !== null) return;
 
     // Double-click to toggle collapse
     const now = Date.now();
@@ -474,15 +479,23 @@ export default function Dashboard() {
     // that snap can only ever shrink the panel.
     resizeGrabOffsetRef.current = e.clientX - e.currentTarget.getBoundingClientRect().left;
     resizeStartXRef.current = e.clientX;
-    // Capture keeps the drag alive when the pointer leaves the 8px sash, and
-    // guarantees a lostpointercapture we can treat as a release.
-    e.currentTarget.setPointerCapture(e.pointerId);
+    resizePointerIdRef.current = e.pointerId;
     e.preventDefault();
     // Cancelling pointerdown does not cancel the compatibility mousedown, so
     // block the native selection drag here. The effect below runs after paint,
     // which is a frame too late to stop a selection that already started.
     document.body.style.userSelect = 'none';
     setIsResizing(true);
+    // Capture keeps the drag alive when the pointer leaves the 8px sash and
+    // guarantees a lostpointercapture we can treat as a release. It is an
+    // enhancement though: the document listeners drive the drag either way, so
+    // a throw here (NotFoundError when the id has no active pointer) must not
+    // abort the gesture. Hence last, and guarded.
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // Drag proceeds without capture.
+    }
   }, []);
 
   const handleSashKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -616,9 +629,13 @@ export default function Dashboard() {
     // so guard against ending the same drag twice.
     let ended = false;
 
-    const endResize = () => {
-      if (ended) return;
+    // Only the pointer that started the drag drives or ends it.
+    const isDragPointer = (e: PointerEvent) => e.pointerId === resizePointerIdRef.current;
+
+    const endResize = (e: PointerEvent) => {
+      if (ended || !isDragPointer(e)) return;
       ended = true;
+      resizePointerIdRef.current = null;
       // Release the drag before touching storage: a localStorage throw (Safari
       // with cookies blocked, quota exhaustion) must not leave it armed.
       setIsResizing(false);
@@ -626,6 +643,7 @@ export default function Dashboard() {
     };
 
     const handlePointerMove = (e: PointerEvent) => {
+      if (!isDragPointer(e)) return;
       // Once the pointer has really travelled, this press is a drag, not the
       // first half of a double-click. Otherwise a quick nudge-and-regrab (press,
       // drag, release, press again within 300ms) collapses the panel instead of
@@ -637,7 +655,7 @@ export default function Dashboard() {
       // drag rather than resizing on plain hover. Chorded clicks (press right
       // mid-drag, then release left) suppress pointerup entirely for mouse.
       if (e.pointerType === 'mouse' && e.buttons === 0) {
-        endResize();
+        endResize(e);
         return;
       }
       applyChatWidth(window.innerWidth - (e.clientX - resizeGrabOffsetRef.current));
@@ -657,13 +675,18 @@ export default function Dashboard() {
       document.removeEventListener('lostpointercapture', endResize);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
+      // Unmount mid-drag would otherwise leave the id set and block every
+      // future grab.
+      resizePointerIdRef.current = null;
     };
   }, [isResizing, applyChatWidth, persistChatWidth]);
 
   // Keyboard shortcut: Cmd+Shift+C to toggle chat collapse
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'c') {
+      // Shift makes e.key 'C', so a bare 'c' comparison never matched and the
+      // shortcut was dead. It is the advertised way back from a collapse.
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'c') {
         e.preventDefault();
         setIsChatCollapsed(prev => !prev);
       }

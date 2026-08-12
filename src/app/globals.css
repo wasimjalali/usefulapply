@@ -88,10 +88,14 @@ body {
    The thumb is navy, not cream. cream-400 on a cream-200 track measures
    1.29:1, which is not a subtle thumb, it is an invisible one, and a target
    nobody can see is the reason people grabbed the resize sash by mistake.
-   navy-200 is 2.10:1 at rest and navy-400 is 4.06:1 on hover, so the hover
-   feedback is perceptible too.
+   navy-400 clears the WCAG 3:1 bar for UI components on every light surface
+   we use (~4.1:1 on white and cream-50, ~3.9:1 on cream-100), and navy-600
+   on hover is unmistakable.
    The track is transparent: an opaque cream band would paint a warm 12px
-   stripe down every white document surface and every dark landing section. */
+   stripe down every white document surface and every dark landing section.
+   Chrome paints the scroller's own background under the gutter, so the 2px
+   transparent border resolves to a flat colour and the thumb reads as a clean
+   8px pill on all three surface roles. */
 ::-webkit-scrollbar {
   width: 12px;
   height: 12px;
@@ -102,7 +106,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #9FB3CF; /* navy-200 */
+  background: #5C7FAD; /* navy-400 */
   border-radius: 6px;
   border: 2px solid transparent;
   background-clip: padding-box;
@@ -111,12 +115,26 @@ body {
 /* The background shorthand above resets background-clip, so repeat it here or
    the thumb jumps from 8px to 12px on hover. */
 ::-webkit-scrollbar-thumb:hover {
-  background: #5C7FAD; /* navy-400 */
+  background: #1E3A5F; /* navy-600 */
   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* Dark scroll surfaces. The palette above is tuned for cream and white, where
+   darker means more prominent. On a navy panel that inverts: navy-600 on
+   navy-700 is 1.18:1, so hovering would make the thumb disappear. Flip the
+   ramp so hover still means brighter. */
+.scrollbar-on-dark::-webkit-scrollbar-thumb {
+  background: #9FB3CF; /* navy-200 */
+  background-clip: padding-box;
+}
+
+.scrollbar-on-dark::-webkit-scrollbar-thumb:hover {
+  background: #E8EDF4; /* navy-50 */
+  background-clip: padding-box;
 }
 
 /* Firefox ignores ::-webkit-scrollbar, so it needs the standard properties.
@@ -126,11 +144,20 @@ body {
    The guard is a Firefox-only property, NOT @supports selector(::-webkit-
    scrollbar): Firefox 153 recognizes that selector while still not honouring
    it, so a selector() test lands on the wrong side.
-   Only the colours are set. scrollbar-width does not inherit, so on html it
-   would reach the root scrollbar and nothing else, and Firefox's default width
-   is already wider than 12px, which is the target size we were after. */
+   scrollbar-color is inherited, so html carries it through the tree.
+   scrollbar-width is not, hence the universal selector: without it Firefox
+   draws a ~16px solid bar where Chrome draws an 8px pill inside a 12px
+   gutter. .scrollbar-hide still wins, a class beats the universal selector. */
 @supports (-moz-orient: inline) {
   html {
+    scrollbar-color: #5C7FAD transparent; /* navy-400 thumb */
+  }
+
+  * {
+    scrollbar-width: thin;
+  }
+
+  .scrollbar-on-dark {
     scrollbar-color: #9FB3CF transparent; /* navy-200 thumb */
   }
 }
