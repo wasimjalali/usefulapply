@@ -505,10 +505,10 @@ export default function Dashboard() {
   }, []);
 
   const handleSashKeyDown = useCallback((e: React.KeyboardEvent) => {
-    // No Enter-to-collapse, deliberately. The sash takes focus on a mouse grab,
-    // so binding Enter would mean "drag the panel wider, press Enter to send
-    // the job ad" collapses the chat instead. Enter is optional in the ARIA
-    // window-splitter pattern and ⌘⇧C already toggles collapse from anywhere.
+    // No Enter-to-collapse, deliberately. Enter is optional in the ARIA
+    // window-splitter pattern, and collapse is already covered from anywhere by
+    // ⌘⇧C, by double-clicking the sash, and by the header button. Binding it
+    // here would only add a way to collapse the panel by accident.
     if (e.key === 'Home' || e.key === 'End') {
       e.preventDefault();
       applyChatWidth(e.key === 'Home' ? MIN_CHAT_WIDTH : MAX_CHAT_WIDTH);
