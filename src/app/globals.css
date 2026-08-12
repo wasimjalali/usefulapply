@@ -84,18 +84,25 @@ body {
    12px, not 8px: the dashboard puts a drag-to-resize sash immediately to the
    right of the document panel's scrollbar, and an 8px target sitting flush
    against a draggable seam is too easy to miss. The transparent border keeps
-   the thumb reading as 8px while the track stays 12px wide and grabbable. */
+   the thumb reading as 8px while the track stays 12px wide and grabbable.
+   The thumb is navy, not cream. cream-400 on a cream-200 track measures
+   1.29:1, which is not a subtle thumb, it is an invisible one, and a target
+   nobody can see is the reason people grabbed the resize sash by mistake.
+   navy-200 is 2.10:1 at rest and navy-400 is 4.06:1 on hover, so the hover
+   feedback is perceptible too.
+   The track is transparent: an opaque cream band would paint a warm 12px
+   stripe down every white document surface and every dark landing section. */
 ::-webkit-scrollbar {
   width: 12px;
   height: 12px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #F5F0E8; /* cream-200 */
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #DED4C3; /* cream-400 */
+  background: #9FB3CF; /* navy-200 */
   border-radius: 6px;
   border: 2px solid transparent;
   background-clip: padding-box;
@@ -104,12 +111,12 @@ body {
 /* The background shorthand above resets background-clip, so repeat it here or
    the thumb jumps from 8px to 12px on hover. */
 ::-webkit-scrollbar-thumb:hover {
-  background: #C5D1E3; /* navy-100 */
+  background: #5C7FAD; /* navy-400 */
   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-corner {
-  background: #F5F0E8; /* cream-200, matches the track */
+  background: transparent;
 }
 
 /* Firefox ignores ::-webkit-scrollbar, so it needs the standard properties.
@@ -124,7 +131,7 @@ body {
    is already wider than 12px, which is the target size we were after. */
 @supports (-moz-orient: inline) {
   html {
-    scrollbar-color: #DED4C3 #F5F0E8; /* cream-400 thumb, cream-200 track */
+    scrollbar-color: #9FB3CF transparent; /* navy-200 thumb */
   }
 }
 
