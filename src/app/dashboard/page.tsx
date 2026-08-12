@@ -983,12 +983,16 @@ export default function Dashboard() {
         {!isSignedOutJobFeedMode && (
           <div className="relative h-full flex-shrink-0 transition-[width] duration-300 ease-in-out" style={{ width: isChatCollapsed ? COLLAPSED_WIDTH : chatPanelWidth }}>
             {!isChatCollapsed && (
+              /* The sash sits entirely inside the chat panel. It must never
+                 overhang the left panel, whose 8px scrollbar runs along that
+                 same edge. An overhang swallows scrollbar clicks and wheel
+                 events, so the user gets a resize instead of a scroll. */
               <div
                 onMouseDown={handleMouseDown}
-                className="absolute left-0 top-0 bottom-0 w-3 -ml-1.5 cursor-col-resize z-10 group/resize"
+                className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize z-10 group/resize"
                 title="Drag to resize · Double-click to collapse"
               >
-                <div className={`absolute left-1.5 top-0 bottom-0 w-px transition-all duration-200 ${
+                <div className={`absolute left-0 top-0 bottom-0 w-px transition-all duration-200 ${
                   isResizing ? 'bg-gold-400 opacity-100' : 'bg-gold-300 opacity-0 group-hover/resize:opacity-100'
                 }`} />
                 <div className={`absolute left-0.5 top-1/2 -translate-y-1/2 flex flex-col gap-1 transition-opacity duration-200 ${
