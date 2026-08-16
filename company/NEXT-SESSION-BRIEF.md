@@ -15,40 +15,33 @@ Two documents in this folder, both current and both merged to `main`:
 
 Every claim is tagged **[V]** verified, **[R]** research not independently confirmed, **[self-reported]**, or **[?]** open. **Respect these tags.** Do not promote an `[R]` to a fact without checking it, and never put one in front of an investor unchecked. Two of them turned out to be wrong when checked, and one bad citation nearly went into a YC application.
 
-## The one job left
+## Done on 2026-07-25: the Supabase pull
 
-**Pull the outcome evidence.** This is the single most valuable thing outstanding, and it needs the Supabase connection that this directory has.
+**The outcome evidence has been pulled.** It lives in **§8.4** (usage, monthly shape, the activation ladder, the paying customer) and **§6.2a** (conversion and utilization). §8.2, §12 and the answer bank were updated to match.
 
-Everything strong in the pack routes back to one person: the founder. He was hired as an AI Specialist through an application Karko itself wrote, after 60+ applications and 5 interviews. Powerful, but n=1. Beyond him there is one paying customer and roughly 5 to 10 early users who had free access as design partners, with no recorded outcomes.
+**The headline, and it is not the one anybody expected.** The volume numbers are dominated by the founder: 202 applications and 304 fit analyses all time, of which 191 and 296 are internal. The number that describes other people is **11 applications by 8 users**, out of 27 external signups. And **the one paying customer has used 0 of 50 credits and has not returned since the day they paid.**
 
-### Query Supabase for
+Three consequences:
 
-1. **Lifetime signups.** Total registered users, and by month if cheap.
-2. **Total applications generated.** Count of completed full-application runs, all time. Table to look at: `application_sessions`, cross-check against `credit_transactions`.
-3. **Total fit analyses run.**
-4. **Total CVs parsed / uploaded.**
-5. **Active users by month**, to see the real shape rather than PostHog's weekly window.
-6. **Free-to-paid conversion**, if signups and `subscriptions` can be joined. This is the number §6.2 says the whole business turns on, and it is currently a guess.
-7. **Credit utilization per paid user.** Also currently a guess, and it swings the margin model.
+1. **The raw totals are now the most dangerous numbers in the pack.** "202 applications generated" is true and would be caught in a minute. §8.2 and answer-bank landmines 16 to 18 exist to stop that.
+2. **Credit utilization was the wrong variable to model.** Paid users are not burning margin, they are not activating. §6.2a explains what to model instead.
+3. **The activation story got better, not worse.** It is no longer just "visitors bounce off the landing page". The ladder shows 18 people uploaded a CV and 10 of them never generated anything. That is narrower and more fixable, and it is a stronger thing to say in an application than a vague funnel complaint.
 
-### Why it matters
+**Still not done: the PostHog refresh.** There was no PostHog access in that session, so §8's funnel block is still the 2026-07-21 pull. It is now §12 item 6.
 
-It converts *"about 120 people reach the site in a typical week"* into *"X people have generated Y real applications"*. That is a categorically better sentence, and it is the difference between a product that sounds like a demo and one that sounds like it is being used.
+### What the numbers do not tell you
 
-Items 6 and 7 additionally replace the two biggest assumptions in the unit-economics model (§6.2).
-
-### Then update
-
-- §8 traction table, with a fresh PostHog pull alongside.
-- §6.2, replacing modelled conversion and utilization with measured figures if they exist.
-- The progress bullets and the "how far along" answer in the answer bank.
-- Open items 1, 1b, 2 in §12.
+Nothing in the database records an **outcome**. It knows a document was generated. It does not know whether anybody got an interview. That is still the gap below, and no query closes it.
 
 ## The human task that only Wasim can do
 
 Message the design partners and the paying customer. One question: **did you get an interview or an offer using Karko documents, and can I say so?**
 
 A single yes takes the evidence base from n=1 to n=2 and gives any application its second-best sentence after the founder's own hire. Nothing in the codebase substitutes for this.
+
+**§8.4 narrowed the target list.** Only 8 external people have ever generated a full application, and only 3 generated more than one. Those 3 are the best odds. Ask all 8.
+
+**Ask the paying customer a different question.** They paid four minutes after uploading a CV and then never used it. The question there is not "did you get an interview", it is "what stopped you". Renewal is 9 August, so this one has a clock on it.
 
 ## What is still open
 

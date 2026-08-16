@@ -54,27 +54,28 @@
 
 ### How far along are you?
 
-> Live at karkoai.com with paid billing. Since my Spring 2026 application I rebuilt Karko from a one-step application generator into the full loop: matched job feed, fit analysis, a 90-second application kit with CV, cover letter, emails and screening answers, a tracker, and anti-hallucination so output only uses the user's real CV. Most of that came out of five months shipping against feedback from a small group of early users on free access, while I was out of money and job hunting. I was hired as an AI Specialist in May through an application Karko wrote, and have built around that job since. About 120 people reach the site in a typical week, all organic, with zero marketing spend ever. First paying customer converted 9 July. Honest gap: activation. Most visitors don't reach a second page. Nobody has tried to grow this yet, which is the opportunity and the risk in the same sentence.
+> Live at karkoai.com with paid billing. Since my Spring 2026 application I rebuilt Karko from a one-step application generator into the full loop: matched job feed, fit analysis, a 90-second application kit with CV, cover letter, emails and screening answers, a tracker, and anti-hallucination so output only uses the user's real CV. Most of that came out of five months shipping against feedback from early users on free access, while I was out of money and job hunting. I was hired as an AI Specialist in May through an application Karko wrote, and have built around that job since. Here is the whole funnel, because I'd rather you see it than ask for it. About 120 people reach the site in a typical week, all organic, zero marketing spend ever. 27 have signed up. 18 uploaded a CV. 8 generated a complete application. 2 came back on a second day. 1 is paying. So activation is the problem, and it is not only that visitors bounce off the landing page. People sign up, do the work of uploading a CV, get most of the way there and still walk away. That is a narrower problem than a bad funnel and it is the one I am fixing first. Nobody has tried to grow this yet, which is the opportunity and the risk in the same sentence.
 
 ### Progress bullets (short-field version)
 
+> - **I was hired as an AI Specialist through an application Karko wrote.** 60+ applications through the product, 5 interviews, one offer. First-time job seeker, no degree.
 > - Live at karkoai.com with paid billing. Free / Plus $19.99 / Max $79.99, credit-based.
 > - Rebuilt since Spring 2026 into the full loop: feed, fit, 90-second kit, screening, tracker.
-> - About 120 people reach the site in a typical week, all organic. Zero paid marketing, no launch push yet.
-> - 1 paying customer.
-> - **I was hired as an AI Specialist through an application Karko wrote.** 60+ applications through the product, 5 interviews, one offer. First-time job seeker, no degree.
-> - Five months of product work driven by a small design-partner cohort on free access, while I was unfunded and job hunting.
+> - The funnel, all of it: ~120 weekly visitors, 27 signups, 18 CVs uploaded, 8 who generated a complete application, 2 who came back on a second day, 1 paying.
+> - 383 commits, most of them shipped beside a full-time job.
+> - Five months of product work driven by early users on free access, while I was unfunded and job hunting.
 > - Zero marketing spend, ever. No launch, no ads. All traffic organic.
-> - First paying customer converted 9 July, organically, at $19.99.
-> - Honest gap: most visitors don't activate past the first page and early retention is near zero. Activation is the hill.
+> - Honest gap: activation, and it breaks after signup as much as before it. More than half the people who upload a CV never generate anything with it. That is the hill and it is the first thing funding goes to.
 
 ### How many users, how many paying, who pays the most?
 
-> About 120 people reach the site in a typical week, organic only through Google and direct, with zero marketing spend ever. One paying customer, on the $19.99 Plus plan, converted 9 July. Before that a small group of early users, around 5 to 10, had free access and acted as design partners; their feedback drove five months of product work. I don't claim 122 weekly active users in the product sense, because most first visits don't go deep yet. Activation is the open problem and I know where the funnel breaks.
+> About 120 people reach the site in a typical week, organic only through Google and direct, with zero marketing spend ever. 27 have signed up, 18 uploaded a CV, 8 have generated a complete application and 2 came back on a second day. One is paying, on the $19.99 Plus plan, converted 9 July. Before that a small group of early users had free access and acted as design partners; their feedback drove five months of product work. I don't claim 122 weekly active users in the product sense, because most first visits don't go deep yet. Activation is the open problem, I measure it end to end, and I'd rather hand you the whole ladder than a headline number.
 
 ### Do you have revenue?
 
-> Yes, $19.99 MRR. One paying customer on Plus, converted 9 July 2026, entirely organic. Context worth giving: Karko has never been marketed. No launch, no ads, no distribution push, zero spend. For the first three months I was out of money and job hunting, building the product alongside my own search with a small group of early users on free access shaping it. Since May it has run beside a full-time job. So conversion isn't a thing I tried and failed at. It's a thing nobody has tried yet.
+> Yes, $19.99 MRR. One paying customer on Plus, converted 9 July 2026, entirely organic. Two things are worth knowing about that customer, and I'd rather say both. They paid four minutes after uploading their CV, before seeing a single generated document, which tells me the offer lands on the pricing page by itself. And they have not used the product since, which tells me the activation problem that costs me free users costs me paid ones too. I know that because I pulled my own database looking for it, not because churn told me. Context: Karko has never been marketed. No launch, no ads, no distribution push, zero spend. For the first five months I was out of money and job hunting, building the product alongside my own search with early users on free access shaping it. Since May it has run beside a full-time job. So conversion isn't a thing I tried and failed at. It's a thing nobody has tried yet.
+
+**This answer volunteers the bad half on purpose.** The alternative is to say "$19.99 MRR, one customer" and stop, which is also true and is what §8.4 says is the minimum. Volunteering it is the stronger play with YC specifically: a founder who found the worst number in his own business before anyone asked reads as someone who will not need to be managed. Use the short version with an investor who has not yet earned the detail. Never use a version that implies the customer is an active user.
 
 ### How long have you been working on this, and how much full-time?
 
@@ -143,6 +144,27 @@ Use §4.5 of `KARKO-AI-SOURCE-OF-TRUTH.md`, the eight-step timeline.
 ### The best single line to lead with
 
 > I was hired as an AI Specialist through an application my own product generated.
+
+### The builder claim, and how to make it without hedging
+
+YC funds people more than products, and that is a real reason to put the founder forward. But there is a wrong way to do it, and it is tempting.
+
+**Do not say any version of "I'll build a big company, whether it's this one or something else."** It is sincerely meant and it lands as low conviction in the thing being applied with. Partners already know most companies pivot. They do not need it volunteered on day zero, and it contradicts both the exclusivity answer and the one rule attached to the Useful Build paragraph in §9.
+
+**The builder claim is proved, not asserted.** The record is stronger than the sentence:
+
+- 383 commits, most of them beside a full-time job
+- Built Karko while out of money and job hunting, then got hired through it
+- Six internal systems in the first two months as an AI Specialist
+- Two products before this one, both shipped
+
+Nobody who sees that needs to be told what kind of person built it.
+
+**If the long-arc conviction belongs in the video, anchor it to the present:**
+
+> I build because I don't know how to not build. I built Karko when I was out of money and out of options, and it got me hired. Whatever happens, I'll keep building. Right now all of it goes into Karko.
+
+Same belief, no escape hatch. The first two sentences give the durability signal. The last one closes the door the hedged version leaves open.
 
 ---
 
@@ -243,6 +265,10 @@ Why it likely failed:
 13. **Never write Claude Sonnet 4.5.** Production is 4.6.
 14. **Never write 70% equity.** You own 100% of the issued stock.
 15. **No em dashes** in any application text.
+16. **Never quote "202 applications generated" or "304 fit analyses".** Those are lifetime totals and 95% of them are Wasim's own. The external numbers are 11 applications by 8 people. Quoting the raw total is the fastest way to get caught. See §8.4 of the source-of-truth file.
+17. **Never imply the paying customer uses Karko.** They have run zero generations and have not returned since the day they paid. "One paying customer" and "$19.99 MRR" are both true. "One paying user" is not.
+18. **Never say "32 users".** 5 of the 32 accounts are Wasim's, his brother's or an internal test account. The number to use is 27.
+19. **Never hedge on the primary, in text or on video.** No "whether it's this or something else". The builder claim is proved by the record, not asserted. See §3.
 
 ---
 
@@ -250,8 +276,10 @@ Why it likely failed:
 
 Run this every time, for any application.
 
-- [ ] Pull fresh PostHog numbers. The ones in the source-of-truth file are dated.
-- [ ] Confirm exact Stripe MRR, plan and paying-customer count.
+- [ ] Pull fresh PostHog numbers. The ones in the source-of-truth file are dated (2026-07-21).
+- [ ] Re-pull the Supabase usage figures in §8.4 if more than a couple of weeks have passed. Signups run at about 5 a month, so the activation ladder moves.
+- [ ] Confirm exact Stripe MRR, plan and paying-customer count. Check the 9 July subscription is still active, renewal is 9 August.
+- [ ] Every user number is the external one, not the raw total. 27 signups, not 32. 11 applications by other people, not 202.
 - [ ] Equity percentage says **100%**, not 70%.
 - [ ] Confirm current age, city and visa wording.
 - [ ] Confirm employment status and the exclusivity answer.
