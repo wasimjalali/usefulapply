@@ -310,8 +310,8 @@ None. All decisions are in the Decisions log. Real-world actions that only Wasim
 
 ## Grok loop protocol
 
-1. Grok opens this file, takes the first `[ ]` task in order (never skips ahead, never works two phases at once).
-2. Grok implements exactly the task's files and steps, runs `npx tsc --noEmit` and `npm run lint`, fills in any "Count before/after" or "Record here" lines, changes the box to `[~]` and stops. Grok does not commit, does not push, does not open PRs, does not touch `.env*`, does not install packages that aren't listed in the task.
+1. Grok opens this file and takes a **batch of up to 4 consecutive `[ ]` tasks** in order (never skips ahead, never crosses into a new phase mid-batch unless the current phase has fewer than 4 tasks left). Batches: A = 0.2, 2.1, 2.2, 2.3. B = 2.4, 2.5, 2.6, 1.2 (1.2 only if 1.1 is already `[x]`). C = 3.1, 3.2, 3.3, 3.4. D = 4.1, 4.2. E = 5.1, 5.2. F = 6.1, 7.1, 7.2. G = 8.x code items. Anything Claude-owned is skipped.
+2. Grok implements each task in the batch one at a time: exactly the task's files and steps, then `npx tsc --noEmit` and `npm run lint`, fills in any "Count before/after" or "Record here" lines, changes that task's box to `[~]`, then moves to the next task in the batch. After the last task in the batch it stops and reports. Grok does not commit, does not push, does not open PRs, does not touch `.env*`, does not install packages that aren't listed in the task.
 3. Wasim returns to Claude Code. Claude re-runs tsc and lint, checks the verify step, fixes gaps, changes `[~]` to `[x]`, commits with a conventional message (`feat(rebrand): ...`, `feat(cf): ...`, `chore(migrate): ...`) and pushes to `rebrand/usefulapply`.
 4. Anything blocked becomes `[!]` with the reason and is raised to Wasim.
 5. Tasks marked "Owner: Claude" (1.1 logo design, 3.5, 4.3, 4.4, 5.3, 6.2, 9.x) are done by Claude directly, not Grok. Grok skips them and takes the next `[ ]` task that has no owner line, unless the skipped task is a prerequisite (1.1 blocks 1.2; 3.5 blocks Phase 4 onward), in which case Grok stops and reports.
