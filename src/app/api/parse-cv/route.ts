@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
   try {
     // Rate limiting
     const clientIP = getClientIP(request);
-    const rateLimitResult = checkRateLimit(`parse-cv:${clientIP}`, RATE_LIMITS['parse-cv']);
+    const rateLimitResult = await checkRateLimit(`parse-cv:${clientIP}`, RATE_LIMITS['parse-cv']);
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: 'Too many requests. Please wait a moment.' },
@@ -163,8 +163,9 @@ export async function POST(request: NextRequest) {
 
     // Tighter rate limiting for anonymous users: 5 parses per hour per IP
     if (!isAuthenticated) {
-      const anonResult = checkRateLimit(`anon-parse:${clientIP}`, RATE_LIMITS['anon-parse']);
-      if (!anonResult.allowed) {
+      const anonResult = await checkRateLimit(`anon-parse:${clientIP}`, RATE_LIMITS['anon-parse']);
+      const anonMinuteResult = await checkRateLimit(`anon-parse-minute:${clientIP}`, RATE_LIMITS['anon-parse-minute']);
+      if (!anonResult.allowed || !anonMinuteResult.allowed) {
         return NextResponse.json(
           { error: "You've reached the free parse limit. Sign up free to get unlimited CV uploads." },
           { status: 429 }

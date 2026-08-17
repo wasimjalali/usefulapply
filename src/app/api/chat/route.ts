@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
   try {
     // Rate limiting
     const clientIP = getClientIP(req);
-    const rateLimitResult = checkRateLimit(`chat:${clientIP}`, RATE_LIMITS['chat']);
+    const rateLimitResult = await checkRateLimit(`chat:${clientIP}`, RATE_LIMITS['chat']);
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: 'Too many requests. Please wait a moment.' },

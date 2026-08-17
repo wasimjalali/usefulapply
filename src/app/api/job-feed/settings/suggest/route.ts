@@ -11,7 +11,7 @@ export const runtime = 'nodejs';
 export async function GET(request: NextRequest) {
   try {
     const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`job-feed-settings:${ip}`, RATE_LIMITS['job-feed-settings']);
+    const { allowed } = await checkRateLimit(`job-feed-settings:${ip}`, RATE_LIMITS['job-feed-settings']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`job-feed-settings:${ip}`, RATE_LIMITS['job-feed-settings']);
+    const { allowed } = await checkRateLimit(`job-feed-settings:${ip}`, RATE_LIMITS['job-feed-settings']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }

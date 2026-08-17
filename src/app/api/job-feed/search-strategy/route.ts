@@ -36,7 +36,7 @@ interface SearchStrategyResponseBody {
 export async function GET(request: NextRequest) {
   try {
     const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`search-strategy:${ip}`, RATE_LIMITS['job-feed-settings']);
+    const { allowed } = await checkRateLimit(`search-strategy:${ip}`, RATE_LIMITS['job-feed-settings']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`search-strategy-generate:${ip}`, { limit: 3, windowMs: 60_000 });
+    const { allowed } = await checkRateLimit(`search-strategy-generate:${ip}`, RATE_LIMITS['search-strategy-generate']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }

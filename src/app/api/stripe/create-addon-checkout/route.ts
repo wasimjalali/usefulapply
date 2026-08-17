@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   try {
     // Rate limiting
     const clientIP = getClientIP(req);
-    const rateLimitResult = checkRateLimit(`create-addon-checkout:${clientIP}`, RATE_LIMITS['create-addon-checkout']);
+    const rateLimitResult = await checkRateLimit(`create-addon-checkout:${clientIP}`, RATE_LIMITS['create-addon-checkout']);
     if (!rateLimitResult.allowed) {
       return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
     }

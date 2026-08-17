@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     }
     userId = user.id;
 
-    const { allowed } = checkRateLimit(`job-feed-apply-gen:${user.id}`, RATE_LIMITS['job-feed-apply-gen']);
+    const { allowed } = await checkRateLimit(`job-feed-apply-gen:${user.id}`, RATE_LIMITS['job-feed-apply-gen']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
     }

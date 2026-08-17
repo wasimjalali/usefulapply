@@ -33,6 +33,7 @@ import {
 import { getPostHogServer } from '@/lib/posthog-server';
 import { randomUUID, createHash } from 'crypto';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -41,42 +42,105 @@ export const maxDuration = 300;
 // SERVER-SIDE CONTEXT CACHE
 // Stores MasterContext from fit analysis for reuse in full generation
 // TTL: 30 minutes, keyed by contextId
+// Prefers Workers KV (shared across isolates). Falls back to an in-memory
+// Map when the CONTEXT_CACHE binding is missing (plain `next dev`).
 // =====================================================
-const contextCache = new Map<string, { context: MasterContext; expiresAt: number }>();
-const CONTEXT_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+type ContextCacheKv = {
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
+  delete(key: string): Promise<void>;
+};
+
+declare global {
+  interface CloudflareEnv {
+    CONTEXT_CACHE?: ContextCacheKv;
+  }
+}
+
+const memoryContextCache = new Map<string, { context: MasterContext; expiresAt: number }>();
+const CONTEXT_CACHE_TTL_SECONDS = 30 * 60;
+const CONTEXT_CACHE_TTL_MS = CONTEXT_CACHE_TTL_SECONDS * 1000;
 const MAX_CACHE_SIZE = 100; // Prevent unbounded memory growth
 
-function cacheContext(contextId: string, context: MasterContext): void {
-  // Clean up expired entries
-  const now = Date.now();
-  for (const [key, value] of contextCache.entries()) {
-    if (value.expiresAt < now) contextCache.delete(key);
+async function getContextCacheKv(): Promise<ContextCacheKv | undefined> {
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    return env.CONTEXT_CACHE;
+  } catch {
+    // Not running under OpenNext (plain Next server or a non-Cloudflare build). Use the in-memory cache.
+    return undefined;
   }
-  // Evict oldest entries if cache exceeds max size
-  if (contextCache.size >= MAX_CACHE_SIZE) {
-    const entriesToDelete = contextCache.size - MAX_CACHE_SIZE + 1;
+}
+
+// Cache keys are scoped to the owning user so a leaked or guessed contextId
+// can never read another user's parsed CV. Anonymous callers get a shared
+// "anon" scope, which matches the pre-existing anonymous flow.
+function contextCacheKey(ownerId: string, contextId: string): string {
+  return `${ownerId}:${contextId}`;
+}
+
+function setMemoryContext(key: string, context: MasterContext): void {
+  const now = Date.now();
+  for (const [k, value] of memoryContextCache.entries()) {
+    if (value.expiresAt < now) memoryContextCache.delete(k);
+  }
+  if (memoryContextCache.size >= MAX_CACHE_SIZE) {
+    const entriesToDelete = memoryContextCache.size - MAX_CACHE_SIZE + 1;
     let deleted = 0;
-    for (const key of contextCache.keys()) {
+    for (const k of memoryContextCache.keys()) {
       if (deleted >= entriesToDelete) break;
-      contextCache.delete(key);
+      memoryContextCache.delete(k);
       deleted++;
     }
   }
-  contextCache.set(contextId, { context, expiresAt: now + CONTEXT_CACHE_TTL_MS });
+  memoryContextCache.set(key, { context, expiresAt: now + CONTEXT_CACHE_TTL_MS });
 }
 
-function getCachedContext(contextId: string): MasterContext | null {
-  const entry = contextCache.get(contextId);
+function getMemoryContext(key: string): MasterContext | null {
+  const entry = memoryContextCache.get(key);
   if (!entry) return null;
   if (entry.expiresAt < Date.now()) {
-    contextCache.delete(contextId);
+    memoryContextCache.delete(key);
     return null;
   }
   return entry.context;
 }
 
-function removeCachedContext(contextId: string): void {
-  contextCache.delete(contextId);
+async function cacheContext(ownerId: string, contextId: string, context: MasterContext): Promise<void> {
+  const key = contextCacheKey(ownerId, contextId);
+  // Always write through to the isolate-local map: KV is eventually consistent
+  // and the follow-up request usually lands on the same isolate within seconds.
+  setMemoryContext(key, context);
+  const kv = await getContextCacheKv();
+  if (kv) {
+    await kv.put(key, JSON.stringify(context), { expirationTtl: CONTEXT_CACHE_TTL_SECONDS });
+  }
+}
+
+async function getCachedContext(ownerId: string, contextId: string): Promise<MasterContext | null> {
+  const key = contextCacheKey(ownerId, contextId);
+  const local = getMemoryContext(key);
+  if (local) {
+    console.log('[API_AGENT_V2] context cache hit');
+    return local;
+  }
+  const kv = await getContextCacheKv();
+  if (kv) {
+    const raw = await kv.get(key);
+    if (!raw) return null;
+    console.log('[API_AGENT_V2] context cache hit');
+    return JSON.parse(raw) as MasterContext;
+  }
+  return null;
+}
+
+async function removeCachedContext(ownerId: string, contextId: string): Promise<void> {
+  const key = contextCacheKey(ownerId, contextId);
+  memoryContextCache.delete(key);
+  const kv = await getContextCacheKv();
+  if (kv) {
+    await kv.delete(key);
+  }
 }
 
 // Server-side artifact persistence — writes generated output to
@@ -268,7 +332,7 @@ export async function POST(request: NextRequest) {
       try {
         // Rate limiting
         const clientIP = getClientIP(request);
-        const rateLimitResult = checkRateLimit(`agent-v2:${clientIP}`, RATE_LIMITS['agent-v2']);
+        const rateLimitResult = await checkRateLimit(`agent-v2:${clientIP}`, RATE_LIMITS['agent-v2']);
         if (!rateLimitResult.allowed) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'error',
@@ -507,8 +571,8 @@ export async function POST(request: NextRequest) {
             const ctx = result.data.context;
 
             // Cache the context for reuse in generate_with_context
-            const cachedContextId = `ctx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-            cacheContext(cachedContextId, ctx);
+            const cachedContextId = `ctx-${randomUUID()}`;
+            await cacheContext(user?.id ?? 'anon', cachedContextId, ctx);
 
             // Capture reservation — fit analysis produced usable results
             if (activeReservationKey && activeReservationUserId) {
@@ -550,7 +614,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Retrieve cached context
-          let cachedContext = getCachedContext(contextId);
+          let cachedContext = await getCachedContext(user?.id ?? 'anon', contextId);
           
           if (!cachedContext) {
             // Validate client-sent context data structure before using it
@@ -723,7 +787,7 @@ export async function POST(request: NextRequest) {
           if (jobPreferences) cachedContext.jobPreferences = jobPreferences;
           const result = await runWithContext(cachedContext, eventHandler);
 
-          removeCachedContext(contextId);
+          await removeCachedContext(user?.id ?? 'anon', contextId);
 
           if (result.success && result.data) {
             const ctx = result.data.context;

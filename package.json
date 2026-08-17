@@ -7,11 +7,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy:cf": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "^0.26.3",
     "@anthropic-ai/sdk": "^0.71.2",
+    "@opennextjs/cloudflare": "^1.20.2",
     "@posthog/nextjs-config": "^1.8.18",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.93.3",
@@ -19,7 +22,6 @@
     "dompurify": "^3.4.1",
     "embla-carousel-react": "^8.6.0",
     "html2canvas": "^1.4.1",
-    "inngest": "^4.2.4",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.563.0",
     "next": "^16.2.3",
@@ -46,6 +48,7 @@
     "eslint-config-next": "^16.2.3",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.123.0"
   }
 }

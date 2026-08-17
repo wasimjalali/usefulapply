@@ -37,7 +37,7 @@ export async function POST(_request: NextRequest) {
     }
 
     // Now rate-limit by user.id — meaningful for an authenticated route.
-    const rateLimit = checkRateLimit(`post-confirm:${user.id}`, RATE_LIMITS['post-confirm']);
+    const rateLimit = await checkRateLimit(`post-confirm:${user.id}`, RATE_LIMITS['post-confirm']);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },

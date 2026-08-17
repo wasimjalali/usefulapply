@@ -21,7 +21,7 @@ export const runtime = 'nodejs';
 export async function POST(request: NextRequest) {
   try {
     const clientIP = getClientIP(request);
-    const rateLimitResult = checkRateLimit(
+    const rateLimitResult = await checkRateLimit(
       `forgot-password:${clientIP}`,
       RATE_LIMITS['forgot-password']
     );

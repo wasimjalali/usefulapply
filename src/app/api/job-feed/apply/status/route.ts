@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
     userId = user.id;
 
-    const { allowed } = checkRateLimit(`job-feed-apply-status:${user.id}`, RATE_LIMITS['job-feed-apply-status']);
+    const { allowed } = await checkRateLimit(`job-feed-apply-status:${user.id}`, RATE_LIMITS['job-feed-apply-status']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
     }

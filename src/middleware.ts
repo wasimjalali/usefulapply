@@ -1,7 +1,9 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function proxy(request: NextRequest) {
+// OpenNext Cloudflare does not support Next.js 16 proxy.ts (Node-only).
+// Keep the session refresh on Edge middleware until that lands.
+export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -29,7 +31,7 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  // Refresh the session — required for @supabase/ssr to keep the session alive.
+  // Refresh the session. Required for @supabase/ssr to keep the session alive.
   // Do NOT remove this call.
   await supabase.auth.getUser();
 

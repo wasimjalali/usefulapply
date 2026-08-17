@@ -56,3 +56,12 @@ export default posthogApiKey && posthogProjectId
       },
     })
   : nextConfig;
+
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+// Only for `next dev`: gives getCloudflareContext() simulated bindings via wrangler.
+// Guarded so `next build` and any non-Cloudflare runtime never touch wrangler.
+if (process.env.NODE_ENV === "development") {
+  initOpenNextCloudflareForDev().catch((error) => {
+    console.warn("[open-next] dev bindings unavailable:", error instanceof Error ? error.message : error);
+  });
+}

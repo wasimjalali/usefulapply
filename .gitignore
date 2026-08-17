@@ -56,3 +56,8 @@ temp/
 .claude/settings.local.json
 .playwright-mcp/
 .claude/worktrees/
+
+# OpenNext / Cloudflare Workers
+.open-next/
+.wrangler/
+.dev.vars

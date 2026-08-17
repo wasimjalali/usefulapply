@@ -12,7 +12,7 @@ const MAX_PAGE_LIMIT = 50;
 export async function GET(request: NextRequest) {
   try {
     const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`job-feed-inbox:${ip}`, RATE_LIMITS['job-feed-inbox']);
+    const { allowed } = await checkRateLimit(`job-feed-inbox:${ip}`, RATE_LIMITS['job-feed-inbox']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }

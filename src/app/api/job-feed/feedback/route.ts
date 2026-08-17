@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`job-feed-feedback:${ip}`, RATE_LIMITS['job-feed-feedback']);
+    const { allowed } = await checkRateLimit(`job-feed-feedback:${ip}`, RATE_LIMITS['job-feed-feedback']);
     if (!allowed) {
       captureJobFeedActionRejected({
         route: 'feedback',

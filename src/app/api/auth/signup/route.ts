@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
   try {
     // Rate limit: 3 signup attempts per IP per minute
     const clientIP = getClientIP(request);
-    const rateLimitResult = checkRateLimit(`signup:${clientIP}`, RATE_LIMITS['signup']);
+    const rateLimitResult = await checkRateLimit(`signup:${clientIP}`, RATE_LIMITS['signup']);
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: 'Too many signup attempts. Please try again later.' },

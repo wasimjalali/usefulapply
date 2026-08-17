@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   try {
     // Rate limiting
     const clientIP = getClientIP(request);
-    const rateLimitResult = checkRateLimit(`regenerate:${clientIP}`, RATE_LIMITS['regenerate']);
+    const rateLimitResult = await checkRateLimit(`regenerate:${clientIP}`, RATE_LIMITS['regenerate']);
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: 'Too many requests. Please wait a moment.' },

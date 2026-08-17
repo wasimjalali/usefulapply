@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`job-feed-dev-run:${ip}`, RATE_LIMITS['job-feed-dev-run']);
+    const { allowed } = await checkRateLimit(`job-feed-dev-run:${ip}`, RATE_LIMITS['job-feed-dev-run']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }

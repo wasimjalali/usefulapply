@@ -16,7 +16,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Rate-limit per user so a compromised session can't burn deletion attempts in a loop.
-    const rateLimit = checkRateLimit(`delete-account:${user.id}`, RATE_LIMITS['delete-account']);
+    const rateLimit = await checkRateLimit(`delete-account:${user.id}`, RATE_LIMITS['delete-account']);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },

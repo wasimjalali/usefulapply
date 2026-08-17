@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 export async function GET(request: NextRequest) {
   try {
     const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`credits-balance:${ip}`, RATE_LIMITS['credits-balance']);
+    const { allowed } = await checkRateLimit(`credits-balance:${ip}`, RATE_LIMITS['credits-balance']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }

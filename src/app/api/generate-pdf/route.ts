@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   try {
     // Rate limiting
     const clientIP = getClientIP(request);
-    const rateLimitResult = checkRateLimit(`generate-pdf:${clientIP}`, RATE_LIMITS['generate-pdf']);
+    const rateLimitResult = await checkRateLimit(`generate-pdf:${clientIP}`, RATE_LIMITS['generate-pdf']);
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: 'Too many requests. Please wait a moment.' },

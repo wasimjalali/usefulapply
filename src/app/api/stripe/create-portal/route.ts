@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   try {
     // Rate limiting
     const clientIP = getClientIP(req);
-    const rateLimitResult = checkRateLimit(`create-portal:${clientIP}`, RATE_LIMITS['create-portal']);
+    const rateLimitResult = await checkRateLimit(`create-portal:${clientIP}`, RATE_LIMITS['create-portal']);
     if (!rateLimitResult.allowed) {
       return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
     }

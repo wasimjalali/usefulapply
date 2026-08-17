@@ -1,8 +1,9 @@
 /**
- * In-memory sliding window rate limiter.
- * Zero dependencies, works on Vercel serverless.
- * Resets on cold start — still prevents active abuse during a warm instance.
+ * Rate limiter. Uses the Workers Rate Limiting binding when present,
+ * otherwise the original in-memory sliding window (plain `next dev`).
  */
+
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 interface RateLimitEntry {
   timestamps: number[];
@@ -43,14 +44,99 @@ interface RateLimitResult {
   retryAfterMs?: number;
 }
 
-/**
- * Check if a request is allowed under the rate limit.
- *
- * @param key - Unique identifier (e.g., "agent-v2:{ip}" or "contact:{ip}")
- * @param config - Rate limit configuration
- * @returns Whether the request is allowed and remaining quota
- */
-export function checkRateLimit(key: string, config: RateLimitConfig): RateLimitResult {
+type RateLimitBinding = {
+  limit(options: { key: string }): Promise<{ success: boolean }>;
+};
+
+// Workers Rate Limiting `simple.period` is 10 or 60 seconds only.
+const BINDING_WINDOW_MS = 60_000;
+
+const RATE_LIMIT_BINDING_NAMES = {
+  'agent-v2': 'RATE_LIMIT_AGENT_V2',
+  'parse-cv': 'RATE_LIMIT_PARSE_CV',
+  'chat': 'RATE_LIMIT_CHAT',
+  'contact': 'RATE_LIMIT_CONTACT',
+  'generate-pdf': 'RATE_LIMIT_GENERATE_PDF',
+  'regenerate': 'RATE_LIMIT_REGENERATE',
+  'signup': 'RATE_LIMIT_SIGNUP',
+  'forgot-password': 'RATE_LIMIT_FORGOT_PASSWORD',
+  'post-confirm': 'RATE_LIMIT_POST_CONFIRM',
+  'job-feed-settings': 'RATE_LIMIT_JOB_FEED_SETTINGS',
+  'job-feed-overview': 'RATE_LIMIT_JOB_FEED_OVERVIEW',
+  'job-feed-saved': 'RATE_LIMIT_JOB_FEED_SAVED',
+  'job-feed-feedback': 'RATE_LIMIT_JOB_FEED_FEEDBACK',
+  'job-feed-apply': 'RATE_LIMIT_JOB_FEED_APPLY',
+  'job-feed-run': 'RATE_LIMIT_JOB_FEED_RUN',
+  'job-feed-dev-run': 'RATE_LIMIT_JOB_FEED_DEV_RUN',
+  'job-feed-inbox': 'RATE_LIMIT_JOB_FEED_INBOX',
+  'credits-balance': 'RATE_LIMIT_CREDITS_BALANCE',
+  'delete-account': 'RATE_LIMIT_DELETE_ACCOUNT',
+  'create-checkout': 'RATE_LIMIT_CREATE_CHECKOUT',
+  'create-addon-checkout': 'RATE_LIMIT_CREATE_ADDON_CHECKOUT',
+  'create-portal': 'RATE_LIMIT_CREATE_PORTAL',
+  'job-feed-apply-gen': 'RATE_LIMIT_JOB_FEED_APPLY_GEN',
+  'job-feed-apply-status': 'RATE_LIMIT_JOB_FEED_APPLY_STATUS',
+  'career-profile-generate': 'RATE_LIMIT_CAREER_PROFILE_GENERATE',
+  'anon-parse-minute': 'RATE_LIMIT_ANON_PARSE',
+  'search-strategy-generate': 'RATE_LIMIT_SEARCH_STRATEGY_GENERATE',
+} as const;
+
+type BoundRateLimitRoute = keyof typeof RATE_LIMIT_BINDING_NAMES;
+
+declare global {
+  interface CloudflareEnv {
+    RATE_LIMIT_AGENT_V2?: RateLimitBinding;
+    RATE_LIMIT_PARSE_CV?: RateLimitBinding;
+    RATE_LIMIT_CHAT?: RateLimitBinding;
+    RATE_LIMIT_CONTACT?: RateLimitBinding;
+    RATE_LIMIT_GENERATE_PDF?: RateLimitBinding;
+    RATE_LIMIT_REGENERATE?: RateLimitBinding;
+    RATE_LIMIT_SIGNUP?: RateLimitBinding;
+    RATE_LIMIT_FORGOT_PASSWORD?: RateLimitBinding;
+    RATE_LIMIT_POST_CONFIRM?: RateLimitBinding;
+    RATE_LIMIT_JOB_FEED_SETTINGS?: RateLimitBinding;
+    RATE_LIMIT_JOB_FEED_OVERVIEW?: RateLimitBinding;
+    RATE_LIMIT_JOB_FEED_SAVED?: RateLimitBinding;
+    RATE_LIMIT_JOB_FEED_FEEDBACK?: RateLimitBinding;
+    RATE_LIMIT_JOB_FEED_APPLY?: RateLimitBinding;
+    RATE_LIMIT_JOB_FEED_RUN?: RateLimitBinding;
+    RATE_LIMIT_JOB_FEED_DEV_RUN?: RateLimitBinding;
+    RATE_LIMIT_JOB_FEED_INBOX?: RateLimitBinding;
+    RATE_LIMIT_CREDITS_BALANCE?: RateLimitBinding;
+    RATE_LIMIT_DELETE_ACCOUNT?: RateLimitBinding;
+    RATE_LIMIT_CREATE_CHECKOUT?: RateLimitBinding;
+    RATE_LIMIT_CREATE_ADDON_CHECKOUT?: RateLimitBinding;
+    RATE_LIMIT_CREATE_PORTAL?: RateLimitBinding;
+    RATE_LIMIT_JOB_FEED_APPLY_GEN?: RateLimitBinding;
+    RATE_LIMIT_JOB_FEED_APPLY_STATUS?: RateLimitBinding;
+    RATE_LIMIT_CAREER_PROFILE_GENERATE?: RateLimitBinding;
+    RATE_LIMIT_ANON_PARSE?: RateLimitBinding;
+    RATE_LIMIT_SEARCH_STRATEGY_GENERATE?: RateLimitBinding;
+  }
+}
+
+function bucketForConfig(config: RateLimitConfig): BoundRateLimitRoute | null {
+  for (const [name, named] of Object.entries(RATE_LIMITS)) {
+    if (named === config && name in RATE_LIMIT_BINDING_NAMES) {
+      return name as BoundRateLimitRoute;
+    }
+  }
+  return null;
+}
+
+async function getRateLimitBinding(bucket: BoundRateLimitRoute): Promise<RateLimitBinding | undefined> {
+  let env: CloudflareEnv;
+  try {
+    ({ env } = await getCloudflareContext({ async: true }));
+  } catch {
+    // Not running under OpenNext (plain Next server or a non-Cloudflare build). Use the in-memory limiter.
+    return undefined;
+  }
+  const bindingName = RATE_LIMIT_BINDING_NAMES[bucket];
+  return env[bindingName];
+}
+
+function checkRateLimitMemory(key: string, config: RateLimitConfig): RateLimitResult {
   const now = Date.now();
   cleanup();
 
@@ -83,13 +169,37 @@ export function checkRateLimit(key: string, config: RateLimitConfig): RateLimitR
 }
 
 /**
+ * Check if a request is allowed under the rate limit.
+ *
+ * @param key - Unique identifier (e.g., "agent-v2:{ip}" or "contact:{ip}")
+ * @param config - Rate limit configuration (pass a `RATE_LIMITS` entry)
+ * @returns Whether the request is allowed and remaining quota
+ */
+export async function checkRateLimit(key: string, config: RateLimitConfig): Promise<RateLimitResult> {
+  const bucket = bucketForConfig(config);
+  if (bucket && config.windowMs === BINDING_WINDOW_MS) {
+    const limiter = await getRateLimitBinding(bucket);
+    if (limiter) {
+      const { success } = await limiter.limit({ key });
+      if (!success) {
+        return { allowed: false, remaining: 0, retryAfterMs: config.windowMs };
+      }
+      return { allowed: true, remaining: Math.max(0, config.limit - 1) };
+    }
+  }
+
+  return checkRateLimitMemory(key, config);
+}
+
+/**
  * Extract client IP from request headers.
- * Prefer x-vercel-forwarded-for: Vercel signs this header so it can't be spoofed
- * by clients that bypass the edge. Fall back to x-forwarded-for / x-real-ip for
- * non-Vercel environments (local dev, tests).
+ * On Cloudflare Workers only `cf-connecting-ip` is set by the edge and cannot be
+ * spoofed by the client. `x-forwarded-for` is client-controlled (Cloudflare appends
+ * to it), so it is only a fallback for local dev and tests.
  */
 export function getClientIP(request: Request): string {
   return (
+    request.headers.get('cf-connecting-ip')?.trim() ||
     request.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim() ||
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     request.headers.get('x-real-ip') ||
@@ -124,7 +234,9 @@ export const RATE_LIMITS = {
   'job-feed-apply-gen':      { limit: 60, windowMs: 60_000 },
   'job-feed-apply-status':   { limit: 30, windowMs: 60_000 },
   'career-profile-generate': { limit: 6,  windowMs: 60_000 },
-  'anon-parse':              { limit: 5,  windowMs: 3_600_000 },
+  'anon-parse':              { limit: 5,  windowMs: 3_600_000 }, // hourly cap is in-memory only (per isolate on Workers)
+  'anon-parse-minute':       { limit: 2,  windowMs: 60_000 },    // enforced by the Workers binding
+  'search-strategy-generate': { limit: 3,  windowMs: 60_000 },
 } as const;
 
 export type RateLimitRoute = keyof typeof RATE_LIMITS;

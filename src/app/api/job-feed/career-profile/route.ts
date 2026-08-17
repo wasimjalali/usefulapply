@@ -25,7 +25,7 @@ interface CareerProfileResponseBody {
 export async function GET(request: NextRequest) {
   try {
     const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`career-profile:${ip}`, RATE_LIMITS['job-feed-settings']);
+    const { allowed } = await checkRateLimit(`career-profile:${ip}`, RATE_LIMITS['job-feed-settings']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     const rateLimitKey = userForRateLimit?.id
       ? `career-profile-generate:${userForRateLimit.id}`
       : `career-profile-generate:${getClientIP(request)}`;
-    const { allowed } = checkRateLimit(rateLimitKey, RATE_LIMITS['career-profile-generate']);
+    const { allowed } = await checkRateLimit(rateLimitKey, RATE_LIMITS['career-profile-generate']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
