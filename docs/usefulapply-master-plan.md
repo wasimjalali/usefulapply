@@ -82,6 +82,7 @@ Owner: Wasim (Cloudflare dashboard). Not code.
 ## Phase 1: Brand identity (logo and assets)
 
 ### Task 1.1: Wordmark and logo mark
+**Owner: Claude, not Grok.** Claude designs 3 to 4 logo options (wordmark + mark, each shown on cream and on navy, at navbar size and favicon size) as a single preview page in the scratchpad, Wasim picks one, then Claude implements the chosen option in the files below. Grok skips this task and continues with Task 1.2 only after 1.1 is `[x]`.
 **Files:** Modify `src/components/KarkoLogo.tsx` (rename to `src/components/BrandLogo.tsx`, update all 17 import sites), replace `public/favicon-*.png`, `public/apple-touch-icon.png`, `src/app/icon.svg`, `src/app/apple-icon.png`, `src/app/opengraph-image.jpg`, `public/site.webmanifest`, `src/app/manifest.ts`.
 Design brief: same navy (#0F3057 family from tokens) and gold accents as today; Georgia wordmark "UsefulApply" with "Useful" in navy and "Apply" in gold, or a single-color version for dark backgrounds; the mark is a simple geometric glyph that reads at 16px (favicon) and 512px (PWA). Deliver as inline SVG in the component plus exported PNGs at 16/32/192/512 and a 1200x630 OG image. No gradients that break at favicon size.
 - [ ] Build `BrandLogo` with props `variant: 'full' | 'mark' | 'wordmark'` and `tone: 'navy' | 'cream'`.
@@ -313,4 +314,4 @@ None. All decisions are in the Decisions log. Real-world actions that only Wasim
 2. Grok implements exactly the task's files and steps, runs `npx tsc --noEmit` and `npm run lint`, fills in any "Count before/after" or "Record here" lines, changes the box to `[~]` and stops. Grok does not commit, does not push, does not open PRs, does not touch `.env*`, does not install packages that aren't listed in the task.
 3. Wasim returns to Claude Code. Claude re-runs tsc and lint, checks the verify step, fixes gaps, changes `[~]` to `[x]`, commits with a conventional message (`feat(rebrand): ...`, `feat(cf): ...`, `chore(migrate): ...`) and pushes to `rebrand/usefulapply`.
 4. Anything blocked becomes `[!]` with the reason and is raised to Wasim.
-5. Migration tasks marked "Owner: Claude" (3.5, 4.3, 4.4, 5.3, 6.2, 9.x) are done by Claude directly, not Grok.
+5. Tasks marked "Owner: Claude" (1.1 logo design, 3.5, 4.3, 4.4, 5.3, 6.2, 9.x) are done by Claude directly, not Grok. Grok skips them and takes the next `[ ]` task that has no owner line, unless the skipped task is a prerequisite (1.1 blocks 1.2; 3.5 blocks Phase 4 onward), in which case Grok stops and reports.
