@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import KarkoLogo from '@/components/KarkoLogo';
+import BrandLogo from '@/components/BrandLogo';
 import TrustpilotLogo from '@/components/marketing/TrustpilotLogo';
 import { getComparisons } from '@/lib/comparisons';
 import { getAllPosts } from '@/lib/blog';
@@ -173,7 +173,7 @@ export default function Footer() {
               aria-label="Karko AI home"
               className="inline-flex origin-top-left scale-[1.65] sm:scale-[2] md:scale-[2.5] lg:scale-[3] transition-opacity hover:opacity-90"
             >
-              <KarkoLogo variant="full" size="xl" theme="dark" />
+              <BrandLogo variant="full" size="xl" theme="dark" />
             </Link>
           </div>
         </div>

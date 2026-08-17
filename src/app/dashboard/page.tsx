@@ -16,7 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import { uploadCVFile, saveDocument } from '@/lib/supabase';
 import { FileText, Mail, Send, FolderOpen, ClipboardList, Target, User, Loader2, AlertCircle, ArrowRight, PanelRightClose, PanelRightOpen, ArrowUpRight, Briefcase, ChevronDown, CreditCard, Bell, Shield, LogOut, LifeBuoy, X } from 'lucide-react';
-import KarkoLogo, { KarkoIcon } from '@/components/KarkoLogo';
+import BrandLogo, { BrandIcon } from '@/components/BrandLogo';
 import Link from 'next/link';
 import { CreditIndicator } from '@/components/ui/CreditIndicator';
 import { LowCreditsBanner } from '@/components/ui/LowCreditsBanner';
@@ -805,7 +805,7 @@ export default function Dashboard() {
           aria-label="Go to Application Kit"
           title="Go to Application Kit"
         >
-          <KarkoLogo variant="full" size="xs" theme="light" />
+          <BrandLogo variant="full" size="xs" theme="light" />
         </button>
 
         <div className="flex items-center rounded-full border border-cream-200 bg-cream-50 p-0.5">
@@ -966,7 +966,7 @@ export default function Dashboard() {
           aria-label="Go to Application Kit"
           title="Go to Application Kit"
         >
-          <KarkoLogo variant="full" size="xs" theme="light" />
+          <BrandLogo variant="full" size="xs" theme="light" />
         </button>
         <div className="flex-1" />
         {user && profile?.subscription_tier === 'free' && (
@@ -1052,7 +1052,7 @@ export default function Dashboard() {
                 <div id="tour-cv-upload" className="max-w-lg w-full">
                   <div className="text-center mb-8">
                     <div className="inline-flex mb-5">
-                      <KarkoIcon size="lg" theme="light" />
+                      <BrandIcon size="lg" theme="light" />
                     </div>
                     <h2 className="text-2xl font-bold tracking-tight text-charcoal mb-2">Welcome to Karko AI</h2>
                     <p className="text-warm-gray max-w-sm mx-auto">
@@ -1204,7 +1204,7 @@ export default function Dashboard() {
                 <PanelRightOpen className="w-4 h-4" />
               </button>
               <div className="mt-3 flex flex-col items-center">
-                <KarkoIcon size="xs" theme="light" />
+                <BrandIcon size="xs" theme="light" />
               </div>
             </div>
 
@@ -1233,7 +1233,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-center h-full p-6">
               <div className="max-w-sm w-full text-center">
                 <div className="inline-flex mb-5">
-                  <KarkoIcon size="md" theme="light" />
+                  <BrandIcon size="md" theme="light" />
                 </div>
                 <h2 className="text-xl font-bold tracking-tight text-charcoal mb-2">Best on desktop</h2>
                 <p className="text-sm text-warm-gray leading-relaxed mb-6">

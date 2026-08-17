@@ -2,14 +2,14 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'KarKo AI — AI-Powered Job Application Assistant',
-    short_name: 'KarKo AI',
+    name: 'Useful Apply',
+    short_name: 'Useful Apply',
     description:
       'Generate tailored CVs, cover letters, and emails in 90 seconds. AI-powered job applications with zero fabrication, ATS optimization, and fit scoring.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#FAF8F3',
-    theme_color: '#0F3057',
+    background_color: '#FAF7F2',
+    theme_color: '#1E3A5F',
     orientation: 'portrait',
     icons: [
       {

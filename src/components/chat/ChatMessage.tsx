@@ -50,7 +50,7 @@ function parseScreeningAnswers(content: string): ScreeningAnswer[] | null {
 
   return answers.length > 0 ? answers : null;
 }
-import { KarkoIcon } from '../KarkoLogo';
+import { BrandIcon } from '../BrandLogo';
 
 export interface ChatAction {
   label: string;
@@ -166,7 +166,7 @@ export function ChatMessage({
         </div>
       ) : (
         <div className="flex-shrink-0 h-fit">
-          <KarkoIcon size="xs" theme="light" />
+          <BrandIcon size="xs" theme="light" />
         </div>
       )}
 

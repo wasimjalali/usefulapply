@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Sparkles, ArrowRight, Loader2, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import KarkoLogo from '@/components/KarkoLogo';
+import BrandLogo from '@/components/BrandLogo';
 
 interface SignUpWallModalProps {
   isOpen: boolean;
@@ -134,7 +134,7 @@ export function SignUpWallModal({ isOpen, onClose, trigger }: SignUpWallModalPro
         {/* Header */}
         <div className="px-8 pt-8 pb-4 text-center">
           <div className="flex justify-center mb-4">
-            <KarkoLogo variant="icon" size="md" theme="light" />
+            <BrandLogo variant="icon" size="md" theme="light" />
           </div>
           <h2 className="text-xl font-bold tracking-tight text-navy-700 mb-1">{title}</h2>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-cream-50 rounded-lg border border-cream-200 mt-2">

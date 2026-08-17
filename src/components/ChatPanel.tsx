@@ -24,7 +24,7 @@ import {
   Zap,
   Search,
 } from 'lucide-react';
-import { KarkoIcon } from './KarkoLogo';
+import { BrandIcon } from './BrandLogo';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { SignUpWallModal, hasUsedFreeGeneration } from '@/components/SignUpWallModal';
 import { InsufficientCreditsModal } from '@/components/InsufficientCreditsModal';
@@ -863,7 +863,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
                 ) : (
                   <div className="text-center px-5 py-8">
                     <div className="flex items-center justify-center gap-3 mb-3">
-                      <KarkoIcon size="md" theme="light" />
+                      <BrandIcon size="md" theme="light" />
                       <h2 className="text-lg font-semibold tracking-tight text-navy-800">
                         {user ? 'Upload your CV to get started' : 'Your AI job application assistant'}
                       </h2>
@@ -904,7 +904,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
           {currentSession && messages.length === 0 && !showWelcomeHero && (
             <div className="flex gap-3">
               <div className="flex-shrink-0 h-fit">
-                <KarkoIcon size="xs" theme="light" />
+                <BrandIcon size="xs" theme="light" />
               </div>
               <div className="flex-1">
                 <Card padding="sm" className="bg-white border-cream-200 shadow-sm">
@@ -937,7 +937,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
           {isAgentWorking && agentSteps.length === 0 && v2Progress && (
             <div className="flex gap-3">
               <div className="flex-shrink-0 h-fit">
-                <KarkoIcon size="xs" theme="light" />
+                <BrandIcon size="xs" theme="light" />
               </div>
               <div className="flex-1">
                 <div className="bg-white rounded-lg border border-cream-200 p-4">
@@ -965,7 +965,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
           {isAgentWorking && agentSteps.length > 0 && (
             <div className="flex gap-3">
               <div className="flex-shrink-0 h-fit">
-                <KarkoIcon size="xs" theme="light" />
+                <BrandIcon size="xs" theme="light" />
               </div>
               <div className="flex-1">
                 <AgentProgressV2 
@@ -991,7 +991,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
           {(isTyping || isAnalyzing || isGenerating) && !isAgentWorking && (
             <div className="flex gap-3">
               <div className="flex-shrink-0 h-fit">
-                <KarkoIcon size="xs" theme="light" />
+                <BrandIcon size="xs" theme="light" />
               </div>
               <div className="flex items-center gap-2 px-4 py-3 bg-white rounded-2xl border border-cream-200 shadow-sm">
                 <div className="flex gap-1">

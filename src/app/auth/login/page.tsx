@@ -7,7 +7,7 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, RefreshCw } from 'lucide-
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import KarkoLogo from '@/components/KarkoLogo';
+import BrandLogo from '@/components/BrandLogo';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -70,7 +70,7 @@ export default function LoginPage() {
         {/* Logo/Brand */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-3">
-            <KarkoLogo variant="full" size="lg" theme="light" />
+            <BrandLogo variant="full" size="lg" theme="light" />
           </div>
           <p className="text-warm-gray mt-2">Welcome back! Sign in to continue.</p>
         </div>

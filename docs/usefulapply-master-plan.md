@@ -1,21 +1,22 @@
-# UsefulApply Rebrand + Cloudflare Migration. Master Plan and Tracker
+# Useful Apply Rebrand + Cloudflare Migration. Master Plan and Tracker
 
 > **Status legend:** `[ ]` not started, `[~]` implemented by Grok, awaiting Claude verification, `[x]` verified, committed and pushed by Claude, `[!]` blocked (write the reason inline).
 > **Who does what:** Grok CLI implements tasks in order. Claude Code verifies (tsc, lint, spot checks), fixes gaps, ticks the box, commits and pushes to the branch. **No PR and no merge to `main` until Wasim says so explicitly.** Production (karkoai.com on Vercel + Supabase) keeps running untouched until Phase 9.
 
-**Goal:** Ship the same product under the name UsefulApply on usefulapply.com, running entirely on Cloudflare (Workers, D1, R2, Email Service, Cron Triggers, KV), and retire Vercel, Supabase and Resend.
+**Goal:** Ship the same product under the name Useful Apply on usefulapply.com, running entirely on Cloudflare (Workers, D1, R2, Email Service, Cron Triggers, KV), and retire Vercel, Supabase and Resend.
 
 **Architecture:** Next.js 16 App Router stays. It runs on Cloudflare Workers through `@opennextjs/cloudflare`. Postgres/Supabase is replaced by D1 (SQLite) behind a typed data-access layer (Drizzle ORM); Row Level Security is replaced by explicit per-query ownership checks in that layer. Supabase Auth is replaced by Better Auth on D1 (email + password, Google OAuth, email verification, password reset). Supabase Storage is replaced by R2. Resend is replaced by Cloudflare Email Service for transactional mail. Inngest cron functions become Workers Cron Triggers. The in-memory rate limiter becomes the Workers Rate Limiting binding.
 
 **Tech stack:** Next.js 16, TypeScript, `@opennextjs/cloudflare`, wrangler, D1 + Drizzle ORM, Better Auth, R2, Cloudflare Email Service (`send_email` binding), Workers Cron Triggers, Workers Rate Limiting binding, KV/R2 for the OpenNext cache, Stripe, PostHog, Amazon Bedrock (unchanged).
 
 **Decisions log (2026-08-17, Wasim):**
-1. Brand name: **UsefulApply**. Domain: **usefulapply.com** (registered 2026-08-17 at Cloudflare, NS `clay/tess.ns.cloudflare.com`). Also buy `usefullapply.com` (common misspelling) and `usefulapply.io` / `.ai` if still free, all redirecting to the .com.
+1. Brand name: **Useful Apply** (two words, capital U and A, in all prose, titles, emails and legal text; the domain and code identifiers stay `usefulapply`). Domain: **usefulapply.com** (registered 2026-08-17 at Cloudflare, NS `clay/tess.ns.cloudflare.com`). Also buy `usefullapply.com` (common misspelling) and `usefulapply.io` / `.ai` if still free, all redirecting to the .com.
 2. Migration scope: **full**. Hosting, DB, auth, storage, email all move to Cloudflare.
 3. Visual scope: **new name + logo only**. Navy/cream/gold, Georgia + Arial, all surface roles and components stay. No palette or typography changes.
-4. Legal: brand is UsefulApply, the legal entity stays as it is today. Terms, Privacy and Imprint read "UsefulApply, operated by <current legal entity>".
+4. Legal: brand is Useful Apply, the legal entity stays as it is today. Terms, Privacy and Imprint read "Useful Apply, operated by Karko AI Inc".
 5. Email: everything moves to Cloudflare Email Service and Resend is removed. The founder welcome flow (Day 0 welcome, Day 3 check-in) is 1:1 onboarding mail, so it's transactional and allowed; it's rebuilt as Day 0 in the post-confirm hook plus a daily Cron Trigger for Day 3 (Task 7.2). There are no newsletters or bulk broadcasts today; if one is ever needed, pick a marketing tool at that time.
-8. Legal entity: `Karko AI Inc` (from `/imprint`). `BRAND.legalLine` = "UsefulApply, operated by Karko AI Inc".
+8. Legal entity: `Karko AI Inc` (from `/imprint`). `BRAND.legalLine` = "Useful Apply, operated by Karko AI Inc".
+11. Logo locked 2026-08-17: mark = two-tone paper plane (navy-600 body, gold-400 tip, no tile in lockups; navy tile with cream + gold plane for favicon, app icon and chat avatar). Wordmark = "Useful Apply" with a space, Plus Jakarta Sans 800, "Useful" navy-900 and "Apply" gold-500 on light surfaces, white and gold-400 on navy. Component: `src/components/BrandLogo.tsx`.
 9. Cloudflare access for Claude: no API token. Wasim runs `! npx wrangler login` in the Claude Code session when Phase 3.5 starts (OAuth in the browser, nothing stored in the repo).
 10. Trustpilot: keep the existing profile and its reviews; request a domain change from karkoai.com to usefulapply.com through Trustpilot support (Task 8.5). Only if refused, open a new profile.
 6. Grok loop: Grok CLI implements, Claude verifies and commits. Branch: `rebrand/usefulapply`.
@@ -24,8 +25,8 @@
 ## Global constraints (apply to every task)
 
 - Branch `rebrand/usefulapply` off `main`. Merge `main` into it weekly (`git merge main`) so the cutover diff stays small. Never rebase, never force-push, never `--no-verify`.
-- `npx tsc --noEmit` must be zero errors and `npm run lint` clean before any task is marked `[~]`.
-- Copy rules: no em dashes anywhere (`—` is banned in code, copy, docs and commits), contractions are fine, short sentences, no Oxford comma in UI copy, "UsefulApply" is one word with capital U and capital A everywhere. Never "Useful Apply", never "usefulapply" in prose.
+- `npx tsc --noEmit` must be zero errors before any task is marked `[~]`. `npm run lint` had 227 pre-existing problems on `main` on 2026-08-17; a task must not add new lint problems (run `npx eslint <changed files>` and require zero output for the files you touched).
+- Copy rules: no em dashes anywhere (`—` is banned in code, copy, docs and commits), contractions are fine, short sentences, no Oxford comma in UI copy, the product name in prose is "Useful Apply" (two words, capital U and A). Never "UsefulApply", never "usefulapply" in prose. Code identifiers, package name, domains, bucket and binding names use `usefulapply` / `UsefulApply` as needed.
 - Design system stays exactly as documented in `.claude/rules/design-system.md`. No new colors, fonts, radii or shadows.
 - Surgical edits. Touch only what the task names. No refactors "while here".
 - `npm` only. Every new package must be listed in the task; anything else needs Wasim's ok.
@@ -58,8 +59,8 @@ Rough effort at Grok + Claude pace: Phases 1 to 2 about 3 days, Phase 3 about 2 
 **Interfaces (produces):**
 ```ts
 export const BRAND = {
-  name: 'UsefulApply',
-  legalLine: 'UsefulApply, operated by Karko AI Inc',
+  name: 'Useful Apply',
+  legalLine: 'Useful Apply, operated by Karko AI Inc',
   domain: 'usefulapply.com',
   url: 'https://usefulapply.com',
   supportEmail: 'support@usefulapply.com',
@@ -84,15 +85,16 @@ Owner: Wasim (Cloudflare dashboard). Not code.
 ### Task 1.1: Wordmark and logo mark
 **Owner: Claude, not Grok.** Claude designs 3 to 4 logo options (wordmark + mark, each shown on cream and on navy, at navbar size and favicon size) as a single preview page in the scratchpad, Wasim picks one, then Claude implements the chosen option in the files below. Grok skips this task and continues with Task 1.2 only after 1.1 is `[x]`.
 **Files:** Modify `src/components/KarkoLogo.tsx` (rename to `src/components/BrandLogo.tsx`, update all 17 import sites), replace `public/favicon-*.png`, `public/apple-touch-icon.png`, `src/app/icon.svg`, `src/app/apple-icon.png`, `src/app/opengraph-image.jpg`, `public/site.webmanifest`, `src/app/manifest.ts`.
-Design brief: same navy (#0F3057 family from tokens) and gold accents as today; Georgia wordmark "UsefulApply" with "Useful" in navy and "Apply" in gold, or a single-color version for dark backgrounds; the mark is a simple geometric glyph that reads at 16px (favicon) and 512px (PWA). Deliver as inline SVG in the component plus exported PNGs at 16/32/192/512 and a 1200x630 OG image. No gradients that break at favicon size.
-- [ ] Build `BrandLogo` with props `variant: 'full' | 'mark' | 'wordmark'` and `tone: 'navy' | 'cream'`.
-- [ ] Replace every favicon, apple icon, manifest icon and the OG image. Manifest `name` and `short_name` become "UsefulApply".
-- [ ] Verify: run `npm run dev`, open `/`, `/dashboard`, `/pricing`; logo renders in navbar, footer, auth pages; browser tab shows the new favicon; `curl -I localhost:3000/opengraph-image` returns 200. Screenshot the navbar and footer to the repo root for Claude to check.
+Design (locked, see decision 11): two-tone paper plane mark, "Useful Apply" wordmark in Plus Jakarta Sans 800, "Apply" in gold. Deliver as inline SVG in the component plus exported PNGs at 16/32/180/192/512, favicon.ico and a 1200x630 OG image. No gradients.
+- [x] Build `BrandLogo` keeping the existing `KarkoLogo` API (`variant: 'full' | 'icon' | 'wordmark'`, `theme: 'light' | 'dark'`, `size`) plus named `BrandIcon` and `BrandWordmark`, so the 17 call sites only change the import and component name.
+- [x] Replace every favicon, apple icon, manifest icon and the OG image. Manifest `name` and `short_name` become "Useful Apply". (Also created the missing `public/icon-192.png` and `public/icon-512.png` that `manifest.ts` referenced.)
+- [x] Verify: dev server on :3005, navbar, footer (dark, scaled) and login lockups render with Plus Jakarta Sans; `/icon.svg`, `/favicon.ico`, `/apple-icon.png`, `/icon-192.png`, `/site.webmanifest`, `/opengraph-image.jpg` all 200. tsc 0 errors, eslint clean on changed files. Done by Claude 2026-08-17.
 
 ### Task 1.2: Email logo and blog/OG images
 **Files:** `src/lib/email/templates/*.ts` (logo URL and alt text), `public/images/**` files that carry the old logo (list them with `ls public/images` and check each), `src/components/blog/**` OG image generation if any.
 - [ ] Point email templates at `https://usefulapply.com/<new-logo>.png` (upload the PNG to `public/`).
 - [ ] Regenerate any blog OG or hero images that carry the Karko wordmark (see `docs/blog-image-brand-refresh-tracker.md` for the list of generated images).
+- [ ] Product screenshots in `public/screenshots/**` and the demo video on the home page still show the Karko UI (old K tile in the app chrome). List every such image; the ones used on marketing pages get re-captured after Task 2.2 lands (Owner: Claude, via Playwright at 1440x900). Mark the demo video as "re-record after cutover" (Owner: Wasim).
 - [ ] Verify: `grep -ril "karko" public/ src/lib/email` returns nothing except historical blog post slugs (slugs are handled in Task 2.5).
 
 ---
@@ -103,8 +105,8 @@ Order matters: do marketing pages first (highest visibility), then app, then int
 
 ### Task 2.1: Marketing pages
 **Files:** `src/app/page.tsx`, `src/app/layout.tsx` (metadata title/description/OG), `src/app/about/**`, `src/app/features/**`, `src/app/pricing/**`, `src/app/ai-job-application/**`, `src/app/contact/**`, `src/components/marketing/**`, `src/components/comparisons/**`, `src/app/compare/**`.
-- [ ] Replace every "Karko AI" / "KarKo AI" / "Karko" with `BRAND.name` (import from `src/lib/brand.ts`) or the literal "UsefulApply" in JSX text.
-- [ ] Update `metadata` titles: `UsefulApply | AI Job Application Agent` and page-specific titles.
+- [ ] Replace every "Karko AI" / "KarKo AI" / "Karko" with `BRAND.name` (import from `src/lib/brand.ts`) or the literal "Useful Apply" in JSX text.
+- [ ] Update `metadata` titles: `Useful Apply | AI Job Application Agent` and page-specific titles. In `src/app/layout.tsx` fix `twitter.images` from `'/opengraph-image'` (404 today) to `'/opengraph-image.jpg'`, and set `metadataBase` fallback to `https://usefulapply.com`.
 - [ ] Comparison routes: rename slugs `karko-ai-vs-teal` etc. to `usefulapply-vs-teal` etc. in `src/app/compare/[slug]` data and add redirects for the old slugs in `next.config.*` (`redirects()` 301).
 - [ ] Verify: `grep -rin "karko" src/app/page.tsx src/app/layout.tsx src/app/about src/app/features src/app/pricing src/app/ai-job-application src/app/contact src/components/marketing src/components/comparisons src/app/compare` returns 0 lines. Count before: ____ after: 0.
 
@@ -120,8 +122,8 @@ Order matters: do marketing pages first (highest visibility), then app, then int
 
 ### Task 2.4: Emails, legal pages, contact
 **Files:** `src/lib/email/config.ts`, `src/lib/email/templates/{confirmation,password-reset,welcome,check-in}.ts`, `src/app/terms/**`, `src/app/privacy/**`, `src/app/imprint/**`, `src/app/api/contact/route.ts`.
-- [ ] Sender becomes `UsefulApply <noreply@usefulapply.com>` (config only; the actual provider switch is Phase 7). Founder intro line: "I'm the founder of UsefulApply".
-- [ ] Legal pages: "UsefulApply, operated by Karko AI Inc" (use `BRAND.legalLine`). Add one line to Privacy: "UsefulApply was previously known as Karko AI." Update effective dates.
+- [ ] Sender becomes `Useful Apply <noreply@usefulapply.com>` (config only; the actual provider switch is Phase 7). Founder intro line: "I'm the founder of UsefulApply".
+- [ ] Legal pages: "Useful Apply, operated by Karko AI Inc" (use `BRAND.legalLine`). Add one line to Privacy: "Useful Apply was previously known as Karko AI." Update effective dates.
 - [ ] Verify: render each email template to a local HTML file and open it; grep scope returns 0.
 
 ### Task 2.5: SEO surfaces, blog, llms.txt
@@ -248,9 +250,9 @@ Prereq (Wasim, dashboard or CLI): `npx wrangler email sending enable usefulapply
 ### Task 7.2: Founder welcome flow on Cloudflare
 Today (Resend): Day 0 founder welcome is sent when a user confirms email, Day 3 check-in is scheduled with Resend `scheduledAt`, and `profiles.welcome_sent_at` prevents re-sends. Rebuild the same behaviour without Resend.
 **Files:** `src/app/api/auth/post-confirm/route.ts` (or the Better Auth `emailVerified` hook after Phase 5), `src/lib/email/templates/{welcome,check-in}.ts`, `src/cron/welcome-checkin.ts` (new), `src/db/schema.ts` (add `profiles.check_in_sent_at text null` via a D1 migration), `wrangler.jsonc` (`triggers.crons` add `0 9 * * 1-5`, weekdays 09:00 UTC, matching the "weekday sends only" rule), `src/lib/email/config.ts`.
-- [ ] Day 0: after email verification, if `welcome_sent_at` is null, send the welcome via `sendEmail()` from Task 7.1 with `from: { email: 'wasim@usefulapply.com', name: 'Wasim from UsefulApply' }` and `replyTo: 'wasim@usefulapply.com'`, then set `welcome_sent_at`.
+- [ ] Day 0: after email verification, if `welcome_sent_at` is null, send the welcome via `sendEmail()` from Task 7.1 with `from: { email: 'wasim@usefulapply.com', name: 'Wasim from Useful Apply' }` and `replyTo: 'wasim@usefulapply.com'`, then set `welcome_sent_at`.
 - [ ] Day 3: the cron selects users where `welcome_sent_at <= now - 3 days` and `check_in_sent_at is null` and `email_verified = 1`, sends the check-in, sets `check_in_sent_at`. Idempotent: run twice, second run sends nothing.
-- [ ] Copy: keep the current email text but "Karko AI" becomes "UsefulApply", founder intro stays "I'm the founder of UsefulApply", the desktop-only note stays mandatory, promo signals stay soft (these are existing rules from the founder).
+- [ ] Copy: keep the current email text but "Karko AI" becomes "Useful Apply", founder intro stays "I'm the founder of Useful Apply", the desktop-only note stays mandatory, promo signals stay soft (these are existing rules from the founder).
 - [ ] Remove `resend` from `package.json`, delete `scripts/resend-*.ts` and `src/lib/email/config.ts` references to Resend audiences.
 - [ ] Verify: on staging, verify a fresh test account, receive Day 0 immediately; set `welcome_sent_at` back 3 days in D1, trigger the cron with `curl "http://localhost:8787/__scheduled?cron=0+9+*+*+1-5"`, receive Day 3 once and only once.
 
@@ -258,11 +260,11 @@ Today (Resend): Day 0 founder welcome is sent when a user confirms email, Day 3 
 
 ## Phase 8: Integrations re-point
 
-- [ ] **Stripe:** new webhook endpoint `https://usefulapply.com/api/stripe/webhook` (create it now, keep the Vercel one until cutover), product and price names "UsefulApply Plus", "UsefulApply Max", "UsefulApply Credit Pack", customer portal branding, success/cancel URLs from `BRAND.url`. Financial logic untouched. Wasim confirms in the Stripe dashboard.
-- [ ] **Google OAuth:** consent screen name "UsefulApply", authorised origins and redirect URIs for usefulapply.com and Better Auth's callback path.
+- [ ] **Stripe:** new webhook endpoint `https://usefulapply.com/api/stripe/webhook` (create it now, keep the Vercel one until cutover), product and price names "Useful Apply Plus", "Useful Apply Max", "Useful Apply Credit Pack", customer portal branding, success/cancel URLs from `BRAND.url`. Financial logic untouched. Wasim confirms in the Stripe dashboard.
+- [ ] **Google OAuth:** consent screen name "Useful Apply", authorised origins and redirect URIs for usefulapply.com and Better Auth's callback path.
 - [ ] **PostHog:** project display name, allowed domains, and the `NEXT_PUBLIC_POSTHOG_KEY` stays the same so history continues. Update `.claude/rules/posthog.md`.
 - [ ] **Bedrock / Anthropic:** no change. Confirm the AWS SDK works from Workers under `nodejs_compat` (checked in Task 3.1).
-- [ ] **Trustpilot (Task 8.5, owner Wasim):** email Trustpilot support from the account owner address asking to change the business domain from karkoai.com to usefulapply.com and the display name to UsefulApply, keeping the reviews. When confirmed, update the profile URL in `src/components/marketing/TrustpilotReviews.tsx` and `src/components/marketing/Footer.tsx`. If Trustpilot refuses, create a new profile for usefulapply.com and point both components at it.
+- [ ] **Trustpilot (Task 8.5, owner Wasim):** email Trustpilot support from the account owner address asking to change the business domain from karkoai.com to usefulapply.com and the display name to Useful Apply, keeping the reviews. When confirmed, update the profile URL in `src/components/marketing/TrustpilotReviews.tsx` and `src/components/marketing/Footer.tsx`. If Trustpilot refuses, create a new profile for usefulapply.com and point both components at it.
 - [ ] **Google Search Console / Bing:** add usefulapply.com property now, submit sitemap after cutover, use the Change of Address tool from karkoai.com after redirects are live.
 - [ ] `CLAUDE.md` integrations section and `SETUP.md` rewritten for the Cloudflare stack.
 

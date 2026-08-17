@@ -16,7 +16,7 @@ import {
   Settings2,
   Sparkles,
 } from 'lucide-react';
-import { KarkoIcon } from '@/components/KarkoLogo';
+import { BrandIcon } from '@/components/BrandLogo';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -1454,7 +1454,7 @@ function SignedOutStage() {
     <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center">
       <div className="max-w-lg">
         <div className="mb-6 flex justify-center">
-          <KarkoIcon theme="light" size="lg" />
+          <BrandIcon theme="light" size="lg" />
         </div>
         <h1 className="text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
           Jobs picked for you, every day
@@ -1506,7 +1506,7 @@ function UpgradeStage() {
     <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center">
       <div className="max-w-lg">
         <div className="mb-6 flex justify-center">
-          <KarkoIcon theme="dark" size="lg" />
+          <BrandIcon theme="dark" size="lg" />
         </div>
         <h1 className="text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
           Get jobs picked for you, every morning

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { changePassword } from '@/lib/supabase';
 import { getSupabase } from '@/lib/supabase/client';
-import KarkoLogo from '@/components/KarkoLogo';
+import BrandLogo from '@/components/BrandLogo';
 
 type PageState = 'bootstrapping' | 'ready' | 'success' | 'invalid';
 
@@ -221,7 +221,7 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-3">
-            <KarkoLogo variant="full" size="lg" theme="light" />
+            <BrandLogo variant="full" size="lg" theme="light" />
           </div>
           <p className="text-warm-gray mt-2">Enter your new password below.</p>
         </div>

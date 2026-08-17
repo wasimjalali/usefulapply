@@ -8,7 +8,7 @@ import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
 import { updateSession, getSession, deleteSession, getChatMessages } from '@/lib/supabase/sessions';
 import { getSupabase } from '@/lib/supabase/client';
-import { KarkoIcon } from '@/components/KarkoLogo';
+import { BrandIcon } from '@/components/BrandLogo';
 import { Button } from '@/components/ui/Button';
 import {
   Search,
@@ -695,7 +695,7 @@ export function TrackerPanel() {
       <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center">
         <div className="max-w-lg">
           <div className="mb-6 flex justify-center">
-            <KarkoIcon theme="light" size="lg" />
+            <BrandIcon theme="light" size="lg" />
           </div>
           <h1 className="text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
             Every application, in one place

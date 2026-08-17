@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, User, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import KarkoLogo from '@/components/KarkoLogo';
+import BrandLogo from '@/components/BrandLogo';
 
 export default function SignUpPage() {
   const [fullName, setFullName] = useState('');
@@ -77,7 +77,7 @@ export default function SignUpPage() {
         {/* Logo/Brand */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-3">
-            <KarkoLogo variant="full" size="lg" theme="light" />
+            <BrandLogo variant="full" size="lg" theme="light" />
           </div>
           <p className="text-warm-gray mt-2">Create your free account to get started.</p>
         </div>
