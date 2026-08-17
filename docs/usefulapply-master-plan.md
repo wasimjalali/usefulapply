@@ -14,7 +14,10 @@
 2. Migration scope: **full**. Hosting, DB, auth, storage, email all move to Cloudflare.
 3. Visual scope: **new name + logo only**. Navy/cream/gold, Georgia + Arial, all surface roles and components stay. No palette or typography changes.
 4. Legal: brand is UsefulApply, the legal entity stays as it is today. Terms, Privacy and Imprint read "UsefulApply, operated by <current legal entity>".
-5. Email: transactional email moves to Cloudflare Email Service. Cloudflare Email Service is transactional only, so the founder welcome drip and any broadcasts either stay on Resend (rename audience and sender) or move to another marketing tool. Decision needed from Wasim before Phase 7 (see Open Questions).
+5. Email: everything moves to Cloudflare Email Service and Resend is removed. The founder welcome flow (Day 0 welcome, Day 3 check-in) is 1:1 onboarding mail, so it's transactional and allowed; it's rebuilt as Day 0 in the post-confirm hook plus a daily Cron Trigger for Day 3 (Task 7.2). There are no newsletters or bulk broadcasts today; if one is ever needed, pick a marketing tool at that time.
+8. Legal entity: `Karko AI Inc` (from `/imprint`). `BRAND.legalLine` = "UsefulApply, operated by Karko AI Inc".
+9. Cloudflare access for Claude: no API token. Wasim runs `! npx wrangler login` in the Claude Code session when Phase 3.5 starts (OAuth in the browser, nothing stored in the repo).
+10. Trustpilot: keep the existing profile and its reviews; request a domain change from karkoai.com to usefulapply.com through Trustpilot support (Task 8.5). Only if refused, open a new profile.
 6. Grok loop: Grok CLI implements, Claude verifies and commits. Branch: `rebrand/usefulapply`.
 7. Flag on record: a June 2026 review judged a Vercel to Cloudflare move as "savings too small for the rebuild risk". Wasim has decided to do the full move anyway. This plan minimises risk by keeping production untouched until a single, rehearsed cutover.
 
@@ -56,7 +59,7 @@ Rough effort at Grok + Claude pace: Phases 1 to 2 about 3 days, Phase 3 about 2 
 ```ts
 export const BRAND = {
   name: 'UsefulApply',
-  legalLine: 'UsefulApply, operated by <LEGAL ENTITY NAME AS TODAY IN /imprint>',
+  legalLine: 'UsefulApply, operated by Karko AI Inc',
   domain: 'usefulapply.com',
   url: 'https://usefulapply.com',
   supportEmail: 'support@usefulapply.com',
@@ -66,7 +69,7 @@ export const BRAND = {
   taglineInvestor: 'The AI job application agent.',
 } as const;
 ```
-- [ ] Create the file with the exact values above (copy the legal entity name from the current `/imprint` page, do not invent one).
+- [ ] Create the file with the exact values above.
 - [ ] Verify: `npx tsc --noEmit` zero errors.
 
 ### Task 0.3: Domains
@@ -117,7 +120,7 @@ Order matters: do marketing pages first (highest visibility), then app, then int
 ### Task 2.4: Emails, legal pages, contact
 **Files:** `src/lib/email/config.ts`, `src/lib/email/templates/{confirmation,password-reset,welcome,check-in}.ts`, `src/app/terms/**`, `src/app/privacy/**`, `src/app/imprint/**`, `src/app/api/contact/route.ts`.
 - [ ] Sender becomes `UsefulApply <noreply@usefulapply.com>` (config only; the actual provider switch is Phase 7). Founder intro line: "I'm the founder of UsefulApply".
-- [ ] Legal pages: "UsefulApply, operated by <legal entity>". Add one line to Privacy: "UsefulApply was previously known as Karko AI." Update effective dates.
+- [ ] Legal pages: "UsefulApply, operated by Karko AI Inc" (use `BRAND.legalLine`). Add one line to Privacy: "UsefulApply was previously known as Karko AI." Update effective dates.
 - [ ] Verify: render each email template to a local HTML file and open it; grep scope returns 0.
 
 ### Task 2.5: SEO surfaces, blog, llms.txt
@@ -159,7 +162,7 @@ Order matters: do marketing pages first (highest visibility), then app, then int
 - [ ] Verify: `wrangler dev --test-scheduled` and `curl "http://localhost:8787/__scheduled?cron=*/10+*+*+*+*"` runs the handler without error.
 
 ### Task 3.5: Staging deploy to usefulapply.com
-Owner: Claude (needs Cloudflare account access) with Wasim for secrets.
+Owner: Claude. Wasim runs `! npx wrangler login` in the Claude Code session first (browser OAuth). Wasim types secret values himself when prompted by `wrangler secret put`.
 - [ ] `wrangler secret put` for every server env currently in Vercel (list names from `SETUP.md`; never paste values in chat or files). Public `NEXT_PUBLIC_*` vars go in `wrangler.jsonc` `vars`.
 - [ ] Deploy. Bind `usefulapply.com` and `www` to the Worker. `NEXT_PUBLIC_SITE_URL=https://usefulapply.com`.
 - [ ] Add a `noindex` header on staging (`X-Robots-Tag: noindex`) until Phase 9 so Google doesn't index a duplicate. Track its removal in Task 9.4.
@@ -241,8 +244,14 @@ Prereq (Wasim, dashboard or CLI): `npx wrangler email sending enable usefulapply
 **Files:** Create `src/lib/email/send.ts` wrapping `env.EMAIL.send({ to, from: { email: BRAND.noreplyEmail, name: BRAND.name }, subject, html, text })`; every template must return both `html` and `text`. `wrangler.jsonc`: `"send_email": [{ "name": "EMAIL" }]`. Replace Resend calls in `src/app/api/contact/route.ts`, `src/app/api/auth/{signup,forgot-password,post-confirm}/route.ts`, the confirmation-resend cron, and the Better Auth verification and reset hooks from Task 5.1.
 - [ ] Verify: each transactional email arrives in a real inbox from staging with SPF, DKIM and DMARC pass in the headers.
 
-### Task 7.2: Welcome drip and broadcasts (decision required)
-- [!] Blocked on Wasim's decision: keep Resend for the founder welcome drip and broadcasts (rename audience to "UsefulApply - New Users", sender `wasim@usefulapply.com`, verify the domain in Resend) or move that flow elsewhere. Cloudflare Email Service is transactional only. Once decided, either update `src/lib/email/templates/{welcome,check-in}.ts` and `scripts/resend-*.ts`, or remove `resend` from `package.json`.
+### Task 7.2: Founder welcome flow on Cloudflare
+Today (Resend): Day 0 founder welcome is sent when a user confirms email, Day 3 check-in is scheduled with Resend `scheduledAt`, and `profiles.welcome_sent_at` prevents re-sends. Rebuild the same behaviour without Resend.
+**Files:** `src/app/api/auth/post-confirm/route.ts` (or the Better Auth `emailVerified` hook after Phase 5), `src/lib/email/templates/{welcome,check-in}.ts`, `src/cron/welcome-checkin.ts` (new), `src/db/schema.ts` (add `profiles.check_in_sent_at text null` via a D1 migration), `wrangler.jsonc` (`triggers.crons` add `0 9 * * 1-5`, weekdays 09:00 UTC, matching the "weekday sends only" rule), `src/lib/email/config.ts`.
+- [ ] Day 0: after email verification, if `welcome_sent_at` is null, send the welcome via `sendEmail()` from Task 7.1 with `from: { email: 'wasim@usefulapply.com', name: 'Wasim from UsefulApply' }` and `replyTo: 'wasim@usefulapply.com'`, then set `welcome_sent_at`.
+- [ ] Day 3: the cron selects users where `welcome_sent_at <= now - 3 days` and `check_in_sent_at is null` and `email_verified = 1`, sends the check-in, sets `check_in_sent_at`. Idempotent: run twice, second run sends nothing.
+- [ ] Copy: keep the current email text but "Karko AI" becomes "UsefulApply", founder intro stays "I'm the founder of UsefulApply", the desktop-only note stays mandatory, promo signals stay soft (these are existing rules from the founder).
+- [ ] Remove `resend` from `package.json`, delete `scripts/resend-*.ts` and `src/lib/email/config.ts` references to Resend audiences.
+- [ ] Verify: on staging, verify a fresh test account, receive Day 0 immediately; set `welcome_sent_at` back 3 days in D1, trigger the cron with `curl "http://localhost:8787/__scheduled?cron=0+9+*+*+1-5"`, receive Day 3 once and only once.
 
 ---
 
@@ -252,7 +261,7 @@ Prereq (Wasim, dashboard or CLI): `npx wrangler email sending enable usefulapply
 - [ ] **Google OAuth:** consent screen name "UsefulApply", authorised origins and redirect URIs for usefulapply.com and Better Auth's callback path.
 - [ ] **PostHog:** project display name, allowed domains, and the `NEXT_PUBLIC_POSTHOG_KEY` stays the same so history continues. Update `.claude/rules/posthog.md`.
 - [ ] **Bedrock / Anthropic:** no change. Confirm the AWS SDK works from Workers under `nodejs_compat` (checked in Task 3.1).
-- [ ] **Trustpilot:** the profile is for karkoai.com. Open a UsefulApply profile or request a domain change; update `src/components/marketing/TrustpilotReviews.tsx` link.
+- [ ] **Trustpilot (Task 8.5, owner Wasim):** email Trustpilot support from the account owner address asking to change the business domain from karkoai.com to usefulapply.com and the display name to UsefulApply, keeping the reviews. When confirmed, update the profile URL in `src/components/marketing/TrustpilotReviews.tsx` and `src/components/marketing/Footer.tsx`. If Trustpilot refuses, create a new profile for usefulapply.com and point both components at it.
 - [ ] **Google Search Console / Bing:** add usefulapply.com property now, submit sitemap after cutover, use the Change of Address tool from karkoai.com after redirects are live.
 - [ ] `CLAUDE.md` integrations section and `SETUP.md` rewritten for the Cloudflare stack.
 
@@ -294,12 +303,9 @@ Rehearse Tasks 9.1 to 9.3 once against staging with a fresh export before doing 
 
 ---
 
-## Open questions for Wasim
+## Open questions
 
-1. Welcome drip and broadcasts: stay on Resend (renamed) or move? Blocks Task 7.2 only.
-2. Legal entity name to print in `BRAND.legalLine`: confirm it's exactly what `/imprint` shows today.
-3. Cloudflare account access for Claude: API token scoped to Workers, D1, R2, KV, Email, DNS for the usefulapply.com and karkoai.com zones (Wasim creates it, provides per session, never stored in the repo).
-4. Trustpilot: new profile or domain change request?
+None. All decisions are in the Decisions log. Real-world actions that only Wasim can do (buy domains, `wrangler login`, type secrets, Stripe and Google dashboards, Trustpilot support email) are marked "Owner: Wasim" on the task and are not questions.
 
 ## Grok loop protocol
 
