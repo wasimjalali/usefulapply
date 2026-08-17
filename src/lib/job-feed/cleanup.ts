@@ -1,10 +1,10 @@
-import { createAdminClient } from '@/lib/supabase/admin';
+import * as adminRepo from '@/db/repos/admin';
 import {
   JOB_FEED_INBOX_RETENTION_DAYS,
   JOB_FEED_RAW_PAYLOAD_RETENTION_DAYS,
   JOB_FEED_RUN_METADATA_RETENTION_DAYS,
 } from '@/lib/job-feed/constants';
-import type { JobFeedRun, Json } from '@/lib/supabase/types';
+import type { Json } from '@/lib/supabase/types';
 
 const JOB_FEED_CLEANUP_COMPACTION_VERSION = 1;
 const UPDATE_BATCH_SIZE = 200;
@@ -68,42 +68,7 @@ export async function cleanupHistoricalJobFeedData(params?: {
 }
 
 async function deleteExpiredRankedInboxItems(params: { inboxCutoff: string }): Promise<number> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the joined ranked feed rows.
-  const admin = createAdminClient() as any;
-
-  // Find expired run IDs first, then batch-delete their ranked_items.
-  // Using a two-step approach keeps the delete predicate indexable and
-  // avoids relying on cross-table filters in the Supabase client.
-  const { data: expiredRuns, error: expiredRunsError } = await admin
-    .from('job_feed_runs')
-    .select('id')
-    .eq('status', 'completed')
-    .lt('completed_at', params.inboxCutoff);
-
-  if (expiredRunsError) {
-    throw new Error(`Failed to load expired job feed runs for inbox cleanup: ${expiredRunsError.message}`);
-  }
-
-  const expiredRunIds = ((expiredRuns ?? []) as Array<{ id: string }>).map((row) => row.id);
-  if (expiredRunIds.length === 0) {
-    return 0;
-  }
-
-  let deleted = 0;
-  for (const batch of chunk(expiredRunIds, UPDATE_BATCH_SIZE)) {
-    const { error, count } = await admin
-      .from('job_feed_ranked_items')
-      .delete({ count: 'exact' })
-      .in('run_id', batch);
-
-    if (error) {
-      throw new Error(`Failed to delete expired job feed ranked items: ${error.message}`);
-    }
-
-    deleted += typeof count === 'number' ? count : 0;
-  }
-
-  return deleted;
+  return adminRepo.deleteExpiredRankedItems(params.inboxCutoff);
 }
 
 async function redactOldRawFetchPayloads(params: {
@@ -111,88 +76,14 @@ async function redactOldRawFetchPayloads(params: {
   rawPayloadCutoff: string;
   rawPayloadRetentionDays: number;
 }): Promise<number> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('job_feed_raw_fetches')
-    .select('id, response_payload')
-    .lt('created_at', params.rawPayloadCutoff);
-
-  if (error) {
-    throw new Error(`Failed to load raw job feed fetches for cleanup: ${error.message}`);
-  }
-
-  const idsToRedact = ((data ?? []) as Array<{ id: string; response_payload: Json }>)
-    .filter((row) => !isRedactedRawPayload(row.response_payload))
-    .map((row) => row.id);
-
-  if (idsToRedact.length === 0) {
-    return 0;
-  }
-
-  const redactedPayload = {
-    redacted: true,
-    reason: 'retention_cleanup',
-    redacted_at: params.now.toISOString(),
-    retention_days: params.rawPayloadRetentionDays,
-  } satisfies Record<string, Json>;
-
-  let updatedCount = 0;
-  for (const batch of chunk(idsToRedact, UPDATE_BATCH_SIZE)) {
-    const { error: updateError } = await admin
-      .from('job_feed_raw_fetches')
-      .update({ response_payload: redactedPayload })
-      .in('id', batch);
-
-    if (updateError) {
-      throw new Error(`Failed to redact raw job feed payloads: ${updateError.message}`);
-    }
-
-    updatedCount += batch.length;
-  }
-
-  return updatedCount;
+  return adminRepo.redactOldRawFetchPayloads(params.rawPayloadCutoff);
 }
 
 async function compactOldRunMetadata(params: {
   now: Date;
   runMetadataCutoff: string;
 }): Promise<number> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('job_feed_runs')
-    .select('id, metadata, status')
-    .lt('created_at', params.runMetadataCutoff)
-    .in('status', ['completed', 'failed', 'skipped']);
-
-  if (error) {
-    throw new Error(`Failed to load job feed runs for metadata cleanup: ${error.message}`);
-  }
-
-  const runsToCompact = ((data ?? []) as Array<Pick<JobFeedRun, 'id' | 'metadata' | 'status'>>)
-    .filter((run) => !isCompactedRunMetadata(run.metadata));
-
-  if (runsToCompact.length === 0) {
-    return 0;
-  }
-
-  let updatedCount = 0;
-  for (const run of runsToCompact) {
-    const compactedMetadata = compactRunMetadata(run.metadata, params.now.toISOString());
-    const { error: updateError } = await admin
-      .from('job_feed_runs')
-      .update({ metadata: compactedMetadata })
-      .eq('id', run.id);
-
-    if (updateError) {
-      throw new Error(`Failed to compact job feed run metadata: ${updateError.message}`);
-    }
-
-    updatedCount += 1;
-  }
-
-  return updatedCount;
+  return adminRepo.compactOldRunMetadata(params.runMetadataCutoff);
 }
 
 function isRedactedRawPayload(value: Json): boolean {

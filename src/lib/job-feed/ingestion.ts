@@ -706,16 +706,8 @@ async function insertRawFetch(
   admin: any,
   insert: InsertTables<'job_feed_raw_fetches'>
 ) {
-  const { data, error } = await admin
-    .from('job_feed_raw_fetches')
-    .insert(insert)
-    .select('*')
-    .single();
-
-  if (error) {
-    throw new Error(`Failed to persist raw job feed fetch: ${error.message}`);
-  }
-
+  const { insertRawFetch } = await import('@/db/repos/jobFeed');
+  const data = await insertRawFetch(insert.user_id, insert);
   return data as {
     id: string;
     fetched_at: string;
@@ -732,14 +724,8 @@ async function upsertCanonicalJobs(
     return [];
   }
 
-  const { data: existingRows, error: existingRowsError } = await admin
-    .from('job_feed_canonical_jobs')
-    .select('*')
-    .in('canonical_key', canonicalKeys);
-
-  if (existingRowsError) {
-    throw new Error(`Failed to load canonical jobs for dedupe: ${existingRowsError.message}`);
-  }
+  const { getCanonicalJobsByKeys, updateCanonicalJob, insertCanonicalJob } = await import('@/db/repos/admin');
+  const existingRows = await getCanonicalJobsByKeys(canonicalKeys);
 
   const existingByKey = new Map<string, JobFeedCanonicalJob>(
     ((existingRows ?? []) as JobFeedCanonicalJob[]).map((row) => [row.canonical_key, row])
@@ -752,33 +738,14 @@ async function upsertCanonicalJobs(
 
     if (existing) {
       const updates = buildCanonicalJobUpdate(existing, aggregated);
-      const { data, error } = await admin
-        .from('job_feed_canonical_jobs')
-        .update(updates)
-        .eq('id', existing.id)
-        .select('*')
-        .single();
-
-      if (error) {
-        throw new Error(`Failed to update canonical job: ${error.message}`);
-      }
-
-      persistedJobs.push(data as JobFeedCanonicalJob);
+      const data = await updateCanonicalJob(existing.id, updates);
+      persistedJobs.push(data);
       continue;
     }
 
     const insert = buildCanonicalJobInsert(aggregated);
-    const { data, error } = await admin
-      .from('job_feed_canonical_jobs')
-      .insert(insert)
-      .select('*')
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to insert canonical job: ${error.message}`);
-    }
-
-    persistedJobs.push(data as JobFeedCanonicalJob);
+    const data = await insertCanonicalJob(insert);
+    persistedJobs.push(data);
   }
 
   return persistedJobs;

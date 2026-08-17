@@ -7,7 +7,8 @@ import {
 } from '@/lib/job-feed/server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getProfile } from '@/db/repos/profiles';
+import { getSettings } from '@/db/repos/jobFeed';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -21,21 +22,15 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
-    const { data: profile, error: profileError } = await typedSupabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
-      .single();
+    const profile = await getProfile(user.id);
 
-    if (profileError || !profile || !canViewJobFeed(profile.subscription_tier)) {
+    if (!profile || !canViewJobFeed(profile.subscription_tier)) {
       return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 
@@ -131,14 +126,8 @@ export async function POST(request: NextRequest) {
 }
 
 async function getUserTimeZone(userId: string): Promise<string> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet cover these tables.
-  const admin = createAdminClient() as any;
-  const { data } = await admin
-    .from('job_feed_settings')
-    .select('user_timezone')
-    .eq('user_id', userId)
-    .maybeSingle();
-  return (data as { user_timezone?: string } | null)?.user_timezone || 'UTC';
+  const settings = await getSettings(userId);
+  return settings?.user_timezone || 'UTC';
 }
 
 function getCalendarDayCooldown(params: {

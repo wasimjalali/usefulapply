@@ -4,6 +4,7 @@ import { canAccessJobFeed } from '@/lib/job-feed/helpers';
 import { runJobFeedFoundationWorkflow } from '@/lib/job-feed/server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { createClient } from '@/lib/supabase/server';
+import { getProfile } from '@/db/repos/profiles';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -23,21 +24,15 @@ export async function POST(request: NextRequest) {
     const payload = await request.json().catch(() => ({}));
     const force = Boolean(payload?.force);
     const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
-    const { data: profile, error: profileError } = await typedSupabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
-      .single();
+    const profile = await getProfile(user.id);
 
-    if (profileError || !profile || !canAccessJobFeed(profile.subscription_tier)) {
+    if (!profile || !canAccessJobFeed(profile.subscription_tier)) {
       return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 

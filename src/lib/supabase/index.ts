@@ -76,14 +76,9 @@ export type { MessageFeedback } from './feedback';
 export {
   CREDIT_COSTS,
   getSubscriptionPlans,
-  getSubscriptionPlan,
   getAddonCreditPacks,
   getUserCredits,
   getTotalCredits,
-  hasEnoughCredits,
-  checkCreditBalance,
-  deductCredits,
-  addCredits,
   getCreditTransactions,
 } from './credits';
 export type {

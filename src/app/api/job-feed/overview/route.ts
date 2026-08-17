@@ -12,6 +12,9 @@ import { JOB_FEED_INBOX_PAGE_SIZE } from '@/lib/job-feed/constants';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { isCurrentCareerProfile, type CareerProfile } from '@/lib/job-feed/career-profile';
 import type { JobFeedRun } from '@/lib/supabase/types';
+import { getProfile } from '@/db/repos/profiles';
+import { getDocumentByType } from '@/db/repos/documents';
+import { getCareerProfileRow, getLatestRun, getSettings } from '@/db/repos/jobFeed';
 
 export const runtime = 'nodejs';
 
@@ -26,22 +29,16 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
-    const { data: profile, error: profileError } = await typedSupabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
-      .single();
+    const profile = await getProfile(user.id);
 
-    if (profileError || !profile) {
-      console.error('[job-feed/overview] profile load error:', profileError?.message);
+    if (!profile) {
+      console.error('[job-feed/overview] profile load error: profile not found');
       return NextResponse.json({ error: 'Failed to load profile.' }, { status: 500 });
     }
 
@@ -70,51 +67,18 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const [
-      { data: settings, error: settingsError },
-      { data: latestRun, error: runError },
-      { data: careerProfileRow },
-      { data: primaryCvRow },
-    ] = await Promise.all([
-      typedSupabase
-        .from('job_feed_settings')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle(),
-      typedSupabase
-        .from('job_feed_runs')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      typedSupabase
-        .from('user_career_profiles')
-        .select('profile')
-        .eq('user_id', user.id)
-        .maybeSingle(),
+    // A read failure here throws out to the outer catch, which returns the same
+    // 500 payload the per-query error branches used to return.
+    const [settings, latestRun, careerProfileRow, primaryCvRow] = await Promise.all([
+      getSettings(user.id),
+      getLatestRun(user.id),
+      getCareerProfileRow(user.id),
       // Free feeds are CV-driven. The career profile is synthesized on the
       // first run, so the real prerequisite is "has a primary CV", not "has a
       // synthesized profile" - gating on the profile would deadlock free users
       // (no_cv_required hides the run button that would create the profile).
-      typedSupabase
-        .from('documents')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('type', 'primary_cv')
-        .limit(1)
-        .maybeSingle(),
+      getDocumentByType(user.id, 'primary_cv'),
     ]);
-
-    if (settingsError) {
-      console.error('[job-feed/overview] settings load error:', settingsError.message);
-      return NextResponse.json({ error: 'Failed to load job feed overview.' }, { status: 500 });
-    }
-
-    if (runError) {
-      console.error('[job-feed/overview] run load error:', runError.message);
-      return NextResponse.json({ error: 'Failed to load job feed overview.' }, { status: 500 });
-    }
 
     // Load the run metadata once; inbox pagination is a separate call so
     // we can keep the overview payload small even at scale.

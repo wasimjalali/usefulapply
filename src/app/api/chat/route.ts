@@ -3,6 +3,7 @@ import { callModel } from '@/lib/models';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { createClient } from '@/lib/supabase/server';
+import { getProfile } from '@/db/repos/profiles';
 
 // Input/output limits
 const MAX_MESSAGE_LENGTH = 2_000;
@@ -81,12 +82,7 @@ export async function POST(req: NextRequest) {
 
     // Plan gate: screening answers require a paid plan (Plus or Max)
     if (isScreeningMode) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('subscription_tier')
-        .eq('id', user.id)
-        .single() as { data: { subscription_tier: string } | null };
-
+      const profile = await getProfile(user.id);
       const tier = profile?.subscription_tier;
       if (tier !== 'plus' && tier !== 'max') {
         return NextResponse.json(

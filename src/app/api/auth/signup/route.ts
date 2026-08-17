@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { upsertProfileOnSignup } from '@/db/repos/profiles';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getSiteUrl } from '@/lib/auth/site-url';
 
@@ -99,18 +100,11 @@ export async function POST(request: NextRequest) {
     // Root cause fix: DB trigger handle_new_user() silently swallows errors, leaving
     // the profiles table empty. We guarantee the profile exists here.
     if (linkData.user?.id) {
-      // profiles typing lags the live schema; admin client is untyped here by design.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- service-role upsert outside generated Database types
-      const { error: profileError } = await (supabaseAdmin as any)
-        .from('profiles')
-        .upsert(
-          { id: linkData.user.id, email, full_name: fullName ?? '' },
-          { onConflict: 'id' }
-        );
-
-      if (profileError) {
-        console.error('[/api/auth/signup] Profile upsert error:', profileError.message);
-        // Non-fatal — user can still confirm email and profile will be created on login
+      try {
+        await upsertProfileOnSignup(linkData.user.id, email, fullName ?? '');
+      } catch (profileError) {
+        console.error('[/api/auth/signup] Profile upsert error:', profileError);
+        // Non-fatal: user can still confirm email and the profile is created on login
       }
     }
 

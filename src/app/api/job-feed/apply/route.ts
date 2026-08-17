@@ -14,6 +14,7 @@ import { captureJobFeedActionRejected, captureJobFeedEvent } from '@/lib/job-fee
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { createClient } from '@/lib/supabase/server';
+import { getProfile } from '@/db/repos/profiles';
 
 export const runtime = 'nodejs';
 
@@ -37,9 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand all of the newly added tables here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       captureJobFeedActionRejected({
@@ -52,23 +51,19 @@ export async function POST(request: NextRequest) {
     }
     userId = user.id;
 
-    const { data: profile, error: profileError } = await typedSupabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
-      .single();
+    const profile = await getProfile(user.id);
     subscriptionTier = profile?.subscription_tier ?? null;
 
     // Intentionally canViewJobFeed (free + premium), NOT canAccessJobFeed. This
     // is a handoff that only creates a session + generation intent; it charges no
     // credits and exposes nothing premium-exclusive. The paywall is enforced
     // downstream in the agent flow. canViewJobFeed still denies unknown tiers.
-    if (profileError || !profile || !canViewJobFeed(profile.subscription_tier)) {
+    if (!profile || !canViewJobFeed(profile.subscription_tier)) {
       captureJobFeedActionRejected({
         userId,
         route: 'apply',
         action: 'apply_started',
-        reason: profileError ? 'profile_load_failed' : 'plan_not_allowed',
+        reason: !profile ? 'profile_load_failed' : 'plan_not_allowed',
         status: 403,
         subscriptionTier,
       });

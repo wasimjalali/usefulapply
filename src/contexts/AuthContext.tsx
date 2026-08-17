@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef } f
 import { User, Session, AuthError, SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase } from '@/lib/supabase/client';
 import type { Profile } from '@/lib/supabase/types';
+import { getOrCreateProfileAction, getProfileAction, updateProfileAction } from '@/db/actions';
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -78,39 +79,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const prevUserIdRef = useRef<string | null>(null);
 
   // Fetch user profile from database, create if doesn't exist
-  const fetchProfile = useCallback(async (userId: string, userEmail?: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-
-    if (error) {
-      // Profile doesn't exist - create it (happens after signup)
-      if (error.code === 'PGRST116') {
-        const { data: newProfile, error: createError } = await supabase
-          .from('profiles')
-          .insert({
-            id: userId,
-            email: userEmail || '',
-          })
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('Error creating profile:', createError);
-          return null;
-        }
-
-        return newProfile as Profile;
-      }
-
+  const fetchProfile = useCallback(async (userId: string) => {
+    try {
+      const existing = await getProfileAction(userId);
+      if (existing) return existing;
+      return await getOrCreateProfileAction(userId);
+    } catch (error) {
       console.error('Error fetching profile:', error);
       return null;
     }
-
-    return data as Profile;
-  }, [supabase]);
+  }, []);
 
   // Refresh profile data
   const refreshProfile = useCallback(async () => {
@@ -150,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(initialSession);
           setUser(initialSession.user);
           // Fetch profile but don't block on it
-          fetchProfile(initialSession.user.id, initialSession.user.email)
+          fetchProfile(initialSession.user.id)
             .then(profileData => setProfile(profileData))
             .catch(err => console.error('Profile fetch error:', err));
         } else {
@@ -200,7 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             created_at: newSession.user.created_at,
           });
           // Fetch profile in background, don't block
-          fetchProfile(newSession.user.id, newSession.user.email)
+          fetchProfile(newSession.user.id)
             .then(profileData => {
               setProfile(profileData);
               if (profileData?.subscription_tier) {
@@ -291,18 +269,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile({ ...profile, ...updates } as Profile);
     }
 
-    const { error } = await supabase
-      .from('profiles')
-      .update(updates as any)
-      .eq('id', user.id);
-
-    if (error) {
-      // Revert on error - refresh from database
+    try {
+      await updateProfileAction(user.id, updates);
+      return { error: null };
+    } catch (error) {
       await refreshProfile();
-      return { error: new Error(error.message) };
+      return { error: error instanceof Error ? error : new Error('Failed to update profile') };
     }
-
-    return { error: null };
   };
 
   const value: AuthContextType = {

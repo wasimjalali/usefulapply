@@ -69,15 +69,9 @@ export async function runResendConfirmations(): Promise<ResendConfirmationsResul
 
   const profileMap = new Map<string, ProfileRow>();
   const userIds = candidates.map((u) => u.id);
-  const { data: profiles, error: profilesError } = await supabaseAdmin
-    .from('profiles')
-    .select('id, full_name, last_confirmation_resend_at, confirmation_resend_count')
-    .in('id', userIds);
-  if (profilesError) {
-    console.error('[cron/resend-confirmations] profiles query failed:', profilesError.message);
-    throw new Error('Server error');
-  }
-  for (const row of (profiles ?? []) as ProfileRow[]) {
+  const { listProfilesByIds } = await import('@/db/repos/admin');
+  const profiles = await listProfilesByIds(userIds);
+  for (const row of profiles) {
     profileMap.set(row.id, row);
   }
 
@@ -127,25 +121,16 @@ export async function runResendConfirmations(): Promise<ResendConfirmationsResul
       isReminder: count > 0,
     });
 
-    // Claim the nudge before sending (compare-and-set on the counter) so two
-    // schedulers hitting the same hour cannot both send. If another run already
-    // advanced the counter, this update matches zero rows and we skip.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- profiles resend counters not in generated types
-    const { data: claimed, error: updateError } = await (supabaseAdmin as any)
-      .from('profiles')
-      .update({
-        last_confirmation_resend_at: new Date(now).toISOString(),
-        confirmation_resend_count: count + 1,
-      })
-      .eq('id', user.id)
-      .eq('confirmation_resend_count', count)
-      .select('id');
-    if (updateError) {
-      console.error(`[cron/resend-confirmations] profile update failed for ${user.id}: ${updateError.message}`);
+    const { claimConfirmationResend } = await import('@/db/repos/admin');
+    let claimed = false;
+    try {
+      claimed = await claimConfirmationResend(user.id, count);
+    } catch (updateError) {
+      console.error(`[cron/resend-confirmations] profile update failed for ${user.id}: ${updateError instanceof Error ? updateError.message : 'unknown'}`);
       errors += 1;
       continue;
     }
-    if (!claimed || claimed.length === 0) {
+    if (!claimed) {
       throttled += 1;
       continue;
     }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { canAccessJobFeed } from '@/lib/job-feed/helpers';
 import { listSavedJobFeedItemsAdmin } from '@/lib/job-feed/server';
+import { getProfile } from '@/db/repos/profiles';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 
 export const runtime = 'nodejs';
@@ -15,22 +16,16 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
-    const { data: profile, error: profileError } = await typedSupabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
-      .single();
+    const profile = await getProfile(user.id);
 
-    if (profileError || !profile) {
-      console.error('[job-feed/saved] profile load error:', profileError?.message);
+    if (!profile) {
+      console.error('[job-feed/saved] profile load error: profile not found');
       return NextResponse.json({ error: 'Failed to load saved jobs.' }, { status: 500 });
     }
 

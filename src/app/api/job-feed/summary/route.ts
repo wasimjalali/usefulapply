@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { canViewJobFeed } from '@/lib/job-feed/helpers';
 import { requireJobFeedAccess } from '@/lib/job-feed/auth';
+import { getProfile, updateProfile } from '@/db/repos/profiles';
 import { listLatestJobFeedItemsAdmin } from '@/lib/job-feed/server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 
@@ -19,19 +20,13 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, unprocessedCount: 0 }, { status: 200 });
     }
 
-    const { data: profile } = await typedSupabase
-      .from('profiles')
-      .select('subscription_tier, job_feed_last_seen_run_date')
-      .eq('id', user.id)
-      .single();
+    const profile = await getProfile(user.id);
 
     const canAccess = canViewJobFeed(profile?.subscription_tier ?? null);
     if (!canAccess) {
@@ -69,15 +64,13 @@ export async function PATCH(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
-    const access = await requireJobFeedAccess(typedSupabase, user);
+    const access = await requireJobFeedAccess(supabase, user);
     if (!access.ok) {
       return NextResponse.json({ canAccess: false, error: access.error }, { status: access.status });
     }
@@ -89,13 +82,10 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid date format.' }, { status: 400 });
     }
 
-    const { error: updateError } = await typedSupabase
-      .from('profiles')
-      .update({ job_feed_last_seen_run_date: date })
-      .eq('id', user.id);
-
-    if (updateError) {
-      console.error('[job-feed/summary] PATCH update error:', updateError.message);
+    try {
+      await updateProfile(user.id, { job_feed_last_seen_run_date: date });
+    } catch (updateError) {
+      console.error('[job-feed/summary] PATCH update error:', updateError instanceof Error ? updateError.message : updateError);
       return NextResponse.json({ error: 'Failed to update.' }, { status: 500 });
     }
 

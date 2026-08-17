@@ -9,6 +9,9 @@ import {
 } from '@/lib/job-feed/career-profile';
 import { generateCareerProfile } from '@/lib/job-feed/career-profile-synthesis';
 import type { StructuredCV } from '@/lib/types/cv-schema';
+import type { Json } from '@/lib/supabase/types';
+import { getDocumentByType } from '@/db/repos/documents';
+import { getCareerProfileRow, upsertCareerProfile } from '@/db/repos/jobFeed';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -32,9 +35,9 @@ export async function GET(request: NextRequest) {
 
     const auth = await authenticatePaidUser();
     if (!auth.ok) return auth.response;
-    const { userId, supabase } = auth;
+    const { userId } = auth;
 
-    const { profileRow, primaryDoc } = await loadProfileAndPrimaryCV(supabase, userId);
+    const { profileRow, primaryDoc } = await loadProfileAndPrimaryCV(userId);
 
     if (!profileRow?.profile || !isCurrentCareerProfile(profileRow.profile)) {
       const body: CareerProfileResponseBody = {
@@ -69,9 +72,7 @@ export async function POST(request: NextRequest) {
     // Rate-limit by user ID (not IP) so users behind shared IPs or VPNs
     // don't burn each other's budget. Must authenticate first to get the ID.
     const supabaseForRateLimit = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const typedSupabaseForRateLimit = supabaseForRateLimit as any;
-    const { data: { user: userForRateLimit } } = await typedSupabaseForRateLimit.auth.getUser();
+    const { data: { user: userForRateLimit } } = await supabaseForRateLimit.auth.getUser();
     const rateLimitKey = userForRateLimit?.id
       ? `career-profile-generate:${userForRateLimit.id}`
       : `career-profile-generate:${getClientIP(request)}`;
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     const auth = await authenticatePaidUser();
     if (!auth.ok) return auth.response;
-    const { userId, supabase } = auth;
+    const { userId } = auth;
 
     let force = false;
     try {
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
       // No body / malformed body — treat as non-forced regeneration.
     }
 
-    const { profileRow, primaryDoc } = await loadProfileAndPrimaryCV(supabase, userId);
+    const { profileRow, primaryDoc } = await loadProfileAndPrimaryCV(userId);
 
     if (!primaryDoc?.structured_data) {
       const body: CareerProfileResponseBody = {
@@ -155,22 +156,19 @@ export async function POST(request: NextRequest) {
     const cv = primaryDoc.structured_data as StructuredCV;
     const result = await generateCareerProfile(cv);
 
-    const { error: persistError } = await supabase
-      .from('user_career_profiles')
-      .upsert({
-        user_id: userId,
-        profile: result.profile,
+    try {
+      await upsertCareerProfile(userId, {
+        profile: result.profile as unknown as Json,
         version: CAREER_PROFILE_SCHEMA_VERSION,
         source_document_id: primaryDoc.id ?? null,
         source_document_updated_at: primaryDoc.updated_at ?? null,
         model_provider: result.modelProvider,
         model_name: result.modelName,
-      }, { onConflict: 'user_id' });
-
-    if (persistError) {
+      });
+    } catch (persistError) {
       console.error('[career-profile] Failed to persist generated profile:', {
         userId,
-        error: persistError.message,
+        error: persistError instanceof Error ? persistError.message : persistError,
       });
       return NextResponse.json({ error: 'Failed to save career profile.' }, { status: 500 });
     }
@@ -196,16 +194,12 @@ export async function POST(request: NextRequest) {
 // Helpers
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added user_career_profiles table here.
-type TypedSupabase = any;
-type AuthSuccess = { ok: true; userId: string; supabase: TypedSupabase };
+type AuthSuccess = { ok: true; userId: string };
 type AuthFailure = { ok: false; response: NextResponse };
 
 async function authenticatePaidUser(): Promise<AuthSuccess | AuthFailure> {
   const supabase = await createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added user_career_profiles table here.
-  const typedSupabase = supabase as any;
-  const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
     return { ok: false, response: NextResponse.json({ error: 'Authentication required.' }, { status: 401 }) };
   }
@@ -213,18 +207,17 @@ async function authenticatePaidUser(): Promise<AuthSuccess | AuthFailure> {
   // requireJobFeedAccess correctly distinguishes missing profiles row (500)
   // from plan gate (403), avoiding a misleading "paid plans only" message
   // when the profiles row is simply absent (account setup incomplete).
-  const access = await requireJobFeedAccess(typedSupabase, user);
+  const access = await requireJobFeedAccess(supabase, user);
   if (!access.ok) {
     return { ok: false, response: NextResponse.json({ error: access.error }, { status: access.status }) };
   }
 
-  return { ok: true, userId: user.id as string, supabase: typedSupabase };
+  return { ok: true, userId: user.id };
 }
 
 interface ProfileRow {
   profile: CareerProfile | null;
   version: number;
-  source_document_id: string | null;
   source_document_updated_at: string | null;
 }
 
@@ -235,46 +228,28 @@ interface PrimaryDocRow {
 }
 
 async function loadProfileAndPrimaryCV(
-  supabase: TypedSupabase,
   userId: string,
 ): Promise<{ profileRow: ProfileRow | null; primaryDoc: PrimaryDocRow | null }> {
-  const [profileResult, primaryDocResult] = await Promise.all([
-    supabase
-      .from('user_career_profiles')
-      .select('profile, version, source_document_id, source_document_updated_at')
-      .eq('user_id', userId)
-      .maybeSingle(),
-    supabase
-      .from('documents')
-      .select('id, structured_data, updated_at')
-      .eq('user_id', userId)
-      .eq('type', 'primary_cv')
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+  // Read failures throw out to the route handler's catch rather than being
+  // logged and downgraded to "no profile / no CV".
+  const [careerProfileRow, primaryDocRow] = await Promise.all([
+    getCareerProfileRow(userId),
+    getDocumentByType(userId, 'primary_cv'),
   ]);
 
-  if (profileResult.error) {
-    console.error('[job-feed/career-profile] profile fetch error:', profileResult.error.message);
-  }
-  if (primaryDocResult.error) {
-    console.error('[job-feed/career-profile] primary CV fetch error:', primaryDocResult.error.message);
-  }
-
-  const profileRow = profileResult.data
+  const profileRow = careerProfileRow
     ? {
-        profile: (profileResult.data.profile as CareerProfile | null) ?? null,
-        version: (profileResult.data.version as number | null) ?? 0,
-        source_document_id: (profileResult.data.source_document_id as string | null) ?? null,
-        source_document_updated_at: (profileResult.data.source_document_updated_at as string | null) ?? null,
+        profile: (careerProfileRow.profile as CareerProfile | null) ?? null,
+        version: careerProfileRow.version ?? 0,
+        source_document_updated_at: careerProfileRow.source_document_updated_at ?? null,
       }
     : null;
 
-  const primaryDoc = primaryDocResult.data
+  const primaryDoc = primaryDocRow
     ? {
-        id: primaryDocResult.data.id as string,
-        structured_data: (primaryDocResult.data.structured_data as StructuredCV | null) ?? null,
-        updated_at: primaryDocResult.data.updated_at as string,
+        id: primaryDocRow.id,
+        structured_data: (primaryDocRow.structured_data as StructuredCV | null) ?? null,
+        updated_at: primaryDocRow.updated_at,
       }
     : null;
 

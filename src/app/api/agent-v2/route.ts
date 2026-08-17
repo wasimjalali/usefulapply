@@ -20,7 +20,9 @@ import {
   type MasterContext,
 } from '@/lib/agents';
 import { createClient } from '@/lib/supabase/server';
-import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
+import { updateSession } from '@/db/repos/sessions';
+import { getJobPreferences } from '@/db/repos/jobFeed';
+import { hasAnonymousGeneration, recordAnonymousGeneration } from '@/db/repos/anonymous';
 import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
 import { reserveCredits, captureReservation, releaseReservation } from '@/lib/supabase/credit-reservations';
 import { transitionJobFeedApplicationGenerationAdmin } from '@/lib/job-feed/server';
@@ -152,20 +154,30 @@ async function persistGeneratedArtifacts(
 ): Promise<boolean> {
   if (!sessionId || sessionId.startsWith('session-') || sessionId.startsWith('fit-')) return false;
   try {
-    const adminClient = getSupabaseAdmin();
-    const { error } = await adminClient
-      .from('application_sessions')
-      .update({ generated_artifacts: results })
-      .eq('id', sessionId)
-      .eq('user_id', userId);
-    if (error) {
-      console.error('[agent-v2] Failed to persist artifacts:', error.message);
-      return false;
-    }
+    await updateSession(userId, sessionId, { generated_artifacts: results });
     return true;
   } catch (e) {
     console.error('[agent-v2] Artifact persistence error:', e);
     return false;
+  }
+}
+
+// Post-generation bookkeeping is best-effort: a D1 write failure here must
+// never discard output the model already produced. Reservation capture that
+// fails leaves the row 'reserved' for the stale sweeper to release.
+async function recordAnonymousGenerationSafe(ipHash: string): Promise<void> {
+  try {
+    await recordAnonymousGeneration(ipHash);
+  } catch (e) {
+    console.error('[agent-v2] Failed to record anonymous generation:', e);
+  }
+}
+
+async function captureReservationSafe(params: { idempotencyKey: string; userId: string }): Promise<void> {
+  try {
+    await captureReservation(params);
+  } catch (e) {
+    console.error('[agent-v2] Failed to capture credit reservation:', e);
   }
 }
 
@@ -199,30 +211,6 @@ const MAX_MASTER_CV_LENGTH = 30_000;
 // Anonymous generation tracking helpers
 function hashIP(ip: string): string {
   return createHash('sha256').update(ip).digest('hex');
-}
-
-function getSupabaseAdmin() {
-  return createSupabaseAdmin(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
-
-async function hasAnonymousGeneration(ipHash: string): Promise<boolean> {
-  const supabaseAdmin = getSupabaseAdmin();
-  const { data } = await supabaseAdmin
-    .from('anonymous_generations')
-    .select('id')
-    .eq('ip_hash', ipHash)
-    .limit(1);
-  return (data && data.length > 0) || false;
-}
-
-async function recordAnonymousGeneration(ipHash: string): Promise<void> {
-  const supabaseAdmin = getSupabaseAdmin();
-  await supabaseAdmin
-    .from('anonymous_generations')
-    .insert({ ip_hash: ipHash });
 }
 
 interface AgentRequest {
@@ -348,24 +336,22 @@ export async function POST(request: NextRequest) {
         const isAnonymous = !user;
         distinctId = user?.id || 'anonymous';
 
-        // Fetch job preferences for cover letter context (best-effort, never blocks)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const typedSupabase = supabase as any;
+        // Fetch job preferences for cover letter context (best-effort, never blocks generation)
         let jobPreferences: import('@/lib/agents/types').MasterContext['jobPreferences'] = undefined;
         if (user) {
-          const { data: prefs } = await typedSupabase
-            .from('user_job_preferences')
-            .select('salary_floor,remote_preference,employment_types,target_market,seniority_target')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          if (prefs) {
-            jobPreferences = {
-              salaryFloor: prefs.salary_floor,
-              remotePreference: prefs.remote_preference,
-              employmentTypes: prefs.employment_types,
-              targetMarket: prefs.target_market,
-              seniorityTarget: prefs.seniority_target,
-            };
+          try {
+            const prefs = await getJobPreferences(user.id);
+            if (prefs) {
+              jobPreferences = {
+                salaryFloor: prefs.salary_floor,
+                remotePreference: prefs.remote_preference,
+                employmentTypes: prefs.employment_types,
+                targetMarket: prefs.target_market,
+                seniorityTarget: prefs.seniority_target,
+              };
+            }
+          } catch (prefsError) {
+            console.error('[agent-v2] Failed to load job preferences (continuing without):', prefsError);
           }
         }
 
@@ -576,7 +562,7 @@ export async function POST(request: NextRequest) {
 
             // Capture reservation — fit analysis produced usable results
             if (activeReservationKey && activeReservationUserId) {
-              await captureReservation({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
+              await captureReservationSafe({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
               activeReservationKey = null;
             }
 
@@ -709,7 +695,7 @@ export async function POST(request: NextRequest) {
               if (result.success && result.data) {
                 const ctx = result.data.context;
                 if (isAnonymous) {
-                  await recordAnonymousGeneration(ipHash);
+                  await recordAnonymousGenerationSafe(ipHash);
                 }
 
                 const fallbackResults = {
@@ -727,7 +713,7 @@ export async function POST(request: NextRequest) {
                 await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
 
                 if (activeReservationKey && activeReservationUserId) {
-                  await captureReservation({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
+                  await captureReservationSafe({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
                   activeReservationKey = null;
                 }
 
@@ -792,7 +778,7 @@ export async function POST(request: NextRequest) {
           if (result.success && result.data) {
             const ctx = result.data.context;
             if (isAnonymous) {
-              await recordAnonymousGeneration(ipHash);
+              await recordAnonymousGenerationSafe(ipHash);
             }
 
             const genResults = {
@@ -810,7 +796,7 @@ export async function POST(request: NextRequest) {
             await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
 
             if (activeReservationKey && activeReservationUserId) {
-              await captureReservation({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
+              await captureReservationSafe({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
               activeReservationKey = null;
             }
 
@@ -931,14 +917,14 @@ export async function POST(request: NextRequest) {
         }
 
         if (isAnonymous) {
-          await recordAnonymousGeneration(ipHash);
+          await recordAnonymousGenerationSafe(ipHash);
         }
 
         await persistGeneratedArtifacts(clientSessionId, user?.id ?? '', results);
         await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
 
         if (activeReservationKey && activeReservationUserId) {
-          await captureReservation({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
+          await captureReservationSafe({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
           activeReservationKey = null;
         }
 

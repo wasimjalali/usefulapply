@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
 import { updateSession, getSession, deleteSession, getChatMessages } from '@/lib/supabase/sessions';
-import { getSupabase } from '@/lib/supabase/client';
+import { listTrackerApplicationsAction, listTrackerStatusesAction } from '@/db/actions';
 import { BrandIcon } from '@/components/BrandLogo';
 import { Button } from '@/components/ui/Button';
 import {
@@ -37,7 +37,7 @@ interface TrackerSession {
 }
 
 // Keeps the initial render light. "Load more" fetches the next page from
-// Supabase on demand so the Tracker stays responsive for power users with
+// D1 on demand so the Tracker stays responsive for power users with
 // many applications.
 const PAGE_SIZE = 10;
 
@@ -345,32 +345,13 @@ export function TrackerPanel() {
   }) => {
     if (!user) return { data: [], count: 0 };
 
-    const supabase = getSupabase() as any;
-    let query = supabase
-      .from('application_sessions')
-      .select('id, company, job_title, match_score, status, created_at', { count: 'exact' })
-      .eq('user_id', user.id)
-      .not('generated_cv', 'is', null)
-      .order('created_at', { ascending: false });
-
-    if (status !== 'all') {
-      query = query.eq('status', status);
-    }
-
-    const normalizedSearch = search.replace(/[,%()']/g, ' ').trim();
-    if (normalizedSearch) {
-      const searchValue = `%${normalizedSearch}%`;
-      query = query.or(`company.ilike.${searchValue},job_title.ilike.${searchValue}`);
-    }
-
-    const { data, error, count } = await query.range(offset, offset + limit - 1);
-
-    if (error) {
+    try {
+      const { data, count } = await listTrackerApplicationsAction(user.id, { offset, limit, search, status });
+      return { data: data as TrackerSession[], count };
+    } catch (error) {
       console.error('[Tracker] Error fetching:', error);
       return { data: [], count: 0 };
     }
-
-    return { data: (data || []) as TrackerSession[], count: count || 0 };
   }, [user]);
 
   const matchesCurrentQuery = useCallback((app: Pick<TrackerSession, 'company' | 'job_title' | 'status'>, overrides?: {
@@ -434,20 +415,17 @@ export function TrackerPanel() {
     let cancelled = false;
     const isFirstLoad = !hasRunInitialLoadRef.current;
     const load = async () => {
-      const supabase = getSupabase() as any;
-
-      const [pageResult, statusResult] = await Promise.all([
+      const [pageResult, statusRows] = await Promise.all([
         fetchApplications({
           offset: 0,
           limit: PAGE_SIZE,
           search: deferredSearchQuery,
           status: statusFilter,
         }),
-        supabase
-          .from('application_sessions')
-          .select('status')
-          .eq('user_id', user.id)
-          .not('generated_cv', 'is', null) as Promise<{ data: { status: string | null }[] | null; error: unknown }>,
+        listTrackerStatusesAction(user.id).catch((error: unknown) => {
+          console.error('[Tracker] Error fetching status counts:', error);
+          return null;
+        }),
       ]);
 
       if (cancelled) return;
@@ -455,14 +433,14 @@ export function TrackerPanel() {
       setApplications(pageResult.data);
       setMatchingCount(pageResult.count);
 
-      if (statusResult.data) {
+      if (statusRows) {
         const counts: Record<string, number> = {};
-        for (const row of statusResult.data) {
+        for (const row of statusRows) {
           const s = row.status || 'applied';
           counts[s] = (counts[s] || 0) + 1;
         }
         setStatusCounts(counts);
-        setTotalCount(statusResult.data.length);
+        setTotalCount(statusRows.length);
       }
 
       if (isFirstLoad) {

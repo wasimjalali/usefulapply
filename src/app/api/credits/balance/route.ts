@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getUserCredits } from '@/db/repos/credits';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 
 export const runtime = 'nodejs';
@@ -22,15 +22,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
-    // Read via the admin client to bypass any RLS timing on fresh signups.
-    // The session already verified identity above; we only look up this user.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Same reason as above.
-    const admin = createAdminClient() as any;
-    const { data, error } = await admin
-      .from('user_credits')
-      .select('monthly_credits, rollover_credits, addon_credits, plan_tier, next_reset_date')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const { credits: data, error } = await getUserCredits(user.id);
 
     if (error) {
       console.error('[credits/balance] load error:', error.message);

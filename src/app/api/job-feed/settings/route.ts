@@ -6,6 +6,8 @@ import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import { getOrSynthesizeCareerProfileAdmin } from '@/lib/job-feed/server';
 import { requireJobFeedAccess } from '@/lib/job-feed/auth';
 import type { JobFeedSettingsInput } from '@/lib/job-feed/types';
+import { getProfile } from '@/db/repos/profiles';
+import { getSettings, upsertSettings, upsertJobPreferences } from '@/db/repos/jobFeed';
 
 export const runtime = 'nodejs';
 
@@ -18,31 +20,26 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
-    const access = await requireJobFeedAccess(typedSupabase, user);
+    const access = await requireJobFeedAccess(supabase, user);
     if (!access.ok) {
       return NextResponse.json({ error: access.error }, { status: access.status });
     }
 
-    const { data, error } = await typedSupabase
-      .from('job_feed_settings')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (error) {
-      console.error('[job-feed/settings] GET error:', error.message);
+    let settings;
+    try {
+      settings = await getSettings(user.id);
+    } catch (error) {
+      console.error('[job-feed/settings] GET error:', error instanceof Error ? error.message : error);
       return NextResponse.json({ error: 'Failed to load job feed settings.' }, { status: 500 });
     }
 
-    return NextResponse.json({ settings: data ?? null });
+    return NextResponse.json({ settings });
   } catch (error) {
     console.error('[job-feed/settings] GET unexpected error:', error);
     return NextResponse.json({ error: 'Failed to load job feed settings.' }, { status: 500 });
@@ -58,21 +55,15 @@ export async function PUT(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
-    const { data: profile, error: profileError } = await typedSupabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
-      .single();
+    const profile = await getProfile(user.id);
 
-    if (profileError || !profile) {
+    if (!profile) {
       return NextResponse.json({ error: 'Failed to load profile.' }, { status: 500 });
     }
 
@@ -90,11 +81,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: normalized.error || 'Invalid settings payload.' }, { status: 400 });
     }
 
-    const { data: existingSettings } = await typedSupabase
-      .from('job_feed_settings')
-      .select('consent_accepted_at')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const existingSettings = await getSettings(user.id);
 
     const consentAcceptedAt = existingSettings?.consent_accepted_at
       ?? (normalized.data.consent_accepted ? new Date().toISOString() : null);
@@ -136,9 +123,9 @@ export async function PUT(request: NextRequest) {
       ? normalized.data.employment_types
       : (['full_time'] as JobFeedSettingsInput['employment_types']);
 
-    const { data, error } = await typedSupabase
-      .from('job_feed_settings')
-      .upsert({
+    let data;
+    try {
+      data = await upsertSettings(user.id, {
         user_id: user.id,
         enabled: normalized.data.enabled,
         consent_accepted_at: consentAcceptedAt,
@@ -163,14 +150,9 @@ export async function PUT(request: NextRequest) {
         // User-controlled exclusions. Unlike the other AI-mirrored fields this
         // is pure user input (the AI can't know what they want to avoid).
         excluded_terms: normalized.data.excluded_terms,
-      }, {
-        onConflict: 'user_id',
-      })
-      .select('*')
-      .single();
-
-    if (error) {
-      console.error('[job-feed/settings] PUT error:', error.message);
+      });
+    } catch (error) {
+      console.error('[job-feed/settings] PUT error:', error instanceof Error ? error.message : error);
       return NextResponse.json({ error: 'Failed to save job feed settings.' }, { status: 500 });
     }
 
@@ -180,10 +162,8 @@ export async function PUT(request: NextRequest) {
     // Use the AI-mirrored variables (targetRoles, userSkills, seniorityTarget)
     // so the cover letter agent sees the enriched values, not the raw client
     // input which may be empty arrays on first save before the mirror runs.
-    const { error: prefError } = await typedSupabase
-      .from('user_job_preferences')
-      .upsert({
-        user_id: user.id,
+    try {
+      await upsertJobPreferences(user.id, {
         salary_floor: normalized.data.salary_floor,
         remote_preference: normalized.data.remote_preference,
         employment_types: employmentTypes,
@@ -191,11 +171,9 @@ export async function PUT(request: NextRequest) {
         user_skills: userSkills,
         target_market: normalized.data.target_market,
         seniority_target: seniorityTarget,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' });
-
-    if (prefError) {
-      console.error('[job-feed/settings] preferences sync error:', prefError.message);
+      });
+    } catch (prefError) {
+      console.error('[job-feed/settings] preferences sync error:', prefError instanceof Error ? prefError.message : prefError);
       // Non-fatal for the settings flow itself, but surfaced for observability.
     }
 

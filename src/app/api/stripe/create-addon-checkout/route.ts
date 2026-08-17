@@ -5,17 +5,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe, STRIPE_ADDON_PRICES, ADDON_CREDIT_MAP } from '@/lib/stripe';
-import { createClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
-
-function getSupabaseAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
+import { getProfile } from '@/db/repos/profiles';
+import { findCreditsByUserId, updateUserCreditsRow } from '@/db/repos/credits';
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,7 +27,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const supabase = getSupabaseAdmin();
     const { packSize } = await req.json();
     const userId = user.id; // Use authenticated user ID, never trust client
 
@@ -71,22 +64,14 @@ export async function POST(req: NextRequest) {
     }
 
     // Get user's email
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('email')
-      .eq('id', userId)
-      .single();
+    const profile = await getProfile(userId);
 
     if (!profile) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Check if user has an active paid subscription
-    const { data: userCredits } = await supabase
-      .from('user_credits')
-      .select('stripe_customer_id, plan_tier')
-      .eq('user_id', userId)
-      .single();
+    const userCredits = await findCreditsByUserId(userId);
 
     if (!userCredits || userCredits.plan_tier === 'free') {
       return NextResponse.json(
@@ -106,12 +91,9 @@ export async function POST(req: NextRequest) {
       customerId = customer.id;
 
       // Save customer ID so future checkouts reuse it
-      const { error: persistError } = await supabase
-        .from('user_credits')
-        .update({ stripe_customer_id: customerId })
-        .eq('user_id', userId);
-
-      if (persistError) {
+      try {
+        await updateUserCreditsRow(userId, { stripe_customer_id: customerId });
+      } catch (persistError) {
         console.error('[Addon Checkout] Failed to persist stripe_customer_id', {
           userId,
           customerId,

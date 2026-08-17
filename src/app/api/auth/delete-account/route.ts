@@ -27,54 +27,8 @@ export async function DELETE(request: NextRequest) {
     const userId = user.id;
     const supabaseAdmin = createAdminClient();
 
-    // Delete all user data from public tables using admin client (bypasses RLS).
-    // Most child tables also `on delete cascade` from profiles.id, so this is
-    // belt-and-suspenders against cascade misconfig. Order matters for FK constraints.
-    const tablesWithUserId = [
-      'chat_messages',
-      'credit_reservations',
-      'job_feed_application_generation_events',
-      'job_feed_application_generations',
-      'job_feed_feedback',
-      'job_feed_ranked_items',
-      'job_feed_raw_fetches',
-      'job_feed_runs',
-      'job_feed_settings',
-      'user_cv_suggestions',
-      'user_job_preferences',
-      'user_career_profiles',
-      'user_search_strategies',
-      'user_notifications',
-      'application_sessions',
-      'documents',
-      'profile_photos',
-      'connected_accounts',
-      'user_credits',
-      'credit_transactions',
-      'subscriptions',
-      'message_feedback',
-    ];
-
-    for (const table of tablesWithUserId) {
-      const { error } = await (supabaseAdmin as any)
-        .from(table)
-        .delete()
-        .eq('user_id', userId);
-
-      if (error && error.code !== 'PGRST116' && error.code !== '42P01') {
-        console.warn(`[delete-account] Error deleting from ${table}:`, error.message);
-      }
-    }
-
-    // profiles uses `id` not `user_id`
-    const { error: profileError } = await (supabaseAdmin as any)
-      .from('profiles')
-      .delete()
-      .eq('id', userId);
-
-    if (profileError && profileError.code !== 'PGRST116') {
-      console.warn('[delete-account] Error deleting profile:', profileError.message);
-    }
+    const { deleteAllUserData } = await import('@/db/repos/admin');
+    await deleteAllUserData(userId);
 
     // Delete storage files
     const buckets = ['avatars', 'profile-photos', 'generated-pdfs', 'cv-files'];

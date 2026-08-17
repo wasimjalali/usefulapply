@@ -5,17 +5,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe, STRIPE_PRICES } from '@/lib/stripe';
-import { createClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
-
-function getSupabaseAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
+import { getProfile } from '@/db/repos/profiles';
+import { getUserCredits, updateUserCreditsRow } from '@/db/repos/credits';
 
 export async function POST(req: NextRequest) {
   try {
@@ -43,7 +37,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'App URL not configured' }, { status: 500 });
     }
 
-    const supabase = getSupabaseAdmin();
     const { planTier } = await req.json();
     const userId = user.id; // Use authenticated user ID, never trust client
 
@@ -64,14 +57,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Get user's email
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('email')
-      .eq('id', userId)
-      .single();
+    const profile = await getProfile(userId);
 
     if (!profile) {
-      console.error('[Checkout] User not found:', userId, profileError);
+      console.error('[Checkout] User not found:', userId);
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
@@ -88,11 +77,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user already has a Stripe customer ID
-    const { data: userCredits } = await supabase
-      .from('user_credits')
-      .select('stripe_customer_id')
-      .eq('user_id', userId)
-      .single();
+    const { credits: userCredits, error: creditsError } = await getUserCredits(userId);
+
+    if (creditsError) {
+      console.error('[Checkout] Failed to load user credits:', userId, creditsError.message);
+      return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 });
+    }
 
     let customerId = userCredits?.stripe_customer_id;
 
@@ -106,12 +96,9 @@ export async function POST(req: NextRequest) {
       });
       customerId = customer.id;
 
-      const { error: persistError } = await supabase
-        .from('user_credits')
-        .update({ stripe_customer_id: customerId })
-        .eq('user_id', userId);
-
-      if (persistError) {
+      try {
+        await updateUserCreditsRow(userId, { stripe_customer_id: customerId });
+      } catch (persistError) {
         console.error('[Checkout] Failed to persist stripe_customer_id', {
           userId,
           customerId,

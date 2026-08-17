@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
@@ -70,30 +69,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Save to Supabase using the anon key — the contact_submissions table allows public inserts via RLS
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     let dbSaved = false;
     let emailSent = false;
 
-    if (supabaseUrl && supabaseAnonKey) {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-      const { error: dbError } = await supabase
-        .from('contact_submissions')
-        .insert({
-          name,
-          email,
-          subject,
-          message,
-          submitted_at: new Date().toISOString(),
-        });
-
-      if (dbError) {
-        console.error('Failed to save contact submission:', dbError);
-      } else {
-        dbSaved = true;
-      }
+    try {
+      const { insertContactSubmission } = await import('@/db/repos/contact');
+      await insertContactSubmission({ name, email, subject, message });
+      dbSaved = true;
+    } catch (dbError) {
+      console.error('Failed to save contact submission:', dbError);
     }
 
     // Send email notification via Resend

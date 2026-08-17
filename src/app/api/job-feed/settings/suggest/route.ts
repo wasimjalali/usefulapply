@@ -5,6 +5,10 @@ import { extractJobFeedSuggestionsFromCV } from '@/lib/job-feed/cv-suggestions';
 import { canAccessJobFeed } from '@/lib/job-feed/helpers';
 import type { JobFeedSettingsSuggestion } from '@/lib/job-feed/types';
 import type { StructuredCV } from '@/lib/types/cv-schema';
+import type { Json } from '@/lib/supabase/types';
+import { getProfile } from '@/db/repos/profiles';
+import { getDocumentByType } from '@/db/repos/documents';
+import { getCvSuggestion, upsertCvSuggestion } from '@/db/repos/jobFeed';
 
 export const runtime = 'nodejs';
 
@@ -17,21 +21,15 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
-    const { data: profile, error: profileError } = await typedSupabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
-      .single();
+    const profile = await getProfile(user.id);
 
-    if (profileError || !profile || !canAccessJobFeed(profile.subscription_tier)) {
+    if (!profile || !canAccessJobFeed(profile.subscription_tier)) {
       return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 
@@ -44,29 +42,12 @@ export async function GET(request: NextRequest) {
     // for feed prefill, which would overwhelm the form and hurt ranking
     // quality. Primary CV is the single source of truth for job-feed
     // settings.
-    const [cachedResult, primaryDoc] = await Promise.all([
-      typedSupabase
-        .from('user_cv_suggestions')
-        .select('suggestion, updated_at')
-        .eq('user_id', user.id)
-        .maybeSingle(),
-      typedSupabase
-        .from('documents')
-        .select('structured_data, updated_at')
-        .eq('user_id', user.id)
-        .eq('type', 'primary_cv')
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+    // Read errors are not swallowed here. A failed lookup throws out to the
+    // outer catch so a storage problem never silently presents as "no CV found".
+    const [cached, sourceDoc] = await Promise.all([
+      getCvSuggestion(user.id),
+      getDocumentByType(user.id, 'primary_cv'),
     ]);
-
-    // Surface Supabase errors so RLS / network problems don't silently
-    // present as "no CV found" to the client.
-    if (cachedResult.error) console.error('[job-feed/settings/suggest] cache fetch error:', cachedResult.error.message);
-    if (primaryDoc.error) console.error('[job-feed/settings/suggest] primary CV fetch error:', primaryDoc.error.message);
-
-    const cached = cachedResult.data;
-    const sourceDoc = primaryDoc.data;
 
     const cachedUpdatedAt = cached?.updated_at ? Date.parse(cached.updated_at) : 0;
     const docUpdatedAt = sourceDoc?.updated_at ? Date.parse(sourceDoc.updated_at) : 0;
@@ -79,7 +60,7 @@ export async function GET(request: NextRequest) {
     // refresh → return cached.
     if (cached?.suggestion && !cvNewerThanCache && !forceRefresh) {
       return NextResponse.json({
-        suggestion: cached.suggestion as JobFeedSettingsSuggestion,
+        suggestion: cached.suggestion as unknown as JobFeedSettingsSuggestion,
         cvNewerThanCache: false,
       });
     }
@@ -98,12 +79,7 @@ export async function GET(request: NextRequest) {
 
     // Write the freshly-derived suggestion back to the cache so the next
     // caller hits the fast path.
-    await typedSupabase
-      .from('user_cv_suggestions')
-      .upsert(
-        { user_id: user.id, suggestion, updated_at: new Date().toISOString() },
-        { onConflict: 'user_id' },
-      );
+    await upsertCvSuggestion(user.id, suggestion as unknown as Json);
 
     return NextResponse.json({
       suggestion,
@@ -124,21 +100,15 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
-    const { data: profile, error: profileError } = await typedSupabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
-      .single();
+    const profile = await getProfile(user.id);
 
-    if (profileError || !profile || !canAccessJobFeed(profile.subscription_tier)) {
+    if (!profile || !canAccessJobFeed(profile.subscription_tier)) {
       return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 
@@ -151,12 +121,7 @@ export async function POST(request: NextRequest) {
 
     const suggestion = extractJobFeedSuggestionsFromCV(structuredData);
 
-    await typedSupabase
-      .from('user_cv_suggestions')
-      .upsert(
-        { user_id: user.id, suggestion, updated_at: new Date().toISOString() },
-        { onConflict: 'user_id' },
-      );
+    await upsertCvSuggestion(user.id, suggestion as unknown as Json);
 
     return NextResponse.json({ suggestion });
   } catch (error) {

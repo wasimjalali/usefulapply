@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore, type ApplicationSession } from '@/store/useSessionStore';
-import { getSupabase } from '@/lib/supabase/client';
+import { updateDocumentStructuredDataAction } from '@/db/actions';
 import {
   getSessions,
   createSession as createSupabaseSession,
@@ -92,7 +92,6 @@ export function useSupabaseSync() {
   // discards all but the first), spinning up disposable browser clients
   // whose navigator.locks AbortControllers fire when GC'd. See locks.ts:107
   // "signal is aborted without reason".
-  const supabaseRef = useRef(getSupabase());
   // Track synced chat message IDs to avoid duplicates
   const syncedMessageIdsRef = useRef<Set<string>>(new Set());
 
@@ -106,7 +105,6 @@ export function useSupabaseSync() {
     }
     prevSyncUserIdRef.current = user.id;
   }, [user]);
-  const supabase = supabaseRef.current;
 
   // CRITICAL: Load documents (primary CV, master CV, profile photo) from Supabase on mount
   useEffect(() => {
@@ -236,13 +234,10 @@ export function useSupabaseSync() {
       console.log('[SupabaseSync] Loading sessions from Supabase for user:', user.id);
       
       try {
-        const { data, error } = await supabase
-          .from('application_sessions')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false }) as { data: SupabaseSessionRow[] | null; error: any };
-        
-        if (error) {
+        let data: SupabaseSessionRow[];
+        try {
+          data = (await getSessions(user.id)) as unknown as SupabaseSessionRow[];
+        } catch (error) {
           console.error('[SupabaseSync] Error loading sessions:', error);
           // CRITICAL: Still mark load as complete so sync isn't permanently blocked
           initialLoadCompleteRef.current = true;
@@ -713,16 +708,10 @@ export function useSupabaseSync() {
           _editedCVData: editedOriginalCVData,
         };
 
-        // Update in Supabase (cast to any to bypass generated types).
         // Do NOT bump updated_at: _editedCVData is a UI overlay, not a
         // content change. Bumping it falsely invalidates user_career_profiles
         // and triggers an auto-regen loop in AISearchProfileCard.
-        await (supabase as any)
-          .from('documents')
-          .update({
-            structured_data: updatedStructuredData,
-          })
-          .eq('id', primaryDoc.id);
+        await updateDocumentStructuredDataAction(user.id, primaryDoc.id, updatedStructuredData);
 
         console.log('[SupabaseSync] Synced editedOriginalCVData to documents table');
       } catch (err) {

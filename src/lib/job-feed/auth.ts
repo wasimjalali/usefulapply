@@ -1,5 +1,6 @@
-import type { SupabaseClient, User } from '@supabase/supabase-js';
+import type { User } from '@supabase/supabase-js';
 import { canAccessJobFeed } from '@/lib/job-feed/helpers';
+import { getProfile } from '@/db/repos/profiles';
 
 interface JobFeedAccessOk {
   ok: true;
@@ -23,15 +24,10 @@ export type JobFeedAccessResult = JobFeedAccessOk | JobFeedAccessDenied;
  *   const access = await requireJobFeedAccess(supabase, user);
  *   if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types don't cover all job-feed tables yet.
-export async function requireJobFeedAccess(supabase: SupabaseClient | any, user: User): Promise<JobFeedAccessResult> {
-  const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('subscription_tier')
-    .eq('id', user.id)
-    .single();
+export async function requireJobFeedAccess(_supabase: unknown, user: User): Promise<JobFeedAccessResult> {
+  const profile = await getProfile(user.id);
 
-  if (error || !profile) {
+  if (!profile) {
     return { ok: false, status: 500, error: 'Account setup incomplete.' };
   }
 

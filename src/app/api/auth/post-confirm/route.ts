@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { claimWelcomeSend, updateProfile } from '@/db/repos/profiles';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { buildWelcomeEmail } from '@/lib/email/templates/welcome';
 import { buildCheckInEmail } from '@/lib/email/templates/check-in';
@@ -45,23 +45,17 @@ export async function POST(_request: NextRequest) {
       );
     }
 
-    const supabaseAdmin = createAdminClient();
-
     // CAS-style atomic claim: only succeeds if welcome_sent_at IS NULL.
     // Concurrent /auth/callback refreshes lose the race and become idempotent no-ops.
     const sentAt = new Date().toISOString();
-    const { data: claimed, error: claimError } = await (supabaseAdmin as any)
-      .from('profiles')
-      .update({ welcome_sent_at: sentAt })
-      .eq('id', user.id)
-      .is('welcome_sent_at', null)
-      .select('id');
-
-    if (claimError) {
-      console.error('[/api/auth/post-confirm] claim error:', claimError.message);
+    let claimed: boolean;
+    try {
+      claimed = await claimWelcomeSend(user.id, sentAt);
+    } catch (claimError) {
+      console.error('[/api/auth/post-confirm] claim error:', claimError);
       return NextResponse.json({ error: 'Server error' }, { status: 500 });
     }
-    if (!claimed || claimed.length === 0) {
+    if (!claimed) {
       // Welcome already sent for this user. No-op.
       return NextResponse.json({ success: true, alreadySent: true });
     }
@@ -70,10 +64,7 @@ export async function POST(_request: NextRequest) {
     const audienceId = process.env.RESEND_AUDIENCE_ID;
     if (!apiKey) {
       console.error('[/api/auth/post-confirm] RESEND_API_KEY missing, rolling back claim');
-      await (supabaseAdmin as any)
-        .from('profiles')
-        .update({ welcome_sent_at: null })
-        .eq('id', user.id);
+      await updateProfile(user.id, { welcome_sent_at: null });
       return NextResponse.json({ error: 'Server error' }, { status: 500 });
     }
     const resend = new Resend(apiKey);
@@ -110,10 +101,7 @@ export async function POST(_request: NextRequest) {
     });
     if (welcomeResult.error) {
       console.error('[/api/auth/post-confirm] welcome send error:', welcomeResult.error.message);
-      await (supabaseAdmin as any)
-        .from('profiles')
-        .update({ welcome_sent_at: null })
-        .eq('id', user.id);
+      await updateProfile(user.id, { welcome_sent_at: null });
       return NextResponse.json({ error: 'Server error' }, { status: 500 });
     }
 

@@ -5,17 +5,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe';
-import { createClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
-
-function getSupabaseAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
+import { findCreditsByUserId } from '@/db/repos/credits';
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,15 +31,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'App URL not configured' }, { status: 500 });
     }
 
-    const supabase = getSupabaseAdmin();
     const userId = user.id; // Use authenticated user ID, never trust client
 
     // Get user's Stripe customer ID
-    const { data: userCredits } = await supabase
-      .from('user_credits')
-      .select('stripe_customer_id')
-      .eq('user_id', userId)
-      .single();
+    const userCredits = await findCreditsByUserId(userId);
 
     if (!userCredits?.stripe_customer_id) {
       return NextResponse.json(

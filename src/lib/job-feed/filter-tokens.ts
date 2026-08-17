@@ -115,11 +115,11 @@ export async function recordSerpApiFilterTokens(
     uds_token: t.udsToken,
     last_seen_at: new Date().toISOString(),
   }));
-  const { error } = await admin
-    .from('serpapi_filter_tokens')
-    .upsert(rows, { onConflict: 'country_code,filter_name,option_label' });
-  if (error) {
-    console.error('[filter-tokens] upsert error:', error.message);
+  const { upsertSerpApiFilterTokens } = await import('@/db/repos/admin');
+  try {
+    await upsertSerpApiFilterTokens(rows);
+  } catch (error) {
+    console.error('[filter-tokens] upsert error:', error instanceof Error ? error.message : error);
   }
 }
 
@@ -139,14 +139,12 @@ export async function loadDatePostedPastWeekTokens(
   const normalized = [...new Set(countryCodes.map((c) => c.toLowerCase().trim()).filter(Boolean))];
   if (normalized.length === 0) return result;
 
-  const { data, error } = await admin
-    .from('serpapi_filter_tokens')
-    .select('country_code, option_label, uds_token')
-    .in('country_code', normalized)
-    .in('filter_name', [...DATE_POSTED_FILTER_GROUP_NAMES]);
-
-  if (error) {
-    console.error('[filter-tokens] load error:', error.message);
+  const { loadSerpApiFilterTokens } = await import('@/db/repos/admin');
+  let data: Array<{ country_code: string; option_label: string; uds_token: string }> = [];
+  try {
+    data = await loadSerpApiFilterTokens(normalized, [...DATE_POSTED_FILTER_GROUP_NAMES]);
+  } catch (error) {
+    console.error('[filter-tokens] load error:', error instanceof Error ? error.message : error);
     return result;
   }
 

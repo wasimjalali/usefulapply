@@ -5,14 +5,24 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe';
-import { createClient } from '@supabase/supabase-js';
 import { getPostHogServer } from '@/lib/posthog-server';
+import {
+  applyAddonPurchase,
+  applyPlanChange,
+  applyRefundRemoval,
+  applyRenewalReset,
+  findCreditsByStripeCustomer,
+  findCreditsByUserId,
+  updateUserCreditsRow,
+} from '@/db/repos/credits';
+import { upsertSubscriptionByUser } from '@/db/repos/subscriptions';
+import { hasWebhookEvent, insertWebhookEvent, setProfileSubscription } from '@/db/repos/admin';
+import type { SubscriptionTier } from '@/lib/supabase/types';
 
-function getSupabaseAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+const SUPPORTED_TIERS: SubscriptionTier[] = ['free', 'plus', 'max'];
+
+function isSupportedTier(value: unknown): value is SubscriptionTier {
+  return typeof value === 'string' && SUPPORTED_TIERS.includes(value as SubscriptionTier);
 }
 
 /**
@@ -20,29 +30,20 @@ function getSupabaseAdmin() {
  * analytics always reflect the current plan.
  */
 async function syncProfileTier(userId: string, tier: string) {
-  const supabase = getSupabaseAdmin();
-  const { error } = await supabase
-    .from('profiles')
-    .update({
-      subscription_tier: tier,
-      subscription_status: 'active',
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', userId);
-
-  if (error) {
-    console.error(`[Stripe Webhook] Failed to sync profiles.subscription_tier for ${userId}:`, error);
-  } else {
+  try {
+    await setProfileSubscription(userId, tier, 'active');
     console.log(`[Stripe Webhook] Synced profiles.subscription_tier → ${tier} for ${userId}`);
+  } catch (error) {
+    console.error(`[Stripe Webhook] Failed to sync profiles.subscription_tier for ${userId}:`, error);
   }
 }
 
 /**
  * Upsert into the `subscriptions` table so the frontend getSubscription()
- * always has a row to read. Uses user_id as the conflict key (only one
- * active subscription per user via the unique partial index).
+ * always has a row to read. Matches on user_id (one subscription row per
+ * user), so a canceled row is reused instead of duplicated.
  */
-async function upsertSubscription(opts: {
+async function upsertSubscriptionRow(opts: {
   userId: string;
   tier: string;
   status: string;
@@ -53,63 +54,17 @@ async function upsertSubscription(opts: {
   currentPeriodEnd?: string;
   cancelAtPeriodEnd?: boolean;
 }) {
-  const supabase = getSupabaseAdmin();
-
   // Map internal tier names to the supported subscription table tier values.
   const tierMap: Record<string, string> = { free: 'free', plus: 'plus', max: 'max' };
   const tier = tierMap[opts.tier] || opts.tier;
 
-  // Try to find existing subscription for this user
-  const { data: existing } = await supabase
-    .from('subscriptions')
-    .select('id')
-    .eq('user_id', opts.userId)
-    .limit(1)
-    .single();
-
-  if (existing) {
-    // Update existing row
-    const { error } = await supabase
-      .from('subscriptions')
-      .update({
-        tier,
-        status: opts.status,
-        stripe_customer_id: opts.stripeCustomerId,
-        stripe_subscription_id: opts.stripeSubscriptionId,
-        stripe_price_id: opts.stripePriceId,
-        current_period_start: opts.currentPeriodStart,
-        current_period_end: opts.currentPeriodEnd,
-        cancel_at_period_end: opts.cancelAtPeriodEnd ?? false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', existing.id);
-
-    if (error) {
-      console.error('[Stripe Webhook] Failed to update subscriptions row:', error);
-    } else {
-      console.log(`[Stripe Webhook] Updated subscriptions row for user ${opts.userId} → ${tier}/${opts.status}`);
-    }
-  } else {
-    // Insert new row
-    const { error } = await supabase
-      .from('subscriptions')
-      .insert({
-        user_id: opts.userId,
-        tier,
-        status: opts.status,
-        stripe_customer_id: opts.stripeCustomerId,
-        stripe_subscription_id: opts.stripeSubscriptionId,
-        stripe_price_id: opts.stripePriceId,
-        current_period_start: opts.currentPeriodStart,
-        current_period_end: opts.currentPeriodEnd,
-        cancel_at_period_end: opts.cancelAtPeriodEnd ?? false,
-      });
-
-    if (error) {
-      console.error('[Stripe Webhook] Failed to insert subscriptions row:', error);
-    } else {
-      console.log(`[Stripe Webhook] Inserted subscriptions row for user ${opts.userId} → ${tier}/${opts.status}`);
-    }
+  try {
+    const { created } = await upsertSubscriptionByUser({ ...opts, tier });
+    console.log(
+      `[Stripe Webhook] ${created ? 'Inserted' : 'Updated'} subscriptions row for user ${opts.userId} → ${tier}/${opts.status}`,
+    );
+  } catch (error) {
+    console.error('[Stripe Webhook] Failed to upsert subscriptions row:', error);
   }
 }
 
@@ -139,38 +94,26 @@ export async function POST(req: NextRequest) {
   console.log('[Stripe Webhook] Event verified:', event.type, 'id:', event.id);
 
   // Idempotency: skip events we've already processed (Stripe retries are normal)
-  const supabaseAdmin = getSupabaseAdmin();
-  const { data: existing } = await supabaseAdmin
-    .from('webhook_events')
-    .select('event_id')
-    .eq('event_id', event.id)
-    .single();
-
-  if (existing) {
+  if (await hasWebhookEvent(event.id)) {
     console.log('[Stripe Webhook] Duplicate event, skipping:', event.id);
     return NextResponse.json({ received: true, duplicate: true });
   }
 
   // Record event BEFORE processing to prevent race conditions with concurrent retries.
   // The insert is the authoritative dedupe step: when a concurrent retry has
-  // already written the row, Postgres returns 23505 (unique_violation), and we
+  // already written the row, D1 raises a UNIQUE constraint failure, and we
   // bail out instead of silently proceeding past the duplicate check.
-  const { error: insertError } = await supabaseAdmin
-    .from('webhook_events')
-    .insert({
-      event_id: event.id,
-      event_type: event.type,
-    })
-    .select('event_id')
-    .single();
-
-  if (insertError) {
-    if (insertError.code === '23505') {
-      console.log('[Stripe Webhook] Concurrent retry won the race, treating as duplicate:', event.id);
-      return NextResponse.json({ received: true, duplicate: true });
-    }
+  let recorded: 'inserted' | 'duplicate';
+  try {
+    recorded = await insertWebhookEvent(event.id, event.type);
+  } catch (insertError) {
     console.error('[Stripe Webhook] Failed to record event:', insertError);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+  }
+
+  if (recorded === 'duplicate') {
+    console.log('[Stripe Webhook] Concurrent retry won the race, treating as duplicate:', event.id);
+    return NextResponse.json({ received: true, duplicate: true });
   }
 
   try {
@@ -233,7 +176,6 @@ export async function POST(req: NextRequest) {
 }
 
 async function handleCheckoutCompleted(session: any) {
-  const supabase = getSupabaseAdmin();
   const userId = session.metadata?.userId;
   const customerId = session.customer;
   const type = session.metadata?.type;
@@ -252,78 +194,20 @@ async function handleCheckoutCompleted(session: any) {
       return;
     }
 
-    // CAS-guarded read-modify-write. Without the .eq() guard on
-    // addon_credits, a user spending credits during this webhook would
-    // have their addon_credits silently overwritten with a stale base.
-    let attempt = 0;
-    let succeeded = false;
-    let lastError: unknown = null;
-    let totalBefore = 0;
-    let totalAfter = 0;
+    // Version-guarded read-modify-write. Without the guard, a user spending
+    // credits during this webhook would have their addon_credits silently
+    // overwritten with a stale base. The ledger row rides in the same batch.
+    const result = await applyAddonPurchase(userId, creditsToAdd, {
+      stripeCustomerId: customerId,
+      description: `Purchased ${packSize} add-on pack (${creditsToAdd} credits)`,
+      metadata: { packSize, stripeSessionId: session.id },
+    });
 
-    while (attempt < 2 && !succeeded) {
-      const { data: fresh, error: readError } = await supabase
-        .from('user_credits')
-        .select('monthly_credits, rollover_credits, addon_credits')
-        .eq('user_id', userId)
-        .single();
-
-      if (readError || !fresh) {
-        lastError = readError ?? new Error('User credits row not found for addon purchase');
-        break;
-      }
-
-      const addonBefore = fresh.addon_credits || 0;
-      totalBefore = (fresh.monthly_credits || 0) + (fresh.rollover_credits || 0) + addonBefore;
-      const newAddonCredits = addonBefore + creditsToAdd;
-      totalAfter = totalBefore + creditsToAdd;
-
-      const { data: updated, error: updateError } = await supabase
-        .from('user_credits')
-        .update({
-          addon_credits: newAddonCredits,
-          stripe_customer_id: customerId,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', userId)
-        .eq('addon_credits', addonBefore)
-        .select('user_id');
-
-      if (updateError) {
-        lastError = updateError;
-        break;
-      }
-
-      if (updated && updated.length > 0) {
-        succeeded = true;
-      } else {
-        attempt += 1;
-        console.warn(`[Stripe Webhook] Addon credit CAS miss for user ${userId}, retry ${attempt}`);
-      }
-    }
-
-    if (!succeeded) {
-      console.error('Failed to add addon credits:', lastError);
+    if (!result.success) {
+      console.error('Failed to add addon credits:', result.error);
       return;
     }
 
-    const { error: addonTxError } = await supabase.from('credit_transactions').insert({
-      user_id: userId,
-      amount: creditsToAdd,
-      transaction_type: 'addon_purchase',
-      description: `Purchased ${packSize} add-on pack (${creditsToAdd} credits)`,
-      metadata: { packSize, stripeSessionId: session.id },
-      balance_before: totalBefore,
-      balance_after: totalAfter,
-    });
-    if (addonTxError) {
-      console.error('[Stripe Webhook] Failed to log addon credit transaction:', {
-        userId,
-        stripeSessionId: session.id,
-        creditsToAdd,
-        error: addonTxError,
-      });
-    }
     console.log(`[Stripe Webhook] Added ${creditsToAdd} addon credits for user ${userId}`);
     return;
   }
@@ -331,6 +215,11 @@ async function handleCheckoutCompleted(session: any) {
   // Handle subscription checkout
   const subscriptionId = session.subscription;
   const planTier = session.metadata?.planTier || 'free';
+
+  if (!isSupportedTier(planTier)) {
+    console.error('[Stripe Webhook] Unsupported planTier in checkout metadata:', planTier, 'session:', session.id);
+    return;
+  }
 
   // Map plan tier to credits.
   let planCredits = 4;
@@ -340,25 +229,25 @@ async function handleCheckoutCompleted(session: any) {
   console.log(`[Stripe Webhook] checkout.session.completed: userId=${userId}, planTier=${planTier}, credits=${planCredits}`);
 
   // Update user_credits with the new plan AND Stripe IDs in one shot.
-  // This is the authoritative update — handleSubscriptionUpdate may have
+  // This is the authoritative update. handleSubscriptionUpdate may have
   // already run (race condition) but we always overwrite here with the
   // correct values derived from the checkout session metadata.
-  const { error } = await supabase
-    .from('user_credits')
-    .update({
+  try {
+    const updated = await updateUserCreditsRow(userId, {
       plan_tier: planTier,
       monthly_credits: planCredits,
       stripe_customer_id: customerId,
       stripe_subscription_id: subscriptionId,
       subscription_status: 'active',
-      updated_at: new Date().toISOString(),
-    })
-    .eq('user_id', userId);
+    });
 
-  if (error) {
+    if (!updated) {
+      console.error('[Stripe Webhook] Failed to update user credits on checkout: no user_credits row for', userId);
+    } else {
+      console.log(`[Stripe Webhook] Successfully upgraded user ${userId} to ${planTier} (${planCredits} credits)`);
+    }
+  } catch (error) {
     console.error('[Stripe Webhook] Failed to update user credits on checkout:', error);
-  } else {
-    console.log(`[Stripe Webhook] Successfully upgraded user ${userId} to ${planTier} (${planCredits} credits)`);
   }
 
   // Also upsert into the subscriptions table so getSubscription() works
@@ -379,7 +268,7 @@ async function handleCheckoutCompleted(session: any) {
     console.warn('[Stripe Webhook] Could not retrieve subscription details for subscriptions table:', e);
   }
 
-  await upsertSubscription({
+  await upsertSubscriptionRow({
     userId,
     tier: planTier,
     status: 'active',
@@ -395,37 +284,29 @@ async function handleCheckoutCompleted(session: any) {
 }
 
 async function handleSubscriptionUpdate(subscription: any) {
-  const supabase = getSupabaseAdmin();
   const customerId = subscription.customer;
 
   // Try to find user by stripe_customer_id first (handles renewals / updates
   // where the customer ID is already stored). For new subscriptions the
   // customer.subscription.created event fires BEFORE checkout.session.completed,
-  // so stripe_customer_id may not be saved yet — fall back to subscription metadata.
-  let { data: userCredits } = await supabase
-    .from('user_credits')
-    .select('user_id, plan_tier, monthly_credits')
-    .eq('stripe_customer_id', customerId)
-    .single();
+  // so stripe_customer_id may not be saved yet, so fall back to subscription metadata.
+  let userCredits = await findCreditsByStripeCustomer(customerId);
 
   if (!userCredits) {
     // Fallback: look up by userId stored in subscription metadata
     const metaUserId = subscription.metadata?.userId;
     if (metaUserId) {
       console.log(`[Stripe Webhook] customer_id lookup missed, trying metadata userId: ${metaUserId}`);
-      const { data: creditsById } = await supabase
-        .from('user_credits')
-        .select('user_id, plan_tier, monthly_credits')
-        .eq('user_id', metaUserId)
-        .single();
+      const creditsById = await findCreditsByUserId(metaUserId);
 
       if (creditsById) {
         userCredits = creditsById;
         // Persist the customer ID now so future lookups work
-        await supabase
-          .from('user_credits')
-          .update({ stripe_customer_id: customerId, updated_at: new Date().toISOString() })
-          .eq('user_id', metaUserId);
+        try {
+          await updateUserCreditsRow(metaUserId, { stripe_customer_id: customerId });
+        } catch (error) {
+          console.error('[Stripe Webhook] Failed to persist stripe_customer_id:', error);
+        }
       }
     }
   }
@@ -437,7 +318,7 @@ async function handleSubscriptionUpdate(subscription: any) {
 
   // Determine plan tier from price ID (handle both old and new env var names)
   const priceId = subscription.items.data[0]?.price.id;
-  let planTier = 'free';
+  let planTier: SubscriptionTier = 'free';
   let newPlanCredits = 4;
 
   if (priceId === process.env.STRIPE_PRICE_ID_PLUS) {
@@ -451,43 +332,31 @@ async function handleSubscriptionUpdate(subscription: any) {
   // Handle mid-cycle plan changes:
   // - Upgrade (e.g. Plus→Max): give full new plan credits (rewards upgrading)
   // - Downgrade (e.g. Max→Plus): cap at new plan limit so users can't gain credits
-  const oldPlanCredits = userCredits.plan_tier === 'max' ? 200 : userCredits.plan_tier === 'plus' ? 50 : 4;
-  const isDowngrade = newPlanCredits < oldPlanCredits;
-  const monthlyCredits = isDowngrade
-    ? Math.min(userCredits.monthly_credits, newPlanCredits)
-    : newPlanCredits;
+  const change = await applyPlanChange(userCredits.user_id, {
+    planTier,
+    newPlanCredits,
+    subscriptionStatus: subscription.status,
+    stripeSubscriptionId: subscription.id,
+  });
 
-  console.log(`[Stripe Webhook] Plan change: ${userCredits.plan_tier}→${planTier}, credits: ${userCredits.monthly_credits}→${monthlyCredits}${isDowngrade ? ' (downgrade, capped)' : ' (upgrade, full)'}`);
-
-  // Update subscription
-  const { error } = await supabase
-    .from('user_credits')
-    .update({
-      plan_tier: planTier,
-      monthly_credits: monthlyCredits,
-      subscription_status: subscription.status,
-      stripe_subscription_id: subscription.id,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('user_id', userCredits.user_id);
-
-  if (error) {
-    console.error('Failed to update subscription:', error);
+  if (!change.success) {
+    // Do not write the new tier to subscriptions/profiles while user_credits
+    // still holds the old plan; a partial sync would bill one tier and grant another.
+    console.error('Failed to update subscription:', change.error);
+    return;
+  } else {
+    console.log(`[Stripe Webhook] Plan change: ${change.previousTier}→${planTier}, credits: ${change.previousMonthly}→${change.monthlyCredits}${change.isDowngrade ? ' (downgrade, capped)' : ' (upgrade, full)'}`);
   }
 
   // Sync subscriptions table
-  let periodStart: string | undefined;
-  let periodEnd: string | undefined;
-  try {
-    periodStart = subscription.current_period_start
-      ? new Date(subscription.current_period_start * 1000).toISOString()
-      : undefined;
-    periodEnd = subscription.current_period_end
-      ? new Date(subscription.current_period_end * 1000).toISOString()
-      : undefined;
-  } catch { /* ignore */ }
+  const periodStart = subscription.current_period_start
+    ? new Date(subscription.current_period_start * 1000).toISOString()
+    : undefined;
+  const periodEnd = subscription.current_period_end
+    ? new Date(subscription.current_period_end * 1000).toISOString()
+    : undefined;
 
-  await upsertSubscription({
+  await upsertSubscriptionRow({
     userId: userCredits.user_id,
     tier: planTier,
     status: subscription.status,
@@ -504,15 +373,10 @@ async function handleSubscriptionUpdate(subscription: any) {
 }
 
 async function handleSubscriptionDeleted(subscription: any) {
-  const supabase = getSupabaseAdmin();
   const customerId = subscription.customer;
 
   // Get user by customer ID
-  const { data: userCredits } = await supabase
-    .from('user_credits')
-    .select('user_id')
-    .eq('stripe_customer_id', customerId)
-    .single();
+  const userCredits = await findCreditsByStripeCustomer(customerId);
 
   if (!userCredits) {
     console.error('User not found for customer:', customerId);
@@ -520,23 +384,19 @@ async function handleSubscriptionDeleted(subscription: any) {
   }
 
   // Downgrade to free plan
-  const { error } = await supabase
-    .from('user_credits')
-    .update({
+  try {
+    await updateUserCreditsRow(userCredits.user_id, {
       plan_tier: 'free',
       monthly_credits: 4,
       subscription_status: 'canceled',
       stripe_subscription_id: null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('user_id', userCredits.user_id);
-
-  if (error) {
+    });
+  } catch (error) {
     console.error('Failed to cancel subscription:', error);
   }
 
   // Sync subscriptions table
-  await upsertSubscription({
+  await upsertSubscriptionRow({
     userId: userCredits.user_id,
     tier: 'free',
     status: 'canceled',
@@ -545,30 +405,21 @@ async function handleSubscriptionDeleted(subscription: any) {
   });
 
   // Downgrade profiles table too
-  const supabaseForProfile = getSupabaseAdmin();
-  await supabaseForProfile
-    .from('profiles')
-    .update({
-      subscription_tier: 'free',
-      subscription_status: 'canceled',
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', userCredits.user_id);
+  try {
+    await setProfileSubscription(userCredits.user_id, 'free', 'canceled');
+  } catch (error) {
+    console.error(`[Stripe Webhook] Failed to downgrade profiles row for ${userCredits.user_id}:`, error);
+  }
 }
 
 async function handlePaymentSucceeded(invoice: any) {
-  const supabase = getSupabaseAdmin();
   const customerId = invoice.customer;
 
   // Get user by customer ID. plan_tier is read once to decide baseCredits;
-  // monthly_credits and rollover_credits are re-read inside the CAS loop
-  // so a concurrent deductCredits between renewal trigger and update
-  // doesn't get overwritten.
-  const { data: userRow } = await supabase
-    .from('user_credits')
-    .select('user_id, plan_tier')
-    .eq('stripe_customer_id', customerId)
-    .single();
+  // monthly_credits and rollover_credits are re-read inside the version-
+  // guarded loop so a concurrent deductCredits between renewal trigger and
+  // update doesn't get overwritten.
+  const userRow = await findCreditsByStripeCustomer(customerId);
 
   if (!userRow) {
     console.error('User not found for customer:', customerId);
@@ -578,75 +429,17 @@ async function handlePaymentSucceeded(invoice: any) {
   const baseCredits = userRow.plan_tier === 'plus' ? 50 : userRow.plan_tier === 'max' ? 200 : 4;
   const maxRollover = userRow.plan_tier === 'plus' ? 50 : userRow.plan_tier === 'max' ? 100 : 0;
 
-  const now = new Date();
-  const nextReset = new Date(now);
-  nextReset.setMonth(nextReset.getMonth() + 1);
+  const result = await applyRenewalReset(userRow.user_id, { baseCredits, maxRollover });
 
-  // CAS-guarded renewal. Without the .eq() guards, a concurrent
-  // deductCredits or a duplicate webhook firing during dedupe window
-  // could inflate rollover by re-adding already-reset monthly_credits
-  // on top of an already-reset state.
-  let attempt = 0;
-  let succeeded = false;
-  let lastError: unknown = null;
-  let finalMonthlyBefore = 0;
-  let finalRolloverBefore = 0;
-  let newRollover = 0;
-
-  while (attempt < 2 && !succeeded) {
-    const { data: fresh, error: readError } = await supabase
-      .from('user_credits')
-      .select('monthly_credits, rollover_credits')
-      .eq('user_id', userRow.user_id)
-      .single();
-
-    if (readError || !fresh) {
-      lastError = readError ?? new Error('User credits row not found during renewal');
-      break;
-    }
-
-    finalMonthlyBefore = fresh.monthly_credits || 0;
-    finalRolloverBefore = fresh.rollover_credits || 0;
-    newRollover = Math.min(finalRolloverBefore + finalMonthlyBefore, maxRollover);
-
-    const { data: updated, error: updateError } = await supabase
-      .from('user_credits')
-      .update({
-        monthly_credits: baseCredits,
-        rollover_credits: newRollover,
-        subscription_status: 'active',
-        last_reset_date: now.toISOString(),
-        next_reset_date: nextReset.toISOString(),
-        updated_at: now.toISOString(),
-      })
-      .eq('user_id', userRow.user_id)
-      .eq('monthly_credits', finalMonthlyBefore)
-      .eq('rollover_credits', finalRolloverBefore)
-      .select('user_id');
-
-    if (updateError) {
-      lastError = updateError;
-      break;
-    }
-
-    if (updated && updated.length > 0) {
-      succeeded = true;
-    } else {
-      attempt += 1;
-      console.warn(`[Webhook] Renewal CAS miss for user ${userRow.user_id}, retry ${attempt}`);
-    }
-  }
-
-  if (!succeeded) {
-    console.error('Failed to reset credits:', lastError);
+  if (!result.success) {
+    console.error('Failed to reset credits:', result.error);
     return;
   }
 
-  console.log(`[Webhook] Renewal for ${userRow.user_id}: ${baseCredits} monthly, ${newRollover} rollover (was ${finalRolloverBefore} + ${finalMonthlyBefore})`);
+  console.log(`[Webhook] Renewal for ${userRow.user_id}: ${baseCredits} monthly, ${result.newRollover} rollover (was ${result.rolloverBefore} + ${result.monthlyBefore})`);
 }
 
 async function handleChargeRefunded(charge: any) {
-  const supabase = getSupabaseAdmin();
   const customerId = charge.customer;
 
   if (!customerId) {
@@ -658,11 +451,7 @@ async function handleChargeRefunded(charge: any) {
   // fallback for unknown charge amounts; the refund itself is sized from
   // the charge's own amount so plan changes after the charge don't skew
   // the refund.
-  const { data: userCredits } = await supabase
-    .from('user_credits')
-    .select('user_id, plan_tier')
-    .eq('stripe_customer_id', customerId)
-    .single();
+  const userCredits = await findCreditsByStripeCustomer(customerId);
 
   if (!userCredits) {
     console.error('[Stripe Webhook] User not found for refunded charge, customer:', customerId);
@@ -680,7 +469,7 @@ async function handleChargeRefunded(charge: any) {
   if (isSubscription) {
     // Source plan credits from the charge amount the user actually paid,
     // NOT from user_credits.plan_tier. plan_tier reflects the CURRENT
-    // plan, which may have changed since the charge — refunding 50
+    // plan, which may have changed since the charge. Refunding 50
     // credits for a $79.99 Max charge (because the user has since
     // downgraded to Plus) under-removes; the inverse over-removes.
     let planCredits: number;
@@ -703,7 +492,7 @@ async function handleChargeRefunded(charge: any) {
       ? planCredits
       : Math.round(planCredits * (refundedAmountCents / totalAmountCents));
   } else {
-    // Add-on refund — pack credits inferred from the original charge.
+    // Add-on refund. Pack credits inferred from the original charge.
     // Current: 50 credits = $19.99; Legacy: 60 credits = $14.99, 120 credits = $29.99.
     if (totalAmountCents === 1999) {
       creditsToRemove = 50;
@@ -725,89 +514,13 @@ async function handleChargeRefunded(charge: any) {
     }
   }
 
-  // CAS-guarded balance update with retry once. Without the .eq() guards
-  // on current bucket values, a user spending credits at the moment a
-  // refund webhook lands would lose or gain credits through last-writer-
-  // wins. The retry handles the rare case where a concurrent deductCredits
-  // landed between our read and update.
-  let attempt = 0;
-  let succeeded = false;
-  let lastError: unknown = null;
-  let totalBefore = 0;
-  let totalAfter = 0;
-
-  while (attempt < 2 && !succeeded) {
-    const { data: fresh, error: readError } = await supabase
-      .from('user_credits')
-      .select('monthly_credits, rollover_credits, addon_credits')
-      .eq('user_id', userCredits.user_id)
-      .single();
-
-    if (readError || !fresh) {
-      lastError = readError ?? new Error('User credits row disappeared during refund');
-      break;
-    }
-
-    totalBefore = fresh.monthly_credits + fresh.rollover_credits + fresh.addon_credits;
-
-    let newMonthly = fresh.monthly_credits;
-    let newRollover = fresh.rollover_credits;
-    let newAddon = fresh.addon_credits;
-
-    if (isSubscription) {
-      // Subscription refund drains monthly first, then rollover. addon
-      // stays untouched (it was purchased separately).
-      let remaining = creditsToRemove;
-      const monthlyDeduct = Math.min(remaining, newMonthly);
-      newMonthly -= monthlyDeduct;
-      remaining -= monthlyDeduct;
-      if (remaining > 0) {
-        const rolloverDeduct = Math.min(remaining, newRollover);
-        newRollover -= rolloverDeduct;
-      }
-    } else {
-      // Add-on refund only touches addon_credits.
-      newAddon = Math.max(0, newAddon - creditsToRemove);
-    }
-
-    totalAfter = newMonthly + newRollover + newAddon;
-
-    const { data: updated, error: updateError } = await supabase
-      .from('user_credits')
-      .update({
-        monthly_credits: newMonthly,
-        rollover_credits: newRollover,
-        addon_credits: newAddon,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', userCredits.user_id)
-      .eq('monthly_credits', fresh.monthly_credits)
-      .eq('rollover_credits', fresh.rollover_credits)
-      .eq('addon_credits', fresh.addon_credits)
-      .select('user_id');
-
-    if (updateError) {
-      lastError = updateError;
-      break;
-    }
-
-    if (updated && updated.length > 0) {
-      succeeded = true;
-    } else {
-      attempt += 1;
-      console.warn(`[Stripe Webhook] Refund CAS miss for user ${userCredits.user_id}, retry ${attempt}`);
-    }
-  }
-
-  if (!succeeded) {
-    console.error('[Stripe Webhook] Failed to remove credits on refund:', lastError);
-    return;
-  }
-
-  const { error: refundTxError } = await supabase.from('credit_transactions').insert({
-    user_id: userCredits.user_id,
-    amount: -creditsToRemove,
-    transaction_type: 'refund',
+  // Version-guarded balance update with one retry. Without the guard, a
+  // user spending credits at the moment a refund webhook lands would lose
+  // or gain credits through last-writer-wins. The retry handles the rare
+  // case where a concurrent deductCredits landed between read and update.
+  const result = await applyRefundRemoval(userCredits.user_id, {
+    creditsToRemove,
+    isSubscription,
     description: isSubscription
       ? `Refund: removed ${creditsToRemove} subscription credits`
       : `Refund: removed ${creditsToRemove} add-on credits`,
@@ -818,31 +531,21 @@ async function handleChargeRefunded(charge: any) {
       isFullRefund: refundedAmountCents >= totalAmountCents,
       planCreditsSource,
     },
-    balance_before: totalBefore,
-    balance_after: totalAfter,
   });
-  if (refundTxError) {
-    console.error('[Stripe Webhook] Failed to log refund transaction:', {
-      userId: userCredits.user_id,
-      chargeId: charge.id,
-      creditsToRemove,
-      refundedAmountCents,
-      error: refundTxError,
-    });
+
+  if (!result.success) {
+    console.error('[Stripe Webhook] Failed to remove credits on refund:', result.error);
+    return;
   }
+
   console.log(`[Stripe Webhook] Refund: removed ${creditsToRemove} credits for user ${userCredits.user_id} (source: ${planCreditsSource})`);
 }
 
 async function handlePaymentFailed(invoice: any) {
-  const supabase = getSupabaseAdmin();
   const customerId = invoice.customer;
 
   // Get user by customer ID
-  const { data: userCredits } = await supabase
-    .from('user_credits')
-    .select('user_id')
-    .eq('stripe_customer_id', customerId)
-    .single();
+  const userCredits = await findCreditsByStripeCustomer(customerId);
 
   if (!userCredits) {
     console.error('User not found for customer:', customerId);
@@ -850,15 +553,9 @@ async function handlePaymentFailed(invoice: any) {
   }
 
   // Mark subscription as past due
-  const { error } = await supabase
-    .from('user_credits')
-    .update({
-      subscription_status: 'past_due',
-      updated_at: new Date().toISOString(),
-    })
-    .eq('user_id', userCredits.user_id);
-
-  if (error) {
+  try {
+    await updateUserCreditsRow(userCredits.user_id, { subscription_status: 'past_due' });
+  } catch (error) {
     console.error('Failed to update payment status:', error);
   }
 }
