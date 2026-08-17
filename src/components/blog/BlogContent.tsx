@@ -32,7 +32,7 @@ export function BlogContent({ content, slug }: BlogContentProps) {
   // Comparison table data for AI tools post
   const comparisonTableData = slug === 'best-ai-job-application-tools-2026' ? {
     tools: [
-      { name: 'Karko AI', color: 'gold' },
+      { name: 'Useful Apply', color: 'gold' },
       { name: 'Teal', color: 'teal' },
       { name: 'Jobscan', color: 'blue' },
       { name: 'Rezi', color: 'purple' },

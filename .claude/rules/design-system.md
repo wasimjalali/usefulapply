@@ -5,7 +5,7 @@ paths:
   - "src/**/*.css"
 ---
 
-# Karko Design System (authoritative — overrides any older spec)
+# Useful Apply Design System (authoritative, overrides any older spec)
 
 The product has three visual layers. Every panel, card, and document must pick a role and stick to it.
 
@@ -43,7 +43,7 @@ Do NOT use: `rounded-md`, `rounded-xl`, `rounded-3xl`, `rounded-[14px]`, `rounde
 ### CTA treatments (one each — no gradients)
 | CTA | Class | Use |
 |-----|-------|-----|
-| **Primary (Gold)** | `bg-gold-400 hover:bg-gold-500 text-white` | Main action per surface ("Apply with Karko", "Start my daily feed", "Upgrade to Plus") |
+| **Primary (Gold)** | `bg-gold-400 hover:bg-gold-500 text-white` | Main action per surface ("Apply with Useful Apply", "Start my daily feed", "Upgrade to Plus") |
 | **Primary (Navy)** | `bg-navy-600 hover:bg-navy-700 text-white` | Secondary primary ("Sign up", "Save changes", sidebar highlights) |
 
 **Button label colour is always `text-white`** on any solid brand fill, gold or navy. This is a deliberate brand-consistency decision: a screen mixing white-on-navy with dark-on-gold reads as inconsistent. Never use `text-navy-900`, `text-charcoal` or any dark token on `bg-gold-400` / `bg-gold-500`. The same applies to icons inside those buttons.

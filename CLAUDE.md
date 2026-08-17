@@ -1,10 +1,10 @@
-# CLAUDE.md — Karko AI Behavioral Instructions
+# CLAUDE.md: Useful Apply Behavioral Instructions
 
 > For historical context, architecture docs, feature narratives, and the changelog, check git history.
 
 ---
 
-## Karko AI Agents (use proactively — do not ask permission)
+## Useful Apply Agents (use proactively, do not ask permission)
 
 Specialist agents are the **preferred** way to handle bug investigations, external research, code review, UI verification, and agent/prompt work. They protect the main context window and often find issues faster than direct exploration. Spawn them in parallel when the work is independent.
 
@@ -37,8 +37,8 @@ If two agent tasks are independent (different files, different questions), spawn
 ## Working Rules
 
 ### Product Priorities (read before any feature work)
-- **Quality > speed > cost.** Karko is a pre-revenue startup; perceived quality is the moat. Do not introduce soft-constraint heuristic rejections (seniority regex, location substring matching, skill keyword scoring, work-mode keyword inference) when a language model can read the description and make the same call — LLM cost is negligible at our scale. Use deterministic prefilters ONLY for hard 99%+ reliable constraints (explicit employment type, explicit salary floor, explicit sponsorship language). Prefer prompt caching + Batch APIs to reduce cost over degrading the feature.
-- **Desktop + tablet (≥768px) is the target. Mobile is NOT a priority.** Karko is a desktop-class productivity tool (CV canvas, side-by-side chat + preview, multi-panel application kit). When making UI changes, verify desktop first. Mobile may look rough or stack layouts — don't chase mobile-specific bugs unless they affect desktop too. Complex flows (CV edit, chat, generation) will eventually be gated to a "best on desktop" prompt on mobile; don't over-engineer responsive variants for them.
+- **Quality > speed > cost.** Useful Apply is a pre-revenue startup; perceived quality is the moat. Do not introduce soft-constraint heuristic rejections (seniority regex, location substring matching, skill keyword scoring, work-mode keyword inference) when a language model can read the description and make the same call — LLM cost is negligible at our scale. Use deterministic prefilters ONLY for hard 99%+ reliable constraints (explicit employment type, explicit salary floor, explicit sponsorship language). Prefer prompt caching + Batch APIs to reduce cost over degrading the feature.
+- **Desktop + tablet (≥768px) is the target. Mobile is NOT a priority.** Useful Apply is a desktop-class productivity tool (CV canvas, side-by-side chat + preview, multi-panel application kit). When making UI changes, verify desktop first. Mobile may look rough or stack layouts — don't chase mobile-specific bugs unless they affect desktop too. Complex flows (CV edit, chat, generation) will eventually be gated to a "best on desktop" prompt on mobile; don't over-engineer responsive variants for them.
 
 ### Autonomy & Speed
 - Work autonomously — do NOT ask permission for bug fixes, UI changes, refactors, or small features
@@ -135,7 +135,7 @@ Always pass the `model` parameter when spawning an Agent. Never let subagents de
 
 ## Architecture Overview
 
-Karko AI is a Next.js 14+ app generating job application materials (CV, Cover Letter, Application Email, Follow-Up Email) via a unified AI agent powered by Claude Sonnet 4.6 (Amazon Bedrock).
+Useful Apply is a Next.js 14+ app generating job application materials (CV, Cover Letter, Application Email, Follow-Up Email) via a unified AI agent powered by Claude Sonnet 4.6 (Amazon Bedrock).
 
 ### Key Directories
 - `src/lib/agents/` — Unified Writer Agent + context-builder
@@ -225,7 +225,8 @@ The full design system (surface roles, typography, radius/CTA/shadow scales, mot
 
 ## Integrations Summary
 - **PostHog** — analytics + error tracking + LLM cost tracking; see `.claude/rules/posthog.md`
-- **Resend** — transactional email (signup confirmation, contact form); `from: 'KarKo AI <noreply@karkoai.com>'`
+- **Resend** - transactional email (signup confirmation, contact form); `from: 'Useful Apply <noreply@karkoai.com>'` // TODO(Task 7.1)
+- [ ] Phase 8: rewrite this Integrations section for the Cloudflare stack (Email Service, D1, R2, Better Auth). Keep this checkbox until Task 8 lands.
 - **Stripe** — subscriptions + add-on credit packs; webhooks verified via signature
 - **Amazon Bedrock** — Claude Sonnet 4.6 inference (production); direct Anthropic API (dev/testing)
 - **Supabase** — Postgres DB + Auth + Storage; service role key server-side only

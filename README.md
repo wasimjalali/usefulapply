@@ -1,8 +1,8 @@
-# Karko AI
+# Useful Apply
 
 **The AI job application agent.** Your entire job search in one app. Find roles, check the fit, generate the full application in 90 seconds, and track everything. Every word traces back to your real CV. Nothing invented.
 
-> Karko replaces the seven tools job seekers stitch together: job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, and tracker. One app, one loop.
+> Useful Apply replaces the seven tools job seekers stitch together: job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, and tracker. One app, one loop.
 
 ## Locked Taglines
 
@@ -11,7 +11,7 @@
 | **Job seekers** (homepage, ads, social, swag) | **Your entire job search, in one app.** |
 | **Investors and press** (decks, about page, bios) | **The AI job application agent.** |
 
-Both are locked. Source of truth: [`KARKO_POSITIONING.md`](./KARKO_POSITIONING.md) §1.5. Do not swap without a founder decision. Content framing rules (short-form vs long-form video, platform-specific end-cards) are in §9.5 of the same document.
+Both are locked. Source of truth: [`USEFULAPPLY_POSITIONING.md`](./USEFULAPPLY_POSITIONING.md) §1.5. Do not swap without a founder decision. Content framing rules (short-form vs long-form video, platform-specific end-cards) are in §9.5 of the same document.
 
 ## Features
 

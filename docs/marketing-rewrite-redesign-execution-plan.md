@@ -1,3 +1,5 @@
+Written when the product was called Karko AI.
+
 # Marketing Rewrite and Redesign Execution Plan
 
 Date: 2026-04-27

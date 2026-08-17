@@ -92,10 +92,20 @@ Design (locked, see decision 11): two-tone paper plane mark, "Useful Apply" word
 
 ### Task 1.2: Email logo and blog/OG images
 **Files:** `src/lib/email/templates/*.ts` (logo URL and alt text), `public/images/**` files that carry the old logo (list them with `ls public/images` and check each), `src/components/blog/**` OG image generation if any.
-- [ ] Point email templates at `https://usefulapply.com/<new-logo>.png` (upload the PNG to `public/`).
-- [ ] Regenerate any blog OG or hero images that carry the Karko wordmark (see `docs/blog-image-brand-refresh-tracker.md` for the list of generated images).
-- [ ] Product screenshots in `public/screenshots/**` and the demo video on the home page still show the Karko UI (old K tile in the app chrome). List every such image; the ones used on marketing pages get re-captured after Task 2.2 lands (Owner: Claude, via Playwright at 1440x900). Mark the demo video as "re-record after cutover" (Owner: Wasim).
-- [ ] Verify: `grep -ril "karko" public/ src/lib/email` returns nothing except historical blog post slugs (slugs are handled in Task 2.5).
+- [x] Point email templates at `https://usefulapply.com/useful-apply-logo.png` (copied the Task 1.1 plane mark to `public/useful-apply-logo.png`; did not edit favicon/icon/OG/BrandLogo). All four templates now use that URL with alt "Useful Apply".
+- [x] Regenerate any blog OG or hero images that carry the Karko wordmark: skipped. Owner: Claude. `docs/blog-image-brand-refresh-tracker.md` already marks every post Done with no-text GPT illustrations. `src/components/blog/**` has no OG image generator. Filename leftovers only: `public/blog/karko-follow-up-generator.jpg`, `public/blog/manual-vs-karko-ai.jpg`, `public/blog/karko-ai-safeguards.jpg`.
+- [x] Product screenshots that still show the old Karko UI (K tile and/or "Karko AI" wordmark). **public/images:** none of the 14 files (11 `features/*.jpg` + 3 `gpt-0*.webp`) carry the old logo or app chrome. **public/screenshots (all 8, all used on marketing or blog):**
+  - `public/screenshots/product-01-job-feed.webp` (ProductShowcase, PlatformScrollStack)
+  - `public/screenshots/product-02-cv-optimized.webp` (ProductShowcase)
+  - `public/screenshots/product-03-application-email.webp` (ProductShowcase)
+  - `public/screenshots/product-04-tracker.webp` (ProductShowcase)
+  - `public/screenshots/product-05-fit-analysis.webp` (ProductShowcase, blog)
+  - `public/screenshots/01b-job-feed-left-only.webp` (blog)
+  - `public/screenshots/03-application-kit-generated.webp` (PlatformScrollStack, blog)
+  - `public/screenshots/11-job-feed-empty-upsell.webp` (PlatformScrollStack)
+  Re-capture skipped. Owner: Claude, Playwright 1440x900 after Task 2.2.
+  Demo video on `/` (`https://www.tella.tv/video/vid_cmpjrsku400wk04jm1wuf3es6`) still shows the Karko UI. Re-record after cutover. Owner: Wasim.
+- [x] Verify: `grep -ril "karko" public/ src/lib/email` is not empty. Remaining: `public/llms.txt` and `public/llms-full.txt` (legal entity + `support@karkoai.com`) and `src/lib/email/config.ts` (`TODO(Task 7.1)` mailboxes). No blog slugs matched (grep is contents, not filenames). tsc 0 errors. eslint clean on changed email files.
 
 ---
 
@@ -122,20 +132,20 @@ Order matters: do marketing pages first (highest visibility), then app, then int
 
 ### Task 2.4: Emails, legal pages, contact
 **Files:** `src/lib/email/config.ts`, `src/lib/email/templates/{confirmation,password-reset,welcome,check-in}.ts`, `src/app/terms/**`, `src/app/privacy/**`, `src/app/imprint/**`, `src/app/api/contact/route.ts`.
-- [ ] Display name becomes `Useful Apply` but the addresses stay `noreply@karkoai.com` / `support@karkoai.com` / `wasim@karkoai.com` until Task 7.1, because usefulapply.com is not verified in Resend and its mailboxes are not routed yet. Task 7.1 flips every address (grep `TODO(Task 7.1)`). Founder intro line: "I'm the founder of UsefulApply".
-- [ ] Legal pages: "Useful Apply, operated by Karko AI Inc" (use `BRAND.legalLine`). Add one line to Privacy: "Useful Apply was previously known as Karko AI." Update effective dates.
-- [ ] Verify: render each email template to a local HTML file and open it; grep scope returns 0.
+- [x] Display name becomes `Useful Apply` but the addresses stay `noreply@karkoai.com` / `support@karkoai.com` / `wasim@karkoai.com` until Task 7.1, because usefulapply.com is not verified in Resend and its mailboxes are not routed yet. Task 7.1 flips every address (grep `TODO(Task 7.1)`). Founder intro line: "I'm the founder of Useful Apply".
+- [x] Legal pages: "Useful Apply, operated by Karko AI Inc" (use `BRAND.legalLine`). Add one line to Privacy: "Useful Apply was previously known as Karko AI." Update effective dates.
+- [x] Verify: render each email template to a local HTML file and open it; grep scope returns 0. Count before: 49 after: 14. Remaining 14 are intentional: karkoai.com sender/recipient addresses with `TODO(Task 7.1)` (config, contact, terms, privacy, imprint), legal entity `Karko AI Inc` (decision 4), and the Privacy rename sentence. Rendered confirmation, reminder, password-reset, welcome and check-in to `/tmp/usefulapply-email-previews/`; from-lines are `Useful Apply <noreply@karkoai.com>` and `Wasim from Useful Apply <wasim@karkoai.com>`. `/terms`, `/privacy`, `/imprint` 200 on :3005 with legalLine and August 17, 2026 dates. tsc 0 errors. eslint clean on changed files.
 
 ### Task 2.5: SEO surfaces, blog, llms.txt
 **Files:** `src/app/sitemap.ts`, `src/app/robots.ts`, `src/app/feed.xml/**`, `public/llms.txt`, `public/llms-full.txt`, `src/app/blog/**`, `src/components/blog/**`.
-- [ ] Base URL from `BRAND.url`. Blog author and site name updated. Keep blog post slugs unchanged (they carry SEO), only update body copy and any "Karko" in titles where it isn't the subject.
-- [ ] Verify: `curl localhost:3000/sitemap.xml | grep -c usefulapply` equals total URL count; `grep -ci karko public/llms*.txt` is 0.
+- [x] Base URL from `BRAND.url`. Blog author and site name updated. Keep blog post slugs unchanged (they carry SEO), only update body copy and any "Karko" in titles where it isn't the subject. Also updated `src/lib/blog/posts.ts` body copy (step requires it; historical image filenames left unchanged).
+- [x] Verify: `curl localhost:3005/sitemap.xml` usefulapply count 41 equals loc count 41. `grep -ci karko public/llms.txt` is 1 and `public/llms-full.txt` is 2 (not 0): remaining are legal entity `KarKo AI Inc` / `Karko AI Inc` (decision 4) and `support@karkoai.com` with `TODO(Task 7.1)`. Count before (listed files): 157 after: 5. Remaining 5: llms legal entity + support mailbox (3) and RSS `noreply@karkoai.com` (2, Task 7.1). posts.ts still has 3 historical image paths (`karko-follow-up-generator.jpg`, `manual-vs-karko-ai.jpg`, `karko-ai-safeguards.jpg`). `/blog` and `/feed.xml` 200 on :3005. tsc 0 errors. eslint: no new problems; pre-existing unused-var warnings on `blog/[slug]/page.tsx` and `BlogContent.tsx`.
 
 ### Task 2.6: Internal docs and repo metadata
 **Files:** `README.md`, `CLAUDE.md`, `AGENTS.md`, `KARKO_POSITIONING.md` (rename to `USEFULAPPLY_POSITIONING.md`), `docs/**`, `.claude/rules/**`, `.claude/agents/**`, `package.json` name, `SETUP.md`, `INSTALLATION_STEPS.md`, `STRIPE_SETUP_GUIDE.md`.
-- [ ] Rename and update. Historical docs (`docs/*-tracker.md`, `docs/*-plan.md`) get a one-line note at the top: "Written when the product was called Karko AI." and are otherwise left alone.
-- [ ] `CLAUDE.md`: title, product description, agent descriptions, integrations section (this changes again in Phase 8, keep a checkbox for it).
-- [ ] Verify: `grep -rli karko --exclude-dir=node_modules --exclude-dir=.git .` lists only historical docs and migration files (DB object names are handled in Phase 4).
+- [x] Rename and update. Historical docs (`docs/*-tracker.md`, `docs/*-plan.md`) get a one-line note at the top: "Written when the product was called Karko AI." and are otherwise left alone. `KARKO_POSITIONING.md` renamed to `USEFULAPPLY_POSITIONING.md`. `package.json` name is `usefulapply`. Skipped `SETUP.md`, `INSTALLATION_STEPS.md`, `STRIPE_SETUP_GUIDE.md`: those files are not in the repo (only mentioned in CLAUDE.md / AGENTS.md). Agent type ids `karko-architect` and `karko-ui-designer` kept (tool/registry identifiers).
+- [x] `CLAUDE.md`: title, product description, agent descriptions, integrations section (this changes again in Phase 8, keep a checkbox for it). Phase 8 checkbox added under Integrations in both `CLAUDE.md` and `AGENTS.md`.
+- [x] Verify: `grep -rli karko --exclude-dir=node_modules --exclude-dir=.git .` is not only historical docs and migrations. Remaining buckets: historical tracker/plan notes and audits; `supabase/migrations` and diagnostics (Phase 4); later-task leftovers (karkoai.com mailboxes with TODO 7.1, Trustpilot URLs Task 8.5, `BRAND.legalLine`, BrandLogo, localStorage migration keys, `AgentRole` id `karko_ai`); agent type ids; company/ FEATURES.md REVIEW.md scripts; `.codex` / `.claude` agent filenames. Local `.env*` and Playwright logs also matched; those were not opened. tsc 0 errors. No TSX/TS lint surface beyond `package.json` name.
 
 ---
 

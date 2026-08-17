@@ -1,3 +1,5 @@
+Written when the product was called Karko AI.
+
 # Job Feed Production Readiness Tracker
 
 Last updated: 2026-04-27

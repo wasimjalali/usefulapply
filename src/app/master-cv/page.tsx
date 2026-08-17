@@ -256,7 +256,7 @@ export default function MasterCVPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const SITE_URL = BRAND.url;
+  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || BRAND.url;
 
   // Breadcrumb JSON-LD
   const breadcrumbJsonLd = {

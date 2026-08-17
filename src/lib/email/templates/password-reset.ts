@@ -1,4 +1,4 @@
-import { NOREPLY_FROM } from '../config';
+import { LOGO_URL, NOREPLY_FROM } from '../config';
 
 function escapeHtml(str: string): string {
   return str
@@ -30,11 +30,11 @@ export function buildPasswordResetEmail({
   const safeLink = escapeHtml(resetLink);
   const greeting = safeName ? `Hi ${safeName},` : 'Hi there,';
 
-  const subject = 'Reset your Karko AI password';
+  const subject = 'Reset your Useful Apply password';
   const text = [
     greeting.replace(/&[^;]+;/g, ''),
     '',
-    'We received a request to reset your Karko AI password.',
+    'We received a request to reset your Useful Apply password.',
     'Open this link to choose a new password (expires in about 1 hour):',
     resetLink,
     '',
@@ -44,7 +44,8 @@ export function buildPasswordResetEmail({
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fafaf8; padding: 40px 20px;">
       <div style="text-align: center; margin-bottom: 32px;">
-        <h1 style="font-size: 28px; color: #0f3057; margin: 0; letter-spacing: -0.5px;">Karko AI</h1>
+        <img src="${LOGO_URL}" alt="Useful Apply" width="56" height="56" style="display:block;margin:0 auto 12px auto;border-radius:12px;" />
+        <h1 style="font-size: 28px; color: #0f3057; margin: 0; letter-spacing: -0.5px;">Useful Apply</h1>
         <p style="color: #888; font-size: 14px; margin: 4px 0 0 0;">Your job application copilot</p>
       </div>
 
@@ -73,7 +74,7 @@ export function buildPasswordResetEmail({
       </div>
 
       <p style="text-align: center; color: #bbb; font-size: 12px; margin-top: 24px;">
-        Karko AI - karkoai.com
+        Useful Apply - usefulapply.com
       </p>
     </div>
   `;

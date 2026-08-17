@@ -120,9 +120,9 @@ global.anthropic.claude-sonnet-4-6  ThrottlingException: Too many tokens per day
 us.anthropic.claude-haiku-4-5       ThrottlingException: Too many tokens per day
 ```
 
-On a barely-used account, hitting a daily token ceiling means the default quota is close to nothing. **Even once Claude 5 access lands, this account will need a quota increase before it can run Karko.** The zero quota and the 403 may share a root cause: the account is unestablished.
+On a barely-used account, hitting a daily token ceiling means the default quota is close to nothing. **Even once Claude 5 access lands, this account will need a quota increase before it can run Useful Apply.** The zero quota and the 403 may share a root cause: the account is unestablished.
 
-Note: Karko production currently runs on Claude Sonnet 4.6 through a **different, larger AWS account**, not `514985057171`.
+Note: Useful Apply production currently runs on Claude Sonnet 4.6 through a **different, larger AWS account**, not `514985057171`.
 
 ## Code change still required
 
@@ -159,8 +159,8 @@ One item that needs scoping early: Sonnet 4.6 runs on the larger production acco
 
 ## Next steps
 
-1. **Send the escalation email below** to `bedrock-ant-eap@amazon.com` from `wasim@karkoai.com` if not already done. This is the channel most likely to resolve it; the sales form routes to an account executive, not an engineer.
-2. **Test the other, larger AWS account.** If it has real Bedrock usage history it is far more likely to already have this offering enabled and to have usable quota. If Sonnet 5 works there, the escalation is moot and the question becomes which account Karko should bill to. Add it as a second CLI profile to check.
+1. **Send the escalation email below** to `bedrock-ant-eap@amazon.com` from `wasim@usefulapply.com` if not already done. This is the channel most likely to resolve it; the sales form routes to an account executive, not an engineer.
+2. **Test the other, larger AWS account.** If it has real Bedrock usage history it is far more likely to already have this offering enabled and to have usable quota. If Sonnet 5 works there, the escalation is moot and the question becomes which account Useful Apply should bill to. Add it as a second CLI profile to check.
 3. **Request a Bedrock quota increase** on whichever account wins. The current daily token limit on `514985057171` is unusable.
 4. **Build the `bedrock-mantle` client path** in `src/lib/models/anthropic.ts`. Independent of access, can start now.
 5. If a reply asks you to open an AWS support case, point back at the `SubscriptionRequiredException`. Do not upgrade the support plan just to file this.
@@ -168,7 +168,7 @@ One item that needs scoping early: Sonnet 4.6 runs on the larger production acco
 ## Reference
 
 - [Claude in Amazon Bedrock](https://platform.claude.com/docs/en/build-with-claude/claude-in-amazon-bedrock) (Opus 4.7 and later, the new endpoint)
-- [Claude on Amazon Bedrock, legacy](https://platform.claude.com/docs/en/build-with-claude/claude-on-amazon-bedrock-legacy) (Opus 4.6 and earlier, current Karko path)
+- [Claude on Amazon Bedrock, legacy](https://platform.claude.com/docs/en/build-with-claude/claude-on-amazon-bedrock-legacy) (Opus 4.6 and earlier, current Useful Apply path)
 - Support contact for this offering: `bedrock-ant-eap@amazon.com`
 
 ---
@@ -246,7 +246,7 @@ OTHER OBSERVATIONS
 
 USE CASE
 
-I run Karko AI (karkoai.com), a production job-application assistant. Users upload a CV and a job description, and Claude generates a tailored CV, cover letter and application emails plus a fit assessment. Karko AI is already in production on Claude Sonnet 4.6. This account holds AWS credits and is where I intend to run the new offering.
+I run Useful Apply (usefulapply.com), a production job-application assistant. Users upload a CV and a job description, and Claude generates a tailored CV, cover letter and application emails plus a fit assessment. Useful Apply is already in production on Claude Sonnet 4.6. This account holds AWS credits and is where I intend to run the new offering.
 
 I want to move production inference to Claude Sonnet 5, with Claude Opus 5 for higher-stakes generation steps.
 
@@ -254,6 +254,6 @@ Could you enable this offering for account 514985057171, or tell me what the acc
 
 Thank you,
 Wasim Jalali
-Founder, Karko AI
-wasim@karkoai.com
+Founder, Useful Apply
+wasim@usefulapply.com
 ```

@@ -1,6 +1,6 @@
 # Job Feed UI/UX Audit + Redesign — Opus 4.7 Session Prompt
 
-This is a portable prompt for a fresh Opus 4.7 Claude Code terminal. It kicks off a two-phase UI/UX pass on the Karko AI Daily Job Feed — audit first, redesign after user confirmation.
+This is a portable prompt for a fresh Opus 4.7 Claude Code terminal. It kicks off a two-phase UI/UX pass on the Useful Apply Daily Job Feed — audit first, redesign after user confirmation.
 
 **Usage:** open a fresh Claude Code session in `/Users/wasimjalali/Desktop/Karko_AI`, set model to Opus 4.7, paste everything between "BEGIN PROMPT" and "END PROMPT".
 
@@ -8,7 +8,7 @@ This is a portable prompt for a fresh Opus 4.7 Claude Code terminal. It kicks of
 
 ## BEGIN PROMPT
 
-You are redesigning the Karko AI Daily Job Feed UI end-to-end. This is a two-phase task:
+You are redesigning the Useful Apply Daily Job Feed UI end-to-end. This is a two-phase task:
 
 - **Phase 1 — AUDIT.** Read every surface, catalog what works and what doesn't, propose a direction. Do NOT touch code. Stop and wait for the human to confirm the direction before implementing.
 - **Phase 2 — REDESIGN.** Only after the human has signed off, implement the approved direction one surface at a time. Verify each surface before moving to the next. No batch redesigns.
@@ -19,7 +19,7 @@ You are redesigning the Karko AI Daily Job Feed UI end-to-end. This is a two-pha
 
 ## Who you are designing for
 
-Karko's users are **job seekers**. They are under time pressure. Many have recently been laid off or are in jobs they want to leave. They arrive stressed, often scanning our product next to ChatGPT, Teal, Simplify, and free job boards. They evaluate us in the first 30 seconds.
+Useful Apply's users are **job seekers**. They are under time pressure. Many have recently been laid off or are in jobs they want to leave. They arrive stressed, often scanning our product next to ChatGPT, Teal, Simplify, and free job boards. They evaluate us in the first 30 seconds.
 
 Design principles for this niche:
 - **Calm, not corporate.** Premium feel (Linear / Notion / Vercel territory), not aggressive sales UI.
@@ -27,7 +27,7 @@ Design principles for this niche:
 - **Humane, not AI-generated.** (See the anti-slop checklist below.)
 - **Scannable.** Job seekers speed-read. Left-aligned, high contrast where it matters, consistent spacing.
 - **Empty states with a path forward.** Never a blank screen; always a next action.
-- **Respect the user's time.** A single clear CTA per card. Don't bury "Apply with Karko" behind three clicks.
+- **Respect the user's time.** A single clear CTA per card. Don't bury "Apply with Useful Apply" behind three clicks.
 
 ---
 
@@ -126,7 +126,7 @@ Each has an icon, message, optional action. Is iconography consistent? Does each
 - Title + company
 - MetaPills: location, work mode, salary (optional)
 - 2-line description preview
-- Right column: "Apply with Karko" gold CTA + Details link + Copy button
+- Right column: "Apply with Useful Apply" gold CTA + Details link + Copy button
 - Review: badge count per card, CTA hierarchy, whitespace density
 
 ### 7. Job detail modal (opens on Details click)
@@ -137,7 +137,7 @@ Each has an icon, message, optional action. Is iconography consistent? Does each
 - Role details rendered via `<JobFeedDescription />` with heading / bullet / paragraph parsing
 - Apply-via sub-section (aggregator links)
 - "How does this match feel?" thumbs up/down feedback
-- Footer: Copy button + Employer site link + Save + Dismiss + Apply with Karko CTA
+- Footer: Copy button + Employer site link + Save + Dismiss + Apply with Useful Apply CTA
 - Review: is the modal width right (currently `max-w-5xl`)? Is the close affordance visible enough? Is the feedback section well-placed?
 
 ### 8. Diagnostics panel (debug-mode only — don't redesign, just flag issues)
@@ -151,7 +151,7 @@ Each has an icon, message, optional action. Is iconography consistent? Does each
 Produce a single markdown audit report with this structure:
 
 ```
-# Karko AI — Job Feed UI/UX Audit
+# Useful Apply — Job Feed UI/UX Audit
 
 ## Executive summary
 [3-5 bullets: top themes. e.g. "cream surfaces read heavy", "detail modal is 80% there", "wizard needs to breathe in step 4", "job card badges compete for attention".]

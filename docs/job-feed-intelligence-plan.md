@@ -1,3 +1,5 @@
+Written when the product was called Karko AI.
+
 # Job Feed Intelligence Plan
 
 > Plan for making the Daily Job Feed pipeline materially smarter. Based on a code audit of `src/lib/job-feed/**`, `src/app/api/parse-cv/**`, and `src/app/api/job-feed/**` performed on 2026-05-08.

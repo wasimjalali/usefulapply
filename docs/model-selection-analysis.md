@@ -33,7 +33,7 @@ This is locked. We implement it the day Bedrock access lands, not before. Nothin
 
 ### Opus 5 on the documents
 
-Opus 5 shipped 2026-07-24. The published benchmark that matches Karko's task class is **GDPval-AA v2**, which grades real-world professional deliverables with no single correct answer, scored by human experts. That is exactly what a tailored CV and cover letter are.
+Opus 5 shipped 2026-07-24. The published benchmark that matches Useful Apply's task class is **GDPval-AA v2**, which grades real-world professional deliverables with no single correct answer, scored by human experts. That is exactly what a tailored CV and cover letter are.
 
 | Benchmark | Measures | Opus 5 | Sonnet 5 |
 |---|---|---:|---:|
@@ -41,11 +41,11 @@ Opus 5 shipped 2026-07-24. The published benchmark that matches Karko's task cla
 | SWE-bench Pro | GitHub issue resolution | 79.2% | 63.2% |
 | ARC-AGI-3 | agentic reasoning | 30.2% | not published |
 
-A 243 Elo gap is roughly an 80% head-to-head win rate. SWE-bench Pro is the headline number everywhere and it is irrelevant to us, because Karko writes no code.
+A 243 Elo gap is roughly an 80% head-to-head win rate. SWE-bench Pro is the headline number everywhere and it is irrelevant to us, because Useful Apply writes no code.
 
 Opus 5 also has a **May 2026 knowledge cutoff** against Sonnet 5's January 2026, which is four months fresher on ATS conventions and hiring-market language, and a **512-token prompt-cache floor** against Sonnet 5's 1024, which means all four of our generation system blocks cache (the follow-up email block at 642 tokens would not cache on Sonnet 5).
 
-The deciding principle is the project's own: *"Quality > speed > cost. Karko is a pre-revenue startup; perceived quality is the moat."*
+The deciding principle is the project's own: *"Quality > speed > cost. Useful Apply is a pre-revenue startup; perceived quality is the moat."*
 
 ### Sonnet 4.6, not Sonnet 5, upstream
 
@@ -311,9 +311,9 @@ Anthropic's guidance is to delete them. **Do not delete them blind.** They are l
 
 **Opus 5 is not open-access on Bedrock.** Claude Fable 5, Opus 4.8, Opus 4.7, Sonnet 5 and Haiku 4.5 are documented as "open to all Amazon Bedrock customers." **Claude Opus 5 is not.** Its access column says "See Access", meaning Bedrock sets criteria per model and they must be checked in the console. So clearing the current account-level 403 may not be sufficient on its own; Opus 5 could need a separate approval. Worth naming Opus 5 explicitly in the escalation to `bedrock-ant-eap@amazon.com` rather than asking for generic offering access.
 
-**Regional endpoints carry a 10% pricing premium.** Global endpoints have no premium. Karko is German-market and CVs are heavily personal data, so if GDPR posture requires EU data residency we would use an EU inference profile or a regional endpoint. The docs distinguish regional endpoints (single region, +10%) from inference profiles (multi-region within a geography) without stating whether the profile carries the premium. **Confirm before sizing.** If +10% applies, the locked plan goes from $0.323 to about $0.355 per application, which does not change the decision.
+**Regional endpoints carry a 10% pricing premium.** Global endpoints have no premium. Useful Apply is German-market and CVs are heavily personal data, so if GDPR posture requires EU data residency we would use an EU inference profile or a regional endpoint. The docs distinguish regional endpoints (single region, +10%) from inference profiles (multi-region within a geography) without stating whether the profile carries the premium. **Confirm before sizing.** If +10% applies, the locked plan goes from $0.323 to about $0.355 per application, which does not change the decision.
 
-**Batch API is unavailable on Bedrock**, so the 50% batch discount is not reachable. Not a loss for us: every Karko step is user-blocking and could not use batching anyway.
+**Batch API is unavailable on Bedrock**, so the 50% batch discount is not reachable. Not a loss for us: every Useful Apply step is user-blocking and could not use batching anyway.
 
 **Bedrock quota is 2M input TPM by default**, raisable to 4M without further Anthropic approval. That is far above what we need and a non-issue once entitlement clears.
 

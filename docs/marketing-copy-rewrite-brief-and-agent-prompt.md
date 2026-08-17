@@ -6,7 +6,7 @@ Related baseline document:
 
 - `docs/current-marketing-content-audit.md`
 
-Purpose: define what should be preserved, what should change, and the exact prompt for the implementation agent that will rewrite the website copy around Karko AI's expanded product.
+Purpose: define what should be preserved, what should change, and the exact prompt for the implementation agent that will rewrite the website copy around Useful Apply's expanded product.
 
 ## Part 1: User Requirements and Rewrite Brief
 
@@ -31,18 +31,18 @@ Everything else is open to rewrite, restructure, improvement, or repositioning i
 
 ### Product Repositioning Goal
 
-Karko AI is no longer only an AI job application generator.
+Useful Apply is no longer only an AI job application generator.
 
-The new positioning should present Karko AI as a complete job application platform where users can:
+The new positioning should present Useful Apply as a complete job application platform where users can:
 
-- Find relevant jobs inside Karko using the Smart Job Feed.
+- Find relevant jobs inside Useful Apply using the Smart Job Feed.
 - Review hand-picked, ranked jobs without searching job boards manually.
 - Generate a complete application package for each role.
 - Track the application process inside the app.
 - Start free to test the product.
 - Upgrade to Plus or Max when they want more volume, automation, and job-feed power.
 
-The site should make it obvious that Karko now covers the full job application workflow:
+The site should make it obvious that Useful Apply now covers the full job application workflow:
 
 1. Find jobs.
 2. Understand fit.
@@ -68,9 +68,9 @@ Current product capabilities to reflect:
 - Plus monthly framing: up to about 300 hand-picked jobs per month.
 - Max monthly framing: up to about 500 hand-picked jobs per month.
 - Jobs are selected based on roles, countries, cities, work mode, seniority, skills, languages, work authorization, salary floor, and user preferences.
-- Karko can use the user's CV to help set up feed preferences.
-- Users can save jobs, dismiss jobs, rate relevance, open employer sites, and apply with Karko.
-- Job Feed supports "Apply with Karko" handoff into the application-generation workflow.
+- Useful Apply can use the user's CV to help set up feed preferences.
+- Users can save jobs, dismiss jobs, rate relevance, open employer sites, and apply with Useful Apply.
+- Job Feed supports "Apply with Useful Apply" handoff into the application-generation workflow.
 
 Important: verify the current code and wording before finalizing exact claims. If there is any mismatch between desired marketing framing and implemented product caps, point it out clearly before changing copy.
 
@@ -94,10 +94,10 @@ Pricing cards should explain what users actually get:
 
 Pricing copy should communicate both:
 
-- Speed: Karko saves hours by finding jobs and generating application materials quickly.
-- Quality: Karko uses the user's real CV, fit analysis, ATS-safe templates, and anti-hallucination guardrails.
+- Speed: Useful Apply saves hours by finding jobs and generating application materials quickly.
+- Quality: Useful Apply uses the user's real CV, fit analysis, ATS-safe templates, and anti-hallucination guardrails.
 
-Avoid framing the product as choosing between speed and quality. The intended message is that Karko gives job seekers both quality and speed at a fraction of the cost and effort of doing everything manually.
+Avoid framing the product as choosing between speed and quality. The intended message is that Useful Apply gives job seekers both quality and speed at a fraction of the cost and effort of doing everything manually.
 
 ### Copywriting Standards
 
@@ -173,7 +173,7 @@ This task should be handled in two phases:
 
 After the content rewrite is complete, the agent should commit/push the copy work if requested or if that is part of the workflow, then return and say it is ready for the redesign phase.
 
-For the redesign phase, the agent should act as an expert UI/UX designer and use the new copy to improve page structure, visual hierarchy, pricing-card clarity, and feature storytelling while respecting Karko's existing brand palette and design language.
+For the redesign phase, the agent should act as an expert UI/UX designer and use the new copy to improve page structure, visual hierarchy, pricing-card clarity, and feature storytelling while respecting Useful Apply's existing brand palette and design language.
 
 The redesign should not happen before the copy direction is clear.
 
@@ -182,7 +182,7 @@ The redesign should not happen before the copy direction is clear.
 Use this prompt for the implementation agent.
 
 ```text
-You are working in the Karko AI codebase. Your task is to rewrite the marketing copy and conversion copy for the website based on two markdown documents:
+You are working in the Useful Apply codebase. Your task is to rewrite the marketing copy and conversion copy for the website based on two markdown documents:
 
 1. docs/current-marketing-content-audit.md
 2. docs/marketing-copy-rewrite-brief-and-agent-prompt.md
@@ -190,7 +190,7 @@ You are working in the Karko AI codebase. Your task is to rewrite the marketing 
 First, read both documents carefully. The current-content audit tells you what copy exists today and where it appears. The rewrite brief tells you what the user wants to keep, what must change, and how the product should now be positioned.
 
 The major strategic shift:
-Karko AI is no longer just an AI job application generator for CVs, cover letters, application emails, and tracking. It is now a complete job application platform. Users can find hand-picked jobs through the Smart Job Feed, understand fit, generate a complete application package, apply, follow up, and track their process inside Karko.
+Useful Apply is no longer just an AI job application generator for CVs, cover letters, application emails, and tracking. It is now a complete job application platform. Users can find hand-picked jobs through the Smart Job Feed, understand fit, generate a complete application package, apply, follow up, and track their process inside Useful Apply.
 
 Preserve:
 - The founder story / founder voice section on the homepage.

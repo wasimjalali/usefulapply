@@ -71,4 +71,4 @@ See §12 of the source of truth for the full list. The three that matter:
 - **`/reload-plugins` destroys MCP OAuth sessions.** It cost four attempts to connect Stripe. Authorize first, then do not reload.
 - The repo is `wasimjalali/Karko`. Work on a branch, never commit to `main`.
 - House voice: **no em dashes**, contractions, short sentences, no Oxford comma. Grep for `—` before committing.
-- Numbers sprawl. When you change a figure, grep the whole repo including `public/llms.txt`, `public/llms-full.txt`, `FEATURES.md` and `KARKO_POSITIONING.md`. A job-feed limit that looked like it lived in 6 places actually lived in 13.
+- Numbers sprawl. When you change a figure, grep the whole repo including `public/llms.txt`, `public/llms-full.txt`, `FEATURES.md` and `USEFULAPPLY_POSITIONING.md`. A job-feed limit that looked like it lived in 6 places actually lived in 13.

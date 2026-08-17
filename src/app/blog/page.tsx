@@ -11,7 +11,7 @@ import { getBlurDataUrl } from '@/lib/blog/blur-data';
 export const metadata: Metadata = buildPageMetadata({
   title: 'Blog: Career Tips & AI Job Search',
   description:
-    'Expert advice on CV optimization, cover letter writing, job search strategies, and how AI is transforming hiring. Tips from the KarKo AI team.',
+    'Expert advice on CV optimization, cover letter writing, job search strategies and how AI is transforming hiring. Tips from the Useful Apply team.',
   canonical: '/blog',
 });
 
@@ -31,7 +31,7 @@ export default function BlogPage() {
           <div className="max-w-5xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-cream-50 rounded-full text-sm text-charcoal mb-6 shadow-sm border border-cream-200">
               <BookOpen className="w-4 h-4 text-gold-500" />
-              <span className="font-medium">KarKo AI Blog</span>
+              <span className="font-medium">Useful Apply Blog</span>
             </div>
             <h1 className="font-serif font-semibold text-navy-600 text-[44px] sm:text-[52px] leading-[1.05] tracking-tight mb-4">
               Career tips and <span className="text-gold-500">job search strategies.</span>
@@ -67,7 +67,7 @@ export default function BlogPage() {
                   href="/dashboard"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors"
                 >
-                  Try Karko AI free
+                  Try Useful Apply free
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
@@ -281,7 +281,7 @@ export default function BlogPage() {
               Ready to apply smarter?
             </h2>
             <p className="text-navy-200 mb-6">
-              Stop spending hours on each application. Karko generates your complete application in under 90 seconds.
+              Stop spending hours on each application. Useful Apply generates your complete application in under 90 seconds.
             </p>
             <Link
               href="/dashboard"

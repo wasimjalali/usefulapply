@@ -11,7 +11,7 @@
 
 1. **This file is the fact layer.** It holds what is true, with a source for each claim.
 2. **`APPLICATION-ANSWER-BANK.md` is the writing layer.** It holds ready-to-paste answers built from these facts. Never let the two drift: change the fact here first, then update the answer.
-3. **`../KARKO_POSITIONING.md` at the repo root is the marketing layer.** It owns taglines, brand voice and campaign copy. If marketing copy and this file disagree on a *fact* (pricing, limits, models), this file wins and the positioning doc gets corrected.
+3. **`../USEFULAPPLY_POSITIONING.md` at the repo root is the marketing layer.** It owns taglines, brand voice and campaign copy. If marketing copy and this file disagree on a *fact* (pricing, limits, models), this file wins and the positioning doc gets corrected.
    **This folder lives inside the product repo on purpose.** When the code changes, these documents are in the same diff, so the facts and the product cannot drift apart unnoticed.
 4. Every claim is tagged:
    - **[verified]** read directly from the codebase, the live site or LinkedIn, with the source named
@@ -413,7 +413,7 @@ The range depends on whether the unmeasured job-feed cost is included. Measure i
 
 There is also a product argument, not just a margin one. "One complete application, free, on a real job" is a clearer offer than "4 credits", which means nothing until a user has already learned the credit system.
 
-**Implementation surface**, when this ships: `PLANS.free.credits` in `src/lib/stripe.ts`, plus every surface that says "4 credits" or "2 applications" for Free. Expect the same sprawl the job feed fix had, roughly a dozen places including `llms.txt`, `llms-full.txt`, `FEATURES.md` and `KARKO_POSITIONING.md`. Grep before assuming a number is only in one place.
+**Implementation surface**, when this ships: `PLANS.free.credits` in `src/lib/stripe.ts`, plus every surface that says "4 credits" or "2 applications" for Free. Expect the same sprawl the job feed fix had, roughly a dozen places including `llms.txt`, `llms-full.txt`, `FEATURES.md` and `USEFULAPPLY_POSITIONING.md`. Grep before assuming a number is only in one place.
 
 **The original strategy, and its exposures:**
 
@@ -793,7 +793,7 @@ Found on 2026-07-25. Delete a row once the fix is merged.
 | # | Issue | Resolution |
 |---|---|---|
 | 1 | **Job feed daily limit** | Thirteen surfaces promised Plus 15 jobs/day. The backend has served **25 to both plans** since `dbab57bc` (2026-05-28). Decided: 25/day is correct for both, and Max's real differentiator is search breadth (4 job titles across 4 countries against Plus's 2 and 2, so 4 SerpAPI queries a day against 2). All surfaces corrected including `llms.txt` and `llms-full.txt`. **PR #76.** |
-| 2 | **Founder story led with the wrong fact** | Every surface built its credibility on "5 interviews from 50+ applications, roughly 10%" and either buried the hire or omitted it. The homepage said "sixty applications", the About page said "over 50". Now corrected everywhere to the confirmed numbers (60+ applications, 5 interviews, ~8%) with **the hire as the headline**. Both founder headings read "The tool I built got me hired." Touches the About page, homepage, Person JSON-LD, page metadata, both llms files, the blog body and author bio, and six passages in `KARKO_POSITIONING.md` including proof point #1. **PR #76.** |
+| 2 | **Founder story led with the wrong fact** | Every surface built its credibility on "5 interviews from 50+ applications, roughly 10%" and either buried the hire or omitted it. The homepage said "sixty applications", the About page said "over 50". Now corrected everywhere to the confirmed numbers (60+ applications, 5 interviews, ~8%) with **the hire as the headline**. Both founder headings read "The tool I built got me hired." Touches the About page, homepage, Person JSON-LD, page metadata, both llms files, the blog body and author bio, and six passages in `USEFULAPPLY_POSITIONING.md` including proof point #1. **PR #76.** |
 | 3 | **Screening answers wrongly attributed to Free** | The plan-comparison FAQ said every plan gets screening question answers. They are gated to Plus and Max. **PR #76.** |
 | 4 | **Model decision untracked** | `docs/model-selection-analysis.md` and `docs/bedrock-claude5-access.md` existed only as untracked files. Now committed. **PR #77.** |
 

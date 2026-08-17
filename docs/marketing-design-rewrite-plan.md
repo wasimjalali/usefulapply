@@ -1,3 +1,5 @@
+Written when the product was called Karko AI.
+
 ---
 name: Marketing Design Rewrite Plan
 description: Expert UI/UX redesign for Karko marketing surfaces (home, features, pricing, compare). Critique + resolution.

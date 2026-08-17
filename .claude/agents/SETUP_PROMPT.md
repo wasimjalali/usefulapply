@@ -1,4 +1,4 @@
-# Karko AI Agent Setup Prompt
+# Useful Apply Agent Setup Prompt
 
 Paste the prompt below into a fresh Claude Code terminal session (Sonnet 4.6 recommended). The session will create all four project-scoped agents in `.claude/agents/`, update the project `CLAUDE.md` to reference them, verify the setup, and report back.
 
@@ -8,7 +8,7 @@ Paste the prompt below into a fresh Claude Code terminal session (Sonnet 4.6 rec
 
 ## BEGIN PROMPT
 
-You are setting up four new project-scoped specialist agents for Karko AI. They are meant to live in the project repo at `/Users/wasimjalali/Desktop/Karko_AI/.claude/agents/` so they version-control with the codebase.
+You are setting up four new project-scoped specialist agents for Useful Apply. They are meant to live in the project repo at `/Users/wasimjalali/Desktop/Karko_AI/.claude/agents/` so they version-control with the codebase.
 
 All four files are already written and committed to main. Your job is to VERIFY the setup and update the project CLAUDE.md reference. If any file is missing, create it from the spec below.
 
@@ -46,9 +46,9 @@ cd /Users/wasimjalali/Desktop/Karko_AI && npx tsc --noEmit 2>&1 | grep -v "\.nex
 
 Expect zero output. If errors appear, do not proceed — investigate first.
 
-### Step 3 — Update the project CLAUDE.md's "Karko AI Agents" section
+### Step 3 — Update the project CLAUDE.md's "Useful Apply Agents" section
 
-Open `/Users/wasimjalali/Desktop/Karko_AI/CLAUDE.md`. Find the section titled "Karko AI Agents (use proactively — do not ask permission)". Under the "Project-scope agents (this repo)" sub-section, it currently lists `agent-expert` and `ui-tester`. Add four bullet points for the new agents, preserving the same tone and format:
+Open `/Users/wasimjalali/Desktop/Karko_AI/CLAUDE.md`. Find the section titled "Useful Apply Agents (use proactively — do not ask permission)". Under the "Project-scope agents (this repo)" sub-section, it currently lists `agent-expert` and `ui-tester`. Add four bullet points for the new agents, preserving the same tone and format:
 
 ```
 - **`karko-architect`** — For cross-cutting design decisions, refactors, and "where should this state live" questions. Use for anything that spans 3+ files or has non-obvious tradeoffs. Returns a plan with ordered steps; does not modify code itself.

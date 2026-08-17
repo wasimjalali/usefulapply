@@ -7,7 +7,7 @@ import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 import { BRAND } from '@/lib/brand';
 
-const SITE_URL = BRAND.url;
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || BRAND.url;
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({

@@ -15,9 +15,9 @@ The Job Feed runs **automatically in the background** once a day for each premiu
 3. It **filters out bad matches** (wrong location, wrong seniority, wrong salary, etc.)
 4. It **ranks the survivors** using AI to find the best fits
 5. It **saves the top 5-10 jobs** as the user's daily feed
-6. The user opens Karko and **sees their personalized job feed** ready to go
+6. The user opens Useful Apply and **sees their personalized job feed** ready to go
 
-No manual searching needed — Karko does the work overnight.
+No manual searching needed — Useful Apply does the work overnight.
 
 ---
 
@@ -109,7 +109,7 @@ When the user interacts with their feed:
 - **Opened** — user clicked to view job details
 - **Saved** — user bookmarked the job
 - **Dismissed** — user swiped away / not interested
-- **Applied** — user clicked "Apply with Karko AI" → creates an application session and hands off to the existing Karko application workflow (CV optimization, cover letter, etc.)
+- **Applied** — user clicked "Apply with Useful Apply" → creates an application session and hands off to the existing Useful Apply application workflow (CV optimization, cover letter, etc.)
 
 ### Step 7 — Cleanup (Data hygiene)
 
@@ -154,7 +154,7 @@ Runs once per hourly sweep:
 | PUT | `/api/job-feed/settings` | Save/update feed settings |
 | GET | `/api/job-feed/overview` | Full feed state (settings + latest run + jobs) |
 | POST | `/api/job-feed/feedback` | Record feedback (opened/saved/dismissed) |
-| POST | `/api/job-feed/apply` | Start "Apply with Karko AI" handoff |
+| POST | `/api/job-feed/apply` | Start "Apply with Useful Apply" handoff |
 | POST | `/api/job-feed/dev/run` | Manual trigger (debug mode only) |
 | POST | `/api/job-feed/internal/scheduler` | Internal cron endpoint (secret-protected) |
 
@@ -209,7 +209,7 @@ OPENAI_API_KEY=your_openai_key  # (not yet wired — see "What Needs to Be Done"
 - LLM ranking with deterministic fallback
 - Ranked items materialization
 - Feedback tracking (opened/saved/dismissed/applied)
-- Apply handoff to Karko application sessions
+- Apply handoff to Useful Apply application sessions
 - Data cleanup (14-day payload redaction, 30-day metadata compaction)
 - All SQL migrations
 - Rate limiting on all API routes (added this session)

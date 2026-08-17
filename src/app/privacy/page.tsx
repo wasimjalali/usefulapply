@@ -2,11 +2,12 @@ import type { Metadata } from 'next';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { buildPageMetadata } from '@/lib/seo/metadata';
+import { BRAND } from '@/lib/brand';
 
 export const metadata: Metadata = buildPageMetadata({
   title: 'Privacy Policy',
   description:
-    'KarKo AI Privacy Policy. Learn how we handle your data, protect your CV information, and ensure GDPR compliance.',
+    'Useful Apply Privacy Policy. Learn how we handle your data, protect your CV information and ensure GDPR compliance.',
   canonical: '/privacy',
 });
 
@@ -18,14 +19,18 @@ export default function PrivacyPage() {
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-4xl font-bold text-navy-600 mb-4">Privacy Policy</h1>
-          <p className="text-warm-gray mb-8">Last Updated: February 3, 2026</p>
+          <p className="text-warm-gray mb-2">Last Updated: August 17, 2026</p>
+          <p className="text-warm-gray mb-8">{BRAND.legalLine}.</p>
 
           <div className="prose prose-lg max-w-none text-charcoal space-y-8">
             <section>
               <h2 className="text-2xl font-semibold text-navy-600 mb-4">1. Introduction</h2>
               <p className="text-warm-gray">
-                Karko AI operates an AI-powered job application platform. 
-                This policy explains how we collect, use, and protect your personal data.
+                {BRAND.name} operates an AI-powered job application platform.
+                This policy explains how we collect, use and protect your personal data.
+              </p>
+              <p className="text-warm-gray mt-4">
+                Useful Apply was previously known as Karko AI.
               </p>
             </section>
 
@@ -142,7 +147,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-2xl font-semibold text-navy-600 mb-4">11. Contact</h2>
               <p className="text-warm-gray">
-                Email: <a href="mailto:support@karkoai.com" className="text-navy-600 hover:underline">support@karkoai.com</a>
+                Email: <a href="mailto:support@karkoai.com" className="text-navy-600 hover:underline">support@karkoai.com</a> {/* TODO(Task 7.1) */}
               </p>
               <p className="text-warm-gray mt-2">
                 Address: Karko AI Inc, 1207 Delaware Ave #412, Wilmington, DE 19806, USA

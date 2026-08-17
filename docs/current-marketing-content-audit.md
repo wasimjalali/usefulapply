@@ -2,7 +2,7 @@
 
 Date: 2026-04-27
 
-Purpose: document the current public-facing and conversion-related copy before rewriting Karko AI positioning around the Smart Job Feed and the newer complete job-search package.
+Purpose: document the current public-facing and conversion-related copy before rewriting Useful Apply positioning around the Smart Job Feed and the newer complete job-search package.
 
 ## Scope
 
@@ -20,13 +20,13 @@ Audited areas:
 
 ## Current Positioning Summary
 
-The site currently positions Karko AI primarily as an AI job application generator:
+The site currently positions Useful Apply primarily as an AI job application generator:
 
 - Core promise: complete job application package in 90 seconds.
 - Main outputs: tailored CV, cover letter, application email, follow-up email.
 - Supporting features: fit analysis, ATS-safe templates, Master CV, application tracker, screening question answers on Max.
 - Pricing logic: credits per month, where 2 credits equals one complete application.
-- Differentiator emphasized repeatedly: Karko generates application and follow-up emails, unlike resume builders.
+- Differentiator emphasized repeatedly: Useful Apply generates application and follow-up emails, unlike resume builders.
 
 The Smart Job Feed exists in the dashboard, but it is not yet a major marketing-page promise. Pricing cards still contain stale "Chrome Extension: auto-fill ATS forms" copy with a "Coming Soon" badge.
 
@@ -70,7 +70,7 @@ Product links:
 
 Resources links:
 
-- All comparison pages as "Karko AI vs {Competitor}"
+- All comparison pages as "Useful Apply vs {Competitor}"
 - Try Free, No Sign-Up
 
 Blog links:
@@ -94,7 +94,7 @@ Source: `src/app/page.tsx`
 
 Title:
 
-- "KarKo AI | AI-Powered Job Application Assistant"
+- "Useful Apply | AI-Powered Job Application Assistant"
 
 Description:
 
@@ -173,13 +173,13 @@ Intro:
 
 Step cards:
 
-- "Upload Your CV" - upload master CV once; Karko reads professional history and builds a profile.
-- "Paste the Job Description" - Karko analyzes requirements, matches skills, and gives an honest fit score.
+- "Upload Your CV" - upload master CV once; Useful Apply reads professional history and builds a profile.
+- "Paste the Job Description" - Useful Apply analyzes requirements, matches skills, and gives an honest fit score.
 - "Get Your Entire Application" - receive tailored CV, cover letter, application email, follow-up email, and screening question answers in 90 seconds.
 
 Additional card:
 
-- "Track All Your Applications" - track every application with match scores, statuses, and company details inside Karko AI.
+- "Track All Your Applications" - track every application with match scores, statuses, and company details inside Useful Apply.
 
 ### Product Showcase
 
@@ -199,11 +199,11 @@ Intro:
 
 Trustpilot review component is rendered after Product Showcase.
 
-### Why Trust Karko AI
+### Why Trust Useful Apply
 
 Label:
 
-- "Why Trust Karko AI"
+- "Why Trust Useful Apply"
 
 Headline:
 
@@ -211,7 +211,7 @@ Headline:
 
 Intro:
 
-- Karko does not cut corners on AI.
+- Useful Apply does not cut corners on AI.
 - Powered by one of the world's most capable models.
 - Positioned as "the best AI job application tool for quality-focused job seekers."
 
@@ -219,13 +219,13 @@ AI model card:
 
 - "Claude Sonnet 4.6"
 - "by Anthropic"
-- Copy says Karko is powered by Claude Sonnet 4.6, a frontier model, plus a specialized agentic workflow.
+- Copy says Useful Apply is powered by Claude Sonnet 4.6, a frontier model, plus a specialized agentic workflow.
 
 Trust feature cards:
 
 - "Anti-Hallucination Guardrails" - every skill comes from actual profile.
 - "Honest Fit Score" - real match before applying.
-- "Self-Refining AI" - Karko reviews/refines its output.
+- "Self-Refining AI" - Useful Apply reviews/refines its output.
 - "Specialized for Jobs" - custom system only for job applications.
 
 ### Founder Story
@@ -243,7 +243,7 @@ Story summary:
 - Founder ran out of money building a startup in Germany.
 - Generic applications got zero interviews.
 - Tailoring by hand took 45 to 60 minutes.
-- Built Karko AI to automate tailored CV, cover letter, and professional email in under 90 seconds.
+- Built Useful Apply to automate tailored CV, cover letter, and professional email in under 90 seconds.
 - Got first interview after about 20 applications.
 
 Link:
@@ -289,7 +289,7 @@ Headline:
 
 Intro:
 
-- "Each tailored application takes 45 to 60 minutes by hand. KarKo AI does it in under 90 seconds."
+- "Each tailored application takes 45 to 60 minutes by hand. Useful Apply does it in under 90 seconds."
 
 ### Home Final CTA
 
@@ -319,7 +319,7 @@ Headline:
 Copy:
 
 - Explains Master CV as a 5-10 page source document containing full professional history.
-- Says it is not sent to employers; Karko draws from it to create tailored applications.
+- Says it is not sent to employers; Useful Apply draws from it to create tailored applications.
 - Says a free guided process helps users create one in about 30 minutes using any AI chatbot.
 
 CTA:
@@ -337,7 +337,7 @@ Included list:
 
 Tip:
 
-- "The more detailed your Master CV, the better KarKo AI can personalize your applications."
+- "The more detailed your Master CV, the better Useful Apply can personalize your applications."
 
 ## Features Page
 
@@ -361,7 +361,7 @@ Badge:
 
 Headline:
 
-- "Karko AI Features: The Complete AI Job Application Assistant"
+- "Useful Apply Features: The Complete AI Job Application Assistant"
 
 Supporting copy:
 
@@ -395,7 +395,7 @@ Primary CTA:
 
 4. AI Screening Question Answers
 
-- Description: paste screening questions from ATS portals; Karko drafts concise role-specific answers using CV and JD.
+- Description: paste screening questions from ATS portals; Useful Apply drafts concise role-specific answers using CV and JD.
 - Supports yes/no, behavioral STAR, situational, free-text.
 - Benefits: up to 7 questions per session, compressed STAR, under 750 chars, anti-hallucination.
 - Cost label: "Max plan"
@@ -463,7 +463,7 @@ CTA:
 
 Questions and current answers:
 
-- "What makes Karko different from resume builders?" Karko generates CV, cover letter, application email, and follow-up email; nobody else offers email generation.
+- "What makes Useful Apply different from resume builders?" Useful Apply generates CV, cover letter, application email, and follow-up email; nobody else offers email generation.
 - "Do all features work on all plans?" Says every plan includes all features, with only credits differing; says Free 4, Plus 50, Max 200.
 - "Can I buy more credits?" Yes for Plus/Max; $19.99 for 50 credits / 25 applications; rollover while subscription active.
 - "What AI model do you use?" Claude Sonnet 4.6 by Anthropic via Amazon Bedrock with context caching.
@@ -482,7 +482,7 @@ Supporting copy:
 
 CTA:
 
-- "Try Karko AI Free" -> `/dashboard`
+- "Try Useful Apply Free" -> `/dashboard`
 
 ## Pricing Page
 
@@ -650,7 +650,7 @@ Headline:
 
 Intro:
 
-- "Each tailored application takes 45-60 minutes by hand. KarKo AI does it in under 90 seconds."
+- "Each tailored application takes 45-60 minutes by hand. Useful Apply does it in under 90 seconds."
 
 Tier values:
 
@@ -700,10 +700,10 @@ Questions and current answers:
 - "What happens if I run out of credits?" Plus/Max can buy add-on packs; Free resets monthly; upgrade for more credits.
 - "Do unused credits expire?" Monthly credits reset; add-on credits roll over while subscription active.
 - "Can I change or cancel my plan?" Upgrade anytime; downgrade/cancel at billing-cycle end.
-- "How is KarKo different from other resume builders?" Agentic system with company analysis, fit analysis, skill gaps, ATS templates, self-refinement, emails, follow-ups.
-- "What AI model does KarKo use?" Claude Sonnet 4.6 by Anthropic; frontier-grade, US-based, specialized workflow.
-- "How does Karko AI pricing compare to Teal?" Free 2 apps, Plus 25, Max 100, transparent; Karko generates complete packages with emails.
-- "How does Karko AI pricing compare to Jobscan?" Jobscan scans; Karko creates application packages.
+- "How is Useful Apply different from other resume builders?" Agentic system with company analysis, fit analysis, skill gaps, ATS templates, self-refinement, emails, follow-ups.
+- "What AI model does Useful Apply use?" Claude Sonnet 4.6 by Anthropic; frontier-grade, US-based, specialized workflow.
+- "How does Useful Apply pricing compare to Teal?" Free 2 apps, Plus 25, Max 100, transparent; Useful Apply generates complete packages with emails.
+- "How does Useful Apply pricing compare to Jobscan?" Jobscan scans; Useful Apply creates application packages.
 
 ### Pricing Final CTA
 
@@ -713,7 +713,7 @@ Headline:
 
 Supporting copy:
 
-- "Start with 2 free applications. No credit card required. See why job seekers are switching to KarKo AI."
+- "Start with 2 free applications. No credit card required. See why job seekers are switching to Useful Apply."
 
 Buttons:
 
@@ -730,68 +730,68 @@ Each comparison page renders:
 
 - Back link: "Back to Blog"
 - Hero with H1, description, and summary comparison table.
-- "Detailed Overview" with Karko and competitor cards.
+- "Detailed Overview" with Useful Apply and competitor cards.
 - "Feature-by-Feature Comparison"
 - "Use Case Recommendations"
 - FAQ
 - Verdict card with CTA.
 
-Shared Karko deep-dive card CTA:
+Shared Useful Apply deep-dive card CTA:
 
-- "Try Karko AI Free" -> `/dashboard`
+- "Try Useful Apply Free" -> `/dashboard`
 
 ### Current Comparison Set
 
 1. `/compare/karko-ai-vs-teal`
 
-- Title: "Karko AI vs Teal: Which Resume Builder Wins in 2026?"
-- H1: "Karko AI vs Teal: Complete Applications vs Job Tracking (2026)"
-- Current frame: Teal tracks applications; Karko creates them.
-- Karko pricing: Free 2 apps, Plus $19.99/mo 25 apps, Max $79.99/mo 100 apps.
-- Stale/important copy: Karko job tracking is "Roadmap"; Karko cons include "No job tracking (yet - on roadmap)" and "No Chrome extension for one-click job saving."
+- Title: "Useful Apply vs Teal: Which Resume Builder Wins in 2026?"
+- H1: "Useful Apply vs Teal: Complete Applications vs Job Tracking (2026)"
+- Current frame: Teal tracks applications; Useful Apply creates them.
+- Useful Apply pricing: Free 2 apps, Plus $19.99/mo 25 apps, Max $79.99/mo 100 apps.
+- Stale/important copy: Useful Apply job tracking is "Roadmap"; Useful Apply cons include "No job tracking (yet - on roadmap)" and "No Chrome extension for one-click job saving."
 - Teal is praised for job tracking and Chrome extension.
-- CTA: "Try Karko AI Free - 2 Complete Applications with Emails"
+- CTA: "Try Useful Apply Free - 2 Complete Applications with Emails"
 
 2. `/compare/karko-ai-vs-jobscan`
 
-- Title: "Karko AI vs Jobscan: Which ATS Optimizer Wins in 2026?"
-- H1: "Karko AI vs Jobscan: Creating vs Scanning Resumes (2026 Comparison)"
-- Current frame: Jobscan scans existing resumes; Karko writes complete packages.
+- Title: "Useful Apply vs Jobscan: Which ATS Optimizer Wins in 2026?"
+- H1: "Useful Apply vs Jobscan: Creating vs Scanning Resumes (2026 Comparison)"
+- Current frame: Jobscan scans existing resumes; Useful Apply writes complete packages.
 - CTA: "Generate ATS-Optimized Application in 90 Seconds - 2 Free"
 
 3. `/compare/karko-ai-vs-rezi`
 
-- Title: "Karko AI vs Rezi: Which AI Resume Builder Wins in 2026?"
-- H1: "Karko AI vs Rezi: Complete Packages vs Resume Scoring (2026)"
-- Current frame: Rezi scores/resume-optimizes; Karko generates packages with emails and fit analysis.
-- Karko pricing: Free 2 apps, Plus $19.99/mo 25 apps, Max $79.99/mo 100 apps.
-- CTA: "Try Karko AI Free - 2 Complete Applications with Emails"
+- Title: "Useful Apply vs Rezi: Which AI Resume Builder Wins in 2026?"
+- H1: "Useful Apply vs Rezi: Complete Packages vs Resume Scoring (2026)"
+- Current frame: Rezi scores/resume-optimizes; Useful Apply generates packages with emails and fit analysis.
+- Useful Apply pricing: Free 2 apps, Plus $19.99/mo 25 apps, Max $79.99/mo 100 apps.
+- CTA: "Try Useful Apply Free - 2 Complete Applications with Emails"
 
 4. `/compare/karko-ai-vs-kickresume`
 
-- Title: "Karko AI vs Kickresume: Which Resume Builder Wins in 2026?"
-- H1: "Karko AI vs Kickresume: AI Applications vs Design Templates (2026)"
-- Current frame: Kickresume focuses on design/templates/portfolio; Karko focuses on ATS-safe complete applications.
-- CTA: "Try Karko AI Free - 2 ATS-Optimized Applications"
+- Title: "Useful Apply vs Kickresume: Which Resume Builder Wins in 2026?"
+- H1: "Useful Apply vs Kickresume: AI Applications vs Design Templates (2026)"
+- Current frame: Kickresume focuses on design/templates/portfolio; Useful Apply focuses on ATS-safe complete applications.
+- CTA: "Try Useful Apply Free - 2 ATS-Optimized Applications"
 
 5. `/compare/karko-ai-vs-enhancv`
 
-- Title: "Karko AI vs Enhancv: Which Resume Builder Wins in 2026?"
-- H1: "Karko AI vs Enhancv: AI Applications vs Multi-Language Builder (2026)"
-- Current frame: Enhancv has multi-language builder and job tracking; Karko has complete application packages with emails.
-- Stale/important copy: summary table says Karko Job Tracking = "Roadmap"; Karko cons include "No job tracking (yet - on roadmap)."
-- CTA: "Try Karko AI Free - 2 Complete Applications"
+- Title: "Useful Apply vs Enhancv: Which Resume Builder Wins in 2026?"
+- H1: "Useful Apply vs Enhancv: AI Applications vs Multi-Language Builder (2026)"
+- Current frame: Enhancv has multi-language builder and job tracking; Useful Apply has complete application packages with emails.
+- Stale/important copy: summary table says Useful Apply Job Tracking = "Roadmap"; Useful Apply cons include "No job tracking (yet - on roadmap)."
+- CTA: "Try Useful Apply Free - 2 Complete Applications"
 
 6. `/compare/karko-ai-vs-resume-io`
 
-- Title: "Karko AI vs Resume.io: Which Resume Builder Wins in 2026?"
-- H1: "Karko AI vs Resume.io: Focused Quality vs Full Ecosystem (2026)"
-- Current frame: Resume.io has broader ecosystem, recruiter matching, auto-apply; Karko focuses on controlled strategic applications.
-- CTA: "Try Karko AI Free - 2 Strategic Applications"
+- Title: "Useful Apply vs Resume.io: Which Resume Builder Wins in 2026?"
+- H1: "Useful Apply vs Resume.io: Focused Quality vs Full Ecosystem (2026)"
+- Current frame: Resume.io has broader ecosystem, recruiter matching, auto-apply; Useful Apply focuses on controlled strategic applications.
+- CTA: "Try Useful Apply Free - 2 Strategic Applications"
 
 ### Comparison Content Patterns
 
-Karko is repeatedly described as:
+Useful Apply is repeatedly described as:
 
 - "AI-powered job application assistant"
 - "complete application packages"
@@ -806,7 +806,7 @@ Karko is repeatedly described as:
 Common stale points to revisit:
 
 - Job tracking described as unavailable/roadmap in Teal and Enhancv comparisons.
-- Chrome extension absence is listed as a Karko con.
+- Chrome extension absence is listed as a Useful Apply con.
 - Smart Job Feed is not present as a comparison advantage.
 - Pricing volume is still expressed only as application credits, not job feed volume.
 
@@ -818,7 +818,7 @@ Source: `src/app/blog/page.tsx`
 
 Hero:
 
-- Badge: "KarKo AI Blog"
+- Badge: "Useful Apply Blog"
 - Headline: "Career Tips, AI Insights & Job Search Strategies"
 - Supporting copy: "Practical advice to help you land your dream job faster. From CV optimization to interview prep, powered by real-world insights."
 - RSS link: "Subscribe via RSS"
@@ -827,19 +827,19 @@ Empty state, if no posts:
 
 - "Coming Soon"
 - "We're working on expert articles about CV optimization, AI in job search, and career strategies. Stay tuned!"
-- CTA: "Try KarKo AI Free"
+- CTA: "Try Useful Apply Free"
 
 Blog listing CTA:
 
 - Headline: "Ready to Apply Smarter?"
-- Copy: "Stop spending hours on each application. Let KarKo AI generate your complete job application in under 90 seconds."
+- Copy: "Stop spending hours on each application. Let Useful Apply generate your complete job application in under 90 seconds."
 - CTA: "Try It Free — No Sign Up Required" -> `/dashboard`
 
 ### Relevant Blog/Data Store Patterns
 
 Source: `src/lib/blog/posts.ts`
 
-Repeated Karko claims in post content:
+Repeated Useful Apply claims in post content:
 
 - Free for first 2 applications.
 - No credit card.
@@ -850,12 +850,12 @@ Repeated Karko claims in post content:
 
 Important related post sections:
 
-- Follow-up email post says follow-up emails increase chances by 40% and Karko generates follow-up email as part of the 4-document package.
-- Tailoring resume post says Karko reduces 100 applications from 33 hours to 2.5 hours.
-- ATS optimization post says Karko outputs are ATS-optimized by default.
-- Cover letter post says customized cover letters get 50% more callbacks and Karko includes cover letter plus CV, email, follow-up.
+- Follow-up email post says follow-up emails increase chances by 40% and Useful Apply generates follow-up email as part of the 4-document package.
+- Tailoring resume post says Useful Apply reduces 100 applications from 33 hours to 2.5 hours.
+- ATS optimization post says Useful Apply outputs are ATS-optimized by default.
+- Cover letter post says customized cover letters get 50% more callbacks and Useful Apply includes cover letter plus CV, email, follow-up.
 - AI tools comparison post includes a matrix and pricing references. It also references Teal's Chrome extension.
-- "How long to apply" style content frames manual applications as 45-60 minutes and Karko as 90 seconds.
+- "How long to apply" style content frames manual applications as 45-60 minutes and Useful Apply as 90 seconds.
 
 ### Related Product SEO Pages
 
@@ -937,7 +937,7 @@ No CV:
 
 - Signed-in heading: "Upload your CV to get started"
 - Anonymous heading: "Your AI Job Application Assistant"
-- Copy: upload CV, paste JD, Karko creates tailored CV, cover letter, application emails.
+- Copy: upload CV, paste JD, Useful Apply creates tailored CV, cover letter, application emails.
 
 Anonymous CTA block:
 
@@ -1187,7 +1187,7 @@ Headline:
 
 Supporting copy:
 
-- "Tell Karko what you're looking for. Each morning, your best matches are ready when you open this page."
+- "Tell Useful Apply what you're looking for. Each morning, your best matches are ready when you open this page."
 
 CTAs:
 
@@ -1208,7 +1208,7 @@ Headline:
 
 Supporting copy:
 
-- "Upgrade to Plus and Karko will search for jobs while you sleep. When you open this page, your top matches are already here."
+- "Upgrade to Plus and Useful Apply will search for jobs while you sleep. When you open this page, your top matches are already here."
 
 Bullets:
 
@@ -1252,7 +1252,7 @@ Delivery subcopy:
 
 Setup required:
 
-- "Add your roles and delivery time so Karko knows what to look for."
+- "Add your roles and delivery time so Useful Apply knows what to look for."
 - CTA: "Start setup"
 
 Paused:
@@ -1266,8 +1266,8 @@ Awaiting first run:
 
 Generating:
 
-- If previous jobs exist: "Karko is finding your latest jobs right now. The cards below are from your most recent completed feed."
-- Otherwise: "Karko is finding your jobs right now. This usually takes a few minutes."
+- If previous jobs exist: "Useful Apply is finding your latest jobs right now. The cards below are from your most recent completed feed."
+- Otherwise: "Useful Apply is finding your jobs right now. This usually takes a few minutes."
 
 Empty:
 
@@ -1315,12 +1315,12 @@ Step 1:
 Step 2:
 
 - Heading: "How do you want to work?"
-- Work modes help: "This is the only place remote preference is set. Pick any that work for you — Karko will match jobs to any mode you choose."
+- Work modes help: "This is the only place remote preference is set. Pick any that work for you — Useful Apply will match jobs to any mode you choose."
 
 Step 3:
 
 - Heading: "When should we deliver your jobs?"
-- Delivery time help: "Karko prepares your feed at this hour in your local time."
+- Delivery time help: "Useful Apply prepares your feed at this hour in your local time."
 - Timezone help: "Needed so we schedule and rank jobs for your local day."
 - Optional browser timezone CTA.
 
@@ -1334,7 +1334,7 @@ Step 4:
 
 Consent:
 
-- "I agree to let Karko search for jobs on my behalf once a day, using the preferences above."
+- "I agree to let Useful Apply search for jobs on my behalf once a day, using the preferences above."
 
 Save actions:
 
@@ -1361,8 +1361,8 @@ Job card labels:
 
 Job actions:
 
-- "Apply with Karko"
-- "Continue in Karko"
+- "Apply with Useful Apply"
+- "Continue in Useful Apply"
 - "Employer site"
 - "View details"
 - "Copy" / "Copied"
@@ -1401,7 +1401,7 @@ Footer actions:
 - Dismiss
 - Copy / Copied
 - Employer site
-- Apply with Karko / Continue in Karko
+- Apply with Useful Apply / Continue in Useful Apply
 
 ### Saved Jobs View
 
@@ -1424,8 +1424,8 @@ Non-empty summary:
 This section documents current-state issues only; it does not prescribe new copy.
 
 - Pricing card Max feature still says "Chrome Extension: auto-fill ATS forms" with "Coming Soon" on home, pricing, insufficient credits modal, and subscription settings.
-- Comparison pages still describe Karko job tracking as unavailable/roadmap in Teal and Enhancv comparisons.
-- Comparison pages do not mention Smart Job Feed as a Karko advantage.
+- Comparison pages still describe Useful Apply job tracking as unavailable/roadmap in Teal and Enhancv comparisons.
+- Comparison pages do not mention Smart Job Feed as a Useful Apply advantage.
 - Features page plan table says Free 10 credits and Plus 100 credits, while pricing and account systems say Free 4 and Plus 50.
 - Pricing FAQ says each application includes CV, cover letter, and professional application email, but omits follow-up email.
 - Pricing "Full Application" credit card says "CV + Cover Letter + Email" but omits follow-up email.
@@ -1444,7 +1444,7 @@ This section documents current-state issues only; it does not prescribe new copy
 - "View Pricing" -> `/pricing`
 - "View credit details and add-ons" -> `/pricing`
 - "Try It Free - 2 Applications, No Credit Card" -> `/dashboard`
-- "Try Karko AI Free" -> `/dashboard`
+- "Try Useful Apply Free" -> `/dashboard`
 - "View Plans" -> `/pricing`
 - "Buy Credits" / "Buy More Credits" -> add-on checkout or `/pricing#addons`
 - "Upgrade to Plus" -> `/pricing` or checkout
@@ -1453,6 +1453,6 @@ This section documents current-state issues only; it does not prescribe new copy
 - "Open Job Feed" -> dashboard Job Feed workspace
 - "Sign up free" -> `/auth/signup`
 - "Already have an account? Sign in" -> `/auth/login`
-- "Apply with Karko" / "Continue in Karko" -> application workspace handoff
+- "Apply with Useful Apply" / "Continue in Useful Apply" -> application workspace handoff
 - "Employer site" -> external apply/source URL
 

@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next';
+import { BRAND } from '@/lib/brand';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || BRAND.url;
 
 export default function robots(): MetadataRoute.Robots {
   const appRoutes = ['/api/', '/dashboard/', '/documents/', '/settings/'];
