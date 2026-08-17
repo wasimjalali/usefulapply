@@ -39,6 +39,12 @@ const nextConfig: NextConfig = {
       { source: '/compare/karko-ai-vs-resume-io', destination: '/compare/usefulapply-vs-resume-io', permanent: true },
     ];
   },
+  // Staging builds (NEXT_PUBLIC_SITE_STAGE=staging at build time) must not be indexed
+  // while karkoai.com is still the live site. Removed at cutover (Task 9.3).
+  async headers() {
+    if (process.env.NEXT_PUBLIC_SITE_STAGE !== 'staging') return [];
+    return [{ source: '/:path*', headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] }];
+  },
 };
 
 // PostHog source map upload — only enabled when env vars are set (build-time)

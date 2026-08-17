@@ -32,6 +32,8 @@ function cleanup() {
 }
 
 interface RateLimitConfig {
+  /** Bucket name, used to pick the Workers Rate Limiting binding. Set on every RATE_LIMITS entry. */
+  name?: string;
   /** Max requests allowed in the window */
   limit: number;
   /** Window size in milliseconds */
@@ -116,10 +118,10 @@ declare global {
 }
 
 function bucketForConfig(config: RateLimitConfig): BoundRateLimitRoute | null {
-  for (const [name, named] of Object.entries(RATE_LIMITS)) {
-    if (named === config && name in RATE_LIMIT_BINDING_NAMES) {
-      return name as BoundRateLimitRoute;
-    }
+  // Match by name, not object identity: bundlers can duplicate this module so the
+  // RATE_LIMITS object a route imports is not the same instance as the one here.
+  if (config.name && config.name in RATE_LIMIT_BINDING_NAMES) {
+    return config.name as BoundRateLimitRoute;
   }
   return null;
 }
@@ -133,8 +135,14 @@ async function getRateLimitBinding(bucket: BoundRateLimitRoute): Promise<RateLim
     return undefined;
   }
   const bindingName = RATE_LIMIT_BINDING_NAMES[bucket];
-  return env[bindingName];
+  const binding = env[bindingName];
+  if (!binding && !warnedMissingBinding.has(bucket)) {
+    warnedMissingBinding.add(bucket);
+    console.warn(`[rateLimiter] no ${bindingName} binding, using in-memory limiter for ${bucket}`);
+  }
+  return binding;
 }
+const warnedMissingBinding = new Set<string>();
 
 function checkRateLimitMemory(key: string, config: RateLimitConfig): RateLimitResult {
   const now = Date.now();
@@ -209,34 +217,34 @@ export function getClientIP(request: Request): string {
 
 // Pre-configured rate limits per route
 export const RATE_LIMITS = {
-  'agent-v2':           { limit: 5,  windowMs: 60_000 },
-  'parse-cv':           { limit: 10, windowMs: 60_000 },
-  'chat':               { limit: 20, windowMs: 60_000 },
-  'contact':            { limit: 3,  windowMs: 60_000 },
-  'generate-pdf':       { limit: 10, windowMs: 60_000 },
-  'regenerate':         { limit: 10, windowMs: 60_000 },
-  'signup':             { limit: 3,  windowMs: 60_000 },
-  'forgot-password':    { limit: 5,  windowMs: 60_000 },
-  'post-confirm':       { limit: 5,  windowMs: 60_000 },
-  'job-feed-settings':  { limit: 10, windowMs: 60_000 },
-  'job-feed-overview':  { limit: 15, windowMs: 60_000 },
-  'job-feed-saved':     { limit: 15, windowMs: 60_000 },
-  'job-feed-feedback':  { limit: 20, windowMs: 60_000 },
-  'job-feed-apply':     { limit: 10, windowMs: 60_000 },
-  'job-feed-run':       { limit: 2,  windowMs: 60_000 },
-  'job-feed-dev-run':   { limit: 3,  windowMs: 60_000 },
-  'job-feed-inbox':     { limit: 30, windowMs: 60_000 },
-  'credits-balance':    { limit: 30, windowMs: 60_000 },
-  'delete-account':     { limit: 3,  windowMs: 60_000 },
-  'create-checkout':         { limit: 5,  windowMs: 60_000 },
-  'create-addon-checkout':   { limit: 5,  windowMs: 60_000 },
-  'create-portal':           { limit: 3,  windowMs: 60_000 },
-  'job-feed-apply-gen':      { limit: 60, windowMs: 60_000 },
-  'job-feed-apply-status':   { limit: 30, windowMs: 60_000 },
-  'career-profile-generate': { limit: 6,  windowMs: 60_000 },
-  'anon-parse':              { limit: 5,  windowMs: 3_600_000 }, // hourly cap is in-memory only (per isolate on Workers)
-  'anon-parse-minute':       { limit: 2,  windowMs: 60_000 },    // enforced by the Workers binding
-  'search-strategy-generate': { limit: 3,  windowMs: 60_000 },
+  'agent-v2':           { name: 'agent-v2', limit: 5,  windowMs: 60_000 },
+  'parse-cv':           { name: 'parse-cv', limit: 10, windowMs: 60_000 },
+  'chat':               { name: 'chat', limit: 20, windowMs: 60_000 },
+  'contact':            { name: 'contact', limit: 3,  windowMs: 60_000 },
+  'generate-pdf':       { name: 'generate-pdf', limit: 10, windowMs: 60_000 },
+  'regenerate':         { name: 'regenerate', limit: 10, windowMs: 60_000 },
+  'signup':             { name: 'signup', limit: 3,  windowMs: 60_000 },
+  'forgot-password':    { name: 'forgot-password', limit: 5,  windowMs: 60_000 },
+  'post-confirm':       { name: 'post-confirm', limit: 5,  windowMs: 60_000 },
+  'job-feed-settings':  { name: 'job-feed-settings', limit: 10, windowMs: 60_000 },
+  'job-feed-overview':  { name: 'job-feed-overview', limit: 15, windowMs: 60_000 },
+  'job-feed-saved':     { name: 'job-feed-saved', limit: 15, windowMs: 60_000 },
+  'job-feed-feedback':  { name: 'job-feed-feedback', limit: 20, windowMs: 60_000 },
+  'job-feed-apply':     { name: 'job-feed-apply', limit: 10, windowMs: 60_000 },
+  'job-feed-run':       { name: 'job-feed-run', limit: 2,  windowMs: 60_000 },
+  'job-feed-dev-run':   { name: 'job-feed-dev-run', limit: 3,  windowMs: 60_000 },
+  'job-feed-inbox':     { name: 'job-feed-inbox', limit: 30, windowMs: 60_000 },
+  'credits-balance':    { name: 'credits-balance', limit: 30, windowMs: 60_000 },
+  'delete-account':     { name: 'delete-account', limit: 3,  windowMs: 60_000 },
+  'create-checkout':         { name: 'create-checkout', limit: 5,  windowMs: 60_000 },
+  'create-addon-checkout':   { name: 'create-addon-checkout', limit: 5,  windowMs: 60_000 },
+  'create-portal':           { name: 'create-portal', limit: 3,  windowMs: 60_000 },
+  'job-feed-apply-gen':      { name: 'job-feed-apply-gen', limit: 60, windowMs: 60_000 },
+  'job-feed-apply-status':   { name: 'job-feed-apply-status', limit: 30, windowMs: 60_000 },
+  'career-profile-generate': { name: 'career-profile-generate', limit: 6,  windowMs: 60_000 },
+  'anon-parse':              { name: 'anon-parse', limit: 5,  windowMs: 3_600_000 }, // hourly cap is in-memory only (per isolate on Workers)
+  'anon-parse-minute':       { name: 'anon-parse-minute', limit: 2,  windowMs: 60_000 },    // enforced by the Workers binding
+  'search-strategy-generate': { name: 'search-strategy-generate', limit: 3,  windowMs: 60_000 },
 } as const;
 
 export type RateLimitRoute = keyof typeof RATE_LIMITS;

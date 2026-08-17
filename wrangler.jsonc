@@ -31,8 +31,7 @@
 	"kv_namespaces": [
 		{
 			"binding": "CONTEXT_CACHE",
-			// Namespace created in Task 3.5. Local preview uses wrangler's simulated KV.
-			"id": "TODO(Task 3.5)"
+			"id": "2de5d12fd4934bbcad48fb1b95fc4cf6"
 		}
 	],
 	// One Rate Limiting binding per RATE_LIMITS bucket (60s windows).
@@ -72,21 +71,15 @@
 	"limits": {
 		"cpu_ms": 300000
 	},
+	// Crons are OFF while this Worker is staging (it still talks to the production
+	// Supabase DB, and pg_cron already runs the hourly resend). Phase 9 enables:
+	// "0 3 * * *", "*/10 * * * *", "0 * * * *" (must match src/cron/index.ts).
 	"triggers": {
-		"crons": [
-			"0 3 * * *",
-			"*/10 * * * *",
-			"0 * * * *"
-		]
+		"crons": []
 	},
+	// Custom Domains create the DNS records and certificates automatically.
 	"routes": [
-		{
-			"pattern": "usefulapply.com/*",
-			"zone_name": "usefulapply.com"
-		},
-		{
-			"pattern": "www.usefulapply.com/*",
-			"zone_name": "usefulapply.com"
-		}
+		{ "pattern": "usefulapply.com", "custom_domain": true },
+		{ "pattern": "www.usefulapply.com", "custom_domain": true }
 	]
 }
