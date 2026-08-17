@@ -61,3 +61,4 @@ temp/
 .open-next/
 .wrangler/
 .dev.vars
+scripts/migrate/out/
