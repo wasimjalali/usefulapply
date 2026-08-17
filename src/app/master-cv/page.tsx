@@ -6,6 +6,7 @@ import { Copy, Check, FileText, Sparkles, Target, Clock, ArrowRight, CheckCircle
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
+import { BRAND } from '@/lib/brand';
 
 // The Master CV Prompt
 const MASTER_CV_PROMPT = `You are helping me create a Master CV, a complete inventory of my professional background. This is NOT a regular CV to send to employers. It's a detailed reference document (up to 5 pages) that an AI job application tool will use to generate tailored applications for me.
@@ -255,7 +256,7 @@ export default function MasterCVPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const SITE_URL = 'https://www.karkoai.com';
+  const SITE_URL = BRAND.url;
 
   // Breadcrumb JSON-LD
   const breadcrumbJsonLd = {
@@ -305,8 +306,8 @@ export default function MasterCVPage() {
       {
         '@type': 'HowToStep',
         position: 5,
-        name: 'Upload to Karko AI',
-        text: 'Upload your completed Master CV to Karko AI to generate tailored job applications.',
+        name: 'Upload to Useful Apply',
+        text: 'Upload your completed Master CV to Useful Apply to generate tailored job applications.',
       },
     ],
   };
@@ -318,10 +319,10 @@ export default function MasterCVPage() {
     headline: 'Create Your Master CV',
     description:
       'A Master CV is a comprehensive skills inventory (5-10 pages) that powers hyper-personalized job applications. Build it once, use it for every application.',
-    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+    author: { '@type': 'Organization', name: 'Useful Apply', url: SITE_URL },
     publisher: {
       '@type': 'Organization',
-      name: 'KarKo AI',
+      name: 'Useful Apply',
       url: SITE_URL,
       logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon-512x512.png` },
     },
@@ -381,7 +382,7 @@ export default function MasterCVPage() {
               What is a Master CV?
             </h2>
             <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-              It is not something you send to employers. It is a detailed reference document containing your complete professional history, so KarKo AI can create perfectly tailored applications.
+              It is not something you send to employers. It is a detailed reference document containing your complete professional history, so Useful Apply can create perfectly tailored applications.
             </p>
           </div>
           </ScrollReveal>
@@ -487,7 +488,7 @@ export default function MasterCVPage() {
             Ready to create your Master CV?
           </h2>
           <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
-            Copy the prompt above, create your Master CV in about 30 minutes, then upload it to KarKo AI to supercharge your job applications.
+            Copy the prompt above, create your Master CV in about 30 minutes, then upload it to Useful Apply to supercharge your job applications.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button

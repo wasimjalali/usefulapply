@@ -87,7 +87,7 @@ export function getJobFeedCardActions(params: {
           }
         : {
             kind: 'continue',
-            label: 'Continue in Karko',
+            label: 'Continue in Useful Apply',
             variant: 'gold',
           },
       secondary: canAskScreening
@@ -136,7 +136,7 @@ export function getJobFeedCardActions(params: {
       badge: 'Generating',
       primary: {
         kind: 'continue',
-        label: 'Continue in Karko',
+        label: 'Continue in Useful Apply',
         variant: 'gold',
       },
       secondary: null,
@@ -149,7 +149,7 @@ export function getJobFeedCardActions(params: {
       badge: 'Application started',
       primary: {
         kind: 'continue',
-        label: 'Continue in Karko',
+        label: 'Continue in Useful Apply',
         variant: 'gold',
       },
       secondary: null,

@@ -66,7 +66,7 @@ export function JobFeedSetupBuildingCard() {
               Building your AI feed
             </h2>
             <p className="mt-1.5 text-sm leading-6 text-warm-gray">
-              Karko is reading your CV, inferring your profile, and planning your search. Usually 15 to 25 seconds.
+              Useful Apply is reading your CV, inferring your profile, and planning your search. Usually 15 to 25 seconds.
             </p>
           </div>
         </div>

@@ -19,9 +19,9 @@ const PANELS: Panel[] = [
     title: 'Up to 25 hand-picked roles,',
     titleAccent: 'delivered to your feed every morning.',
     description:
-      'While you sleep, Karko searches the web and picks roles that actually fit you. Matched to your CV, your goals, your location. No keyword searches, no six-tab job-board marathon. Open the app and start applying.',
+      'While you sleep, Useful Apply searches the web and picks roles that actually fit you. Matched to your CV, your goals, your location. No keyword searches, no six-tab job-board marathon. Open the app and start applying.',
     image: '/screenshots/product-01-job-feed.webp',
-    imageAlt: 'Karko Smart Job Feed with six hand-picked roles and match scores',
+    imageAlt: 'Useful Apply Smart Job Feed with six hand-picked roles and match scores',
   },
   {
     id: 'application-kit',
@@ -31,7 +31,7 @@ const PANELS: Panel[] = [
     description:
       'A fit score and ATS check first, so you know where you stand. Then the full application: tailored CV, cover letter, application email, follow-up, and answers to every screening question. All pulled from your real CV. Nothing invented.',
     image: '/screenshots/03-application-kit-generated.webp',
-    imageAlt: 'Karko full application, tailored CV with Cover Letter, Email, and Screening Answers tabs',
+    imageAlt: 'Useful Apply full application, tailored CV with Cover Letter, Email, and Screening Answers tabs',
   },
   {
     id: 'tracker',
@@ -41,7 +41,7 @@ const PANELS: Panel[] = [
     description:
       'Company, role, match score, status, date, and a ready-to-send follow-up. One view of your whole job search, so you always know where each application stands.',
     image: '/screenshots/11-job-feed-empty-upsell.webp',
-    imageAlt: 'Karko Application Tracker with match scores and status pills',
+    imageAlt: 'Useful Apply Application Tracker with match scores and status pills',
   },
 ];
 

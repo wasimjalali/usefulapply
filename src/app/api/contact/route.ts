@@ -123,16 +123,16 @@ export async function POST(request: NextRequest) {
 
           <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
             <p style="margin: 0; color: #64748b; font-size: 14px;">
-              This message was sent from the KarKo AI contact form.
+              This message was sent from the Useful Apply contact form.
             </p>
           </div>
         </div>
       `;
 
       await resend.emails.send({
-        from: 'KarKo AI <noreply@karkoai.com>',
-        to: 'support@karkoai.com',
-        subject: `KarKo AI Contact: ${safeSubject}`,
+        from: 'Useful Apply <noreply@karkoai.com>', // TODO(Task 7.1): switch to noreply@usefulapply.com once Cloudflare Email Service sends for that domain
+        to: 'support@karkoai.com', // TODO(Task 7.1): switch to support@usefulapply.com once the mailbox is routed
+        subject: `Useful Apply Contact: ${safeSubject}`,
         html: emailContent,
       });
       emailSent = true;

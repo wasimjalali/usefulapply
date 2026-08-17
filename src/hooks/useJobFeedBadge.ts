@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-const LAST_SEEN_KEY_PREFIX = 'karko_job_feed_last_seen_run_date';
+const LAST_SEEN_KEY_PREFIX = 'usefulapply_job_feed_last_seen_run_date';
+const LAST_SEEN_KEY_PREFIX_OLD = 'karko_job_feed_last_seen_run_date';
 
 type JobFeedSummary = {
   canAccess: boolean;
@@ -12,14 +13,22 @@ type JobFeedSummary = {
   lastSeenRunDate: string | null;
 };
 
-function getLastSeenKey(userId?: string | null): string {
-  return userId ? `${LAST_SEEN_KEY_PREFIX}:${userId}` : LAST_SEEN_KEY_PREFIX;
+function getLastSeenKey(userId?: string | null, prefix: string = LAST_SEEN_KEY_PREFIX): string {
+  return userId ? `${prefix}:${userId}` : prefix;
 }
 
 function readLocalCache(userId?: string | null): string | null {
   if (typeof window === 'undefined') return null;
   try {
-    return window.localStorage.getItem(getLastSeenKey(userId));
+    const nextKey = getLastSeenKey(userId);
+    const next = window.localStorage.getItem(nextKey);
+    if (next !== null) return next;
+    const prev = window.localStorage.getItem(getLastSeenKey(userId, LAST_SEEN_KEY_PREFIX_OLD));
+    if (prev !== null) {
+      window.localStorage.setItem(nextKey, prev);
+      return prev;
+    }
+    return null;
   } catch {
     return null;
   }

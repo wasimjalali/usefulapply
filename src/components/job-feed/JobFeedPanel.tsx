@@ -118,7 +118,7 @@ export function JobFeedPanel() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSetupWizardOpen, setIsSetupWizardOpen] = useState(false);
   // First-time-save flag. While true, the setup view renders the
-  // building-progress card while Karko synthesizes the profile and search
+  // building-progress card while Useful Apply synthesizes the profile and search
   // strategy in the background. Resets when both AI calls complete or fail.
   const [isBuildingFirstFeed, setIsBuildingFirstFeed] = useState(false);
   const [draftForm, setDraftForm] = useState<JobFeedSettingsInput | null>(null);
@@ -598,7 +598,7 @@ export function JobFeedPanel() {
     };
   }, [findApplicationSessionForJob]);
 
-  const createOrLoadKarkoApplication = useCallback(async (job: JobFeedFeedItem): Promise<JobFeedApplyResponse> => {
+  const createOrLoadApplication = useCallback(async (job: JobFeedFeedItem): Promise<JobFeedApplyResponse> => {
     const response = await fetch('/api/job-feed/apply', {
       method: 'POST',
       headers: {
@@ -793,11 +793,11 @@ export function JobFeedPanel() {
     }
   }, [applyPreviewFeedback, isPreviewing, loadOverview, overview?.feedRun?.id, posthog, recordJobFeedback, removeJobFromOverview, selectedJob?.id]);
 
-  // Shared handler for both "Apply with Karko" (full generation) and
+  // Shared handler for both "Apply with Useful Apply" (full generation) and
   // "Check fit first" (0.5-credit analyze-first). Posts to the same
   // apply endpoint to create/reuse the session + generation row, then
   // routes into the Application Kit with a different autostart signal.
-  const startKarkoHandoff = useCallback(async (job: JobFeedFeedItem, mode: 'apply' | 'analyze') => {
+  const startApplyHandoff = useCallback(async (job: JobFeedFeedItem, mode: 'apply' | 'analyze') => {
     const isRetry =
       job.feedback.generationStatus === 'failed' ||
       job.feedback.generationStatus === 'cancelled';
@@ -822,7 +822,7 @@ export function JobFeedPanel() {
         });
       }
 
-      const typedPayload = await createOrLoadKarkoApplication(job);
+      const typedPayload = await createOrLoadApplication(job);
       setSelectedJob(null);
       const shouldAutostartGeneration = Boolean(currentCV) && typedPayload.generation.status === 'intent_created';
 
@@ -863,19 +863,19 @@ export function JobFeedPanel() {
         mode,
       }));
     } catch (error) {
-      toastRef.current.error(error instanceof Error ? error.message : 'Failed to start the Karko AI application handoff.');
+      toastRef.current.error(error instanceof Error ? error.message : 'Failed to start the Useful Apply application handoff.');
     } finally {
       setPendingJobAction(null);
     }
-  }, [applyPreviewFeedback, createOrLoadKarkoApplication, currentCV, isPreviewing, overview?.feedRun?.id, posthog, router]);
+  }, [applyPreviewFeedback, createOrLoadApplication, currentCV, isPreviewing, overview?.feedRun?.id, posthog, router]);
 
-  const handleApplyWithKarko = useCallback(
-    (job: JobFeedFeedItem) => startKarkoHandoff(job, 'apply'),
-    [startKarkoHandoff],
+  const handleApplyWithBrand = useCallback(
+    (job: JobFeedFeedItem) => startApplyHandoff(job, 'apply'),
+    [startApplyHandoff],
   );
   const handleAnalyzeFirst = useCallback(
-    (job: JobFeedFeedItem) => startKarkoHandoff(job, 'analyze'),
-    [startKarkoHandoff],
+    (job: JobFeedFeedItem) => startApplyHandoff(job, 'analyze'),
+    [startApplyHandoff],
   );
 
   const openApplicationSession = useCallback(async (job: JobFeedFeedItem): Promise<StoreApplicationSession | null> => {
@@ -890,9 +890,9 @@ export function JobFeedPanel() {
       return existingSession;
     }
 
-    const payload = await createOrLoadKarkoApplication(job);
+    const payload = await createOrLoadApplication(job);
     return toStoreApplicationSession(payload.session, payload.generation);
-  }, [createOrLoadKarkoApplication, findApplicationSessionForJob, isPreviewing, loadApplicationSession]);
+  }, [createOrLoadApplication, findApplicationSessionForJob, isPreviewing, loadApplicationSession]);
 
   const openApplicationPath = useCallback((sessionId: string) => {
     router.push(`/dashboard?${new URLSearchParams({
@@ -915,7 +915,7 @@ export function JobFeedPanel() {
       useUIStore.getState().setPendingApplicationAction(action);
       openApplicationPath(session.id);
     } catch (error) {
-      toastRef.current.error(error instanceof Error ? error.message : 'Failed to open this application in Karko.');
+      toastRef.current.error(error instanceof Error ? error.message : 'Failed to open this application in Useful Apply.');
     } finally {
       setPendingJobAction(null);
     }
@@ -930,7 +930,7 @@ export function JobFeedPanel() {
       setSelectedJob(null);
       openApplicationPath(session.id);
     } catch (error) {
-      toastRef.current.error(error instanceof Error ? error.message : 'Failed to open this application in Karko.');
+      toastRef.current.error(error instanceof Error ? error.message : 'Failed to open this application in Useful Apply.');
     } finally {
       setPendingJobAction(null);
     }
@@ -940,7 +940,7 @@ export function JobFeedPanel() {
     switch (action) {
       case 'generate':
       case 'retry-generate':
-        void handleApplyWithKarko(job);
+        void handleApplyWithBrand(job);
         break;
       case 'check-fit':
         void handleAnalyzeFirst(job);
@@ -961,7 +961,7 @@ export function JobFeedPanel() {
         void dispatchApplicationAction(job, 'skip-screening');
         break;
     }
-  }, [continueApplication, dispatchApplicationAction, handleAnalyzeFirst, handleApplyWithKarko]);
+  }, [continueApplication, dispatchApplicationAction, handleAnalyzeFirst, handleApplyWithBrand]);
 
   const handleExternalApply = useCallback((job: JobFeedFeedItem) => {
     if (isPreviewing) {
@@ -1034,7 +1034,7 @@ export function JobFeedPanel() {
           if (!profileResponse.ok || profilePayload?.status === 'no_cv') {
             throw new Error(
               profilePayload?.status === 'no_cv'
-                ? 'Upload your CV first so Karko can build your search profile.'
+                ? 'Upload your CV first so Useful Apply can build your search profile.'
                 : (profilePayload?.error || 'Could not build your AI search profile. Please try again.')
             );
           }
@@ -1460,7 +1460,7 @@ function SignedOutStage() {
           Jobs picked for you, every day
         </h1>
         <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-warm-gray">
-          Upload your CV and Karko finds matching jobs for you. Fresh picks are ready every time you open this page.
+          Upload your CV and Useful Apply finds matching jobs for you. Fresh picks are ready every time you open this page.
         </p>
 
         <ul className="mx-auto mt-6 flex max-w-sm flex-col gap-2 text-left text-sm text-charcoal">
@@ -1474,7 +1474,7 @@ function SignedOutStage() {
           </li>
           <li className="flex items-start gap-2">
             <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gold-400" />
-            Apply with Karko in one click
+            Apply with Useful Apply in one click
           </li>
         </ul>
 
@@ -1512,7 +1512,7 @@ function UpgradeStage() {
           Get jobs picked for you, every morning
         </h1>
         <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-warm-gray">
-          Upgrade to Plus and Karko will search for jobs while you sleep. When you open this page, your top matches are already here.
+          Upgrade to Plus and Useful Apply will search for jobs while you sleep. When you open this page, your top matches are already here.
         </p>
 
         <ul className="mx-auto mt-6 flex max-w-sm flex-col gap-2 text-left text-sm text-charcoal">
@@ -1904,14 +1904,14 @@ function InlineStateMessage({
   }> = {
     setup_required: {
       icon: Settings2,
-      message: 'Add your roles and timezone so Karko knows what to look for.',
+      message: 'Add your roles and timezone so Useful Apply knows what to look for.',
       action: 'Start setup',
       tone: 'primary',
       ctaVariant: 'gold',
     },
     no_cv_required: {
       icon: Settings2,
-      message: 'Upload your CV and Karko builds your daily feed automatically. No setup needed.',
+      message: 'Upload your CV and Useful Apply builds your daily feed automatically. No setup needed.',
       action: 'Upload your CV',
       tone: 'primary',
       ctaVariant: 'gold',
@@ -1931,8 +1931,8 @@ function InlineStateMessage({
     generating: {
       icon: Loader2,
       message: overview?.jobs?.length
-        ? 'Karko is finding your latest jobs right now. The cards below are from your most recent completed feed.'
-        : 'Karko is finding your jobs right now. This usually takes a few minutes.',
+        ? 'Useful Apply is finding your latest jobs right now. The cards below are from your most recent completed feed.'
+        : 'Useful Apply is finding your jobs right now. This usually takes a few minutes.',
       tone: 'neutral',
     },
     empty: {
@@ -1989,10 +1989,10 @@ function InlineStateMessage({
           <Sparkles className="h-7 w-7" />
         </div>
         <h2 className="mt-5 max-w-xl text-2xl font-semibold tracking-tight text-charcoal">
-          Click to let Karko hand-pick jobs for today
+          Click to let Useful Apply hand-pick jobs for today
         </h2>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-warm-gray">
-          Karko will search live, rank the strongest matches, and keep the results in your 7-day feed.
+          Useful Apply will search live, rank the strongest matches, and keep the results in your 7-day feed.
         </p>
         <Button
           variant="gold"
@@ -2346,7 +2346,7 @@ function buildManualRunBlockedNotice(params: {
       kind: 'cooldown',
       title: 'Your feed is already running',
       lines: [
-        'Karko is preparing your jobs right now.',
+        'Useful Apply is preparing your jobs right now.',
         'New cards will appear as soon as ranking finishes.',
       ],
     };

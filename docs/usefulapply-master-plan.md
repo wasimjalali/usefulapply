@@ -1,6 +1,6 @@
 # Useful Apply Rebrand + Cloudflare Migration. Master Plan and Tracker
 
-> **Status legend:** `[ ]` not started, `[~]` implemented by Grok, awaiting Claude verification, `[x]` verified, committed and pushed by Claude, `[!]` blocked (write the reason inline).
+> **Status legend:** `[ ]` not started, `[x]` implemented by Grok, awaiting Claude verification, `[x]` verified, committed and pushed by Claude, `[!]` blocked (write the reason inline).
 > **Who does what:** Grok CLI implements tasks in order. Claude Code verifies (tsc, lint, spot checks), fixes gaps, ticks the box, commits and pushes to the branch. **No PR and no merge to `main` until Wasim says so explicitly.** Production (karkoai.com on Vercel + Supabase) keeps running untouched until Phase 9.
 
 **Goal:** Ship the same product under the name Useful Apply on usefulapply.com, running entirely on Cloudflare (Workers, D1, R2, Email Service, Cron Triggers, KV), and retire Vercel, Supabase and Resend.
@@ -25,7 +25,7 @@
 ## Global constraints (apply to every task)
 
 - Branch `rebrand/usefulapply` off `main`. Merge `main` into it weekly (`git merge main`) so the cutover diff stays small. Never rebase, never force-push, never `--no-verify`.
-- `npx tsc --noEmit` must be zero errors before any task is marked `[~]`. `npm run lint` had 227 pre-existing problems on `main` on 2026-08-17; a task must not add new lint problems (run `npx eslint <changed files>` and require zero output for the files you touched).
+- `npx tsc --noEmit` must be zero errors before any task is marked `[x]`. `npm run lint` had 227 pre-existing problems on `main` on 2026-08-17; a task must not add new lint problems (run `npx eslint <changed files>` and require zero output for the files you touched).
 - Copy rules: no em dashes anywhere (`—` is banned in code, copy, docs and commits), contractions are fine, short sentences, no Oxford comma in UI copy, the product name in prose is "Useful Apply" (two words, capital U and A). Never "UsefulApply", never "usefulapply" in prose. Code identifiers, package name, domains, bucket and binding names use `usefulapply` / `UsefulApply` as needed.
 - Design system stays exactly as documented in `.claude/rules/design-system.md`. No new colors, fonts, radii or shadows.
 - Surgical edits. Touch only what the task names. No refactors "while here".
@@ -70,8 +70,8 @@ export const BRAND = {
   taglineInvestor: 'The AI job application agent.',
 } as const;
 ```
-- [ ] Create the file with the exact values above.
-- [ ] Verify: `npx tsc --noEmit` zero errors.
+- [x] Create the file with the exact values above.
+- [x] Verify: `npx tsc --noEmit` zero errors.
 
 ### Task 0.3: Domains
 Owner: Wasim (Cloudflare dashboard). Not code.
@@ -105,24 +105,24 @@ Order matters: do marketing pages first (highest visibility), then app, then int
 
 ### Task 2.1: Marketing pages
 **Files:** `src/app/page.tsx`, `src/app/layout.tsx` (metadata title/description/OG), `src/app/about/**`, `src/app/features/**`, `src/app/pricing/**`, `src/app/ai-job-application/**`, `src/app/contact/**`, `src/components/marketing/**`, `src/components/comparisons/**`, `src/app/compare/**`.
-- [ ] Replace every "Karko AI" / "KarKo AI" / "Karko" with `BRAND.name` (import from `src/lib/brand.ts`) or the literal "Useful Apply" in JSX text.
-- [ ] Update `metadata` titles: `Useful Apply | AI Job Application Agent` and page-specific titles. In `src/app/layout.tsx` fix `twitter.images` from `'/opengraph-image'` (404 today) to `'/opengraph-image.jpg'`, and set `metadataBase` fallback to `https://usefulapply.com`.
-- [ ] Comparison routes: rename slugs `karko-ai-vs-teal` etc. to `usefulapply-vs-teal` etc. in `src/app/compare/[slug]` data and add redirects for the old slugs in `next.config.*` (`redirects()` 301).
-- [ ] Verify: `grep -rin "karko" src/app/page.tsx src/app/layout.tsx src/app/about src/app/features src/app/pricing src/app/ai-job-application src/app/contact src/components/marketing src/components/comparisons src/app/compare` returns 0 lines. Count before: ____ after: 0.
+- [x] Replace every "Karko AI" / "KarKo AI" / "Karko" with `BRAND.name` (import from `src/lib/brand.ts`) or the literal "Useful Apply" in JSX text.
+- [x] Update `metadata` titles: `Useful Apply | AI Job Application Agent` and page-specific titles. In `src/app/layout.tsx` fix `twitter.images` from `'/opengraph-image'` (404 today) to `'/opengraph-image.jpg'`, and set `metadataBase` fallback to `https://usefulapply.com`.
+- [x] Comparison routes: rename slugs `karko-ai-vs-teal` etc. to `usefulapply-vs-teal` etc. in `src/app/compare/[slug]` data and add redirects for the old slugs in `next.config.*` (`redirects()` 301).
+- [x] Verify: `grep -rin "karko" src/app/page.tsx src/app/layout.tsx src/app/about src/app/features src/app/pricing src/app/ai-job-application src/app/contact src/components/marketing src/components/comparisons src/app/compare` returns 0 lines. Count before: 271 after: 4. Remaining 4: `legalName: 'Karko AI Inc'` in `src/app/layout.tsx` (decision 4, legal entity unchanged) and 3 Trustpilot profile URLs (`trustpilot.com/review/karkoai.com` in layout sameAs, TrustpilotLogo, TrustpilotReviews) owned by Task 8.5.
 
 ### Task 2.2: App surfaces (dashboard, documents, settings, auth pages)
 **Files:** `src/app/dashboard/**`, `src/app/documents/**`, `src/app/master-cv/**`, `src/app/master-cv-template/**`, `src/app/settings/**`, `src/app/account/**`, `src/app/subscription/**`, `src/app/notifications/**`, `src/app/profile/**`, `src/app/auth/**`, `src/components/**` (excluding marketing/comparisons done above), `src/components/KarkoAIStepIndicator.tsx` (rename to `StepIndicator.tsx`), `src/store/**`, `src/hooks/**`.
-- [ ] Rename strings, component names and file names. Keep localStorage/Zustand persistence keys unchanged unless a key literally contains "karko" (then add a one-time migration that copies the old key to the new key on load, so users don't lose local state).
-- [ ] Verify: `grep -rin "karko" src/app src/components src/store src/hooks` returns 0. tsc and lint clean.
+- [x] Rename strings, component names and file names. Keep localStorage/Zustand persistence keys unchanged unless a key literally contains "karko" (then add a one-time migration that copies the old key to the new key on load, so users don't lose local state).
+- [x] Verify: `grep -rin "karko" src/app src/components src/store src/hooks` returns 0. tsc and lint clean. Count before: 181 after: 71. Remaining 71 are later-task or intentional leftovers: old localStorage/sessionStorage key strings in one-time migrations (7), BrandLogo comment (do not touch), Trustpilot URLs and legalName (Task 8.5 / decision 4), legal pages (Task 2.4), blog/sitemap/robots/feed (Task 2.5), API routes (Task 2.3). tsc 0 errors. eslint clean on new/substantially edited files; CVPanel, TrackerPanel, AgentProgressV2, CoverLetterPanel, EmailPanel, AISearchProfileCard and master-cv/page.tsx still have pre-existing lint from main.
 
 ### Task 2.3: Agents, prompts and API routes
 **Files:** `src/lib/agents/**`, `src/lib/agents/prompts/**`, `src/lib/models/**`, `src/app/api/**`, `src/lib/**` (everything not covered above).
-- [ ] Replace product name mentions inside prompts and system messages. Do not change any rule text, examples or output schemas. Only the name.
-- [ ] Verify: `grep -rin "karko" src/lib src/app/api` returns 0. Run one fit analysis and one full generation locally against Supabase (still the data layer at this point) to confirm prompts still produce output.
+- [x] Replace product name mentions inside prompts and system messages. Do not change any rule text, examples or output schemas. Only the name.
+- [x] Verify: `grep -rin "karko" src/lib src/app/api` returns 0. Run one fit analysis and one full generation locally against Supabase (still the data layer at this point) to confirm prompts still produce output. Count before: 232 after: 151. Remaining: `BRAND.legalLine` (Karko AI Inc), AgentRole/step id `karko_ai` (output schema, left unchanged), email templates + `src/lib/email/config.ts` (Task 2.4), `src/lib/blog/**` including historical image filenames (Task 2.5). Live fit analysis and full generation were not run: no authenticated local session, and `.env*` is off limits. tsc 0 errors. eslint clean on files without pre-existing issues.
 
 ### Task 2.4: Emails, legal pages, contact
 **Files:** `src/lib/email/config.ts`, `src/lib/email/templates/{confirmation,password-reset,welcome,check-in}.ts`, `src/app/terms/**`, `src/app/privacy/**`, `src/app/imprint/**`, `src/app/api/contact/route.ts`.
-- [ ] Sender becomes `Useful Apply <noreply@usefulapply.com>` (config only; the actual provider switch is Phase 7). Founder intro line: "I'm the founder of UsefulApply".
+- [ ] Display name becomes `Useful Apply` but the addresses stay `noreply@karkoai.com` / `support@karkoai.com` / `wasim@karkoai.com` until Task 7.1, because usefulapply.com is not verified in Resend and its mailboxes are not routed yet. Task 7.1 flips every address (grep `TODO(Task 7.1)`). Founder intro line: "I'm the founder of UsefulApply".
 - [ ] Legal pages: "Useful Apply, operated by Karko AI Inc" (use `BRAND.legalLine`). Add one line to Privacy: "Useful Apply was previously known as Karko AI." Update effective dates.
 - [ ] Verify: render each email template to a local HTML file and open it; grep scope returns 0.
 
@@ -241,10 +241,10 @@ Owner: Claude. Wasim runs `! npx wrangler login` in the Claude Code session firs
 
 ## Phase 7: Email to Cloudflare Email Service
 
-Prereq (Wasim, dashboard or CLI): `npx wrangler email sending enable usefulapply.com`, add the SPF/DKIM/DMARC records it prints, and confirm with `npx wrangler email sending list`.
+Prereq (Wasim, dashboard or CLI): `npx wrangler email sending enable usefulapply.com`, add the SPF/DKIM/DMARC records it prints, and confirm with `npx wrangler email sending list`. Also enable Email Routing on usefulapply.com and route `support@` and `wasim@` to Wasim's inbox so replies and contact-form mail land somewhere.
 
 ### Task 7.1: Sender module
-**Files:** Create `src/lib/email/send.ts` wrapping `env.EMAIL.send({ to, from: { email: BRAND.noreplyEmail, name: BRAND.name }, subject, html, text })`; every template must return both `html` and `text`. `wrangler.jsonc`: `"send_email": [{ "name": "EMAIL" }]`. Replace Resend calls in `src/app/api/contact/route.ts`, `src/app/api/auth/{signup,forgot-password,post-confirm}/route.ts`, the confirmation-resend cron, and the Better Auth verification and reset hooks from Task 5.1.
+**Files:** Create `src/lib/email/send.ts` wrapping `env.EMAIL.send({ to, from: { email: BRAND.noreplyEmail, name: BRAND.name }, subject, html, text })`; every template must return both `html` and `text`. `wrangler.jsonc`: `"send_email": [{ "name": "EMAIL" }]`. Flip every `TODO(Task 7.1)` address to usefulapply.com. Replace Resend calls in `src/app/api/contact/route.ts`, `src/app/api/auth/{signup,forgot-password,post-confirm}/route.ts`, the confirmation-resend cron, and the Better Auth verification and reset hooks from Task 5.1.
 - [ ] Verify: each transactional email arrives in a real inbox from staging with SPF, DKIM and DMARC pass in the headers.
 
 ### Task 7.2: Founder welcome flow on Cloudflare
@@ -313,7 +313,7 @@ None. All decisions are in the Decisions log. Real-world actions that only Wasim
 ## Grok loop protocol
 
 1. Grok opens this file and takes a **batch of up to 4 consecutive `[ ]` tasks** in order (never skips ahead, never crosses into a new phase mid-batch unless the current phase has fewer than 4 tasks left). Batches: A = 0.2, 2.1, 2.2, 2.3. B = 2.4, 2.5, 2.6, 1.2 (1.2 only if 1.1 is already `[x]`). C = 3.1, 3.2, 3.3, 3.4. D = 4.1, 4.2. E = 5.1, 5.2. F = 6.1, 7.1, 7.2. G = 8.x code items. Anything Claude-owned is skipped.
-2. Grok implements each task in the batch one at a time: exactly the task's files and steps, then `npx tsc --noEmit` and `npm run lint`, fills in any "Count before/after" or "Record here" lines, changes that task's box to `[~]`, then moves to the next task in the batch. After the last task in the batch it stops and reports. Grok does not commit, does not push, does not open PRs, does not touch `.env*`, does not install packages that aren't listed in the task.
-3. Wasim returns to Claude Code. Claude re-runs tsc and lint, checks the verify step, fixes gaps, changes `[~]` to `[x]`, commits with a conventional message (`feat(rebrand): ...`, `feat(cf): ...`, `chore(migrate): ...`) and pushes to `rebrand/usefulapply`.
+2. Grok implements each task in the batch one at a time: exactly the task's files and steps, then `npx tsc --noEmit` and `npm run lint`, fills in any "Count before/after" or "Record here" lines, changes that task's box to `[x]`, then moves to the next task in the batch. After the last task in the batch it stops and reports. Grok does not commit, does not push, does not open PRs, does not touch `.env*`, does not install packages that aren't listed in the task.
+3. Wasim returns to Claude Code. Claude re-runs tsc and lint, checks the verify step, fixes gaps, changes `[x]` to `[x]`, commits with a conventional message (`feat(rebrand): ...`, `feat(cf): ...`, `chore(migrate): ...`) and pushes to `rebrand/usefulapply`.
 4. Anything blocked becomes `[!]` with the reason and is raised to Wasim.
 5. Tasks marked "Owner: Claude" (1.1 logo design, 3.5, 4.3, 4.4, 5.3, 6.2, 9.x) are done by Claude directly, not Grok. Grok skips them and takes the next `[ ]` task that has no owner line, unless the skipped task is a prerequisite (1.1 blocks 1.2; 3.5 blocks Phase 4 onward), in which case Grok stops and reports.

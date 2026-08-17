@@ -8,14 +8,16 @@ import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { CountUp } from '@/components/marketing/CountUp';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 
+import { BRAND } from '@/lib/brand';
+
 export const metadata: Metadata = buildPageMetadata({
-  title: 'About Karko AI: The AI Job Application Agent Built by a Job Seeker',
+  title: 'About Useful Apply: The AI Job Application Agent Built by a Job Seeker',
   description:
-    'Karko AI is the AI job application agent that replaces the seven tools job seekers stitch together. Find roles, check fit, write the full application, track everything. Built by a founder who was hired as an AI Specialist through an application Karko wrote, after 60+ applications as a first-time job seeker.',
+    'Useful Apply is the AI job application agent that replaces the seven tools job seekers stitch together. Find roles, check fit, write the full application, track everything. Built by a founder who was hired as an AI Specialist through an application Useful Apply wrote, after 60+ applications as a first-time job seeker.',
   canonical: '/about',
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
 
 const founderPersonJsonLd = {
   '@context': 'https://schema.org',
@@ -26,11 +28,11 @@ const founderPersonJsonLd = {
   image: `${SITE_URL}/wasim-founder.jpg`,
   worksFor: {
     '@type': 'Organization',
-    name: 'Karko AI',
+    name: 'Useful Apply',
     url: SITE_URL,
   },
   description:
-    'Wasim Jalali is the founder of Karko AI. He built the tool for his own job search as a first-time job seeker, sent 60+ applications through it, got 5 interviews, and was hired as an AI Specialist through an application Karko generated.',
+    'Wasim Jalali is the founder of Useful Apply. He built the tool for his own job search as a first-time job seeker, sent 60+ applications through it, got 5 interviews, and was hired as an AI Specialist through an application Useful Apply generated.',
 };
 
 const aboutBreadcrumbJsonLd = {
@@ -59,7 +61,7 @@ export default function AboutPage() {
       <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <ScrollReveal delay={0} direction="down" distance={20}>
-          <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-4">About Karko AI</p>
+          <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-4">About Useful Apply</p>
           </ScrollReveal>
           <ScrollReveal delay={150}>
           <h1 className="font-bold text-navy-600 text-[44px] sm:text-[52px] lg:text-[56px] leading-[1.05] tracking-tight mb-6">
@@ -68,7 +70,7 @@ export default function AboutPage() {
           </ScrollReveal>
           <ScrollReveal delay={300}>
           <p className="text-xl text-warm-gray max-w-2xl mx-auto leading-relaxed">
-            Karko AI is the AI job application agent that replaces the seven tools job seekers stitch together. Find the role, check the fit, write the full application, track everything. One app, one loop. Every word traces back to your real CV.
+            Useful Apply is the AI job application agent that replaces the seven tools job seekers stitch together. Find the role, check the fit, write the full application, track everything. One app, one loop. Every word traces back to your real CV.
           </p>
           </ScrollReveal>
         </div>
@@ -80,9 +82,9 @@ export default function AboutPage() {
           <ScrollReveal>
           <div className="text-center mb-14">
             <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Our Difference</p>
-            <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-4">Why Karko AI exists.</h2>
+            <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-4">Why Useful Apply exists.</h2>
             <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-              Most job tools solve one piece of the puzzle. Karko collapses the seven tools you use today (job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, tracker) into one loop.
+              Most job tools solve one piece of the puzzle. Useful Apply collapses the seven tools you use today (job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, tracker) into one loop.
             </p>
           </div>
           </ScrollReveal>
@@ -91,12 +93,12 @@ export default function AboutPage() {
               {
                 icon: Sparkles,
                 title: 'One Agent, One Loop',
-                description: 'Other tools help you format a resume. Karko is the AI job application agent that replaces the seven tools job seekers use today: find the role, check the fit, write the full application, track it. One app, one loop.',
+                description: 'Other tools help you format a resume. Useful Apply is the AI job application agent that replaces the seven tools job seekers use today: find the role, check the fit, write the full application, track it. One app, one loop.',
               },
               {
                 icon: Shield,
                 title: 'Never a Word You Did Not Earn',
-                description: 'Every CV rewrite, cover letter, email, and screening answer traces back to your real CV. Karko will not invent job titles, skills, or experience you do not have. This is the architectural rule the product refuses to break.',
+                description: 'Every CV rewrite, cover letter, email, and screening answer traces back to your real CV. Useful Apply will not invent job titles, skills, or experience you do not have. This is the architectural rule the product refuses to break.',
               },
               {
                 icon: Target,
@@ -184,14 +186,14 @@ export default function AboutPage() {
               <div className="w-[200px] h-[200px] md:w-[240px] md:h-[240px] rounded-2xl overflow-hidden border border-cream-200 shadow-sm">
                 <Image
                   src="/wasim-founder.jpg"
-                  alt="Wasim Jalali, Founder of Karko AI"
+                  alt="Wasim Jalali, Founder of Useful Apply"
                   width={240}
                   height={240}
                   className="w-full h-full object-cover"
                 />
               </div>
               <p className="mt-5 italic text-charcoal text-2xl leading-none">Wasim Jalali</p>
-              <p className="mt-1 text-sm text-warm-gray">Founder, Karko AI</p>
+              <p className="mt-1 text-sm text-warm-gray">Founder, Useful Apply</p>
             </div>
 
             <div>
@@ -203,7 +205,7 @@ export default function AboutPage() {
               </h2>
               <div className="border-l-2 border-gold-400 pl-6">
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  I built Karko for my own search. Sixty-plus applications, every one written by the product. Five interviews. Then I was hired as an AI Specialist through an application Karko wrote. If it can do that for a first-time job seeker with no degree, it can do it for you.
+                  I built Useful Apply for my own search. Sixty-plus applications, every one written by the product. Five interviews. Then I was hired as an AI Specialist through an application Useful Apply wrote. If it can do that for a first-time job seeker with no degree, it can do it for you.
                 </p>
               </div>
             </div>

@@ -357,9 +357,9 @@ function JobFeedActionButton({
     action.kind === 'check-fit'
       ? 'Check the fit for 0.5 credits before generating'
       : action.kind === 'screening'
-        ? 'Ask Karko to draft answers for screening questions'
+        ? 'Ask Useful Apply to draft answers for screening questions'
         : action.kind === 'new-search'
-          ? 'Start a different application in Karko'
+          ? 'Start a different application in Useful Apply'
           : undefined;
 
   if (action.variant === 'gold') {
@@ -443,7 +443,7 @@ export function JobFeedCard({
 }) {
   const isSaved = Boolean(job.feedback.savedAt);
   const employerLink = job.applyUrl || job.sourceUrl;
-  const karkoButtonsDisabled = isApplying || isAnotherJobBusy;
+  const applyButtonsDisabled = isApplying || isAnotherJobBusy;
   const cardActions = getJobFeedCardActions({
     feedback: job.feedback,
     session,
@@ -497,7 +497,7 @@ export function JobFeedCard({
         <div className="flex flex-col items-stretch gap-2 lg:w-[200px]">
           <JobFeedActionControls
             actions={cardActions}
-            disabled={karkoButtonsDisabled}
+            disabled={applyButtonsDisabled}
             isApplying={isApplying}
             onAction={onAction}
           />

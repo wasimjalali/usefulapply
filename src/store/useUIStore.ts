@@ -18,7 +18,7 @@ interface UIState {
   // Loading states
   isAnalyzing: boolean;
   isGenerating: boolean;
-  isAgentWorking: boolean;  // True when Karko AI agent is running full workflow
+  isAgentWorking: boolean;  // True when Useful Apply agent is running full workflow
   isPdfGenerating: boolean;
   agentWorkflowPhase: 'fit_analysis' | 'full_generation' | null;  // Current agent phase for panel messages
 
@@ -26,7 +26,7 @@ interface UIState {
   activeTab: 'cv' | 'cover-letter' | 'email' | 'tracker' | 'jobs';
   error: string | null;
 
-  // Cross-component autostart signal for Apply-with-Karko from the Job Feed.
+  // Cross-component autostart signal for Apply-with-Useful Apply from the Job Feed.
   // Set by JobFeedPanel on click; ChatPanel picks it up and starts the agent
   // workflow immediately — even if the user does not navigate to the
   // Application Kit tab. Consumed-then-cleared by ChatPanel.

@@ -6,7 +6,9 @@ import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 
-const SITE_URL = 'https://www.karkoai.com';
+import { BRAND } from '@/lib/brand';
+
+const SITE_URL = BRAND.url;
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
@@ -20,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
 const faqs = [
   {
     q: 'How does an AI cover letter generator work?',
-    a: "An AI cover letter generator analyzes the job description, extracts key requirements, maps them to your CV experience, and writes a personalized cover letter that explains your fit. Karko AI generates cover letters in 90 seconds as part of a full application (CV, cover letter, application email, follow-up email).",
+    a: "An AI cover letter generator analyzes the job description, extracts key requirements, maps them to your CV experience, and writes a personalized cover letter that explains your fit. Useful Apply generates cover letters in 90 seconds as part of a full application (CV, cover letter, application email, follow-up email).",
   },
   {
     q: 'Are AI-generated cover letters better than templates?',
@@ -28,15 +30,15 @@ const faqs = [
   },
   {
     q: 'Will the AI fabricate experience I don\'t have?',
-    a: "Not if the tool has anti-hallucination safeguards. Karko AI enforces strict traceability: every claim in the cover letter must map back to your uploaded CV. If you don't have AWS experience, the cover letter won't mention AWS. No fabricated skills or metrics.",
+    a: "Not if the tool has anti-hallucination safeguards. Useful Apply enforces strict traceability: every claim in the cover letter must map back to your uploaded CV. If you don't have AWS experience, the cover letter won't mention AWS. No fabricated skills or metrics.",
   },
   {
     q: 'How long is an AI-generated cover letter?',
-    a: 'Karko AI generates cover letters between 250 and 350 words (3 to 4 paragraphs). This length is optimal: long enough to demonstrate genuine interest and fit, short enough to be read in 90 seconds by a busy hiring manager.',
+    a: 'Useful Apply generates cover letters between 250 and 350 words (3 to 4 paragraphs). This length is optimal: long enough to demonstrate genuine interest and fit, short enough to be read in 90 seconds by a busy hiring manager.',
   },
   {
     q: 'Can I edit the AI-generated cover letter before sending?',
-    a: 'Yes. Karko AI outputs editable text. You can adjust tone, add company-specific details, or emphasize different achievements before downloading or copying. The AI gives you a strong starting point; you control the final version.',
+    a: 'Yes. Useful Apply outputs editable text. You can adjust tone, add company-specific details, or emphasize different achievements before downloading or copying. The AI gives you a strong starting point; you control the final version.',
   },
 ];
 
@@ -79,11 +81,11 @@ export default function CoverLetterGeneratorPage() {
     '@type': 'Article',
     headline: 'AI Cover Letter Generator: Tailored in 90 Seconds, No Templates',
     description:
-      'How Karko AI generates a tailored, ATS-optimized cover letter from your real CV. No fabrication, no generic templates, every word traces back to your experience.',
-    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+      'How Useful Apply generates a tailored, ATS-optimized cover letter from your real CV. No fabrication, no generic templates, every word traces back to your experience.',
+    author: { '@type': 'Organization', name: 'Useful Apply', url: SITE_URL },
     publisher: {
       '@type': 'Organization',
-      name: 'KarKo AI',
+      name: 'Useful Apply',
       url: SITE_URL,
       logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon-512x512.png` },
     },
@@ -145,7 +147,7 @@ export default function CoverLetterGeneratorPage() {
               <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed">
                 An AI cover letter generator analyzes the job description, maps your relevant
                 experience from your CV, and writes a personalized cover letter that demonstrates
-                your fit for the role. Karko AI generates cover letters in 90 seconds with
+                your fit for the role. Useful Apply generates cover letters in 90 seconds with
                 anti-hallucination safeguards, meaning every claim traces back to your uploaded
                 CV with no fabricated experience.
               </p>
@@ -211,7 +213,7 @@ export default function CoverLetterGeneratorPage() {
               letter that explains your fit using natural language and professional tone.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              <strong>Karko AI generates cover letters as part of a full application
+              <strong>Useful Apply generates cover letters as part of a full application
               package:</strong> tailored CV, cover letter, application email, and follow-up
               email. All four documents reference the same job description and draw from the same
               verified source (your Master CV), so they&apos;re consistent in tone, claims, and
@@ -242,7 +244,7 @@ export default function CoverLetterGeneratorPage() {
               interview when you can&apos;t answer basic AWS questions.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              <strong>Karko AI enforces strict traceability.</strong> Every skill, metric, and
+              <strong>Useful Apply enforces strict traceability.</strong> Every skill, metric, and
               claim in the cover letter must map back to your uploaded CV. If you don&apos;t have
               AWS experience, the cover letter won&apos;t mention AWS. If your CV says you
               &quot;improved query performance by 40%,&quot; the cover letter can reference that
@@ -292,7 +294,7 @@ export default function CoverLetterGeneratorPage() {
               </p>
             </div>
             <p className="text-charcoal leading-relaxed mb-4">
-              Karko AI generates cover letters following this structure automatically. The tone
+              Useful Apply generates cover letters following this structure automatically. The tone
               is professional but not robotic, confident but not arrogant, specific but not
               verbose. The output reads like a human wrote it, because the AI is trained on
               high-quality, real-world cover letters, not generic templates.
@@ -316,14 +318,14 @@ export default function CoverLetterGeneratorPage() {
               jobs to get results.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              <strong>Karko does it in 90 seconds per role.</strong> Same quality as a hand-written
+              <strong>Useful Apply does it in 90 seconds per role.</strong> Same quality as a hand-written
               letter, 40 times faster. That unlocks the real win: apply to every relevant role with
               a cover letter that is actually tailored, not just the handful you have time to write
               by hand.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              A cover letter that reads as written for this role is the difference between "same as
-              everyone else" and "a reason to read the CV." The specifics do the lifting. Your real
+              A cover letter that reads as written for this role is the difference between &quot;same as
+              everyone else&quot; and &quot;a reason to read the CV.&quot; The specifics do the lifting. Your real
               achievements, the role&apos;s real requirements, the company&apos;s real context.
               Nothing invented.
             </p>
@@ -376,7 +378,7 @@ export default function CoverLetterGeneratorPage() {
                 Generate Your First AI Cover Letter Free
               </h2>
               <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
-                Try Karko AI free for your first 2 applications. Get a personalized cover letter
+                Try Useful Apply free for your first 2 applications. Get a personalized cover letter
                 in 90 seconds, plus tailored CV, application email, and follow-up email. No
                 credit card required.
               </p>
@@ -385,7 +387,7 @@ export default function CoverLetterGeneratorPage() {
                   href="/dashboard"
                   className="px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg inline-flex items-center gap-2"
                 >
-                  Try Karko AI Free
+                  Try Useful Apply Free
                   <ArrowRight className="w-5 h-5" />
                 </Link>
                 <Link

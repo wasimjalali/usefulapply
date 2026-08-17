@@ -1,7 +1,7 @@
 /**
- * Agent V2 API Route - Karko AI Architecture
+ * Agent V2 API Route - Useful Apply Architecture
  * 
- * Karko AI handles the complete workflow:
+ * Useful Apply handles the complete workflow:
  * 1. Parse CV and analyze job requirements
  * 2. Match skills and identify gaps
  * 3. Optimize CV for the position
@@ -937,33 +937,33 @@ export async function POST(request: NextRequest) {
 // Helper to extract original experience bullets from CV text
 // CV transformer functions moved to @/lib/utils/cv-transformers
 
-// Helper to get workflow steps based on action - Karko AI Unified Agent
+// Helper to get workflow steps based on action - Useful Apply Unified Agent
 function getWorkflowSteps(action: string): Array<{ id: string; description: string }> {
   switch (action) {
     case 'fit_analysis':
       return [
-        { id: 'analysis', description: 'Karko AI: Parsing CV and analyzing job requirements' },
-        { id: 'matching', description: 'Karko AI: Matching skills and identifying gaps' },
-        { id: 'fit_assessment', description: 'Karko AI: Assessing job fit' },
+        { id: 'analysis', description: 'Useful Apply: Parsing CV and analyzing job requirements' },
+        { id: 'matching', description: 'Useful Apply: Matching skills and identifying gaps' },
+        { id: 'fit_assessment', description: 'Useful Apply: Assessing job fit' },
       ];
     case 'generate_with_context':
       return [
-        { id: 'cv_generation', description: 'Karko AI: Optimizing CV for the position' },
-        { id: 'cover_letter', description: 'Karko AI: Composing tailored cover letter' },
-        { id: 'email', description: 'Karko AI: Generating application and follow-up emails' },
+        { id: 'cv_generation', description: 'Useful Apply: Optimizing CV for the position' },
+        { id: 'cover_letter', description: 'Useful Apply: Composing tailored cover letter' },
+        { id: 'email', description: 'Useful Apply: Generating application and follow-up emails' },
       ];
     case 'full_optimization':
       return [
-        { id: 'analysis', description: 'Karko AI: Parsing CV and analyzing job requirements' },
-        { id: 'matching', description: 'Karko AI: Matching skills and identifying gaps' },
-        { id: 'cv_generation', description: 'Karko AI: Optimizing CV for the position' },
-        { id: 'cover_letter', description: 'Karko AI: Composing tailored cover letter' },
-        { id: 'email', description: 'Karko AI: Generating application and follow-up emails' },
+        { id: 'analysis', description: 'Useful Apply: Parsing CV and analyzing job requirements' },
+        { id: 'matching', description: 'Useful Apply: Matching skills and identifying gaps' },
+        { id: 'cv_generation', description: 'Useful Apply: Optimizing CV for the position' },
+        { id: 'cover_letter', description: 'Useful Apply: Composing tailored cover letter' },
+        { id: 'email', description: 'Useful Apply: Generating application and follow-up emails' },
       ];
     default:
       return [
-        { id: 'analysis', description: 'Karko AI: Analyzing documents' },
-        { id: 'generation', description: 'Karko AI: Generating content' },
+        { id: 'analysis', description: 'Useful Apply: Analyzing documents' },
+        { id: 'generation', description: 'Useful Apply: Generating content' },
       ];
   }
 }

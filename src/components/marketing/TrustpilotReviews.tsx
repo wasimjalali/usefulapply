@@ -20,8 +20,8 @@ const reviews: Review[] = [
     location: 'DE',
     date: 'March 8, 2026',
     rating: 5,
-    title: 'Karko is a very useful AI tool for job applications',
-    text: 'Karko is a very useful AI tool for job applications. It helps create a professional CV in the European and USA format and also assists with writing strong cover letters. The platform is easy to use and saves a lot of time when preparing job applications. I would definitely recommend it to anyone who wants to improve their CV and apply for jobs more efficiently.',
+    title: 'Useful Apply is a very useful AI tool for job applications',
+    text: 'Useful Apply is a very useful AI tool for job applications. It helps create a professional CV in the European and USA format and also assists with writing strong cover letters. The platform is easy to use and saves a lot of time when preparing job applications. I would definitely recommend it to anyone who wants to improve their CV and apply for jobs more efficiently.',
     initials: 'MS',
   },
   {
@@ -58,8 +58,9 @@ export default function TrustpilotReviews() {
               <button
                 onClick={handleReviewClick}
                 className="hover:opacity-80 transition-opacity cursor-pointer"
-                aria-label="View Karko AI reviews on Trustpilot"
+                aria-label="View Useful Apply reviews on Trustpilot"
               >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/trustpilot-logo.png"
                   alt="Trustpilot"

@@ -32,7 +32,7 @@ const legalLinks: FooterLink[] = [
 export default function Footer() {
   const comparisonLinks: FooterLink[] = getComparisons().map((comparison) => ({
     href: `/compare/${comparison.slug}`,
-    label: `Karko AI vs ${comparison.competitorName}`,
+    label: `Useful Apply vs ${comparison.competitorName}`,
   }));
 
   const resourcesLinks: FooterLink[] = [
@@ -149,10 +149,10 @@ export default function Footer() {
               Find jobs. Write applications. Track progress. All in one app.
             </p>
             <a
-              href="mailto:support@karkoai.com"
+              href="mailto:support@usefulapply.com"
               className="text-sm text-navy-200 hover:text-white transition-colors duration-200"
             >
-              support@karkoai.com
+              support@usefulapply.com
             </a>
             <Link
               href="/contact"
@@ -170,7 +170,7 @@ export default function Footer() {
           <div className="h-[106px] sm:h-[128px] md:h-[160px] lg:h-[192px]">
             <Link
               href="/"
-              aria-label="Karko AI home"
+              aria-label="Useful Apply home"
               className="inline-flex origin-top-left scale-[1.65] sm:scale-[2] md:scale-[2.5] lg:scale-[3] transition-opacity hover:opacity-90"
             >
               <BrandLogo variant="full" size="xl" theme="dark" />
@@ -181,7 +181,7 @@ export default function Footer() {
         {/* Bottom */}
         <div className="border-t border-navy-500/30 mt-8 md:mt-10 pt-6">
           <p className="text-navy-300 text-sm">
-            © {new Date().getFullYear()} KarKo AI. All rights reserved.
+            © {new Date().getFullYear()} Useful Apply. All rights reserved.
           </p>
         </div>
       </div>

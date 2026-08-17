@@ -92,7 +92,7 @@ function DashboardProfileMenu({ profile, onSignOut }: DashboardProfileMenuProps)
     { href: '/profile', label: 'Profile', description: 'Personal details', icon: User },
     { href: '/account', label: 'Account', description: 'Security and login', icon: Shield },
     { href: '/subscription', label: 'Subscription', description: 'Plan and billing', icon: CreditCard },
-    { href: '/contact', label: 'Contact Support', description: 'Reach the Karko team', icon: LifeBuoy },
+    { href: '/contact', label: 'Contact Support', description: 'Reach the Useful Apply team', icon: LifeBuoy },
     { href: '/documents', label: 'Documents', description: 'Manage uploaded files', icon: FolderOpen },
     { href: '/notifications', label: 'Notifications', description: 'Email preferences', icon: Bell },
   ];
@@ -386,7 +386,16 @@ export default function Dashboard() {
     if (typeof window === 'undefined') return 440;
     // Guard the parse: Math.min/max propagate NaN, so a corrupt stored value
     // would render the chat panel at zero width with no way back.
-    const saved = Number(localStorage.getItem('karko_chat_width'));
+    const nextKey = 'usefulapply_chat_width';
+    const prevKey = 'karko_chat_width';
+    let raw = localStorage.getItem(nextKey);
+    if (raw === null) {
+      raw = localStorage.getItem(prevKey);
+      if (raw !== null) {
+        try { localStorage.setItem(nextKey, raw); } catch { /* ignore */ }
+      }
+    }
+    const saved = Number(raw);
     return Number.isFinite(saved) && saved > 0 ? Math.max(360, Math.min(650, saved)) : 440;
   });
   const [isResizing, setIsResizing] = useState(false);
@@ -416,7 +425,7 @@ export default function Dashboard() {
 
   const persistChatWidth = useCallback(() => {
     try {
-      localStorage.setItem('karko_chat_width', String(chatPanelWidthRef.current));
+      localStorage.setItem('usefulapply_chat_width', String(chatPanelWidthRef.current));
     } catch {
       // Blocked storage or quota. The width just won't survive a reload, which
       // is not worth interrupting the user over.
@@ -1054,7 +1063,7 @@ export default function Dashboard() {
                     <div className="inline-flex mb-5">
                       <BrandIcon size="lg" theme="light" />
                     </div>
-                    <h2 className="text-2xl font-bold tracking-tight text-charcoal mb-2">Welcome to Karko AI</h2>
+                    <h2 className="text-2xl font-bold tracking-tight text-charcoal mb-2">Welcome to Useful Apply</h2>
                     <p className="text-warm-gray max-w-sm mx-auto">
                       Upload your CV to get started. We&apos;ll tailor it for every job you apply to.
                     </p>
@@ -1237,7 +1246,7 @@ export default function Dashboard() {
                 </div>
                 <h2 className="text-xl font-bold tracking-tight text-charcoal mb-2">Best on desktop</h2>
                 <p className="text-sm text-warm-gray leading-relaxed mb-6">
-                  Karko&apos;s Application Kit works best on a laptop or tablet. Open Karko on a larger screen to upload your CV, chat with the agent, and generate tailored applications.
+                  Useful Apply&apos;s Application Kit works best on a laptop or tablet. Open Useful Apply on a larger screen to upload your CV, chat with the agent, and generate tailored applications.
                 </p>
                 <p className="text-xs text-warm-gray mb-6">
                   On the go? Browse your daily Job Feed and review your Tracker right here.

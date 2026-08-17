@@ -25,7 +25,7 @@ export function ComparisonFeatures({ features, competitorName }: ComparisonFeatu
                   <div className="flex items-center gap-1.5 bg-gold-50 px-3 py-1.5 rounded-lg border border-gold-200">
                     <Trophy className="w-4 h-4 text-gold-600" />
                     <span className="text-sm font-semibold text-gold-700">
-                      {feature.winner === 'karko' ? 'Karko Wins' : `${competitorName} Wins`}
+                      {feature.winner === 'brand' ? 'Useful Apply Wins' : `${competitorName} Wins`}
                     </span>
                   </div>
                 )}
@@ -42,9 +42,9 @@ export function ComparisonFeatures({ features, competitorName }: ComparisonFeatu
 
               {/* Side-by-Side Details */}
               <div className="grid md:grid-cols-2 gap-6 mb-6">
-                <div className={`rounded-xl border p-6 ${feature.winner === 'karko' ? 'bg-gold-50 border-gold-200' : 'bg-cream-50 border-cream-200'}`}>
-                  <h4 className="text-sm font-semibold text-navy-700 uppercase tracking-wide mb-3">Karko AI</h4>
-                  <p className="text-sm text-charcoal leading-relaxed">{feature.karkoDetails}</p>
+                <div className={`rounded-xl border p-6 ${feature.winner === 'brand' ? 'bg-gold-50 border-gold-200' : 'bg-cream-50 border-cream-200'}`}>
+                  <h4 className="text-sm font-semibold text-navy-700 uppercase tracking-wide mb-3">Useful Apply</h4>
+                  <p className="text-sm text-charcoal leading-relaxed">{feature.brandDetails}</p>
                 </div>
                 <div className={`rounded-xl border p-6 ${feature.winner === 'competitor' ? 'bg-blue-50 border-blue-200' : 'bg-cream-50 border-cream-200'}`}>
                   <h4 className="text-sm font-semibold text-navy-700 uppercase tracking-wide mb-3">{competitorName}</h4>

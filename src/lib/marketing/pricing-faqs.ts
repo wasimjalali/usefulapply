@@ -30,33 +30,33 @@ export const pricingFAQs: PricingFAQ[] = [
       'Yes. Upgrade any time for immediate access to more credits. Downgrade or cancel at the end of your billing cycle. No hidden fees, no lock-in contracts.',
   },
   {
-    question: 'Why Karko is not a resume builder.',
+    question: 'Why Useful Apply is not a resume builder.',
     answer:
-      'Resume builders help you format one CV. Karko runs your entire job search. The feed finds the roles. The fit analysis tells you if it is worth applying. The generator writes the CV, cover letter, emails, and screening answers tailored to each role. The tracker keeps the list. It replaces seven separate tools with one loop.',
+      'Resume builders help you format one CV. Useful Apply runs your entire job search. The feed finds the roles. The fit analysis tells you if it is worth applying. The generator writes the CV, cover letter, emails, and screening answers tailored to each role. The tracker keeps the list. It replaces seven separate tools with one loop.',
   },
   {
-    question: 'Why Karko is not an auto-apply bot.',
+    question: 'Why Useful Apply is not an auto-apply bot.',
     answer:
-      'Auto-apply bots blast hundreds of generic applications. Recruiters spot them, ATS systems flag them, and candidates get embarrassed in interviews. Karko does the opposite: fewer applications, all tailored to the real role, all traceable to your real experience. You stay in control of what gets sent.',
+      'Auto-apply bots blast hundreds of generic applications. Recruiters spot them, ATS systems flag them, and candidates get embarrassed in interviews. Useful Apply does the opposite: fewer applications, all tailored to the real role, all traceable to your real experience. You stay in control of what gets sent.',
   },
   {
-    question: 'How does Karko keep its output honest?',
+    question: 'How does Useful Apply keep its output honest?',
     answer:
-      'Every CV rewrite, cover letter, email, and screening answer is built from the CV you upload. Karko will not invent job titles, skills, or experience you do not have. The job description is used for keyword alignment and tone, never as a source of facts about you. This is the one rule the product refuses to break.',
+      'Every CV rewrite, cover letter, email, and screening answer is built from the CV you upload. Useful Apply will not invent job titles, skills, or experience you do not have. The job description is used for keyword alignment and tone, never as a source of facts about you. This is the one rule the product refuses to break.',
   },
   {
-    question: 'What AI model powers Karko?',
+    question: 'What AI model powers Useful Apply?',
     answer:
-      'Karko runs on Claude Sonnet 4.6 by Anthropic, one of the most capable models available for writing. Most competitors use cheaper open-source models. We pay for the better model because the output has to survive both an ATS scan and a recruiter’s read. On top of that, the workflow around the model is tuned specifically for job applications.',
+      'Useful Apply runs on Claude Sonnet 4.6 by Anthropic, one of the most capable models available for writing. Most competitors use cheaper open-source models. We pay for the better model because the output has to survive both an ATS scan and a recruiter’s read. On top of that, the workflow around the model is tuned specifically for job applications.',
   },
   {
-    question: 'How does Karko AI pricing compare to Teal?',
+    question: 'How does Useful Apply pricing compare to Teal?',
     answer:
-      'Teal offers a free tier but does not publish its paid pricing. Karko is fully transparent: Free (2 applications), Plus $19.99/mo (25 applications), Max $79.99/mo (100 applications). Unlike Teal, Karko writes the full application (CV, cover letter, emails, screening answers), not just the resume. See our full comparison at /compare/karko-ai-vs-teal.',
+      'Teal offers a free tier but does not publish its paid pricing. Useful Apply is fully transparent: Free (2 applications), Plus $19.99/mo (25 applications), Max $79.99/mo (100 applications). Unlike Teal, Useful Apply writes the full application (CV, cover letter, emails, screening answers), not just the resume. See our full comparison at /compare/usefulapply-vs-teal.',
   },
   {
-    question: 'How does Karko AI pricing compare to Jobscan?',
+    question: 'How does Useful Apply pricing compare to Jobscan?',
     answer:
-      'Jobscan offers a free tier for resume scanning, but does not generate application content. Karko writes the full application (CV, cover letter, application email, follow-up email, and on Plus and Max, screening answers) from scratch, ATS-safe by default. Different tools for different needs. See our full comparison at /compare/karko-ai-vs-jobscan.',
+      'Jobscan offers a free tier for resume scanning, but does not generate application content. Useful Apply writes the full application (CV, cover letter, application email, follow-up email, and on Plus and Max, screening answers) from scratch, ATS-safe by default. Different tools for different needs. See our full comparison at /compare/usefulapply-vs-jobscan.',
   },
 ];

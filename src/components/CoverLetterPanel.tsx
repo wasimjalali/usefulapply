@@ -10,7 +10,7 @@ import { Mail, Download, Copy, Check, RefreshCw, FileText, Edit3, Maximize2, X, 
 import type { GeneratedCoverLetter } from '@/lib/types';
 import { jsPDF } from 'jspdf';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
-import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
+import { StepIndicator } from './StepIndicator';
 import { useToast } from './ui/Toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { downloadBlob } from '@/lib/utils/download-pdf';
@@ -437,7 +437,7 @@ ${letter.signatureName}`;
   // Show loading indicator during agent workflow
   if (!coverLetter && isAgentWorking) {
     return (
-      <KarkoAIStepIndicator
+      <StepIndicator
         stepType="cover_letter"
         isLoading={true}
         title={agentWorkflowPhase === 'fit_analysis' ? 'Analyzing Fit' : undefined}
@@ -666,7 +666,7 @@ ${letter.signatureName}`;
 
       <div className="flex-1 overflow-auto bg-cream-100 px-3 pb-4 pt-1 sm:px-6 sm:pb-6 sm:pt-3">
         {isGenerating || isLoadingCoverLetter || isAgentWorking ? (
-          <KarkoAIStepIndicator
+          <StepIndicator
             stepType="cover_letter"
             isLoading={true}
             title={agentWorkflowPhase === 'fit_analysis' ? 'Analyzing Fit' : undefined}

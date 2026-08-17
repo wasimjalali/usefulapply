@@ -7,12 +7,14 @@ import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 import { getComparisons } from '@/lib/comparisons';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
+import { BRAND } from '@/lib/brand';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
 
 export const metadata: Metadata = buildPageMetadata({
-  title: 'Karko AI vs Resume Builders: Side-by-Side Comparisons',
+  title: 'Useful Apply vs Resume Builders: Side-by-Side Comparisons',
   description:
-    "How Karko AI compares to Teal, Jobscan, Rezi, Kickresume, Enhancv, and Resume.io. Tailored applications grounded in your real CV vs traditional resume builders. See which one fits your job search.",
+    "How Useful Apply compares to Teal, Jobscan, Rezi, Kickresume, Enhancv, and Resume.io. Tailored applications grounded in your real CV vs traditional resume builders. See which one fits your job search.",
   canonical: '/compare',
 });
 
@@ -22,14 +24,14 @@ export default function CompareHubPage() {
   const itemListJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    name: 'Karko AI Competitor Comparisons',
+    name: 'Useful Apply Competitor Comparisons',
     description:
-      'Side-by-side comparisons between Karko AI and resume builders, ATS scanners, and application trackers.',
+      'Side-by-side comparisons between Useful Apply and resume builders, ATS scanners, and application trackers.',
     itemListElement: comparisons.map((comparison, idx) => ({
       '@type': 'ListItem',
       position: idx + 1,
       url: `${SITE_URL}/compare/${comparison.slug}`,
-      name: `Karko AI vs ${comparison.competitorName}`,
+      name: `Useful Apply vs ${comparison.competitorName}`,
     })),
   };
 
@@ -65,12 +67,12 @@ export default function CompareHubPage() {
             </ScrollReveal>
             <ScrollReveal delay={150}>
               <h1 className="font-serif font-semibold text-navy-600 text-[44px] sm:text-[52px] lg:text-[56px] leading-[1.05] tracking-tight mb-5">
-                Karko AI vs <span className="text-gold-500">the alternatives.</span>
+                Useful Apply vs <span className="text-gold-500">the alternatives.</span>
               </h1>
             </ScrollReveal>
             <ScrollReveal delay={300}>
               <p className="text-lg lg:text-xl text-warm-gray max-w-2xl mx-auto leading-relaxed">
-                Most tools format a resume. Karko runs the full job search loop. See how Karko stacks up against the resume builders, ATS scanners, and trackers you might already use.
+                Most tools format a resume. Useful Apply runs the full job search loop. See how Useful Apply stacks up against the resume builders, ATS scanners, and trackers you might already use.
               </p>
             </ScrollReveal>
           </div>
@@ -86,7 +88,7 @@ export default function CompareHubPage() {
                     className="group block h-full bg-cream-50 border border-cream-200 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-gold-300 transition-all duration-200"
                   >
                     <div className="flex items-center gap-2 mb-4">
-                      <span className="font-semibold text-navy-600 text-base">Karko AI</span>
+                      <span className="font-semibold text-navy-600 text-base">Useful Apply</span>
                       <span className="text-warm-gray text-xs uppercase tracking-widest">vs</span>
                       <span className="font-semibold text-charcoal text-base">
                         {comparison.competitorName}
@@ -109,7 +111,7 @@ export default function CompareHubPage() {
                 Not sure which one fits?
               </h2>
               <p className="text-warm-gray max-w-xl mx-auto mb-6">
-                Try Karko free for 2 applications. No credit card, no commitment. If a resume builder fits your workflow better, you can tell in 90 seconds.
+                Try Useful Apply free for 2 applications. No credit card, no commitment. If a resume builder fits your workflow better, you can tell in 90 seconds.
               </p>
               <Link
                 href="/dashboard"

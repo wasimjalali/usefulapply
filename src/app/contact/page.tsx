@@ -78,10 +78,10 @@ export default function ContactPage() {
               <h3 className="text-lg font-bold text-charcoal mb-2">Email Us</h3>
               <p className="text-warm-gray text-sm mb-3">For general inquiries and support</p>
               <a 
-                href="mailto:support@karkoai.com" 
+                href="mailto:support@usefulapply.com" 
                 className="text-navy-600 font-semibold hover:text-navy-700 transition-colors"
               >
-                support@karkoai.com
+                support@usefulapply.com
               </a>
             </div>
             </ScrollReveal>

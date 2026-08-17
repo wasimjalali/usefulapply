@@ -1,6 +1,6 @@
 /**
  * Agent Types and Interfaces
- * Karko AI Unified Agent Architecture
+ * Useful Apply Unified Agent Architecture
  */
 
 // Token usage tracking for API calls
@@ -26,7 +26,7 @@ export type AgentStatus =
 
 /**
  * MasterContext - The single source of truth for the entire workflow
- * Karko AI builds and consumes this context for document generation
+ * Useful Apply builds and consumes this context for document generation
  */
 export interface MasterContext {
   sessionId: string;

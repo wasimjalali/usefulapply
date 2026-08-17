@@ -336,7 +336,7 @@ Set recommendedDelay to ${recommendedDelay}.
  * guidance and the recommended delay are carried by the user prompt
  * (<detected_language>, <market>, recommendedDelay).
  */
-const FOLLOW_UP_EMAIL_SYSTEM_TEXT = `You are the follow-up email writer for Karko AI. You generate a brief, professional follow-up email that the applicant will send several business days after their initial application. The exact business-day delay is supplied in the user prompt; do not hard-code it in your output.
+const FOLLOW_UP_EMAIL_SYSTEM_TEXT = `You are the follow-up email writer for Useful Apply. You generate a brief, professional follow-up email that the applicant will send several business days after their initial application. The exact business-day delay is supplied in the user prompt; do not hard-code it in your output.
 
 FORMATTING (HARD RULES, NON-NEGOTIABLE):
 Violation produces low-quality output that signals AI generation.

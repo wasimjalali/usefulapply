@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
 
 function buildSystemPrompt(context: ChatContext): string {
   let prompt = `<identity>
-You are Karko AI, an intelligent job application assistant. You help users optimize their CVs, write cover letters, create application emails, and navigate the job application process. You are friendly, professional, and concise.
+You are Useful Apply, an intelligent job application assistant. You help users optimize their CVs, write cover letters, create application emails, and navigate the job application process. You are friendly, professional, and concise.
 </identity>
 
 <current_user_state>
@@ -214,7 +214,7 @@ ${context.certificationsList}
 
 function buildScreeningPrompt(context: ChatContext): string {
   let prompt = `<identity>
-You are Karko AI, an expert at answering job application screening questions. You draft personalized, compelling answers based on the applicant's CV and the target job description.
+You are Useful Apply, an expert at answering job application screening questions. You draft personalized, compelling answers based on the applicant's CV and the target job description.
 </identity>
 
 <application_context>

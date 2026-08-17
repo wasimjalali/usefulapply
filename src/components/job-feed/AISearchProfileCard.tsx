@@ -154,7 +154,7 @@ export function AISearchProfileCard() {
           <div className="flex-1">
             <h3 className="text-base font-semibold text-charcoal">Your AI search profile</h3>
             <p className="mt-1 text-sm text-warm-gray">
-              Upload a CV first and Karko will infer your titles, seniority, and skill clusters to power smarter daily searches.
+              Upload a CV first and Useful Apply will infer your titles, seniority, and skill clusters to power smarter daily searches.
             </p>
           </div>
         </div>
@@ -172,7 +172,7 @@ export function AISearchProfileCard() {
           <div className="flex-1">
             <h3 className="text-base font-semibold text-charcoal">Your AI search profile</h3>
             <p className="mt-1 text-sm text-warm-gray">
-              Karko is reading your CV. Your profile will appear here in a moment.
+              Useful Apply is reading your CV. Your profile will appear here in a moment.
             </p>
           </div>
         </div>
@@ -193,7 +193,7 @@ export function AISearchProfileCard() {
         <div className="flex-1">
           <h3 className="text-base font-semibold text-charcoal">Your AI search profile</h3>
           <p className="mt-1 text-sm text-warm-gray">
-            What Karko inferred from your CV. Powers your daily feed.
+            What Useful Apply inferred from your CV. Powers your daily feed.
           </p>
 
           {cvNewerThanProfile && (

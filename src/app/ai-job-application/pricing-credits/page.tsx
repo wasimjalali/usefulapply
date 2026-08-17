@@ -6,20 +6,22 @@ import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 
-const SITE_URL = 'https://www.karkoai.com';
+import { BRAND } from '@/lib/brand';
+
+const SITE_URL = BRAND.url;
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
     title: 'AI Application Pricing & Credits',
     description:
-      'KarKo AI pricing: Free (2 apps/month), Plus $19.99/month (25 apps), Max $79.99/month (100 apps). Transparent credit-based pricing.',
+      'Useful Apply pricing: Free (2 apps/month), Plus $19.99/month (25 apps), Max $79.99/month (100 apps). Transparent credit-based pricing.',
     canonical: '/ai-job-application/pricing-credits',
   });
 }
 
 const faqs = [
   {
-    q: 'How much does Karko AI cost?',
+    q: 'How much does Useful Apply cost?',
     a: 'Free: 2 applications/month at no cost. Plus: $19.99/month for 25 applications. Max: $79.99/month for 100 applications. All plans include the complete 4-document package (tailored CV, cover letter, application email, follow-up email).',
   },
   {
@@ -36,7 +38,7 @@ const faqs = [
   },
   {
     q: 'What is the cheapest plan for heavy job searching?',
-    a: 'The Max plan at $79.99/month gives 100 applications, which works out to approximately $0.80 per full application. For context: one tailored application takes roughly an hour by hand. Karko does it in 90 seconds, roughly 40x faster. On Max, 100 applications a month is close to 100 hours of manual work returned to you.',
+    a: 'The Max plan at $79.99/month gives 100 applications, which works out to approximately $0.80 per full application. For context: one tailored application takes roughly an hour by hand. Useful Apply does it in 90 seconds, roughly 40x faster. On Max, 100 applications a month is close to 100 hours of manual work returned to you.',
   },
 ];
 
@@ -77,13 +79,13 @@ export default function PricingCreditsPage() {
   const articleJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
-    headline: 'AI Job Application Pricing & Credits: How Karko AI Plans Work',
+    headline: 'AI Job Application Pricing & Credits: How Useful Apply Plans Work',
     description:
-      'Karko AI pricing: Free (2 applications), Plus $19.99/month (25 applications), Max $79.99/month (100 applications). Credit-based system with transparent cost per application.',
-    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+      'Useful Apply pricing: Free (2 applications), Plus $19.99/month (25 applications), Max $79.99/month (100 applications). Credit-based system with transparent cost per application.',
+    author: { '@type': 'Organization', name: 'Useful Apply', url: SITE_URL },
     publisher: {
       '@type': 'Organization',
-      name: 'KarKo AI',
+      name: 'Useful Apply',
       url: SITE_URL,
       logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon-512x512.png` },
     },
@@ -143,7 +145,7 @@ export default function PricingCreditsPage() {
             </ScrollReveal>
             <ScrollReveal delay={300}>
               <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed">
-                Karko AI uses a credit-based pricing model: each full application costs 2
+                Useful Apply uses a credit-based pricing model: each full application costs 2
                 credits. The Free plan gives 4 credits (2 applications) free. The Plus plan
                 ($19.99/month) gives 50 credits (25 applications). The Max plan ($79.99/month) gives
                 200 credits (100 applications). All tiers generate the same four documents with no
@@ -263,7 +265,7 @@ export default function PricingCreditsPage() {
             </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
               Transparent credit counting makes cost predictable. Unlike tools that charge per
-              &quot;AI interaction&quot; or have opaque token-based billing, Karko AI charges per
+              &quot;AI interaction&quot; or have opaque token-based billing, Useful Apply charges per
               full application. One job description generates one complete set of four
               documents for 2 credits.
             </p>

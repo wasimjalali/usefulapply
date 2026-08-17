@@ -6,7 +6,9 @@ import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 
-const SITE_URL = 'https://www.karkoai.com';
+import { BRAND } from '@/lib/brand';
+
+const SITE_URL = BRAND.url;
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
@@ -49,7 +51,7 @@ const pillars = [
   {
     title: 'Workday, Greenhouse & Lever Compatibility',
     description:
-      'How Karko AI documents upload, parse, and submit through major ATS platforms without reformatting.',
+      'How Useful Apply documents upload, parse, and submit through major ATS platforms without reformatting.',
     href: '/ai-job-application/integrations-workday-greenhouse-lever',
     linkText: 'Workday, Greenhouse & Lever compatibility →',
   },
@@ -77,7 +79,7 @@ const pillars = [
   {
     title: 'Follow-Up Email Generator',
     description:
-      'Most candidates never follow up. Karko drafts a professional follow-up email for 7 to 10 days after applying, built from your real CV.',
+      'Most candidates never follow up. Useful Apply drafts a professional follow-up email for 7 to 10 days after applying, built from your real CV.',
     href: '/ai-job-application/follow-up-email-generator',
     linkText: 'Follow-up email generator →',
   },
@@ -101,23 +103,23 @@ const faqs = [
   },
   {
     q: 'Do I need to sign up to test an AI job application tool?',
-    a: "Not necessarily. Karko AI's Free plan lets you create 2 applications per month without requiring a paid subscription, and you can see the output quality before committing to any plan.",
+    a: "Not necessarily. Useful Apply's Free plan lets you create 2 applications per month without requiring a paid subscription, and you can see the output quality before committing to any plan.",
   },
   {
     q: "How do I prevent AI from making up experience I don't have?",
-    a: "Work from clean source data, a CV that contains only verified facts, and check every generated claim before sending. Karko AI traces every output back to your uploaded CV and refuses to invent skills, metrics, or roles that aren't documented there. Never a word you didn't earn.",
+    a: "Work from clean source data, a CV that contains only verified facts, and check every generated claim before sending. Useful Apply traces every output back to your uploaded CV and refuses to invent skills, metrics, or roles that aren't documented there. Never a word you didn't earn.",
   },
   {
     q: 'What does ATS optimization actually mean?',
-    a: "ATS (Applicant Tracking Systems) parse your CV and match it against job requirements before a human reads it. ATS optimization means: clean single-column formatting (no tables, text boxes, or complex layouts), standard section headings, consistent date formats, and keyword alignment with the job description. Karko AI generates ATS-optimized CVs by default.",
+    a: "ATS (Applicant Tracking Systems) parse your CV and match it against job requirements before a human reads it. ATS optimization means: clean single-column formatting (no tables, text boxes, or complex layouts), standard section headings, consistent date formats, and keyword alignment with the job description. Useful Apply generates ATS-optimized CVs by default.",
   },
   {
-    q: 'What documents does Karko AI generate?',
+    q: 'What documents does Useful Apply generate?',
     a: "A full application: tailored CV, cover letter, application email, and follow-up email. On Plus and Max, screening question answers as well. All reference the same job description and draw from your real CV, so they're consistent in tone, claims, and emphasis.",
   },
   {
     q: 'Does it work for jobs outside Germany?',
-    a: 'Yes. Karko AI supports US, UK, Canada, and Germany markets with region-appropriate formatting, tone, and templates, including US Letter resumes and German Lebenslauf format.',
+    a: 'Yes. Useful Apply supports US, UK, Canada, and Germany markets with region-appropriate formatting, tone, and templates, including US Letter resumes and German Lebenslauf format.',
   },
 ];
 
@@ -167,10 +169,10 @@ export default function AIJobApplicationHub() {
     headline: 'AI Job Application: Tools, Workflow, ATS & Templates',
     description:
       'Everything about AI job applications in one place: 90-second workflow, ATS optimization, zero-fabrication, integrations, pricing, and Master CV templates.',
-    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+    author: { '@type': 'Organization', name: 'Useful Apply', url: SITE_URL },
     publisher: {
       '@type': 'Organization',
-      name: 'KarKo AI',
+      name: 'Useful Apply',
       url: SITE_URL,
       logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon-512x512.png` },
     },
@@ -271,13 +273,13 @@ export default function AIJobApplicationHub() {
           </div>
         </section>
 
-        {/* H2: What Karko AI Generates */}
+        {/* H2: What Useful Apply Generates */}
         <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
           <div className="max-w-5xl mx-auto">
             <ScrollReveal>
               <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Your Complete Package</p>
               <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
-                What Karko AI Generates in 90 Seconds
+                What Useful Apply Generates in 90 Seconds
               </h2>
             </ScrollReveal>
             <ScrollReveal delay={150}>
@@ -405,7 +407,7 @@ export default function AIJobApplicationHub() {
                   href="/dashboard"
                   className="px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg inline-flex items-center gap-2"
                 >
-                  Try Karko AI Free
+                  Try Useful Apply Free
                   <ArrowRight className="w-5 h-5" />
                 </Link>
                 <Link

@@ -375,7 +375,7 @@ export default function PricingPage() {
               How much time will you save?
             </h2>
             <p className="text-warm-gray max-w-lg mx-auto">
-              One tailored application takes an hour by hand. Karko does it in 90 seconds. Roughly 40x faster, without dropping quality.
+              One tailored application takes an hour by hand. Useful Apply does it in 90 seconds. Roughly 40x faster, without dropping quality.
             </p>
           </div>
           </ScrollReveal>

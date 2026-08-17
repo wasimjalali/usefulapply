@@ -33,10 +33,29 @@ import {
 import { uploadProfilePhoto } from '@/lib/supabase/storage';
 import type { ProfilePhoto } from '@/store/useCVStore';
 import { EditableCVCanvas, EditableCVCanvasRef } from './EditableCVCanvas';
-import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
+import { StepIndicator } from './StepIndicator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from './ui/Toast';
 import { downloadBlob, getCaptureScale, getIsMobileOrTablet } from '@/lib/utils/download-pdf';
+
+const TEMPLATE_KEY = 'usefulapply-default-template';
+const TEMPLATE_KEY_OLD = 'karko-default-template';
+
+function readDefaultTemplate(): string {
+  if (typeof window === 'undefined') return 'premium-ats';
+  try {
+    const next = localStorage.getItem(TEMPLATE_KEY);
+    if (next) return next;
+    const prev = localStorage.getItem(TEMPLATE_KEY_OLD);
+    if (prev) {
+      localStorage.setItem(TEMPLATE_KEY, prev);
+      return prev;
+    }
+  } catch {
+    // ignore
+  }
+  return 'premium-ats';
+}
 
 // White margin added at the top and bottom of every PDF page (~10mm).
 // Content per page = pageHeight - 2×gutter; both the PDF slicer and the
@@ -183,18 +202,8 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
   const optimizedCVData = currentSession?.optimizedCVData;  // Solution B: Structured JSON from AI
   
   const [showOptimized, setShowOptimized] = useState(true);
-  const [selectedTemplateId, setSelectedTemplateId] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('karko-default-template') || 'premium-ats';
-    }
-    return 'premium-ats';
-  });
-  const [defaultTemplateId, setDefaultTemplateId] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('karko-default-template') || 'premium-ats';
-    }
-    return 'premium-ats';
-  });
+  const [selectedTemplateId, setSelectedTemplateId] = useState(() => readDefaultTemplate());
+  const [defaultTemplateId, setDefaultTemplateId] = useState(() => readDefaultTemplate());
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [templatePopoverPos, setTemplatePopoverPos] = useState<{ top: number; left: number; maxHeight: number; width: number } | null>(null);
   const templateSelectorRef = useRef<HTMLDivElement>(null);
@@ -917,7 +926,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
           <p className="text-xs text-warm-gray/80 mt-4 leading-relaxed">
-            Then paste a job description and Karko tailors your CV, cover letter and emails.
+            Then paste a job description and Useful Apply tailors your CV, cover letter and emails.
           </p>
         </div>
       </div>
@@ -1111,7 +1120,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
             }}
             defaultTemplateId={defaultTemplateId}
             onSetDefault={(id) => {
-              localStorage.setItem('karko-default-template', id);
+              localStorage.setItem(TEMPLATE_KEY, id);
               setDefaultTemplateId(id);
             }}
           />
@@ -1138,7 +1147,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
       {/* Content Area */}
       <div className="flex-1 overflow-hidden">
         {isLoading ? (
-          <KarkoAIStepIndicator
+          <StepIndicator
             stepType="cv"
             isLoading={true}
             title={agentWorkflowPhase === 'fit_analysis' ? 'Analyzing Fit' : undefined}

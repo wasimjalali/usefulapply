@@ -1,7 +1,7 @@
 /**
- * Karko AI - Unified Agent Architecture
+ * Useful Apply - Unified Agent Architecture
  * 
- * Karko AI is the single intelligent agent that handles:
+ * Useful Apply is the single intelligent agent that handles:
  * - Context Building: CV parsing, JD parsing, language detection, skill matching
  * - Document Generation: Optimized CV, cover letter, email generation
  * 
@@ -9,7 +9,7 @@
  * - No company research needed (relies on job description context)
  * - AI-native skill matching (no external RAG system)
  * 
- * Karko AI Workflow:
+ * Useful Apply Workflow:
  * 1. Parse CV and extract applicant profile
  * 2. Analyze job description requirements
  * 3. Detect language (EN/DE)
@@ -86,7 +86,7 @@ export const unifiedWriterAgent = {
       // ============================================
       // PHASE 1: ANALYSIS & MATCHING
       // ============================================
-      emit({ type: 'step_started', step: { id: 'analysis', description: 'Karko AI: Parsing CV and analyzing job requirements' } });
+      emit({ type: 'step_started', step: { id: 'analysis', description: 'Useful Apply: Parsing CV and analyzing job requirements' } });
       
       // Step 0: Load documents from storage if not provided
       if (!context.rawCV) {
@@ -94,11 +94,11 @@ export const unifiedWriterAgent = {
         const docs = await loadApplicantDocuments(context.sessionId);
         if (docs.primaryCV) {
           context.rawCV = docs.primaryCV;
-          console.log('[KarkoAI] Loaded primaryCV from storage');
+          console.log('[UsefulApply] Loaded primaryCV from storage');
         }
         if (docs.masterCV) {
           context.masterCV = docs.masterCV;
-          console.log('[KarkoAI] Loaded masterCV from storage');
+          console.log('[UsefulApply] Loaded masterCV from storage');
         }
         if (docs.certifications && docs.certifications.length > 0) {
           const certText = '\n\nCERTIFICATIONS:\n' + docs.certifications.join('\n');
@@ -128,21 +128,21 @@ export const unifiedWriterAgent = {
       // Non-critical: metrics extraction failure is non-blocking
       context.verifiedMetrics = metricsSettled.status === 'fulfilled' ? metricsSettled.value.result : [];
       context.detectedLanguage = this.detectLanguage(context.jobDescription);
-      console.log('[KarkoAI] Detected language:', context.detectedLanguage);
-      console.log('[KarkoAI] Verified metrics count:', context.verifiedMetrics?.length || 0);
+      console.log('[UsefulApply] Detected language:', context.detectedLanguage);
+      console.log('[UsefulApply] Verified metrics count:', context.verifiedMetrics?.length || 0);
       
       // Log warnings for missing critical fields
       if (!context.applicant?.name || context.applicant.name === 'Unknown') {
-        console.warn('[KarkoAI] WARNING: Could not extract applicant name from CV');
+        console.warn('[UsefulApply] WARNING: Could not extract applicant name from CV');
       }
       if (!context.applicant?.email) {
-        console.warn('[KarkoAI] WARNING: Could not extract applicant email from CV');
+        console.warn('[UsefulApply] WARNING: Could not extract applicant email from CV');
       }
 
       emit({ type: 'step_completed', step: { id: 'analysis', description: 'CV parsed and job analyzed' }, tokens: applicantResult.tokens });
 
       // Step 3: Compute skill match (depends on both applicant + job from above)
-      emit({ type: 'step_started', step: { id: 'matching', description: 'Karko AI: Matching skills and identifying gaps' } });
+      emit({ type: 'step_started', step: { id: 'matching', description: 'Useful Apply: Matching skills and identifying gaps' } });
       emit({ type: 'progress', percent: 35, message: 'Analyzing skill match...' });
       context.match = await this.computeSkillMatch(context.applicant, context.job, context.masterCV);
 
@@ -154,9 +154,9 @@ export const unifiedWriterAgent = {
       // Only follow-up email depends on application email content.
       // ============================================
 
-      emit({ type: 'step_started', step: { id: 'cv_generation', description: 'Karko AI: Optimizing CV for the position' } });
-      emit({ type: 'step_started', step: { id: 'cover_letter', description: 'Karko AI: Composing tailored cover letter' } });
-      emit({ type: 'step_started', step: { id: 'email', description: 'Karko AI: Generating application and follow-up emails' } });
+      emit({ type: 'step_started', step: { id: 'cv_generation', description: 'Useful Apply: Optimizing CV for the position' } });
+      emit({ type: 'step_started', step: { id: 'cover_letter', description: 'Useful Apply: Composing tailored cover letter' } });
+      emit({ type: 'step_started', step: { id: 'email', description: 'Useful Apply: Generating application and follow-up emails' } });
       emit({ type: 'progress', percent: 45, message: 'Generating CV, cover letter, and email...' });
 
       const [cvResult, coverLetterResult, emailResult] = await Promise.all([
@@ -198,7 +198,7 @@ export const unifiedWriterAgent = {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Agent execution failed';
-      console.error('[KarkoAI] Error:', errorMessage);
+      console.error('[UsefulApply] Error:', errorMessage);
       emit({ type: 'step_error', step: { id: 'karko_ai' }, error: errorMessage });
       
       return {
@@ -244,7 +244,7 @@ export const unifiedWriterAgent = {
 
     try {
       // Step 1: Extract applicant profile
-      emit({ type: 'step_started', step: { id: 'analysis', description: 'Karko AI: Parsing CV and analyzing job requirements' } });
+      emit({ type: 'step_started', step: { id: 'analysis', description: 'Useful Apply: Parsing CV and analyzing job requirements' } });
       emit({ type: 'progress', percent: 10, message: 'Extracting applicant profile from CV...' });
       
       if (!context.rawCV) {
@@ -278,14 +278,14 @@ export const unifiedWriterAgent = {
       emit({ type: 'step_completed', step: { id: 'analysis', description: 'CV parsed and job analyzed' }, tokens: applicantResult.tokens });
 
       // Step 2: Skill matching (depends on both applicant + job from above)
-      emit({ type: 'step_started', step: { id: 'matching', description: 'Karko AI: Matching skills and identifying gaps' } });
+      emit({ type: 'step_started', step: { id: 'matching', description: 'Useful Apply: Matching skills and identifying gaps' } });
       
       emit({ type: 'progress', percent: 50, message: 'Analyzing skill match...' });
       context.match = await this.computeSkillMatch(context.applicant, context.job, context.masterCV);
       emit({ type: 'step_completed', step: { id: 'matching', description: 'Skills matched' }, tokens: jobResult.tokens });
 
       // Step 3: Generate fit assessment
-      emit({ type: 'step_started', step: { id: 'fit_assessment', description: 'Karko AI: Assessing job fit' } });
+      emit({ type: 'step_started', step: { id: 'fit_assessment', description: 'Useful Apply: Assessing job fit' } });
       emit({ type: 'progress', percent: 70, message: 'Generating fit assessment...' });
       const fitResult = await this.generateFitAssessment(context);
       context.fitAnalysis = fitResult.result;
@@ -304,7 +304,7 @@ export const unifiedWriterAgent = {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Fit analysis failed';
-      console.error('[KarkoAI] Fit analysis error:', errorMessage);
+      console.error('[UsefulApply] Fit analysis error:', errorMessage);
       emit({ type: 'step_error', step: { id: 'karko_ai' }, error: errorMessage });
       
       return {
@@ -330,9 +330,9 @@ export const unifiedWriterAgent = {
       // CV, cover letter, and application email are independent — run in parallel.
       // Only follow-up email depends on application email content.
 
-      emit({ type: 'step_started', step: { id: 'cv_generation', description: 'Karko AI: Optimizing CV for the position' } });
-      emit({ type: 'step_started', step: { id: 'cover_letter', description: 'Karko AI: Composing tailored cover letter' } });
-      emit({ type: 'step_started', step: { id: 'email', description: 'Karko AI: Generating application and follow-up emails' } });
+      emit({ type: 'step_started', step: { id: 'cv_generation', description: 'Useful Apply: Optimizing CV for the position' } });
+      emit({ type: 'step_started', step: { id: 'cover_letter', description: 'Useful Apply: Composing tailored cover letter' } });
+      emit({ type: 'step_started', step: { id: 'email', description: 'Useful Apply: Generating application and follow-up emails' } });
       emit({ type: 'progress', percent: 15, message: 'Generating CV, cover letter, and email...' });
 
       const [cvResult2, coverLetterResult2, emailResult2] = await Promise.all([
@@ -374,7 +374,7 @@ export const unifiedWriterAgent = {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Generation failed';
-      console.error('[KarkoAI] Generation with context error:', errorMessage);
+      console.error('[UsefulApply] Generation with context error:', errorMessage);
       emit({ type: 'step_error', step: { id: 'karko_ai' }, error: errorMessage });
       
       return {

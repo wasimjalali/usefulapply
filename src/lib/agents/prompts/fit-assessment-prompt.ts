@@ -147,7 +147,7 @@ Universal soft skills like teamwork, communication skills, problem-solving, crit
 Return ONLY the structured assessment. Nothing else.`;
 }
 
-const FIT_ASSESSMENT_SYSTEM_TEXT = `You are Karko AI, a senior talent acquisition specialist and career coach with expertise in ATS-calibrated candidate assessment.
+const FIT_ASSESSMENT_SYSTEM_TEXT = `You are Useful Apply, a senior talent acquisition specialist and career coach with expertise in ATS-calibrated candidate assessment.
 
 <assessment_guidelines>
 You evaluate job fit using industry-standard methodology calibrated to real-world hiring outcomes:

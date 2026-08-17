@@ -12,16 +12,18 @@ import { SectionBackground } from '@/components/marketing/AnimatedBackground';
 import { HeroAurora } from '@/components/marketing/HeroAurora';
 import { PricingAurora } from '@/components/marketing/PricingAurora';
 
+import { BRAND } from '@/lib/brand';
+
 export const metadata: Metadata = {
   title: {
-    absolute: 'Karko AI | Your entire job search, in one app',
+    absolute: 'Useful Apply | Your entire job search, in one app',
   },
   description:
-    'Karko is the AI job application agent that replaces the seven tools job seekers stitch together. Find roles, see the fit, and get a tailored CV, cover letter, emails, and screening answers in 90 seconds. Every word traces back to your real CV.',
+    'Useful Apply is the AI job application agent that replaces the seven tools job seekers stitch together. Find roles, see the fit, and get a tailored CV, cover letter, emails, and screening answers in 90 seconds. Every word traces back to your real CV.',
   alternates: { canonical: '/' },
 };
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
 
 export default function Home() {
   return (
@@ -35,7 +37,7 @@ export default function Home() {
           __html: JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'SoftwareApplication',
-            name: 'KarKo AI',
+            name: 'Useful Apply',
             applicationCategory: 'BusinessApplication',
             operatingSystem: 'Web',
             description:
@@ -80,7 +82,7 @@ export default function Home() {
             ],
             creator: {
               '@type': 'Organization',
-              name: 'KarKo AI',
+              name: 'Useful Apply',
               url: SITE_URL,
             },
             aggregateRating: {
@@ -98,7 +100,7 @@ export default function Home() {
                 },
                 datePublished: '2026-03-08',
                 reviewBody:
-                  'Karko is a very useful AI tool for job applications. It helps create a professional CV in the European and USA format and also assists with writing strong cover letters. The platform is easy to use and saves a lot of time when preparing job applications. I would definitely recommend it to anyone who wants to improve their CV and apply for jobs more efficiently.',
+                  'Useful Apply is a very useful AI tool for job applications. It helps create a professional CV in the European and USA format and also assists with writing strong cover letters. The platform is easy to use and saves a lot of time when preparing job applications. I would definitely recommend it to anyone who wants to improve their CV and apply for jobs more efficiently.',
                 reviewRating: {
                   '@type': 'Rating',
                   ratingValue: '5',
@@ -169,7 +171,7 @@ export default function Home() {
               <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
                 <iframe
                   src="https://www.tella.tv/video/vid_cmpjrsku400wk04jm1wuf3es6/embed?b=0&title=0&a=1&loop=0&t=0&muted=1&wt=1&o=1"
-                  title="Karko AI demo"
+                  title="Useful Apply demo"
                   loading="lazy"
                   referrerPolicy="strict-origin-when-cross-origin"
                   allow="autoplay; fullscreen; picture-in-picture"
@@ -226,7 +228,7 @@ export default function Home() {
               {
                 step: 1,
                 title: 'Upload your CV once',
-                description: 'Your source of truth. Karko reads it, structures it, and uses only what is actually there.',
+                description: 'Your source of truth. Useful Apply reads it, structures it, and uses only what is actually there.',
                 accent: '/images/features/master-cv-system.jpg',
                 accentAlt: 'Master CV upload illustration',
               },
@@ -309,14 +311,14 @@ export default function Home() {
               <div className="w-[200px] h-[200px] md:w-[240px] md:h-[240px] rounded-2xl overflow-hidden border border-cream-200 shadow-sm">
                 <Image
                   src="/wasim-founder.jpg"
-                  alt="Wasim Jalali, Founder of Karko AI"
+                  alt="Wasim Jalali, Founder of Useful Apply"
                   width={240}
                   height={240}
                   className="w-full h-full object-cover"
                 />
               </div>
               <p className="mt-5 italic text-charcoal text-2xl leading-none">Wasim Jalali</p>
-              <p className="mt-1 text-sm text-warm-gray">Founder, Karko AI</p>
+              <p className="mt-1 text-sm text-warm-gray">Founder, Useful Apply</p>
             </div>
 
             {/* Quote column */}
@@ -329,7 +331,7 @@ export default function Home() {
               </h2>
               <div className="border-l-2 border-gold-400 pl-6">
                 <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  I built Karko for my own search. Sixty-plus applications, every one written by the product. Five interviews. Then I was hired as an AI Specialist through an application Karko wrote. If it can do that for a first-time job seeker with no degree, it can do it for you.
+                  I built Useful Apply for my own search. Sixty-plus applications, every one written by the product. Five interviews. Then I was hired as an AI Specialist through an application Useful Apply wrote. If it can do that for a first-time job seeker with no degree, it can do it for you.
                 </p>
               </div>
             </div>
@@ -349,7 +351,7 @@ export default function Home() {
               How much time will you save?
             </h2>
             <p className="text-warm-gray max-w-lg mx-auto">
-              One tailored application takes an hour by hand. Karko does it in 90 seconds. That is roughly 40x faster, without dropping quality.
+              One tailored application takes an hour by hand. Useful Apply does it in 90 seconds. That is roughly 40x faster, without dropping quality.
             </p>
           </div>
           </ScrollReveal>

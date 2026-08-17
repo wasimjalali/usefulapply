@@ -11,6 +11,8 @@ import { ComparisonFeatures } from '@/components/comparisons/ComparisonFeatures'
 import { ComparisonUseCases } from '@/components/comparisons/ComparisonUseCases';
 import { ComparisonFAQ } from '@/components/comparisons/ComparisonFAQ';
 
+import { BRAND } from '@/lib/brand';
+
 interface ComparisonPageProps {
   params: Promise<{ slug: string }>;
 }
@@ -28,7 +30,7 @@ export async function generateMetadata({ params }: ComparisonPageProps): Promise
     return { title: 'Comparison Not Found' };
   }
 
-  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
+  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
 
   return {
     title: comparison.title,
@@ -39,7 +41,7 @@ export async function generateMetadata({ params }: ComparisonPageProps): Promise
       title: comparison.title,
       description: comparison.description,
       url: `${SITE_URL}/compare/${comparison.slug}`,
-      siteName: 'KarKo AI',
+      siteName: 'Useful Apply',
       publishedTime: comparison.publishedAt,
       modifiedTime: comparison.updatedAt || comparison.publishedAt,
       images: comparison.ogImage
@@ -62,7 +64,7 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
     notFound();
   }
 
-  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
+  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
 
   // JSON-LD schemas
   const breadcrumbJsonLd = {
@@ -133,8 +135,8 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
           <div className="max-w-5xl mx-auto">
             <h2 className="font-bold text-navy-600 text-[32px] leading-[1.1] mb-10 text-center">Detailed overview.</h2>
             <div className="grid lg:grid-cols-2 gap-8">
-              <ComparisonDeepDive tool={comparison.karkoOverview} isKarko={true} />
-              <ComparisonDeepDive tool={comparison.competitorOverview} isKarko={false} />
+              <ComparisonDeepDive tool={comparison.brandOverview} isBrand={true} />
+              <ComparisonDeepDive tool={comparison.competitorOverview} isBrand={false} />
             </div>
           </div>
         </section>

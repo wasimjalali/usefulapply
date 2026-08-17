@@ -5,7 +5,8 @@ import { X, Zap, Crown, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { CREDIT_UPDATE_EVENT } from './CreditIndicator';
 
-const BANNER_DISMISSED_KEY = 'karko_low_credits_banner_dismissed';
+const BANNER_DISMISSED_KEY = 'usefulapply_low_credits_banner_dismissed';
+const BANNER_DISMISSED_KEY_OLD = 'karko_low_credits_banner_dismissed';
 
 export function LowCreditsBanner() {
   const { user } = useAuth();
@@ -20,6 +21,9 @@ export function LowCreditsBanner() {
     queueMicrotask(() => {
       try {
         if (sessionStorage.getItem(BANNER_DISMISSED_KEY) === '1') {
+          setDismissed(true);
+        } else if (sessionStorage.getItem(BANNER_DISMISSED_KEY_OLD) === '1') {
+          sessionStorage.setItem(BANNER_DISMISSED_KEY, '1');
           setDismissed(true);
         }
       } catch {

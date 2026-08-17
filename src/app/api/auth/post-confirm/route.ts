@@ -20,7 +20,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  *  1. Auth (session cookie must be valid; user.email_confirmed_at must be set).
  *  2. CAS-claim by setting welcome_sent_at = NOW() WHERE welcome_sent_at IS NULL.
  *     Zero rows updated => already sent, return success.
- *  3. Best-effort: add contact to "Karko AI - New Users" Resend audience.
+ *  3. Best-effort: add contact to "Useful Apply - New Users" Resend audience.
  *  4. Send Day 0 founder welcome via Resend (fatal if it fails: roll back claim).
  *  5. Schedule Day 3 check-in via Resend `scheduledAt` (non-fatal if it fails: log).
  */

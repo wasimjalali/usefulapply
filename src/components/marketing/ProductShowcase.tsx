@@ -20,9 +20,9 @@ const SLIDES: Slide[] = [
     eyebrow: 'Morning Job Feed',
     title: 'Jobs picked for you, daily',
     description:
-      'Every morning Karko delivers hand-picked roles that fit your profile. No keyword wrangling, no job-board swamp.',
+      'Every morning Useful Apply delivers hand-picked roles that fit your profile. No keyword wrangling, no job-board swamp.',
     src: '/screenshots/product-01-job-feed.webp?v=2',
-    alt: 'Karko AI Smart Job Feed showing six hand-picked roles with match badges',
+    alt: 'Useful Apply Smart Job Feed showing six hand-picked roles with match badges',
   },
   {
     id: 'fit-analysis',
@@ -31,7 +31,7 @@ const SLIDES: Slide[] = [
     description:
       'A quick read of your fit for each role. Strengths, gaps, and what to lead with in the cover letter.',
     src: '/screenshots/product-05-fit-analysis.webp',
-    alt: 'Karko AI Fit Analysis panel showing strengths, gaps and a recommendation',
+    alt: 'Useful Apply Fit Analysis panel showing strengths, gaps and a recommendation',
   },
   {
     id: 'cv',
@@ -40,7 +40,7 @@ const SLIDES: Slide[] = [
     description:
       'Your CV tuned to the role. Skills reordered, keywords matched, ATS score visible at the top.',
     src: '/screenshots/product-02-cv-optimized.webp',
-    alt: 'Karko AI Optimized CV with ATS score and template controls',
+    alt: 'Useful Apply Optimized CV with ATS score and template controls',
   },
   {
     id: 'email',
@@ -49,7 +49,7 @@ const SLIDES: Slide[] = [
     description:
       'Subject line, body, tone. Copy it, paste it, hit send. Follow-up email included.',
     src: '/screenshots/product-03-application-email.webp',
-    alt: 'Karko AI application email with subject line and body ready to send',
+    alt: 'Useful Apply application email with subject line and body ready to send',
   },
   {
     id: 'tracker',
@@ -58,7 +58,7 @@ const SLIDES: Slide[] = [
     description:
       'Statuses, match scores, follow-up timers. One view of your whole search.',
     src: '/screenshots/product-04-tracker.webp',
-    alt: 'Karko AI Application Tracker with match scores and status pills',
+    alt: 'Useful Apply Application Tracker with match scores and status pills',
   },
 ];
 

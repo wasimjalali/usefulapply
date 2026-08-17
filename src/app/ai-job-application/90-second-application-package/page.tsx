@@ -6,13 +6,15 @@ import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 
-const SITE_URL = 'https://www.karkoai.com';
+import { BRAND } from '@/lib/brand';
+
+const SITE_URL = BRAND.url;
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
     title: 'Full Application in 90 Seconds',
     description:
-      'Generate a tailored CV, cover letter, application email, and follow-up email from one job description in under 90 seconds with KarKo AI.',
+      'Generate a tailored CV, cover letter, application email, and follow-up email from one job description in under 90 seconds with Useful Apply.',
     canonical: '/ai-job-application/90-second-application-package',
   });
 }
@@ -20,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
 const faqs = [
   {
     q: 'Which AI generates complete job applications in 90 seconds?',
-    a: 'Karko AI generates a full application (tailored CV, cover letter, application email, and follow-up email) from a single job description in under 90 seconds. The 90 seconds refers to the generation step after you\'ve uploaded your CV and pasted the job description.',
+    a: 'Useful Apply generates a full application (tailored CV, cover letter, application email, and follow-up email) from a single job description in under 90 seconds. The 90 seconds refers to the generation step after you\'ve uploaded your CV and pasted the job description.',
   },
   {
     q: 'What documents does the 90-second package include?',
@@ -28,15 +30,15 @@ const faqs = [
   },
   {
     q: 'How does the fit score work?',
-    a: 'Before generating any documents, Karko AI compares your CV against the job description and produces a fit score. It shows matching skills, identified gaps, and an overall match level. You see this assessment before deciding whether to generate the application, so you don\'t invest time in applications where the match is genuinely weak.',
+    a: 'Before generating any documents, Useful Apply compares your CV against the job description and produces a fit score. It shows matching skills, identified gaps, and an overall match level. You see this assessment before deciding whether to generate the application, so you don\'t invest time in applications where the match is genuinely weak.',
   },
   {
     q: 'Can the AI invent experience I don\'t have?',
-    a: 'No. Karko AI\'s anti-hallucination system traces every claim back to your uploaded CV. If a skill or achievement isn\'t in your source documents, it doesn\'t appear in the output. This is enforced structurally, not just as a prompt instruction.',
+    a: 'No. Useful Apply\'s anti-hallucination system traces every claim back to your uploaded CV. If a skill or achievement isn\'t in your source documents, it doesn\'t appear in the output. This is enforced structurally, not just as a prompt instruction.',
   },
   {
     q: 'Does it work for US, UK, and German job markets?',
-    a: 'Yes. Karko AI supports US, UK, Canada, and Germany with region-appropriate formatting and tone, including US-style resumes and German Lebenslauf format with the correct header structure for the German market.',
+    a: 'Yes. Useful Apply supports US, UK, Canada, and Germany with region-appropriate formatting and tone, including US-style resumes and German Lebenslauf format with the correct header structure for the German market.',
   },
 ];
 
@@ -77,25 +79,25 @@ export default function NinetySecondApplicationPackagePage() {
   const howToJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'HowTo',
-    name: 'How to Generate a Complete Job Application in 90 Seconds with Karko AI',
+    name: 'How to Generate a Complete Job Application in 90 Seconds with Useful Apply',
     step: [
       {
         '@type': 'HowToStep',
         position: 1,
         name: 'Upload your Master CV',
-        text: 'Upload your complete CV once. Karko AI uses this as the verified source for all applications.',
+        text: 'Upload your complete CV once. Useful Apply uses this as the verified source for all applications.',
       },
       {
         '@type': 'HowToStep',
         position: 2,
         name: 'Paste the job description',
-        text: "Copy the full job description text into Karko AI's input field.",
+        text: "Copy the full job description text into Useful Apply's input field.",
       },
       {
         '@type': 'HowToStep',
         position: 3,
         name: 'Review your fit score',
-        text: 'Before generating documents, Karko AI shows a fit score with matching skills and identified gaps.',
+        text: 'Before generating documents, Useful Apply shows a fit score with matching skills and identified gaps.',
       },
       {
         '@type': 'HowToStep',
@@ -117,11 +119,11 @@ export default function NinetySecondApplicationPackagePage() {
     '@type': 'Article',
     headline: 'Full AI Application in 90 Seconds',
     description:
-      'Karko AI generates a full application (tailored CV, cover letter, application email, and follow-up email) from one job description in under 90 seconds.',
-    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+      'Useful Apply generates a full application (tailored CV, cover letter, application email, and follow-up email) from one job description in under 90 seconds.',
+    author: { '@type': 'Organization', name: 'Useful Apply', url: SITE_URL },
     publisher: {
       '@type': 'Organization',
-      name: 'KarKo AI',
+      name: 'Useful Apply',
       url: SITE_URL,
       logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon-512x512.png` },
     },
@@ -185,7 +187,7 @@ export default function NinetySecondApplicationPackagePage() {
             </ScrollReveal>
             <ScrollReveal delay={300}>
               <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed mb-4">
-                Karko generates a full application, tailored CV, cover letter, application email,
+                Useful Apply generates a full application, tailored CV, cover letter, application email,
                 and follow-up email, from a single job description in under 90 seconds. Paste the
                 job posting, see the fit, click apply. Four ready-to-send documents, every word
                 traced back to your real CV.
@@ -245,7 +247,7 @@ export default function NinetySecondApplicationPackagePage() {
             </ScrollReveal>
             <ScrollReveal delay={150}>
             <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
-              Step 1: Paste the job description. Step 2: Karko AI runs a fit analysis. It compares
+              Step 1: Paste the job description. Step 2: Useful Apply runs a fit analysis. It compares
               your CV against the job requirements and produces a fit score before generating
               anything. Step 3: Review the fit score. If the match is strong, proceed; if there are
               gaps, you see them honestly before spending time on the application.
@@ -398,7 +400,7 @@ export default function NinetySecondApplicationPackagePage() {
           <ScrollReveal>
             <div className="max-w-4xl mx-auto text-center relative">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                Try Karko AI Free, No Sign-Up Required
+                Try Useful Apply Free, No Sign-Up Required
               </h2>
               <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
                 Generate your full application in under 90 seconds. 2 free applications
@@ -408,7 +410,7 @@ export default function NinetySecondApplicationPackagePage() {
                 href="/dashboard"
                 className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg"
               >
-                Try Karko AI Free
+                Try Useful Apply Free
                 <ArrowRight className="w-5 h-5" />
               </a>
             </div>

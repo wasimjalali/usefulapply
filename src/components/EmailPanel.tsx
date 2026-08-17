@@ -8,7 +8,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { useUIStore } from '@/store/useUIStore';
 import { Send, Copy, Check, RefreshCw, Edit3, Clock, Zap } from 'lucide-react';
 import type { GeneratedEmail } from '@/lib/types';
-import { KarkoAIStepIndicator } from './KarkoAIStepIndicator';
+import { StepIndicator } from './StepIndicator';
 import { useToast } from './ui/Toast';
 import { PortalTooltip } from './ui/PortalTooltip';
 import { useAuth } from '@/contexts/AuthContext';
@@ -312,7 +312,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   // Show loading indicator during agent workflow
   if (!email && isAgentWorking) {
     return (
-      <KarkoAIStepIndicator
+      <StepIndicator
         stepType="email"
         isLoading={true}
         title={agentWorkflowPhase === 'fit_analysis' ? 'Analyzing Fit' : undefined}
@@ -493,7 +493,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
 
       <div className="flex-1 overflow-auto p-3 sm:p-6">
         {isLoadingEmail || isGenerating || isAgentWorking ? (
-          <KarkoAIStepIndicator
+          <StepIndicator
             stepType="email"
             isLoading={true}
             title={agentWorkflowPhase === 'fit_analysis' ? 'Analyzing Fit' : undefined}

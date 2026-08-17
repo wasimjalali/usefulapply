@@ -701,7 +701,7 @@ export function TrackerPanel() {
             Every application, in one place
           </h1>
           <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-warm-gray">
-            No spreadsheets. No lost follow-ups. Karko saves every application you send and keeps your pipeline organised automatically.
+            No spreadsheets. No lost follow-ups. Useful Apply saves every application you send and keeps your pipeline organised automatically.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3">
             <Link href="/auth/signup" className="inline-flex">

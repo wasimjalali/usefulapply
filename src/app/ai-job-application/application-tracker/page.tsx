@@ -6,13 +6,15 @@ import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 
-const SITE_URL = 'https://www.karkoai.com';
+import { BRAND } from '@/lib/brand';
+
+const SITE_URL = BRAND.url;
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
     title: 'Job Application Tracker: Track 100+ Applications',
     description:
-      'Track job applications with status, match scores, and deadlines. Karko AI automatically saves every application you generate. Stay organized throughout your job search.',
+      'Track job applications with status, match scores, and deadlines. Useful Apply automatically saves every application you generate. Stay organized throughout your job search.',
     canonical: '/ai-job-application/application-tracker',
   });
 }
@@ -27,12 +29,12 @@ const faqs = [
     a: 'Essential fields: company name, job title, application date, status (applied, interview, rejected, accepted), and a link to the job posting. Helpful additions: match score (how well your profile fits the role), follow-up deadlines, notes on recruiter conversations, and a copy of the CV/cover letter you sent (so you know what claims you made when the interview comes).',
   },
   {
-    q: 'How does Karko AI\'s tracker work?',
-    a: 'Karko AI automatically saves every application you generate to your tracker. It records the company, job title, application date, match score (fit assessment), and the exact documents you generated (CV, cover letter, email, follow-up). You can update the status (applied → interview → offer) and add notes. Everything is saved to your Supabase account, accessible from the Applications page.',
+    q: 'How does Useful Apply\'s tracker work?',
+    a: 'Useful Apply automatically saves every application you generate to your tracker. It records the company, job title, application date, match score (fit assessment), and the exact documents you generated (CV, cover letter, email, follow-up). You can update the status (applied → interview → offer) and add notes. Everything is saved to your Supabase account, accessible from the Applications page.',
   },
   {
     q: 'Can I export my application data?',
-    a: 'Yes. Your application data is stored in your Supabase account (PostgreSQL database). You can export it as CSV or JSON from the Supabase dashboard, or build custom queries if you need advanced analysis. Karko AI does not lock you into a proprietary format.',
+    a: 'Yes. Your application data is stored in your Supabase account (PostgreSQL database). You can export it as CSV or JSON from the Supabase dashboard, or build custom queries if you need advanced analysis. Useful Apply does not lock you into a proprietary format.',
   },
   {
     q: 'What\'s the difference between a tracker and a CRM for job search?',
@@ -79,11 +81,11 @@ export default function ApplicationTrackerPage() {
     '@type': 'Article',
     headline: 'Job Application Tracker: Stay Organized Through 100+ Applications',
     description:
-      'Learn how Karko AI\'s application tracker automatically saves your applications, match scores, and documents. Stay organized and never miss a follow-up.',
-    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+      'Learn how Useful Apply\'s application tracker automatically saves your applications, match scores, and documents. Stay organized and never miss a follow-up.',
+    author: { '@type': 'Organization', name: 'Useful Apply', url: SITE_URL },
     publisher: {
       '@type': 'Organization',
-      name: 'KarKo AI',
+      name: 'Useful Apply',
       url: SITE_URL,
       logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon-512x512.png` },
     },
@@ -145,7 +147,7 @@ export default function ApplicationTrackerPage() {
               <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed">
                 The average job seeker submits 100+ applications to land one offer. Without a
                 tracker, you lose track of which jobs you applied to, when to follow up, and
-                which version of your CV you sent. Karko AI automatically saves every application
+                which version of your CV you sent. Useful Apply automatically saves every application
                 you generate, recording the company, role, match score, and documents, so you
                 stay organized through your entire job search.
               </p>
@@ -259,21 +261,21 @@ export default function ApplicationTrackerPage() {
           </div>
         </section>
 
-        {/* H2: How Karko AI Tracker Works */}
+        {/* H2: How Useful Apply Tracker Works */}
         <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
           <div className="max-w-5xl mx-auto">
             <ScrollReveal>
               <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Automatic Tracking</p>
               <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
-                How Karko AI&apos;s Application Tracker Works
+                How Useful Apply&apos;s Application Tracker Works
               </h2>
             </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
-              <strong>Karko AI automatically saves every application you generate.</strong> You
+              <strong>Useful Apply automatically saves every application you generate.</strong> You
               don&apos;t have to manually log anything. The tracker is built into the workflow.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              When you generate an full application (CV, cover letter, email, follow-up), Karko
+              When you generate an full application (CV, cover letter, email, follow-up), Useful Apply
               AI records:
             </p>
             <ul className="list-disc list-inside space-y-2 text-charcoal mb-4 pl-4">
@@ -281,13 +283,13 @@ export default function ApplicationTrackerPage() {
               <li>Application date (timestamp)</li>
               <li>Match score (the fit assessment from Phase 1)</li>
               <li>The exact documents you generated (CV, cover letter, email, follow-up)</li>
-              <li>Status (defaults to "Applied," you can update it later)</li>
+              <li>Status (defaults to &quot;Applied,&quot; you can update it later)</li>
             </ul>
             <p className="text-charcoal leading-relaxed mb-4">
               <strong>Everything is saved to your Supabase account</strong> (PostgreSQL
               database). You can access your full application history from the Applications page
-              in the Karko AI dashboard. You can update the status (e.g., from "Applied" to
-              "Interview"), add notes, and filter by status, date, or match score.
+              in the Useful Apply dashboard. You can update the status (e.g., from &quot;Applied&quot; to
+              &quot;Interview&quot;), add notes, and filter by status, date, or match score.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
               <strong>Follow-up reminders:</strong> The tracker shows you which applications are
@@ -323,7 +325,7 @@ export default function ApplicationTrackerPage() {
               generation workflow. You can&apos;t forget, because it&apos;s built in.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              And because Karko AI saves the exact documents you generated, you can go back 6
+              And because Useful Apply saves the exact documents you generated, you can go back 6
               weeks later when the interview comes and review exactly what you said in your cover
               letter and which achievements you emphasized in your CV. That prep time is critical.
             </p>
@@ -353,7 +355,7 @@ export default function ApplicationTrackerPage() {
             </ul>
             <p className="text-charcoal leading-relaxed mb-4">
               <strong>Most job seekers never do this analysis</strong> because they don&apos;t
-              have clean data. Karko AI&apos;s tracker gives you that data automatically.
+              have clean data. Useful Apply&apos;s tracker gives you that data automatically.
             </p>
           </div>
         </section>
@@ -404,7 +406,7 @@ export default function ApplicationTrackerPage() {
                 Start Tracking Your Applications Automatically
               </h2>
               <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
-                Try Karko AI free for your first 2 applications. Every application you generate
+                Try Useful Apply free for your first 2 applications. Every application you generate
                 is automatically saved to your tracker. No manual logging. Stay organized from day
                 one.
               </p>
@@ -413,7 +415,7 @@ export default function ApplicationTrackerPage() {
                   href="/dashboard"
                   className="px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg inline-flex items-center gap-2"
                 >
-                  Try Karko AI Free
+                  Try Useful Apply Free
                   <ArrowRight className="w-5 h-5" />
                 </Link>
                 <Link

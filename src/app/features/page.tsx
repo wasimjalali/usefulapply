@@ -8,9 +8,9 @@ import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = buildPageMetadata({
-  title: 'Features: One app for your entire job search | Karko AI',
+  title: 'Features: One app for your entire job search | Useful Apply',
   description:
-    'Karko is the AI job application agent that replaces the seven tools you use to apply for a job. Smart Job Feed, fit analysis, tailored CV, cover letter, emails, screening answers, and tracker. Every word traces back to your real CV.',
+    'Useful Apply is the AI job application agent that replaces the seven tools you use to apply for a job. Smart Job Feed, fit analysis, tailored CV, cover letter, emails, screening answers, and tracker. Every word traces back to your real CV.',
   canonical: '/features',
 });
 
@@ -19,7 +19,7 @@ const features = [
     icon: Sparkles,
     title: 'Primary CV',
     description:
-      'Upload the CV you send to employers. Karko reads it, structures every section, and keeps it as your source of truth. Every CV rewrite, cover letter, email, and screening answer Karko generates pulls from this document. Nothing invented, nothing added.',
+      'Upload the CV you send to employers. Useful Apply reads it, structures every section, and keeps it as your source of truth. Every CV rewrite, cover letter, email, and screening answer Useful Apply generates pulls from this document. Nothing invented, nothing added.',
     benefits: [
       'Upload a PDF or paste plain text',
       'Parsed into structured sections you can edit inline',
@@ -35,7 +35,7 @@ const features = [
     icon: Compass,
     title: 'Smart Job Feed',
     description:
-      'Most people start their search by bouncing between LinkedIn, Indeed, and company career pages. That is ten hours a week you do not need to spend. Karko delivers up to 25 roles every morning, matched to your CV, your goals, and your location. Tap any card to start your application.',
+      'Most people start their search by bouncing between LinkedIn, Indeed, and company career pages. That is ten hours a week you do not need to spend. Useful Apply delivers up to 25 roles every morning, matched to your CV, your goals, and your location. Tap any card to start your application.',
     benefits: [
       'Delivered every morning at your chosen hour',
       'Ranked by real fit against your CV, not keyword match',
@@ -51,7 +51,7 @@ const features = [
     icon: Target,
     title: 'Fit Analysis',
     description:
-      'Before you write a single word, see where you stand. Karko reads the job description against your CV and gives you a match score, the skills that line up, and the gaps. You decide whether to apply before spending credits on the full application.',
+      'Before you write a single word, see where you stand. Useful Apply reads the job description against your CV and gives you a match score, the skills that line up, and the gaps. You decide whether to apply before spending credits on the full application.',
     benefits: [
       'Match score with strengths and gaps',
       'Clear recommendation on whether to apply',
@@ -67,7 +67,7 @@ const features = [
     icon: FileText,
     title: 'Tailored CV',
     description:
-      'Karko rewrites your CV for this exact role. The facts do not change. The framing does. The most relevant experience gets more weight. Role-specific keywords land where you already have real experience. No invented skills, no filler, no stuffing.',
+      'Useful Apply rewrites your CV for this exact role. The facts do not change. The framing does. The most relevant experience gets more weight. Role-specific keywords land where you already have real experience. No invented skills, no filler, no stuffing.',
     benefits: [
       'Rewritten per role, never a one-size-fits-all CV',
       'Keywords placed where you have real experience',
@@ -99,7 +99,7 @@ const features = [
     icon: Sparkles,
     title: 'Tailored Cover Letter',
     description:
-      'Not the generic "I am excited to apply" template everyone else sends. Karko opens with a relevant achievement from your real CV, references the company, and writes in a voice that matches yours, not ChatGPT. Reads like an application, not a form letter.',
+      'Not the generic "I am excited to apply" template everyone else sends. Useful Apply opens with a relevant achievement from your real CV, references the company, and writes in a voice that matches yours, not ChatGPT. Reads like an application, not a form letter.',
     benefits: [
       'Opens with a real achievement, not a cliché',
       'References the company and role specifically',
@@ -115,7 +115,7 @@ const features = [
     icon: Mail,
     title: 'Application Email',
     description:
-      'A professional email to send with your CV and cover letter attached. Subject line, body, and a clear reference to the role. Most tools skip this entirely. Karko writes it for you, ready to copy into the portal or your email client.',
+      'A professional email to send with your CV and cover letter attached. Subject line, body, and a clear reference to the role. Most tools skip this entirely. Useful Apply writes it for you, ready to copy into the portal or your email client.',
     benefits: [
       'Subject line, body, and formatting',
       'References the specific role and company',
@@ -131,7 +131,7 @@ const features = [
     icon: MailPlus,
     title: 'Follow-Up Email',
     description:
-      'Most candidates never follow up. Karko drafts one for you, ready to send 7 to 10 days after applying. Polite, reinforces why you are a fit, and keeps you visible during the decision window. Another thing the other tools do not do.',
+      'Most candidates never follow up. Useful Apply drafts one for you, ready to send 7 to 10 days after applying. Polite, reinforces why you are a fit, and keeps you visible during the decision window. Another thing the other tools do not do.',
     benefits: [
       'Pre-drafted for the 7-to-10-day window',
       'Reinforces fit without sounding pushy',
@@ -147,7 +147,7 @@ const features = [
     icon: MessageSquareText,
     title: 'Screening Question Answers',
     description:
-      'Screening questions are where most applications die. Karko reads your CV and drafts an answer for every question. Behavioral questions get a STAR structure. Factual questions get a direct answer. You keep control, you review, you submit. What used to take 20 minutes now takes two.',
+      'Screening questions are where most applications die. Useful Apply reads your CV and drafts an answer for every question. Behavioral questions get a STAR structure. Factual questions get a direct answer. You keep control, you review, you submit. What used to take 20 minutes now takes two.',
     benefits: [
       'STAR structure for behavioral questions',
       'Direct answers for factual questions',
@@ -179,7 +179,7 @@ const features = [
     icon: Zap,
     title: '90-Second Application',
     description:
-      'One tailored application takes roughly an hour by hand. Karko does it in 90 seconds. CV, cover letter, application email, follow-up, and screening answers, all generated together with a consistent voice. Roughly 40x faster, without dropping quality.',
+      'One tailored application takes roughly an hour by hand. Useful Apply does it in 90 seconds. CV, cover letter, application email, follow-up, and screening answers, all generated together with a consistent voice. Roughly 40x faster, without dropping quality.',
     benefits: [
       'CV, cover letter, email, follow-up, screening answers in one flow',
       'Consistent voice across every document',
@@ -276,19 +276,19 @@ const planFeatures = [
 
 const faqs = [
   {
-    question: 'Why Karko is not a resume builder.',
+    question: 'Why Useful Apply is not a resume builder.',
     answer:
-      'Resume builders help you format one CV. Karko runs your entire job search. The Smart Job Feed finds the roles. Fit Analysis tells you if the role is worth applying to. The generator writes the CV, cover letter, application email, follow-up, and screening answers tailored to each role. The tracker keeps the list. It replaces seven separate tools with one loop.',
+      'Resume builders help you format one CV. Useful Apply runs your entire job search. The Smart Job Feed finds the roles. Fit Analysis tells you if the role is worth applying to. The generator writes the CV, cover letter, application email, follow-up, and screening answers tailored to each role. The tracker keeps the list. It replaces seven separate tools with one loop.',
   },
   {
-    question: 'Why Karko is not an auto-apply bot.',
+    question: 'Why Useful Apply is not an auto-apply bot.',
     answer:
-      'Auto-apply bots blast hundreds of generic applications. Recruiters spot them, ATS systems flag them, and candidates get embarrassed in interviews. Karko does the opposite: fewer applications, all tailored to the real role, all traceable to your real experience. You stay in control of what gets sent.',
+      'Auto-apply bots blast hundreds of generic applications. Recruiters spot them, ATS systems flag them, and candidates get embarrassed in interviews. Useful Apply does the opposite: fewer applications, all tailored to the real role, all traceable to your real experience. You stay in control of what gets sent.',
   },
   {
-    question: 'How does Karko keep its output honest?',
+    question: 'How does Useful Apply keep its output honest?',
     answer:
-      'Every CV rewrite, cover letter, email, and screening answer is built from the CV you upload. Karko will not invent job titles, skills, or experience you do not have. The job description is used for keyword alignment and tone, never as a source of facts about you. This is the one rule the product refuses to break.',
+      'Every CV rewrite, cover letter, email, and screening answer is built from the CV you upload. Useful Apply will not invent job titles, skills, or experience you do not have. The job description is used for keyword alignment and tone, never as a source of facts about you. This is the one rule the product refuses to break.',
   },
   {
     question: 'What is the difference between Free, Plus and Max?',
@@ -298,7 +298,7 @@ const faqs = [
   {
     question: 'How does fit analysis work?',
     answer:
-      'Paste any job description. Karko reads it against your CV and gives you a match score, the skills that line up, and the gaps. You see where you stand before spending credits on the full application. If the score is strong, you generate the kit. If it is weak, the gaps tell you whether the role is wrong for you or your CV is just not surfacing the right experience.',
+      'Paste any job description. Useful Apply reads it against your CV and gives you a match score, the skills that line up, and the gaps. You see where you stand before spending credits on the full application. If the score is strong, you generate the kit. If it is weak, the gaps tell you whether the role is wrong for you or your CV is just not surfacing the right experience.',
   },
   {
     question: 'Can I buy more credits?',
@@ -311,9 +311,9 @@ const faqs = [
       'Yes. All six templates are built ATS-first: single-column layouts, standard section headings, system fonts (Arial and Georgia), and consistent date formats. They pass Workday, Greenhouse, Lever, and every major ATS platform.',
   },
   {
-    question: 'What AI model powers Karko?',
+    question: 'What AI model powers Useful Apply?',
     answer:
-      'Karko runs on Claude Sonnet 4.6 by Anthropic, one of the most capable models available for writing. Most competitors use cheaper open-source models. We pay for the better model because the output has to survive both an ATS scan and a recruiter’s read. The workflow around the model is tuned specifically for job applications.',
+      'Useful Apply runs on Claude Sonnet 4.6 by Anthropic, one of the most capable models available for writing. Most competitors use cheaper open-source models. We pay for the better model because the output has to survive both an ATS scan and a recruiter’s read. The workflow around the model is tuned specifically for job applications.',
   },
 ];
 
@@ -357,7 +357,7 @@ export default function FeaturesPage() {
             </ScrollReveal>
             <ScrollReveal delay={300}>
               <p className="text-lg text-warm-gray max-w-3xl mx-auto leading-relaxed">
-                Job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, tracker. Karko replaces all of them with one flow. Every word traces back to your real CV. Nothing invented.
+                Job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, tracker. Useful Apply replaces all of them with one flow. Every word traces back to your real CV. Nothing invented.
               </p>
             </ScrollReveal>
             <ScrollReveal delay={450}>

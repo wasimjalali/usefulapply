@@ -4,12 +4,12 @@ import type { ComparisonTool } from '@/lib/comparisons';
 
 interface ComparisonDeepDiveProps {
   tool: ComparisonTool;
-  isKarko?: boolean;
+  isBrand?: boolean;
 }
 
-export function ComparisonDeepDive({ tool, isKarko = false }: ComparisonDeepDiveProps) {
+export function ComparisonDeepDive({ tool, isBrand = false }: ComparisonDeepDiveProps) {
   return (
-    <div className={`bg-white rounded-2xl border ${isKarko ? 'border-gold-300' : 'border-cream-200'} p-8 shadow-sm`}>
+    <div className={`bg-white rounded-2xl border ${isBrand ? 'border-gold-300' : 'border-cream-200'} p-8 shadow-sm`}>
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
@@ -79,23 +79,23 @@ export function ComparisonDeepDive({ tool, isKarko = false }: ComparisonDeepDive
       </div>
 
       {/* Best For */}
-      <div className={`${isKarko ? 'bg-gold-50 border-gold-200' : 'bg-cream-50 border-cream-200'} border rounded-xl p-4`}>
+      <div className={`${isBrand ? 'bg-gold-50 border-gold-200' : 'bg-cream-50 border-cream-200'} border rounded-xl p-4`}>
         <h4 className="text-sm font-semibold text-navy-700 mb-2">Best For:</h4>
         <p className="text-sm text-charcoal leading-relaxed">{tool.bestFor}</p>
       </div>
 
       {/* CTA */}
-      {isKarko && (
+      {isBrand && (
         <div className="mt-6">
           <Link
             href="/dashboard"
             className="inline-block w-full text-center px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors"
           >
-            Try Karko AI Free
+            Try Useful Apply Free
           </Link>
         </div>
       )}
-      {!isKarko && tool.url && (
+      {!isBrand && tool.url && (
         <div className="mt-6">
           <a
             href={tool.url}

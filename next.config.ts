@@ -29,6 +29,16 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      { source: '/compare/karko-ai-vs-teal', destination: '/compare/usefulapply-vs-teal', permanent: true },
+      { source: '/compare/karko-ai-vs-jobscan', destination: '/compare/usefulapply-vs-jobscan', permanent: true },
+      { source: '/compare/karko-ai-vs-rezi', destination: '/compare/usefulapply-vs-rezi', permanent: true },
+      { source: '/compare/karko-ai-vs-kickresume', destination: '/compare/usefulapply-vs-kickresume', permanent: true },
+      { source: '/compare/karko-ai-vs-enhancv', destination: '/compare/usefulapply-vs-enhancv', permanent: true },
+      { source: '/compare/karko-ai-vs-resume-io', destination: '/compare/usefulapply-vs-resume-io', permanent: true },
+    ];
+  },
 };
 
 // PostHog source map upload — only enabled when env vars are set (build-time)

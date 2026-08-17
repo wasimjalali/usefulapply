@@ -99,11 +99,11 @@ export function SearchStrategyPreviewCard() {
           <div className="flex-1">
             <h3 className="text-base font-semibold text-charcoal">How we&apos;ll search for you</h3>
             <p className="mt-1 text-sm text-warm-gray">
-              {data?.status === 'no_profile' && 'Upload your CV to get started. Karko builds your search plan from your career profile.'}
+              {data?.status === 'no_profile' && 'Upload your CV to get started. Useful Apply builds your search plan from your career profile.'}
               {data?.status === 'profile_only' && 'Generating your search strategy. Check back in a moment.'}
-              {data?.status === 'no_settings' && 'Save your preferences below to see the search plan Karko will run for you.'}
+              {data?.status === 'no_settings' && 'Save your preferences below to see the search plan Useful Apply will run for you.'}
               {data?.status === 'no_countries' && 'Pick at least one country in your preferences to see the search plan.'}
-              {!data && 'Karko is preparing your search plan.'}
+              {!data && 'Useful Apply is preparing your search plan.'}
             </p>
             {data?.status === 'profile_only' && (
               <button
@@ -132,7 +132,7 @@ export function SearchStrategyPreviewCard() {
         <div className="flex-1">
           <h3 className="text-base font-semibold text-charcoal">How we&apos;ll search for you</h3>
           <p className="mt-1 text-sm text-warm-gray">
-            The {strategy.queries.length} {strategy.queries.length === 1 ? 'query' : 'queries'} Karko runs on Google Jobs every time you open this feed, in priority order.
+            The {strategy.queries.length} {strategy.queries.length === 1 ? 'query' : 'queries'} Useful Apply runs on Google Jobs every time you open this feed, in priority order.
           </p>
 
           {profileNewerThanStrategy && (

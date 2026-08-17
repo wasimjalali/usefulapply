@@ -4,7 +4,7 @@ import { Sparkles, FileText, Pencil, Award, Loader2, CheckCircle2 } from 'lucide
 
 export type StepType = 'cv' | 'cover_letter' | 'email';
 
-interface KarkoAIStepIndicatorProps {
+interface StepIndicatorProps {
   stepType: StepType;
   isLoading: boolean;
   isComplete?: boolean;
@@ -17,31 +17,31 @@ const STEP_CONFIG = {
   cv: {
     icon: FileText,
     title: 'Optimizing CV',
-    loadingMessage: 'Karko AI is tailoring your CV for maximum impact...',
+    loadingMessage: 'Useful Apply is tailoring your CV for maximum impact...',
     completeMessage: 'CV optimization complete!',
   },
   cover_letter: {
     icon: Pencil,
     title: 'Composing Cover Letter',
-    loadingMessage: 'Karko AI is crafting a personalized cover letter...',
+    loadingMessage: 'Useful Apply is crafting a personalized cover letter...',
     completeMessage: 'Cover letter ready!',
   },
   email: {
     icon: Award,
     title: 'Generating Email',
-    loadingMessage: 'Karko AI is composing your application email...',
+    loadingMessage: 'Useful Apply is composing your application email...',
     completeMessage: 'Application email ready!',
   },
 };
 
-export function KarkoAIStepIndicator({
+export function StepIndicator({
   stepType,
   isLoading,
   isComplete = false,
   title,
   message,
   statusLabel,
-}: KarkoAIStepIndicatorProps) {
+}: StepIndicatorProps) {
   const config = STEP_CONFIG[stepType];
 
   if (!isLoading && !isComplete) return null;
@@ -49,12 +49,12 @@ export function KarkoAIStepIndicator({
   return (
     <div className="flex flex-col items-center justify-center h-full bg-cream-50 p-8">
       <div className="bg-white rounded-2xl shadow-md border border-navy-100/60 p-8 max-w-md w-full">
-        {/* Header with Karko AI branding */}
+        {/* Header with Useful Apply branding */}
         <div className="flex items-center gap-2.5 mb-6 pb-3 border-b border-gold-200/60">
           <div className="p-1.5 bg-gradient-to-br from-navy-600 to-navy-700 rounded-full shadow-sm">
             <Sparkles className="w-4 h-4 text-gold-400" />
           </div>
-          <span className="text-sm font-semibold text-navy-700 tracking-tight">Karko AI</span>
+          <span className="text-sm font-semibold text-navy-700 tracking-tight">Useful Apply</span>
           {isLoading && (
             <span className="ml-auto text-[11px] text-gold-600 font-medium">{statusLabel || 'Processing...'}</span>
           )}

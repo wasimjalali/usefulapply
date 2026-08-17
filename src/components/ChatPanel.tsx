@@ -776,7 +776,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
                 {currentCV ? (
                   <>
                     <p className="text-sm text-warm-gray leading-relaxed mb-3">
-                      Paste a job ad and Karko tailors your CV, cover letter and emails to it.
+                      Paste a job ad and Useful Apply tailors your CV, cover letter and emails to it.
                     </p>
 
                     {/* JD input sits directly above the actions (top-to-bottom path) */}
@@ -812,7 +812,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
                         ? 'Ready. Pick how you want to start.'
                         : heroJdTooShort
                           ? 'That looks too short. Paste the whole posting for a better result.'
-                          : 'Your CV stays the source of truth. Karko never invents experience.'}
+                          : 'Your CV stays the source of truth. Useful Apply never invents experience.'}
                     </p>
 
                     <div className="flex flex-col gap-2 mt-3">
@@ -871,7 +871,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
                     <p className="text-sm text-warm-gray leading-relaxed">
                       {user
                         ? 'Upload your CV from the left panel, then come back here to apply for jobs.'
-                        : 'Upload your CV, paste a job ad, and Karko creates a tailored CV, cover letter and application emails.'}
+                        : 'Upload your CV, paste a job ad, and Useful Apply creates a tailored CV, cover letter and application emails.'}
                     </p>
                   </div>
                 )}
@@ -911,7 +911,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
                   <MarkdownText
                     content={
                       currentCV
-                        ? `**${currentSession.jobTitle || 'This application'}** is ready. Karko already has the saved job description, so we can start generating from here.`
+                        ? `**${currentSession.jobTitle || 'This application'}** is ready. Useful Apply already has the saved job description, so we can start generating from here.`
                         : `**${currentSession.jobTitle || 'This application'}** is ready from Job Feed. Upload your CV to continue the application workflow.`
                     }
                     className="text-sm text-charcoal"
@@ -945,7 +945,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
                     <Loader2 className="w-5 h-5 text-gold-500 animate-spin" />
                     <div>
                       <p className="text-sm font-medium text-navy-800">{v2Progress.message}</p>
-                      <p className="text-xs text-warm-gray mt-1">Karko AI is preparing your application...</p>
+                      <p className="text-xs text-warm-gray mt-1">Useful Apply is preparing your application...</p>
                     </div>
                   </div>
                   {v2Progress.percent > 0 && (
@@ -1000,7 +1000,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
                   <span className="w-2 h-2 bg-gold-400 rounded-full animate-bounce typing-dot-3" />
                 </div>
                 <span className="text-sm text-navy-600 ml-2 font-medium">
-                  {isAnalyzing ? 'Karko AI is analyzing...' : isGenerating ? 'Karko AI is generating...' : 'Karko AI is thinking...'}
+                  {isAnalyzing ? 'Useful Apply is analyzing...' : isGenerating ? 'Useful Apply is generating...' : 'Useful Apply is thinking...'}
                 </span>
               </div>
             </div>

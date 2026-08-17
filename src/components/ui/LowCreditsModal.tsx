@@ -6,7 +6,8 @@ import { X, Zap, Crown, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { CREDIT_UPDATE_EVENT } from './CreditIndicator';
 
-const MODAL_SHOWN_KEY = 'karko_low_credits_modal_shown';
+const MODAL_SHOWN_KEY = 'usefulapply_low_credits_modal_shown';
+const MODAL_SHOWN_KEY_OLD = 'karko_low_credits_modal_shown';
 
 export function LowCreditsModal() {
   const { user } = useAuth();
@@ -49,6 +50,10 @@ export function LowCreditsModal() {
     const isPaid = planTier === 'plus' || planTier === 'max';
     if (!isPaid || totalCredits > 5) return;
     if (sessionStorage.getItem(MODAL_SHOWN_KEY) === '1') return;
+    if (sessionStorage.getItem(MODAL_SHOWN_KEY_OLD) === '1') {
+      sessionStorage.setItem(MODAL_SHOWN_KEY, '1');
+      return;
+    }
 
     sessionStorage.setItem(MODAL_SHOWN_KEY, '1');
     queueMicrotask(() => setIsOpen(true));

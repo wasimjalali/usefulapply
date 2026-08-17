@@ -133,24 +133,24 @@ export async function POST(request: NextRequest) {
     const safeName = escapeHtml(fullName ?? '');
     const greeting = safeName ? `Hi ${safeName},` : 'Hi there,';
     const subject = resendOnly
-      ? 'Confirm your KarKo AI account (reminder)'
-      : 'Confirm your KarKo AI account';
+      ? 'Confirm your Useful Apply account (reminder)'
+      : 'Confirm your Useful Apply account';
 
     const { error: emailError } = await resend.emails.send({
-      from: 'KarKo AI <noreply@karkoai.com>',
+      from: 'Useful Apply <noreply@karkoai.com>', // TODO(Task 7.1): switch to noreply@usefulapply.com once Cloudflare Email Service sends for that domain
       to: email,
       subject,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fafaf8; padding: 40px 20px;">
           <div style="text-align: center; margin-bottom: 32px;">
-            <h1 style="font-size: 28px; color: #0f3057; margin: 0; letter-spacing: -0.5px;">KarKo AI</h1>
+            <h1 style="font-size: 28px; color: #0f3057; margin: 0; letter-spacing: -0.5px;">Useful Apply</h1>
             <p style="color: #888; font-size: 14px; margin: 4px 0 0 0;">Your job application copilot</p>
           </div>
 
           <div style="background: #ffffff; border-radius: 12px; padding: 32px; border: 1px solid #e8e4dc;">
             <h2 style="color: #1a1a1a; font-size: 20px; margin: 0 0 12px 0;">${greeting}</h2>
             <p style="color: #555; line-height: 1.6; margin: 0 0 8px 0;">
-              Thanks for signing up for KarKo AI. One quick step to get started:
+              Thanks for signing up for Useful Apply. One quick step to get started:
             </p>
             <p style="color: #555; line-height: 1.6; margin: 0 0 28px 0;">
               Click the button below to confirm your email address and activate your free account (4 credits included).
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
           </div>
 
           <p style="text-align: center; color: #bbb; font-size: 12px; margin-top: 24px;">
-            KarKo AI &mdash; karkoai.com
+            Useful Apply - usefulapply.com
           </p>
         </div>
       `,

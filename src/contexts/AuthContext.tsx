@@ -9,7 +9,28 @@ import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
 import posthog from 'posthog-js';
 
-const AUTH_USER_ID_STORAGE_KEY = 'karko-auth-user-id';
+const AUTH_USER_ID_STORAGE_KEY = 'usefulapply-auth-user-id';
+const AUTH_USER_ID_STORAGE_KEY_OLD = 'karko-auth-user-id';
+
+function readAuthUserId(): string | null {
+  const next = localStorage.getItem(AUTH_USER_ID_STORAGE_KEY);
+  if (next) return next;
+  const prev = localStorage.getItem(AUTH_USER_ID_STORAGE_KEY_OLD);
+  if (prev) {
+    localStorage.setItem(AUTH_USER_ID_STORAGE_KEY, prev);
+    return prev;
+  }
+  return null;
+}
+
+function writeAuthUserId(userId: string) {
+  localStorage.setItem(AUTH_USER_ID_STORAGE_KEY, userId);
+}
+
+function clearAuthUserId() {
+  localStorage.removeItem(AUTH_USER_ID_STORAGE_KEY);
+  localStorage.removeItem(AUTH_USER_ID_STORAGE_KEY_OLD);
+}
 
 /**
  * Clear all persisted Zustand stores to prevent cross-user data leakage.
@@ -119,11 +140,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Only clear stores when switching between two different authenticated
           // users. When transitioning from anonymous (null) to first auth, keep
           // the data - the user may have uploaded a CV before signing up.
-          const storedUserId = localStorage.getItem(AUTH_USER_ID_STORAGE_KEY);
+          const storedUserId = readAuthUserId();
           if (storedUserId && storedUserId !== initialSession.user.id) {
             clearPersistedStores();
           }
-          localStorage.setItem(AUTH_USER_ID_STORAGE_KEY, initialSession.user.id);
+          writeAuthUserId(initialSession.user.id);
           prevUserIdRef.current = initialSession.user.id;
 
           setSession(initialSession);
@@ -133,10 +154,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .then(profileData => setProfile(profileData))
             .catch(err => console.error('Profile fetch error:', err));
         } else {
-          const storedUserId = localStorage.getItem(AUTH_USER_ID_STORAGE_KEY);
+          const storedUserId = readAuthUserId();
           if (storedUserId) {
             clearPersistedStores();
-            localStorage.removeItem(AUTH_USER_ID_STORAGE_KEY);
+            clearAuthUserId();
           }
           prevUserIdRef.current = null;
         }
@@ -156,16 +177,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Skip clear when transitioning from anonymous (null) to first auth -
         // the user may have uploaded a CV before signing up.
         if (newSession?.user) {
-          const prevId = prevUserIdRef.current || localStorage.getItem(AUTH_USER_ID_STORAGE_KEY);
+          const prevId = prevUserIdRef.current || readAuthUserId();
           if (prevId && prevId !== newSession.user.id) {
             clearPersistedStores();
           }
-          localStorage.setItem(AUTH_USER_ID_STORAGE_KEY, newSession.user.id);
+          writeAuthUserId(newSession.user.id);
           prevUserIdRef.current = newSession.user.id;
         } else if (event === 'SIGNED_OUT') {
           prevUserIdRef.current = null;
           clearPersistedStores();
-          localStorage.removeItem(AUTH_USER_ID_STORAGE_KEY);
+          clearAuthUserId();
         }
 
         setSession(newSession);
@@ -256,7 +277,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
     setSession(null);
     clearPersistedStores();
-    localStorage.removeItem(AUTH_USER_ID_STORAGE_KEY);
+    clearAuthUserId();
   };
 
   // Update user profile - optimistic update for better UX

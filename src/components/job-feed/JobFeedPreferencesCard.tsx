@@ -46,7 +46,7 @@ interface JobFeedPreferencesCardProps {
  * read them in the AI profile card above.
  *
  * Two modes:
- *   - "onboarding": first-time setup. Large CTA "Build my feed". Karko
+ *   - "onboarding": first-time setup. Large CTA "Build my feed". Useful Apply
  *     synthesizes the profile + strategy after save.
  *   - "editing": returning user adjusting preferences. CTA "Save changes".
  */
@@ -124,7 +124,7 @@ export function JobFeedPreferencesCard({
 
         <SectionLabel
           label="How you want to work"
-          help="Pick any that fit. Karko surfaces jobs in any mode you choose."
+          help="Pick any that fit. Useful Apply surfaces jobs in any mode you choose."
         >
           <ChipChoice
             options={JOB_FEED_REMOTE_PREFERENCE_OPTIONS as readonly { value: string; label: string }[]}
@@ -168,7 +168,7 @@ export function JobFeedPreferencesCard({
 
         <SectionLabel
           label="Work authorization"
-          help="Karko skips listings that explicitly exclude your situation."
+          help="Useful Apply skips listings that explicitly exclude your situation."
         >
           <ChipChoice
             options={JOB_FEED_WORK_AUTH_OPTIONS as readonly { value: string; label: string }[]}
@@ -187,7 +187,7 @@ export function JobFeedPreferencesCard({
 
         <SectionLabel
           label="What to avoid"
-          help="Optional. Titles, companies or keywords you never want to see. Karko skips anything that matches."
+          help="Optional. Titles, companies or keywords you never want to see. Useful Apply skips anything that matches."
         >
           <ChipField
             values={form.excluded_terms}
@@ -230,7 +230,7 @@ function Header({ variant, onClose }: { variant: Variant; onClose?: () => void }
               Where do you want to work?
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-warm-gray">
-              Tell us a few things we can&apos;t guess from your CV. Karko handles the rest.
+              Tell us a few things we can&apos;t guess from your CV. Useful Apply handles the rest.
             </p>
           </div>
           {onClose && (
@@ -246,7 +246,7 @@ function Header({ variant, onClose }: { variant: Variant; onClose?: () => void }
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-semibold text-charcoal">Your preferences</h2>
-          <p className="mt-1 text-sm text-warm-gray">Adjust the things Karko can&apos;t infer from your CV.</p>
+          <p className="mt-1 text-sm text-warm-gray">Adjust the things Useful Apply can&apos;t infer from your CV.</p>
         </div>
         {onClose && <CloseButton onClose={onClose} />}
       </div>
@@ -407,7 +407,7 @@ function ConsentRow({
           className="mt-0.5 h-4 w-4 cursor-pointer rounded border-cream-200 text-navy-600 focus:ring-navy-400"
         />
         <span className="text-sm text-charcoal">
-          I&apos;m okay with Karko using my CV to power the daily job feed.
+          I&apos;m okay with Useful Apply using my CV to power the daily job feed.
         </span>
       </label>
     </div>

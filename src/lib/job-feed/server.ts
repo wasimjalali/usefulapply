@@ -2314,10 +2314,10 @@ function buildWorkflowResultSummary(
   rankingResult: JobFeedRankingExecutionResult
 ): string {
   if (ingestion.rawJobsFetched === 0 && ingestion.failedFetches.length === 0) {
-    return 'Karko checked the current searches, but no jobs matched these settings yet.';
+    return 'Useful Apply checked the current searches, but no jobs matched these settings yet.';
   }
 
-  const summary = `Karko found ${ingestion.rawJobsFetched} job observations across ${ingestion.searchPlan.length} searches and narrowed them to ${prefilter.survivors.length} roles that matched the current filter.`;
+  const summary = `Useful Apply found ${ingestion.rawJobsFetched} job observations across ${ingestion.searchPlan.length} searches and narrowed them to ${prefilter.survivors.length} roles that matched the current filter.`;
   const operationalTail = buildWorkflowOperationalTail(ingestion);
 
   if (rankingPrep.candidates.length === 0) {

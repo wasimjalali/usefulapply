@@ -1,5 +1,5 @@
 /**
- * Context Builder — Phase 1 functions for Karko AI
+ * Context Builder: Phase 1 functions for Useful Apply
  * 
  * Extracted from unified-writer-agent.ts for modularity.
  * Contains all context-building functions:
@@ -502,11 +502,11 @@ Return ONLY valid JSON, no explanation.`,
       score = requiredSkills.length > 0 ? Math.round((matchingSkills.length / requiredSkills.length) * 100) : 0;
     }
 
-    console.log(`[KarkoAI] LLM skill match: ${score}% (${matchingSkills.length} matching, ${missingSkills.length} missing)`);
+    console.log(`[UsefulApply] LLM skill match: ${score}% (${matchingSkills.length} matching, ${missingSkills.length} missing)`);
     return { score, matchingSkills, missingSkills };
 
   } catch (error) {
-    console.error('[KarkoAI] LLM skill matching failed, falling back to string matching:', error);
+    console.error('[UsefulApply] LLM skill matching failed, falling back to string matching:', error);
     return computeSkillMatchFallback(applicant, job);
   }
 }
@@ -661,14 +661,14 @@ Return ONLY the JSON array. No explanation.`,
 
     if (arr) {
       const metrics = arr.map((m: unknown) => String(m).trim()).filter(Boolean);
-      console.log(`[KarkoAI] Extracted ${metrics.length} verified metrics from source CVs`);
+      console.log(`[UsefulApply] Extracted ${metrics.length} verified metrics from source CVs`);
       return { result: metrics, tokens };
     }
 
-    console.warn('[KarkoAI] Metric extraction returned unexpected format:', typeof parsed, JSON.stringify(parsed).slice(0, 200));
+    console.warn('[UsefulApply] Metric extraction returned unexpected format:', typeof parsed, JSON.stringify(parsed).slice(0, 200));
     return { result: [], tokens };
   } catch (error) {
-    console.error('[KarkoAI] Failed to parse verified metrics:', error);
+    console.error('[UsefulApply] Failed to parse verified metrics:', error);
     return { result: [], tokens };
   }
 }

@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Sign In — KarKo AI',
+  title: 'Sign In | Useful Apply',
   description:
-    'Sign in or create a free KarKo AI account. Get 4 free credits each month to generate AI-powered job applications, optimized CVs, and tailored cover letters.',
+    'Sign in or create a free Useful Apply account. Get 4 free credits each month to generate AI-powered job applications, optimized CVs, and tailored cover letters.',
   robots: {
     index: false,
     follow: false,

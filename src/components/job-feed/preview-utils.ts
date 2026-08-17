@@ -202,7 +202,7 @@ export function buildJobFeedPreviewSnapshot(
     status: mode === 'error' ? 'failed' : mode === 'generating' ? 'running' : 'completed',
     timeZone: formByMode.user_timezone,
     resultSummary: mode === 'ready'
-      ? 'Karko ranked and prepared the strongest roles for today.'
+      ? 'Useful Apply ranked and prepared the strongest roles for today.'
       : mode === 'thin_feed'
         ? 'A smaller shortlist survived the current filter.'
         : mode === 'empty'

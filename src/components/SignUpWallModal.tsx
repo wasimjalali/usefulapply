@@ -244,12 +244,22 @@ export function SignUpWallModal({ isOpen, onClose, trigger }: SignUpWallModalPro
 // ANONYMOUS USAGE TRACKING
 // =====================================================
 
-const ANON_GENERATION_KEY = 'karko_anonymous_generation_used';
+const ANON_GENERATION_KEY = 'usefulapply_anonymous_generation_used';
+const ANON_GENERATION_KEY_OLD = 'karko_anonymous_generation_used';
 
 /** Check if anonymous user has already used their free generation */
 export function hasUsedFreeGeneration(): boolean {
   if (typeof window === 'undefined') return false;
-  return localStorage.getItem(ANON_GENERATION_KEY) === 'true';
+  try {
+    if (localStorage.getItem(ANON_GENERATION_KEY) === 'true') return true;
+    if (localStorage.getItem(ANON_GENERATION_KEY_OLD) === 'true') {
+      localStorage.setItem(ANON_GENERATION_KEY, 'true');
+      return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
 }
 
 /** Mark that anonymous user has used their free generation */
@@ -262,4 +272,5 @@ export function markFreeGenerationUsed(): void {
 export function clearFreeGenerationFlag(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(ANON_GENERATION_KEY);
+  localStorage.removeItem(ANON_GENERATION_KEY_OLD);
 }

@@ -5,6 +5,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ToastProvider } from "@/components/ui/Toast";
 import { PostHogProvider } from "@/providers/PostHogProvider";
 import PostHogPageView from "@/providers/PostHogPageView";
+import { BRAND } from '@/lib/brand';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,16 +23,16 @@ const plusJakarta = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700", "800"],
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'KarKo AI | AI-Powered Job Application Assistant',
-    template: '%s | KarKo AI',
+    default: 'Useful Apply | AI Job Application Agent',
+    template: '%s | Useful Apply',
   },
   description:
-    'KarKo AI optimizes your CV, generates tailored cover letters, and creates professional application emails in under 90 seconds.',
+    'Useful Apply optimizes your CV, generates tailored cover letters, and creates professional application emails in under 90 seconds.',
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
@@ -52,7 +53,7 @@ export const metadata: Metadata = {
     'ATS-friendly resume',
     'job application assistant',
     'AI resume',
-    'KarKo AI',
+    'Useful Apply',
     'career tools',
     'job search AI',
     'AI CV writer',
@@ -66,9 +67,9 @@ export const metadata: Metadata = {
     'apply to jobs faster',
     'one click job application',
   ],
-  authors: [{ name: 'KarKo AI', url: SITE_URL }],
-  creator: 'KarKo AI',
-  publisher: 'KarKo AI',
+  authors: [{ name: 'Useful Apply', url: SITE_URL }],
+  creator: 'Useful Apply',
+  publisher: 'Useful Apply',
   alternates: {
     canonical: '/',
     types: {
@@ -79,25 +80,25 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: SITE_URL,
-    siteName: 'KarKo AI',
-    title: 'KarKo AI | AI-Powered Job Application Assistant',
+    siteName: 'Useful Apply',
+    title: 'Useful Apply | AI Job Application Agent',
     description:
       'Optimize your CV, generate tailored cover letters, and create professional application emails in minutes with AI.',
     images: [
       {
-        url: '/opengraph-image',
+        url: '/opengraph-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Karko AI | AI-Powered Job Application Assistant',
+        alt: 'Useful Apply | AI Job Application Agent',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'KarKo AI | AI-Powered Job Application Assistant',
+    title: 'Useful Apply | AI Job Application Agent',
     description:
       'Optimize your CV, generate tailored cover letters, and create professional application emails in minutes with AI.',
-    images: ['/opengraph-image'],
+    images: ['/opengraph-image.jpg'],
   },
   robots: {
     index: true,
@@ -134,12 +135,12 @@ export default function RootLayout({
             __html: JSON.stringify({
               '@context': 'https://schema.org',
               '@type': 'Organization',
-              name: 'KarKo AI',
+              name: 'Useful Apply',
               legalName: 'Karko AI Inc',
               url: SITE_URL,
               logo: `${SITE_URL}/favicon-512x512.png`,
               description:
-                'KarKo AI helps job seekers apply smarter with AI-powered CV optimization, cover letter generation, and application email drafting.',
+                'Useful Apply helps job seekers apply smarter with AI-powered CV optimization, cover letter generation, and application email drafting.',
               founder: {
                 '@type': 'Person',
                 name: 'Wasim Jalali',
@@ -158,7 +159,7 @@ export default function RootLayout({
               },
               contactPoint: {
                 '@type': 'ContactPoint',
-                email: 'support@karkoai.com',
+                email: 'support@usefulapply.com',
                 url: `${SITE_URL}/contact`,
                 contactType: 'customer support',
                 availableLanguage: ['English', 'German'],
@@ -176,13 +177,13 @@ export default function RootLayout({
             __html: JSON.stringify({
               '@context': 'https://schema.org',
               '@type': 'WebSite',
-              name: 'KarKo AI',
+              name: 'Useful Apply',
               url: SITE_URL,
               description:
                 'AI job application agent. Generate tailored CVs, cover letters, and emails in 90 seconds.',
               publisher: {
                 '@type': 'Organization',
-                name: 'KarKo AI',
+                name: 'Useful Apply',
                 url: SITE_URL,
               },
               inLanguage: 'en-US',
