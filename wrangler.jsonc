@@ -25,6 +25,14 @@
 			"bucket_name": "usefulapply-next-cache"
 		}
 	],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "usefulapply-db",
+			"database_id": "8cd7059e-4f0b-429b-aace-e379756707e1",
+			"migrations_dir": "migrations/d1"
+		}
+	],
 	"images": {
 		"binding": "IMAGES"
 	},

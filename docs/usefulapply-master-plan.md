@@ -207,7 +207,7 @@ Owner: Claude. Wasim runs `! npx wrangler login` in the Claude Code session firs
 
 **Why D1 and what it costs us:** D1 is SQLite. That means no `jsonb` operators, no RLS, no `pg_cron`, no interactive transactions (only `batch()` which is atomic), a 10 GB per-database cap and one primary region for writes. Everything Supabase enforced with 33 RLS policies must become explicit `where user_id = ?` in a data-access layer. If during Task 4.1 the schema turns out to depend on Postgres features that don't port cleanly (heavy jsonb queries in the job feed, for example), stop and report; the fallback is Postgres on Neon reached through Cloudflare Hyperdrive, which keeps the app on Cloudflare but the data off it.
 
-**Packages to add:** `drizzle-orm`, `drizzle-kit` (dev), `better-sqlite3` (dev, for local tests) or use `wrangler d1 execute --local`.
+**Packages to add:** `drizzle-orm`, `drizzle-kit` (dev), `better-sqlite3` + `@types/better-sqlite3` (dev, only for the local concurrency test script). D1 database `usefulapply-db` (id `8cd7059e-4f0b-429b-aace-e379756707e1`, region EEUR) already exists and is bound as `DB` in `wrangler.jsonc` with `migrations_dir: migrations/d1` (created by Claude 2026-08-17). Local work uses `npx wrangler d1 migrations apply usefulapply-db --local` and `npx wrangler d1 execute usefulapply-db --local`. Never run without `--local` in Phase 4; the remote database is filled in Task 4.3.
 
 ### Task 4.1: Schema port
 **Files:** Create `src/db/schema.ts` (Drizzle), `drizzle.config.ts`, `migrations/d1/0001_init.sql` (generated). Read `supabase/migrations/*.sql` (18 files) and `SUPABASE_SCHEMA_GUIDE.md`.
