@@ -40,11 +40,15 @@ export async function POST(request: NextRequest) {
     // One manual run per local calendar day. If today already has a
     // completed manual run, the next window opens at local midnight.
     const latestManualRun = await getLatestManualCompletedJobFeedRunAdmin(user.id);
+    // First-time setup on an account whose feed already ran today (a free
+    // auto-feed before the user configured anything). The settings row is
+    // created once and never deleted, so this can only be true for one run;
+    // ordinary edits do not reopen the daily window.
     const settings = await getSettings(user.id);
-    const settingsNewerThanRun = Boolean(
-      settings?.updated_at &&
+    const firstSetupAfterRun = Boolean(
+      settings?.created_at &&
       latestManualRun?.completed_at &&
-      settings.updated_at > latestManualRun.completed_at
+      settings.created_at > latestManualRun.completed_at
     );
     const cooldown = getCalendarDayCooldown({
       latestManualLocalDate: latestManualRun?.local_date ?? null,
@@ -53,7 +57,7 @@ export async function POST(request: NextRequest) {
       timeZone: userTimeZone,
     });
 
-    if (cooldown.blocked && !settingsNewerThanRun) {
+    if (cooldown.blocked && !firstSetupAfterRun) {
       const diagnostics = getJobFeedRunDiagnostics(latestManualRun ?? null);
       return NextResponse.json({
         success: true,
@@ -81,10 +85,9 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       triggerSource: 'manual_user',
       now,
-      // No need to force here any more. Scheduler is gone, so an
-      // existing-same-day row can only be a stale manual run; the
-      // workflow handles that via its stale-running recovery path.
-      force: false,
+      // Only a first-time setup after today's run may force a rerun; the
+      // workflow otherwise skips a completed same-day run.
+      force: firstSetupAfterRun,
       orchestrator: 'direct',
     });
 

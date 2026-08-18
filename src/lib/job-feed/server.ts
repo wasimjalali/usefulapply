@@ -1583,12 +1583,16 @@ async function persistJobFeedRankedItemsForRunAdmin(params: {
 }
 
 function toRankedPreviewItem(item: SupabaseJobFeedRankedItem): JobFeedRankedPreviewItem {
+  const companyDisplay = isJsonRecord(item.metadata) && typeof item.metadata.company_display === 'string'
+    ? item.metadata.company_display.trim()
+    : '';
   return {
     id: item.canonical_job_id,
     rank: item.rank_position,
     fitLabel: item.fit_label,
     rankingSource: item.ranking_source,
     reason: item.reason,
+    companyDisplay: companyDisplay.length > 0 ? companyDisplay : null,
   };
 }
 

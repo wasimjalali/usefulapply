@@ -460,7 +460,9 @@ function validateModelRankingResponse(
       ? item.rank : null;
     if (rank === null) return null;
 
-    const companyDisplayRaw = typeof item.companyDisplay === 'string' ? item.companyDisplay.trim() : '';
+    const companyDisplayRaw = typeof item.companyDisplay === 'string'
+      ? item.companyDisplay.replace(/[\u0000-\u001f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '').trim()
+      : '';
     surfacedItems.push({
       candidate: candidateById.get(jobId)!,
       fitLabel: decision,
