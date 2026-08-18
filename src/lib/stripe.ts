@@ -4,6 +4,7 @@
  */
 
 import Stripe from 'stripe';
+import { BRAND } from '@/lib/brand';
 
 let _stripe: Stripe | null = null;
 
@@ -73,7 +74,7 @@ export const PLANS = {
     ],
   },
   plus: {
-    name: 'Plus',
+    name: `${BRAND.name} Plus`,
     price: 19.99,
     priceId: STRIPE_PRICES.PLUS,
     credits: 50,
@@ -88,7 +89,7 @@ export const PLANS = {
     ],
   },
   max: {
-    name: 'Max',
+    name: `${BRAND.name} Max`,
     price: 79.99,
     priceId: STRIPE_PRICES.MAX,
     credits: 200,

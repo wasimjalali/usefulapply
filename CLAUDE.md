@@ -224,12 +224,14 @@ The full design system (surface roles, typography, radius/CTA/shadow scales, mot
 ---
 
 ## Integrations Summary
-- **PostHog** — analytics + error tracking + LLM cost tracking; see `.claude/rules/posthog.md`
-- **Resend** - transactional email (signup confirmation, contact form); `from: 'Useful Apply <noreply@karkoai.com>'` // TODO(Task 7.1)
-- [ ] Phase 8: rewrite this Integrations section for the Cloudflare stack (Email Service, D1, R2, Better Auth). Keep this checkbox until Task 8 lands.
-- **Stripe** — subscriptions + add-on credit packs; webhooks verified via signature
-- **Amazon Bedrock** — Claude Sonnet 4.6 inference (production); direct Anthropic API (dev/testing)
-- **Supabase** — Postgres DB + Auth + Storage; service role key server-side only
+- **PostHog** - analytics + error tracking + LLM cost tracking; see `.claude/rules/posthog.md`. Server capture is from route handlers (`getPostHogServer()` + `flush()`). Worker and cron logs are Workers Logs, not PostHog.
+- **Cloudflare Email Service** - transactional email (signup confirmation, password reset, contact form, Day 0 welcome, Day 3 check-in). `from: 'Useful Apply <noreply@usefulapply.com>'` via the `EMAIL` `send_email` binding. No Resend.
+- **Stripe** - subscriptions + add-on credit packs; webhooks verified via signature. Checkout success/cancel and portal return URLs come from `BRAND.url`.
+- **Amazon Bedrock** - Claude Sonnet 4.6 inference (production); direct Anthropic API (dev/testing). AWS SDK path runs on Workers under `nodejs_compat`.
+- **D1 + Drizzle** - SQLite database behind `src/db/repos/*`. Ownership is checked per query. No RLS.
+- **R2** - file storage. Binding `FILES`, bucket `usefulapply-files`. Served through `/api/files`.
+- **Better Auth** - email + password, Google OAuth, email verification, password reset. Session cookie `usefulapply.session`. Catch-all at `/api/auth/[...all]`.
+- **Workers** - Next.js 16 on Cloudflare via `@opennextjs/cloudflare`. Cron Triggers, Rate Limiting bindings, KV context cache, Workers Logs.
 
 ---
 
