@@ -1,18 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { v4 as uuidv4 } from 'uuid';
 import { PDFDocument, rgb, StandardFonts, PDFPage, PDFFont } from 'pdf-lib';
-import { createClient } from '@supabase/supabase-js';
-import { createClient as createServerClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/auth/server';
+import { putObject, USER_STORAGE_QUOTA_BYTES, userStorageBytes } from '@/storage/r2';
+import { ALLOWED_FILE_BUCKETS, fileDisplayUrl } from '@/storage/paths';
 import type { StructuredCV, CVDate } from '@/lib/types/cv-schema';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
-
-// Create Supabase client for server-side usage
-function getSupabaseAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -20,7 +14,6 @@ export const maxDuration = 30;
 interface GeneratePDFRequest {
   cv: StructuredCV;
   templateId: string;
-  userId?: string; // Optional user ID for authenticated uploads
 }
 
 interface RenderStats {
@@ -42,15 +35,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Authentication: require logged-in user
-    const authSupabase = await createServerClient();
-    const { data: { user } } = await authSupabase.auth.getUser();
+    const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const supabase = getSupabaseAdmin();
     const { cv, templateId }: GeneratePDFRequest = await request.json();
-    const userId = user.id; // Use authenticated user ID
+    const userId = user.id;
     
     if (!cv || !cv.personal?.fullName) {
       return NextResponse.json(
@@ -61,36 +52,25 @@ export async function POST(request: NextRequest) {
     
     const { pdfBytes, stats } = await generatePDF(cv, templateId || 'default');
     
-    const fileName = `cv-${cv.id}-${Date.now()}.pdf`;
-    
-    // Upload to Supabase Storage (generated-pdfs bucket)
-    const filePath = userId ? `${userId}/${fileName}` : `anonymous/${fileName}`;
-    
-    const { data, error: uploadError } = await supabase.storage
-      .from('generated-pdfs')
-      .upload(filePath, pdfBytes, {
-        contentType: 'application/pdf',
-        cacheControl: '3600',
-        upsert: true,
-      });
+    // cv.id comes from the client; only a plain UUID may enter the storage path.
+    const cvId = typeof cv.id === 'string' && /^[0-9a-f-]{36}$/i.test(cv.id) ? cv.id : uuidv4();
+    const fileName = `cv-${cvId}-${Date.now()}.pdf`;
+    const key = `generated-pdfs/${userId}/${fileName}`;
 
-    if (uploadError) {
-      console.error('Supabase upload error:', uploadError);
+    const used = await userStorageBytes(userId, ALLOWED_FILE_BUCKETS);
+    if (used + pdfBytes.byteLength > USER_STORAGE_QUOTA_BYTES) {
       return NextResponse.json(
-        { error: 'Failed to upload PDF' },
-        { status: 500 }
+        { error: 'Storage limit reached. Delete some files to continue.' },
+        { status: 413 },
       );
     }
 
-    // Get signed URL for the uploaded PDF (valid for 7 days)
-    const { data: urlData } = await supabase.storage
-      .from('generated-pdfs')
-      .createSignedUrl(filePath, 60 * 60 * 24 * 7); // 7 days
-    
+    await putObject(key, pdfBytes, { contentType: 'application/pdf' });
+
     return NextResponse.json({
       success: true,
-      url: urlData?.signedUrl || null,
-      path: data.path,
+      url: fileDisplayUrl(key),
+      path: key,
       fileName,
       stats,
     });

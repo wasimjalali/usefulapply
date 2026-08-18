@@ -661,10 +661,15 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                       </div>
                       <button
                         onClick={async () => {
-                          setProfilePhoto(null);
                           if (user) {
-                            await deleteProfilePhoto(user.id);
+                            const { error } = await deleteProfilePhoto(user.id);
+                            if (error) {
+                              console.error('Error deleting profile photo:', error);
+                              alert('We could not remove the photo. Please try again.');
+                              return;
+                            }
                           }
+                          setProfilePhoto(null);
                         }}
                         className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                         title="Remove photo"
@@ -999,10 +1004,15 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
                   </div>
                   <button
                     onClick={async () => {
-                      setProfilePhoto(null);
                       if (user) {
-                        await deleteProfilePhoto(user.id);
+                        const { error } = await deleteProfilePhoto(user.id);
+                        if (error) {
+                          console.error('Error deleting profile photo:', error);
+                          alert('We could not remove the photo. Please try again.');
+                          return;
+                        }
                       }
+                      setProfilePhoto(null);
                     }}
                     className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                     title="Remove photo"

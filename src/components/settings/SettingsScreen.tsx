@@ -10,6 +10,7 @@ import { AccountSection, PasswordModal, DeleteConfirmModal } from '@/components/
 import { SubscriptionSection } from '@/components/settings/SubscriptionSection';
 import { NotificationsSection } from '@/components/settings/NotificationsSection';
 import { uploadAvatar, deleteAvatar } from '@/lib/supabase/storage';
+import { fileDisplayUrl } from '@/storage/paths';
 import {
   getSubscription,
   changePassword,
@@ -98,7 +99,7 @@ export function SettingsScreen({ forcedSection }: SettingsScreenProps) {
         email: profile.email || '',
         phone: profile.phone || '',
         location: profile.location || '',
-        photoUrl: profile.avatar_url,
+        photoUrl: fileDisplayUrl(profile.avatar_url),
       });
       setNotifications({
         tips: (profile as any).notify_tips ?? true,
@@ -198,26 +199,25 @@ export function SettingsScreen({ forcedSection }: SettingsScreenProps) {
   const handleSave = async () => {
     setIsSaving(true);
 
-    let avatarUrl = formData.photoUrl;
+    let avatarToSave = formData.photoUrl === null ? null : profile?.avatar_url;
+    let uploadedKey: string | null = null;
 
     if (pendingPhotoFile && authUser) {
       setIsUploadingPhoto(true);
-      const { url, error: uploadError } = await uploadAvatar(authUser.id, pendingPhotoFile);
+      const { key, url, error: uploadError } = await uploadAvatar(authUser.id, pendingPhotoFile);
       setIsUploadingPhoto(false);
 
-      if (uploadError) {
-        alert('Failed to upload photo: ' + uploadError.message);
+      if (uploadError || !key) {
+        alert('Failed to upload photo: ' + (uploadError?.message || 'Upload failed'));
         setIsSaving(false);
         return;
       }
 
-      avatarUrl = url;
+      avatarToSave = key;
+      uploadedKey = key;
+      setFormData((prev) => ({ ...prev, photoUrl: url }));
       setPendingPhotoFile(null);
     }
-
-    const avatarToSave = avatarUrl?.startsWith('data:')
-      ? profile?.avatar_url
-      : avatarUrl;
 
     const { error } = await updateProfile({
       full_name: formData.fullName,
@@ -229,6 +229,11 @@ export function SettingsScreen({ forcedSection }: SettingsScreenProps) {
     if (!error) {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
+      // The row now points at the new avatar (or none), so old objects can go.
+      if (authUser && (uploadedKey || (avatarToSave === null && profile?.avatar_url))) {
+        const { error: cleanupError } = await deleteAvatar(authUser.id, uploadedKey ?? undefined);
+        if (cleanupError) console.error('[settings] failed to remove old avatar:', cleanupError);
+      }
     } else {
       alert('We could not save your changes. Please try again.');
     }
@@ -257,9 +262,7 @@ export function SettingsScreen({ forcedSection }: SettingsScreenProps) {
   };
 
   const handleRemovePhoto = async () => {
-    if (authUser && profile?.avatar_url) {
-      await deleteAvatar(authUser.id);
-    }
+    // Objects are removed on Save, once avatar_url is cleared in the profile.
     setPendingPhotoFile(null);
     setFormData(prev => ({ ...prev, photoUrl: null }));
   };
@@ -304,8 +307,17 @@ export function SettingsScreen({ forcedSection }: SettingsScreenProps) {
     }
   };
 
-  const handleChangePassword = async (newPassword: string, confirmPassword: string) => {
+  const handleChangePassword = async (
+    currentPassword: string,
+    newPassword: string,
+    confirmPassword: string,
+  ) => {
     setPasswordError(null);
+
+    if (!currentPassword) {
+      setPasswordError('Enter your current password');
+      return;
+    }
 
     if (newPassword.length < 8) {
       setPasswordError('Password must be at least 8 characters');
@@ -318,7 +330,7 @@ export function SettingsScreen({ forcedSection }: SettingsScreenProps) {
     }
 
     setIsChangingPassword(true);
-    const { error } = await changePassword(newPassword);
+    const { error } = await changePassword(newPassword, currentPassword);
     setIsChangingPassword(false);
 
     if (error) {

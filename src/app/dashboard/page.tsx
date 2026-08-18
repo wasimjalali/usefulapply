@@ -15,6 +15,7 @@ import { useUIStore } from '@/store/useUIStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import { uploadCVFile, saveDocument } from '@/lib/supabase';
+import { fileDisplayUrl } from '@/storage/paths';
 import { FileText, Mail, Send, FolderOpen, ClipboardList, Target, User, Loader2, AlertCircle, ArrowRight, PanelRightClose, PanelRightOpen, ArrowUpRight, Briefcase, ChevronDown, CreditCard, Bell, Shield, LogOut, LifeBuoy, X } from 'lucide-react';
 import BrandLogo, { BrandIcon } from '@/components/BrandLogo';
 import Link from 'next/link';
@@ -121,9 +122,9 @@ function DashboardProfileMenu({ profile, onSignOut }: DashboardProfileMenuProps)
                 ? 'ring-gold-400'
                 : 'ring-gray-300'
           }`}>
-            {profile?.avatar_url ? (
+            {fileDisplayUrl(profile?.avatar_url) ? (
               // eslint-disable-next-line @next/next/no-img-element -- Remote avatar URLs come from user profile storage and are already sized to this tiny menu slot.
-              <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+              <img src={fileDisplayUrl(profile?.avatar_url) ?? undefined} alt="Profile" className="w-full h-full object-cover" />
             ) : (
               <User className="w-3.5 h-3.5 text-white" />
             )}
