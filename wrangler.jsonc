@@ -23,8 +23,24 @@
 			"binding": "NEXT_INC_CACHE_R2_BUCKET",
 			// Bucket created in Task 3.5. Local preview uses wrangler's simulated R2.
 			"bucket_name": "usefulapply-next-cache"
+		},
+		{
+			"binding": "FILES",
+			// Wasim: `npx wrangler r2 bucket create usefulapply-files` (do not create from this task).
+			// Local preview uses wrangler's simulated R2.
+			"bucket_name": "usefulapply-files"
 		}
 	],
+	// Cloudflare Email Service. usefulapply.com is onboarded for sending
+	// (`npx wrangler email sending list`). Add `"remote": true` only for a
+	// local send test, never commit it.
+	"send_email": [
+		{
+			"name": "EMAIL"
+		}
+	],
+	// Auth secrets (Wasim via `wrangler secret put`, never in this file):
+	// BETTER_AUTH_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET.
 	"d1_databases": [
 		{
 			"binding": "DB",
@@ -46,48 +62,279 @@
 	// namespace_id is an account-unique integer we pick; confirm unused in Task 3.5.
 	// anon-parse hourly cap (5 / 3600s) stays in-memory; RATE_LIMIT_ANON_PARSE adds a 2 / 60s cap the binding can enforce.
 	"ratelimits": [
-		{ "name": "RATE_LIMIT_AGENT_V2", "namespace_id": "3101", "simple": { "limit": 5, "period": 60 } },
-		{ "name": "RATE_LIMIT_PARSE_CV", "namespace_id": "3102", "simple": { "limit": 10, "period": 60 } },
-		{ "name": "RATE_LIMIT_CHAT", "namespace_id": "3103", "simple": { "limit": 20, "period": 60 } },
-		{ "name": "RATE_LIMIT_CONTACT", "namespace_id": "3104", "simple": { "limit": 3, "period": 60 } },
-		{ "name": "RATE_LIMIT_GENERATE_PDF", "namespace_id": "3105", "simple": { "limit": 10, "period": 60 } },
-		{ "name": "RATE_LIMIT_REGENERATE", "namespace_id": "3106", "simple": { "limit": 10, "period": 60 } },
-		{ "name": "RATE_LIMIT_SIGNUP", "namespace_id": "3107", "simple": { "limit": 3, "period": 60 } },
-		{ "name": "RATE_LIMIT_FORGOT_PASSWORD", "namespace_id": "3108", "simple": { "limit": 5, "period": 60 } },
-		{ "name": "RATE_LIMIT_POST_CONFIRM", "namespace_id": "3109", "simple": { "limit": 5, "period": 60 } },
-		{ "name": "RATE_LIMIT_JOB_FEED_SETTINGS", "namespace_id": "3110", "simple": { "limit": 10, "period": 60 } },
-		{ "name": "RATE_LIMIT_JOB_FEED_OVERVIEW", "namespace_id": "3111", "simple": { "limit": 15, "period": 60 } },
-		{ "name": "RATE_LIMIT_JOB_FEED_SAVED", "namespace_id": "3112", "simple": { "limit": 15, "period": 60 } },
-		{ "name": "RATE_LIMIT_JOB_FEED_FEEDBACK", "namespace_id": "3113", "simple": { "limit": 20, "period": 60 } },
-		{ "name": "RATE_LIMIT_JOB_FEED_APPLY", "namespace_id": "3114", "simple": { "limit": 10, "period": 60 } },
-		{ "name": "RATE_LIMIT_JOB_FEED_RUN", "namespace_id": "3115", "simple": { "limit": 2, "period": 60 } },
-		{ "name": "RATE_LIMIT_JOB_FEED_DEV_RUN", "namespace_id": "3116", "simple": { "limit": 3, "period": 60 } },
-		{ "name": "RATE_LIMIT_JOB_FEED_INBOX", "namespace_id": "3117", "simple": { "limit": 30, "period": 60 } },
-		{ "name": "RATE_LIMIT_CREDITS_BALANCE", "namespace_id": "3118", "simple": { "limit": 30, "period": 60 } },
-		{ "name": "RATE_LIMIT_DELETE_ACCOUNT", "namespace_id": "3119", "simple": { "limit": 3, "period": 60 } },
-		{ "name": "RATE_LIMIT_CREATE_CHECKOUT", "namespace_id": "3120", "simple": { "limit": 5, "period": 60 } },
-		{ "name": "RATE_LIMIT_CREATE_ADDON_CHECKOUT", "namespace_id": "3121", "simple": { "limit": 5, "period": 60 } },
-		{ "name": "RATE_LIMIT_CREATE_PORTAL", "namespace_id": "3122", "simple": { "limit": 3, "period": 60 } },
-		{ "name": "RATE_LIMIT_JOB_FEED_APPLY_GEN", "namespace_id": "3123", "simple": { "limit": 60, "period": 60 } },
-		{ "name": "RATE_LIMIT_JOB_FEED_APPLY_STATUS", "namespace_id": "3124", "simple": { "limit": 30, "period": 60 } },
-		{ "name": "RATE_LIMIT_CAREER_PROFILE_GENERATE", "namespace_id": "3125", "simple": { "limit": 6, "period": 60 } },
-		{ "name": "RATE_LIMIT_ANON_PARSE", "namespace_id": "3126", "simple": { "limit": 2, "period": 60 } },
-		{ "name": "RATE_LIMIT_SEARCH_STRATEGY_GENERATE", "namespace_id": "3127", "simple": { "limit": 3, "period": 60 } }
+		{
+			"name": "RATE_LIMIT_AGENT_V2",
+			"namespace_id": "3101",
+			"simple": {
+				"limit": 5,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_PARSE_CV",
+			"namespace_id": "3102",
+			"simple": {
+				"limit": 10,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_CHAT",
+			"namespace_id": "3103",
+			"simple": {
+				"limit": 20,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_CONTACT",
+			"namespace_id": "3104",
+			"simple": {
+				"limit": 3,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_GENERATE_PDF",
+			"namespace_id": "3105",
+			"simple": {
+				"limit": 10,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_REGENERATE",
+			"namespace_id": "3106",
+			"simple": {
+				"limit": 10,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_SIGNUP",
+			"namespace_id": "3107",
+			"simple": {
+				"limit": 3,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_SIGNIN",
+			"namespace_id": "3128",
+			"simple": {
+				"limit": 5,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_FORGOT_PASSWORD",
+			"namespace_id": "3108",
+			"simple": {
+				"limit": 5,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_POST_CONFIRM",
+			"namespace_id": "3109",
+			"simple": {
+				"limit": 5,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_JOB_FEED_SETTINGS",
+			"namespace_id": "3110",
+			"simple": {
+				"limit": 10,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_JOB_FEED_OVERVIEW",
+			"namespace_id": "3111",
+			"simple": {
+				"limit": 15,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_JOB_FEED_SAVED",
+			"namespace_id": "3112",
+			"simple": {
+				"limit": 15,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_JOB_FEED_FEEDBACK",
+			"namespace_id": "3113",
+			"simple": {
+				"limit": 20,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_JOB_FEED_APPLY",
+			"namespace_id": "3114",
+			"simple": {
+				"limit": 10,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_JOB_FEED_RUN",
+			"namespace_id": "3115",
+			"simple": {
+				"limit": 2,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_JOB_FEED_DEV_RUN",
+			"namespace_id": "3116",
+			"simple": {
+				"limit": 3,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_JOB_FEED_INBOX",
+			"namespace_id": "3117",
+			"simple": {
+				"limit": 30,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_CREDITS_BALANCE",
+			"namespace_id": "3118",
+			"simple": {
+				"limit": 30,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_DELETE_ACCOUNT",
+			"namespace_id": "3119",
+			"simple": {
+				"limit": 3,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_CREATE_CHECKOUT",
+			"namespace_id": "3120",
+			"simple": {
+				"limit": 5,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_CREATE_ADDON_CHECKOUT",
+			"namespace_id": "3121",
+			"simple": {
+				"limit": 5,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_CREATE_PORTAL",
+			"namespace_id": "3122",
+			"simple": {
+				"limit": 3,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_JOB_FEED_APPLY_GEN",
+			"namespace_id": "3123",
+			"simple": {
+				"limit": 60,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_JOB_FEED_APPLY_STATUS",
+			"namespace_id": "3124",
+			"simple": {
+				"limit": 30,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_CAREER_PROFILE_GENERATE",
+			"namespace_id": "3125",
+			"simple": {
+				"limit": 6,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_ANON_PARSE",
+			"namespace_id": "3126",
+			"simple": {
+				"limit": 2,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_SEARCH_STRATEGY_GENERATE",
+			"namespace_id": "3127",
+			"simple": {
+				"limit": 3,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_FILES_UPLOAD",
+			"namespace_id": "3129",
+			"simple": {
+				"limit": 10,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_FILES_GET",
+			"namespace_id": "3130",
+			"simple": {
+				"limit": 60,
+				"period": 60
+			}
+		}
 	],
 	// Paid plan default is 30s CPU. Fit analysis + generation is LLM-bound
 	// (unlimited wall clock, but CPU can exceed 30s). Max is 5 minutes.
 	"limits": {
 		"cpu_ms": 300000
 	},
-	// Crons are OFF while this Worker is staging (it still talks to the production
-	// Supabase DB, and pg_cron already runs the hourly resend). Phase 9 enables:
-	// "0 3 * * *", "*/10 * * * *", "0 * * * *" (must match src/cron/index.ts).
+	// Crons stay OFF on this staging Worker (Task 3.5). Phase 9 enables the
+	// live array. Expressions must match src/cron/index.ts:
+	// "0 3 * * *", "*/10 * * * *", "0 * * * *", "0 9 * * 1-5".
+	// Task 7.2 added the weekday check-in expression. It is not in the live
+	// array: staging D1 holds imported production users whose welcome_sent_at
+	// is already > 3 days old, and a live cron would mail them the Day 3 note.
+	// Workers Logs: without this the cron console.error lines are not persisted anywhere.
+	"observability": {
+		"enabled": true
+	},
 	"triggers": {
-		"crons": []
+		"crons": [
+			// "0 3 * * *",
+			// "*/10 * * * *",
+			// "0 * * * *",
+			// "0 9 * * 1-5"
+		]
 	},
 	// Custom Domains create the DNS records and certificates automatically.
 	"routes": [
-		{ "pattern": "usefulapply.com", "custom_domain": true },
-		{ "pattern": "www.usefulapply.com", "custom_domain": true }
+		{
+			"pattern": "usefulapply.com",
+			"custom_domain": true
+		},
+		{
+			"pattern": "www.usefulapply.com",
+			"custom_domain": true
+		}
 	]
 }
