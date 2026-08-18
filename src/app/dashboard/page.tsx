@@ -459,7 +459,9 @@ export default function Dashboard() {
       }`}
     >
       <Target className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${atsScore !== null ? 'text-gold-500' : 'text-warm-gray'}`} />
-      {atsScore !== null ? `${atsScore}% ATS Score` : isAgentWorking ? 'Scoring...' : 'ATS Insights'}
+      {atsScore !== null
+        ? `${atsScore}% ATS Score${atsScore < 55 ? ' · Weak match' : ''}`
+        : isAgentWorking ? 'Scoring...' : 'ATS Insights'}
     </button>
   ) : null;
 

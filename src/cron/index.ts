@@ -17,9 +17,28 @@ function failIfNothingSent(label: string, result: { sent: number; errors: number
 export async function dispatchScheduled(cron: string): Promise<void> {
   switch (cron) {
     case CRON_DAILY_CLEANUP: {
-      console.log('[cron] job-feed daily cleanup');
-      const { cleanupHistoricalJobFeedData } = await import('@/lib/job-feed/cleanup');
-      await cleanupHistoricalJobFeedData({ now: new Date() });
+      console.log('[cron] daily cleanup and monthly credit reset sweep');
+      const [{ cleanupHistoricalJobFeedData }, { processOverdueMonthlyResets }] = await Promise.all([
+        import('@/lib/job-feed/cleanup'),
+        import('@/lib/supabase/credits.server'),
+      ]);
+      const results = await Promise.allSettled([
+        cleanupHistoricalJobFeedData({ now: new Date() }),
+        processOverdueMonthlyResets({ limit: 200 }),
+      ]);
+      const sweep = results[1];
+      if (sweep.status === 'fulfilled') {
+        console.log('[cron] monthly credit reset sweep', sweep.value);
+        if (sweep.value.attempted > 0 && sweep.value.succeeded === 0) {
+          throw new Error(
+            `[cron] monthly credit reset sweep: ${sweep.value.failed} failed, 0 succeeded`,
+          );
+        }
+      }
+      const failed = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+      if (failed.length > 0) {
+        throw new Error(failed.map((r) => (r.reason instanceof Error ? r.reason.message : String(r.reason))).join('; '));
+      }
       return;
     }
     case CRON_TEN_MINUTE_RECONCILE: {

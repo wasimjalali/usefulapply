@@ -244,7 +244,7 @@ const planFeatures = [
   },
   {
     feature: 'Smart Job Feed',
-    free: false,
+    free: '5/day',
     plus: 'Up to 25/day',
     max: 'Up to 25/day',
   },
@@ -293,7 +293,7 @@ const faqs = [
   {
     question: 'What is the difference between Free, Plus and Max?',
     answer:
-      'Free gets the core workflow: tailored CV, cover letter, application email, follow-up, fit analysis, ATS templates and the application tracker. Plus and Max add screening question answers, add-on credit packs and the Smart Job Feed at up to 25 roles a day. Max searches wider, 4 job titles across 4 countries against Plus at 2 and 2, and adds premium dedicated support. The main difference between plans is how many applications you can generate each month.',
+      'Free gets the core workflow: tailored CV, cover letter, application email, follow-up, fit analysis, ATS templates, the application tracker and a Smart Job Feed of the top 5 roles a day. Plus and Max add screening question answers, add-on credit packs and a larger feed at up to 25 roles a day. Max searches wider, 4 job titles across 4 countries against Plus at 2 and 2, and adds premium dedicated support. The main difference between plans is how many applications you can generate each month.',
   },
   {
     question: 'How does fit analysis work?',
@@ -437,7 +437,7 @@ export default function FeaturesPage() {
             <div className="text-center mb-12">
               <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-4">Every plan, every feature. Pick your volume.</h2>
               <p className="text-warm-gray max-w-2xl mx-auto">
-                Start free with the full workflow. Upgrade when you want more monthly applications, the Smart Job Feed, or screening answers on top.
+                Start free with the full workflow and a top-5 daily feed. Upgrade when you want more monthly applications, a larger feed or screening answers on top.
               </p>
             </div>
 

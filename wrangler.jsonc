@@ -308,19 +308,19 @@
 	"limits": {
 		"cpu_ms": 300000
 	},
-	// Crons stay OFF on this staging Worker (Task 3.5). Phase 9 enables the
-	// live array. Expressions must match src/cron/index.ts:
+	// Daily "0 3 * * *" is live for the free-tier credit reset sweep and
+	// job-feed cleanup. The other three stay off until Phase 9.
+	// Expressions must match src/cron/index.ts:
 	// "0 3 * * *", "*/10 * * * *", "0 * * * *", "0 9 * * 1-5".
-	// Task 7.2 added the weekday check-in expression. It is not in the live
-	// array: staging D1 holds imported production users whose welcome_sent_at
-	// is already > 3 days old, and a live cron would mail them the Day 3 note.
+	// Weekday check-in stays off: staging D1 holds imported production users
+	// whose welcome_sent_at is already > 3 days old.
 	// Workers Logs: without this the cron console.error lines are not persisted anywhere.
 	"observability": {
 		"enabled": true
 	},
 	"triggers": {
 		"crons": [
-			// "0 3 * * *",
+			"0 3 * * *",
 			// "*/10 * * * *",
 			// "0 * * * *",
 			// "0 9 * * 1-5"

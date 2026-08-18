@@ -524,10 +524,6 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
           return;
         }
         posthog?.capture('apply_clicked', { mode: 'analyze_first' });
-        addChatMessage({
-          role: 'assistant',
-          content: '🚀 Generating your full application...',
-        });
         // Restore from session if React state was lost (e.g., after session switch)
         const pending = currentSession?.pendingFitAnalysis;
         const ctxId = fitAnalysisContextId || pending?.contextId;

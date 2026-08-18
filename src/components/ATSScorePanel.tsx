@@ -53,6 +53,11 @@ export function ATSScorePanel() {
                 {optimizedCVData.analysis.ats_compatibility}%
               </span>
             </div>
+            {optimizedCVData.analysis.ats_compatibility < 55 && (
+              <p className="mt-3 text-sm text-navy-700">
+                This score is a weak match. Review the gaps before you send this application.
+              </p>
+            )}
           </div>
 
           {/* Optimization Strategy */}

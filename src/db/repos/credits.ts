@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, lt, sql } from 'drizzle-orm';
 import { isUniqueViolation, runBatch, getDb, nowIso } from '../client';
 import { addonCreditPacks, creditReservations, creditTransactions, subscriptionPlans, userCredits } from '../schema';
 import type { SubscriptionTier } from '@/lib/supabase/types';
@@ -490,6 +490,35 @@ export async function processMonthlyReset(userId: string): Promise<{ success: bo
     metadata: { rolloverApplied: newRollover },
   });
   return { success: true, error: null };
+}
+
+export async function processOverdueMonthlyResets(options: {
+  limit: number;
+}): Promise<{ attempted: number; succeeded: number; failed: number; errors: string[] }> {
+  const db = await getDb();
+  const now = nowIso();
+  const rows = await db
+    .select({ user_id: userCredits.user_id })
+    .from(userCredits)
+    .where(and(eq(userCredits.plan_tier, 'free'), lt(userCredits.next_reset_date, now)))
+    .orderBy(asc(userCredits.next_reset_date))
+    .limit(options.limit);
+
+  const errors: string[] = [];
+  let succeeded = 0;
+  let failed = 0;
+
+  for (const row of rows) {
+    const result = await processMonthlyReset(row.user_id);
+    if (result.success) {
+      succeeded += 1;
+    } else {
+      failed += 1;
+      errors.push(`${row.user_id}: ${result.error?.message ?? 'Monthly reset failed'}`);
+    }
+  }
+
+  return { attempted: rows.length, succeeded, failed, errors };
 }
 
 export async function processAddonPurchase(

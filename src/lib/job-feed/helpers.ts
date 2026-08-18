@@ -418,6 +418,90 @@ function asTrimmedString(value: unknown, maxLength: number): string {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
 }
 
+const COMPANY_LEGAL_SUFFIXES = [
+  'corporation',
+  'company',
+  'limited',
+  'gmbh',
+  'llc',
+  'l l c',
+  'inc',
+  'ltd',
+  'corp',
+  'plc',
+  'co',
+  'ag',
+  'sa',
+  'bv',
+];
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Lowercase, trim, strip punctuation, drop a leading "The", then peel
+ * trailing legal suffixes so "Avetta" and "Avetta, LLC" compare equal.
+ */
+export function normalizeCompanyForDedupe(value: string | null | undefined): string {
+  let normalized = (value ?? '')
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  normalized = normalized.replace(/^the\s+/, '');
+
+  let changed = true;
+  while (changed && normalized.length > 0) {
+    changed = false;
+    for (const suffix of COMPANY_LEGAL_SUFFIXES) {
+      const pattern = new RegExp(`(?:^|\\s)${escapeRegExp(suffix)}$`);
+      if (pattern.test(normalized)) {
+        normalized = normalized.replace(pattern, '').trim();
+        changed = true;
+        break;
+      }
+    }
+  }
+
+  return normalized;
+}
+
+export function normalizeTitleForDedupe(value: string | null | undefined): string {
+  return (value ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function jobDedupeKey(input: {
+  company: string | null | undefined;
+  title: string | null | undefined;
+  salaryMin?: number | null;
+  salaryMax?: number | null;
+  salaryCurrency?: string | null;
+  location?: string | null;
+}): string {
+  const company = normalizeCompanyForDedupe(input.company) || 'unknown-company';
+  const title = normalizeTitleForDedupe(input.title) || 'unknown-title';
+  const hasSalary =
+    typeof input.salaryMin === 'number' &&
+    Number.isFinite(input.salaryMin) &&
+    typeof input.salaryMax === 'number' &&
+    Number.isFinite(input.salaryMax);
+  if (hasSalary) {
+    const currency = (input.salaryCurrency ?? '').toLowerCase().trim();
+    return `${company}|${title}|${currency}:${input.salaryMin}-${input.salaryMax}`;
+  }
+  // Without a salary to disambiguate, keep location in the identity so a
+  // generic title at a large employer in two cities stays two jobs.
+  const location = normalizeTitleForDedupe(input.location) || 'unknown-location';
+  return `${company}|${title}|${location}`;
+}
+
 function asOptionalTrimmedString(value: unknown, maxLength: number): string | null {
   const normalized = asTrimmedString(value, maxLength);
   return normalized.length > 0 ? normalized : null;

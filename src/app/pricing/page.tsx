@@ -200,6 +200,7 @@ export default function PricingPage() {
                     { label: '2 full applications per month' },
                     { label: 'Tailored CV, cover letter, email, follow-up' },
                     { label: 'Fit analysis with match score' },
+                    { label: 'Smart Job Feed: top 5 roles a day' },
                     { label: 'US and EU ATS-optimized templates' },
                     { label: 'Application tracker' },
                   ].map((f, i) => (

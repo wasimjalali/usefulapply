@@ -37,6 +37,8 @@ const nextConfig: NextConfig = {
       { source: '/compare/karko-ai-vs-kickresume', destination: '/compare/usefulapply-vs-kickresume', permanent: true },
       { source: '/compare/karko-ai-vs-enhancv', destination: '/compare/usefulapply-vs-enhancv', permanent: true },
       { source: '/compare/karko-ai-vs-resume-io', destination: '/compare/usefulapply-vs-resume-io', permanent: true },
+      { source: '/login', destination: '/auth/login', permanent: true },
+      { source: '/signup', destination: '/auth/signup', permanent: true },
     ];
   },
   // Staging builds (NEXT_PUBLIC_SITE_STAGE=staging at build time) must not be indexed

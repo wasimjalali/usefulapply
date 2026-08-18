@@ -71,6 +71,7 @@ export const PLANS = {
       '2 applications/month',
       'Full application workflow',
       'Fit analysis',
+      'Smart Job Feed: top 5 roles a day',
       'All CV templates',
       'Application tracker',
     ],

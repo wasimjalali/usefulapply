@@ -83,7 +83,7 @@ export function SubscriptionSection({
               />
             </div>
             <div className="mt-2 flex items-center gap-4 text-xs text-warm-gray">
-              <span>Monthly: {userCredits?.monthly_credits || 0}</span>
+              <span>Monthly: {maxCredits}</span>
               {(userCredits?.rollover_credits || 0) > 0 && <span>Rollover: {userCredits?.rollover_credits}</span>}
               {(userCredits?.addon_credits || 0) > 0 && <span>Add-on: {userCredits?.addon_credits}</span>}
             </div>
@@ -240,7 +240,7 @@ export function SubscriptionSection({
             <tbody>
               {([
                 { label: 'Applications/month',            free: '2',      plus: '25',     max: '100' },
-                { label: 'Smart Job Feed',                free: false,    plus: '25/day', max: '25/day' },
+                { label: 'Smart Job Feed',                free: '5/day',  plus: '25/day', max: '25/day' },
                 { label: 'Feed search breadth',           free: false,    plus: '2 job titles, 2 countries', max: '4 job titles, 4 countries' },
                 { label: 'CV + Cover Letter + Email + Follow-up', free: true, plus: true, max: true },
                 { label: 'Match score',                    free: true,     plus: true,     max: true },

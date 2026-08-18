@@ -7,5 +7,6 @@ if (typeof window !== 'undefined') {
 export {
   upgradePlan,
   processMonthlyReset,
+  processOverdueMonthlyResets,
   processAddonPurchase,
 } from '@/db/repos/credits';

@@ -14,6 +14,9 @@ import { usePostHog } from 'posthog-js/react';
 import { hasUsedFreeGeneration, markFreeGenerationUsed } from '@/components/SignUpWallModal';
 import { notifyJobFeedBadgeRefresh } from '@/hooks/useJobFeedBadge';
 import { generateRequestId } from '@/lib/utils/requestId';
+import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
+import { computeFitLevel } from '@/lib/agents/prompts/fit-assessment-prompt';
+import { useToast } from '@/components/ui/Toast';
 import type { JobFeedApplicationGeneration } from '@/lib/supabase/types';
 
 // AgentStepData type for V2 progress tracking
@@ -101,6 +104,7 @@ export function useAgentWorkflow(options?: {
 }) {
   const { user, profile } = useAuth();
   const posthog = usePostHog();
+  const { toast } = useToast();
   const { setActiveTab } = useUIStore();
   const {
     currentCV,
@@ -441,6 +445,9 @@ export function useAgentWorkflow(options?: {
               case 'progress':
                 setV2Progress({ percent: data.percent, message: data.message });
                 break;
+              case 'credits_deducted':
+                triggerCreditUpdate();
+                break;
               case 'fit_analysis_complete': {
                 const { contextId, fitAnalysis, job, match, applicant, verifiedMetrics, detectedLanguage } = data;
                 setFitAnalysisContextId(contextId);
@@ -490,6 +497,7 @@ export function useAgentWorkflow(options?: {
                   role: 'assistant',
                   content: formatFitAnalysisMessage(fitAnalysis, job),
                 });
+                triggerCreditUpdate();
                 break;
               }
               case 'error':
@@ -535,6 +543,7 @@ export function useAgentWorkflow(options?: {
 
     setIsAgentWorking(true);
     setAgentWorkflowPhase('full_generation');
+    setV2Progress({ percent: 0, message: 'Generating full application...' });
     setAgentSteps([]);
     setV2Reflection(null);
     setV2Models(null);
@@ -633,6 +642,10 @@ export function useAgentWorkflow(options?: {
               
               case 'progress':
                 setV2Progress({ percent: data.percent, message: data.message });
+                break;
+
+              case 'credits_deducted':
+                triggerCreditUpdate();
                 break;
               
               case 'reflection':
@@ -774,10 +787,26 @@ export function useAgentWorkflow(options?: {
                 }
 
                 setActiveTab('cv');
+                const resultScore =
+                  typeof ctx?.match?.score === 'number'
+                    ? ctx.match.score
+                    : ctx?.optimizedCVData?.analysis?.ats_compatibility;
+                const isDirectPath = !contextId;
+                const isWeakMatch =
+                  typeof resultScore === 'number' && computeFitLevel(resultScore) === 'weak';
+                const weakMatchNote = isDirectPath && isWeakMatch
+                  ? `\n\nThis role looks like a weak match (${Math.round(resultScore)}%). Review the gaps before you send it.`
+                  : '';
                 addChatMessage({
                   role: 'assistant',
-                  content: `✅ **Your full application is ready**\n\nTailored CV, cover letter, and email are ready. Check the **Application Kit** panel (top left).\n\nIf you need ATS screening question answers next, use the suggestion below.`,
+                  content: `✅ **Your full application is ready**\n\nTailored CV, cover letter, and email are ready. Check the **Application Kit** panel (top left).\n\nIf you need ATS screening question answers next, use the suggestion below.${weakMatchNote}`,
                 });
+                if (isDirectPath && isWeakMatch) {
+                  toast.warning(
+                    `This role scored ${Math.round(resultScore)}%. That's a weak match. Review it before you send.`,
+                  );
+                }
+                triggerCreditUpdate();
                 break;
                 
               case 'error':

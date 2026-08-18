@@ -5,10 +5,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const { user } = useAuth();
+  const isSignedIn = Boolean(user);
 
   // Close mobile menu on route change (e.g., browser back/forward)
   useEffect(() => {
@@ -55,18 +58,29 @@ export default function Navbar() {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-4">
-            <Link
-              href="/auth/login"
-              className="text-sm font-medium text-charcoal hover:text-navy-600 transition-colors"
-            >
-              Log in
-            </Link>
-            <Link
-              href="/dashboard"
-              className="px-5 py-2.5 text-sm font-semibold bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm hover:shadow-md"
-            >
-              Try It Free
-            </Link>
+            {isSignedIn ? (
+              <Link
+                href="/dashboard"
+                className="px-5 py-2.5 text-sm font-semibold bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm hover:shadow-md"
+              >
+                Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/auth/login"
+                  className="text-sm font-medium text-charcoal hover:text-navy-600 transition-colors"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/dashboard"
+                  className="px-5 py-2.5 text-sm font-semibold bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm hover:shadow-md"
+                >
+                  Try It Free
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -94,20 +108,32 @@ export default function Navbar() {
                 </Link>
               ))}
               <div className="flex flex-col gap-3 pt-4 border-t border-cream-200">
-                <Link
-                  href="/auth/login"
-                  className="text-sm font-medium text-charcoal hover:text-navy-600 transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Log in
-                </Link>
-                <Link
-                  href="/dashboard"
-                  className="px-4 py-3 text-sm font-semibold bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all text-center shadow-sm"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Try It Free
-                </Link>
+                {isSignedIn ? (
+                  <Link
+                    href="/dashboard"
+                    className="px-4 py-3 text-sm font-semibold bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all text-center shadow-sm"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      href="/auth/login"
+                      className="text-sm font-medium text-charcoal hover:text-navy-600 transition-colors"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Log in
+                    </Link>
+                    <Link
+                      href="/dashboard"
+                      className="px-4 py-3 text-sm font-semibold bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all text-center shadow-sm"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Try It Free
+                    </Link>
+                  </>
+                )}
               </div>
             </nav>
           </div>
