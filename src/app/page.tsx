@@ -209,7 +209,7 @@ export default function Home() {
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
+      <section id="how-it-works" className="scroll-mt-24 py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
         <div className="max-w-3xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-14">

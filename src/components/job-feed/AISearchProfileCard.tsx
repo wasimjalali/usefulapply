@@ -204,9 +204,9 @@ export function AISearchProfileCard() {
 
           <div className="mt-5 space-y-4">
             <ProfileRow label="Discipline">
-              <span className="text-sm font-medium text-charcoal capitalize">{profile.function}</span>
+              <span className="text-sm font-medium text-charcoal">{formatProfileLabel(profile.function)}</span>
               <span className="mx-2 text-cream-400">·</span>
-              <span className="text-sm text-charcoal capitalize">{profile.seniority.level}</span>
+              <span className="text-sm text-charcoal">{formatProfileLabel(profile.seniority.level)}</span>
               <span className="mx-2 text-cream-400">·</span>
               <span className="text-sm text-warm-gray">
                 {profile.yearsTotal}+ years
@@ -234,7 +234,7 @@ export function AISearchProfileCard() {
                 <div className="flex flex-col gap-2">
                   {primaryClusters.map((cluster, idx) => (
                     <div key={`${cluster.name}-${idx}`} className="text-sm text-charcoal">
-                      <span className="font-medium capitalize">{cluster.name}</span>
+                      <span className="font-medium">{formatProfileLabel(cluster.name)}</span>
                       {cluster.skills.length > 0 && (
                         <span className="text-warm-gray">
                           : {cluster.skills.slice(0, 6).join(', ')}
@@ -253,9 +253,9 @@ export function AISearchProfileCard() {
                   {profile.industryDomains.map((domain) => (
                     <span
                       key={domain}
-                      className="inline-flex items-center rounded-full border border-cream-200 bg-white px-2.5 py-1 text-xs font-medium text-charcoal capitalize"
+                      className="inline-flex items-center rounded-full border border-cream-200 bg-white px-2.5 py-1 text-xs font-medium text-charcoal"
                     >
-                      {domain.replace(/-/g, ' ')}
+                      {formatProfileLabel(domain.replace(/-/g, ' '))}
                     </span>
                   ))}
                 </div>
@@ -287,6 +287,39 @@ function ProfileRow({ label, children }: { label: string; children: React.ReactN
       <div>{children}</div>
     </div>
   );
+}
+
+const PROFILE_LABEL_ALLOWLIST: Record<string, string> = {
+  saas: 'SaaS',
+  b2b: 'B2B',
+  b2c: 'B2C',
+  ai: 'AI',
+  ml: 'ML',
+  api: 'API',
+  ux: 'UX',
+  ui: 'UI',
+  iot: 'IoT',
+  seo: 'SEO',
+  crm: 'CRM',
+  erp: 'ERP',
+  hr: 'HR',
+  it: 'IT',
+  devops: 'DevOps',
+  fintech: 'FinTech',
+  healthtech: 'HealthTech',
+  edtech: 'EdTech',
+};
+
+function formatProfileLabel(value: string): string {
+  return value
+    .split(/[\s-]+/)
+    .filter(Boolean)
+    .map((word) => {
+      const mapped = PROFILE_LABEL_ALLOWLIST[word.toLowerCase()];
+      if (mapped) return mapped;
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(' ');
 }
 
 function formatRelativeTimestamp(isoTimestamp: string): string {

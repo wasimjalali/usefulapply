@@ -21,6 +21,13 @@ interface ChatHistoryProps {
   onClose: () => void;
 }
 
+function sessionLabel(session: SessionSummary): string {
+  const title = session.jobTitle?.trim();
+  const company = session.company?.trim();
+  if (title && company) return `${title} · ${company}`;
+  return title || company || 'Untitled';
+}
+
 function StatusDot({ hasGeneratedCV, hasFitAnalysis }: { hasGeneratedCV?: boolean; hasFitAnalysis?: boolean }) {
   if (hasGeneratedCV) {
     return <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" title="Completed" />;
@@ -66,12 +73,16 @@ export function ChatHistory({ sessions, currentSessionId, onSelectSession, onClo
                 <div className="flex items-center gap-2">
                   <StatusDot hasGeneratedCV={session.hasGeneratedCV} hasFitAnalysis={session.hasFitAnalysis} />
                   <p className="font-medium text-charcoal truncate flex-1">
-                    {session.company || session.jobTitle || 'Untitled'}
+                    {sessionLabel(session)}
                   </p>
                 </div>
                 <p className="text-xs text-warm-gray flex items-center gap-1 ml-4">
                   <MessageSquare className="w-3 h-3" />
-                  {new Date(session.updatedAt).toLocaleDateString()}
+                  {new Date(session.updatedAt).toLocaleDateString(undefined, {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
                 </p>
               </button>
             ))}

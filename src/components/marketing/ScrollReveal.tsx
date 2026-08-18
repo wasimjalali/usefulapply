@@ -25,7 +25,7 @@ export function ScrollReveal({
   duration = 600,
   distance = 30,
 }: ScrollRevealProps) {
-  const [ref, isInView] = useInView({ threshold: 0.1 });
+  const [ref, isInView] = useInView({ threshold: 0 });
 
   const getTransform = () => {
     if (direction === 'none') return 'none';
@@ -73,7 +73,7 @@ export function StaggerChildren({
   direction = 'up',
   duration = 500,
 }: StaggerChildrenProps) {
-  const [ref, isInView] = useInView({ threshold: 0.05 });
+  const [ref, isInView] = useInView({ threshold: 0 });
 
   const getTransform = () => {
     if (direction === 'none') return 'none';

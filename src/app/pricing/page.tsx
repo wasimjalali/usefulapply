@@ -319,7 +319,7 @@ export default function PricingPage() {
       {/* /Aurora-backed first-fold */}
 
       {/* Add-on credit packs — moved out of cards into a dedicated band */}
-      <section className="pb-20 px-4 sm:px-6 lg:px-8" id="addons">
+      <section className="scroll-mt-24 pb-20 px-4 sm:px-6 lg:px-8" id="addons">
         <div className="max-w-4xl mx-auto">
           <ScrollReveal>
           <div className="bg-navy-800 border border-navy-700 rounded-2xl p-6 md:p-8 shadow-md">

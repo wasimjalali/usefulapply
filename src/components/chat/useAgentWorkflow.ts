@@ -461,11 +461,14 @@ export function useAgentWorkflow(options?: {
                   fitAnalysis,
                 });
                 // Persist job title, company, and match data to the session
-                // so tracker shows correct info if user proceeds to apply
+                // so tracker shows correct info if user proceeds to apply.
+                // Keep a feed-provided title (e.g. "Product Manager - B2B SaaS")
+                // instead of the parser's shortened title.
                 if (job?.title || job?.companyName) {
+                  const existing = useAppStore.getState().currentSession;
                   useAppStore.getState().updateCurrentSession({
-                    jobTitle: job.title || '',
-                    company: job.companyName || '',
+                    jobTitle: existing?.jobTitle?.trim() || job.title || '',
+                    company: existing?.company?.trim() || job.companyName || '',
                   });
                 }
                 if (match) {
@@ -668,6 +671,7 @@ export function useAgentWorkflow(options?: {
                 });
 
                 if (ctx?.job) {
+                  const existing = useAppStore.getState().currentSession;
                   useAppStore.getState().updateCurrentSession({
                     requirements: {
                       title: ctx.job.title || '',
@@ -683,8 +687,8 @@ export function useAgentWorkflow(options?: {
                       location: ctx.job.location,
                       workType: ctx.job.workType,
                     },
-                    jobTitle: ctx.job.title,
-                    company: ctx.job.companyName,
+                    jobTitle: existing?.jobTitle?.trim() || ctx.job.title,
+                    company: existing?.company?.trim() || ctx.job.companyName,
                   });
                 }
                 

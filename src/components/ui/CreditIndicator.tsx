@@ -100,6 +100,7 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
   const maxCredits = credits?.planTier === 'free' ? 4 : credits?.planTier === 'plus' ? 50 : 200;
   const percentRemaining = Math.min((totalCredits / maxCredits) * 100, 100);
   const formattedCredits = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(totalCredits);
+  const creditWord = totalCredits === 1 ? 'credit' : 'credits';
 
   const handleBuyCredits = async () => {
     if (!user) return;
@@ -135,7 +136,7 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
       <Link 
         href="/subscription"
         className="group flex items-center gap-1.5 rounded-full border border-cream-200 bg-white/90 px-2 py-1 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md"
-        title={`${formattedCredits} credits remaining`}
+        title={`${formattedCredits} ${creditWord} remaining`}
       >
         <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-gold-100 to-white border border-gold-200">
           <Coins className={`w-3 h-3 ${getColor()}`} />
@@ -159,7 +160,7 @@ export function CreditIndicator({ compact = false }: CreditIndicatorProps) {
         </span>
         <div className="text-left min-w-0">
           <div className="text-[13px] font-semibold leading-tight text-charcoal">
-            {formattedCredits} credits
+            {formattedCredits} {creditWord}
           </div>
           <div className="mt-1 h-1.5 w-24 rounded-full bg-cream-100 overflow-hidden">
             <div

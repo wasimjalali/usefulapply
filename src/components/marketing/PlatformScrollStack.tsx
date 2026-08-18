@@ -20,7 +20,7 @@ const PANELS: Panel[] = [
     titleAccent: 'delivered to your feed every morning.',
     description:
       'While you sleep, Useful Apply searches the web and picks roles that actually fit you. Matched to your CV, your goals, your location. No keyword searches, no six-tab job-board marathon. Open the app and start applying.',
-    image: '/screenshots/product-01-job-feed.webp',
+    image: '/screenshots/product-01-job-feed.webp?v=3',
     imageAlt: 'Useful Apply Smart Job Feed with six hand-picked roles and match scores',
   },
   {
@@ -30,7 +30,7 @@ const PANELS: Panel[] = [
     titleAccent: 'in 90 seconds.',
     description:
       'A fit score and ATS check first, so you know where you stand. Then the full application: tailored CV, cover letter, application email, follow-up, and answers to every screening question. All pulled from your real CV. Nothing invented.',
-    image: '/screenshots/03-application-kit-generated.webp',
+    image: '/screenshots/03-application-kit-generated.webp?v=3',
     imageAlt: 'Useful Apply full application, tailored CV with Cover Letter, Email, and Screening Answers tabs',
   },
   {
@@ -40,7 +40,7 @@ const PANELS: Panel[] = [
     titleAccent: 'nothing falls through the cracks.',
     description:
       'Company, role, match score, status, date, and a ready-to-send follow-up. One view of your whole job search, so you always know where each application stands.',
-    image: '/screenshots/11-job-feed-empty-upsell.webp',
+    image: '/screenshots/11-job-feed-empty-upsell.webp?v=3',
     imageAlt: 'Useful Apply Application Tracker with match scores and status pills',
   },
 ];

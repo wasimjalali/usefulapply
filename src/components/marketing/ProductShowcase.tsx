@@ -21,7 +21,7 @@ const SLIDES: Slide[] = [
     title: 'Jobs picked for you, daily',
     description:
       'Every morning Useful Apply delivers hand-picked roles that fit your profile. No keyword wrangling, no job-board swamp.',
-    src: '/screenshots/product-01-job-feed.webp?v=2',
+    src: '/screenshots/product-01-job-feed.webp?v=3',
     alt: 'Useful Apply Smart Job Feed showing six hand-picked roles with match badges',
   },
   {
@@ -30,7 +30,7 @@ const SLIDES: Slide[] = [
     title: 'See why before you apply',
     description:
       'A quick read of your fit for each role. Strengths, gaps, and what to lead with in the cover letter.',
-    src: '/screenshots/product-05-fit-analysis.webp',
+    src: '/screenshots/product-05-fit-analysis.webp?v=3',
     alt: 'Useful Apply Fit Analysis panel showing strengths, gaps and a recommendation',
   },
   {
@@ -39,7 +39,7 @@ const SLIDES: Slide[] = [
     title: 'ATS-ready in seconds',
     description:
       'Your CV tuned to the role. Skills reordered, keywords matched, ATS score visible at the top.',
-    src: '/screenshots/product-02-cv-optimized.webp',
+    src: '/screenshots/product-02-cv-optimized.webp?v=3',
     alt: 'Useful Apply Optimized CV with ATS score and template controls',
   },
   {
@@ -48,7 +48,7 @@ const SLIDES: Slide[] = [
     title: 'Ready to send',
     description:
       'Subject line, body, tone. Copy it, paste it, hit send. Follow-up email included.',
-    src: '/screenshots/product-03-application-email.webp',
+    src: '/screenshots/product-03-application-email.webp?v=3',
     alt: 'Useful Apply application email with subject line and body ready to send',
   },
   {
@@ -57,7 +57,7 @@ const SLIDES: Slide[] = [
     title: 'Every application in one place',
     description:
       'Statuses, match scores, follow-up timers. One view of your whole search.',
-    src: '/screenshots/product-04-tracker.webp',
+    src: '/screenshots/product-04-tracker.webp?v=3',
     alt: 'Useful Apply Application Tracker with match scores and status pills',
   },
 ];
