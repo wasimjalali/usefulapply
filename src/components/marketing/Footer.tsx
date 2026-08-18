@@ -167,11 +167,11 @@ export default function Footer() {
         {/* Large brand logo — same full/wide variant as the footer brand mark, scaled up */}
         <div className="mt-16 md:mt-20 lg:mt-24 mb-2">
           {/* Reserve layout space for CSS scale (xl logo is 64px tall) */}
-          <div className="h-[106px] sm:h-[128px] md:h-[160px] lg:h-[192px]">
+          <div className="flex justify-center h-[106px] sm:h-[128px] md:h-[160px] lg:h-[192px]">
             <Link
               href="/"
               aria-label="Useful Apply home"
-              className="inline-flex origin-top-left scale-[1.65] sm:scale-[2] md:scale-[2.5] lg:scale-[3] transition-opacity hover:opacity-90"
+              className="inline-flex origin-top scale-[1.65] sm:scale-[2] md:scale-[2.5] lg:scale-[3] transition-opacity hover:opacity-90"
             >
               <BrandLogo variant="full" size="xl" theme="dark" />
             </Link>
