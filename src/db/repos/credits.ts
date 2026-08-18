@@ -130,20 +130,29 @@ export async function initializeUserCredits(userId: string): Promise<{ credits: 
   const nextReset = new Date();
   nextReset.setMonth(nextReset.getMonth() + 1);
   const now = nowIso();
+  let inserted = false;
   try {
-    await db.insert(userCredits).values({
-      user_id: userId,
-      monthly_credits: 4,
-      rollover_credits: 0,
-      addon_credits: 0,
-      plan_tier: 'free',
-      next_reset_date: nextReset.toISOString(),
-      version: 0,
-      created_at: now,
-      updated_at: now,
-    });
-  } catch {
-    // Unique race with a concurrent insert. Fall through to re-read.
+    // onConflictDoNothing + returning: only the caller that actually created the
+    // row logs the welcome ledger entry. Concurrent first reads (balance +
+    // credit check on first login) used to both log it.
+    const created = await db
+      .insert(userCredits)
+      .values({
+        user_id: userId,
+        monthly_credits: 4,
+        rollover_credits: 0,
+        addon_credits: 0,
+        plan_tier: 'free',
+        next_reset_date: nextReset.toISOString(),
+        version: 0,
+        created_at: now,
+        updated_at: now,
+      })
+      .onConflictDoNothing({ target: userCredits.user_id })
+      .returning({ user_id: userCredits.user_id });
+    inserted = created.length > 0;
+  } catch (insertError) {
+    if (!isUniqueViolation(insertError)) throw insertError;
   }
 
   const rows = await db.select().from(userCredits).where(eq(userCredits.user_id, userId)).limit(1);
@@ -151,7 +160,7 @@ export async function initializeUserCredits(userId: string): Promise<{ credits: 
     return { credits: null, error: new Error('Credits row disappeared after upsert') };
   }
   const credits = rows[0] as UserCredits;
-  if (credits.monthly_credits === 4 && credits.created_at === now) {
+  if (inserted) {
     await insertTransaction(userId, 4, 'monthly_reset', {
       description: 'Initial free plan credits',
       balanceBefore: 0,
