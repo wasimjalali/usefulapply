@@ -19,6 +19,7 @@ import {
   Target,
   ThumbsDown,
   ThumbsUp,
+  Upload,
   X,
   Zap,
 } from 'lucide-react';
@@ -351,6 +352,7 @@ function JobFeedActionButton({
     action.kind === 'screening' ? MessageSquareText :
     action.kind === 'skip-screening' || action.kind === 'new-search' ? X :
     action.kind === 'continue' ? ArrowRight :
+    action.kind === 'upload-cv' ? Upload :
     Zap;
   const label = isApplying ? 'Opening...' : action.label;
   const title =
@@ -428,6 +430,7 @@ export function JobFeedCard({
   isApplying,
   isAnotherJobBusy,
   isFreeUser,
+  hasCV,
   onOpenDetails,
   onAction,
   onExternalApply,
@@ -437,6 +440,7 @@ export function JobFeedCard({
   isApplying: boolean;
   isAnotherJobBusy: boolean;
   isFreeUser: boolean;
+  hasCV: boolean;
   onOpenDetails: () => void;
   onAction: (action: JobFeedCardActionKind) => void;
   onExternalApply: () => void;
@@ -449,6 +453,7 @@ export function JobFeedCard({
     session,
     isFreeUser,
     fitLabel: job.fitLabel,
+    hasCV,
   });
 
   return (
@@ -535,6 +540,7 @@ export function JobFeedDetailModal({
   isDismissing,
   isRating,
   isFreeUser,
+  hasCV,
   onClose,
   onAction,
   onSave,
@@ -549,6 +555,7 @@ export function JobFeedDetailModal({
   isDismissing: boolean;
   isRating: boolean;
   isFreeUser: boolean;
+  hasCV: boolean;
   onClose: () => void;
   onAction: (action: JobFeedCardActionKind) => void;
   onSave: () => void;
@@ -566,6 +573,7 @@ export function JobFeedDetailModal({
     session,
     isFreeUser,
     fitLabel: job.fitLabel,
+    hasCV,
   });
 
   useEffect(() => {
@@ -772,6 +780,7 @@ export function FeedResultsCard({
   pendingJobAction,
   feedSummary,
   isFreeUser,
+  hasCV,
   getSessionForJob,
   onLoadMore,
   onOpenDetails,
@@ -785,6 +794,7 @@ export function FeedResultsCard({
   pendingJobAction: PendingJobAction;
   feedSummary: string;
   isFreeUser: boolean;
+  hasCV: boolean;
   getSessionForJob: (job: JobFeedFeedItem) => JobFeedCardSessionState | null;
   onLoadMore: () => void;
   onOpenDetails: (job: JobFeedFeedItem) => void;
@@ -806,6 +816,7 @@ export function FeedResultsCard({
             isApplying={applyingJobId === job.id}
             isAnotherJobBusy={Boolean(applyingJobId) && applyingJobId !== job.id}
             isFreeUser={isFreeUser}
+            hasCV={hasCV}
             onOpenDetails={() => onOpenDetails(job)}
             onAction={(action) => onJobAction(job, action)}
             onExternalApply={() => onExternalApply(job)}

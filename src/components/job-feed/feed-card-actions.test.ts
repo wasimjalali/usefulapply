@@ -23,6 +23,7 @@ test('shows generate after check fit creates a pending fit analysis', () => {
     },
     isFreeUser: false,
     fitLabel: 'good',
+    hasCV: true,
   });
 
   assert.equal(actions.badge, 'Fit checked');
@@ -53,6 +54,7 @@ test('shows screening prompt after a kit has been generated', () => {
     },
     isFreeUser: false,
     fitLabel: 'strong',
+    hasCV: true,
   });
 
   assert.equal(actions.badge, 'Application ready');
@@ -74,6 +76,7 @@ test('keeps the default generate and check fit actions before handoff starts', (
     session: null,
     isFreeUser: false,
     fitLabel: 'good',
+    hasCV: true,
   });
 
   assert.equal(actions.badge, null);
@@ -95,9 +98,28 @@ test('leads with check fit for free users on non-strong matches', () => {
     session: null,
     isFreeUser: true,
     fitLabel: 'good',
+    hasCV: true,
   });
 
   assert.equal(actions.leadWithSecondary, true);
+});
+
+test('swaps generate and check fit for upload when there is no CV', () => {
+  const actions = getJobFeedCardActions({
+    feedback: baseFeedback,
+    session: null,
+    isFreeUser: true,
+    fitLabel: 'good',
+    hasCV: false,
+  });
+
+  assert.equal(actions.badge, null);
+  assert.deepEqual(actions.primary, {
+    kind: 'upload-cv',
+    label: 'Upload your CV',
+    variant: 'gold',
+  });
+  assert.equal(actions.secondary, null);
 });
 
 test('treats pending fit analysis as fresh for only 30 minutes', () => {

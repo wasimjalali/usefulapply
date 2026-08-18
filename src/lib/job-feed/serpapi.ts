@@ -1,6 +1,5 @@
 import { JOB_FEED_PROVIDER } from '@/lib/job-feed/constants';
 import { captureJobFeedEvent } from '@/lib/job-feed/analytics';
-import { jobDedupeKey, normalizeCompanyForDedupe } from '@/lib/job-feed/helpers';
 import type { JobFeedCanonicalJob, Json } from '@/lib/supabase/types';
 
 export interface SerpApiJob {
@@ -449,17 +448,18 @@ export function normalizeSerpApiJob(job: SerpApiJob): NormalizedSerpApiJob {
   const salary = parseSalaryText(job.detected_extensions?.salary);
 
   const titleNormalized = normalizeIdentitySegment(title);
-  const companyNormalized = normalizeCompanyForDedupe(company);
+  const companyNormalized = normalizeIdentitySegment(company);
   const locationNormalized = normalizeLocation(locationText);
 
   return {
     canonical_key: buildCanonicalKey({
-      title,
-      company,
-      salaryMin: salary.salaryMin,
-      salaryMax: salary.salaryMax,
-      salaryCurrency: salary.salaryCurrency,
-      location: locationNormalized,
+      titleNormalized,
+      companyNormalized,
+      applyUrl,
+      sourceUrl,
+      sourceJobId: normalizeOptionalText(job.job_id),
+      locationNormalized,
+      workMode,
     }),
     source_provider: JOB_FEED_PROVIDER,
     source_job_id: normalizeOptionalText(job.job_id),
@@ -496,14 +496,29 @@ export function normalizeSerpApiJob(job: SerpApiJob): NormalizedSerpApiJob {
 }
 
 function buildCanonicalKey(params: {
-  title: string;
-  company: string;
-  salaryMin: number | null;
-  salaryMax: number | null;
-  salaryCurrency: string | null;
-  location: string | null;
+  titleNormalized: string;
+  companyNormalized: string;
+  applyUrl: string | null;
+  sourceUrl: string | null;
+  sourceJobId: string | null;
+  locationNormalized: string | null;
+  workMode: JobFeedCanonicalJob['work_mode'];
 }): string {
-  return `${JOB_FEED_PROVIDER}:${jobDedupeKey(params)}`;
+  const title = params.titleNormalized || 'unknown-title';
+  const company = params.companyNormalized || 'unknown-company';
+
+  const canonicalUrl = normalizeUrlForDedupe(params.applyUrl)
+    || normalizeUrlForDedupe(params.sourceUrl);
+
+  if (canonicalUrl) {
+    return `${JOB_FEED_PROVIDER}:${title}|${company}|${canonicalUrl}`;
+  }
+
+  if (params.sourceJobId) {
+    return `${JOB_FEED_PROVIDER}:job:${normalizeIdentitySegment(params.sourceJobId)}`;
+  }
+
+  return `${JOB_FEED_PROVIDER}:${title}|${company}|${params.locationNormalized || params.workMode || 'unknown'}`;
 }
 
 function inferWorkMode(job: SerpApiJob): JobFeedCanonicalJob['work_mode'] {
@@ -777,6 +792,17 @@ function normalizeIdentitySegment(value?: string | null): string {
 
 function normalizeWhitespace(value?: string | null): string {
   return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '';
+}
+
+function normalizeUrlForDedupe(value?: string | null): string | null {
+  if (!value || !isHttpUrl(value)) return null;
+
+  try {
+    const url = new URL(value);
+    return `${url.hostname.toLowerCase()}${url.pathname.replace(/\/+$/, '')}`.toLowerCase();
+  } catch {
+    return null;
+  }
 }
 
 function isHttpUrl(value?: string | null): boolean {

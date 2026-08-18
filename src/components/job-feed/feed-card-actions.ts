@@ -9,7 +9,8 @@ export type JobFeedCardActionKind =
   | 'new-search'
   | 'screening'
   | 'skip-screening'
-  | 'retry-generate';
+  | 'retry-generate'
+  | 'upload-cv';
 
 export type JobFeedCardAction = {
   kind: JobFeedCardActionKind;
@@ -49,6 +50,12 @@ const CHECK_FIT_ACTION: JobFeedCardAction = {
   variant: 'outline',
 };
 
+const UPLOAD_CV_ACTION: JobFeedCardAction = {
+  kind: 'upload-cv',
+  label: 'Upload your CV',
+  variant: 'gold',
+};
+
 export function isFreshPendingFitAnalysis(createdAt?: string | null, nowMs = Date.now()): boolean {
   if (!createdAt) return false;
   const createdAtMs = new Date(createdAt).getTime();
@@ -61,8 +68,9 @@ export function getJobFeedCardActions(params: {
   session: JobFeedCardSessionState | null;
   isFreeUser: boolean;
   fitLabel: JobFeedCardFitLabel | null;
+  hasCV: boolean;
 }): JobFeedCardActions {
-  const { feedback, session, isFreeUser, fitLabel } = params;
+  const { feedback, session, isFreeUser, fitLabel, hasCV } = params;
   const status = session?.generationStatus ?? feedback.generationStatus;
   const hasFreshFitAnalysis = Boolean(
     session?.hasFreshPendingFitAnalysis && !session.generatedCV
@@ -152,6 +160,15 @@ export function getJobFeedCardActions(params: {
         label: 'Continue in Useful Apply',
         variant: 'gold',
       },
+      secondary: null,
+      leadWithSecondary: false,
+    };
+  }
+
+  if (!hasCV) {
+    return {
+      badge: null,
+      primary: UPLOAD_CV_ACTION,
       secondary: null,
       leadWithSecondary: false,
     };

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, lt, or, sql } from 'drizzle-orm';
 import { isUniqueViolation, runBatch, getDb, nowIso } from '../client';
 import { addonCreditPacks, creditReservations, creditTransactions, subscriptionPlans, userCredits } from '../schema';
 import type { SubscriptionTier } from '@/lib/supabase/types';
@@ -462,13 +462,24 @@ export async function processMonthlyReset(userId: string): Promise<{ success: bo
   } else {
     newRollover = 0;
   }
+  // Plans without rollover (free) can carry a support grant above the
+  // allowance. A reset must never take credits away, so keep the higher value.
+  const newMonthly = plan.max_rollover_credits > 0
+    ? plan.credits_monthly
+    : Math.max(credits.monthly_credits, plan.credits_monthly);
   const nextReset = new Date();
   nextReset.setMonth(nextReset.getMonth() + 1);
   const now = nowIso();
+  const totalBefore = getTotalCredits(credits);
+  const totalAfter = newMonthly + newRollover + credits.addon_credits;
+  const txId = crypto.randomUUID();
+  const metadata = JSON.stringify({ rolloverApplied: newRollover });
+  // Balance update and ledger row land in one batch, as deductCredits does,
+  // so a reset can never exist without its transaction row.
   const [result] = await runBatch([
     sql`
       UPDATE user_credits
-      SET monthly_credits = ${plan.credits_monthly},
+      SET monthly_credits = ${newMonthly},
           rollover_credits = ${newRollover},
           last_reset_date = ${now},
           next_reset_date = ${nextReset.toISOString()},
@@ -476,22 +487,29 @@ export async function processMonthlyReset(userId: string): Promise<{ success: bo
           updated_at = ${now}
       WHERE user_id = ${userId}
         AND version = ${credits.version}
+        AND plan_tier = ${credits.plan_tier}
+    `,
+    sql`
+      INSERT INTO credit_transactions (
+        id, user_id, amount, transaction_type, session_id, description, metadata, balance_before, balance_after, created_at
+      )
+      SELECT ${txId}, ${userId}, ${totalAfter - totalBefore}, 'monthly_reset', NULL,
+             ${`Monthly credit reset for ${plan.name} plan`}, ${metadata}, ${totalBefore}, ${totalAfter}, ${now}
+      WHERE (SELECT changes()) > 0
     `,
   ]);
   const changes = result.meta.changes;
   if (changes === 0) {
     return { success: false, error: new Error('Monthly reset failed due to concurrent access') };
   }
-  const totalAfter = plan.credits_monthly + newRollover + credits.addon_credits;
-  await insertTransaction(userId, plan.credits_monthly, 'monthly_reset', {
-    description: `Monthly credit reset for ${plan.name} plan`,
-    balanceBefore: getTotalCredits(credits),
-    balanceAfter: totalAfter,
-    metadata: { rolloverApplied: newRollover },
-  });
   return { success: true, error: null };
 }
 
+/**
+ * Daily sweep for the free tier: reset every free row whose next_reset_date
+ * has passed (or was never set). Paid tiers are reset by the Stripe renewal
+ * webhook and are deliberately not touched here.
+ */
 export async function processOverdueMonthlyResets(options: {
   limit: number;
 }): Promise<{ attempted: number; succeeded: number; failed: number; errors: string[] }> {
@@ -500,7 +518,10 @@ export async function processOverdueMonthlyResets(options: {
   const rows = await db
     .select({ user_id: userCredits.user_id })
     .from(userCredits)
-    .where(and(eq(userCredits.plan_tier, 'free'), lt(userCredits.next_reset_date, now)))
+    .where(and(
+      eq(userCredits.plan_tier, 'free'),
+      or(lt(userCredits.next_reset_date, now), isNull(userCredits.next_reset_date)),
+    ))
     .orderBy(asc(userCredits.next_reset_date))
     .limit(options.limit);
 
@@ -509,12 +530,18 @@ export async function processOverdueMonthlyResets(options: {
   let failed = 0;
 
   for (const row of rows) {
-    const result = await processMonthlyReset(row.user_id);
-    if (result.success) {
-      succeeded += 1;
-    } else {
+    // One user's failure must not stop the rest of the sweep.
+    try {
+      const result = await processMonthlyReset(row.user_id);
+      if (result.success) {
+        succeeded += 1;
+      } else {
+        failed += 1;
+        errors.push(`${row.user_id}: ${result.error?.message ?? 'Monthly reset failed'}`);
+      }
+    } catch (error) {
       failed += 1;
-      errors.push(`${row.user_id}: ${result.error?.message ?? 'Monthly reset failed'}`);
+      errors.push(`${row.user_id}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

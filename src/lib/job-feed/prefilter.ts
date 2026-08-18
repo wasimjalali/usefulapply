@@ -10,6 +10,7 @@ import type {
   JobFeedRankingPrepResult,
 } from '@/lib/job-feed/types';
 import type { JobFeedCanonicalJob, JobFeedSettings } from '@/lib/supabase/types';
+import { collapseNearDuplicateJobs } from '@/lib/job-feed/helpers';
 
 const EMPTY_REJECTIONS: Record<JobFeedPrefilterRejectReason, number> = {
   location_mismatch: 0,
@@ -84,7 +85,10 @@ export function prepareJobFeedRankingCandidates(params: {
   settings: JobFeedSettings;
   jobs: JobFeedCanonicalJob[];
 }): JobFeedRankingPrepResult {
-  const { settings, jobs } = params;
+  const { settings } = params;
+  // Aggregators repost the same role under "Avetta" and "Avetta, LLC" or in
+  // several cities. Collapse those before ranking so the feed shows one card.
+  const { kept: jobs } = collapseNearDuplicateJobs(params.jobs);
 
   return {
     fitLabels: JOB_FEED_ALLOWED_FIT_LABELS,

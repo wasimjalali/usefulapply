@@ -798,6 +798,11 @@ export function JobFeedPanel() {
   // apply endpoint to create/reuse the session + generation row, then
   // routes into the Application Kit with a different autostart signal.
   const startApplyHandoff = useCallback(async (job: JobFeedFeedItem, mode: 'apply' | 'analyze') => {
+    if (!currentCV) {
+      toastRef.current.success(`${job.title} at ${job.company}. Upload your CV to continue.`);
+      return;
+    }
+
     const isRetry =
       job.feedback.generationStatus === 'failed' ||
       job.feedback.generationStatus === 'cancelled';
@@ -906,6 +911,11 @@ export function JobFeedPanel() {
     job: JobFeedFeedItem,
     action: 'generate-full-application' | 'skip-job' | 'start-screening-flow' | 'skip-screening',
   ) => {
+    if (action === 'generate-full-application' && !currentCV) {
+      toastRef.current.success(`${job.title} at ${job.company}. Upload your CV to continue.`);
+      return;
+    }
+
     setPendingJobAction({ jobId: job.id, action: 'apply' });
 
     try {
@@ -919,7 +929,7 @@ export function JobFeedPanel() {
     } finally {
       setPendingJobAction(null);
     }
-  }, [openApplicationPath, openApplicationSession]);
+  }, [currentCV, openApplicationPath, openApplicationSession]);
 
   const continueApplication = useCallback(async (job: JobFeedFeedItem) => {
     setPendingJobAction({ jobId: job.id, action: 'apply' });
@@ -936,8 +946,16 @@ export function JobFeedPanel() {
     }
   }, [openApplicationPath, openApplicationSession]);
 
+  const handleUploadCv = useCallback(() => {
+    posthog?.capture('job_feed_upload_cv_clicked', { foundation_mode: true });
+    useUIStore.getState().setActiveTab('cv');
+  }, [posthog]);
+
   const handleJobCardAction = useCallback((job: JobFeedFeedItem, action: JobFeedCardActionKind) => {
     switch (action) {
+      case 'upload-cv':
+        handleUploadCv();
+        break;
       case 'generate':
       case 'retry-generate':
         void handleApplyWithBrand(job);
@@ -961,7 +979,7 @@ export function JobFeedPanel() {
         void dispatchApplicationAction(job, 'skip-screening');
         break;
     }
-  }, [continueApplication, dispatchApplicationAction, handleAnalyzeFirst, handleApplyWithBrand]);
+  }, [continueApplication, dispatchApplicationAction, handleAnalyzeFirst, handleApplyWithBrand, handleUploadCv]);
 
   const handleExternalApply = useCallback((job: JobFeedFeedItem) => {
     if (isPreviewing) {
@@ -1208,14 +1226,6 @@ export function JobFeedPanel() {
     // so prev should never be null here. The nullish coalesce is defensive only.
     setDraftForm((prev) => updater(prev ?? createDefaultJobFeedInput(getBrowserTimeZone())));
   }, []);
-  const handleUploadCv = useCallback(() => {
-    // The free feed is built from the user's CV. CV upload lives in the
-    // Application Kit workspace, so switch the dashboard there - a user with no
-    // CV lands on the "Upload your CV" onboarding screen.
-    posthog?.capture('job_feed_upload_cv_clicked', { foundation_mode: true });
-    useUIStore.getState().setActiveTab('cv');
-  }, [posthog]);
-
   const currentState = isSignedIn ? (overview?.state ?? 'setup_required') : 'sign_in_required';
   const setupOpen = isSignedIn && (isEditing || isSetupWizardOpen);
   const canAccess = Boolean(overview?.canAccess);
@@ -1362,6 +1372,7 @@ export function JobFeedPanel() {
                   pendingJobAction={pendingJobAction}
                   feedSummary={buildFeedSummary(shellForm)}
                   isFreeUser={!['plus', 'max'].includes(profile?.subscription_tier ?? '')}
+                  hasCV={Boolean(currentCV)}
                   getSessionForJob={getSessionStateForJob}
                   onLoadMore={handleLoadMoreJobs}
                   onOpenDetails={handleOpenDetails}
@@ -1380,6 +1391,7 @@ export function JobFeedPanel() {
                 isLoading={isLoadingSavedJobs}
                 pendingJobAction={pendingJobAction}
                 isFreeUser={!['plus', 'max'].includes(profile?.subscription_tier ?? '')}
+                hasCV={Boolean(currentCV)}
                 getSessionForJob={getSessionStateForJob}
                 onOpenDetails={handleOpenDetails}
                 onJobAction={handleJobCardAction}
@@ -1438,6 +1450,7 @@ export function JobFeedPanel() {
           isDismissing={pendingJobAction?.jobId === selectedJob.id && pendingJobAction.action === 'dismiss'}
           isRating={pendingJobAction?.jobId === selectedJob.id && pendingJobAction.action === 'rate'}
           isFreeUser={!['plus', 'max'].includes(profile?.subscription_tier ?? '')}
+          hasCV={Boolean(currentCV)}
           onAction={(action) => handleJobCardAction(selectedJob, action)}
           onSave={() => handleSaveJob(selectedJob)}
           onDismiss={() => handleDismissJob(selectedJob)}
@@ -1585,6 +1598,7 @@ function SavedJobsView({
   isLoading,
   pendingJobAction,
   isFreeUser,
+  hasCV,
   getSessionForJob,
   onOpenDetails,
   onJobAction,
@@ -1595,6 +1609,7 @@ function SavedJobsView({
   isLoading: boolean;
   pendingJobAction: PendingJobAction;
   isFreeUser: boolean;
+  hasCV: boolean;
   getSessionForJob: (job: JobFeedFeedItem) => JobFeedCardSessionState | null;
   onOpenDetails: (job: JobFeedFeedItem) => void;
   onJobAction: (job: JobFeedFeedItem, action: JobFeedCardActionKind) => void;
@@ -1641,6 +1656,7 @@ function SavedJobsView({
       pendingJobAction={pendingJobAction}
       feedSummary={`${jobs.length} saved ${jobs.length === 1 ? 'job' : 'jobs'}`}
       isFreeUser={isFreeUser}
+      hasCV={hasCV}
       getSessionForJob={getSessionForJob}
       onOpenDetails={onOpenDetails}
       onJobAction={onJobAction}

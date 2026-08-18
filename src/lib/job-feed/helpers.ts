@@ -453,11 +453,13 @@ export function normalizeCompanyForDedupe(value: string | null | undefined): str
 
   normalized = normalized.replace(/^the\s+/, '');
 
+  // Peel trailing legal suffixes (and a dangling "and" left by "X & Co"),
+  // but never down to an empty string.
   let changed = true;
   while (changed && normalized.length > 0) {
     changed = false;
-    for (const suffix of COMPANY_LEGAL_SUFFIXES) {
-      const pattern = new RegExp(`(?:^|\\s)${escapeRegExp(suffix)}$`);
+    for (const suffix of [...COMPANY_LEGAL_SUFFIXES, 'and']) {
+      const pattern = new RegExp(`\\s${escapeRegExp(suffix)}$`);
       if (pattern.test(normalized)) {
         normalized = normalized.replace(pattern, '').trim();
         changed = true;
@@ -472,9 +474,49 @@ export function normalizeCompanyForDedupe(value: string | null | undefined): str
 export function normalizeTitleForDedupe(value: string | null | undefined): string {
   return (value ?? '')
     .toLowerCase()
+    .replace(/&/g, ' and ')
     .replace(/[^a-z0-9]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/**
+ * Collapse near-identical listings for display. Keeps the first job in the
+ * given order (callers pass jobs already sorted by rank), drops any later
+ * job with the same normalised company + title + salary (or location when
+ * no salary) and the same description opening. Row identity is untouched.
+ */
+export function collapseNearDuplicateJobs<T extends {
+  company: string;
+  title: string;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: string | null;
+  location_normalized: string | null;
+  location_text: string | null;
+  description: string | null;
+}>(jobs: T[]): { kept: T[]; dropped: number } {
+  const seen = new Set<string>();
+  const kept: T[] = [];
+  let dropped = 0;
+  for (const job of jobs) {
+    const fingerprint = normalizeTitleForDedupe(job.description ?? '').slice(0, 300);
+    const key = `${jobDedupeKey({
+      company: job.company,
+      title: job.title,
+      salaryMin: job.salary_min,
+      salaryMax: job.salary_max,
+      salaryCurrency: job.salary_currency,
+      location: job.location_normalized ?? job.location_text,
+    })}|${fingerprint}`;
+    if (seen.has(key)) {
+      dropped += 1;
+      continue;
+    }
+    seen.add(key);
+    kept.push(job);
+  }
+  return { kept, dropped };
 }
 
 export function jobDedupeKey(input: {
