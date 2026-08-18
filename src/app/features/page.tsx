@@ -8,7 +8,7 @@ import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = buildPageMetadata({
-  title: 'Features: One app for your entire job search | Useful Apply',
+  title: 'Features: One app for your entire job search',
   description:
     'Useful Apply is the AI job application agent that replaces the seven tools you use to apply for a job. Smart Job Feed, fit analysis, tailored CV, cover letter, emails, screening answers, and tracker. Every word traces back to your real CV.',
   canonical: '/features',

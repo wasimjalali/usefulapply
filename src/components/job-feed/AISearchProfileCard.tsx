@@ -310,13 +310,17 @@ const PROFILE_LABEL_ALLOWLIST: Record<string, string> = {
   edtech: 'EdTech',
 };
 
+const PROFILE_LABEL_SMALL_WORDS = new Set(['and', 'or', 'of', 'the', 'for', 'in', 'on', 'with', 'to', 'a', 'an']);
+
 function formatProfileLabel(value: string): string {
   return value
     .split(/[\s-]+/)
     .filter(Boolean)
-    .map((word) => {
-      const mapped = PROFILE_LABEL_ALLOWLIST[word.toLowerCase()];
+    .map((word, index) => {
+      const lower = word.toLowerCase();
+      const mapped = PROFILE_LABEL_ALLOWLIST[lower];
       if (mapped) return mapped;
+      if (index > 0 && PROFILE_LABEL_SMALL_WORDS.has(lower)) return lower;
       return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
     })
     .join(' ');
