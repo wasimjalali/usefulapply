@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import BrandLogo from '@/components/BrandLogo';
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -76,6 +77,8 @@ export default function LoginPage() {
         </div>
 
         <Card className="p-8">
+          <GoogleSignInButton label="Continue with Google" onError={setError} />
+
           {/* Email Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {emailNotConfirmed && (

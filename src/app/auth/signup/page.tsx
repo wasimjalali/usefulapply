@@ -6,6 +6,7 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, User, Sparkles } from 'lu
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import BrandLogo from '@/components/BrandLogo';
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 
 export default function SignUpPage() {
   const [fullName, setFullName] = useState('');
@@ -90,6 +91,8 @@ export default function SignUpPage() {
               <span className="text-charcoal font-medium">Free plan includes 4 credits (~2 applications/month)</span>
             </div>
           </div>
+
+          <GoogleSignInButton label="Sign up with Google" onError={setError} />
 
           {/* Email Form */}
           <form onSubmit={handleSubmit} className="space-y-4">

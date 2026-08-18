@@ -85,13 +85,13 @@ body {
    right of the document panel's scrollbar, and an 8px target sitting flush
    against a draggable seam is too easy to miss. The transparent border keeps
    the thumb reading as 8px while the track stays 12px wide and grabbable.
-   The thumb is gold, not cream and not a light navy. cream-400 on a cream-200
-   track measures 1.29:1, which is not a subtle thumb, it is an invisible one,
-   and a target nobody can see is the reason people grabbed the resize sash by
-   mistake. navy-400 was visible but read as a washed-out blue. gold-600 is the
-   strongest gold that still clears the WCAG 3:1 bar for UI components on
-   every light surface we use (~3.7:1 on cream-100, ~4.0:1 on white), and
-   navy-600 on hover is unmistakable.
+   The thumb is a warm sand (#C4B69C), a step past cream-400. cream-400 on a
+   cream track measures 1.37:1, which is not a subtle thumb, it is an invisible
+   one, and a target nobody can see is the reason people grabbed the resize
+   sash by mistake. navy-400 read as a washed-out blue and gold-600 was too
+   loud. #C4B69C sits at ~1.9:1 on cream-100 and ~2.0:1 on white: findable at
+   rest, quiet, and navy-600 on hover is unmistakable. Deliberately below the
+   3:1 UI bar; the hover state carries the contrast.
    The track is transparent: an opaque cream band would paint a warm 12px
    stripe down every white document surface and every dark landing section.
    Chrome paints the scroller's own background under the gutter, so the 2px
@@ -107,7 +107,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #A37824; /* gold-600 */
+  background: #C4B69C; /* sand, a step past cream-400 */
   border-radius: 6px;
   border: 2px solid transparent;
   background-clip: padding-box;
@@ -127,15 +127,14 @@ body {
 /* Dark scroll surfaces. The palette above is tuned for cream and white, where
    darker means more prominent. On a navy panel that inverts: navy-600 on
    navy-700 is 1.18:1, so hovering would make the thumb disappear. Flip the
-   ramp so hover still means brighter: gold-400 at rest (~5.2:1 on navy-600),
-   gold-200 on hover. */
+   ramp so hover still means brighter: cream-300 at rest, white on hover. */
 .scrollbar-on-dark::-webkit-scrollbar-thumb {
-  background: #D4A853; /* gold-400 */
+  background: #EBE4D8; /* cream-300 */
   background-clip: padding-box;
 }
 
 .scrollbar-on-dark::-webkit-scrollbar-thumb:hover {
-  background: #EBDAAE; /* gold-200 */
+  background: #FFFFFF;
   background-clip: padding-box;
 }
 
@@ -152,7 +151,7 @@ body {
    gutter. .scrollbar-hide still wins, a class beats the universal selector. */
 @supports (-moz-orient: inline) {
   html {
-    scrollbar-color: #A37824 transparent; /* gold-600 thumb */
+    scrollbar-color: #C4B69C transparent; /* sand thumb */
   }
 
   * {
@@ -160,7 +159,7 @@ body {
   }
 
   .scrollbar-on-dark {
-    scrollbar-color: #D4A853 transparent; /* gold-400 thumb */
+    scrollbar-color: #EBE4D8 transparent; /* cream-300 thumb */
   }
 }
 
