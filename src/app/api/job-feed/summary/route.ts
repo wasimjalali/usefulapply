@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/auth/server';
 import { canViewJobFeed } from '@/lib/job-feed/helpers';
 import { requireJobFeedAccess } from '@/lib/job-feed/auth';
 import { getProfile, updateProfile } from '@/db/repos/profiles';
@@ -19,10 +19,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, unprocessedCount: 0 }, { status: 200 });
     }
 
@@ -63,14 +62,13 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
     }
 
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
-    const access = await requireJobFeedAccess(supabase, user);
+    const access = await requireJobFeedAccess(user);
     if (!access.ok) {
       return NextResponse.json({ canAccess: false, error: access.error }, { status: access.status });
     }

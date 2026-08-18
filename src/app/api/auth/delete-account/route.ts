@@ -1,21 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { eq } from 'drizzle-orm';
+import { getAuth, getCurrentUser } from '@/auth/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { getDb } from '@/db/client';
+import { user as authUser } from '@/db/schema';
+import { deletePrefix } from '@/storage/r2';
+import { ALLOWED_FILE_BUCKETS } from '@/storage/paths';
 
 export const runtime = 'nodejs';
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Verify the caller is authenticated
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    const user = await getCurrentUser(request);
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Rate-limit per user so a compromised session can't burn deletion attempts in a loop.
     const rateLimit = await checkRateLimit(`delete-account:${user.id}`, RATE_LIMITS['delete-account']);
     if (!rateLimit.allowed) {
       return NextResponse.json(
@@ -25,35 +25,28 @@ export async function DELETE(request: NextRequest) {
     }
 
     const userId = user.id;
-    const supabaseAdmin = createAdminClient();
+    const auth = await getAuth();
+
+    // Order: files, app data, then the auth user row. Anything that fails
+    // before the user row is gone leaves the account signed in, so the user
+    // can simply retry; nothing is orphaned without a way back to it.
+    for (const bucket of ALLOWED_FILE_BUCKETS) {
+      await deletePrefix(`${bucket}/${userId}/`);
+    }
 
     const { deleteAllUserData } = await import('@/db/repos/admin');
     await deleteAllUserData(userId);
 
-    // Delete storage files
-    const buckets = ['avatars', 'profile-photos', 'generated-pdfs', 'cv-files'];
-    for (const bucket of buckets) {
-      try {
-        const { data: files } = await supabaseAdmin.storage.from(bucket).list(userId);
-        if (files && files.length > 0) {
-          const filePaths = files.map((f: { name: string }) => `${userId}/${f.name}`);
-          await supabaseAdmin.storage.from(bucket).remove(filePaths);
-        }
-      } catch {
-        // Bucket may not exist — skip silently
-      }
-    }
+    // user row last (sessions/accounts cascade).
+    const db = await getDb();
+    await db.delete(authUser).where(eq(authUser.id, userId));
 
-    // Delete the user from auth.users — this is the critical step that
-    // the old client-side function could never do (requires service role key)
-    const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId);
-
-    if (deleteAuthError) {
-      console.error('[delete-account] Failed to delete auth user:', deleteAuthError.message);
-      return NextResponse.json(
-        { error: 'Failed to delete account. Please try again.' },
-        { status: 500 }
-      );
+    // Clear this request's session + cookieCache so the 5-minute cache
+    // cannot keep a deleted account authenticated.
+    try {
+      await auth.api.signOut({ headers: request.headers });
+    } catch (error) {
+      console.error('[delete-account] signOut failed after user row was deleted:', error);
     }
 
     return NextResponse.json({ success: true });

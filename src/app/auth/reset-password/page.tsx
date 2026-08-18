@@ -1,127 +1,33 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Lock, Eye, EyeOff, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { changePassword } from '@/lib/supabase';
-import { getSupabase } from '@/lib/supabase/client';
+import { authClient } from '@/auth/client';
 import BrandLogo from '@/components/BrandLogo';
 
-type PageState = 'bootstrapping' | 'ready' | 'success' | 'invalid';
+type PageState = 'ready' | 'success' | 'invalid';
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const router = useRouter();
-  const [pageState, setPageState] = useState<PageState>('bootstrapping');
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
+  const [pageState, setPageState] = useState<PageState>(token ? 'ready' : 'invalid');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /** True only when this tab proved recovery (code/hash exchange or recovery cookie). */
-  const [recoveryAuthorized, setRecoveryAuthorized] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    const supabase = getSupabase();
-
-    const establishSession = async (): Promise<'ok' | 'no_session' | 'no_recovery'> => {
-      let exchangedOnThisPage = false;
-
-      // PKCE code on this URL (legacy redirectTo targets)
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get('code');
-      if (code) {
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-        if (exchangeError) {
-          console.error('[reset-password] code exchange failed:', exchangeError.message);
-          return 'no_session';
-        }
-        exchangedOnThisPage = true;
-        window.history.replaceState({}, '', '/auth/reset-password');
-      }
-
-      // Implicit hash tokens (legacy email templates)
-      const hash = window.location.hash;
-      if (hash && hash.includes('access_token')) {
-        const hashParams = new URLSearchParams(hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
-        const hashType = hashParams.get('type');
-        if (accessToken && refreshToken) {
-          const { error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-          if (sessionError) {
-            console.error('[reset-password] setSession failed:', sessionError.message);
-            return 'no_session';
-          }
-          exchangedOnThisPage = exchangedOnThisPage || hashType === 'recovery' || !hashType;
-          window.history.replaceState({}, '', '/auth/reset-password');
-        }
-      }
-
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) {
-        return 'no_session';
-      }
-
-      // Recovery cookie is httpOnly — ask a tiny same-origin check endpoint.
-      // If we exchanged tokens on this page, that alone is recovery proof.
-      if (exchangedOnThisPage) {
-        return 'ok';
-      }
-
-      try {
-        const res = await fetch('/api/auth/recovery-status', {
-          method: 'GET',
-          credentials: 'same-origin',
-          cache: 'no-store',
-        });
-        if (res.ok) {
-          const data = (await res.json()) as { authorized?: boolean };
-          if (data.authorized) return 'ok';
-        }
-      } catch {
-        // fall through
-      }
-
-      return 'no_recovery';
-    };
-
-    const bootstrap = async () => {
-      try {
-        const result = await establishSession();
-        if (cancelled) return;
-        if (result === 'ok') {
-          setRecoveryAuthorized(true);
-          setPageState('ready');
-        } else {
-          setPageState('invalid');
-        }
-      } catch (err) {
-        console.error('[reset-password] bootstrap failed:', err);
-        if (!cancelled) setPageState('invalid');
-      }
-    };
-
-    bootstrap();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!recoveryAuthorized) {
+    if (!token) {
       setError('This reset session is no longer valid. Please request a new link.');
       return;
     }
@@ -138,38 +44,20 @@ export default function ResetPasswordPage() {
 
     setIsLoading(true);
 
-    const { error: changeError } = await changePassword(password);
+    const { error: resetError } = await authClient.resetPassword({
+      newPassword: password,
+      token,
+    });
 
-    if (changeError) {
-      setError(changeError.message || 'Failed to update password. Please try again.');
+    if (resetError) {
+      setError(resetError.message || 'Failed to update password. Please try again.');
       setIsLoading(false);
       return;
     }
 
-    // Clear recovery marker so the form can't be reused.
-    try {
-      await fetch('/api/auth/recovery-status', {
-        method: 'DELETE',
-        credentials: 'same-origin',
-      });
-    } catch {
-      // non-fatal
-    }
-
     setPageState('success');
-    setTimeout(() => router.push('/dashboard'), 2000);
+    setTimeout(() => router.push('/auth/login'), 2000);
   };
-
-  if (pageState === 'bootstrapping') {
-    return (
-      <div className="min-h-screen bg-cream-100 flex items-center justify-center p-4">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-navy-600 mx-auto mb-4" />
-          <p className="text-warm-gray">Verifying your reset link...</p>
-        </div>
-      </div>
-    );
-  }
 
   if (pageState === 'invalid') {
     return (
@@ -209,7 +97,7 @@ export default function ResetPasswordPage() {
           </div>
           <h2 className="text-xl font-semibold text-charcoal mb-2">Password updated</h2>
           <p className="text-warm-gray mb-6">
-            Your password has been changed successfully. Redirecting you to the dashboard...
+            Your password has been changed successfully. Redirecting you to sign in...
           </p>
         </Card>
       </div>
@@ -318,5 +206,22 @@ export default function ResetPasswordPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-cream-100 flex items-center justify-center p-4">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin text-navy-600 mx-auto mb-4" />
+            <p className="text-warm-gray">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { callModel } from '@/lib/models';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/auth/server';
 import { getProfile } from '@/db/repos/profiles';
 
 // Input/output limits
@@ -55,8 +55,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Authentication: require logged-in user for chat (costs API money)
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getCurrentUser(req);
     if (!user) {
       return NextResponse.json(
         { error: 'Authentication required. Please sign in to use chat.' },

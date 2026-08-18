@@ -7,7 +7,7 @@ import {
   getChatMessagesAction,
   addChatMessageAction,
 } from '@/db/actions';
-import { createClient } from './client';
+import { authClient } from '@/auth/client';
 
 export type { ApplicationSession, ChatMessage } from '@/db/repos/sessions';
 
@@ -63,7 +63,6 @@ export async function clearChatMessages(sessionId: string) {
 }
 
 async function currentUserId(): Promise<string | null> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  return user?.id ?? null;
+  const { data } = await authClient.getSession();
+  return data?.user?.id ?? null;
 }

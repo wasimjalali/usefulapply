@@ -61,6 +61,7 @@ const RATE_LIMIT_BINDING_NAMES = {
   'generate-pdf': 'RATE_LIMIT_GENERATE_PDF',
   'regenerate': 'RATE_LIMIT_REGENERATE',
   'signup': 'RATE_LIMIT_SIGNUP',
+  'signin': 'RATE_LIMIT_SIGNIN',
   'forgot-password': 'RATE_LIMIT_FORGOT_PASSWORD',
   'post-confirm': 'RATE_LIMIT_POST_CONFIRM',
   'job-feed-settings': 'RATE_LIMIT_JOB_FEED_SETTINGS',
@@ -81,6 +82,8 @@ const RATE_LIMIT_BINDING_NAMES = {
   'career-profile-generate': 'RATE_LIMIT_CAREER_PROFILE_GENERATE',
   'anon-parse-minute': 'RATE_LIMIT_ANON_PARSE',
   'search-strategy-generate': 'RATE_LIMIT_SEARCH_STRATEGY_GENERATE',
+  'files-upload': 'RATE_LIMIT_FILES_UPLOAD',
+  'files-get': 'RATE_LIMIT_FILES_GET',
 } as const;
 
 type BoundRateLimitRoute = keyof typeof RATE_LIMIT_BINDING_NAMES;
@@ -94,6 +97,7 @@ declare global {
     RATE_LIMIT_GENERATE_PDF?: RateLimitBinding;
     RATE_LIMIT_REGENERATE?: RateLimitBinding;
     RATE_LIMIT_SIGNUP?: RateLimitBinding;
+    RATE_LIMIT_SIGNIN?: RateLimitBinding;
     RATE_LIMIT_FORGOT_PASSWORD?: RateLimitBinding;
     RATE_LIMIT_POST_CONFIRM?: RateLimitBinding;
     RATE_LIMIT_JOB_FEED_SETTINGS?: RateLimitBinding;
@@ -114,6 +118,8 @@ declare global {
     RATE_LIMIT_CAREER_PROFILE_GENERATE?: RateLimitBinding;
     RATE_LIMIT_ANON_PARSE?: RateLimitBinding;
     RATE_LIMIT_SEARCH_STRATEGY_GENERATE?: RateLimitBinding;
+    RATE_LIMIT_FILES_UPLOAD?: RateLimitBinding;
+    RATE_LIMIT_FILES_GET?: RateLimitBinding;
   }
 }
 
@@ -224,6 +230,7 @@ export const RATE_LIMITS = {
   'generate-pdf':       { name: 'generate-pdf', limit: 10, windowMs: 60_000 },
   'regenerate':         { name: 'regenerate', limit: 10, windowMs: 60_000 },
   'signup':             { name: 'signup', limit: 3,  windowMs: 60_000 },
+  'signin':             { name: 'signin', limit: 5,  windowMs: 60_000 },
   'forgot-password':    { name: 'forgot-password', limit: 5,  windowMs: 60_000 },
   'post-confirm':       { name: 'post-confirm', limit: 5,  windowMs: 60_000 },
   'job-feed-settings':  { name: 'job-feed-settings', limit: 10, windowMs: 60_000 },
@@ -245,6 +252,8 @@ export const RATE_LIMITS = {
   'anon-parse':              { name: 'anon-parse', limit: 5,  windowMs: 3_600_000 }, // hourly cap is in-memory only (per isolate on Workers)
   'anon-parse-minute':       { name: 'anon-parse-minute', limit: 2,  windowMs: 60_000 },    // enforced by the Workers binding
   'search-strategy-generate': { name: 'search-strategy-generate', limit: 3,  windowMs: 60_000 },
+  'files-upload':            { name: 'files-upload', limit: 10, windowMs: 60_000 },
+  'files-get':               { name: 'files-get', limit: 60, windowMs: 60_000 },
 } as const;
 
 export type RateLimitRoute = keyof typeof RATE_LIMITS;

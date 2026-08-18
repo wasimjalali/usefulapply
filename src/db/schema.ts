@@ -11,7 +11,7 @@
  *   numeric     -> real (credits are fractional: 0.5)
  *
  * Postgres functions are not in this file. They become application code:
- *   initialize_user_credits          -> src/db/repos/credits.ts (Better Auth hook in Task 5.2)
+ *   initialize_user_credits          -> src/db/repos/credits.ts (Better Auth user.create.after)
  *   trigger_karko_confirmation_resend -> src/cron/resend-confirmations.ts (Task 3.4)
  *   set_updated_at / *_set_updated_at -> data layer sets updated_at on every update
  *
@@ -128,6 +128,105 @@ export const contactSubmissions = sqliteTable('contact_submissions', {
 });
 
 // ---------------------------------------------------------------------------
+// Better Auth (Task 5.1)
+//
+// Table/column names follow Better Auth's Drizzle SQLite snapshot so the
+// adapter can map camelCase fields to snake_case columns. `user.id` is a
+// plain text PK with no default: callers (and Task 5.3 imports) may supply
+// the existing Supabase UUID.
+// ---------------------------------------------------------------------------
+
+export const user = sqliteTable('user', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  email: text('email').notNull().unique(),
+  emailVerified: integer('email_verified', { mode: 'boolean' }).notNull().default(false),
+  image: text('image'),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date())
+    .$onUpdate(() => new Date()),
+});
+
+export const session = sqliteTable(
+  'session',
+  {
+    id: text('id').primaryKey(),
+    expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+    token: text('token').notNull().unique(),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .$defaultFn(() => new Date())
+      .$onUpdate(() => new Date()),
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+  },
+  (t) => [index('session_userId_idx').on(t.userId)],
+);
+
+export const account = sqliteTable(
+  'account',
+  {
+    id: text('id').primaryKey(),
+    // Better Auth 1.7: 'local:credential' for password accounts,
+    // the provider's accountIssuer for social accounts (Google:
+    // 'https://accounts.google.com'; providers without one get 'local:oauth:<id>').
+    // Sign-in matches on (issuer, accountId).
+    issuer: text('issuer').notNull(),
+    accountId: text('account_id').notNull(),
+    providerId: text('provider_id').notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    accessToken: text('access_token'),
+    refreshToken: text('refresh_token'),
+    idToken: text('id_token'),
+    accessTokenExpiresAt: integer('access_token_expires_at', { mode: 'timestamp_ms' }),
+    refreshTokenExpiresAt: integer('refresh_token_expires_at', { mode: 'timestamp_ms' }),
+    scope: text('scope'),
+    password: text('password'),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .$defaultFn(() => new Date())
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    index('account_userId_idx').on(t.userId),
+    uniqueIndex('account_issuer_accountId_uidx').on(t.issuer, t.accountId),
+  ],
+);
+
+export const verification = sqliteTable(
+  'verification',
+  {
+    id: text('id').primaryKey(),
+    identifier: text('identifier').notNull(),
+    value: text('value').notNull(),
+    expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .$defaultFn(() => new Date())
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [index('verification_identifier_idx').on(t.identifier)],
+);
+
+// ---------------------------------------------------------------------------
 // Users
 // ---------------------------------------------------------------------------
 
@@ -156,6 +255,7 @@ export const profiles = sqliteTable(
     job_searches_reset_at: text('job_searches_reset_at').notNull().$defaultFn(isoNow),
     job_feed_last_seen_run_date: text('job_feed_last_seen_run_date'),
     welcome_sent_at: text('welcome_sent_at'),
+    check_in_sent_at: text('check_in_sent_at'),
     last_confirmation_resend_at: text('last_confirmation_resend_at'),
     confirmation_resend_count: integer('confirmation_resend_count').notNull().default(0),
     created_at: text('created_at').notNull().$defaultFn(isoNow),

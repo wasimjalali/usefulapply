@@ -2,7 +2,7 @@
  * Cross-user / catalog queries. Only imported by cron handlers and the
  * Stripe webhook. Everything else must go through a user-scoped repo.
  */
-import { and, eq, inArray, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm';
 import { chunk, D1_MAX_PARAMS, isUniqueViolation, getDb, nowIso } from '../client';
 import {
   applicationSessions,
@@ -30,6 +30,7 @@ import {
   userJobPreferences,
   userNotifications,
   userSearchStrategies,
+  user as authUsers,
   webhookEvents,
 } from '../schema';
 import type { JobFeedCanonicalJob, JobFeedApplicationGeneration, CreditReservation } from '@/lib/supabase/types';
@@ -248,29 +249,75 @@ export async function listProfilesByIds(ids: string[]): Promise<Array<{
 }>> {
   if (ids.length === 0) return [];
   const db = await getDb();
-  return await db
-    .select({
-      id: profiles.id,
-      full_name: profiles.full_name,
-      last_confirmation_resend_at: profiles.last_confirmation_resend_at,
-      confirmation_resend_count: profiles.confirmation_resend_count,
-    })
-    .from(profiles)
-    .where(inArray(profiles.id, ids));
+  const out: Array<{
+    id: string;
+    full_name: string | null;
+    last_confirmation_resend_at: string | null;
+    confirmation_resend_count: number;
+  }> = [];
+  for (const part of chunk(ids, D1_MAX_PARAMS)) {
+    out.push(
+      ...(await db
+        .select({
+          id: profiles.id,
+          full_name: profiles.full_name,
+          last_confirmation_resend_at: profiles.last_confirmation_resend_at,
+          confirmation_resend_count: profiles.confirmation_resend_count,
+        })
+        .from(profiles)
+        .where(inArray(profiles.id, part))),
+    );
+  }
+  return out;
 }
 
-export async function claimConfirmationResend(userId: string, previousCount: number): Promise<boolean> {
+const NUDGE_THROTTLE_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Claim one confirmation nudge: sets the throttle timestamp AND bumps the
+ * count in a single CAS write, so the MAX_NUDGES cap can never drift from the
+ * throttle. Returns the claimed timestamp, or null when another run won.
+ */
+export async function claimConfirmationResend(userId: string, previousCount: number): Promise<string | null> {
   const db = await getDb();
+  const cutoff = new Date(Date.now() - NUDGE_THROTTLE_MS).toISOString();
+  const claimedAt = nowIso();
   const result = await db
     .update(profiles)
     .set({
-      last_confirmation_resend_at: nowIso(),
+      last_confirmation_resend_at: claimedAt,
       confirmation_resend_count: previousCount + 1,
+      updated_at: claimedAt,
+    })
+    .where(and(
+      eq(profiles.id, userId),
+      eq(profiles.confirmation_resend_count, previousCount),
+      or(isNull(profiles.last_confirmation_resend_at), lt(profiles.last_confirmation_resend_at, cutoff)),
+    ))
+    .returning({ id: profiles.id });
+  return result.length > 0 ? claimedAt : null;
+}
+
+/** Undo a claim whose send failed. Scoped to the exact claim so a newer claim is never clobbered. */
+export async function releaseConfirmationResend(
+  userId: string,
+  claimedAt: string,
+  previousCount: number,
+  previousLastResendAt: string | null,
+): Promise<void> {
+  const db = await getDb();
+  await db
+    .update(profiles)
+    .set({
+      last_confirmation_resend_at: previousLastResendAt,
+      confirmation_resend_count: previousCount,
       updated_at: nowIso(),
     })
-    .where(and(eq(profiles.id, userId), eq(profiles.confirmation_resend_count, previousCount)))
-    .returning({ id: profiles.id });
-  return result.length > 0;
+    .where(and(
+      eq(profiles.id, userId),
+      eq(profiles.last_confirmation_resend_at, claimedAt),
+      eq(profiles.confirmation_resend_count, previousCount + 1),
+    ));
 }
 
 export async function deleteExpiredRankedItems(inboxCutoff: string): Promise<number> {
@@ -335,6 +382,61 @@ const USER_ID_TABLES = [
   subscriptions,
   messageFeedback,
 ] as const;
+
+/** Bound every cron batch; CAS claims make the remainder safe to pick up next run. */
+export const CRON_BATCH_LIMIT = 200;
+
+/**
+ * Users welcomed between `welcomeFloorIso` and `welcomeCutoffIso` who have not
+ * been checked in. The floor stops a fresh import (welcome_sent_at months old,
+ * check_in_sent_at NULL) from mass-mailing historical users on the first run.
+ */
+export async function listCheckInCandidates(welcomeCutoffIso: string, welcomeFloorIso: string): Promise<Array<{
+  id: string;
+  email: string;
+  full_name: string | null;
+  auth_name: string;
+}>> {
+  const db = await getDb();
+  return db
+    .select({
+      id: profiles.id,
+      email: authUsers.email,
+      full_name: profiles.full_name,
+      auth_name: authUsers.name,
+    })
+    .from(profiles)
+    .innerJoin(authUsers, eq(authUsers.id, profiles.id))
+    .where(and(
+      isNull(profiles.check_in_sent_at),
+      sql`${profiles.welcome_sent_at} is not null`,
+      lte(profiles.welcome_sent_at, welcomeCutoffIso),
+      gte(profiles.welcome_sent_at, welcomeFloorIso),
+      eq(authUsers.emailVerified, true),
+    ))
+    .orderBy(profiles.welcome_sent_at)
+    .limit(CRON_BATCH_LIMIT);
+}
+
+export async function listUnverifiedAuthUsers(
+  createdBefore: Date = new Date(Date.now() - 24 * 60 * 60 * 1000),
+): Promise<
+  Array<{ id: string; email: string; name: string; createdAt: Date }>
+> {
+  const db = await getDb();
+  return db
+    .select({
+      id: authUsers.id,
+      email: authUsers.email,
+      name: authUsers.name,
+      createdAt: authUsers.createdAt,
+    })
+    .from(authUsers)
+    .where(and(eq(authUsers.emailVerified, false), lt(authUsers.createdAt, createdBefore)))
+    // Newest first: capped-out old signups must not crowd out users who still need a nudge.
+    .orderBy(desc(authUsers.createdAt))
+    .limit(CRON_BATCH_LIMIT);
+}
 
 export async function deleteAllUserData(userId: string): Promise<void> {
   const db = await getDb();

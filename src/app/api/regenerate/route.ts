@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { unifiedWriterAgent } from '@/lib/agents/unified-writer-agent';
 import { type MasterContext } from '@/lib/agents/types';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/auth/server';
 import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
 import { reserveCredits, captureReservation, releaseReservation } from '@/lib/supabase/credit-reservations';
 import { detectLanguage } from '@/lib/utils/language-detector';
@@ -28,10 +28,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Get authenticated user
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
     
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }

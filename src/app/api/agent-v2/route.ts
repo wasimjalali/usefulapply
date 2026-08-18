@@ -19,7 +19,7 @@ import {
   type AgentEvent,
   type MasterContext,
 } from '@/lib/agents';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/auth/server';
 import { updateSession } from '@/db/repos/sessions';
 import { getJobPreferences } from '@/db/repos/jobFeed';
 import { hasAnonymousGeneration, recordAnonymousGeneration } from '@/db/repos/anonymous';
@@ -331,8 +331,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Get authenticated user (optional — anonymous users get one free generation)
-        const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getCurrentUser(request);
         const isAnonymous = !user;
         distinctId = user?.id || 'anonymous';
 

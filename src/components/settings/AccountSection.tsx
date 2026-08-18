@@ -88,17 +88,19 @@ export function PasswordModal({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (newPassword: string, confirmPassword: string) => Promise<void>;
+  onSubmit: (currentPassword: string, newPassword: string, confirmPassword: string) => Promise<void>;
   isChanging: boolean;
   error: string | null;
 }) {
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
   if (!isOpen) return null;
 
   const handleSubmit = async () => {
-    await onSubmit(newPassword, confirmPassword);
+    await onSubmit(currentPassword, newPassword, confirmPassword);
+    setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
   };
@@ -114,6 +116,19 @@ export function PasswordModal({
         </div>
         
         <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-1.5">
+              Current Password
+            </label>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Enter current password"
+              className="w-full px-4 py-2.5 border border-cream-300 rounded-lg focus:border-navy-500 focus:ring-1 focus:ring-navy-500 focus:outline-none transition-colors"
+            />
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-charcoal mb-1.5">
               New Password

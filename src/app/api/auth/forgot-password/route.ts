@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getAuth } from '@/auth/server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
-import { buildPasswordResetEmail } from '@/lib/email/templates/password-reset';
 import { getSiteUrl } from '@/lib/auth/site-url';
 
 export const runtime = 'nodejs';
 
 /**
  * POST /api/auth/forgot-password
- *
- * Sends a password-reset email via Resend using admin generateLink + token_hash.
- * Unlike client-side resetPasswordForEmail (PKCE), this works cross-device:
- * the user opens the link, /auth/confirm verifies token_hash server-side,
- * then lands on /auth/reset-password with a recovery session.
  *
  * Always returns { success: true } for valid-shaped requests to avoid
  * account enumeration (even when the email is unknown).
@@ -43,65 +36,21 @@ export async function POST(request: NextRequest) {
     }
 
     const siteUrl = getSiteUrl(new URL(request.url).origin);
-    const supabaseAdmin = createAdminClient();
-
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'recovery',
-      email,
-      options: {
-        redirectTo: `${siteUrl}/auth/reset-password`,
-      },
-    });
-
-    // Unknown email, OAuth-only account, or provider errors: log and still
-    // return success so callers cannot probe which addresses exist.
-    if (linkError || !linkData?.properties?.hashed_token) {
-      if (linkError) {
-        console.error('[/api/auth/forgot-password] generateLink error:', {
-          message: linkError.message,
-          status: linkError.status,
-        });
-      }
-      return NextResponse.json({ success: true });
-    }
-
-    const resetLink =
-      `${siteUrl}/auth/confirm` +
-      `?token_hash=${encodeURIComponent(linkData.properties.hashed_token)}` +
-      `&type=recovery` +
-      `&next=${encodeURIComponent('/auth/reset-password')}`;
-
-    const resendApiKey = process.env.RESEND_API_KEY;
-    if (!resendApiKey) {
-      console.error('[/api/auth/forgot-password] Missing RESEND_API_KEY');
-      // Do not claim success when we know the email was never queued.
+    const auth = await getAuth();
+    try {
+      await auth.api.requestPasswordReset({
+        body: {
+          email,
+          redirectTo: `${siteUrl}/auth/reset-password`,
+        },
+      });
+    } catch (error) {
+      // Better Auth 1.7 returns 200 for unknown emails (no throw). Any
+      // throw here is infrastructure or a disabled reset hook.
+      console.error('[/api/auth/forgot-password] requestPasswordReset error:', error);
       return NextResponse.json(
-        { error: 'Unable to send reset email right now. Please try again later.' },
-        { status: 503 }
-      );
-    }
-
-    const fullName = String(
-      (linkData.user as { user_metadata?: { full_name?: string } } | undefined)?.user_metadata
-        ?.full_name ?? ''
-    ).trim();
-    const firstName = fullName.split(/\s+/)[0] || null;
-    const built = buildPasswordResetEmail({ resetLink, firstName });
-
-    const resend = new Resend(resendApiKey);
-    const { error: emailError } = await resend.emails.send({
-      from: built.from,
-      to: email,
-      subject: built.subject,
-      html: built.html,
-      text: built.text,
-    });
-
-    if (emailError) {
-      console.error('[/api/auth/forgot-password] Resend error:', emailError);
-      return NextResponse.json(
-        { error: 'Unable to send reset email right now. Please try again later.' },
-        { status: 502 }
+        { error: 'An unexpected error occurred. Please try again.' },
+        { status: 500 }
       );
     }
 

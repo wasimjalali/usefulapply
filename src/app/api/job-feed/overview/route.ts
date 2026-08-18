@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/auth/server';
 import { canAccessJobFeed, canViewJobFeed, getJobFeedOverviewState } from '@/lib/job-feed/helpers';
 import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
 import {
@@ -28,10 +28,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 

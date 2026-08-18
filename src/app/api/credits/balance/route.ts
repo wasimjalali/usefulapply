@@ -1,25 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/auth/server';
 import { getUserCredits } from '@/db/repos/credits';
-import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
-    const ip = getClientIP(request);
-    const { allowed } = await checkRateLimit(`credits-balance:${ip}`, RATE_LIMITS['credits-balance']);
-    if (!allowed) {
-      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    const user = await getCurrentUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet cover all tables here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    const { allowed } = await checkRateLimit(`credits-balance:${user.id}`, RATE_LIMITS['credits-balance']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
     const { credits: data, error } = await getUserCredits(user.id);

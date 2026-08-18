@@ -3,7 +3,7 @@ import { isJobFeedDebugModeEnabled } from '@/lib/job-feed/constants';
 import { canAccessJobFeed } from '@/lib/job-feed/helpers';
 import { runJobFeedFoundationWorkflow } from '@/lib/job-feed/server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/auth/server';
 import { getProfile } from '@/db/repos/profiles';
 
 export const runtime = 'nodejs';
@@ -23,10 +23,9 @@ export async function POST(request: NextRequest) {
 
     const payload = await request.json().catch(() => ({}));
     const force = Boolean(payload?.force);
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 

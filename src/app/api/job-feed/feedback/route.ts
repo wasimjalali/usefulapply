@@ -8,7 +8,7 @@ import {
 import { captureJobFeedActionRejected, captureJobFeedEvent } from '@/lib/job-feed/analytics';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getPostHogServer } from '@/lib/posthog-server';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/auth/server';
 import { getProfile } from '@/db/repos/profiles';
 
 export const runtime = 'nodejs';
@@ -37,10 +37,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       captureJobFeedActionRejected({
         route: 'feedback',
         action: 'unknown',

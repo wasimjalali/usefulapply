@@ -1,6 +1,7 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { headers } from 'next/headers';
+import { getAuth } from '@/auth/server';
 import * as profilesRepo from './repos/profiles';
 import * as documentsRepo from './repos/documents';
 import * as sessionsRepo from './repos/sessions';
@@ -10,12 +11,12 @@ import * as feedbackRepo from './repos/feedback';
 import type { Profile } from '@/lib/supabase/types';
 
 async function requireCurrentUser(): Promise<{ id: string; email?: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
+  const auth = await getAuth();
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) {
     throw new Error('Authentication required');
   }
-  return { id: user.id, email: user.email };
+  return { id: session.user.id, email: session.user.email };
 }
 
 async function requireUserId(userId: string): Promise<string> {
@@ -44,7 +45,7 @@ export async function getOrCreateProfileAction(userId: string) {
 
 // Columns a signed-in user may edit about themselves. Entitlement and
 // bookkeeping columns (subscription_tier, subscription_status, job_searches_*,
-// welcome_sent_at, confirmation resend fields, email) are written only by
+// welcome_sent_at, check_in_sent_at, confirmation resend fields, email) are written only by
 // trusted server paths (Stripe webhook, cron, auth routes), never from here.
 const USER_EDITABLE_PROFILE_FIELDS = [
   'full_name',
@@ -76,6 +77,15 @@ export async function updateProfileAction(userId: string, updates: Partial<UserE
   const rejected = Object.keys(updates).filter((k) => !(USER_EDITABLE_PROFILE_FIELDS as readonly string[]).includes(k));
   if (rejected.length > 0) {
     throw new Error(`Forbidden profile fields: ${rejected.join(', ')}`);
+  }
+  if (typeof safe.avatar_url === 'string') {
+    // Only a key in this user's avatars prefix (or its leftover Supabase URL) may be stored.
+    const { storedFileKey, userOwnsKey } = await import('@/storage/paths');
+    const key = storedFileKey(safe.avatar_url);
+    if (!key || !key.startsWith('avatars/') || !userOwnsKey(key, userId)) {
+      throw new Error('Invalid avatar');
+    }
+    safe.avatar_url = key;
   }
   return profilesRepo.updateProfile(userId, safe);
 }
@@ -221,4 +231,54 @@ export async function getSessionFeedbackAction(userId: string, sessionId: string
 export async function getMessageFeedbackAction(userId: string, messageId: string) {
   await requireUserId(userId);
   return feedbackRepo.getMessageFeedback(userId, messageId);
+}
+
+type FileBucket = 'cv-files' | 'generated-pdfs' | 'avatars' | 'profile-photos';
+
+async function requireFileRate(userId: string, route: 'files-get' | 'files-upload') {
+  const { checkRateLimit, RATE_LIMITS } = await import('@/lib/middleware/rateLimiter');
+  const rateLimit = await checkRateLimit(`${route}:${userId}`, RATE_LIMITS[route]);
+  if (!rateLimit.allowed) {
+    throw new Error('Too many requests. Please try again later.');
+  }
+}
+
+/** Delete one owned object. Throws on auth, ownership or R2 failure. */
+export async function deleteFileAction(key: string): Promise<void> {
+  const user = await requireCurrentUser();
+  await requireFileRate(user.id, 'files-upload');
+  const { userOwnsKey } = await import('@/storage/paths');
+  const { deleteObject } = await import('@/storage/r2');
+  if (!userOwnsKey(key, user.id)) {
+    throw new Error('Not found');
+  }
+  await deleteObject(key);
+}
+
+/** Delete every owned object under `<bucket>/<userId>/`, optionally keeping one key. */
+export async function deleteUserFilesAction(bucket: FileBucket, keepKey?: string): Promise<void> {
+  const user = await requireCurrentUser();
+  await requireFileRate(user.id, 'files-upload');
+  const { isAllowedFileBucket, userPrefix, userOwnsKey } = await import('@/storage/paths');
+  const { deletePrefix } = await import('@/storage/r2');
+  if (!isAllowedFileBucket(bucket)) {
+    throw new Error('Invalid request');
+  }
+  if (keepKey !== undefined && !userOwnsKey(keepKey, user.id)) {
+    throw new Error('Not found');
+  }
+  await deletePrefix(userPrefix(bucket, user.id), keepKey);
+}
+
+/** List owned object keys under `<bucket>/<userId>/`. Throws on auth or R2 failure. */
+export async function listUserFilesAction(bucket: FileBucket): Promise<string[]> {
+  const user = await requireCurrentUser();
+  await requireFileRate(user.id, 'files-get');
+  const { isAllowedFileBucket, userPrefix } = await import('@/storage/paths');
+  const { listPrefix } = await import('@/storage/r2');
+  if (!isAllowedFileBucket(bucket)) {
+    throw new Error('Invalid request');
+  }
+  const objects = await listPrefix(userPrefix(bucket, user.id));
+  return objects.map((object) => object.key);
 }

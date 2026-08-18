@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { canViewJobFeed } from '@/lib/job-feed/helpers';
 import { captureJobFeedActionRejected, captureJobFeedEvent } from '@/lib/job-feed/analytics';
 import { updateJobFeedApplicationGenerationStatusAdmin } from '@/lib/job-feed/server';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/auth/server';
 import { getProfile } from '@/db/repos/profiles';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
@@ -19,10 +19,9 @@ export async function POST(request: NextRequest) {
   let subscriptionTier: string | null = null;
 
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       captureJobFeedActionRejected({
         route: 'apply/status',
         action: 'generation_status_update',

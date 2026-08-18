@@ -1,10 +1,11 @@
-import { getSupabase } from './client';
 import {
   getDocumentsAction,
   getDocumentByTypeAction,
   saveDocumentAction,
   deleteDocumentAction,
+  deleteFileAction,
 } from '@/db/actions';
+import { toR2Key } from '@/storage/paths';
 
 export type { Document } from '@/db/repos/documents';
 
@@ -21,23 +22,38 @@ export async function saveDocument(
   type: 'primary_cv' | 'master_cv',
   data: Parameters<typeof saveDocumentAction>[2],
 ) {
-  const supabase = getSupabase();
   const existing = await getDocumentByTypeAction(userId, type);
+  const result = await saveDocumentAction(userId, type, data);
+  // Only after the row points at the new file is the old object safe to remove.
   if (existing?.storage_path && data.storage_path && existing.storage_path !== data.storage_path) {
-    await supabase.storage.from('cv-files').remove([existing.storage_path]);
+    const oldKey = toR2Key('cv-files', existing.storage_path);
+    if (oldKey) {
+      try {
+        await deleteFileAction(oldKey);
+      } catch (err) {
+        console.error('[documents] failed to delete replaced CV file:', oldKey, err);
+      }
+    }
   }
-  return saveDocumentAction(userId, type, data);
+  return result;
 }
 
 export async function deleteDocument(documentId: string) {
-  const supabase = getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
+  const { authClient } = await import('@/auth/client');
+  const { data: sessionData } = await authClient.getSession();
+  if (!sessionData?.user) {
     return { error: new Error('Authentication required') };
   }
-  const result = await deleteDocumentAction(user.id, documentId);
+  const result = await deleteDocumentAction(sessionData.user.id, documentId);
   if (!result.error && result.storagePath) {
-    await supabase.storage.from('cv-files').remove([result.storagePath]);
+    const key = toR2Key('cv-files', result.storagePath);
+    if (key) {
+      try {
+        await deleteFileAction(key);
+      } catch (err) {
+        console.error('[documents] failed to delete CV file for removed document:', key, err);
+      }
+    }
   }
   return { error: result.error };
 }
@@ -47,18 +63,22 @@ export async function uploadCVFile(
   type: 'primary_cv' | 'master_cv',
   file: File,
 ): Promise<{ path: string | null; error: Error | null }> {
-  const supabase = getSupabase();
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${userId}/${type}/${Date.now()}.${fileExt}`;
-  const { data, error } = await supabase.storage
-    .from('cv-files')
-    .upload(fileName, file, {
-      cacheControl: '3600',
-      upsert: true,
-    });
-  if (error) {
-    console.error('Upload error:', error);
-    return { path: null, error: new Error(error.message) };
+  void userId;
+  const form = new FormData();
+  form.append('file', file);
+  form.append('bucket', 'cv-files');
+  form.append('subpath', type);
+  try {
+    const res = await fetch('/api/files/upload', { method: 'POST', body: form });
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      return { path: null, error: new Error(data.error || 'Upload failed') };
+    }
+    const data = (await res.json()) as { key?: string };
+    if (!data.key) return { path: null, error: new Error('Upload failed') };
+    return { path: data.key, error: null };
+  } catch (err) {
+    console.error('Upload error:', err);
+    return { path: null, error: err as Error };
   }
-  return { path: data.path, error: null };
 }

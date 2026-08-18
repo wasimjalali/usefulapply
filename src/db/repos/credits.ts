@@ -122,8 +122,8 @@ export async function getUserCredits(userId: string): Promise<{ credits: UserCre
 }
 
 /**
- * Port of Postgres `initialize_user_credits`. Called from signup paths now
- * and from the Better Auth `user.create.after` hook in Task 5.2.
+ * Port of Postgres `initialize_user_credits`. Called from the Better Auth
+ * `user.create.after` hook (after getOrCreateProfile) and from getUserCredits.
  */
 export async function initializeUserCredits(userId: string): Promise<{ credits: UserCredits | null; error: Error | null }> {
   const db = await getDb();

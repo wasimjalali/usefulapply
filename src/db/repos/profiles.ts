@@ -31,11 +31,15 @@ export async function createProfile(
   return created;
 }
 
-export async function getOrCreateProfile(userId: string, email: string): Promise<Profile> {
+export async function getOrCreateProfile(
+  userId: string,
+  email: string,
+  extras?: Partial<Pick<Profile, 'full_name'>>,
+): Promise<Profile> {
   const existing = await getProfile(userId);
   if (existing) return existing;
   try {
-    return await createProfile(userId, email);
+    return await createProfile(userId, email, extras);
   } catch {
     const raced = await getProfile(userId);
     if (raced) return raced;
@@ -74,12 +78,46 @@ export async function claimWelcomeSend(userId: string, sentAt: string): Promise<
   return result.length > 0;
 }
 
-/** Signup: guarantee the profile row exists (service-role upsert in the old code). */
-export async function upsertProfileOnSignup(userId: string, email: string, fullName: string): Promise<void> {
+/**
+ * CAS claim of the Day 3 check-in. Only succeeds when check_in_sent_at is
+ * still null, so two cron runs collapse into one send.
+ */
+/** Undo a check-in claim whose send failed. Scoped to this run's timestamp. */
+export async function releaseCheckInClaim(userId: string, sentAt: string): Promise<void> {
   const db = await getDb();
-  const now = nowIso();
   await db
-    .insert(profiles)
-    .values({ id: userId, email, full_name: fullName, created_at: now, updated_at: now, job_searches_reset_at: now })
-    .onConflictDoUpdate({ target: profiles.id, set: { email, full_name: fullName, updated_at: now } });
+    .update(profiles)
+    .set({ check_in_sent_at: null, updated_at: nowIso() })
+    .where(and(eq(profiles.id, userId), eq(profiles.check_in_sent_at, sentAt)));
+}
+
+export async function claimCheckInSend(userId: string, sentAt: string): Promise<boolean> {
+  const db = await getDb();
+  const result = await db
+    .update(profiles)
+    .set({ check_in_sent_at: sentAt, updated_at: nowIso() })
+    .where(and(eq(profiles.id, userId), isNull(profiles.check_in_sent_at)))
+    .returning({ id: profiles.id });
+  return result.length > 0;
+}
+
+/**
+ * Resend fields live on profiles but are not on the generated Profile type.
+ * Used by the verification-email hook to pick reminder copy (Better Auth 1.7
+ * sendVerificationEmail body is only { email, callbackURL }).
+ */
+export async function getConfirmationResendMeta(userId: string): Promise<{
+  confirmation_resend_count: number;
+  last_confirmation_resend_at: string | null;
+} | null> {
+  const db = await getDb();
+  const rows = await db
+    .select({
+      confirmation_resend_count: profiles.confirmation_resend_count,
+      last_confirmation_resend_at: profiles.last_confirmation_resend_at,
+    })
+    .from(profiles)
+    .where(eq(profiles.id, userId))
+    .limit(1);
+  return rows[0] ?? null;
 }

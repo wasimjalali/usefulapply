@@ -1,4 +1,4 @@
-import { getSupabase } from './client';
+import { authClient } from '@/auth/client';
 import type { SubscriptionTier } from './types';
 import {
   getConnectedAccountsAction,
@@ -94,17 +94,21 @@ export async function canCreateApplication(userId: string): Promise<boolean> {
 /**
  * Change user password
  */
-export async function changePassword(newPassword: string): Promise<{ error: Error | null }> {
-  const supabase = getSupabase();
-
-  const { error } = await supabase.auth.updateUser({
-    password: newPassword,
+export async function changePassword(
+  newPassword: string,
+  currentPassword?: string,
+): Promise<{ error: Error | null }> {
+  if (!currentPassword) {
+    return { error: new Error('Current password is required.') };
+  }
+  const { error } = await authClient.changePassword({
+    newPassword,
+    currentPassword,
+    revokeOtherSessions: true,
   });
-
   if (error) {
     return { error: new Error(error.message) };
   }
-
   return { error: null };
 }
 
@@ -141,20 +145,16 @@ export async function sendPasswordResetEmail(email: string): Promise<{ error: Er
 export async function connectOAuthProvider(
   provider: 'google' | 'linkedin_oidc'
 ): Promise<{ error: Error | null }> {
-  const supabase = getSupabase();
-
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider,
-    options: {
-      redirectTo: `${window.location.origin}/auth/callback?type=link`,
-      scopes: provider === 'google' ? 'email profile' : 'r_liteprofile r_emailaddress',
-    },
+  if (provider !== 'google') {
+    return { error: new Error('Only Google is supported right now.') };
+  }
+  const { error } = await authClient.signIn.social({
+    provider: 'google',
+    callbackURL: '/auth/callback?type=link',
   });
-
   if (error) {
     return { error: new Error(error.message) };
   }
-
   return { error: null };
 }
 
@@ -175,8 +175,7 @@ export async function deleteUserAccount(_userId: string): Promise<{ error: Error
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       return { error: new Error(data.error || 'Failed to delete account') };
     }
-    const supabase = getSupabase();
-    await supabase.auth.signOut();
+    await authClient.signOut();
     return { error: null };
   } catch (err) {
     console.error('Error deleting account:', err);

@@ -37,6 +37,7 @@ export interface Database {
           job_searches_reset_at: string
           job_feed_last_seen_run_date: string | null
           welcome_sent_at: string | null
+          check_in_sent_at: string | null
           created_at: string
           updated_at: string
         }
@@ -63,6 +64,7 @@ export interface Database {
           job_searches_reset_at?: string
           job_feed_last_seen_run_date?: string | null
           welcome_sent_at?: string | null
+          check_in_sent_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -89,6 +91,7 @@ export interface Database {
           job_searches_reset_at?: string
           job_feed_last_seen_run_date?: string | null
           welcome_sent_at?: string | null
+          check_in_sent_at?: string | null
           created_at?: string
           updated_at?: string
         }

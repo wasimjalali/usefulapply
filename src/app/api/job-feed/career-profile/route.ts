@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/auth/server';
 import { requireJobFeedAccess } from '@/lib/job-feed/auth';
 import {
   CAREER_PROFILE_SCHEMA_VERSION,
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const auth = await authenticatePaidUser();
+    const auth = await authenticatePaidUser(request);
     if (!auth.ok) return auth.response;
     const { userId } = auth;
 
@@ -71,8 +71,7 @@ export async function POST(request: NextRequest) {
   try {
     // Rate-limit by user ID (not IP) so users behind shared IPs or VPNs
     // don't burn each other's budget. Must authenticate first to get the ID.
-    const supabaseForRateLimit = await createClient();
-    const { data: { user: userForRateLimit } } = await supabaseForRateLimit.auth.getUser();
+    const userForRateLimit = await getCurrentUser(request);
     const rateLimitKey = userForRateLimit?.id
       ? `career-profile-generate:${userForRateLimit.id}`
       : `career-profile-generate:${getClientIP(request)}`;
@@ -81,7 +80,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const auth = await authenticatePaidUser();
+    const auth = await authenticatePaidUser(request);
     if (!auth.ok) return auth.response;
     const { userId } = auth;
 
@@ -197,17 +196,16 @@ export async function POST(request: NextRequest) {
 type AuthSuccess = { ok: true; userId: string };
 type AuthFailure = { ok: false; response: NextResponse };
 
-async function authenticatePaidUser(): Promise<AuthSuccess | AuthFailure> {
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
+async function authenticatePaidUser(request: NextRequest): Promise<AuthSuccess | AuthFailure> {
+  const user = await getCurrentUser(request);
+  if (!user) {
     return { ok: false, response: NextResponse.json({ error: 'Authentication required.' }, { status: 401 }) };
   }
 
   // requireJobFeedAccess correctly distinguishes missing profiles row (500)
   // from plan gate (403), avoiding a misleading "paid plans only" message
   // when the profiles row is simply absent (account setup incomplete).
-  const access = await requireJobFeedAccess(supabase, user);
+  const access = await requireJobFeedAccess(user);
   if (!access.ok) {
     return { ok: false, response: NextResponse.json({ error: access.error }, { status: access.status }) };
   }

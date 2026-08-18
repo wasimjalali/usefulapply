@@ -2,7 +2,8 @@
  * Task 4.3: transform the Supabase NDJSON export into SQLite rows and bulk
  * insert them into D1 via `wrangler d1 execute --file` in 500-row chunks.
  *
- * Run: npx tsx scripts/migrate/import-d1.ts --local | --remote [--dry-run] [--reset]
+ * Run: npx tsx scripts/migrate/import-d1.ts --local | --remote --db <name> [--dry-run] [--reset]
+ * --remote requires --db (staging usefulapply-db, production usefulapply-db-prod).
  * Requires: scripts/migrate/out/<table>.ndjson from export-supabase.ts, and the
  * D1 schema already applied (`wrangler d1 migrations apply usefulapply-db ...`).
  *
@@ -21,7 +22,6 @@ import { orderedTables } from './tables';
 
 const OUT_DIR = join('scripts', 'migrate', 'out');
 const SQL_DIR = join(OUT_DIR, 'sql');
-const DB_NAME = 'usefulapply-db';
 const CHUNK = 500;
 const REPLACE_TABLES = new Set(['subscription_plans', 'addon_credit_packs']);
 // D1 rejects statements over 100 KB (SQLITE_TOOBIG). Raw SerpAPI payloads are the
@@ -34,11 +34,40 @@ const COLUMN_RENAMES: Record<string, Record<string, string>> = {
 };
 
 const args = process.argv.slice(2);
-const targetArg = args.includes('--remote') ? '--remote' : args.includes('--local') ? '--local' : null;
+let targetArg: '--remote' | '--local' | null = null;
+let dbName: string | null = null;
+let dryRun = false;
+let reset = false;
+for (let i = 0; i < args.length; i++) {
+  const arg = args[i];
+  if (arg === '--local' || arg === '--remote') {
+    if (targetArg && targetArg !== arg) throw new Error('Pass only one of --local or --remote');
+    targetArg = arg;
+    continue;
+  }
+  if (arg === '--db') {
+    const name = args[i + 1];
+    if (!name || name.startsWith('--')) throw new Error('--db requires a database name');
+    dbName = name;
+    i += 1;
+    continue;
+  }
+  if (arg === '--dry-run') {
+    dryRun = true;
+    continue;
+  }
+  if (arg === '--reset') {
+    reset = true;
+    continue;
+  }
+  throw new Error(`Unrecognised flag: ${arg}`);
+}
 if (!targetArg) throw new Error('Pass --local or --remote');
+if (targetArg === '--remote' && !dbName) {
+  throw new Error('--remote requires --db <name> (staging usefulapply-db, production usefulapply-db-prod)');
+}
 const target: '--remote' | '--local' = targetArg;
-const dryRun = args.includes('--dry-run');
-const reset = args.includes('--reset');
+const DB_NAME = dbName ?? 'usefulapply-db';
 
 const ISO_DATETIME = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(\.\d+)?([+-]\d{2}:?\d{2}|Z)?$/;
 

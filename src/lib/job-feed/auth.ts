@@ -1,4 +1,3 @@
-import type { User } from '@supabase/supabase-js';
 import { canAccessJobFeed } from '@/lib/job-feed/helpers';
 import { getProfile } from '@/db/repos/profiles';
 
@@ -21,10 +20,10 @@ export type JobFeedAccessResult = JobFeedAccessOk | JobFeedAccessDenied;
  * for 403 (plan gate) and 500 (profile load failure).
  *
  * Usage:
- *   const access = await requireJobFeedAccess(supabase, user);
+ *   const access = await requireJobFeedAccess(user);
  *   if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
  */
-export async function requireJobFeedAccess(_supabase: unknown, user: User): Promise<JobFeedAccessResult> {
+export async function requireJobFeedAccess(user: { id: string }): Promise<JobFeedAccessResult> {
   const profile = await getProfile(user.id);
 
   if (!profile) {
