@@ -293,3 +293,29 @@ For the record, so nothing is a mystery later:
 - One feed run on each account.
 
 Nothing else was written.
+
+---
+
+## Status after the fix session (19 August 2026, branch fix/audit-bugs)
+
+Verified live on staging unless noted. Grok 4.6 implemented, Claude reviewed and verified.
+
+| Bug | Status | Note |
+|---|---|---|
+| B1 | fixed | Free-tier reset sweep on the daily 0 3 * * * cron (trigger enabled). Paid tiers reset via the Stripe webhook. First sweep runs 03:00 UTC on 19 Aug; check user_credits after. The two overdue Max rows are Wasim's own comped accounts, deliberately untouched |
+| B2 | fixed | Header 178 to 176 live, matched D1 |
+| B3 | fixed, code-verified | Needs a free-account check |
+| B4 | deferred | application_sessions.status is NOT NULL + CHECK, a Drafted status needs a table rebuild migration. Own PR |
+| B5, B6, B7, B8, B10 | fixed | Verified live |
+| B9 | fixed | Dedupe at feed assembly on company + title + description opening. Row identity untouched. Confirm on the next feed run |
+| B11 | fixed | 3 of 3 uploads detected en |
+| B12, B13, B15, B18 | fixed | Verified live |
+| B14, B16, B17 | fixed, code-verified | B14 needs a fresh run while on another tab, B16/B17 need a paid account without settings |
+| B19 | partial | Session reuse reverted after review (wrong layer). Sources addressed by B9 and B31. Unique index is a follow-up |
+| B20, B21, B24, B27, B28 | fixed | Verified live. /features title also fixed |
+| B22 | fixed | Screenshots recaptured on Useful Apply. Hero demo video (Tella) still shows Karko AI, re-record later |
+| B23 | fixed, code-verified | Needs a run with an employer mismatch to confirm visually |
+| B25, B26, B29 | fixed, code-verified | |
+| B30, B31 | fixed, code-verified | Need a free-account check |
+
+Follow-ups, not in this branch: B4 migration, tracker unique index, ranking model swap to Workers AI (before UX work), demo video re-record, remaining "feed is paid-only" copy in src/lib/email/templates/check-in.ts.
