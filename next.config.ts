@@ -5,6 +5,11 @@ const nextConfig: NextConfig = {
   // Image optimization — serve modern formats for smaller payloads
   images: {
     formats: ['image/avif', 'image/webp'],
+    // Product screenshots carry a ?v= cache-buster.
+    localPatterns: [
+      { pathname: '/screenshots/**', search: '?v=3' },
+      { pathname: '/**', search: '' },
+    ],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
