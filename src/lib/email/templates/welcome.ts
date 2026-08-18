@@ -25,6 +25,7 @@ export function buildWelcomeEmail({ firstName }: BuildWelcomeEmailOpts): BuiltEm
   const cleanName = (firstName ?? '').trim().split(/\s+/)[0] ?? '';
   const safeName = escapeHtml(cleanName);
   const greeting = safeName ? `Hi ${safeName},` : 'Hi,';
+  const textGreeting = cleanName ? `Hi ${cleanName},` : 'Hi,';
   const subject = 'Welcome to Useful Apply';
 
   const html = `
@@ -76,7 +77,7 @@ export function buildWelcomeEmail({ firstName }: BuildWelcomeEmailOpts): BuiltEm
 `.trim();
 
   const text = [
-    greeting,
+    textGreeting,
     '',
     "Wasim here. I'm the founder of Useful Apply. Thanks for signing up.",
     '',

@@ -2,6 +2,15 @@
 export const CRON_DAILY_CLEANUP = '0 3 * * *';
 export const CRON_TEN_MINUTE_RECONCILE = '*/10 * * * *';
 export const CRON_HOURLY_CONFIRMATION_RESEND = '0 * * * *';
+export const CRON_WEEKDAY_WELCOME_CHECKIN = '0 9 * * 1-5';
+
+/** Log the run summary; a run where every attempted send failed is a failed run. */
+function failIfNothingSent(label: string, result: { sent: number; errors: number }): void {
+  console.log(`[cron] ${label} result`, result);
+  if (result.errors > 0 && result.sent === 0) {
+    throw new Error(`[cron] ${label}: ${result.errors} errors, 0 sent`);
+  }
+}
 
 // Handlers are imported lazily so the job-feed and email code is not pulled
 // into the fetch path of the Worker bundle.
@@ -33,7 +42,13 @@ export async function dispatchScheduled(cron: string): Promise<void> {
     case CRON_HOURLY_CONFIRMATION_RESEND: {
       console.log('[cron] confirmation resend');
       const { runResendConfirmations } = await import('@/cron/resend-confirmations');
-      await runResendConfirmations();
+      failIfNothingSent('confirmation resend', await runResendConfirmations());
+      return;
+    }
+    case CRON_WEEKDAY_WELCOME_CHECKIN: {
+      console.log('[cron] founder welcome check-in');
+      const { runWelcomeCheckIn } = await import('@/cron/welcome-checkin');
+      failIfNothingSent('founder welcome check-in', await runWelcomeCheckIn());
       return;
     }
     default:

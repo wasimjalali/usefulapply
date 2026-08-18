@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
+import { sendEmail } from '@/lib/email/send';
+import { BRAND } from '@/lib/brand';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 
@@ -80,9 +81,7 @@ export async function POST(request: NextRequest) {
       console.error('Failed to save contact submission:', dbError);
     }
 
-    // Send email notification via Resend
-    const resend = new Resend(process.env.RESEND_API_KEY);
-
+    // Send email notification via Cloudflare Email Service
     try {
       // Escape all user input to prevent XSS in email HTML
       const safeName = escapeHtml(name);
@@ -113,11 +112,12 @@ export async function POST(request: NextRequest) {
         </div>
       `;
 
-      await resend.emails.send({
-        from: 'Useful Apply <noreply@karkoai.com>', // TODO(Task 7.1): switch to noreply@usefulapply.com once Cloudflare Email Service sends for that domain
-        to: 'support@karkoai.com', // TODO(Task 7.1): switch to support@usefulapply.com once the mailbox is routed
-        subject: `Useful Apply Contact: ${safeSubject}`,
+      await sendEmail({
+        to: BRAND.supportEmail,
+        replyTo: email,
+        subject: `${BRAND.name} Contact: ${subject}`,
         html: emailContent,
+        text: `New contact form submission\n\nName: ${name}\nEmail: ${email}\nSubject: ${subject}\n\n${message}`,
       });
       emailSent = true;
     } catch (emailError) {

@@ -7,10 +7,10 @@ import { BRAND } from '@/lib/brand';
  * No-reply: transactional system mail (confirmation, receipts, password reset).
  */
 
-export const FOUNDER_FROM = `Wasim from ${BRAND.name} <wasim@karkoai.com>`; // TODO(Task 7.1)
-export const FOUNDER_REPLY_TO = 'wasim@karkoai.com'; // TODO(Task 7.1)
+export const FOUNDER_FROM = `Wasim from ${BRAND.name} <${BRAND.founderEmail}>`;
+export const FOUNDER_REPLY_TO = BRAND.founderEmail;
 
-export const NOREPLY_FROM = `${BRAND.name} <noreply@karkoai.com>`; // TODO(Task 7.1)
+export const NOREPLY_FROM = `${BRAND.name} <${BRAND.noreplyEmail}>`;
 
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? BRAND.url;

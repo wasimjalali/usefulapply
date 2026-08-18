@@ -2,7 +2,6 @@ import { getAllPosts } from '@/lib/blog/posts';
 import { BRAND } from '@/lib/brand';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || BRAND.url;
-// TODO(Task 7.1): switch the RSS author address from noreply@karkoai.com to noreply@usefulapply.com
 
 export async function GET() {
   const posts = getAllPosts();
@@ -26,7 +25,7 @@ export async function GET() {
       <pubDate>${new Date(post.publishedAt).toUTCString()}</pubDate>
       <guid isPermaLink="true">${SITE_URL}/blog/${post.slug}</guid>
       <category>${escapeXml(post.category)}</category>
-      <author>noreply@karkoai.com (${escapeXml(post.author.name)})</author>
+      <author>${BRAND.noreplyEmail} (${escapeXml(post.author.name)})</author>
     </item>`
       )
       .join('')}

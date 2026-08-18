@@ -29,10 +29,11 @@ export function buildPasswordResetEmail({
   const safeName = escapeHtml(cleanName);
   const safeLink = escapeHtml(resetLink);
   const greeting = safeName ? `Hi ${safeName},` : 'Hi there,';
+  const textGreeting = cleanName ? `Hi ${cleanName},` : 'Hi there,';
 
   const subject = 'Reset your Useful Apply password';
   const text = [
-    greeting.replace(/&[^;]+;/g, ''),
+    textGreeting,
     '',
     'We received a request to reset your Useful Apply password.',
     'Open this link to choose a new password (expires in about 1 hour):',

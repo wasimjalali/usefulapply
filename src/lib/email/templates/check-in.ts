@@ -25,6 +25,7 @@ export function buildCheckInEmail({ firstName }: BuildCheckInEmailOpts): BuiltEm
   const cleanName = (firstName ?? '').trim().split(/\s+/)[0] ?? '';
   const safeName = escapeHtml(cleanName);
   const greeting = safeName ? `Hi ${safeName},` : 'Hi,';
+  const textGreeting = cleanName ? `Hi ${cleanName},` : 'Hi,';
   // Question-mark subjects look promotional to Gmail; a statement reads more personal.
   const subject = 'A quick check-in from Wasim';
 
@@ -75,7 +76,7 @@ export function buildCheckInEmail({ firstName }: BuildCheckInEmailOpts): BuiltEm
 `.trim();
 
   const text = [
-    greeting,
+    textGreeting,
     '',
     "Wasim again. You've been on Useful Apply for a few days now, so I wanted to check in.",
     '',

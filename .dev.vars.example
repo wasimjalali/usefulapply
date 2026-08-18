@@ -44,9 +44,7 @@ AZURE_OPENAI_API_KEY
 AZURE_OPENAI_API_VERSION
 AZURE_OPENAI_DEPLOYMENT
 
-# Email
-RESEND_API_KEY
-RESEND_AUDIENCE_ID
+# Email: Cloudflare Email Service uses the EMAIL binding in wrangler.jsonc, no key needed.
 
 # Cron
 CRON_SECRET

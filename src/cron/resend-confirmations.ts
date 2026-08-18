@@ -1,19 +1,9 @@
-import { Resend } from 'resend';
-import { createAdminClient } from '@/lib/supabase/admin';
-import { buildConfirmationEmail } from '@/lib/email/templates/confirmation';
+import { getAuth } from '@/auth/server';
 import { getSiteUrl } from '@/lib/auth/site-url';
 
 const SIGNUP_GRACE_HOURS = 24;
 const NUDGE_THROTTLE_HOURS = 24;
 const MAX_NUDGES_PER_USER = 2;
-
-interface AuthUser {
-  id: string;
-  email?: string;
-  email_confirmed_at?: string | null;
-  created_at?: string;
-  user_metadata?: Record<string, unknown>;
-}
 
 interface ProfileRow {
   id: string;
@@ -31,50 +21,29 @@ export interface ResendConfirmationsResult {
 }
 
 export async function runResendConfirmations(): Promise<ResendConfirmationsResult> {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.error('[cron/resend-confirmations] RESEND_API_KEY missing');
-    throw new Error('Server misconfigured');
-  }
-
-  const supabaseAdmin = createAdminClient();
-  const resend = new Resend(apiKey);
+  const {
+    listUnverifiedAuthUsers,
+    listProfilesByIds,
+    claimConfirmationResend,
+    releaseConfirmationResend,
+  } = await import('@/db/repos/admin');
   const siteUrl = getSiteUrl();
   const now = Date.now();
 
-  const allUsers: AuthUser[] = [];
-  let page = 1;
-  while (true) {
-    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
-    if (error) {
-      console.error('[cron/resend-confirmations] listUsers failed:', error.message);
-      throw new Error('Server error');
-    }
-    if (!data?.users?.length) break;
-    allUsers.push(...(data.users as unknown as AuthUser[]));
-    if (data.users.length < 200) break;
-    page += 1;
-  }
-
-  const candidates = allUsers.filter((u) => {
-    if (u.email_confirmed_at) return false;
-    if (!u.email) return false;
-    if (!u.created_at) return false;
-    return new Date(u.created_at).getTime() < now - SIGNUP_GRACE_HOURS * 60 * 60 * 1000;
-  });
+  const graceCutoff = new Date(now - SIGNUP_GRACE_HOURS * 60 * 60 * 1000);
+  const candidates = (await listUnverifiedAuthUsers(graceCutoff)).filter((u) => Boolean(u.email));
 
   if (candidates.length === 0) {
     return { processed: 0, sent: 0, throttled: 0, skipped: 0, errors: 0 };
   }
 
   const profileMap = new Map<string, ProfileRow>();
-  const userIds = candidates.map((u) => u.id);
-  const { listProfilesByIds } = await import('@/db/repos/admin');
-  const profiles = await listProfilesByIds(userIds);
+  const profiles = await listProfilesByIds(candidates.map((u) => u.id));
   for (const row of profiles) {
     profileMap.set(row.id, row);
   }
 
+  const auth = await getAuth();
   let sent = 0;
   let throttled = 0;
   let skipped = 0;
@@ -95,59 +64,38 @@ export async function runResendConfirmations(): Promise<ResendConfirmationsResul
       continue;
     }
 
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
-      email: user.email!,
-      options: { redirectTo: `${siteUrl}/auth/callback` },
-    });
-    if (linkError || !linkData?.properties?.hashed_token) {
-      console.error(`[cron/resend-confirmations] generateLink failed for user ${user.id}: ${linkError?.message ?? 'no hashed_token'}`);
-      errors += 1;
-      continue;
-    }
-
-    const fullName = (profile?.full_name ?? String(user.user_metadata?.full_name ?? '')).trim();
-    const firstName = fullName.split(/\s+/).filter(Boolean)[0] ?? '';
-
-    const confirmationLink =
-      `${siteUrl}/auth/confirm` +
-      `?token_hash=${encodeURIComponent(linkData.properties.hashed_token)}` +
-      `&type=magiclink` +
-      `&next=${encodeURIComponent('/dashboard')}`;
-
-    const email = buildConfirmationEmail({
-      confirmationLink,
-      firstName,
-      isReminder: count > 0,
-    });
-
-    const { claimConfirmationResend } = await import('@/db/repos/admin');
-    let claimed = false;
+    // Claim sets the throttle and bumps the count in one CAS write.
+    let claimedAt: string | null = null;
     try {
-      claimed = await claimConfirmationResend(user.id, count);
+      claimedAt = await claimConfirmationResend(user.id, count);
     } catch (updateError) {
       console.error(`[cron/resend-confirmations] profile update failed for ${user.id}: ${updateError instanceof Error ? updateError.message : 'unknown'}`);
       errors += 1;
       continue;
     }
-    if (!claimed) {
+    if (!claimedAt) {
       throttled += 1;
       continue;
     }
 
-    const sendResult = await resend.emails.send({
-      from: email.from,
-      to: user.email!,
-      subject: email.subject,
-      html: email.html,
-    });
-    if (sendResult.error) {
-      console.error(`[cron/resend-confirmations] send failed for user ${user.id}: ${sendResult.error.message}`);
+    try {
+      await auth.api.sendVerificationEmail({
+        body: {
+          email: user.email,
+          callbackURL: `${siteUrl}/auth/callback`,
+        },
+      });
+      sent += 1;
+    } catch (sendError) {
+      console.error(`[cron/resend-confirmations] send failed for user ${user.id}: ${sendError instanceof Error ? sendError.message : 'unknown'}`);
       errors += 1;
-      continue;
+      // Nothing went out: give the throttle window and the nudge back.
+      try {
+        await releaseConfirmationResend(user.id, claimedAt, count, profile?.last_confirmation_resend_at ?? null);
+      } catch (rollbackError) {
+        console.error(`[cron/resend-confirmations] rollback failed for ${user.id}: ${rollbackError instanceof Error ? rollbackError.message : 'unknown'}`);
+      }
     }
-
-    sent += 1;
   }
 
   return {

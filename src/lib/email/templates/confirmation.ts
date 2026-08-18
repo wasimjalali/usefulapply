@@ -24,11 +24,8 @@ interface BuiltEmail {
 
 /**
  * Single source of truth for the confirmation email body, used by:
- *   - scripts/resend-backfill-existing-users.ts (one-off backfill)
- *   - src/app/api/cron/resend-confirmations/route.ts (hourly auto-nudge for unconfirmed > 24h)
- *
- * The original /api/auth/signup route still uses its own inline HTML to keep
- * that hot path minimal. The signup email and this one match in style.
+ *   - Better Auth sendVerificationEmail in src/auth/server.ts
+ *   - src/cron/resend-confirmations.ts (hourly auto-nudge for unconfirmed > 24h)
  */
 export function buildConfirmationEmail({
   confirmationLink,
@@ -44,7 +41,7 @@ export function buildConfirmationEmail({
 
   const intro = isReminder
     ? "You signed up for Useful Apply a little while back but haven't confirmed your email yet. Here's a fresh link, valid for 24 hours."
-    : "You signed up for Useful Apply but didn't finish confirming your email. Click the button below to activate your free account (4 credits included).";
+    : "Thanks for signing up. Click the button below to confirm your email and activate your free account (4 credits included).";
 
   const html = `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fafaf8; padding: 40px 20px;">
