@@ -246,6 +246,8 @@ Owner: Claude. Wasim runs `! npx wrangler login` in the Claude Code session firs
 
 **Packages to add:** `better-auth`, its Drizzle adapter. Check current docs at https://www.better-auth.com before installing.
 
+**Context from Phase 4 (read before 5.1):** data lives in D1 via `src/db/repos/*` (userId-first, no RLS), `getDb()`/`runBatch()`/`stripIdentity()`/`isUniqueViolation()` in `src/db/client.ts`. `db.batch([db.run(sql\`...\`)])` throws in drizzle-orm 0.45.x, use `runBatch()` for raw multi-statement writes and `db.batch()` only with query builders. D1 caps a statement at 100 bound params and 100 KB. `initializeUserCredits(userId)` in `src/db/repos/credits.ts` is what the Better Auth `user.create.after` hook must call, and `getOrCreateProfile(userId, email)` in `src/db/repos/profiles.ts` creates the `profiles` row (today done lazily by `AuthContext`). Staging usefulapply.com already runs on D1 with Supabase auth; the 4.4 generation smoke is deferred until a model secret exists on the Worker and folds into the 5.3 verify (Wasim's real account: sign in, credits and documents attached, one generation deducts credits).
+
 ### Task 5.1: Better Auth setup
 **Files:** Create `src/auth/server.ts` (Better Auth instance: Drizzle + D1, email + password, Google provider, email verification required, password reset, session cookie `usefulapply.session`), `src/auth/client.ts`, `src/app/api/auth/[...all]/route.ts`. Add tables to `src/db/schema.ts` (`user`, `session`, `account`, `verification`) via a new D1 migration. `wrangler.jsonc` secrets: `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
 - [ ] Configure `user.id` generation to accept a supplied id so migrated users keep their Supabase UUID.
@@ -256,7 +258,7 @@ Owner: Claude. Wasim runs `! npx wrangler login` in the Claude Code session firs
 **Files:** `src/proxy.ts` (route guard), every `auth.getUser()` (31 sites), `auth.getSession()` (3), `exchangeCodeForSession` (3), `signInWithOAuth` (2), `setSession` (2), `verifyOtp`, `updateUser`, `signUp`, `signInWithPassword`, `onAuthStateChange`, `src/app/api/auth/{signup,forgot-password,post-confirm,recovery-status,delete-account}/**`, `src/app/auth/**` pages, `src/store/useSessionStore.ts`.
 - [ ] Add a `getCurrentUser(request)` helper in `src/auth/server.ts` and use it in every API route so the "authenticate, then rate limit, then validate" pattern from `.claude/rules/security.md` stays intact.
 - [ ] `initialize_user_credits` logic runs in Better Auth's `databaseHooks.user.create.after`.
-- [ ] Delete `src/lib/supabase/**` and remove `@supabase/ssr`, `@supabase/supabase-js` from `package.json` when `grep -rn "@supabase" src` is empty.
+- [ ] Delete `src/lib/supabase/**` and remove `@supabase/ssr`, `@supabase/supabase-js` from `package.json` when `grep -rn "@supabase" src` is empty. Note (2026-08-18): `src/lib/supabase/{client,storage,documents}.ts`, `src/app/api/{parse-cv,generate-pdf}/route.ts` and `src/lib/supabase/types.ts` still use Supabase Storage / generated types until Task 6.1, so this step becomes "delete everything except the storage + types modules" and is finished in 6.1. `src/db/actions.ts` `requireCurrentUser()` and `src/contexts/AuthContext.tsx` (Supabase `onAuthStateChange`, `getOrCreateProfileAction`) are part of the 5.2 swap.
 - [ ] Verify: every API route returns 401 unauthenticated and 200 authenticated on `wrangler dev`; tsc, lint clean.
 
 ### Task 5.3: User migration
