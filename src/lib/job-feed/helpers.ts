@@ -501,14 +501,19 @@ export function collapseNearDuplicateJobs<T extends {
   let dropped = 0;
   for (const job of jobs) {
     const fingerprint = normalizeTitleForDedupe(job.description ?? '').slice(0, 300);
-    const key = `${jobDedupeKey({
-      company: job.company,
-      title: job.title,
-      salaryMin: job.salary_min,
-      salaryMax: job.salary_max,
-      salaryCurrency: job.salary_currency,
-      location: job.location_normalized ?? job.location_text,
-    })}|${fingerprint}`;
+    // Aggregators attach a salary chip or a city to one copy of a posting
+    // and not another. A matching description opening is the stronger
+    // signal, so it decides on its own when there is enough of it.
+    const key = fingerprint.length >= 120
+      ? `${jobDedupeKey({ company: job.company, title: job.title })}|${fingerprint}`
+      : `${jobDedupeKey({
+          company: job.company,
+          title: job.title,
+          salaryMin: job.salary_min,
+          salaryMax: job.salary_max,
+          salaryCurrency: job.salary_currency,
+          location: job.location_normalized ?? job.location_text,
+        })}|${fingerprint}`;
     if (seen.has(key)) {
       dropped += 1;
       continue;
