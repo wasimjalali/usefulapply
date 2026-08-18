@@ -21,8 +21,12 @@ export async function getSession(sessionId: string, userId?: string) {
   return getSessionAction(id, sessionId);
 }
 
-export async function createSession(userId: string, jobDescription: string) {
-  return createSessionAction(userId, jobDescription);
+export async function createSession(
+  userId: string,
+  jobDescription: string,
+  extras?: Parameters<typeof createSessionAction>[2],
+) {
+  return createSessionAction(userId, jobDescription, extras);
 }
 
 export async function updateSession(

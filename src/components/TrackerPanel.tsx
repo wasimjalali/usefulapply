@@ -746,7 +746,9 @@ export function TrackerPanel() {
               title="Select all"
             />
             <span className="text-sm text-warm-gray">
-              {selectedIds.size > 0 ? `${selectedIds.size} selected` : `${filteredApplications.length} job${filteredApplications.length !== 1 ? 's' : ''}`}
+              {selectedIds.size > 0
+                ? `${selectedIds.size} selected`
+                : `${matchingCount} job${matchingCount !== 1 ? 's' : ''}`}
             </span>
           </div>
           <div className="flex-1" />

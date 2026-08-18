@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { and, asc, desc, eq, isNotNull, like, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, isNotNull, like, or, sql } from 'drizzle-orm';
 import { getDb, nowIso, stripIdentity } from '../client';
 import { applicationSessions, chatMessages } from '../schema';
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
@@ -75,11 +75,48 @@ export async function getSession(userId: string, sessionId: string): Promise<App
   return (rows[0] as ApplicationSession | undefined) ?? null;
 }
 
+/**
+ * A row for the same user + job title + company created in the last few
+ * minutes is a double insert (two writers or a double click), not a new
+ * application. Older matches are legit re-applications and stay separate.
+ */
+const RECENT_SESSION_WINDOW_MS = 10 * 60 * 1000;
+
+export async function findRecentSessionByJobIdentity(
+  userId: string,
+  jobTitle: string,
+  company: string,
+): Promise<ApplicationSession | null> {
+  const title = jobTitle.trim();
+  const companyName = company.trim();
+  if (!title || !companyName) return null;
+  const db = await getDb();
+  const since = new Date(Date.now() - RECENT_SESSION_WINDOW_MS).toISOString();
+  const rows = await db
+    .select()
+    .from(applicationSessions)
+    .where(and(
+      eq(applicationSessions.user_id, userId),
+      eq(applicationSessions.job_title, title),
+      eq(applicationSessions.company, companyName),
+      gt(applicationSessions.created_at, since),
+    ))
+    .orderBy(desc(applicationSessions.created_at))
+    .limit(1);
+  return (rows[0] as ApplicationSession | undefined) ?? null;
+}
+
 export async function createSession(
   userId: string,
   jobDescription: string,
   extras?: Partial<ApplicationSession>,
 ): Promise<{ session: ApplicationSession | null; error: Error | null }> {
+  if (extras?.job_title && extras?.company) {
+    const existing = await findRecentSessionByJobIdentity(userId, extras.job_title, extras.company);
+    if (existing) {
+      return { session: existing, error: null };
+    }
+  }
   const db = await getDb();
   const now = nowIso();
   const id = extras?.id ?? crypto.randomUUID();

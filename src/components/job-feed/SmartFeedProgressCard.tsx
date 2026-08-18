@@ -42,8 +42,7 @@ export function SmartFeedProgressCard({ startedAt }: { startedAt: string | null 
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   useEffect(() => {
-    if (!startedAt) return;
-    const startedMs = Date.parse(startedAt);
+    const startedMs = startedAt ? Date.parse(startedAt) : Date.now();
     if (Number.isNaN(startedMs)) return;
 
     const tick = () => setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startedMs) / 1000)));

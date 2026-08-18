@@ -296,6 +296,7 @@ export interface JobFeedRankedPreviewItem {
   fitLabel: JobFeedFitLabel;
   rankingSource: JobFeedRankingSource;
   reason: string | null;
+  companyDisplay?: string | null;
 }
 
 export interface JobFeedRankedItemRecord {
@@ -305,6 +306,7 @@ export interface JobFeedRankedItemRecord {
   rankingSource: JobFeedRankingSource;
   reason: string | null;
   deterministicScore: number;
+  companyDisplay?: string | null;
 }
 
 export interface JobFeedRankingExecutionResult {

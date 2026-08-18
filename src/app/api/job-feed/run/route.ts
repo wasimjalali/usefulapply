@@ -40,6 +40,12 @@ export async function POST(request: NextRequest) {
     // One manual run per local calendar day. If today already has a
     // completed manual run, the next window opens at local midnight.
     const latestManualRun = await getLatestManualCompletedJobFeedRunAdmin(user.id);
+    const settings = await getSettings(user.id);
+    const settingsNewerThanRun = Boolean(
+      settings?.updated_at &&
+      latestManualRun?.completed_at &&
+      settings.updated_at > latestManualRun.completed_at
+    );
     const cooldown = getCalendarDayCooldown({
       latestManualLocalDate: latestManualRun?.local_date ?? null,
       todayKey,
@@ -47,7 +53,7 @@ export async function POST(request: NextRequest) {
       timeZone: userTimeZone,
     });
 
-    if (cooldown.blocked) {
+    if (cooldown.blocked && !settingsNewerThanRun) {
       const diagnostics = getJobFeedRunDiagnostics(latestManualRun ?? null);
       return NextResponse.json({
         success: true,

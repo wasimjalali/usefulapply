@@ -19,6 +19,7 @@ interface JobFeedRankingModelResponse {
     decision: JobFeedRankingDecision;
     rank?: number | null;
     reason?: string | null;
+    companyDisplay?: string | null;
   }>;
 }
 
@@ -135,6 +136,7 @@ Return ONLY a valid JSON object. No markdown fences. No prose. Start with { and 
 - "decision": "strong" | "good" | "skip".
 - "rank": positive integer when decision is "strong" or "good", with no two items sharing a rank. Null when decision is "skip".
 - "reason": optional short sentence (<=160 characters) explaining the match or mismatch. Plain professional English. No em-dashes. May be null.
+- "companyDisplay": optional. If the description clearly names a different employer than the source "company" field (aggregator listings often do), set this to that employer. Otherwise null.
 
 Every candidate jobId must appear exactly once in the items array. The candidate count and your items count must match.`;
 
@@ -440,6 +442,7 @@ function validateModelRankingResponse(
     fitLabel: 'strong' | 'good';
     rank: number;
     reason: string | null;
+    companyDisplay: string | null;
   }> = [];
 
   for (const item of payload.items) {
@@ -457,11 +460,13 @@ function validateModelRankingResponse(
       ? item.rank : null;
     if (rank === null) return null;
 
+    const companyDisplayRaw = typeof item.companyDisplay === 'string' ? item.companyDisplay.trim() : '';
     surfacedItems.push({
       candidate: candidateById.get(jobId)!,
       fitLabel: decision,
       rank,
       reason: normalizeReason(item.reason),
+      companyDisplay: companyDisplayRaw.length > 0 ? companyDisplayRaw.slice(0, 120) : null,
     });
   }
 
@@ -481,6 +486,7 @@ function validateModelRankingResponse(
       rankingSource: 'llm' as const,
       reason: item.reason,
       deterministicScore: item.candidate.deterministicScore,
+      companyDisplay: item.companyDisplay,
     }));
 }
 

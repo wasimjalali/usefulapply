@@ -1104,6 +1104,26 @@ export function JobFeedPanel() {
         toast.success(nextForm.enabled && consentReady ? 'Your AI feed is ready.' : 'Preferences saved.');
         setIsEditing(false);
         setIsSetupWizardOpen(false);
+
+        if (wasFirstTimeSetup && nextForm.enabled && consentReady) {
+          setIsRunningManualFeed(true);
+          try {
+            const runResponse = await fetch('/api/job-feed/run', { method: 'POST' });
+            const runPayload = await runResponse.json().catch(() => ({}));
+            if (!runResponse.ok) {
+              throw new Error(runPayload.detail || runPayload.error || 'Failed to run today\'s Job Feed.');
+            }
+            if (runPayload.skipped) {
+              toast.success("Today's feed is already built. Use Find jobs now if you want a fresh run.");
+            }
+            setActiveRunId(null);
+            await loadOverview({ quiet: true });
+          } catch (runError) {
+            toast.error(runError instanceof Error ? runError.message : 'Failed to run today\'s Job Feed.');
+          } finally {
+            setIsRunningManualFeed(false);
+          }
+        }
       } finally {
         if (wasFirstTimeSetup) {
           setIsBuildingFirstFeed(false);
@@ -1207,6 +1227,18 @@ export function JobFeedPanel() {
     }
   };
 
+  const closeFeedEditor = useCallback(() => {
+    setDraftForm(null);
+    setIsEditing(false);
+    setIsSetupWizardOpen(false);
+  }, []);
+
+  useEffect(() => {
+    const onCloseEditor = () => closeFeedEditor();
+    window.addEventListener('usefulapply:close-job-feed-editor', onCloseEditor);
+    return () => window.removeEventListener('usefulapply:close-job-feed-editor', onCloseEditor);
+  }, [closeFeedEditor]);
+
   const openSetupWizard = useCallback(() => {
     setDraftForm(toJobFeedInput(overview?.settings ?? null, getBrowserTimeZone()));
     setIsEditing(true);
@@ -1265,6 +1297,7 @@ export function JobFeedPanel() {
   const showFeedResults = isSignedIn
     && !setupOpen
     && !isLoading
+    && currentState !== 'setup_required'
     && Boolean(overview?.jobs && overview.jobs.length > 0);
   return (
     <div className="min-h-full bg-cream-100">
@@ -1319,6 +1352,15 @@ export function JobFeedPanel() {
 
             {setupOpen && (
               <div ref={setupWizardRef} className="space-y-4">
+                <div className="sticky top-0 z-10 flex items-center justify-between bg-cream-100 py-3">
+                  <button
+                    type="button"
+                    onClick={closeFeedEditor}
+                    className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-4 py-2 text-sm font-semibold text-navy-700 shadow-sm transition-colors hover:border-navy-300 hover:bg-navy-50 cursor-pointer"
+                  >
+                    Back to feed
+                  </button>
+                </div>
                 {isBuildingFirstFeed ? (
                   <JobFeedSetupBuildingCard />
                 ) : !overview?.settings ? (
@@ -1330,11 +1372,7 @@ export function JobFeedPanel() {
                     maxCountries={inputCaps.maxCountries}
                     onFormChange={updateDraftForm}
                     onSave={handleSave}
-                    onClose={() => {
-                      setDraftForm(null);
-                      setIsEditing(false);
-                      setIsSetupWizardOpen(false);
-                    }}
+                    onClose={closeFeedEditor}
                   />
                 ) : (
                   <>
@@ -1349,11 +1387,7 @@ export function JobFeedPanel() {
                       onFormChange={updateDraftForm}
                       onSave={handleSave}
                       targetRolesOutdated={Boolean(overview?.target_roles_outdated)}
-                      onClose={() => {
-                        setDraftForm(null);
-                        setIsEditing(false);
-                        setIsSetupWizardOpen(false);
-                      }}
+                      onClose={closeFeedEditor}
                     />
                   </>
                 )}
@@ -1994,7 +2028,11 @@ function InlineStateMessage({
   // working elsewhere. Survives tab switches because it's driven by the
   // server row, not a local timer.
   if (isRunningManualFeed || isPreparingToday) {
-    const startedAt = overview?.latestRun?.started_at ?? overview?.latestRun?.created_at ?? null;
+    const liveRun = overview?.latestRun;
+    const liveRunIsInFlight = liveRun?.status === 'queued' || liveRun?.status === 'running';
+    const startedAt = liveRunIsInFlight
+      ? (liveRun.started_at ?? liveRun.created_at ?? null)
+      : null;
     return <SmartFeedProgressCard startedAt={startedAt} />;
   }
 

@@ -129,9 +129,13 @@ export async function getSessionAction(userId: string, sessionId: string) {
   return sessionsRepo.getSession(userId, sessionId);
 }
 
-export async function createSessionAction(userId: string, jobDescription: string) {
+export async function createSessionAction(
+  userId: string,
+  jobDescription: string,
+  extras?: Parameters<typeof sessionsRepo.createSession>[2],
+) {
   await requireUserId(userId);
-  return sessionsRepo.createSession(userId, jobDescription);
+  return sessionsRepo.createSession(userId, jobDescription, extras);
 }
 
 export async function updateSessionAction(

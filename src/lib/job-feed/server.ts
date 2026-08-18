@@ -1474,6 +1474,7 @@ async function buildFeedItemsForSnapshot(params: {
               fitLabel: rankedItem.fitLabel,
               pipelineStage: 'ranked',
               rankingSource: rankedItem.rankingSource,
+              companyDisplay: rankedItem.companyDisplay ?? null,
             }
           : undefined
       );
@@ -1545,6 +1546,9 @@ function extractRankedPreviewItems(metadata: Json): JobFeedRankedPreviewItem[] {
       fitLabel,
       rankingSource,
       reason: typeof item.reason === 'string' && item.reason.trim().length > 0 ? item.reason.trim() : null,
+      companyDisplay: typeof item.companyDisplay === 'string' && item.companyDisplay.trim().length > 0
+        ? item.companyDisplay.trim()
+        : null,
     });
   }
 
@@ -1573,7 +1577,7 @@ async function persistJobFeedRankedItemsForRunAdmin(params: {
     ranking_source: item.rankingSource,
     reason: item.reason,
     deterministic_score: item.deterministicScore,
-    metadata: {},
+    metadata: item.companyDisplay ? { company_display: item.companyDisplay } : {},
   })));
   return true;
 }
@@ -1595,6 +1599,7 @@ function toRankedPreviewRecord(item: JobFeedRankedItemRecord): JobFeedRankedPrev
     fitLabel: item.fitLabel,
     rankingSource: item.rankingSource,
     reason: item.reason,
+    companyDisplay: item.companyDisplay ?? null,
   };
 }
 
@@ -1646,14 +1651,16 @@ function toFeedItem(
     fitLabel: JobFeedFeedItem['fitLabel'];
     pipelineStage: JobFeedFeedItem['pipelineStage'];
     rankingSource: JobFeedFeedItem['rankingSource'];
+    companyDisplay?: string | null;
   }
 ): JobFeedFeedItem {
   const sourceIdentifiers = isJsonRecord(job.source_identifiers) ? job.source_identifiers : {};
+  const displayCompany = ranking?.companyDisplay?.trim() || job.company;
 
   return {
     id: job.id,
     title: job.title,
-    company: job.company,
+    company: displayCompany,
     location: job.location_text,
     workMode: job.work_mode,
     employmentType: job.employment_type,

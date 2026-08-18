@@ -464,7 +464,10 @@ export function useSupabaseSync() {
             // Create in Supabase
             const { session: newSession, error } = await createSupabaseSession(
               user.id,
-              currentSession.jobDescription
+              currentSession.jobDescription,
+              currentSession.jobTitle && currentSession.company
+                ? { job_title: currentSession.jobTitle, company: currentSession.company }
+                : undefined,
             );
             
             if (error) {
@@ -485,9 +488,15 @@ export function useSupabaseSync() {
               
               // Replace the old local session with the new Supabase session in the store
               const sessionStore = useSessionStore.getState();
-              const updatedSessions = sessionStore.sessions.map((s) => 
-                s.id === oldSessionId ? updatedSession : s
-              );
+              // createSession may hand back a row that already exists in the
+              // store (double-insert guard). Drop the local copy in that case
+              // instead of ending up with two entries sharing one id.
+              const alreadyLoaded = sessionStore.sessions.some((s) => s.id === newSession.id);
+              const updatedSessions = alreadyLoaded
+                ? sessionStore.sessions.filter((s) => s.id !== oldSessionId)
+                : sessionStore.sessions.map((s) =>
+                    s.id === oldSessionId ? updatedSession : s
+                  );
               sessionStore.setSessions(updatedSessions);
               
               // Update current session ID

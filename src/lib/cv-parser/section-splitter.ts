@@ -422,9 +422,9 @@ export function detectCVLanguage(text: string): 'en' | 'de' | 'fr' | 'es' | 'pt'
   // section titles. Anchoring keeps each token a real word in its own language.
   const scores: Record<string, number> = { en: 0, de: 0, fr: 0, es: 0, pt: 0, it: 0, nl: 0 };
 
-  // German headers
+  // German headers. Function words (und/oder/bei/heute) used to add +1 and
+  // flipped English CVs when extracted bullets lacked English headers.
   if (/\b(berufserfahrung|berufliche erfahrung|ausbildung|fähigkeiten|kenntnisse|sprachen|zertifikate|berufliches profil)\b/i.test(lower)) scores.de += 3;
-  if (/\b(heute|und|oder|bei)\b/i.test(lower)) scores.de += 1;
 
   // French headers. "et" dropped from the +1 rule: it matches English "et al." /
   // "et cetera" and would flip an English academic CV to French. "présent"
@@ -452,8 +452,33 @@ export function detectCVLanguage(text: string): 'en' | 'de' | 'fr' | 'es' | 'pt'
   if (/\b(present|current)\b/i.test(lower)) scores.en += 1;
 
   const best = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
-  if (best[1] === 0) return 'en'; // default
+  if (best[1] === 0) return 'en';
+
+  // Extracted PDF/DOCX text is often just summary + bullets, so header
+  // scores can be 0-1. If the body is clearly English, keep English unless
+  // a non-English header score is decisively higher.
+  const englishRatio = englishStopwordRatio(text);
+  if (englishRatio >= 0.12 && scores.en + 2 >= best[1]) {
+    return 'en';
+  }
+
   return best[0] as 'en' | 'de' | 'fr' | 'es' | 'pt' | 'it' | 'nl';
+}
+
+function englishStopwordRatio(text: string): number {
+  const words = text.toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length < 20) return 0;
+  const stops = new Set([
+    'the', 'and', 'of', 'to', 'in', 'for', 'with', 'a', 'on', 'as', 'at',
+    'from', 'by', 'an', 'or', 'is', 'was', 'are', 'were', 'this', 'that',
+    'be', 'been',
+  ]);
+  let hits = 0;
+  for (const word of words) {
+    const cleaned = word.replace(/[^a-z]/g, '');
+    if (stops.has(cleaned)) hits += 1;
+  }
+  return hits / words.length;
 }
 
 /**

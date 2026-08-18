@@ -1,7 +1,8 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import { CV_TEMPLATE_DEFINITIONS } from '@/lib/cv-templates/types';
-import { Check } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 
 interface TemplateSelectorProps {
@@ -44,7 +45,43 @@ const getRecommendationStyle = (templateId: string) => {
   }
 };
 
+function TemplatePreviewImage({ src, alt }: { src?: string; alt: string }) {
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <div className="relative w-full bg-cream-100 overflow-hidden" style={{ aspectRatio: '0.77' }}>
+      <div className="absolute inset-0 bg-cream-100" />
+      {src ? (
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          sizes="220px"
+          className={`object-cover object-top transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+          quality={60}
+          onLoad={() => setLoaded(true)}
+        />
+      ) : (
+        <div className="w-full h-full bg-cream-100 flex items-center justify-center">
+          <span className="text-xs text-warm-gray">Preview</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function TemplateSelector({ selectedTemplateId, onSelect, defaultTemplateId, onSetDefault }: TemplateSelectorProps) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+
+  const scrollByCard = (direction: -1 | 1) => {
+    const node = scrollerRef.current;
+    if (!node) return;
+    const cardWidth = node.firstElementChild instanceof HTMLElement
+      ? node.firstElementChild.getBoundingClientRect().width + 16
+      : 220;
+    node.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
+  };
+
   return (
     <div className="space-y-3">
       {/* Header */}
@@ -53,8 +90,25 @@ export function TemplateSelector({ selectedTemplateId, onSelect, defaultTemplate
         <span className="text-[10px] text-warm-gray">ATS-Optimized &middot; 6 Templates</span>
       </div>
 
-      {/* Template Grid — 2 columns for maximum preview visibility */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => scrollByCard(-1)}
+          aria-label="Previous templates"
+          className="absolute left-0 top-1/2 z-10 -translate-y-1/2 -translate-x-1 rounded-full border border-cream-200 bg-white p-1.5 text-navy-700 shadow-sm hover:bg-cream-50 cursor-pointer"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => scrollByCard(1)}
+          aria-label="Next templates"
+          className="absolute right-0 top-1/2 z-10 -translate-y-1/2 translate-x-1 rounded-full border border-cream-200 bg-white p-1.5 text-navy-700 shadow-sm hover:bg-cream-50 cursor-pointer"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+
+      <div ref={scrollerRef} className="flex gap-4 overflow-x-auto pb-1 snap-x snap-mandatory">
         {CV_TEMPLATE_DEFINITIONS.map((template) => {
           const isSelected = selectedTemplateId === template.id;
           const recommendation = getTemplateRecommendation(template.id);
@@ -66,7 +120,7 @@ export function TemplateSelector({ selectedTemplateId, onSelect, defaultTemplate
             <button
               key={template.id}
               onClick={() => onSelect(template.id)}
-              className={`relative rounded-xl border-2 transition-all text-left cursor-pointer group overflow-hidden ${
+              className={`relative w-[46%] min-w-[46%] snap-start rounded-xl border-2 transition-all text-left cursor-pointer group overflow-hidden shrink-0 ${
                 isSelected
                   ? 'border-gold-400 ring-2 ring-gold-100 shadow-lg'
                   : 'border-cream-200 hover:border-navy-200 hover:shadow-md'
@@ -86,28 +140,7 @@ export function TemplateSelector({ selectedTemplateId, onSelect, defaultTemplate
                 </div>
               )}
 
-              {/* CV Preview Image */}
-              <div className="relative w-full bg-gray-50 overflow-hidden">
-                <div className="relative w-full" style={{ aspectRatio: '0.77' }}>
-                  {previewSrc ? (
-                    <Image
-                      src={previewSrc}
-                      alt={`${template.name} template preview`}
-                      fill
-                      sizes="(max-width: 640px) 45vw, 420px"
-                      className={`object-cover object-top transition-transform duration-300 ${
-                        isSelected ? '' : 'group-hover:scale-[1.02]'
-                      }`}
-                      quality={90}
-                      priority
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-cream-100 flex items-center justify-center">
-                      <span className="text-xs text-warm-gray">Preview</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <TemplatePreviewImage src={previewSrc} alt={`${template.name} template preview`} />
 
               {/* Info bar below image */}
               <div className="px-3 py-2.5 bg-white">
@@ -144,6 +177,7 @@ export function TemplateSelector({ selectedTemplateId, onSelect, defaultTemplate
             </button>
           );
         })}
+      </div>
       </div>
     </div>
   );

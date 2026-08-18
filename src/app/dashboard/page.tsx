@@ -594,8 +594,12 @@ export default function Dashboard() {
       return;
     }
 
+    if (workspace === 'job-feed' && activeWorkspace === 'job-feed') {
+      window.dispatchEvent(new Event('usefulapply:close-job-feed-editor'));
+    }
+
     setActiveTab(workspace === 'job-feed' ? 'jobs' : 'tracker');
-  }, [setActiveTab]);
+  }, [activeWorkspace, setActiveTab]);
 
   // Track the previous chat-collapsed state so we can restore it when leaving full-width tabs
   const chatCollapsedBeforeFullWidthRef = useRef(false);
@@ -865,9 +869,18 @@ export default function Dashboard() {
                 close, or by landing on the Job Feed tab. */}
             {showJobFeedPopup && jobFeedBadge.hasNewRun && (
               <>
+                <button
+                  type="button"
+                  aria-label="Dismiss new jobs notification"
+                  className="fixed inset-0 z-[59] cursor-default bg-transparent"
+                  onClick={() => {
+                    jobFeedBadge.acknowledge();
+                    setShowJobFeedPopup(false);
+                  }}
+                />
                 {/* Arrow pointing up to the Job Feed button */}
-                <div className="absolute left-1/2 top-full z-[60] mt-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-l border-t border-gold-300/80 bg-white" />
-                <div className="absolute left-1/2 top-full z-[60] mt-2 w-80 -translate-x-1/2 rounded-2xl border border-gold-300/80 bg-white p-4 shadow-md">
+                <div className="pointer-events-none absolute left-1/2 top-full z-[60] mt-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-l border-t border-gold-300/80 bg-white" />
+                <div className="pointer-events-auto absolute left-1/2 top-full z-[60] mt-2 w-80 -translate-x-1/2 rounded-2xl border border-gold-300/80 bg-white p-4 shadow-md">
                   <div className="flex items-start gap-3">
                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gold-50 text-gold-600">
                       <Briefcase className="h-5 w-5" />
