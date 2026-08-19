@@ -16,11 +16,11 @@ const EXTRA = {
 // ---------------------------------------------------------------------------
 // The chat spine (dashboard after the first kit)
 // ---------------------------------------------------------------------------
-function sidebar({ active = 0, apps, menuOpen = false, credits = '2.5 of 4 credits', pct = 62 }) {
+function sidebar({ active = 0, apps, menuOpen = false, credits = '2.5 of 4 credits', pct = 62, plan = 'Free plan', feedActive = false, feedCount = 5 }) {
   const menu = menuOpen ? `
     <div style="position: absolute; left: 12px; right: 12px; bottom: 64px; background: #FFFFFF; border: 1px solid #F5F0E8; border-radius: 16px; box-shadow: 0 1px 0 0 rgb(30 58 95 / 0.05), 0 22px 46px -20px rgb(30 58 95 / 0.22); padding: 8px; display: flex; flex-direction: column; gap: 4px; z-index: 5">
       <div style="display: flex; flex-direction: column; gap: 10px; padding: 12px 12px 14px 12px; border-radius: 12px; background: #FBF7EE">
-        <div style="display: flex; align-items: center; justify-content: space-between"><span style="font-size: 13px; font-weight: 600; color: #182F4D">Free plan</span><span style="font-size: 13px; font-weight: 600; color: #A37824">${credits}</span></div>
+        <div style="display: flex; align-items: center; justify-content: space-between"><span style="font-size: 13px; font-weight: 600; color: #182F4D">${plan}</span><span style="font-size: 13px; font-weight: 600; color: #A37824">${credits}</span></div>
         <span style="display: block; height: 4px; border-radius: 9999px; background: #F5ECD5"><span style="display: block; width: ${pct}%; height: 4px; border-radius: 9999px; background: #D4A853"></span></span>
         <span class="btn-gold" style="height: 40px; font-size: 13px">Upgrade to Plus ${I.arrow}</span>
       </div>
@@ -31,10 +31,10 @@ function sidebar({ active = 0, apps, menuOpen = false, credits = '2.5 of 4 credi
   return `<div style="position: relative; width: 248px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; padding: 16px 12px 12px 12px; border-right: 1px solid #F5F0E8; background: #FAF7F2">
     <div style="padding: 2px 6px 4px 6px">${wordmark}</div>
     <span class="btn-ghost" style="height: 44px; font-size: 14px">${I.plus}New application</span>
-    <div class="card" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px">
+    <div class="card" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; ${feedActive ? 'background: #FFFFFF; border-color: #EBDAAE' : ''}">
       <span style="display: inline-flex; width: 30px; height: 30px; border-radius: 9999px; background: #F5ECD5; color: #A37824; align-items: center; justify-content: center">${I.briefcase}</span>
-      <div style="display: flex; flex-direction: column; gap: 2px; flex: 1"><span style="font-size: 13px; font-weight: 600">Today's feed</span><span class="muted" style="font-size: 12px">5 new roles for you</span></div>
-      <span style="display: inline-flex; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 9999px; background: #C4932E; color: #FFFFFF; font-size: 10px; font-weight: 700; align-items: center; justify-content: center">5</span>
+      <div style="display: flex; flex-direction: column; gap: 2px; flex: 1"><span style="font-size: 13px; font-weight: 600">Today's feed</span><span class="muted" style="font-size: 12px">${feedCount} new roles for you</span></div>
+      <span style="display: inline-flex; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 9999px; background: #C4932E; color: #FFFFFF; font-size: 10px; font-weight: 700; align-items: center; justify-content: center">${feedCount}</span>
     </div>
     <div style="display: flex; flex-direction: column; gap: 6px">
       <span class="muted" style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; padding: 0 6px">APPLICATIONS</span>
@@ -48,7 +48,7 @@ function sidebar({ active = 0, apps, menuOpen = false, credits = '2.5 of 4 credi
     <div class="line"></div>
     <div style="display: flex; align-items: center; gap: 10px; padding: 4px 6px">
       <span style="display: inline-flex; width: 32px; height: 32px; border-radius: 9999px; background: #1E3A5F; color: #FFFFFF; font-size: 12px; font-weight: 700; align-items: center; justify-content: center">AM</span>
-      <div style="display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0"><span style="font-size: 13px; font-weight: 600; color: #182F4D; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Alex Morgan</span><span class="muted" style="font-size: 11px">Free plan</span></div>
+      <div style="display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0"><span style="font-size: 13px; font-weight: 600; color: #182F4D; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Alex Morgan</span><span class="muted" style="font-size: 11px">${plan}</span></div>
       <span style="display: inline-flex; width: 36px; height: 36px; border-radius: 9999px; align-items: center; justify-content: center; ${menuOpen ? 'background: #FFFFFF; color: #182F4D; box-shadow: 0 1px 2px 0 rgb(30 58 95 / 0.06); border: 1px solid #F5F0E8' : 'color: #6B7280'}">${EXTRA.gear}</span>
     </div>
     ${menu}
