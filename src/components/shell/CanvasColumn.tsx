@@ -6,7 +6,7 @@ import { CVPanel } from '@/components/CVPanel';
 import { CoverLetterPanel } from '@/components/CoverLetterPanel';
 import { EmailPanel } from '@/components/EmailPanel';
 import { FeedCanvas } from '@/components/job-feed/FeedCanvas';
-import { TrackerPanel } from '@/components/TrackerPanel';
+import { TrackerCanvas } from '@/components/tracker/TrackerCanvas';
 import { AnswersPanel } from '@/components/kit/AnswersPanel';
 import { ATSChangesView } from '@/components/kit/ATSChangesView';
 import { KitDownloadAll } from '@/components/kit/KitDownloadAll';
@@ -187,11 +187,14 @@ export function CanvasColumn({
         <div className="min-h-0 flex-1">
           <FeedCanvas />
         </div>
+      ) : activeTab === 'tracker' ? (
+        /* The tracker table owns its own header, pills and scrolling. */
+        <div className="min-h-0 flex-1">
+          <TrackerCanvas />
+        </div>
       ) : (
       <div className="min-h-0 flex-1 overflow-auto">
-        {activeTab === 'tracker' ? (
-          <TrackerPanel />
-        ) : activeTab === 'cover-letter' ? (
+        {activeTab === 'cover-letter' ? (
           <CoverLetterPanel toolbarPortal={toolbarNode} />
         ) : activeTab === 'email' ? (
           <EmailPanel toolbarPortal={toolbarNode} />

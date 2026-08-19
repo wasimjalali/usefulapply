@@ -33,6 +33,13 @@ export interface Database {
           notify_updates: boolean
           notify_weekly: boolean
           notify_marketing: boolean
+          notify_feed_ready: boolean
+          notify_follow_up_due: boolean
+          notify_interview_tomorrow: boolean
+          notify_credits_low: boolean
+          hide_rejected: boolean
+          timezone: string | null
+          date_format: string | null
           job_searches_used: number
           job_searches_reset_at: string
           job_feed_last_seen_run_date: string | null
@@ -60,6 +67,13 @@ export interface Database {
           notify_updates?: boolean
           notify_weekly?: boolean
           notify_marketing?: boolean
+          notify_feed_ready?: boolean
+          notify_follow_up_due?: boolean
+          notify_interview_tomorrow?: boolean
+          notify_credits_low?: boolean
+          hide_rejected?: boolean
+          timezone?: string | null
+          date_format?: string | null
           job_searches_used?: number
           job_searches_reset_at?: string
           job_feed_last_seen_run_date?: string | null
@@ -87,6 +101,13 @@ export interface Database {
           notify_updates?: boolean
           notify_weekly?: boolean
           notify_marketing?: boolean
+          notify_feed_ready?: boolean
+          notify_follow_up_due?: boolean
+          notify_interview_tomorrow?: boolean
+          notify_credits_low?: boolean
+          hide_rejected?: boolean
+          timezone?: string | null
+          date_format?: string | null
           job_searches_used?: number
           job_searches_reset_at?: string
           job_feed_last_seen_run_date?: string | null

@@ -12,6 +12,7 @@ import { useAgentWorkflow } from './chat/useAgentWorkflow';
 import { useAppStore } from '@/store/useAppStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore, type KitTab } from '@/store/useUIStore';
+import { openSettings } from '@/store/useSettingsStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { submitMessageFeedback, getChatMessages } from '@/lib/supabase';
 import {
@@ -883,7 +884,7 @@ export function ChatPanel({
         });
         break;
       case 'navigate-pricing':
-        router.push('/pricing');
+        openSettings('usage');
         break;
       case 'navigate-login':
         router.push('/auth/login');
@@ -1337,7 +1338,7 @@ export function ChatPanel({
                         cost: '50 credits a month',
                         variant: 'secondary',
                         icon: <ArrowUpRight className="h-4 w-4" />,
-                        onSelect: () => router.push('/pricing'),
+                        onSelect: () => openSettings('usage'),
                       },
                     ]
               }
@@ -1373,7 +1374,7 @@ export function ChatPanel({
                       cost: '50 credits a month',
                       variant: 'secondary',
                       icon: <ArrowUpRight className="h-4 w-4" />,
-                      onSelect: () => router.push('/pricing'),
+                      onSelect: () => openSettings('usage'),
                     },
                   ]}
                   hint={`The full kit needs ${CREDIT_COSTS.GENERATION_AFTER_FIT}. Your ${credits?.planTier === 'free' ? 'free ' : ''}credits reset${formatResetDate(credits?.nextResetDate) ? ` on ${formatResetDate(credits?.nextResetDate)}` : ' next month'}.`}
@@ -1469,7 +1470,7 @@ export function ChatPanel({
                   cost: '50 credits a month',
                   variant: 'secondary',
                   icon: <ArrowUpRight className="h-4 w-4" />,
-                  onSelect: () => router.push('/pricing'),
+                  onSelect: () => openSettings('usage'),
                 },
               ]}
               hint={`The full kit needs ${shortCredits.required}. Your credits reset${formatResetDate(credits?.nextResetDate) ? ` on ${formatResetDate(credits?.nextResetDate)}` : ' next month'}.`}
@@ -1504,7 +1505,7 @@ export function ChatPanel({
                         cost: '50 credits a month',
                         variant: 'secondary',
                         icon: <ArrowUpRight className="h-4 w-4" />,
-                        onSelect: () => router.push('/pricing'),
+                        onSelect: () => openSettings('usage'),
                       },
                       {
                         id: 'keep-it',

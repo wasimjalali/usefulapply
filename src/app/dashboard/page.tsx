@@ -2,8 +2,9 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { MobileFeed } from '@/components/job-feed/MobileFeed';
-import { TrackerPanel } from '@/components/TrackerPanel';
+import { TrackerCanvas } from '@/components/tracker/TrackerCanvas';
 import { AppShell, GuidedLine } from '@/components/shell';
+import { SettingsModal } from '@/components/settings/SettingsModal';
 import { useAppStore } from '@/store/useAppStore';
 import { useUIStore } from '@/store/useUIStore';
 import { useAuth } from '@/contexts/AuthContext';
@@ -152,6 +153,8 @@ export default function Dashboard() {
 
   return (
     <div className="h-screen flex flex-col bg-cream-100">
+      {/* The gear opens this over whatever is on screen, guided line included. */}
+      <SettingsModal />
       {!isNarrow && (
       <div className="hidden md:flex flex-1 overflow-hidden">
         {showGuidedLine ? (
@@ -169,7 +172,7 @@ export default function Dashboard() {
         </div>
         <div className="flex-1 overflow-auto">
           {mobileView === 'tracker' ? (
-            <TrackerPanel />
+            <TrackerCanvas />
           ) : mobileView === 'job-feed' ? (
             <MobileFeed />
           ) : (

@@ -1,10 +1,5 @@
-import { Suspense } from 'react';
-import { SettingsScreen, SettingsScreenFallback } from '@/components/settings/SettingsScreen';
+import { permanentRedirect } from 'next/navigation';
 
 export default function AccountPage() {
-  return (
-    <Suspense fallback={<SettingsScreenFallback />}>
-      <SettingsScreen forcedSection="account" />
-    </Suspense>
-  );
+  permanentRedirect('/dashboard?settings=general');
 }

@@ -127,7 +127,97 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 
 ## Found in batch 4 (tracker + settings)
 
-_Add here._
+### Batch 4 (part A, tracker)
+
+### Reminder windows are UTC, not the user's timezone
+- **UI today:** the popover promises "I'll remind you the day before" and the daily cron (`0 8 * * *`) sends for interviews falling on tomorrow's **UTC** calendar day.
+- **Missing:** `profiles.timezone` is now stored (General pane sets it) but the cron does not read it, so a user in UTC+13 can get "tomorrow" a few hours early or late.
+- **Where:** `src/cron/tracker-reminders.ts` (`startOfUtcDay`), `src/db/repos/admin.ts` (`listInterviewReminderCandidates`).
+- **Needs:** group candidates by `profiles.timezone` and compute the day boundary per group, or run the sweep hourly and pick users whose local time has just hit the send hour. Small.
+
+### "Prep me for X" has no prep generation behind it
+- **UI today:** the chip loads that application and opens its conversation with a line telling the user to ask there.
+- **Missing:** there is no interview-prep generator. The kit agents write a CV, a cover letter and two emails, nothing that prepares someone for an interview.
+- **Where:** `src/components/tracker/TrackerConversation.tsx` (`prepChip`); backend would be `src/lib/agents/**`.
+- **Needs:** a prep prompt and a credit price, or the chip stays a hand-off. Medium, and it touches the agent prompts, which this batch was told not to change.
+
+### Follow-up drafting from the tracker rides on the kit's session state
+- **UI today:** the chip loads the application into the session store, then calls `regenerateDocument('follow-up')`, which reads `currentSession` and `currentCV`.
+- **Missing:** there is no server-side "generate the follow-up for session X" call, so the flow depends on the client having that session and the user's CV in memory. If the CV store is empty the request returns `NO_CONTEXT` and the user is told to open the application.
+- **Where:** `src/lib/regenerate-client.ts` (`buildContext`), `src/components/tracker/TrackerConversation.tsx`.
+- **Needs:** a session-scoped regenerate endpoint that builds its own context server side. Medium.
+
+### The tracker chat costs an LLM call on every message with no credit price
+- **UI today:** every message in the tracker conversation calls `/api/tracker/chat`, which runs `general_chat` on Claude to parse intent. It is rate limited (the `chat` limit, keyed per user) but free.
+- **Missing:** no credit deduction and no per-user daily ceiling, so the cost is unbounded per user.
+- **Where:** `src/app/api/tracker/chat/route.ts`.
+- **Needs:** a decision. Either it stays free like the kit chat (consistent, and the calls are small) or it gets a ceiling. Small.
+
+### An Offer's respond-by date is stored but never mailed
+- **UI today:** picking Offer opens the same when-step and the date is saved, but the popover deliberately promises no reminder for it (`remindersOn` returns false for Offer), so the copy stays honest.
+- **Missing:** `listFollowUpReminderCandidates` filters status to `applied` and `follow_up`, so an offer deadline produces no email, and the follow-up template's wording would be wrong for one anyway.
+- **Where:** `src/db/repos/admin.ts` (`listFollowUpReminderCandidates`), `src/lib/email/templates/tracker-reminder.ts`.
+- **Needs:** an offer-deadline branch in the sweep and its own two-line template. Small.
+
+### Applications that reached Applied before this batch get a NEXT date the cron cannot act on
+- **UI today:** an Applied row with no stored `follow_up_due_at` still shows "Follow up by <date>" or "Follow up overdue", derived from `created_at` plus seven business days, and counts toward "N follow-ups due this week".
+- **Missing:** the reminder sweep requires `follow_up_due_at is not null`, so those rows never trigger the email the Notifications toggle promises. No SQL backfill was written because `datetime()` returns a different string shape than the ISO values every other writer stores, which would break the date comparisons.
+- **Where:** `src/components/tracker/tracker-status.ts` (`defaultFollowUpDue`), `src/db/repos/admin.ts` (`listFollowUpReminderCandidates`).
+- **Needs:** either a TypeScript backfill script that writes proper ISO dates, or the same created_at fallback inside the candidate query. Small. Any status change on the row fixes it by itself.
+
+### Deleting an account needs no re-authentication
+- **UI today:** ACCOUNT DATA has a Delete row that opens an inline confirm inside the modal; typing DELETE and clicking "Delete for good" calls `/api/auth/delete-account`, which wipes the R2 prefixes, every application and the auth user.
+- **Missing:** the endpoint authenticates and rate-limits but never asks for the current password or a fresh session, so a borrowed session or an XSS destroys the account with no recovery. This predates batch 4 (the old modal was a single click), and auth config was fenced off for this batch.
+- **Where:** UI `src/components/settings/GeneralPane.tsx` (`handleDelete`); backend `src/app/api/auth/delete-account/route.ts`, `src/auth/server.ts`.
+- **Needs:** a password check for credential accounts, or Better Auth's fresh-session requirement, on the DELETE handler. Small, but it touches auth.
+
+### Batch 4 (part B, settings)
+
+### Two-factor authentication: dropped, not deferred
+- **Decision (Wasim, 19 Aug 2026):** we do not want 2FA at this stage. The row is not rendered anywhere in the settings modal and should stay out until there is a reason to build it, so the UI never advertises something that does not exist.
+- **If it ever comes back:** Better Auth is created with no `plugins`, so it would need `better-auth/plugins/two-factor`, a `twoFactor` table and a TOTP enrolment flow.
+
+### "Last changed 3 months ago" under Password has no source
+- **UI today:** the Password row shows only "Change". The artboard's "Last changed ..." line is omitted rather than faked.
+- **Missing:** nothing records when a password was last changed. Better Auth's `account` row has `updatedAt`, but it also moves for unrelated writes, so it is not a truthful answer.
+- **Where:** UI `src/components/settings/GeneralPane.tsx`; backend a `password_changed_at` column on `profiles` written by the change-password path.
+- **Needs:** one column and one write. Small.
+
+### Timezone and date format are stored but nothing reads them
+- **UI today:** PREFERENCES saves `profiles.timezone` (auto-detected via `Intl.DateTimeFormat().resolvedOptions().timeZone`) and `profiles.date_format`.
+- **Missing:** every date in the app still renders with the browser locale and the browser timezone. No formatter reads these two columns, and the reminder emails do not use the timezone either.
+- **Where:** UI `src/components/settings/GeneralPane.tsx`; consumers would be the tracker rows, the feed and the reminder senders.
+- **Needs:** one shared date formatter that takes the profile, then swap the call sites. Small, but it spans the tracker (batch 4 part A) so it should land after both halves merge.
+
+### Two of the five notification toggles have no sending path
+- **UI today:** Notifications persists all five toggles through `updateProfileAction`. `notify_follow_up_due` and `notify_interview_tomorrow` are live: the `0 8 * * *` sweep in `src/cron/tracker-reminders.ts` reads them and sends. `notify_marketing` gates a manual send.
+- **Missing:** there is no "today's feed is ready" email and no "credits are about to run out" email, so those two toggles currently control nothing.
+- **Where:** UI `src/components/settings/NotificationsPane.tsx`; backend `src/cron/index.ts`, the Cloudflare `EMAIL` binding and the templates under `src/lib/email/`.
+- **Needs:** two templates plus a hook into the feed run and the credit deduction path. Medium.
+
+### The new profile columns are not on the remote D1 yet
+- **UI today:** the panes read the new columns defensively. A missing `notify_*` boolean falls back to its default and a missing `timezone` / `date_format` falls back to the detected zone and `dmy`, so nothing crashes before the migration runs.
+- **Missing:** `migrations/d1/0005_tracker_dates_and_prefs.sql` has not been applied to the remote database. Until it is, a toggle writes and the write fails at the DB, and the pane shows "We could not save that."
+- **Where:** `migrations/d1/0005_tracker_dates_and_prefs.sql`.
+- **Needs:** run the migration on staging and production. Small, but it gates the whole Notifications pane.
+
+### The usage breakdown leans on free-text transaction types
+- **UI today:** "Used 9: three fit checks, two kits, one rewrite" is computed client side from `credit_transactions`, bucketing `fit_analysis` as a fit check, `full_application` / `generation_after_fit` as a kit and everything else as a rewrite. The window starts at `user_credits.last_reset_date`.
+- **Missing:** `transaction_type` is a plain string (`action.toLowerCase()`), so a new credit action silently lands in the rewrite bucket. `last_reset_date` can also be null on old rows, in which case the whole transaction history counts as this month.
+- **Where:** UI `src/components/settings/UsageBillingPane.tsx`; backend `src/db/repos/credits.ts` (`deductAmount`, `getCreditTransactions`).
+- **Needs:** either a typed enum on the column or a small server-side summary endpoint that returns the month's buckets. Small.
+
+### Stripe still returns to /subscription, which is now a redirect
+- **UI today:** `/subscription` 308s to `/dashboard?settings=usage` and carries `success`, `addon_success`, `canceled` and `addon_canceled` through, so the Usage pane can poll while the webhook lands.
+- **Missing:** the checkout and portal routes still hardcode `${BRAND.url}/subscription` as their success, cancel and return URL, so every payment return takes an extra hop.
+- **Where:** `src/app/api/stripe/create-checkout/route.ts`, `create-addon-checkout/route.ts`, `create-portal/route.ts`.
+- **Needs:** point the three URLs at `/dashboard?settings=usage`. Trivial, but it is a Stripe route, which this batch was told not to touch.
+
+### CreditIndicator is dead UI that still links at the old routes
+- **UI today:** `src/components/ui/CreditIndicator.tsx` is rendered nowhere. Only its `CREDIT_UPDATE_EVENT` export is still imported, by `LowCreditsModal` and `LowCreditsBanner`.
+- **Missing:** the component was not deleted because that export is live. Its three `/subscription` links and its `/pricing#addons` link now hop through the redirect.
+- **Where:** `src/components/ui/CreditIndicator.tsx`.
+- **Needs:** move `CREDIT_UPDATE_EVENT` to a small module and delete the component, or bring it back into the shell. Small.
 
 ## Found in batch 5 (auth + marketing)
 

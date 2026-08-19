@@ -167,6 +167,8 @@ export interface TrackerApplicationRow {
   job_title: string | null;
   match_score: number | null;
   status: string;
+  interview_at: string | null;
+  follow_up_due_at: string | null;
   created_at: string;
 }
 
@@ -198,6 +200,8 @@ export async function listTrackerApplications(
         job_title: applicationSessions.job_title,
         match_score: applicationSessions.match_score,
         status: applicationSessions.status,
+        interview_at: applicationSessions.interview_at,
+        follow_up_due_at: applicationSessions.follow_up_due_at,
         created_at: applicationSessions.created_at,
       })
       .from(applicationSessions)
@@ -210,11 +214,60 @@ export async function listTrackerApplications(
   return { data: rows, count: Number(countRows[0].count) };
 }
 
-/** Tracker page: status of every generated session, for the status count chips. */
-export async function listTrackerStatuses(userId: string): Promise<Array<{ status: string | null }>> {
+/** Enough for any real job hunt, and it bounds the tracker chat prompt. */
+const TRACKER_OVERVIEW_LIMIT = 300;
+
+/**
+ * Tracker: every generated session with the fields the count pills, the header
+ * line and the conversation's state of play all read. One query so the pills
+ * can never disagree with the rows.
+ */
+export async function listTrackerOverview(userId: string): Promise<TrackerApplicationRow[]> {
   const db = await getDb();
   return db
-    .select({ status: applicationSessions.status })
+    .select({
+      id: applicationSessions.id,
+      company: applicationSessions.company,
+      job_title: applicationSessions.job_title,
+      match_score: applicationSessions.match_score,
+      status: applicationSessions.status,
+      interview_at: applicationSessions.interview_at,
+      follow_up_due_at: applicationSessions.follow_up_due_at,
+      created_at: applicationSessions.created_at,
+    })
     .from(applicationSessions)
-    .where(and(eq(applicationSessions.user_id, userId), isNotNull(applicationSessions.generated_cv)));
+    .where(and(eq(applicationSessions.user_id, userId), isNotNull(applicationSessions.generated_cv)))
+    .orderBy(desc(applicationSessions.created_at))
+    .limit(TRACKER_OVERVIEW_LIMIT);
+}
+
+/**
+ * Tracker: move one application to a status, with the date that status implies.
+ * `interview_at` and `follow_up_due_at` are always written together so a row
+ * never keeps a stale date from the status it just left, and the reminder
+ * guards reset so a new date sends a new reminder.
+ */
+export async function setTrackerStatus(
+  userId: string,
+  sessionId: string,
+  next: { status: string; interview_at: string | null; follow_up_due_at: string | null },
+): Promise<{ error: Error | null }> {
+  const db = await getDb();
+  const updated = await db
+    .update(applicationSessions)
+    .set({
+      status: next.status,
+      interview_at: next.interview_at,
+      follow_up_due_at: next.follow_up_due_at,
+      // A reminder guard clears only when its date actually moved, so
+      // re-saving the same date cannot send the same email twice.
+      interview_reminder_sent_at: sql`case when coalesce(interview_at, '') = ${next.interview_at ?? ''} then interview_reminder_sent_at else null end`,
+      follow_up_reminder_sent_at: sql`case when coalesce(follow_up_due_at, '') = ${next.follow_up_due_at ?? ''} then follow_up_reminder_sent_at else null end`,
+      updated_at: nowIso(),
+    })
+    .where(and(eq(applicationSessions.id, sessionId), eq(applicationSessions.user_id, userId)))
+    .returning({ id: applicationSessions.id });
+  // A write that matched nothing is a failure, not a quiet success.
+  if (updated.length === 0) return { error: new Error('Application not found') };
+  return { error: null };
 }

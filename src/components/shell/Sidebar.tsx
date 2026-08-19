@@ -1,12 +1,12 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import { Briefcase, ClipboardList, Plus, Settings } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
+import { openSettings } from '@/store/useSettingsStore';
 import { fileDisplayUrl } from '@/storage/paths';
 import { useJobFeedBadge } from '@/hooks/useJobFeedBadge';
 import {
@@ -20,7 +20,6 @@ interface SidebarProps {
 
 export function Sidebar({ isWorking = false }: SidebarProps) {
   const requestNewApplication = useUIStore((s) => s.requestNewApplication);
-  const router = useRouter();
   const { user, profile } = useAuth();
   const sessions = useSessionStore((s) => s.sessions);
   const currentSession = useSessionStore((s) => s.currentSession);
@@ -168,7 +167,7 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
         </div>
         <button
           type="button"
-          onClick={() => router.push('/settings')}
+          onClick={() => openSettings('general')}
           className="inline-flex h-9 w-9 items-center justify-center rounded-full text-warm-gray hover:bg-cream-50 hover:text-navy-800 cursor-pointer"
           aria-label="Open settings"
         >
