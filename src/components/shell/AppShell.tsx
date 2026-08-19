@@ -12,7 +12,8 @@ export function AppShell() {
   const activeTab = useUIStore((s) => s.activeTab);
   const setActiveTab = useUIStore((s) => s.setActiveTab);
   const setConversationCollapsed = useUIStore((s) => s.setConversationCollapsed);
-  const [canvasCollapsed, setCanvasCollapsed] = useState(false);
+  const canvasCollapsed = useUIStore((s) => s.canvasCollapsed);
+  const setCanvasCollapsed = useUIStore((s) => s.setCanvasCollapsed);
   const [toolbarNode, setToolbarNode] = useState<HTMLDivElement | null>(null);
 
   // Below this the 248px sidebar and the 520px conversation leave the canvas
@@ -44,7 +45,7 @@ export function AppShell() {
       <ConversationColumn onTabChange={handleTabChange} />
       <CanvasColumn
         collapsed={canvasCollapsed}
-        onToggleCollapsed={() => setCanvasCollapsed((v) => !v)}
+        onToggleCollapsed={() => setCanvasCollapsed(!canvasCollapsed)}
         toolbarNode={toolbarNode}
         setToolbarNode={setToolbarNode}
       />

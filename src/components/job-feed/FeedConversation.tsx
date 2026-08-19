@@ -551,7 +551,7 @@ export function FeedConversation() {
     : null;
 
   return (
-    <section className="flex h-full w-[520px] flex-shrink-0 flex-col border-r border-cream-200 bg-cream-50">
+    <section className="flex h-full w-full min-w-0 flex-col border-r border-cream-200 bg-cream-50">
       <header className="flex flex-shrink-0 items-center gap-3 border-b border-cream-200 px-5 py-3.5">
         <div className="min-w-0 flex-1">
           <h2 className="truncate font-serif text-base font-semibold text-navy-800">Today&apos;s feed</h2>

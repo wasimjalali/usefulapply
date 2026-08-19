@@ -18,6 +18,7 @@ export function ConversationColumn({ onTabChange }: ConversationColumnProps) {
   const activeTab = useUIStore((s) => s.activeTab);
   const collapsed = useUIStore((s) => s.conversationCollapsed);
   const setCollapsed = useUIStore((s) => s.setConversationCollapsed);
+  const canvasCollapsed = useUIStore((s) => s.canvasCollapsed);
 
   // The feed and the tracker each have their own conversation. The
   // application's conversation is hidden rather than unmounted underneath
@@ -59,7 +60,11 @@ export function ConversationColumn({ onTabChange }: ConversationColumnProps) {
   }
 
   return (
-    <div className="relative flex h-full min-h-0">
+    <div
+      className={`relative flex h-full min-h-0 ${
+        canvasCollapsed ? 'min-w-0 flex-1' : 'w-[520px] flex-shrink-0'
+      }`}
+    >
       <button
         type="button"
         onClick={() => setCollapsed(true)}
@@ -71,7 +76,7 @@ export function ConversationColumn({ onTabChange }: ConversationColumnProps) {
       {showFeed && <FeedConversation />}
       {showTracker && <TrackerConversation />}
       <section
-        className={`h-full w-[520px] flex-shrink-0 flex-col border-r border-cream-200 bg-cream-50 ${
+        className={`h-full w-full min-w-0 flex-col border-r border-cream-200 bg-cream-50 ${
           showFeed || showTracker ? 'hidden' : 'flex'
         }`}
       >
