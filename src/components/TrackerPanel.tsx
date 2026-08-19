@@ -25,7 +25,7 @@ import {
   X,
 } from 'lucide-react';
 
-type ApplicationStatus = 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up';
+type ApplicationStatus = 'drafted' | 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up';
 
 interface TrackerSession {
   id: string;
@@ -42,6 +42,7 @@ interface TrackerSession {
 const PAGE_SIZE = 10;
 
 const STATUS_CONFIG: Record<ApplicationStatus, { label: string; bg: string; text: string; dot: string }> = {
+  drafted: { label: 'Drafted', bg: 'bg-cream-100', text: 'text-warm-gray', dot: 'bg-warm-gray' },
   applied: { label: 'Applied', bg: 'bg-gold-100', text: 'text-gold-700', dot: 'bg-gold-400' },
   interview: { label: 'Interview', bg: 'bg-cream-200', text: 'text-charcoal', dot: 'bg-warm-gray' },
   rejected: { label: 'Rejected', bg: 'bg-red-50', text: 'text-red-600', dot: 'bg-red-400' },
@@ -49,7 +50,7 @@ const STATUS_CONFIG: Record<ApplicationStatus, { label: string; bg: string; text
   follow_up: { label: 'Follow-Up Sent', bg: 'bg-navy-100', text: 'text-navy-700', dot: 'bg-navy-500' },
 };
 
-const ALL_STATUSES: ApplicationStatus[] = ['applied', 'interview', 'follow_up', 'rejected', 'accepted'];
+const ALL_STATUSES: ApplicationStatus[] = ['drafted', 'applied', 'interview', 'follow_up', 'rejected', 'accepted'];
 
 function StatusDropdown({
   status,

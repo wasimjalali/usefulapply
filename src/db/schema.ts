@@ -356,7 +356,7 @@ export const applicationSessions = sqliteTable(
     email_subject: text('email_subject'),
     email_body: text('email_body'),
     selected_template: text('selected_template').notNull().default('premium-ats'),
-    status: text('status').notNull().default('applied'),
+    status: text('status').notNull().default('drafted'),
     cover_letter_language: text('cover_letter_language').notNull().default('en'),
     fit_assessment: text('fit_assessment', { mode: 'json' }).$type<Json>(),
     generation_completed: integer('generation_completed', { mode: 'boolean' }).notNull().default(false),
@@ -373,7 +373,7 @@ export const applicationSessions = sqliteTable(
   },
   (t) => [
     index('application_sessions_user_created_idx').on(t.user_id, t.created_at),
-    check('application_sessions_status_check', sql`${t.status} in ('applied', 'interview', 'rejected', 'accepted', 'follow_up')`),
+    check('application_sessions_status_check', sql`${t.status} in ('drafted', 'applied', 'interview', 'rejected', 'accepted', 'follow_up')`),
     check(
       'application_sessions_generation_status_check',
       sql`${t.generation_status} in ('none', 'pending', 'running', 'succeeded', 'failed', 'cancelled')`,
