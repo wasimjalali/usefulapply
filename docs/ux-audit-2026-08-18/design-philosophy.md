@@ -82,7 +82,7 @@ The audit folders are split into flows and brainstormed one at a time, most impa
 
 Flows 1 to 6 are the app. Flow 7 is a separate audience and can run as a parallel track.
 
-Sequencing agreed 19 Aug 2026: design every flow first (one locked doc per flow under `redesign/`), then build. Flow 1 is locked: `redesign/flow-1-first-run.md`. Flow 2 is locked: `redesign/flow-2-application-kit.md` (gold is the only button fill; the chat is the regenerate button). Flow 3 is locked: `redesign/flow-3-job-feed.md` (the feed has its own conversation and canvas; one gold action per card; setup by chips; Edit feed as a canvas view). Its shell (guided line for the first run, chat spine with sidebar, settings menu at the bottom, no top header) is inherited by every later flow.
+Sequencing agreed 19 Aug 2026: design every flow first (one locked doc per flow under `redesign/`), then build. Flow 1 is locked: `redesign/flow-1-first-run.md`. Flow 2 is locked: `redesign/flow-2-application-kit.md` (gold is the only button fill; the chat is the regenerate button). Flow 3 is locked: `redesign/flow-3-job-feed.md` (the feed has its own conversation and canvas; one gold action per card; setup by chips; Edit feed as a canvas view). Flow 4 is locked: `redesign/flow-4-tracker.md` (table + tracker conversation; NEXT column; the date is asked inside the status change). Its shell (guided line for the first run, chat spine with sidebar, settings menu at the bottom, no top header) is inherited by every later flow.
 
 ## 7. Sources
 
