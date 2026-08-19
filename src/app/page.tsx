@@ -235,7 +235,7 @@ export default function Home() {
               {
                 step: 2,
                 title: 'Skip the job boards',
-                description: 'Every morning, up to 25 roles picked for you on Plus and Max. Matched to your CV, your goals, your location. No keyword searches.',
+                description: 'Every morning, roles picked for you. Top 5 on Free, up to 25 on Plus and Max. Matched to your CV, your goals, your location. No keyword searches.',
                 accent: '/images/gpt-03-compass-card.webp',
                 accentAlt: 'Compass brand illustration',
               },

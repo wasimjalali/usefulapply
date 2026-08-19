@@ -58,7 +58,7 @@ export function buildCheckInEmail({ firstName }: BuildCheckInEmailOpts): BuiltEm
       </p>
 
       <p style="margin:0 0 22px 0;">
-        And if you liked it, the Plus plan gives you more credits and the Smart Job Feed. <a href="${SITE_URL}/pricing" style="color:#0f3057;font-weight:600;text-decoration:underline;">See the plans</a> when you have time.
+        And if you liked it, the Plus plan gives you more credits and a bigger Smart Job Feed, up to 25 roles a day. <a href="${SITE_URL}/pricing" style="color:#0f3057;font-weight:600;text-decoration:underline;">See the plans</a> when you have time.
       </p>
 
       <p style="margin:28px 0 0 0;">
@@ -89,7 +89,7 @@ export function buildCheckInEmail({ firstName }: BuildCheckInEmailOpts): BuiltEm
     '',
     'Just hit reply with whatever comes to mind. One sentence per question is enough. I read every email and answer personally, and your honest take is what shapes what we build next.',
     '',
-    `And if you liked it, the Plus plan gives you more credits and the Smart Job Feed. See the plans when you have time: ${SITE_URL}/pricing`,
+    `And if you liked it, the Plus plan gives you more credits and a bigger Smart Job Feed, up to 25 roles a day. See the plans when you have time: ${SITE_URL}/pricing`,
     '',
     'Wasim',
     'Founder, Useful Apply',

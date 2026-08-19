@@ -213,7 +213,7 @@ export const comparisons: ComparisonData[] = [
         description:
           'You should know exactly what you are paying before you sign up.',
         brandDetails:
-          'Free ($0, 2 applications a month), Plus ($19.99/mo, 25 applications), Max ($79.99/mo, 100 applications). Every feature is on every plan. Plans differ in volume, Smart Job Feed access and size, and support tier. Add-on credit packs $19.99 for 50 credits.',
+          'Free ($0, 2 applications a month), Plus ($19.99/mo, 25 applications), Max ($79.99/mo, 100 applications). Every feature is on every plan. Plans differ in volume, Smart Job Feed size (top 5 a day on Free, up to 25 on Plus and Max) and support tier. Add-on credit packs $19.99 for 50 credits.',
         competitorDetails:
           'Free tier is visible. Paid pricing is not published on the site. You have to sign up and hit a gate to see it.',
         winner: 'brand',
