@@ -54,7 +54,7 @@ Why this order: friction items are impossible to judge while the product is lyin
 
 ## Step 3. The build (next)
 
-Per flow, in order 1 to 7 (7 last, its shots are real screenshots of the built screens): spec from the flow doc → implementation plan (`writing-plans`) → feature branch → implement → `ui-tester` against the PNGs → `/code-review` → PR → merge → deploy → confirm live. Flow 1 first, because it's the shell.
+Run as five batches with Grok 4.6 implementing and Claude orchestrating: see `build/BUILD-PLAN.md` and `build/batch-N-*.md`. Per flow, in order 1 to 7 (7 last, its shots are real screenshots of the built screens): spec from the flow doc → implementation plan (`writing-plans`) → feature branch → implement → `ui-tester` against the PNGs → `/code-review` → PR → merge → deploy → confirm live. Flow 1 first, because it's the shell.
 
 ## Artifacts of this track
 
@@ -69,4 +69,5 @@ docs/ux-audit-2026-08-18/
     flow-1-first-run.md ... flow-7-marketing.md
     flow-N-artboards/          genN.mjs, canvas.json, png/, (flow 1 also lib.mjs, final/spine.mjs, final/settings.mjs, final/gen2.mjs)
     shoot.mjs
+    build/                     BUILD-PLAN.md (roles, loop, report format), batch-1-shell.md ... batch-5-auth-marketing.md (implementer prompts + kickoff prompts)
 ```

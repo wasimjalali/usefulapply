@@ -25,7 +25,7 @@ Nothing has been built. No application code changed in this track. Last commit o
 
 ## Your mission, in order
 
-1. **The build phase.** Per flow, starting with flow 1: write the spec from the flow doc (the "Notes for the spec and build" sections are the starting point), write the implementation plan (superpowers `writing-plans`), implement on a branch off `rebrand/usefulapply`, verify with the `ui-tester` agent against the PNGs, `/code-review`, PR, merge. Flow 1 is the shell every other flow depends on, so it goes first and biggest. Flow 7 (marketing) is last: its product shots are real screenshots of the built screens, and the Tella demo is re-recorded after it.
+1. **The build phase.** Run it as the batch loop in `build/BUILD-PLAN.md`: Grok 4.6 implements each batch from its `build/batch-N-*.md` (kickoff prompt at the bottom of each), Claude verifies, fixes, commits, pushes, PRs and merges. Five batches: 1 shell, 2 kit, 3 feed, 4 tracker + settings, 5 auth + marketing. The per-flow method below is what Claude checks against. Per flow, starting with flow 1: write the spec from the flow doc (the "Notes for the spec and build" sections are the starting point), write the implementation plan (superpowers `writing-plans`), implement on a branch off `rebrand/usefulapply`, verify with the `ui-tester` agent against the PNGs, `/code-review`, PR, merge. Flow 1 is the shell every other flow depends on, so it goes first and biggest. Flow 7 (marketing) is last: its product shots are real screenshots of the built screens, and the Tella demo is re-recorded after it.
 
 ## Decisions that shape everything (don't relitigate)
 
