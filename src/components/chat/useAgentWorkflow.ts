@@ -11,7 +11,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { useUIStore } from '@/store/useUIStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePostHog } from 'posthog-js/react';
-import { hasUsedFreeGeneration, markFreeGenerationUsed } from '@/components/SignUpWallModal';
+import { hasUsedFreeGeneration, markFreeGenerationUsed } from '@/lib/anonymous-generation';
 import { notifyJobFeedBadgeRefresh } from '@/hooks/useJobFeedBadge';
 import { generateRequestId } from '@/lib/utils/requestId';
 import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
@@ -943,14 +943,16 @@ export function useAgentWorkflow(options?: {
 
       // When in screening mode, always route to chat (never re-detect as JD)
       const jobKeywords = /\b(responsibilities|requirements|qualifications|experience required|skills required|about the role|job description|we are looking for|you will|must have|nice to have|salary|benefits|apply|candidate|position|vacancy)\b/i;
-      const isLikelyJobDescription = !isScreeningMode && messageContent.length > 200 && jobKeywords.test(messageContent);
-      const isShortJobPost = !isScreeningMode && messageContent.length > 100 && (messageContent.match(jobKeywords) || []).length >= 2;
-      // If the session already has a completed application, treat any
-      // meaningfully long paste as a fresh JD. Matches the no-session
-      // heuristic so users aren't trapped in general-chat after one run.
+      // Once an application is finished the composer is mostly edit requests,
+      // so a new JD has to carry at least two job-ad markers; length plus a
+      // single common word ("apply", "position") is not enough to start over.
       const sessionHasCompletedApplication = Boolean(currentSession.generatedCV);
-      const isFollowUpJobDescription = !isScreeningMode && sessionHasCompletedApplication && messageContent.length > 100;
-      const isNewJobDescription = isLikelyJobDescription || isShortJobPost || isFollowUpJobDescription;
+      const isLikelyJobDescription = !isScreeningMode && !sessionHasCompletedApplication && messageContent.length > 200 && jobKeywords.test(messageContent);
+      // Count with a global regex: a non-global match() returns [hit, group]
+      // and would read one marker as two.
+      const markerHits = (messageContent.match(new RegExp(jobKeywords.source, 'gi')) || []).length;
+      const isShortJobPost = !isScreeningMode && messageContent.length > 100 && markerHits >= 2;
+      const isNewJobDescription = isLikelyJobDescription || isShortJobPost;
 
       if (isNewJobDescription) {
         setFitAnalysisContextId(null);
@@ -1000,6 +1002,7 @@ export function useAgentWorkflow(options?: {
     setIsScreeningMode,
     // Actions
     handleSend,
+    handleGeneralChat,
     handleStopGeneration,
     runAgentWorkflow,
     runFitAnalysisFlow,

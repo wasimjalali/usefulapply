@@ -45,6 +45,9 @@ interface UIState {
   // The dashboard shell expands a collapsed chat panel on change; ChatPanel
   // focuses whichever JD field is mounted (launchpad textarea or composer).
   jdFocusRequest: number;
+
+  // Sidebar "New application" signal. ChatPanel owns workflow-local reset.
+  newApplicationRequest: number;
 }
 
 interface UIActions {
@@ -68,6 +71,8 @@ interface UIActions {
   // Focus signal for the job-description input (see jdFocusRequest)
   requestJdFocus: () => void;
 
+  requestNewApplication: () => void;
+
   // Reset
   resetUI: () => void;
 }
@@ -83,6 +88,7 @@ const initialState: UIState = {
   pendingJobFeedAutostart: null,
   pendingApplicationAction: null,
   jdFocusRequest: 0,
+  newApplicationRequest: 0,
 };
 
 /**
@@ -111,6 +117,7 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
 
   // Focus signal
   requestJdFocus: () => set((state) => ({ jdFocusRequest: state.jdFocusRequest + 1 })),
+  requestNewApplication: () => set((state) => ({ newApplicationRequest: state.newApplicationRequest + 1 })),
 
   // Reset
   resetUI: () => set(initialState),

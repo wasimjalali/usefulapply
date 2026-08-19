@@ -412,15 +412,25 @@ export async function POST(request: NextRequest) {
           return;
         }
 
-        // Server-side anonymous generation tracking
+        // Server-side anonymous tracking. Without an account the only thing on
+        // offer is one fit check per IP; every kit needs a signed-in user.
         const ipHash = hashIP(clientIP);
         if (isAnonymous) {
+          if (action !== 'fit_analysis') {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: 'error',
+              code: 'ANONYMOUS_LIMIT_REACHED',
+              message: 'Create a free account to generate the kit. 4 credits included, no card.',
+            })}\n\n`));
+            controller.close();
+            return;
+          }
           const alreadyUsed = await hasAnonymousGeneration(ipHash);
           if (alreadyUsed) {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               type: 'error',
               code: 'ANONYMOUS_LIMIT_REACHED',
-              message: 'You have already used your free generation. Sign up for a free account to continue.',
+              message: 'You have already used your free fit check. Create a free account to continue.',
             })}\n\n`));
             controller.close();
             return;
@@ -563,6 +573,10 @@ export async function POST(request: NextRequest) {
             if (activeReservationKey && activeReservationUserId) {
               await captureReservationSafe({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
               activeReservationKey = null;
+            }
+            // The free anonymous fit check is spent once it produced a verdict.
+            if (isAnonymous) {
+              await recordAnonymousGenerationSafe(ipHash);
             }
 
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({

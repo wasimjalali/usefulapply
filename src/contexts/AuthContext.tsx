@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { consumeAnonymousCarryOver } from '@/lib/anonymous-generation';
 import { authClient } from '@/auth/client';
 import type { Profile } from '@/lib/supabase/types';
 import { getOrCreateProfileAction, getProfileAction, updateProfileAction } from '@/db/actions';
@@ -44,6 +45,7 @@ function clearPersistedStores() {
     useUIStore.getState().resetUI();
     localStorage.removeItem('session-store');
     localStorage.removeItem('cv-store');
+    localStorage.removeItem('usefulapply_resume_intent');
   } catch (e) {
     console.error('[Auth] Failed to clear persist storage:', e);
   }
@@ -145,7 +147,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (user) {
       const prevId = prevUserIdRef.current || readAuthUserId();
-      if (prevId && prevId !== user.id) {
+      // Anonymous data (CV, fit check) carries over only when the guided
+      // line's sign-up card marked the hand-off. Any other first sign-in on a
+      // browser that never held a user drops it, so a stranger's CV can't
+      // become this account's primary CV via useSupabaseSync.
+      const carryOver = consumeAnonymousCarryOver();
+      if ((prevId && prevId !== user.id) || (!prevId && !carryOver)) {
         clearPersistedStores();
       }
       writeAuthUserId(user.id);

@@ -21,13 +21,16 @@ import {
   Sparkles,
   ArrowDown,
   ArrowRight,
+  ArrowUpRight,
   Zap,
   Search,
 } from 'lucide-react';
 import { BrandIcon } from './BrandLogo';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { SignUpWallModal, hasUsedFreeGeneration } from '@/components/SignUpWallModal';
-import { InsufficientCreditsModal } from '@/components/InsufficientCreditsModal';
+import { hasUsedFreeGeneration } from '@/lib/anonymous-generation';
+import { DecisionChips } from '@/components/shell/DecisionChips';
+import { useCreditsBalance, formatResetDate } from '@/hooks/useCreditsBalance';
+import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { usePostHog } from 'posthog-js/react';
 
 // Module-level dedupe set for Job Feed autostart. Kept as a safety net in
@@ -54,9 +57,16 @@ interface ChatPanelProps {
   isMobileDrawer?: boolean;
   /** True when the panel is docked as the desktop right-hand column. */
   docked?: boolean;
+  /** Spine workspace: no top chrome, chips for decisions, no signup/credits modals. */
+  spine?: boolean;
 }
 
-export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false }: ChatPanelProps) {
+export function ChatPanel({
+  onTabChange,
+  isMobileDrawer = false,
+  docked = false,
+  spine = false,
+}: ChatPanelProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, profile } = useAuth();
@@ -88,6 +98,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
     isScreeningMode,
     setIsScreeningMode,
     handleSend: workflowHandleSend,
+    handleGeneralChat,
     handleStopGeneration,
     runAgentWorkflow,
     runFitAnalysisFlow,
@@ -116,16 +127,18 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
         // False positive. Surface a recoverable error instead of the upsell.
         addChatMessage({
           role: 'assistant',
-          content: '❌ Sorry, something went wrong during generation. Your credits were not charged. Please try again.',
+          content: 'Sorry, something went wrong during generation. Your credits were not charged. Please try again.',
         });
         return;
       }
-      setCreditsModalData({ required, available: liveAvailable });
-      setShowCreditsModal(true);
+      setShortCredits({ required, available: liveAvailable });
+      addChatMessage({
+        role: 'assistant',
+        content: `You have ${liveAvailable} credits left this month, so here's what's open to you:`,
+      });
     },
     onAnonymousLimitReached: () => {
-      setSignUpWallTrigger('new-application');
-      setShowSignUpWall(true);
+      askForAccount();
     },
   });
 
@@ -134,10 +147,20 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
   const [messageFeedback, setMessageFeedback] = useState<Record<string, 'positive' | 'negative'>>({});
   const [feedbackModal, setFeedbackModal] = useState<{ messageId: string; content: string; type: 'positive' | 'negative' } | null>(null);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
-  const [showSignUpWall, setShowSignUpWall] = useState(false);
-  const [signUpWallTrigger, setSignUpWallTrigger] = useState<'download' | 'new-application' | 'general'>('new-application');
-  const [showCreditsModal, setShowCreditsModal] = useState(false);
-  const [creditsModalData, setCreditsModalData] = useState<{ required: number; available: number } | null>(null);
+  const [shortCredits, setShortCredits] = useState<{ required: number; available: number } | null>(null);
+  const [pendingDecisionJd, setPendingDecisionJd] = useState<string | null>(null);
+  const [needsAccount, setNeedsAccount] = useState(false);
+
+  // Anonymous visitor hit something that needs an account. One line in the
+  // conversation plus a chip to act on; the old modal wall is gone.
+  function askForAccount() {
+    addChatMessage({
+      role: 'assistant',
+      content: 'Create a free account to keep going. 4 credits included, no card.',
+    });
+    setNeedsAccount(true);
+  }
+  const { credits } = useCreditsBalance();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -476,12 +499,52 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
     }, 2000);
   };
 
+  // Once a kit exists the composer is mostly edit requests, so a new job ad
+  // has to look like one: long and carrying at least two job-ad markers.
+  // Length alone would turn a long change request into a new application.
+  const looksLikeJobAd = (text: string) => {
+    const markers = /\b(responsibilities|requirements|qualifications|job description|we are looking for|must have|nice to have|about the role|you will|salary|benefits|apply|candidate|position|vacancy)\b/gi;
+    const hits = (text.match(markers) || []).length;
+    if (currentSession?.generatedCV) return text.length > 100 && hits >= 2;
+    return text.length > 100 || hits > 0;
+  };
+
+  // Commit a pasted job ad to a session right before a run starts. A finished
+  // application stays in the sidebar; the new job opens its own conversation.
+  const beginJobRun = (jd: string) => {
+    setPendingDecisionJd(null);
+    if (currentSession?.generatedCV) {
+      useAppStore.getState().createNewSession(jd);
+      addChatMessage({ role: 'user', content: jd });
+    }
+  };
+
   const handleSend = async () => {
     if (!inputValue.trim()) return;
-    const result = await workflowHandleSend(inputValue.trim());
+    const text = inputValue.trim();
+    if (spine && looksLikeJobAd(text) && !isScreeningMode) {
+      if (!user && hasUsedFreeGeneration()) {
+        askForAccount();
+        setInputValue('');
+        return;
+      }
+      // With a kit on screen the new application only starts when a chip is
+      // picked (see beginJobRun), so a misread edit request costs nothing.
+      if (!currentSession) {
+        useAppStore.getState().createNewSession(text);
+      } else if (!currentSession.generatedCV) {
+        setJobDescription(text);
+      }
+      addChatMessage({ role: 'user', content: text });
+      setPendingDecisionJd(text);
+      setShortCredits(null);
+      setInputValue('');
+      return;
+    }
+    const result = await workflowHandleSend(text);
     if (result === 'show_signup_wall') {
-      setSignUpWallTrigger('new-application');
-      setShowSignUpWall(true);
+      askForAccount();
+      setInputValue('');
       return;
     }
     setInputValue('');
@@ -495,8 +558,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
     if (text.length < HERO_MIN_JD) return;
     const result = await workflowHandleSend(text, { mode });
     if (result === 'show_signup_wall') {
-      setSignUpWallTrigger('new-application');
-      setShowSignUpWall(true);
+      askForAccount();
       return;
     }
     setInputValue('');
@@ -616,11 +678,13 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
   // header button and the in-chat "start-new-application" action. Every piece
   // of component-local workflow state must be reset here: it survives
   // clearCurrentSession() and otherwise leaks into the next application.
+  const newApplicationRequest = useUIStore((state) => state.newApplicationRequest);
+  const handledNewApplicationRef = useRef(newApplicationRequest);
+
   const handleNewApplication = () => {
     // Gate: If anonymous user has already used their free generation, show signup wall
     if (!user && hasUsedFreeGeneration()) {
-      setSignUpWallTrigger('new-application');
-      setShowSignUpWall(true);
+      askForAccount();
       return;
     }
     posthog?.capture('new_application_started');
@@ -649,9 +713,20 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
     // A leftover draft would pre-fill the launchpad textarea and could enable
     // "Generate application kit" for a job the user never pasted.
     setInputValue('');
+    setPendingDecisionJd(null);
+    setShortCredits(null);
+    setNeedsAccount(false);
     autostartedApplySessionRef.current = null;
     setShowHistory(false);
   };
+
+  useEffect(() => {
+    if (newApplicationRequest === handledNewApplicationRef.current) return;
+    handledNewApplicationRef.current = newApplicationRequest;
+    handleNewApplication();
+    // handleNewApplication is recreated each render; the tick is the trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newApplicationRequest]);
 
   // Panel controls. "New Application" is the most-repeated action in the
   // product (job seekers apply 10-30 times), so it carries a label rather than
@@ -690,10 +765,8 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
         />
       )}
 
-      <div className={`h-full flex flex-col bg-cream-50 ${isMobileDrawer || isDesktopDocked ? '' : 'border-l border-cream-200'}`}>
-        {/* Panel header. The column previously opened with no title at all,
-            which left it reading as a leftover sidebar next to a finished
-            document. Naming it is what tells the user this column has a job. */}
+      <div className={`h-full flex flex-col bg-cream-50 ${isMobileDrawer || isDesktopDocked || spine ? '' : 'border-l border-cream-200'}`}>
+        {!spine && (
         <div className="flex-shrink-0 flex items-center justify-between gap-2 border-b border-cream-200 bg-cream-50 px-4 py-2.5">
           <div className="flex items-center gap-2 min-w-0">
             <Sparkles className="w-4 h-4 text-gold-500 flex-shrink-0" />
@@ -703,6 +776,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
           </div>
           {chatNavButtons}
         </div>
+        )}
 
         {/* History Overlay */}
         <div className="relative">
@@ -766,7 +840,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
           }`}
         >
           {/* Welcome Hero */}
-          {showWelcomeHero ? (
+          {!spine && showWelcomeHero ? (
             <div className="flex flex-col">
               <div className="px-1 pt-1">
                 {currentCV ? (
@@ -874,7 +948,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
                 {!user && (
                   <div className="mt-6 pt-5 border-t border-cream-200 text-center">
                     <button
-                      onClick={() => { setSignUpWallTrigger('general'); setShowSignUpWall(true); }}
+                      onClick={() => router.push('/auth/signup')}
                       className="cta-gold w-full px-4 py-2.5 text-sm font-semibold bg-gold-400 text-white rounded-lg hover:bg-gold-500 shadow-sm cursor-pointer"
                     >
                       Sign up free
@@ -926,6 +1000,7 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
               onAction={handleAction}
               onFeedback={handleFeedbackClick}
               feedback={messageFeedback[message.id]}
+              layout={spine ? 'spine' : 'classic'}
             />
           ))}
 
@@ -1005,22 +1080,162 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
           {/* Inline follow-up: Fit analysis actions */}
           {!isAgentWorking &&
             !currentSession?.generatedCV &&
+            !pendingDecisionJd &&
             !!(fitAnalysisContextId || hasFreshPendingFitAnalysis) && (
-            <div className="flex justify-end gap-2 mt-2">
-              <button
-                onClick={() => handleAction('generate-full-application')}
-                className="flex items-center gap-2 rounded-full bg-gold-400 text-white px-4 py-2.5 text-sm font-semibold shadow-sm hover:bg-gold-500 transition-colors duration-200 cursor-pointer"
-              >
-                <Zap className="w-4 h-4" />
-                Generate Kit
-              </button>
-              <button
-                onClick={() => handleAction('skip-job')}
-                className="flex items-center gap-2 rounded-full border border-cream-200 bg-white text-charcoal px-4 py-2.5 text-sm font-medium hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer"
-              >
-                New Search
-              </button>
+            <DecisionChips
+              chips={
+                (credits?.total ?? CREDIT_COSTS.GENERATION_AFTER_FIT) >= CREDIT_COSTS.GENERATION_AFTER_FIT
+                  ? [
+                      {
+                        id: 'generate-kit',
+                        label: 'Generate the full kit',
+                        cost: `${CREDIT_COSTS.GENERATION_AFTER_FIT} credits`,
+                        variant: 'primary',
+                        icon: <Zap className="h-4 w-4" />,
+                        onSelect: () => { void handleAction('generate-full-application'); },
+                      },
+                    ]
+                  : [
+                      {
+                        id: 'upgrade-kit',
+                        label: 'Upgrade to Plus to generate the kit',
+                        cost: '50 credits a month',
+                        variant: 'secondary',
+                        icon: <ArrowUpRight className="h-4 w-4" />,
+                        onSelect: () => router.push('/pricing'),
+                      },
+                    ]
+              }
+              hint={
+                (credits?.total ?? CREDIT_COSTS.GENERATION_AFTER_FIT) < CREDIT_COSTS.GENERATION_AFTER_FIT
+                  ? `The full kit needs ${CREDIT_COSTS.GENERATION_AFTER_FIT}. Your ${credits?.planTier === 'free' ? 'free ' : ''}credits reset${formatResetDate(credits?.nextResetDate) ? ` on ${formatResetDate(credits?.nextResetDate)}` : ' next month'}.`
+                  : undefined
+              }
+            />
+          )}
+
+          {spine && !isAgentWorking && pendingDecisionJd && (
+            <div className="mt-1">
+              {(credits?.total ?? CREDIT_COSTS.FULL_APPLICATION) < CREDIT_COSTS.FULL_APPLICATION
+                && (credits?.total ?? 0) >= CREDIT_COSTS.FIT_ANALYSIS ? (
+                <DecisionChips
+                  chips={[
+                    {
+                      id: 'check-fit',
+                      label: 'Check fit first',
+                      cost: `${CREDIT_COSTS.FIT_ANALYSIS} credits`,
+                      variant: 'primary',
+                      icon: <Search className="h-4 w-4" />,
+                      onSelect: () => {
+                        const jd = pendingDecisionJd;
+                        beginJobRun(jd);
+                        void runFitAnalysisFlow(jd);
+                      },
+                    },
+                    {
+                      id: 'upgrade',
+                      label: 'Upgrade to Plus to generate the kit',
+                      cost: '50 credits a month',
+                      variant: 'secondary',
+                      icon: <ArrowUpRight className="h-4 w-4" />,
+                      onSelect: () => router.push('/pricing'),
+                    },
+                  ]}
+                  hint={`The full kit needs ${CREDIT_COSTS.GENERATION_AFTER_FIT}. Your ${credits?.planTier === 'free' ? 'free ' : ''}credits reset${formatResetDate(credits?.nextResetDate) ? ` on ${formatResetDate(credits?.nextResetDate)}` : ' next month'}.`}
+                />
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <DecisionChips
+                    chips={[
+                      {
+                        id: 'check-fit',
+                        label: 'Check my fit',
+                        cost: `${CREDIT_COSTS.FIT_ANALYSIS} credits`,
+                        variant: 'primary',
+                        icon: <Search className="h-4 w-4" />,
+                        onSelect: () => {
+                          const jd = pendingDecisionJd;
+                          beginJobRun(jd);
+                          void runFitAnalysisFlow(jd);
+                        },
+                      },
+                      ...(currentSession?.generatedCV
+                        ? [{
+                            id: 'not-a-job',
+                            label: 'Not a job ad, just a question',
+                            variant: 'secondary' as const,
+                            onSelect: () => {
+                              const jd = pendingDecisionJd;
+                              setPendingDecisionJd(null);
+                              void handleGeneralChat(jd);
+                            },
+                          }]
+                        : []),
+                    ]}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const jd = pendingDecisionJd;
+                      beginJobRun(jd);
+                      void runAgentWorkflow(jd);
+                    }}
+                    className="self-start text-[13px] font-medium text-navy-600 hover:text-navy-800 cursor-pointer"
+                  >
+                    Skip the check, generate the full kit now
+                  </button>
+                </div>
+              )}
             </div>
+          )}
+
+          {spine && needsAccount && !user && !isAgentWorking && (
+            <DecisionChips
+              chips={[
+                {
+                  id: 'create-account',
+                  label: 'Create a free account',
+                  variant: 'primary',
+                  onSelect: () => router.push('/auth/signup'),
+                },
+                {
+                  id: 'log-in',
+                  label: 'Log in',
+                  variant: 'secondary',
+                  onSelect: () => router.push('/auth/login'),
+                },
+              ]}
+            />
+          )}
+
+          {spine && shortCredits && !pendingDecisionJd && !isAgentWorking && (
+            <DecisionChips
+              chips={[
+                ...(shortCredits.available >= CREDIT_COSTS.FIT_ANALYSIS && !currentSession?.pendingFitAnalysis
+                  ? [{
+                      id: 'check-fit-short',
+                      label: 'Check fit first',
+                      cost: `${CREDIT_COSTS.FIT_ANALYSIS} credits`,
+                      variant: 'primary' as const,
+                      icon: <Search className="h-4 w-4" />,
+                      onSelect: () => {
+                        const jd = currentSession?.jobDescription || '';
+                        setShortCredits(null);
+                        if (jd) void runFitAnalysisFlow(jd);
+                      },
+                    }]
+                  : []),
+                {
+                  id: 'upgrade-short',
+                  label: 'Upgrade to Plus to generate the kit',
+                  cost: '50 credits a month',
+                  variant: 'secondary',
+                  icon: <ArrowUpRight className="h-4 w-4" />,
+                  onSelect: () => router.push('/pricing'),
+                },
+              ]}
+              hint={`The full kit needs ${shortCredits.required}. Your credits reset${formatResetDate(credits?.nextResetDate) ? ` on ${formatResetDate(credits?.nextResetDate)}` : ' next month'}.`}
+            />
           )}
 
           {/* Inline follow-up: Screening question prompt */}
@@ -1066,8 +1281,8 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
         )}
 
         {/* Input Area — hidden while the launchpad owns the JD input */}
-        {!isLaunchpadState && (
-        <div className={isDesktopDocked ? 'border-t border-cream-200 bg-cream-50 px-3 pt-2.5 pb-3' : ''}>
+        {(spine || !isLaunchpadState) && (
+        <div className={isDesktopDocked || spine ? 'border-t border-cream-200 bg-cream-50 px-5 pt-2.5 pb-4' : ''}>
           <ChatInput
             value={inputValue}
             onChange={setInputValue}
@@ -1075,32 +1290,23 @@ export function ChatPanel({ onTabChange, isMobileDrawer = false, docked = false 
             onStop={handleStopGeneration}
             disabled={!currentCV || isAnalyzing || isGenerating || isTyping}
             isWorking={isAgentWorking || isTyping}
-            placeholder={currentCV
-              ? "Paste a job description or ask me anything..."
-              : "Upload your CV first to get started..."
+            placeholder={
+              spine
+                ? (currentSession?.generatedCV
+                    ? 'Ask for a change, or paste a screening question'
+                    : 'Paste a job ad or ask anything')
+                : currentCV
+                  ? 'Paste a job description or ask me anything...'
+                  : 'Upload your CV first to get started...'
             }
             compact={messages.length > 0}
-            surface={isDesktopDocked ? 'embedded' : 'floating'}
+            surface={isDesktopDocked || spine ? 'embedded' : 'floating'}
             focusSignal={jdFocusRequest}
           />
         </div>
         )}
       </div>
 
-      {/* Sign Up Wall Modal */}
-      <SignUpWallModal
-        isOpen={showSignUpWall}
-        onClose={() => setShowSignUpWall(false)}
-        trigger={signUpWallTrigger}
-      />
-
-      {/* Insufficient Credits Modal */}
-      <InsufficientCreditsModal
-        isOpen={showCreditsModal}
-        onClose={() => setShowCreditsModal(false)}
-        required={creditsModalData?.required}
-        available={creditsModalData?.available}
-      />
     </>
   );
 }

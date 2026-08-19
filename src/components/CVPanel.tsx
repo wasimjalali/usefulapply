@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef, useCallback, useEffect, type ReactNode } from 'react';
+import { useState, useMemo, useRef, useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Card } from './ui/Card';
@@ -8,7 +8,7 @@ import { Button } from './ui/Button';
 import { useAppStore } from '@/store/useAppStore';
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore } from '@/store/useSessionStore';
-import { useUIStore } from '@/store/useUIStore';
+
 import { CVTemplateRenderer, CV_TEMPLATE_DEFINITIONS } from './cv-templates';
 import { TemplateSelector } from './cv-templates/TemplateSelector';
 import { structuredCVToCVData } from '@/lib/cv-templates/parser';
@@ -28,7 +28,6 @@ import {
   X,
   Camera,
   Trash2,
-  Sparkles,
 } from 'lucide-react';
 import { uploadProfilePhoto } from '@/lib/supabase/storage';
 import type { ProfilePhoto } from '@/store/useCVStore';
@@ -195,7 +194,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
     setProfilePhoto,
   } = useAppStore();
   const editedOriginalCVData = useCVStore(state => state.editedOriginalCVData);
-  const requestJdFocus = useUIStore(state => state.requestJdFocus);
+
   const { user, profile, updateProfile } = useAuth();
   const { toast } = useToast();
   const generatedCV = currentSession?.generatedCV;
@@ -938,26 +937,26 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
   const previewCVData = editedCVData || cvData;
 
   // Toolbar content — rendered via portal (desktop) or inline (mobile)
-  const toolbarContent = !isLoading ? (
+  const toolbarContent = (
     <>
       {/* Original/Optimized Toggle */}
       {generatedCV && (
-        <div className="flex items-center bg-cream-50 border border-cream-200 rounded-2xl p-0.5 shadow-sm flex-shrink-0">
+        <div className="flex items-center bg-cream-50 border border-cream-200 rounded-full p-0.5 shadow-sm flex-shrink-0">
           <button
             onClick={() => { setShowOptimized(false); setEditedCVData(null); }}
-            className={`px-3.5 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
-              !showOptimized ? 'bg-navy-700 text-white shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
+            className={`px-3.5 py-2 text-sm font-medium rounded-full transition-all cursor-pointer ${
+              !showOptimized ? 'bg-white text-navy-800 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
             }`}
           >
             Original
           </button>
           <button
             onClick={() => { setShowOptimized(true); setEditedCVData(null); }}
-            className={`px-3.5 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
-              showOptimized ? 'bg-navy-700 text-white shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
+            className={`px-3.5 py-2 text-sm font-medium rounded-full transition-all cursor-pointer ${
+              showOptimized ? 'bg-white text-navy-800 shadow-sm font-semibold' : 'text-warm-gray hover:text-charcoal'
             }`}
           >
-            Optimized
+            Tailored
           </button>
         </div>
       )}
@@ -967,7 +966,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
         <button
           ref={templateSelectorBtnRef}
           onClick={() => setShowTemplateSelector(!showTemplateSelector)}
-          className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium bg-white border border-cream-200 rounded-2xl hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0 shadow-sm"
+          className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium bg-cream-50 border border-cream-200 rounded-full hover:bg-white transition-colors duration-200 cursor-pointer flex-shrink-0 shadow-sm"
         >
           <Layout className="w-4 h-4 text-navy-500" />
           <span>Templates</span>
@@ -1024,7 +1023,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
             setIsEditMode(true);
             if (cvData && !editedCVData) setEditedCVData(cvData);
           }}
-          className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium bg-white border border-cream-200 rounded-2xl hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer flex-shrink-0 shadow-sm"
+          className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium bg-cream-50 border border-cream-200 rounded-full hover:bg-white transition-colors duration-200 cursor-pointer flex-shrink-0 shadow-sm"
         >
           <Edit3 className="w-4 h-4 text-navy-500" />
           <span>Edit</span>
@@ -1063,7 +1062,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
             size="sm"
             onClick={() => handleCopy(displayContent)}
             title="Copy to clipboard"
-            className="flex-shrink-0 rounded-2xl bg-white border border-cream-200 hover:bg-cream-50 shadow-sm"
+            className="flex-shrink-0 rounded-full bg-cream-50 border border-cream-200 hover:bg-white shadow-sm"
           >
             {copied ? <Check className="w-4 h-4 text-gold-600 mr-1.5" /> : <Copy className="w-4 h-4 mr-1.5" />}
             Copy
@@ -1078,8 +1077,8 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
             onClick={handleDownloadPDF}
             disabled={isDownloading || !cvData}
             title="Download as PDF"
-            className={`flex-shrink-0 rounded-2xl shadow-sm ${
-              generatedCV ? '' : 'bg-white border border-cream-200 hover:bg-cream-50'
+            className={`flex-shrink-0 rounded-full shadow-sm ${
+              generatedCV ? '' : 'bg-cream-50 border border-cream-200 hover:bg-white'
             }`}
           >
             {isDownloading ? (
@@ -1094,7 +1093,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
 
       {atsControl}
     </>
-  ) : null;
+  );
 
   const templatePopover = showTemplateSelector && !isEditMode && templatePopoverPos && typeof document !== 'undefined'
     ? createPortal(
@@ -1146,7 +1145,7 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
 
       {/* Content Area */}
       <div className="flex-1 overflow-hidden">
-        {isLoading ? (
+        {isLoading && !currentCV ? (
           <StepIndicator
             stepType="cv"
             isLoading={true}
@@ -1177,19 +1176,11 @@ export function CVPanel({ toolbarPortal, atsControl }: CVPanelProps = {}) {
               && !isEditMode
               && !currentSession?.jobDescription
               && !currentSession?.chatMessages?.length && (
-              <div className="flex-shrink-0 flex flex-wrap items-center justify-between gap-3 border-b border-cream-200 bg-cream-50 px-4 py-2.5 sm:px-6">
+              <div className="flex-shrink-0 border-b border-cream-200 bg-cream-50 px-4 py-2.5 sm:px-6">
                 <p className="text-sm text-warm-gray">
-                  <span className="font-semibold text-navy-700">This is your base CV.</span>{' '}
-                  It isn&apos;t tailored to a job yet.
+                  <span className="font-semibold text-navy-800">Base CV.</span>{' '}
+                  Not tailored to this job yet.
                 </p>
-                <button
-                  type="button"
-                  onClick={requestJdFocus}
-                  className="inline-flex flex-shrink-0 items-center gap-2 rounded-lg bg-gold-400 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  Tailor for a job
-                </button>
               </div>
             )}
 

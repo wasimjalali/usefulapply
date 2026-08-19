@@ -72,6 +72,7 @@ interface ChatMessageProps {
   onFeedback: (messageId: string, content: string, type: 'positive' | 'negative') => void;
   feedback?: 'positive' | 'negative';
   collapseLength?: number;
+  layout?: 'classic' | 'spine';
 }
 
 export function ChatMessage({ 
@@ -80,6 +81,7 @@ export function ChatMessage({
   onFeedback,
   feedback,
   collapseLength = 300,
+  layout = 'classic',
 }: ChatMessageProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -152,11 +154,38 @@ export function ChatMessage({
     isFitAnalysisMessage ||
     isCompletionMessage ||
     actionItems.length > 0;
+  const isSpine = layout === 'spine';
   const surfaceClassName = message.role === 'user'
-    ? 'rounded-2xl border border-cream-200 bg-cream-100 px-4 py-3 shadow-sm'
+    ? isSpine
+      ? 'rounded-2xl rounded-br-sm border border-cream-200 bg-white px-3.5 py-3 shadow-sm'
+      : 'rounded-2xl border border-cream-200 bg-cream-100 px-4 py-3 shadow-sm'
     : useElevatedSurface
       ? 'rounded-2xl border border-cream-200 bg-white px-4 py-3 shadow-sm'
       : 'px-1 py-1.5';
+
+  if (isSpine && message.role === 'user') {
+    return (
+      <div className="group/msg flex justify-end">
+        <div className={`max-w-[86%] ${surfaceClassName}`}>
+          {isLongMessage ? (
+            <div className="relative">
+              <div className={`text-sm text-charcoal overflow-hidden ${isExpanded ? '' : 'max-h-24'}`}>
+                <MarkdownText content={message.content} className="text-sm text-charcoal" />
+              </div>
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="mt-2 text-xs font-medium text-navy-600 cursor-pointer"
+              >
+                {isExpanded ? 'Show less' : 'Show more'}
+              </button>
+            </div>
+          ) : (
+            <MarkdownText content={message.content} className="text-sm text-charcoal" />
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="group/msg flex gap-3">
@@ -253,20 +282,16 @@ export function ChatMessage({
           {actionItems.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
               {actionItems.map((action, index) => {
-                const isPrimaryAction =
-                  action.action === 'generate-full-application' ||
-                  action.action === 'screening-questions' ||
-                  action.action === 'navigate-pricing' ||
-                  (actionItems.length === 1 && action.action !== 'start-new-application');
+                const isPrimaryAction = index === 0 && action.action !== 'start-new-application';
 
                 return (
                   <button
                     key={index}
                     onClick={() => onAction(action.action)}
-                    className={`flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition-all cursor-pointer ${
+                    className={`flex items-center gap-2 rounded-full border px-[18px] py-2.5 text-sm font-semibold transition-colors duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/50 ${
                       isPrimaryAction
                         ? 'border-gold-400 bg-gold-400 text-white shadow-sm hover:bg-gold-500 hover:border-gold-500'
-                        : 'border-cream-200 bg-white text-charcoal hover:bg-cream-50 hover:border-gold-300'
+                        : 'border-cream-200 bg-cream-50 text-navy-800 hover:bg-white'
                     }`}
                   >
                     {action.icon === 'cv' && <FileText className={`w-4 h-4 ${isPrimaryAction ? 'text-white' : 'text-navy-600'}`} />}
