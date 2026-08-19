@@ -6,7 +6,7 @@ Approved by Wasim on 19 Aug 2026 with no changes. This is the design of record f
 
 - Direction exploration (A chat spine, B same room, C guided line): https://claude.ai/code/artifact/5553a469-bf6f-4d8e-b991-d2dd738345fb
 - **Locked flow (10 artboards):** https://claude.ai/code/artifact/8244abc5-adb3-4363-a4ed-59e66f7901da
-- **Rendered artboards (PNG, 1440x900):** `flow-1-artboards/png/` in step order (L1 Your CV, L1b, L2, L3, L3b, L4a, L4b, then S1 Kit ready, S2 Settings menu, S3 Short on credits).
+- **Rendered artboards (PNG, 1440x900):** `flow-1-artboards/png/` in step order (L1 Your CV, L1b, L2, L3, L3b, L4a, L4b, then S1 Kit ready, S2 Settings modal, S3 Short on credits).
 - Artboard sources: `flow-1-artboards/` (`lib.mjs` shared tokens and partials, `gen.mjs` directions, `final/gen2.mjs` the locked flow). `node gen2.mjs` regenerates the `.dc.html` files; re-seed with the Claude Design `/design` helper.
 
 ## The decision
@@ -39,14 +39,9 @@ Three columns, no top header.
 
 **Sidebar (248 px).** Wordmark. "New application" (outlined, not gold: gold is reserved for the one primary action on a surface, decided in flow 2). "Today's feed" card with the new-roles count. APPLICATIONS: one entry per application, company, role and a status pill (Now, Kit ready, Drafted, Applied). "Tracker table" link. Bottom: profile (avatar, name, plan) with a **settings gear** to its right.
 
-**Settings menu** (pops up from the gear, five items, nothing more):
-1. Plan block: plan name, "2.5 of 4 credits", bar, **Upgrade to Plus** button
-2. Profile & account (name, photo, email, password, 2FA, delete account, merged)
-3. Plan & billing (subscription, credit packs, invoices, Stripe portal, merged)
-4. Notifications
-5. Sign out
+**Settings** (superseded 19 Aug by `flow-5-settings-billing.md`): the gear opens a settings modal over the workspace with three panes, General, Usage & Billing, Notifications. The earlier five-item popover menu is retired.
 
-The Upgrade button, the credit chip and the avatar leave the top of the app. The credit balance lives in the settings menu and inline on any chip that costs credits.
+The Upgrade button, the credit chip and the avatar leave the top of the app. The credit balance lives in the settings modal (Usage & Billing) and inline on any chip that costs credits.
 
 **Conversation (520 px).** Header: company and role in serif, status beneath ("Kit ready"). No history icon (the sidebar is the history) and no balance (it lives in the settings menu and on cost chips). Both removed in the flow 2 round. Messages from the assistant carry the U mark; the user's messages sit right. Decisions arrive as **chips** inside the conversation with the cost on each: one primary gold chip, the rest secondary. Composer at the bottom.
 

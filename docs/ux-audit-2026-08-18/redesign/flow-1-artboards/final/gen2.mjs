@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { I, wordmark, cvDoc, cvToolbar, jobText, stages, progress, wrap, frame } from '../lib.mjs';
+import { settingsModal } from './settings.mjs';
 import { assistantAvatar, EXTRA, sidebar, convoHeader, assistant, userMsg, composer, canvasKit, canvasBase, APPS_READY, APPS_LATER, spineFrame } from './spine.mjs';
 // ---------------------------------------------------------------------------
 // The guided line (first run)
@@ -171,20 +172,19 @@ const S1 = spineFrame(
   canvasKit()
 );
 
-// S2. Settings menu open
-const S2 = spineFrame(
-  sidebar({ apps: APPS_READY, menuOpen: true }),
-  `${convoHeader('Pixellot, Product Manager', 'Kit ready')}
-   <div style="flex: 1; display: flex; flex-direction: column; gap: 22px; padding: 22px 20px; overflow: hidden">
-     ${assistant(`<span>Your kit for Pixellot is ready. Everything is on the right: a tailored CV (ATS 78%), a cover letter that opens with your 40% engagement result, and two emails.</span>
-       <div style="display: flex; flex-direction: column; gap: 10px; align-items: flex-start">
-         <span class="chip primary">${I.download}Download the kit</span>
-         <span class="chip secondary">${EXTRA.star}Answer screening questions</span>
-       </div>`)}
-   </div>
-   ${composer()}`,
-  canvasKit()
-);
+// S2. Settings: the gear opens a modal over the workspace (General / Usage & Billing / Notifications)
+const S2 = frame(`
+  <div style="position: relative; flex: 1; display: flex; min-height: 0">
+    ${sidebar({ apps: APPS_READY })}
+    <div style="width: 520px; flex-shrink: 0; display: flex; flex-direction: column; border-right: 1px solid #F5F0E8; background: #FEFDFB">${convoHeader('Pixellot, Product Manager', 'Kit ready')}
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 22px; padding: 22px 20px; overflow: hidden">
+        ${assistant(`<span>Your kit for Pixellot is ready. Tailored CV (ATS 78%), a cover letter that opens with your 40% engagement result, and two emails. Nothing was invented.</span>
+          <div style="display: flex; flex-direction: column; gap: 10px; align-items: flex-start"><span class="chip primary">${I.download}Download the kit</span><span class="chip secondary">${EXTRA.star}Answer screening questions</span></div>`)}
+      </div>
+      ${composer()}</div>
+    ${canvasKit()}
+    ${settingsModal({ tab: 'usage', plan: 'free' })}
+  </div>`);
 
 // S3. A later application, short on credits: the price and the wall live on the chip
 const S3 = spineFrame(
