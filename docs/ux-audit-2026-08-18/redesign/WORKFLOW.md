@@ -1,6 +1,6 @@
 # The UX redesign workflow, end to end
 
-**Purpose:** the record of how this redesign was run, from the first screenshot to the last locked flow, written so it can be turned into a reusable skill once the build is done. Steps 1 and 2 are complete; step 3 is next.
+**Purpose:** the record of how this redesign was run, from the first screenshot to the last locked flow, written so it can be turned into a reusable skill once the build is done. Steps 1 and 2 are complete (all seven flows locked 19 August 2026); step 3 is next.
 
 ---
 
@@ -44,7 +44,7 @@ Why this order: friction items are impossible to judge while the product is lyin
 - `flow-1-artboards/final/spine.mjs`: the app shell (sidebar, conversation, composer, kit canvas). `settings.mjs`: the settings modal. Every flow imports these, so a shell change is one edit.
 - Per flow `genN.mjs`: composes artboards from the partials; `node genN.mjs` writes the `.dc.html` files. Variant generators export their partials so the locked generator can reuse them.
 - The `/design` skill's `seed-canvas.mjs` seeds a canvas from the `.dc.html` files plus a `canvas.json` (layout, titles, sticky notes); the Artifact tool publishes it; passing the existing URL republishes in place.
-- `shoot.mjs`: renders every `.dc.html` in a folder to PNG with Playwright, so the repo carries the visuals, not only the links.
+- `shoot.mjs`: renders every `.dc.html` in a folder to PNG with Playwright, so the repo carries the visuals, not only the links. `full` as the third argument captures tall artboards (marketing pages) whole.
 - Preview loop: a tiny local static server plus a screenshot to catch overflow and wrapping before publishing. Most fixes were width arithmetic (toolbars, tables, cards) and one import bug.
 
 ### 2e. What to watch for
@@ -54,7 +54,7 @@ Why this order: friction items are impossible to judge while the product is lyin
 
 ## Step 3. The build (next)
 
-Per flow, in order 1 to 6 (7 after it's designed): spec from the flow doc → implementation plan (`writing-plans`) → feature branch → implement → `ui-tester` against the PNGs → `/code-review` → PR → merge → deploy → confirm live. Flow 1 first, because it's the shell.
+Per flow, in order 1 to 7 (7 last, its shots are real screenshots of the built screens): spec from the flow doc → implementation plan (`writing-plans`) → feature branch → implement → `ui-tester` against the PNGs → `/code-review` → PR → merge → deploy → confirm live. Flow 1 first, because it's the shell.
 
 ## Artifacts of this track
 
@@ -66,7 +66,7 @@ docs/ux-audit-2026-08-18/
   redesign/
     HANDOFF.md                 this track's handoff
     WORKFLOW.md                this file
-    flow-1-first-run.md ... flow-6-auth.md
+    flow-1-first-run.md ... flow-7-marketing.md
     flow-N-artboards/          genN.mjs, canvas.json, png/, (flow 1 also lib.mjs, final/spine.mjs, final/settings.mjs, final/gen2.mjs)
     shoot.mjs
 ```

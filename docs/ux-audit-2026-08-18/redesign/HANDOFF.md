@@ -1,4 +1,4 @@
-# Handoff: UX redesign, end of session 19 August 2026
+# Handoff: UX redesign, 19 August 2026 (updated after flow 7)
 
 **For:** the next Claude Code session on this repo (branch `rebrand/usefulapply`).
 **Read first:** `../design-philosophy.md`, then this file, then the flow doc you're working on.
@@ -7,7 +7,7 @@
 
 ## Where things stand
 
-Flows 1 to 6 are **designed, approved by Wasim and locked**. Each has a doc of record, a Claude Design canvas, rendered PNGs and generator sources, all committed on `rebrand/usefulapply`:
+Flows 1 to 7 are **designed, approved by Wasim and locked**. Each has a doc of record, a Claude Design canvas, rendered PNGs and generator sources, all committed on `rebrand/usefulapply`:
 
 | Flow | Doc | Canvas | Locked |
 |---|---|---|---|
@@ -17,7 +17,7 @@ Flows 1 to 6 are **designed, approved by Wasim and locked**. Each has a doc of r
 | 4 Tracker | `flow-4-tracker.md` | https://claude.ai/code/artifact/4ae0741c-0fcd-48a5-90ad-1c98fabb54c1 | 19 Aug |
 | 5 Settings and billing (modal) | `flow-5-settings-billing.md` | https://claude.ai/code/artifact/489f2cef-aabf-44a8-a1de-4486ed7ae1d8 | 19 Aug |
 | 6 Auth pages | `flow-6-auth.md` | https://claude.ai/code/artifact/65f6197c-8e8f-4f0e-a3f5-71bb80cd00f0 | 19 Aug |
-| 7 Marketing site | not started | | |
+| 7 Marketing site (landing, header) | `flow-7-marketing.md` | https://claude.ai/code/artifact/90ffec97-9dbc-4520-875d-69f1684a6fe9 | 19 Aug |
 
 The direction-exploration canvas for flow 1 (A/B/C shells) is at https://claude.ai/code/artifact/5553a469-bf6f-4d8e-b991-d2dd738345fb. Variant rounds for flows 3, 4 and 5 live in each artifact's version history.
 
@@ -25,8 +25,7 @@ Nothing has been built. No application code changed in this track. Last commit o
 
 ## Your mission, in order
 
-1. **Flow 7, the marketing site** (landing, features, pricing, and the header/nav). Same method as the other flows (see `WORKFLOW.md`): read the 00-anonymous screenshots and friction items F10, F24, F25, F28, F34 (most already fixed as bugs; F28 "too long" is the open one), brainstorm the two or three real layout choices with variants on a canvas, let Wasim pick, lock, write `flow-7-marketing.md`, render PNGs, commit. Wasim's steer: a much shorter landing with one CTA into the guided line, product moments using the new screens, pricing that matches the in-app plan cards; consider merging or dropping /features. The hero demo video (Tella) still shows Karko AI and needs re-recording after the build.
-2. **Then the build phase.** Only after flow 7 is locked. Per flow, starting with flow 1: write the spec from the flow doc (the "Notes for the spec and build" sections are the starting point), write the implementation plan (superpowers `writing-plans`), implement on a branch off `rebrand/usefulapply`, verify with the `ui-tester` agent against the PNGs, `/code-review`, PR, merge. Flow 1 is the shell every other flow depends on, so it goes first and biggest.
+1. **The build phase.** Per flow, starting with flow 1: write the spec from the flow doc (the "Notes for the spec and build" sections are the starting point), write the implementation plan (superpowers `writing-plans`), implement on a branch off `rebrand/usefulapply`, verify with the `ui-tester` agent against the PNGs, `/code-review`, PR, merge. Flow 1 is the shell every other flow depends on, so it goes first and biggest. Flow 7 (marketing) is last: its product shots are real screenshots of the built screens, and the Tella demo is re-recorded after it.
 
 ## Decisions that shape everything (don't relitigate)
 
@@ -39,13 +38,14 @@ Nothing has been built. No application code changed in this track. Last commit o
 - **Canvas never blanks, never switches tab on its own** (one exception: screening answers auto-open, because the user asked for exactly that).
 - **Every flow that has its own surface has its own conversation** (feed, tracker) with the assistant announcing and chips that do the work.
 - **Best work is one click away in the canvas with Back**, not in a modal or a drawer: ATS "what changed", job detail, Edit feed.
+- **Marketing site:** one landing, hero on the current aurora background, one CTA into the guided line, three moments from the new screens, the in-app plan cards; from the final band down unchanged; /pricing layout unchanged; /features removed.
 - **Words the user has; say it once; no em dashes; contractions; no filler.**
 
 ## Environment facts
 
 - Staging is https://usefulapply.com (the deployed Worker). Deploy with `npm run deploy:cf`. D1 is `usefulapply-db`; `npx wrangler d1 execute usefulapply-db --remote --command "..."`.
 - Test accounts and the test CV are listed in `../HANDOFF.md` (the audit handoff). Wasim has to sign in for you; plan verification so you ask once per account.
-- The Claude Design canvases are published from this machine's session scratchpad via the `/design` skill helper. To regenerate any canvas from the repo sources: `cd docs/ux-audit-2026-08-18/redesign/flow-N-artboards && node genN.mjs` (writes `.dc.html` files), then seed with the skill's `seed-canvas.mjs` and publish with the artifact URL above as `url` to keep the link. To re-render PNGs: `node ../shoot.mjs <dir> <out>` (uses `playwright-core` from the npx cache; see the path at the top of `shoot.mjs`).
+- The Claude Design canvases are published from this machine's session scratchpad via the `/design` skill helper. To regenerate any canvas from the repo sources: `cd docs/ux-audit-2026-08-18/redesign/flow-N-artboards && node genN.mjs` (writes `.dc.html` files), then seed with the skill's `seed-canvas.mjs` and publish with the artifact URL above as `url` to keep the link. To re-render PNGs: `node ../shoot.mjs <dir> <out>` (uses `playwright-core` from the npx cache; see the path at the top of `shoot.mjs`); add `full` for tall artboards (flow 7).
 - The one unconfirmed item from the bug track: the first live gpt-oss-120b ranking run (19 Aug 04:44 UTC) failed on JSON extraction, the fix was deployed 09:35 UTC and hasn't been exercised by a live run yet. Check `job_feed_runs.metadata.ranking_status` on the next run.
 
 ## Repo rules you must follow
