@@ -52,13 +52,14 @@
 	"images": {
 		"binding": "IMAGES"
 	},
-	// Workers AI for job feed ranking. JOB_FEED_RANKING_MODEL picks the model;
-	// remove the var to fall back to Azure OpenAI (see openai-ranking.ts).
+	// Workers AI for job feed ranking. Primary model, then the fallback model on
+	// failure, then deterministic ordering (see openai-ranking.ts).
 	"ai": {
 		"binding": "AI"
 	},
 	"vars": {
-		"JOB_FEED_RANKING_MODEL": "@cf/openai/gpt-oss-120b"
+		"JOB_FEED_RANKING_MODEL": "@cf/openai/gpt-oss-120b",
+		"JOB_FEED_RANKING_FALLBACK_MODEL": "@cf/deepseek-ai/deepseek-v4-flash-0731"
 	},
 	"kv_namespaces": [
 		{

@@ -1,4 +1,3 @@
-import { AzureOpenAI } from 'openai';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { JOB_FEED_VISIBLE_MAX_COUNT } from '@/lib/job-feed/constants';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
@@ -9,14 +8,10 @@ import type {
 } from '@/lib/job-feed/types';
 import type { JobFeedSettings } from '@/lib/supabase/types';
 
-const AZURE_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT ?? 'gpt-4.1-mini-1';
-const AZURE_MODEL_NAME = 'gpt-4.1-mini';
-
-// Workers AI (Cloudflare-hosted, billed to the Cloudflare account). Set
-// JOB_FEED_RANKING_MODEL in wrangler.jsonc vars to a @cf/... text model to
-// route ranking there; leave it unset to keep the Azure OpenAI path.
-// A/B candidates: @cf/openai/gpt-oss-120b, @cf/deepseek-ai/deepseek-v4-flash-0731,
-// @cf/meta/llama-4-scout-17b-16e-instruct.
+// Ranking runs on Workers AI (Cloudflare-hosted, billed to the Cloudflare
+// account). JOB_FEED_RANKING_MODEL / JOB_FEED_RANKING_FALLBACK_MODEL in
+// wrangler.jsonc vars pick the models. A/B candidates: @cf/openai/gpt-oss-120b,
+// @cf/deepseek-ai/deepseek-v4-flash-0731, @cf/meta/llama-4-scout-17b-16e-instruct.
 type WorkersAiBinding = {
   run(model: string, input: Record<string, unknown>): Promise<unknown>;
 };
@@ -38,19 +33,6 @@ function workersAiText(raw: WorkersAiTextResponse): string {
   const fromChoices = raw.choices?.[0]?.message?.content;
   if (typeof fromChoices === 'string' && fromChoices.length > 0) return fromChoices;
   return raw.response ?? '';
-}
-
-async function getWorkersAiRanking(): Promise<{ ai: WorkersAiBinding; model: string } | null> {
-  let env: { AI?: WorkersAiBinding; JOB_FEED_RANKING_MODEL?: string } = {};
-  try {
-    ({ env } = await getCloudflareContext({ async: true }) as { env: typeof env });
-  } catch {
-    // Outside the Worker (unit scripts, plain next dev) there is no binding.
-    return null;
-  }
-  const model = env.JOB_FEED_RANKING_MODEL ?? process.env.JOB_FEED_RANKING_MODEL;
-  if (!model || !env.AI) return null;
-  return { ai: env.AI, model };
 }
 
 /** Reasoning models sometimes wrap the JSON in fences or prose. Pull the first object out. */
@@ -75,11 +57,10 @@ interface JobFeedRankingModelResponse {
   }>;
 }
 
-// Static system prompt — identical across every ranking request, every user,
-// every run. Azure OpenAI automatically caches prefixes >=1024 tokens, so the
-// LONGER and more stable this prompt is, the higher our cache hit rate and
-// the lower our effective input token cost. visibleCap deliberately lives in
-// the per-run user message (not here) so the system prompt hash is stable
+// Static system prompt, identical across every ranking request, every user,
+// every run. Models that cache prompt prefixes (DeepSeek V4 on Workers AI does)
+// get a hit on this block, so keep it long and stable. visibleCap deliberately
+// lives in the per-run user message (not here) so the prefix stays identical
 // across tiers too.
 const SYSTEM_PROMPT = `# Role
 You are the ranking engine for Useful Apply's Daily Job Feed. Every morning you evaluate a set of job postings fetched for a specific candidate and decide which ones are worth putting in that candidate's feed today. You are the final quality gate. Deterministic prefilters upstream only enforce hard user-stated constraints (explicit employment type mismatch, posting that explicitly states a salary below the candidate's declared minimum, explicit no-sponsorship language when the candidate needs sponsorship). Everything else is your responsibility: role fit, seniority fit, location fit, remote preference fit, skill fit, freshness, and deduplication.
@@ -192,22 +173,65 @@ Return ONLY a valid JSON object. No markdown fences. No prose. Start with { and 
 
 Every candidate jobId must appear exactly once in the items array. The candidate count and your items count must match.`;
 
-let cachedClient: AzureOpenAI | null = null;
+const DEFAULT_RANKING_MODEL = '@cf/openai/gpt-oss-120b';
+const DEFAULT_FALLBACK_RANKING_MODEL = '@cf/deepseek-ai/deepseek-v4-flash-0731';
 
-function getAzureClient(): AzureOpenAI {
-  if (!cachedClient) {
-    cachedClient = new AzureOpenAI({
-      endpoint: process.env.AZURE_OPENAI_ENDPOINT!,
-      apiKey: process.env.AZURE_OPENAI_API_KEY!,
-      apiVersion: process.env.AZURE_OPENAI_API_VERSION ?? '2024-04-01-preview',
-      deployment: AZURE_DEPLOYMENT,
-    });
+async function getWorkersAiRanking(): Promise<{ ai: WorkersAiBinding; model: string; fallbackModel: string | null } | null> {
+  let env: { AI?: WorkersAiBinding; JOB_FEED_RANKING_MODEL?: string; JOB_FEED_RANKING_FALLBACK_MODEL?: string } = {};
+  try {
+    ({ env } = await getCloudflareContext({ async: true }) as { env: typeof env });
+  } catch {
+    // Outside the Worker (unit scripts, plain next dev) there is no binding.
+    return null;
   }
-  return cachedClient;
+  if (!env.AI) return null;
+  const model = env.JOB_FEED_RANKING_MODEL ?? process.env.JOB_FEED_RANKING_MODEL ?? DEFAULT_RANKING_MODEL;
+  const fallbackRaw = env.JOB_FEED_RANKING_FALLBACK_MODEL ?? process.env.JOB_FEED_RANKING_FALLBACK_MODEL ?? DEFAULT_FALLBACK_RANKING_MODEL;
+  const fallbackModel = fallbackRaw && fallbackRaw !== model ? fallbackRaw : null;
+  return { ai: env.AI, model, fallbackModel };
 }
 
-export function hasOpenAICredentials(): boolean {
-  return Boolean(process.env.AZURE_OPENAI_ENDPOINT && process.env.AZURE_OPENAI_API_KEY);
+async function runWorkersAiRanking(params: {
+  ai: WorkersAiBinding;
+  model: string;
+  messages: Array<{ role: 'system' | 'user'; content: string }>;
+  candidates: JobFeedRankingCandidate[];
+  visibleCap: number;
+}): Promise<{ items: JobFeedRankedItemRecord[] | null; model: NonNullable<JobFeedRankingExecutionResult['model']>; error: string | null }> {
+  const { ai, model, messages, candidates, visibleCap } = params;
+  const startTime = Date.now();
+  try {
+    const raw = (await ai.run(model, {
+      messages,
+      temperature: 0.2,
+      // Reasoning models spend part of this budget thinking before the JSON.
+      max_tokens: 12000,
+      response_format: { type: 'json_object' },
+    })) as WorkersAiTextResponse;
+    const latencyMs = Date.now() - startTime;
+    const inputTokens = raw.usage?.prompt_tokens ?? 0;
+    const outputTokens = raw.usage?.completion_tokens ?? 0;
+    const cachedTokens = raw.usage?.prompt_tokens_details?.cached_tokens ?? 0;
+    const neurons = raw.usage?.neurons ?? null;
+    console.log(
+      `[JobFeedRanking] ${model} | ${inputTokens}in (${cachedTokens} cached) / ${outputTokens}out | ${latencyMs}ms | neurons=${neurons ?? 'n/a'} | candidates=${candidates.length}`
+    );
+    const modelInfo = { provider: 'workers-ai', name: model, inputTokens, outputTokens, latencyMs };
+    const parsed = JSON.parse(extractJsonObject(workersAiText(raw))) as JobFeedRankingModelResponse;
+    const items = validateModelRankingResponse(parsed, candidates, visibleCap);
+    return {
+      items,
+      model: modelInfo,
+      error: items ? null : 'The ranking model response was incomplete or invalid.',
+    };
+  } catch (error) {
+    console.error(`[JobFeedRanking] ${model} failed`, error);
+    return {
+      items: null,
+      model: { provider: 'workers-ai', name: model, inputTokens: 0, outputTokens: 0, latencyMs: Date.now() - startTime },
+      error: error instanceof Error ? error.message : 'Unknown Workers AI ranking failure',
+    };
+  }
 }
 
 export async function rankWithOpenAI(params: {
@@ -235,9 +259,13 @@ export async function rankWithOpenAI(params: {
   }
 
   const workersAi = await getWorkersAiRanking();
-
-  if (!workersAi && !hasOpenAICredentials()) {
-    return { status: 'completed_deterministic', items: deterministicItems, errorMessage: null, model: null };
+  if (!workersAi) {
+    return {
+      status: 'llm_failed_fallback',
+      items: deterministicItems,
+      errorMessage: 'Workers AI binding unavailable, deterministic ranking used.',
+      model: null,
+    };
   }
 
   const messages = [
@@ -246,169 +274,28 @@ export async function rankWithOpenAI(params: {
     { role: 'user' as const, content: buildCandidatesMessage(candidates, visibleCap) },
   ];
 
-  if (workersAi) {
-    const startTime = Date.now();
-    try {
-      const raw = (await workersAi.ai.run(workersAi.model, {
-        messages,
-        temperature: 0.2,
-        // Reasoning models spend part of this budget thinking before the JSON.
-        max_tokens: 12000,
-        response_format: { type: 'json_object' },
-      })) as WorkersAiTextResponse;
-      const latencyMs = Date.now() - startTime;
-      const content = extractJsonObject(workersAiText(raw));
-      const inputTokens = raw.usage?.prompt_tokens ?? 0;
-      const outputTokens = raw.usage?.completion_tokens ?? 0;
-      const cachedTokens = raw.usage?.prompt_tokens_details?.cached_tokens ?? 0;
-      const neurons = raw.usage?.neurons ?? null;
-      const modelInfo = { provider: 'workers-ai', name: workersAi.model, inputTokens, outputTokens, latencyMs };
-
-      console.log(
-        `[JobFeedRanking] ${workersAi.model} | ${inputTokens}in (${cachedTokens} cached) / ${outputTokens}out | ${latencyMs}ms | neurons=${neurons ?? 'n/a'} | candidates=${candidates.length}`
-      );
-
-      const parsed = JSON.parse(content) as JobFeedRankingModelResponse;
-      const llmItems = validateModelRankingResponse(parsed, candidates, visibleCap);
-      if (!llmItems) {
-        return {
-          status: 'llm_failed_fallback',
-          items: deterministicItems,
-          errorMessage: 'The ranking model response was incomplete or invalid, so the deterministic fallback was used.',
-          model: modelInfo,
-        };
-      }
-      return { status: 'completed_llm', items: llmItems, errorMessage: null, model: modelInfo };
-    } catch (error) {
-      console.error(`[JobFeedRanking] ${workersAi.model} failed`, error);
-      return {
-        status: 'llm_failed_fallback',
-        items: deterministicItems,
-        errorMessage: error instanceof Error ? error.message : 'Unknown Workers AI ranking failure',
-        model: { provider: 'workers-ai', name: workersAi.model, inputTokens: 0, outputTokens: 0, latencyMs: Date.now() - startTime },
-      };
-    }
+  const primary = await runWorkersAiRanking({ ai: workersAi.ai, model: workersAi.model, messages, candidates, visibleCap });
+  if (primary.items) {
+    return { status: 'completed_llm', items: primary.items, errorMessage: null, model: primary.model };
   }
 
-  const startTime = Date.now();
-  try {
-    const client = getAzureClient();
-
-    // Two-message structure optimized for Azure OpenAI prompt caching:
-    //   1. SYSTEM_PROMPT (static, >=1024 tokens → cached across all users/runs)
-    //   2. userProfile message (stable per user → cached across that user's
-    //      daily runs when they run again within the TTL window)
-    //   3. candidates message (dynamic → never cached, only these tokens paid
-    //      at full price)
-    const response = await client.chat.completions.create({
-      model: AZURE_DEPLOYMENT,
-      temperature: 0.2,
-      // Headroom for large candidate sets: ~40 jobs each needing
-      // jobId+decision+rank+reason can exceed 4k output tokens, and a
-      // truncated JSON body fails parsing and drops the whole run to the
-      // deterministic fallback. 8k removes that cliff for the quality path.
-      max_tokens: 8000,
-      response_format: { type: 'json_object' },
-      messages,
-    });
-
-    const latencyMs = Date.now() - startTime;
-    const content = response.choices[0]?.message?.content ?? '';
-    const inputTokens = response.usage?.prompt_tokens ?? 0;
-    const outputTokens = response.usage?.completion_tokens ?? 0;
-    // Azure OpenAI returns cached token count on response.usage.prompt_tokens_details.cached_tokens
-    const cachedTokens =
-      (response.usage as unknown as { prompt_tokens_details?: { cached_tokens?: number } })
-        ?.prompt_tokens_details?.cached_tokens ?? 0;
-
-    console.log(
-      `[JobFeedRanking] ${AZURE_MODEL_NAME} (${AZURE_DEPLOYMENT}) | ${inputTokens}in (${cachedTokens} cached) / ${outputTokens}out | ${latencyMs}ms | candidates=${candidates.length}`
-    );
-
-    const parsed = JSON.parse(content) as JobFeedRankingModelResponse;
-    const llmItems = validateModelRankingResponse(parsed, candidates, visibleCap);
-
-    if (!llmItems) {
-      return {
-        status: 'llm_failed_fallback',
-        items: deterministicItems,
-        errorMessage: 'The ranking model response was incomplete or invalid, so the deterministic fallback was used.',
-        model: { provider: 'openai', name: AZURE_MODEL_NAME, inputTokens, outputTokens, latencyMs },
-      };
+  if (workersAi.fallbackModel) {
+    console.warn(`[JobFeedRanking] ${workersAi.model} failed (${primary.error}), retrying on ${workersAi.fallbackModel}`);
+    const fallback = await runWorkersAiRanking({ ai: workersAi.ai, model: workersAi.fallbackModel, messages, candidates, visibleCap });
+    if (fallback.items) {
+      return { status: 'completed_llm', items: fallback.items, errorMessage: null, model: fallback.model };
     }
-
-    return {
-      status: 'completed_llm',
-      items: llmItems,
-      errorMessage: null,
-      model: { provider: 'openai', name: AZURE_MODEL_NAME, inputTokens, outputTokens, latencyMs },
-    };
-  } catch (error) {
     return {
       status: 'llm_failed_fallback',
       items: deterministicItems,
-      errorMessage: error instanceof Error ? error.message : 'Unknown OpenAI ranking failure',
-      model: null,
+      errorMessage: `${primary.error ?? 'primary failed'}; fallback ${workersAi.fallbackModel}: ${fallback.error ?? 'failed'}`,
+      model: fallback.model,
     };
   }
+
+  return { status: 'llm_failed_fallback', items: deterministicItems, errorMessage: primary.error, model: primary.model };
 }
 
-export function buildRankingRequestBody(params: {
-  settings: JobFeedSettings;
-  candidates: JobFeedRankingCandidate[];
-  visibleCap?: number;
-  yearsExperience?: number | null;
-  careerProfile?: CareerProfile | null;
-  negativeTerms?: string[];
-  excludedTerms?: string[];
-}): {
-  model: string;
-  temperature: number;
-  max_tokens: number;
-  response_format: { type: 'json_object' };
-  messages: Array<{ role: 'system' | 'user'; content: string }>;
-} {
-  const cap = params.visibleCap ?? JOB_FEED_VISIBLE_MAX_COUNT;
-  return {
-    model: AZURE_DEPLOYMENT,
-    temperature: 0.2,
-    max_tokens: 8000,
-    response_format: { type: 'json_object' },
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: buildUserProfileMessage(params.settings, params.yearsExperience ?? null, params.careerProfile ?? null, params.negativeTerms ?? [], params.excludedTerms ?? []) },
-      { role: 'user', content: buildCandidatesMessage(params.candidates, cap) },
-    ],
-  };
-}
-
-export function parseRankingResponse(
-  content: string,
-  candidates: JobFeedRankingCandidate[],
-  visibleCap: number = JOB_FEED_VISIBLE_MAX_COUNT
-): JobFeedRankedItemRecord[] | null {
-  try {
-    const parsed = JSON.parse(content) as JobFeedRankingModelResponse;
-    return validateModelRankingResponse(parsed, candidates, visibleCap);
-  } catch {
-    return null;
-  }
-}
-
-// Per-user, stable across daily runs. Emitting the user profile as its own
-// message (instead of mixing it with candidates) lets Azure OpenAI cache
-// this block across repeat runs within the cache TTL window.
-//
-// When a CareerProfile is available (paid users with the synthesis pass run),
-// it is included as `inferredProfile` alongside the explicit user settings.
-// The settings remain authoritative for hard constraints; the inferred
-// profile is a richer prior for soft signals like skill clusters, function,
-// industry domains, and the narrative paragraph.
-//
-// negativeTerms come from the AI search strategy (title/keyword fragments that
-// are a poor fit for this candidate). The ranker treats them as a downweight
-// signal per the "Negative signals" rule in the system prompt. They live in
-// this per-user message so the static system prompt stays cache-stable.
 function buildUserProfileMessage(
   settings: JobFeedSettings,
   yearsExperience: number | null = null,
