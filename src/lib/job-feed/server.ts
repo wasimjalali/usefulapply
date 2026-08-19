@@ -1898,14 +1898,22 @@ function buildWorkflowOperationalTail(ingestion: {
 }
 
 // GPT-4.1 Mini pricing: $0.40/M input, $1.60/M output
+// USD per million tokens (input, output) on Workers AI, August 2026 list prices.
+const RANKING_MODEL_RATES: Record<string, [number, number]> = {
+  '@cf/openai/gpt-oss-120b': [0.35, 0.75],
+  '@cf/deepseek-ai/deepseek-v4-flash-0731': [0.44, 1.32],
+  '@cf/meta/llama-4-scout-17b-16e-instruct': [0.27, 0.85],
+};
+
 function estimateJobFeedRankingCost(
   inputTokens: number,
   outputTokens: number,
-  _modelMeta: Record<string, Json> | null
-): number {
-  const inputRate = 0.40;
-  const outputRate = 1.60;
-  return (inputTokens / 1_000_000) * inputRate + (outputTokens / 1_000_000) * outputRate;
+  modelMeta: Record<string, Json> | null
+): number | null {
+  const name = typeof modelMeta?.name === 'string' ? modelMeta.name : null;
+  const rates = name ? RANKING_MODEL_RATES[name] : undefined;
+  if (!rates) return null;
+  return (inputTokens / 1_000_000) * rates[0] + (outputTokens / 1_000_000) * rates[1];
 }
 
 

@@ -48,13 +48,12 @@ Started: 2026-04-24
 - [x] TypeScript verification — `npx tsc --noEmit` = 0 errors
 - [x] ESLint verification — 0 errors (1 expected unused-var warning)
 
-## Environment Variables (Azure OpenAI)
-```
-AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-AZURE_OPENAI_API_KEY=your-azure-key
-AZURE_OPENAI_DEPLOYMENT=gpt-4.1-mini  (your deployment name)
-AZURE_OPENAI_API_VERSION=2025-01-01-preview  (optional, has default)
-```
+## Ranking model (superseded 19 Aug 2026)
+Azure OpenAI was retired. Ranking runs on Workers AI via the `AI` binding
+(`src/lib/job-feed/workers-ai-ranking.ts`). Models are wrangler vars:
+`JOB_FEED_RANKING_MODEL` (default `@cf/openai/gpt-oss-120b`) and
+`JOB_FEED_RANKING_FALLBACK_MODEL` (default `@cf/deepseek-ai/deepseek-v4-flash-0731`),
+then deterministic ordering. No API key needed.
 
 ## Files Changed
 | File | Change |

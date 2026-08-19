@@ -7,7 +7,7 @@
  *   3. Build search plan
  *   4. Fetch jobs from SerpAPI
  *   5. Run prefilter
- *   6. Run LLM ranking (Azure OpenAI)
+ *   6. Run LLM ranking (Workers AI, only inside the Worker; scripts get the deterministic path)
  *   7. Persist results
  *
  * Usage:
@@ -53,10 +53,6 @@ const ENV_KEYS = [
   'NEXT_PUBLIC_SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
   'SERPAPI_API_KEY',
-  'AZURE_OPENAI_ENDPOINT',
-  'AZURE_OPENAI_API_KEY',
-  'AZURE_OPENAI_DEPLOYMENT',
-  'AZURE_OPENAI_API_VERSION',
 ] as const;
 
 function printEnvStatus() {
@@ -308,13 +304,9 @@ async function main() {
   }
 
   // --- Step 7: Check LLM ranking credentials ---
-  console.log('\n=== Step 7: LLM Ranking Credentials ===');
-  const hasLLM = Boolean(process.env.AZURE_OPENAI_ENDPOINT && process.env.AZURE_OPENAI_API_KEY);
-  console.log(`  Azure OpenAI: ${hasLLM ? '✅ Configured' : '⚠️  Not configured — will use deterministic fallback'}`);
-  if (hasLLM) {
-    console.log(`  Endpoint: ${process.env.AZURE_OPENAI_ENDPOINT!.slice(0, 30)}…`);
-    console.log(`  Deployment: ${process.env.AZURE_OPENAI_DEPLOYMENT ?? 'gpt-4.1-mini-1'}`);
-  }
+  console.log('\n=== Step 7: LLM Ranking ===');
+  console.log('  Ranking uses the Workers AI binding, which only exists inside the Worker.');
+  console.log('  This script exercises the deterministic ranking path.');
 
   // --- Step 8: Run the full workflow via the real pipeline ---
   console.log('\n=== Step 8: Running full pipeline ===');

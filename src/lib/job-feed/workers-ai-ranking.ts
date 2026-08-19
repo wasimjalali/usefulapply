@@ -35,14 +35,34 @@ function workersAiText(raw: WorkersAiTextResponse): string {
   return raw.response ?? '';
 }
 
-/** Reasoning models sometimes wrap the JSON in fences or prose. Pull the first object out. */
+/**
+ * Reasoning models sometimes wrap the JSON in fences or prose, and the prose
+ * can contain braces of its own. Return the last balanced top-level object.
+ */
 function extractJsonObject(text: string): string {
   const trimmed = text.trim();
-  if (trimmed.startsWith('{')) return trimmed;
-  const start = trimmed.indexOf('{');
-  const end = trimmed.lastIndexOf('}');
-  if (start === -1 || end === -1 || end <= start) return trimmed;
-  return trimmed.slice(start, end + 1);
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) return trimmed;
+  let depth = 0;
+  let start = -1;
+  let inString = false;
+  let escaped = false;
+  let best = '';
+  for (let i = 0; i < trimmed.length; i++) {
+    const ch = trimmed[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') { inString = true; continue; }
+    if (ch === '{') { if (depth === 0) start = i; depth++; continue; }
+    if (ch === '}' && depth > 0) {
+      depth--;
+      if (depth === 0 && start !== -1) best = trimmed.slice(start, i + 1);
+    }
+  }
+  return best || trimmed;
 }
 
 type JobFeedRankingDecision = 'strong' | 'good' | 'skip';
@@ -185,8 +205,9 @@ async function getWorkersAiRanking(): Promise<{ ai: WorkersAiBinding; model: str
     return null;
   }
   if (!env.AI) return null;
-  const model = env.JOB_FEED_RANKING_MODEL ?? process.env.JOB_FEED_RANKING_MODEL ?? DEFAULT_RANKING_MODEL;
-  const fallbackRaw = env.JOB_FEED_RANKING_FALLBACK_MODEL ?? process.env.JOB_FEED_RANKING_FALLBACK_MODEL ?? DEFAULT_FALLBACK_RANKING_MODEL;
+  // wrangler vars live on the Workers env only (OpenNext does not copy them to process.env).
+  const model = env.JOB_FEED_RANKING_MODEL ?? DEFAULT_RANKING_MODEL;
+  const fallbackRaw = env.JOB_FEED_RANKING_FALLBACK_MODEL ?? DEFAULT_FALLBACK_RANKING_MODEL;
   const fallbackModel = fallbackRaw && fallbackRaw !== model ? fallbackRaw : null;
   return { ai: env.AI, model, fallbackModel };
 }
@@ -197,7 +218,7 @@ async function runWorkersAiRanking(params: {
   messages: Array<{ role: 'system' | 'user'; content: string }>;
   candidates: JobFeedRankingCandidate[];
   visibleCap: number;
-}): Promise<{ items: JobFeedRankedItemRecord[] | null; model: NonNullable<JobFeedRankingExecutionResult['model']>; error: string | null }> {
+}): Promise<{ items: JobFeedRankedItemRecord[] | null; model: JobFeedRankingExecutionResult['model']; error: string | null }> {
   const { ai, model, messages, candidates, visibleCap } = params;
   const startTime = Date.now();
   try {
@@ -225,16 +246,16 @@ async function runWorkersAiRanking(params: {
       error: items ? null : 'The ranking model response was incomplete or invalid.',
     };
   } catch (error) {
-    console.error(`[JobFeedRanking] ${model} failed`, error);
+    console.error(`[JobFeedRanking] ${model} failed after ${Date.now() - startTime}ms`, error);
     return {
       items: null,
-      model: { provider: 'workers-ai', name: model, inputTokens: 0, outputTokens: 0, latencyMs: Date.now() - startTime },
+      model: null,
       error: error instanceof Error ? error.message : 'Unknown Workers AI ranking failure',
     };
   }
 }
 
-export async function rankWithOpenAI(params: {
+export async function rankWithWorkersAi(params: {
   settings: JobFeedSettings;
   candidates: JobFeedRankingCandidate[];
   visibleCap?: number;
@@ -260,12 +281,8 @@ export async function rankWithOpenAI(params: {
 
   const workersAi = await getWorkersAiRanking();
   if (!workersAi) {
-    return {
-      status: 'llm_failed_fallback',
-      items: deterministicItems,
-      errorMessage: 'Workers AI binding unavailable, deterministic ranking used.',
-      model: null,
-    };
+    // No binding outside the Worker (plain next dev, scripts): expected, not a failure.
+    return { status: 'completed_deterministic', items: deterministicItems, errorMessage: null, model: null };
   }
 
   const messages = [

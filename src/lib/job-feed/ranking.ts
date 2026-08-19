@@ -1,4 +1,4 @@
-import { rankWithOpenAI } from '@/lib/job-feed/openai-ranking';
+import { rankWithWorkersAi } from '@/lib/job-feed/workers-ai-ranking';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import type {
   JobFeedRankingCandidate,
@@ -15,6 +15,6 @@ export async function rankJobFeedCandidates(params: {
   negativeTerms?: string[];
   excludedTerms?: string[];
 }): Promise<JobFeedRankingExecutionResult> {
-  return rankWithOpenAI(params);
+  return rankWithWorkersAi(params);
 }
 

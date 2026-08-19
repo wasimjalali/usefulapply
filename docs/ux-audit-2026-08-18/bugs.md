@@ -318,4 +318,4 @@ Verified live on staging unless noted. Grok 4.6 implemented, Claude reviewed and
 | B25, B26, B29 | fixed, code-verified | |
 | B30, B31 | fixed, code-verified | Need a free-account check |
 
-Follow-ups: demo video re-record (Tella hero still shows Karko AI). Not doing: a tracker unique index on (user, title, company), it would block legitimate re-applications; the duplicate sources were B9 and B31. Ranking now runs on Workers AI (JOB_FEED_RANKING_MODEL in wrangler.jsonc, gpt-oss-120b default, Azure fallback when unset).
+Follow-ups: demo video re-record (Tella hero still shows Karko AI). Not doing: a tracker unique index on (user, title, company), it would block legitimate re-applications; the duplicate sources were B9 and B31. Ranking now runs on Workers AI only: JOB_FEED_RANKING_MODEL (gpt-oss-120b) then JOB_FEED_RANKING_FALLBACK_MODEL (deepseek-v4-flash-0731) then deterministic; Azure removed.

@@ -185,10 +185,8 @@ USE_PREVIOUS_MODEL
 
 # Job feed
 SERPAPI_API_KEY
-AZURE_OPENAI_ENDPOINT
-AZURE_OPENAI_API_KEY
-AZURE_OPENAI_API_VERSION
-AZURE_OPENAI_DEPLOYMENT
+# Ranking runs on Workers AI through the AI binding in wrangler.jsonc, no key needed.
+# Models: JOB_FEED_RANKING_MODEL and JOB_FEED_RANKING_FALLBACK_MODEL (wrangler vars).
 
 # Email: Cloudflare Email Service uses the EMAIL binding in wrangler.jsonc, no key needed.
 
