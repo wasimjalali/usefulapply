@@ -1,6 +1,6 @@
 # Batch 2: the Application Kit canvas (flow 2)
 
-**Status:** not started. Starts after batch 1 is merged.
+**Status:** done. Built and merged into `rebrand/usefulapply` 19 August 2026 (Claude Code as implementer and reviewer, adversarial review run, tsc 0). Backend gaps recorded in `BACKEND-GAPS.md`. Divergences from the flow doc are listed at the end of `../flow-2-application-kit.md`.
 **Branch:** `build/flow-2-kit` off `rebrand/usefulapply`.
 **Design of record:** `../flow-2-application-kit.md`. PNGs: `../flow-2-artboards/png/` (K1 ATS view, K2 Templates, K3 Cover letter, K4 Emails, K5 Screening answers). Shell from batch 1. Rules: `../../design-philosophy.md` section 5. Templates: `.claude/rules/cv-templates.md`.
 

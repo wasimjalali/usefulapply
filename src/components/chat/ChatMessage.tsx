@@ -17,40 +17,9 @@ import {
   ClipboardList,
 } from 'lucide-react';
 
-interface ScreeningAnswer {
-  question: string;
-  answer: string;
-  raw: string;
-}
-
-function parseScreeningAnswers(content: string): ScreeningAnswer[] | null {
-  if (!content.includes('---ANSWER_START---')) return null;
-
-  const blocks = content.split('---ANSWER_START---').filter(Boolean);
-  const answers: ScreeningAnswer[] = [];
-
-  for (const block of blocks) {
-    const cleaned = block.split('---ANSWER_END---')[0]?.trim();
-    if (!cleaned) continue;
-
-    // Extract question from **Q: ...** line
-    const questionMatch = cleaned.match(/\*\*Q:\s*(.+?)\*\*/);
-    const question = questionMatch ? questionMatch[1].trim() : '';
-
-    // Answer is everything after the Q line
-    const answerStart = cleaned.indexOf('**\n');
-    const answer = answerStart !== -1
-      ? cleaned.substring(answerStart + 3).trim()
-      : cleaned.replace(/\*\*Q:.*?\*\*/, '').trim();
-
-    if (answer) {
-      answers.push({ question, answer, raw: cleaned });
-    }
-  }
-
-  return answers.length > 0 ? answers : null;
-}
 import { BrandIcon } from '../BrandLogo';
+import { NamedStages } from '@/components/shell/NamedStages';
+import { parseScreeningAnswers } from '@/lib/screening-answers';
 
 export interface ChatAction {
   label: string;
@@ -73,6 +42,8 @@ interface ChatMessageProps {
   feedback?: 'positive' | 'negative';
   collapseLength?: number;
   layout?: 'classic' | 'spine';
+  /** True when this application's Answers tab holds the screening answers. */
+  answersInDoc?: boolean;
 }
 
 export function ChatMessage({ 
@@ -82,6 +53,7 @@ export function ChatMessage({
   feedback,
   collapseLength = 300,
   layout = 'classic',
+  answersInDoc = false,
 }: ChatMessageProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -142,8 +114,10 @@ export function ChatMessage({
   }
 
   const isLongMessage = message.role === 'user' && message.content.length > collapseLength;
-  const actionItems = (message.actions || []).filter(a => a.action !== 'none');
+  const actionItems = (message.actions || []).filter(a => a.action !== 'none' && a.action !== 'stage-done');
   const hintAction = message.actions?.find(a => a.action === 'none');
+  // A finished named stage travels with the message so it survives reloads.
+  const stageDone = message.actions?.find(a => a.action === 'stage-done');
   const isFitAnalysisMessage = message.role === 'assistant'
     && /\*\*(Strong Fit|Good Fit|Fair Fit|Weak Fit)\*\*/.test(message.content);
   const isCompletionMessage = message.role === 'assistant'
@@ -155,6 +129,9 @@ export function ChatMessage({
     isCompletionMessage ||
     actionItems.length > 0;
   const isSpine = layout === 'spine';
+  // In the spine the answers live in the Answers tab; the chat keeps one line.
+  // Older applications (answers only in the chat) keep the full blocks.
+  const compactScreening = isSpine && !!screeningAnswers && answersInDoc;
   const surfaceClassName = message.role === 'user'
     ? isSpine
       ? 'rounded-2xl rounded-br-sm border border-cream-200 bg-white px-3.5 py-3 shadow-sm'
@@ -200,9 +177,17 @@ export function ChatMessage({
       )}
 
       <div className="flex-1 min-w-0">
-        <div className={`relative ${surfaceClassName}`}>
-          {/* Screening answers — per-answer copy blocks */}
-          {screeningAnswers ? (
+        {stageDone && (
+          <div className="mb-3 rounded-2xl border border-cream-200 bg-white p-3 shadow-sm">
+            <NamedStages stages={[{ title: stageDone.label, state: 'done' }]} />
+          </div>
+        )}
+        <div className={`relative ${compactScreening ? 'px-1 py-1.5' : surfaceClassName}`}>
+          {compactScreening ? (
+            <p className="text-sm text-charcoal">
+              Your answer&apos;s on the right. Copy it from there, or tell me to make it shorter or more formal.
+            </p>
+          ) : screeningAnswers ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">

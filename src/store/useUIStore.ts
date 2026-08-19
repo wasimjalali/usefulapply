@@ -7,6 +7,9 @@
  */
 
 import { create } from 'zustand';
+import { FALLBACK_TEMPLATE_ID, readDefaultTemplate } from '@/lib/cv-templates/default-template';
+
+export type KitTab = 'cv' | 'cover-letter' | 'email' | 'answers';
 
 export type PendingApplicationAction =
   | 'generate-full-application'
@@ -23,8 +26,22 @@ interface UIState {
   agentWorkflowPhase: 'fit_analysis' | 'full_generation' | null;  // Current agent phase for panel messages
 
   // UI state
-  activeTab: 'cv' | 'cover-letter' | 'email' | 'tracker' | 'jobs';
+  activeTab: KitTab | 'tracker' | 'jobs';
   error: string | null;
+
+  // CV template shown in the kit. Owned here so Download all can render the
+  // same template from any kit tab, not only while CVPanel is mounted.
+  cvTemplateId: string;
+
+  // A regeneration requested from the chat is running. The canvas banner
+  // names the stage and the tab the result will land in.
+  regenStage: { title: string; tab: KitTab } | null;
+
+  // "Download the kit" in the chat and "Download all" on the canvas both ask
+  // the always-mounted KitExportHost to run. Monotonic counter so repeat
+  // clicks re-fire; kitDownloadBusy lets every control show the same state.
+  kitDownloadRequest: number;
+  kitDownloadBusy: boolean;
 
   // Cross-component autostart signal for Apply-with-Useful Apply from the Job Feed.
   // Set by JobFeedPanel on click; ChatPanel picks it up and starts the agent
@@ -59,8 +76,12 @@ interface UIActions {
   setAgentWorkflowPhase: (phase: 'fit_analysis' | 'full_generation' | null) => void;
 
   // UI state setters
-  setActiveTab: (tab: 'cv' | 'cover-letter' | 'email' | 'tracker' | 'jobs') => void;
+  setActiveTab: (tab: KitTab | 'tracker' | 'jobs') => void;
   setError: (error: string | null) => void;
+  setCvTemplateId: (id: string) => void;
+  setRegenStage: (stage: { title: string; tab: KitTab } | null) => void;
+  requestKitDownload: () => void;
+  setKitDownloadBusy: (busy: boolean) => void;
 
   // Autostart signal
   setPendingJobFeedAutostart: (value: { sessionId: string; generationId?: string | null; generationAttempt?: number | null; mode?: 'apply' | 'analyze' } | null) => void;
@@ -85,6 +106,12 @@ const initialState: UIState = {
   agentWorkflowPhase: null,
   activeTab: 'cv',
   error: null,
+  // Seeded with the fallback so server and first client render agree; the shell
+  // hydrates it from localStorage on mount (see AppShell).
+  cvTemplateId: FALLBACK_TEMPLATE_ID,
+  regenStage: null,
+  kitDownloadRequest: 0,
+  kitDownloadBusy: false,
   pendingJobFeedAutostart: null,
   pendingApplicationAction: null,
   jdFocusRequest: 0,
@@ -108,6 +135,10 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
   // UI state setters
   setActiveTab: (tab) => set({ activeTab: tab }),
   setError: (error) => set({ error }),
+  setCvTemplateId: (id) => set({ cvTemplateId: id }),
+  setRegenStage: (stage) => set({ regenStage: stage }),
+  requestKitDownload: () => set((state) => ({ kitDownloadRequest: state.kitDownloadRequest + 1 })),
+  setKitDownloadBusy: (busy) => set({ kitDownloadBusy: busy }),
 
   // Autostart signal
   setPendingJobFeedAutostart: (value) => set({ pendingJobFeedAutostart: value }),
@@ -120,5 +151,5 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
   requestNewApplication: () => set((state) => ({ newApplicationRequest: state.newApplicationRequest + 1 })),
 
   // Reset
-  resetUI: () => set(initialState),
+  resetUI: () => set({ ...initialState, cvTemplateId: readDefaultTemplate() }),
 }));

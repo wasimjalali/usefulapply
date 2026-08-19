@@ -46,6 +46,8 @@ function clearPersistedStores() {
     localStorage.removeItem('session-store');
     localStorage.removeItem('cv-store');
     localStorage.removeItem('usefulapply_resume_intent');
+    localStorage.removeItem('usefulapply-default-template');
+    localStorage.removeItem('karko-default-template');
   } catch (e) {
     console.error('[Auth] Failed to clear persist storage:', e);
   }

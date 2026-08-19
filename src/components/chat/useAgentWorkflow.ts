@@ -327,6 +327,9 @@ export function useAgentWorkflow(options?: {
           content: reply,
           actions: actions || [],
         });
+      } else if (response.status === 401) {
+        // Signed out (or anonymous past the free run): ask for an account, never a canned reply.
+        options?.onAnonymousLimitReached?.();
       } else {
         const errorData = await response.json().catch(() => null);
         if (errorData?.code === 'CHAT_LIMIT_REACHED') {
@@ -356,6 +359,74 @@ export function useAgentWorkflow(options?: {
       setIsTyping(false);
       setIsScreeningMode(false);
       abortControllerRef.current = null;
+    }
+  };
+
+  /**
+   * Screening answers for the kit: one question in, the raw answer blocks out.
+   * Adds no chat messages itself; the caller decides what the conversation
+   * shows and where the answers land (the Answers tab).
+   */
+  const fetchScreeningAnswers = async (
+    question: string,
+  ): Promise<{ ok: true; reply: string } | { ok: false; code: 'PLAN_REQUIRED' | 'CHAT_LIMIT' | 'SIGNED_OUT' | 'ERROR' }> => {
+    // Own controller: this must never replace the SSE workflow's abort handle.
+    const controller = new AbortController();
+    try {
+      const { masterCV, certifications } = useAppStore.getState();
+      const recentMessages = messages.slice(-10).map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: question,
+          context: {
+            hasCV: !!currentCV,
+            cvSummary: currentCV?.sections?.summary?.substring(0, 500),
+            hasAnalysis: !!currentSession?.gaps,
+            jobTitle: currentSession?.jobTitle,
+            company: currentSession?.company,
+            hasMasterCV: !!masterCV,
+            masterCVSummary: masterCV?.rawText?.substring(0, 3000),
+            hasCertifications: certifications.length > 0,
+            certificationsCount: certifications.length,
+            certificationsList: certifications.map(c => c.fileName).join(', '),
+            chatHistory: recentMessages,
+            hasGeneratedCV: !!currentSession?.generatedCV,
+            hasGeneratedCoverLetter: !!currentSession?.coverLetter,
+            hasGeneratedEmail: !!currentSession?.email,
+            mode: 'screening_answers' as const,
+            jobDescription: currentSession?.jobDescription?.substring(0, 8000),
+            matchingSkills: currentSession?.matchingSkills,
+            missingSkills: currentSession?.missingSkills,
+            generatedCVSummary: typeof currentSession?.generatedCV?.content === 'string'
+              ? currentSession.generatedCV.content.substring(0, 5000)
+              : undefined,
+            companyResearchSummary: currentSession?.companyResearch
+              ? [
+                  currentSession.companyResearch.description,
+                  currentSession.companyResearch.culture?.join(', '),
+                  currentSession.companyResearch.recentNews?.join(', '),
+                ].filter(Boolean).join(' | ').substring(0, 500)
+              : undefined,
+          },
+        }),
+        signal: controller.signal,
+      });
+      if (response.ok) {
+        const { reply } = await response.json();
+        return typeof reply === 'string' ? { ok: true, reply } : { ok: false, code: 'ERROR' };
+      }
+      if (response.status === 401) return { ok: false, code: 'SIGNED_OUT' };
+      if (response.status === 403) return { ok: false, code: 'PLAN_REQUIRED' };
+      const errorData = await response.json().catch(() => null);
+      if (errorData?.code === 'CHAT_LIMIT_REACHED') return { ok: false, code: 'CHAT_LIMIT' };
+      return { ok: false, code: 'ERROR' };
+    } catch {
+      return { ok: false, code: 'ERROR' };
     }
   };
 
@@ -801,9 +872,13 @@ export function useAgentWorkflow(options?: {
                 const weakMatchNote = isDirectPath && isWeakMatch
                   ? `\n\nThis role looks like a weak match (${Math.round(resultScore)}%). Review the gaps before you send it.`
                   : '';
+                const kitCompany = ctx?.job?.companyName || useAppStore.getState().currentSession?.company;
+                const atsNote = typeof ctx?.optimizedCVData?.analysis?.ats_compatibility === 'number'
+                  ? ` (ATS ${Math.round(ctx.optimizedCVData.analysis.ats_compatibility)}%)`
+                  : '';
                 addChatMessage({
                   role: 'assistant',
-                  content: `✅ **Your full application is ready**\n\nTailored CV, cover letter, and email are ready. Check the **Application Kit** panel (top left).\n\nIf you need ATS screening question answers next, use the suggestion below.${weakMatchNote}`,
+                  content: `Your kit${kitCompany ? ` for ${kitCompany}` : ''} is ready. Tailored CV${atsNote}, a cover letter and two emails. Nothing was invented.${weakMatchNote}`,
                 });
                 if (isDirectPath && isWeakMatch) {
                   toast.warning(
@@ -1003,6 +1078,7 @@ export function useAgentWorkflow(options?: {
     // Actions
     handleSend,
     handleGeneralChat,
+    fetchScreeningAnswers,
     handleStopGeneration,
     runAgentWorkflow,
     runFitAnalysisFlow,

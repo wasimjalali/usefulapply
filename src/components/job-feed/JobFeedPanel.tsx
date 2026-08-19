@@ -2315,6 +2315,11 @@ function toStoreApplicationSession(
     requirements: session.requirements as unknown as StoreApplicationSession['requirements'],
     gaps: session.gaps as unknown as StoreApplicationSession['gaps'],
     generatedCV: session.generated_cv as unknown as StoreApplicationSession['generatedCV'],
+    // Structured CV data and screening answers ride inside generated_cv (see useSupabaseSync).
+    optimizedCVData: ((session.generated_cv as Record<string, unknown> | null)?._optimizedCVData as StoreApplicationSession['optimizedCVData']) ?? undefined,
+    screeningAnswers: Array.isArray((session.generated_cv as Record<string, unknown> | null)?._screeningAnswers)
+      ? ((session.generated_cv as Record<string, unknown>)._screeningAnswers as StoreApplicationSession['screeningAnswers'])
+      : [],
     coverLetter: session.cover_letter as unknown as StoreApplicationSession['coverLetter'],
     email: session.email as unknown as StoreApplicationSession['email'],
     followUpEmail: session.follow_up_email as unknown as StoreApplicationSession['followUpEmail'],
@@ -2328,7 +2333,9 @@ function toStoreApplicationSession(
     jobFeedGenerationId: generation.id,
     jobFeedGenerationAttempt: generation.attempt,
     companyResearch,
-    screeningUsageCount: 0,
+    screeningUsageCount: typeof (session.generated_cv as Record<string, unknown> | null)?._screeningUsageCount === 'number'
+      ? ((session.generated_cv as Record<string, unknown>)._screeningUsageCount as number)
+      : 0,
     cvEdits: Array.isArray(session.cv_edits) ? session.cv_edits as unknown as StoreApplicationSession['cvEdits'] : [],
     chatMessages: [],
   };

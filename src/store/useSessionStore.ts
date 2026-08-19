@@ -50,6 +50,14 @@ export interface ChatAction {
   icon?: 'cv' | 'cover-letter' | 'email' | 'new' | 'screening';
 }
 
+/** One screening answer, kept on the application so the Answers document survives reloads. */
+export interface ScreeningAnswerItem {
+  id: string;
+  question: string;
+  answer: string;
+  createdAt: string;
+}
+
 export interface ApplicationSession {
   id: string;
   jobTitle: string;
@@ -194,6 +202,9 @@ export interface ApplicationSession {
   /** Number of times the user has used screening question mode (max 2) */
   screeningUsageCount: number;
 
+  /** Screening answers generated from the chat. Persisted inside generated_cv as _screeningAnswers. */
+  screeningAnswers?: ScreeningAnswerItem[];
+
   cvEdits: CVEdit[];
   optimizedPdfRef?: {
     id: string;
@@ -230,6 +241,8 @@ interface SessionActions {
   // Session management
   createNewSession: (jobDescription: string) => void;
   updateCurrentSession: (updates: Partial<ApplicationSession>) => void;
+  /** Update one session by id, current or not. Used by async results that must land where they started. */
+  updateSessionById: (sessionId: string, updates: Partial<ApplicationSession>) => void;
   loadSession: (sessionId: string) => void;
   deleteSession: (sessionId: string) => void;
   clearCurrentSession: () => void;
@@ -290,6 +303,7 @@ export const useSessionStore = create<SessionState & SessionActions>()(
           followUpEmail: null,
           companyResearch: null,
           screeningUsageCount: 0,
+          screeningAnswers: [],
           cvEdits: [],
           chatMessages: [],
         };
@@ -315,6 +329,23 @@ export const useSessionStore = create<SessionState & SessionActions>()(
           sessions: state.sessions.map((s) =>
             s.id === updatedSession.id ? updatedSession : s
           ),
+        };
+      }),
+
+      updateSessionById: (sessionId, updates) => set((state) => {
+        const stamp = new Date().toISOString();
+        const apply = (s: ApplicationSession) => (s.id === sessionId ? { ...s, ...updates, updatedAt: stamp } : s);
+        const current = state.currentSession && state.currentSession.id === sessionId
+          ? apply(state.currentSession)
+          : state.currentSession;
+        const inList = state.sessions.some((s) => s.id === sessionId);
+        return {
+          currentSession: current,
+          sessions: inList
+            ? state.sessions.map(apply)
+            : current && current.id === sessionId
+              ? [current, ...state.sessions]
+              : state.sessions,
         };
       }),
 

@@ -22,7 +22,7 @@
 | 4 | `batch-4-tracker-settings.md` | 4 + 5 | `build/flow-4-5-tracker-settings` | Tracker table + conversation; settings modal. Two medium flows. |
 | 5 | `batch-5-auth-marketing.md` | 6 + 7 | `build/flow-6-7-auth-marketing` | Auth pages; marketing site. Two small flows; marketing last because its shots are real screenshots of the built screens. |
 
-Order is fixed. A batch starts only after the previous one is merged into `rebrand/usefulapply`.
+Order is fixed. A batch starts only after the previous one is merged into `rebrand/usefulapply`. Batches 1 and 2 are merged (19 August 2026). Every batch appends its backend gaps to `BACKEND-GAPS.md`.
 
 ## Rules for the implementer (Grok)
 
@@ -37,6 +37,7 @@ Order is fixed. A batch starts only after the previous one is merged into `rebra
 - Do not touch: Stripe webhook or credit-deduction logic, D1 schema or migrations, Better Auth config, `src/lib/agents/**` prompts. If a task seems to need it, stop and put it in the report under "Needs a decision".
 - Desktop first (1440x900 is the reference). Tablet ≥768 must not break. Mobile is not a priority.
 - If something in the flow doc is impossible or contradicts the code, do the rest and write it under "Needs a decision". Don't invent a different design.
+- **Backend gaps go in `BACKEND-GAPS.md` (same folder).** Whenever the design shows a screen or control that the backend, route, prompt, schema or data does not support yet, build the UI honestly against what exists and append an entry there under your batch. That file is the backend work list once all seven flows are built; nothing gets lost in a chat report.
 
 ## Report format (Grok ends every session with exactly this)
 
