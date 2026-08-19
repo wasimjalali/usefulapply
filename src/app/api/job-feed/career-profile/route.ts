@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
     // recently (within the last 30 seconds) AND the source CV hasn't changed
     // since then, return the cached profile instead of burning another LLM
     // call. This prevents duplicate generations from rapid re-mounts or
-    // parallel requests (e.g., AISearchProfileCard auto-regen race).
+    // parallel requests (e.g. two feed columns loading the profile at once).
     if (
       force
       && profileRow?.profile
@@ -263,6 +263,6 @@ function isCVNewerThanProfile(params: {
   const cvTime = Date.parse(params.primaryDocUpdatedAt);
   if (Number.isNaN(profileTime) || Number.isNaN(cvTime)) return false;
   // Require a meaningful gap (>1s) so harmless writes that touch the
-  // documents row don't reopen the auto-regen loop in AISearchProfileCard.
+  // documents row don't reopen the auto-regen loop on the client.
   return cvTime - profileTime > 1000;
 }

@@ -721,7 +721,7 @@ export function useSupabaseSync() {
 
         // Do NOT bump updated_at: _editedCVData is a UI overlay, not a
         // content change. Bumping it falsely invalidates user_career_profiles
-        // and triggers an auto-regen loop in AISearchProfileCard.
+        // and triggers an auto-regen loop on the client.
         await updateDocumentStructuredDataAction(user.id, primaryDoc.id, updatedStructuredData);
 
         console.log('[SupabaseSync] Synced editedOriginalCVData to documents table');

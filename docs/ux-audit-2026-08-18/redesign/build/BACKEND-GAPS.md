@@ -47,7 +47,7 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 ### Answers persist inside `generated_cv` JSON, not their own column
 - **UI today:** the Answers tab survives reload and session switch. Data rides in `generated_cv._screeningAnswers` (same embed pattern as `_optimizedCVData`), read back in `useSupabaseSync.ts` and the Job Feed mapper.
 - **Missing:** a proper column or table for screening answers, so the tracker and future exports can read them without unpacking the CV blob.
-- **Where:** `src/hooks/useSupabaseSync.ts` (`embedKitData`), `src/components/job-feed/JobFeedPanel.tsx` (`toStoreApplicationSession`), `src/db/schema.ts`.
+- **Where:** `src/hooks/useSupabaseSync.ts` (`embedKitData`), `src/components/job-feed/feed-session-mapper.ts` (`toStoreApplicationSession`, moved out of the retired JobFeedPanel in batch 3), `src/db/schema.ts`.
 - **Needs:** D1 migration + repo + sync changes. Small. Decision: keep the embed for now or add the column when the tracker (flow 4) needs it.
 
 ### Download all ships loose files, not a zip
@@ -70,7 +70,60 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 
 ## Found in batch 3 (feed)
 
-_Add here._
+### The run reports no progress until it finishes
+- **UI today:** J2 shows four named stages (Reading your profile, Planning your searches, Searching, Ranking against your CV) with a progress bar, and the canvas lists today's queries with their rationales. Stages 1 and 2 flip to done off real completions (the career-profile POST and the strategy POST return). Stage 3 stays active for the whole run and stages 3 and 4 both complete when the run does. The queries carry no per-query "N found".
+- **Missing:** `/api/job-feed/run` is one synchronous POST that returns only when the whole workflow is done. `runJobFeedFoundationWorkflow` writes `search_plan`, `raw_jobs_fetched` and the counts into `job_feed_runs` only at completion, and `metadata.stage` is set to `phase_4_ranking` before ingestion even starts, so polling the run tells you nothing about where it is.
+- **Where:** UI `src/components/job-feed/FeedConversation.tsx` (`buildStages`) and `src/components/job-feed/FeedCanvas.tsx` (`BuildingCanvas`); backend `src/app/api/job-feed/run/route.ts`, `src/lib/job-feed/server.ts` (`runJobFeedFoundationWorkflow`), `src/lib/job-feed/ingestion.ts`.
+- **Needs:** per-query progress written as the run goes (a `metadata.progress` array of `{ query, status, found }` updated after each SerpAPI call, or an SSE endpoint like `/api/agent-v2`), plus a stage marker the client can read. Medium. Decision: incremental row writes on `job_feed_runs` versus a real stream.
+
+### The design's "ten searches" is two on Plus and one on Free
+- **UI today:** the conversation and the building canvas say the real number: "I ran 2 searches for you", "2 searches today, in priority order", and Edit feed's Searches pill lists today's queries plus "N more queries are in the plan. Each morning works down the list."
+- **Missing:** nothing is broken, but the artboards (J2, J3, J6) were drawn against ten searches a day. `JOB_FEED_TIER_LIMITS` allows 2 SerpAPI calls on Plus, 4 on Max and 1 on Free because each call costs cash, while the strategy generator plans up to 10 queries.
+- **Where:** `src/lib/job-feed/constants.ts` (`maxDailyQueries`), `src/lib/job-feed/search-strategy.ts` (plans 10).
+- **Needs:** a product decision, not code. Either raise the daily query budget (real SerpAPI cost per call) or keep the copy honest as it is now. Small either way.
+
+### Re-ranking by chat filters today's list, it does not re-rank it
+- **UI today:** "only remote", "salary floor 150K", "no agencies", "drop Group PM" are parsed, saved to `job_feed_settings`, and applied as a filter over the list already on screen. The assistant says exactly that: "Remote only from now on. I've hidden 3 roles from today's list. Tomorrow's search uses it from the start."
+- **Missing:** there is no re-rank endpoint. Ranking happens once inside the daily run (`rankJobFeedCandidates`), and `/api/job-feed/run` is capped at one manual run per local calendar day, so a saved change cannot re-order today's feed.
+- **Where:** UI `src/components/job-feed/FeedConversation.tsx` (`applySteer`), `src/lib/job-feed/rerank-intent.ts`; backend `src/lib/job-feed/server.ts`, `src/lib/job-feed/workers-ai-ranking.ts`, `src/app/api/job-feed/run/route.ts`.
+- **Needs:** a `POST /api/job-feed/rerank` that re-runs the ranker over the run's existing canonical jobs with the new settings and rewrites `job_feed_ranked_items` (no SerpAPI cost, only a Workers AI call). Medium. Decision: is a re-rank free, or does it count against the daily run?
+
+### "Add Berlin" is understood but never saved
+- **UI today:** `detectFeedIntent` recognises "add Berlin" and the assistant confirms "Berlin is in the search now." The city is added to `target_cities` on the settings payload.
+- **Missing:** a city outside the saved `target_countries` is searched in the wrong market, and nothing maps a city name to a country. `JOB_FEED_CITY_SUGGESTIONS` in constants.ts is a per-country list, not a reverse index, and the settings route does not validate that a city belongs to a selected country.
+- **Where:** `src/lib/job-feed/rerank-intent.ts`, `src/app/api/job-feed/settings/route.ts`, `src/lib/job-feed/constants.ts`.
+- **Needs:** a city-to-country lookup (reverse `JOB_FEED_CITY_SUGGESTIONS` plus a fallback), and the settings route adding the country when a city implies one. Small.
+
+### The free tier cannot say how many roles it is hiding
+- **UI today:** J7's line reads "You're seeing your top 5 today. Plus shows every role that matched, searches more sources and lets you steer the feed." The artboard says "9 more roles matched today."
+- **Missing:** the overview route caps both `jobs` and `jobsTotalCount` at the free tier's `visibleCount` before the client sees them, so the client cannot know the uncapped number.
+- **Where:** `src/app/api/job-feed/overview/route.ts` (`visibleCap`, `totalCount`), UI `src/components/job-feed/FeedCanvas.tsx`.
+- **Needs:** return the uncapped count as a separate field (e.g. `jobsMatchedCount`) while keeping the item list capped. Small.
+
+### "Why it's a match" is empty on saved jobs
+- **UI today:** the job detail shows "Why it's a match" from `matchReason`, which this batch threaded through from `job_feed_ranked_items.reason`. The section is hidden when there is no reason.
+- **Missing:** `listSavedJobFeedItemsAdmin` builds its items straight from the feedback rows and the canonical jobs, with no ranked-item join, so every job opened from the Saved tab has `matchReason: null`. The same is true for any job whose run has aged out of the 7-day window.
+- **Where:** `src/lib/job-feed/server.ts` (`listSavedJobFeedItemsAdmin`, `toFeedItem`).
+- **Needs:** join the most recent `job_feed_ranked_items` row per canonical job in the saved query. Small.
+
+### Check fit from a card cannot price against the balance
+- **UI today:** every card carries a gold "Check fit · 0.5" and the detail carries "Check fit · 0.5 credits" with "Skip the check, generate the kit (2 credits)". The price is on the control before the click, but a user who cannot afford it still sees the same control and only learns after the click (the chat then says what the server said, and nothing is charged).
+- **Missing:** the feed does not read the credit balance, so a short balance cannot turn the control into the upgrade path the way `ChatPanel` does with `useCreditsBalance`. Doing it per card would also mean the balance drives 20 controls at once.
+- **Where:** UI `src/components/job-feed/FeedJobCard.tsx`, `src/components/job-feed/FeedJobDetail.tsx`; existing pattern `src/hooks/useCreditsBalance.ts`, `src/components/ChatPanel.tsx`.
+- **Needs:** decide whether the feed reads the balance (one fetch, gate all cards) or whether the price on the control plus a clean 402 is enough. Ties into the batch 2 gap "Unknown credit balance still shows the priced chip". Small once decided.
+
+### No morning scheduler, and the old "Run today" control was retired
+- **UI today:** the conversation offers "Build today's feed" when the latest run is not from today, and the copy no longer promises an overnight refresh. There is still no cron that searches while the user sleeps.
+- **Missing:** a scheduled job-feed run (the specialist scope currently says on-click only). `wrangler.jsonc` has one live cron at `0 3 * * *` for cleanup + credit resets, not the feed.
+- **Where:** UI `FeedConversation.tsx` (`build-today` chip); backend `src/cron/index.ts`, `src/app/api/job-feed/run/route.ts`.
+- **Needs:** a product decision. A daily cron in the user's timezone, or keep on-click and leave the chip. Medium if we add the cron (SerpAPI cost per user per day).
+
+### The feed conversation is not persisted anywhere
+- **UI today:** the feed's opening message is derived from the overview on every load, so a reload always shows today's real feed. Anything the user typed or picked afterwards (the steering exchange) lives in `useFeedStore`, which is deliberately not persisted, and is gone after a reload.
+- **Missing:** no store or table for feed conversation turns. Application conversations persist via `chat_messages`; the feed has no equivalent.
+- **Where:** `src/store/useFeedStore.ts` (`thread`), `src/hooks/useSupabaseSync.ts`.
+- **Needs:** a decision first. A daily feed arguably should reset each morning; if the exchange should survive a reload, it needs a table or a day-keyed localStorage entry. Small.
+
 
 ## Found in batch 4 (tracker + settings)
 

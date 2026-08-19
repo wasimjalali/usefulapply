@@ -11,6 +11,20 @@ import { FALLBACK_TEMPLATE_ID, readDefaultTemplate } from '@/lib/cv-templates/de
 
 export type KitTab = 'cv' | 'cover-letter' | 'email' | 'answers';
 
+/**
+ * A job handed off from the feed. `headline` is what the conversation shows as
+ * the user's message instead of the raw ad, so the application opens with
+ * "<role> · <company>" and where it came from rather than a wall of text.
+ */
+export interface PendingJobFeedAutostart {
+  sessionId: string;
+  generationId?: string | null;
+  generationAttempt?: number | null;
+  mode?: 'apply' | 'analyze';
+  headline?: string | null;
+  company?: string | null;
+}
+
 export type PendingApplicationAction =
   | 'generate-full-application'
   | 'skip-job'
@@ -44,10 +58,10 @@ interface UIState {
   kitDownloadBusy: boolean;
 
   // Cross-component autostart signal for Apply-with-Useful Apply from the Job Feed.
-  // Set by JobFeedPanel on click; ChatPanel picks it up and starts the agent
+  // Set by the feed handoff on click; ChatPanel picks it up and starts the agent
   // workflow immediately — even if the user does not navigate to the
   // Application Kit tab. Consumed-then-cleared by ChatPanel.
-  pendingJobFeedAutostart: { sessionId: string; generationId?: string | null; generationAttempt?: number | null; mode?: 'apply' | 'analyze' } | null;
+  pendingJobFeedAutostart: PendingJobFeedAutostart | null;
 
   // Cross-component action signal: application panels and Job Feed cards
   // dispatch ChatPanel-owned follow-up actions after fit analysis or kit generation.
@@ -84,7 +98,7 @@ interface UIActions {
   setKitDownloadBusy: (busy: boolean) => void;
 
   // Autostart signal
-  setPendingJobFeedAutostart: (value: { sessionId: string; generationId?: string | null; generationAttempt?: number | null; mode?: 'apply' | 'analyze' } | null) => void;
+  setPendingJobFeedAutostart: (value: PendingJobFeedAutostart | null) => void;
 
   // Panel action signal (fit analysis and screening CTAs dispatched outside ChatPanel)
   setPendingApplicationAction: (value: PendingApplicationAction | null) => void;

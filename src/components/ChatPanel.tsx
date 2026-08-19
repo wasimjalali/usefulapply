@@ -354,7 +354,8 @@ export function ChatPanel({
   }, []);
 
   // Job Feed autostart — single source of truth.
-  // JobFeedPanel sets `pendingJobFeedAutostart` synchronously before navigating.
+  // The feed handoff sets `pendingJobFeedAutostart` synchronously before
+  // switching the shell to the application's tab.
   // The module-level `autostartedApplySessionIds` set dedupes across multiple
   // mounted ChatPanel instances (desktop + mobile can both be in the DOM).
   const pendingJobFeedAutostart = useUIStore((state) => state.pendingJobFeedAutostart);
@@ -451,7 +452,11 @@ export function ChatPanel({
     const mode = pendingJobFeedAutostart.mode ?? 'apply';
     const applicationModeForRun = mode === 'analyze' ? 'analyze_first' : 'apply_directly';
 
-    addChatMessage({ role: 'user', content: jobDescription });
+    // A job that came from the feed opens with its own headline, not the ad.
+    addChatMessage({
+      role: 'user',
+      content: pendingJobFeedAutostart.headline?.trim() || jobDescription,
+    });
     setJobDescription(jobDescription);
     setApplicationMode(applicationModeForRun);
     setAwaitingJobDescription(false);

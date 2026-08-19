@@ -53,6 +53,18 @@ Same layout and cards, "Your top 5 today", no Edit feed button, and one upgrade 
 7. **Edit feed nudge** is a one-time flag per user (localStorage or a user setting), fires 3 s after first open, stops on any pill click.
 8. **Duplicates** are removed before the list renders (B9); the announcement states the count honestly.
 
+## Build notes (19 August 2026, `build/flow-3-feed`)
+
+Where the built screens diverge from the artboards, and why. Every gap has an entry in `build/BACKEND-GAPS.md`.
+
+1. **"Ten searches" is the tier's real budget.** Plus runs 2 SerpAPI calls a day, Max 4, Free 1, while the strategy generator plans up to 10 queries. J2's stage reads "Planning your searches" with the real count, the canvas lists today's queries only, and Edit feed's Searches pill adds "N more queries are in the plan. Each morning works down the list."
+2. **No per-query tick-off.** The run writes its search plan and counts only when it completes, so the canvas shows the planned queries without "N found" and the Searching stage stays active for the whole run. Stages 1 and 2 do flip off real completions (the profile and strategy calls returning).
+3. **Re-rank is a filter plus a saved preference.** There is no re-rank endpoint and only one run per local day, so "only remote" hides non-remote roles from today's list and saves the setting for tomorrow. The assistant says both halves in one line.
+4. **The free tier's upgrade line does not name a number.** The overview caps the count before the client sees it, so the line reads "You're seeing your top 5 today" rather than "9 more roles matched today".
+5. **The feed conversation is derived, not stored.** The opening message is rebuilt from the overview on every load; the steering exchange lives in `useFeedStore` and does not survive a reload. A daily feed resetting each morning is the intended behaviour.
+6. **"Why it's a match"** now comes from `job_feed_ranked_items.reason`, threaded onto `JobFeedFeedItem.matchReason` in this batch. It is empty for jobs opened from the Saved tab (no ranked-item join there), and the section is hidden rather than filled with a guess.
+7. **Mobile** gets the same canvas in read-only mode (list, detail, save, employer site). Setup and steering live in the conversation, which is desktop only.
+
 ## Out of scope for flow 3
 
 Tracker table (flow 4). Settings pages (flow 5).

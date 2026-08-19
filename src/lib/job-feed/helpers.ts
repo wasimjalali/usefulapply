@@ -39,14 +39,26 @@ export function canAccessJobFeed(subscriptionTier?: string | null): boolean {
  * reservation enforced server-side in /api/agent-v2 before any generation runs,
  * which is gated on session identity (a logged-in free user always pays).
  *
- * Truly premium-exclusive actions (saved jobs, settings + settings/suggest,
- * search-strategy editing, the scheduled "search while you sleep" auto-apply)
- * still require canAccessJobFeed (plus/max only).
+ * Truly premium-exclusive actions (settings + settings/suggest, search-strategy
+ * editing, and steering the feed) still require canAccessJobFeed (plus/max
+ * only). Bookmarking a role (`saved`) and recording that it was opened are
+ * available to anyone who can view the feed. Saving is free.
  *
  * Returns false for null/undefined/unknown tiers (fail-closed).
  */
 export function canViewJobFeed(subscriptionTier?: string | null): boolean {
   return subscriptionTier === 'free' || canAccessJobFeed(subscriptionTier);
+}
+
+/** http(s) only. Used before any job-board URL reaches an href or markdown link. */
+export function isSafeExternalUrl(value: string | null | undefined): boolean {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
 }
 
 export function isValidTimeZone(timeZone: string): boolean {

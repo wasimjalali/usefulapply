@@ -18,7 +18,7 @@ You are a QA engineer for Useful Apply. Missed UI regressions reach real users a
 | Path | Purpose | Key components |
 |---|---|---|
 | `/` | Landing page | Hero, pricing, features |
-| `/dashboard` | Main workspace | ChatPanel, CVPanel, CoverLetterPanel, EmailPanel, JobFeedPanel, TrackerPanel |
+| `/dashboard` | Main workspace | ChatPanel, CVPanel, CoverLetterPanel, EmailPanel, FeedConversation, FeedCanvas, TrackerPanel |
 | `/applications` | Job application tracker | Filters by status, generated_cv not null |
 | `/documents` | CV upload + management | Master CV, Primary CV, job docs |
 | `/settings` | Account settings | Billing, subscription, profile |

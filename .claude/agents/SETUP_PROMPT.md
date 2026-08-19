@@ -108,7 +108,7 @@ Do NOT invent content from scratch — the author-signed versions are on main.
 | `karko-architect` | Sonnet 4.6 | high | Cross-cutting refactors, "where should X live" decisions, 3+ file scope |
 | `supabase-dba` | Sonnet 4.6 | high | Writing migrations, reviewing RLS, schema + query review |
 | `integration-tester` | Haiku 4.5 | low | Pre-commit verification (tsc + lint + spot checks). Fast and cheap. |
-| `job-feed-specialist` | Sonnet 4.6 | high | Any edit under `src/lib/job-feed/**`, `src/inngest/job-feed.ts`, job-feed API routes, or JobFeedPanel |
+| `job-feed-specialist` | Sonnet 4.6 | high | Any edit under `src/lib/job-feed/**`, `src/inngest/job-feed.ts`, job-feed API routes, or the feed components |
 
 ## Why these models
 

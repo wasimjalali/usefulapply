@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { JobBoardPanel } from '@/components/JobBoardPanel';
+import { MobileFeed } from '@/components/job-feed/MobileFeed';
 import { TrackerPanel } from '@/components/TrackerPanel';
 import { AppShell, GuidedLine } from '@/components/shell';
 import { useAppStore } from '@/store/useAppStore';
@@ -54,6 +54,7 @@ export default function Dashboard() {
     if (requested.workspace === 'tracker') return 'tracker';
     return 'desktop-required';
   });
+  const [isNarrow, setIsNarrow] = useState(false);
   const lastApplicationTabRef = useRef<ApplicationTab>('cv');
   const processedWorkspaceRef = useRef<string | null>(null);
   const hasKit = sessions.some(sessionHasKit) || sessionHasKit(currentSession);
@@ -70,6 +71,14 @@ export default function Dashboard() {
       lastApplicationTabRef.current = activeTab;
     }
   }, [activeTab, isApplicationTab]);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 767px)');
+    const sync = () => setIsNarrow(media.matches);
+    sync();
+    media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
+  }, []);
 
   useEffect(() => {
     const {
@@ -143,6 +152,7 @@ export default function Dashboard() {
 
   return (
     <div className="h-screen flex flex-col bg-cream-100">
+      {!isNarrow && (
       <div className="hidden md:flex flex-1 overflow-hidden">
         {showGuidedLine ? (
           <GuidedLine onKitReady={() => useUIStore.getState().setActiveTab('cv')} />
@@ -150,7 +160,9 @@ export default function Dashboard() {
           <AppShell />
         )}
       </div>
+      )}
 
+      {isNarrow && (
       <div className="md:hidden flex-1 flex flex-col overflow-hidden">
         <div className="flex items-center px-3 py-1.5 bg-cream-50 border-b border-cream-200 flex-shrink-0">
           <BrandLogo variant="full" size="xs" theme="light" />
@@ -159,7 +171,7 @@ export default function Dashboard() {
           {mobileView === 'tracker' ? (
             <TrackerPanel />
           ) : mobileView === 'job-feed' ? (
-            <JobBoardPanel />
+            <MobileFeed />
           ) : (
             <div className="flex items-center justify-center h-full p-6">
               <div className="max-w-sm w-full text-center">
@@ -222,6 +234,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

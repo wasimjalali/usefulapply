@@ -208,6 +208,12 @@ export interface JobFeedFeedItem {
   fitLabel: JobFeedFitLabel | null;
   pipelineStage: JobFeedPipelineStage;
   rankingSource: JobFeedRankingSource | null;
+  /**
+   * The ranker's written reason for this job, as stored on the ranked item.
+   * Null for shortlisted-only rows and for saved jobs read outside a run.
+   * Drives "Why it's a match" in the job detail view.
+   */
+  matchReason: string | null;
   applyOptions: JobFeedApplyOption[];
   feedback: JobFeedItemFeedbackState;
 }
