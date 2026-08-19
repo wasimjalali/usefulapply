@@ -20,13 +20,15 @@ Approved by Wasim on 19 Aug 2026 with no changes. This is the design of record f
 
 | Step | Screen | What the user sees | Primary action |
 |---|---|---|---|
-| 1 | Your CV | Drop zone, "PDF or Word, up to 10 MB", paste-text link. Header: wordmark, Log in, Sign up free. | Choose a file |
+| 1 | Your CV | Drop zone, "PDF or Word, up to 10 MB", paste-text link. Header: wordmark and a quiet "Log in" text link, nothing else. | Choose a file |
 | 1b | Reading your CV | Three named stages (Opening the file, Picking out your experience and skills, Building your base CV) with a progress bar and a time estimate. A second card underneath: "While I read, paste the job ad." | Paste the job |
 | 2 | The job | Paste box with the ad. "Your CV: Alex Morgan, Product Manager · Change" beneath. | Check my fit · free |
 | 3 | Checking fit | Three stages (Reading the job ad, Matching your skills, Scoring the fit), progress, "About 10 seconds left". | none, it's working |
 | 3b | Your fit | Verdict in the heading ("Good fit for Pixellot"), one-line reason, a 76% ring, STRONG and GAPS side by side. "Not this one? Try another job." | Generate the full kit · 1.5 credits, with "Takes a free account first, 4 credits included, no card." |
 | 4a | Sign up | Inside the same card and stepper: Continue with Google, or email + password. | Create account and generate the kit |
 | 4b | Building the kit | Four stages (Tailoring your CV, Writing the cover letter, Drafting the application email, Drafting the follow-up email), progress. "When this finishes your workspace opens with everything in it." | none |
+
+While anonymous, the only header control is a "Log in" text link (for returning users who land here). There is no "Sign up" button on steps 1 to 3b: the account is asked for once, at 4a, after the user has seen their fit. Decided with Wasim 19 Aug.
 
 Rules the line obeys: one primary action per step, price before commitment, named stages while working, no blank canvas, no choice presented before the user understands it (direct generation is a text link, not a second button).
 

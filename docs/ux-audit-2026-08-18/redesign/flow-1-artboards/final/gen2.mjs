@@ -23,7 +23,7 @@ function lineHeader({ anonymous = true } = {}) {
   return `<div style="display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 20px; background: #FEFDFB; border-bottom: 1px solid #F5F0E8; flex-shrink: 0">
     ${wordmark}
     <div style="flex: 1"></div>
-    ${anonymous ? `<span style="font-size: 14px; font-weight: 500; color: #1E3A5F; padding: 0 10px">Log in</span><span class="btn-navy" style="height: 40px; padding: 0 16px; font-size: 14px">Sign up free</span>` : ''}
+    ${anonymous ? `<span style="font-size: 14px; font-weight: 500; color: #1E3A5F; padding: 0 10px">Log in</span>` : ''}
   </div>`;
 }
 
