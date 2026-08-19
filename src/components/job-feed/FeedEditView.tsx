@@ -64,7 +64,14 @@ export function FeedEditView({
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (window.localStorage.getItem(NUDGE_FLAG_KEY) === 'seen') return;
-    nudgeTimerRef.current = window.setTimeout(() => setNudge(true), NUDGE_DELAY_MS);
+    nudgeTimerRef.current = window.setTimeout(() => {
+      setNudge(true);
+      try {
+        window.localStorage.setItem(NUDGE_FLAG_KEY, 'seen');
+      } catch {
+        // A blocked localStorage just means the nudge shows again next time.
+      }
+    }, NUDGE_DELAY_MS);
     return () => {
       if (nudgeTimerRef.current !== null) window.clearTimeout(nudgeTimerRef.current);
     };
@@ -204,7 +211,7 @@ export function FeedEditView({
           <div className="space-y-3">
             <p className="text-sm text-warm-gray">
               {todaysQueries.length > 0
-                ? `${todaysQueries.length} ${todaysQueries.length === 1 ? 'search runs' : 'searches run'} each morning, in this order.`
+                ? `${todaysQueries.length} ${todaysQueries.length === 1 ? 'search runs' : 'searches run'} each time you build the feed, in this order.`
                 : 'Your searches get planned with the first feed.'}
             </p>
             {todaysQueries.map((query, index) => (
@@ -217,8 +224,8 @@ export function FeedEditView({
             {laterQueries.length > 0 && (
               <div className="rounded-2xl border border-cream-200 bg-cream-50 px-4 py-3">
                 <p className="text-sm text-charcoal">
-                  {laterQueries.length} more {laterQueries.length === 1 ? 'query is' : 'queries are'} in the plan. Each morning
-                  works down the list, so they come round on other days.
+                  {laterQueries.length} more {laterQueries.length === 1 ? 'query is' : 'queries are'} in the plan. Later runs
+                  work down the list, so they come round on other days.
                 </p>
               </div>
             )}

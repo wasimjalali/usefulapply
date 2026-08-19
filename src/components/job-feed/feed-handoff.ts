@@ -10,8 +10,8 @@ import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
 import { useFeedStore } from '@/store/useFeedStore';
 import { createFeedApplication } from './feed-actions';
-import { toStoreApplicationSession } from './feed-session-mapper';
-import { buildJobHandoffLine } from './feed-format';
+import { mergeFeedSession, toStoreApplicationSession } from './feed-session-mapper';
+import { buildJobHandoffLine, escapeMarkdown } from './feed-format';
 
 export type FeedHandoffMode = 'analyze' | 'apply';
 
@@ -38,11 +38,14 @@ export async function startFeedHandoff(
   const payload = created.data;
   const mapped = toStoreApplicationSession(payload.session, payload.generation);
   const sessionStore = useSessionStore.getState();
+  const existing = sessionStore.sessions.find((item) => item.id === mapped.id)
+    ?? (sessionStore.currentSession?.id === mapped.id ? sessionStore.currentSession : undefined);
+  const merged = mergeFeedSession(mapped, existing);
   sessionStore.setSessions([
-    mapped,
-    ...sessionStore.sessions.filter((item) => item.id !== mapped.id),
+    merged,
+    ...sessionStore.sessions.filter((item) => item.id !== merged.id),
   ]);
-  sessionStore.loadSession(mapped.id);
+  sessionStore.loadSession(merged.id);
 
   const uiStore = useUIStore.getState();
   const autostarted = payload.generation.status === 'intent_created';
@@ -65,7 +68,7 @@ export async function startFeedHandoff(
 
 /** "**Product Manager, B2B SaaS** · Avetta" plus where it came from. */
 export function buildHandoffHeadline(job: JobFeedFeedItem): string {
-  const line = buildJobHandoffLine(job);
+  const line = escapeMarkdown(buildJobHandoffLine(job));
   const source = line ? `From today's feed · ${line}` : "From today's feed";
-  return `**${job.title}** · ${job.company}\n\n${source}`;
+  return `**${escapeMarkdown(job.title)}** · ${escapeMarkdown(job.company)}\n\n${source}`;
 }

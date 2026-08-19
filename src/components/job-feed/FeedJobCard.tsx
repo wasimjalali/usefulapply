@@ -3,7 +3,7 @@
 import { Bookmark, Clock, DollarSign, ExternalLink, Globe, MapPin, Search } from 'lucide-react';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { workModeLabel } from './job-ad-text';
-import { buildCardSummary, formatJobAge } from './feed-format';
+import { buildCardSummary, formatJobAge, safeEmployerUrl } from './feed-format';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 
 interface FeedJobCardProps {
@@ -12,9 +12,11 @@ interface FeedJobCardProps {
   onCheckFit: (job: JobFeedFeedItem) => void;
   onSave: (job: JobFeedFeedItem) => void;
   onOpenEmployerSite: (job: JobFeedFeedItem) => void;
+  onUpgrade?: () => void;
   busy?: boolean;
   /** False on the mobile read-only feed, where the kit cannot be generated. */
   showCheckFit?: boolean;
+  canAffordFit?: boolean;
 }
 
 function MetaChip({ icon: Icon, label, tone = 'default' }: {
@@ -42,13 +44,15 @@ export function FeedJobCard({
   onCheckFit,
   onSave,
   onOpenEmployerSite,
+  onUpgrade,
   busy = false,
   showCheckFit = true,
+  canAffordFit = true,
 }: FeedJobCardProps) {
   const age = formatJobAge(job);
   const summary = buildCardSummary(job);
   const isStrong = job.fitLabel === 'strong';
-  const employerLink = job.applyUrl || job.sourceUrl;
+  const employerLink = safeEmployerUrl(job);
   const isSaved = Boolean(job.feedback.savedAt);
 
   return (
@@ -68,29 +72,44 @@ export function FeedJobCard({
     >
       <div className="flex items-start gap-4">
         <div className="min-w-0 flex-1">
-          <p className={`flex items-center gap-2 text-xs font-semibold ${isStrong ? 'text-sage-600' : 'text-gold-600'}`}>
-            <span className={`inline-block h-1.5 w-1.5 rounded-full ${isStrong ? 'bg-sage-500' : 'bg-gold-400'}`} />
-            {isStrong ? 'Strong match' : 'Good match'}
-          </p>
+          {job.fitLabel && (
+            <p className={`flex items-center gap-2 text-xs font-semibold ${isStrong ? 'text-sage-600' : 'text-gold-600'}`}>
+              <span className={`inline-block h-1.5 w-1.5 rounded-full ${isStrong ? 'bg-sage-500' : 'bg-gold-400'}`} />
+              {isStrong ? 'Strong match' : 'Good match'}
+            </p>
+          )}
           <h3 className="mt-1.5 truncate text-lg font-semibold text-navy-800">{job.title}</h3>
           <p className="text-sm text-warm-gray">{job.company}</p>
         </div>
 
         <div className="flex flex-shrink-0 flex-col items-end gap-2">
           {showCheckFit && (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={(event) => {
-                event.stopPropagation();
-                onCheckFit(job);
-              }}
-              className="inline-flex h-10 items-center gap-2 rounded-full bg-gold-400 px-4 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-warm-gray cursor-pointer"
-            >
-              <Search className="h-4 w-4" />
-              Check fit
-              <span className="font-medium opacity-85">· {CREDIT_COSTS.FIT_ANALYSIS}</span>
-            </button>
+            canAffordFit ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onCheckFit(job);
+                }}
+                className="inline-flex h-10 items-center gap-2 rounded-full bg-gold-400 px-4 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-warm-gray cursor-pointer"
+              >
+                <Search className="h-4 w-4" />
+                Check fit
+                <span className="font-medium opacity-85">· {CREDIT_COSTS.FIT_ANALYSIS}</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onUpgrade?.();
+                }}
+                className="inline-flex h-10 items-center gap-2 rounded-full bg-gold-400 px-4 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer"
+              >
+                See Plus
+              </button>
+            )
           )}
           <div className="flex items-center gap-1">
             <button
@@ -139,7 +158,7 @@ export function FeedJobCard({
       )}
       <span className="mt-1.5 inline-flex items-center gap-1 text-[13px] font-semibold text-navy-700">
         Details
-        <span aria-hidden="true">↗</span>
+        <span aria-hidden="true">→</span>
       </span>
     </div>
   );

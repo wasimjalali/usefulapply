@@ -84,6 +84,14 @@ interface FeedState {
   build: FeedBuildState | null;
   isRunning: boolean;
   isSavingSettings: boolean;
+  /**
+   * True after the in-tab poller has waited 20 minutes on a still-generating
+   * run. The conversation leaves the building view; a later successful
+   * overview that is no longer generating clears it.
+   */
+  pollGaveUp: boolean;
+  /** Bumped on reset so in-flight fetches cannot write a cleared store. */
+  fetchGeneration: number;
 
   view: FeedCanvasView;
   listTab: FeedListTab;
@@ -121,6 +129,7 @@ interface FeedActions {
   patchBuild: (patch: Partial<FeedBuildState>) => void;
   setIsRunning: (value: boolean) => void;
   setIsSavingSettings: (value: boolean) => void;
+  setPollGaveUp: (value: boolean) => void;
 
   setView: (view: FeedCanvasView) => void;
   setListTab: (tab: FeedListTab) => void;
@@ -150,6 +159,8 @@ const initialState: FeedState = {
   build: null,
   isRunning: false,
   isSavingSettings: false,
+  pollGaveUp: false,
+  fetchGeneration: 0,
   view: 'list',
   listTab: 'today',
   selectedJobId: null,
@@ -174,7 +185,15 @@ export const useFeedStore = create<FeedState & FeedActions>()((set) => ({
   ...initialState,
 
   setStatus: (status, errorMessage = null) => set({ status, errorMessage }),
-  setOverview: (overview) => set({ overview }),
+  setOverview: (overview) => set((state) => {
+    const prevRun = state.overview?.feedRun?.id ?? state.overview?.latestRun?.id ?? null;
+    const nextRun = overview?.feedRun?.id ?? overview?.latestRun?.id ?? null;
+    return {
+      overview,
+      extraJobs: prevRun !== nextRun ? [] : state.extraJobs,
+      pollGaveUp: overview?.state === 'generating' ? state.pollGaveUp : false,
+    };
+  }),
 
   patchJobFeedback: (jobId, feedback) => set((state) => ({
     overview: state.overview
@@ -209,6 +228,7 @@ export const useFeedStore = create<FeedState & FeedActions>()((set) => ({
   patchBuild: (patch) => set((state) => ({ build: state.build ? { ...state.build, ...patch } : state.build })),
   setIsRunning: (value) => set({ isRunning: value }),
   setIsSavingSettings: (value) => set({ isSavingSettings: value }),
+  setPollGaveUp: (value) => set({ pollGaveUp: value }),
 
   setView: (view) => set({ view }),
   setListTab: (tab) => set({ listTab: tab }),
@@ -232,7 +252,7 @@ export const useFeedStore = create<FeedState & FeedActions>()((set) => ({
 
   setSetupStep: (step) => set({ setupStep: step }),
   patchSetupDraft: (patch) => set((state) => ({ setupDraft: { ...state.setupDraft, ...patch } })),
-  resetFeed: () => set({ ...initialState }),
+  resetFeed: () => set((state) => ({ ...initialState, fetchGeneration: state.fetchGeneration + 1 })),
 }));
 
 /**
@@ -244,10 +264,14 @@ export const useFeedStore = create<FeedState & FeedActions>()((set) => ({
 export function resolveFeedBuild(
   build: FeedBuildState | null,
   overviewState: JobFeedOverviewResponse['state'] | undefined,
+  pollGaveUp = false,
 ): FeedBuildState | null {
+  if (pollGaveUp) return null;
   if (build) return build;
   if (overviewState !== 'generating') return null;
-  return { profileDone: true, strategyDone: true, searchDone: false, plannedQueries: null };
+  // A run started elsewhere has no local completions to read. Leave every
+  // stage open rather than ticking profile/strategy off by assumption.
+  return { profileDone: false, strategyDone: false, searchDone: false, plannedQueries: null };
 }
 
 /**
@@ -258,7 +282,9 @@ export function resolveFeedBuild(
 export function selectFeedThreadKey(state: Pick<FeedState, 'overview'>): string {
   const overview = state.overview;
   if (!overview) return 'no-feed';
-  return `${overview.state}:${overview.feedRun?.id ?? 'no-run'}`;
+  // Key on the run, not the display state. ready ↔ thin_feed flips as the
+  // visible count crosses 10 and would otherwise wipe the conversation.
+  return overview.feedRun?.id ?? overview.latestRun?.id ?? 'no-run';
 }
 
 /**
@@ -281,6 +307,8 @@ export function selectVisibleJobs(state: Pick<FeedState, 'listTab' | 'savedJobs'
     deduped.push(job);
   }
 
+  // Saved is a bookmark list. Chat filters only narrow today's feed.
+  if (state.listTab === 'saved') return deduped;
   return deduped.filter((job) => matchesFilters(job, state.filters));
 }
 

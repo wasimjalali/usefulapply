@@ -22,7 +22,7 @@ import {
   JOB_FEED_COUNTRY_OPTIONS,
   getJobFeedTierLimits,
 } from '@/lib/job-feed/constants';
-import { createDefaultJobFeedInput, toJobFeedInput } from '@/lib/job-feed/helpers';
+import { createDefaultJobFeedInput, getLocalDateKey, toJobFeedInput } from '@/lib/job-feed/helpers';
 import type { JobFeedFeedItem, JobFeedSettingsInput } from '@/lib/job-feed/types';
 import { applyFeedIntent, detectFeedIntent, formatSalary } from '@/lib/job-feed/rerank-intent';
 import { parseSetupLine } from '@/lib/job-feed/setup-intent';
@@ -34,7 +34,7 @@ import {
   runFeed,
   saveFeedSettings,
 } from './feed-actions';
-import { countryLabel, formatFeedDay, plural } from './feed-format';
+import { countryLabel, escapeMarkdown, formatFeedDay, plural } from './feed-format';
 import {
   buildJobFeedPreviewCareerProfile,
   buildJobFeedPreviewSnapshot,
@@ -76,6 +76,7 @@ export function FeedConversation() {
   const build = useFeedStore((state) => state.build);
   const isRunning = useFeedStore((state) => state.isRunning);
   const isSavingSettings = useFeedStore((state) => state.isSavingSettings);
+  const pollGaveUp = useFeedStore((state) => state.pollGaveUp);
   const strategy = useFeedStore((state) => state.strategy);
   const careerProfile = useFeedStore((state) => state.careerProfile);
   const thread = useFeedStore((state) => state.thread);
@@ -91,9 +92,11 @@ export function FeedConversation() {
   const isPreviewing = previewMode !== 'off';
 
   // Auth does not run in local dev, so a preview names the plan it is showing.
-  const tier = getJobFeedPreviewTier(previewMode) ?? profile?.subscription_tier ?? 'free';
+  // Do not fall back to free while the real plan is still unknown.
+  const tier = getJobFeedPreviewTier(previewMode) ?? profile?.subscription_tier ?? null;
   const canSteer = tier === 'plus' || tier === 'max';
-  const queryBudget = getJobFeedTierLimits(tier).maxDailyQueries;
+  const knownFree = tier === 'free';
+  const queryBudget = getJobFeedTierLimits(tier ?? 'free').maxDailyQueries;
 
   // ---- data ---------------------------------------------------------------
 
@@ -108,7 +111,9 @@ export function FeedConversation() {
       return;
     }
     if (!user) {
-      useFeedStore.getState().setStatus('ready');
+      const store = useFeedStore.getState();
+      store.resetFeed();
+      store.setStatus('ready');
       return;
     }
     void loadFeedOverview();
@@ -133,14 +138,31 @@ export function FeedConversation() {
     const startedAt = Date.now();
     let cancelled = false;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let delayMs = 10_000;
+    let warned = false;
     const schedule = () => {
       if (cancelled) return;
       const elapsed = Date.now() - startedAt;
-      if (elapsed > 20 * 60_000) return;
+      if (elapsed > 20 * 60_000) {
+        delayMs = 30_000;
+        if (!warned) {
+          warned = true;
+          const store = useFeedStore.getState();
+          store.setBuild(null);
+          store.setPollGaveUp(true);
+          store.addMessage(selectFeedThreadKey(store), {
+            role: 'assistant',
+            content: "This is taking longer than it should. I'll keep whatever is already on the right and keep checking in the background. You can try running it again.",
+            chips: [{ id: 'retry-run', label: 'Run it again', variant: 'primary' }],
+          });
+        }
+      }
       timeoutId = setTimeout(async () => {
-        await loadFeedOverview({ quiet: true });
+        const result = await loadFeedOverview({ quiet: true });
+        if (cancelled) return;
+        if (!result.ok && result.status === 429) delayMs = 20_000;
         schedule();
-      }, elapsed > 2 * 60_000 ? 10_000 : 5_000);
+      }, delayMs);
     };
     schedule();
     return () => {
@@ -154,7 +176,10 @@ export function FeedConversation() {
   const phase: FeedPhase = useMemo(() => {
     if (status === 'loading' || (status === 'idle' && !overview)) return 'loading';
     if (status === 'error') return 'error';
-    if (build || isRunning || isSavingSettings) return 'building';
+    if (pollGaveUp) {
+      return overview?.jobs && overview.jobs.length > 0 ? 'feed' : 'empty';
+    }
+    if (build || isRunning) return 'building';
     if (!overview) return 'error';
     switch (overview.state) {
       case 'upgrade_required':
@@ -175,12 +200,19 @@ export function FeedConversation() {
       default:
         return 'feed';
     }
-  }, [build, isRunning, isSavingSettings, overview, status]);
+  }, [build, isRunning, overview, pollGaveUp, status]);
 
   const { all: allJobs } = useFeedJobLists();
   const todayCount = overview?.jobsTodayCount ?? 0;
   const totalCount = overview?.jobsTotalCount ?? 0;
   const feedKey = selectFeedThreadKey({ overview });
+  const canRunToday = (() => {
+    const run = overview?.latestManualRun ?? overview?.latestRun ?? null;
+    if (!run) return true;
+    if (run.status === 'running' || run.status === 'queued') return false;
+    const timeZone = overview?.settings?.user_timezone || run.local_timezone || 'UTC';
+    return run.local_date !== getLocalDateKey(new Date(), timeZone);
+  })();
 
   const openingMessages = useMemo(
     () => buildOpening({
@@ -191,6 +223,8 @@ export function FeedConversation() {
       todayCount,
       totalCount,
       canSteer,
+      knownFree,
+      canRunToday,
       tier,
       setupStep,
       setupDraft,
@@ -201,9 +235,9 @@ export function FeedConversation() {
       usedChipIds: usedChips.key === feedKey ? usedChips.ids : [],
     }),
     [
-      allJobs, build, canSteer, careerProfile, errorMessage, feedKey, overview,
-      phase, queryBudget, setupDraft, setupStep, strategy?.queries.length, tier,
-      todayCount, totalCount, usedChips,
+      allJobs, build, canRunToday, canSteer, careerProfile, errorMessage, feedKey,
+      knownFree, overview, phase, queryBudget, setupDraft, setupStep,
+      strategy?.queries.length, tier, todayCount, totalCount, usedChips,
     ],
   );
 
@@ -227,14 +261,16 @@ export function FeedConversation() {
   // ---- helpers ------------------------------------------------------------
 
   const say = useCallback((message: Omit<FeedMessage, 'id'>) => {
-    useFeedStore.getState().addMessage(feedKey, message);
-  }, [feedKey]);
+    const store = useFeedStore.getState();
+    store.addMessage(selectFeedThreadKey(store), message);
+  }, []);
 
   const currentSettingsInput = useCallback((): JobFeedSettingsInput => {
-    return overview?.settings
-      ? toJobFeedInput(overview.settings, browserTimeZone())
+    const settings = useFeedStore.getState().overview?.settings;
+    return settings
+      ? toJobFeedInput(settings, browserTimeZone())
       : createDefaultJobFeedInput(browserTimeZone());
-  }, [overview?.settings]);
+  }, []);
 
   const startBuild = useCallback((firstTime: boolean) => {
     useFeedStore.getState().setBuild({
@@ -247,9 +283,17 @@ export function FeedConversation() {
 
   const finishBuild = useCallback(async () => {
     useFeedStore.getState().patchBuild({ searchDone: true });
-    await loadFeedOverview({ quiet: true });
+    let result = await loadFeedOverview({ quiet: true });
+    if (!result.ok) result = await loadFeedOverview();
     useFeedStore.getState().setBuild(null);
-  }, []);
+    if (!result.ok) {
+      say({
+        role: 'assistant',
+        content: "The search finished but I couldn't load the list. Try again in a moment.",
+        chips: [{ id: 'retry-load', label: 'Try again', variant: 'primary' }],
+      });
+    }
+  }, [say]);
 
   const triggerRun = useCallback(async (firstTime: boolean) => {
     startBuild(firstTime);
@@ -264,17 +308,18 @@ export function FeedConversation() {
       await loadFeedOverview({ quiet: true });
       say({
         role: 'assistant',
-        content: "Today's feed is already built. The next one lands tomorrow morning.",
+        content: "Today's feed is already built. You can run it again tomorrow.",
       });
       return;
     }
+    useFeedStore.getState().setPollGaveUp(false);
     posthog?.capture('job_feed_manual_run_requested', { source: 'feed_conversation' });
     await finishBuild();
   }, [finishBuild, posthog, say, startBuild]);
 
   const completeSetup = useCallback(async (draft: JobFeedSettingsInput) => {
     startBuild(true);
-    const saved = await saveFeedSettings(draft, { firstTime: !overview?.settings });
+    const saved = await saveFeedSettings(draft, { firstTime: true });
     if (!saved.ok) {
       useFeedStore.getState().setBuild(null);
       say({ role: 'assistant', content: saved.error });
@@ -291,7 +336,7 @@ export function FeedConversation() {
       return;
     }
     await finishBuild();
-  }, [finishBuild, overview?.settings, posthog, say, startBuild]);
+  }, [finishBuild, posthog, say, startBuild]);
 
   /** Save a steering change and narrow what is already on screen. */
   const applySteer = useCallback(async (text: string) => {
@@ -307,7 +352,7 @@ export function FeedConversation() {
     if (!canSteer) {
       say({
         role: 'assistant',
-        content: 'Steering the feed is on Plus and Max. On a paid plan I save changes like that and use them from the next morning.',
+        content: 'Steering the feed is on Plus and Max. On a paid plan I save changes like that and use them on the next run.',
         chips: [{ id: 'see-plus', label: 'See Plus', variant: 'primary' }],
       });
       return;
@@ -341,7 +386,7 @@ export function FeedConversation() {
       : " Today's list already matches.";
     say({
       role: 'assistant',
-      content: `${intent.confirmation}${listLine} Tomorrow's search uses it from the start.`,
+      content: `${intent.confirmation}${listLine} The next run uses it from the start.`,
     });
   }, [canSteer, currentSettingsInput, filters, isPreviewing, posthog, say]);
 
@@ -385,16 +430,16 @@ export function FeedConversation() {
           return;
         }
         await loadFeedOverview({ quiet: true });
-        say({ role: 'assistant', content: "Back on. I'll search again tomorrow morning." });
+        say({ role: 'assistant', content: "Back on. I'll use these settings on the next run." });
         return;
       }
       case 'only-remote':
-        store.markChipUsed(feedKey, chip.id);
+        store.markChipUsed(selectFeedThreadKey(store), chip.id);
         say({ role: 'user', content: 'Only remote' });
         await applySteer('only remote');
         return;
       case 'raise-salary':
-        store.markChipUsed(feedKey, chip.id);
+        store.markChipUsed(selectFeedThreadKey(store), chip.id);
         say({ role: 'user', content: 'Raise my salary floor' });
         say({
           role: 'assistant',
@@ -414,6 +459,7 @@ export function FeedConversation() {
         router.push('/pricing');
         return;
       case 'retry-run':
+      case 'build-today':
         await triggerRun(false);
         return;
       case 'retry-load':
@@ -429,7 +475,7 @@ export function FeedConversation() {
     }
 
     if (chip.id.startsWith('floor:')) {
-      for (const value of SALARY_CHIPS) store.markChipUsed(feedKey, `floor:${value}`);
+      for (const value of SALARY_CHIPS) store.markChipUsed(selectFeedThreadKey(store), `floor:${value}`);
       const value = Number(chip.id.slice('floor:'.length));
       say({ role: 'user', content: formatSalary(value) });
       await applySteer(`salary floor ${value}`);
@@ -437,14 +483,14 @@ export function FeedConversation() {
     }
     if (chip.id.startsWith('why:')) {
       const jobId = chip.id.slice('why:'.length);
-      store.markChipUsed(feedKey, chip.id);
+      store.markChipUsed(selectFeedThreadKey(store), chip.id);
       const job = allJobs.find((item) => item.id === jobId);
       if (!job) return;
-      say({ role: 'user', content: `Why ${job.company} first?` });
+      say({ role: 'user', content: `Why ${escapeMarkdown(job.company)} first?` });
       say({ role: 'assistant', content: buildWhyAnswer(job) });
       return;
     }
-  }, [allJobs, applySteer, completeSetup, currentSettingsInput, feedKey, posthog, router, say, setupDraft, triggerRun]);
+  }, [allJobs, applySteer, completeSetup, currentSettingsInput, posthog, router, say, setupDraft, triggerRun]);
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
@@ -464,22 +510,16 @@ export function FeedConversation() {
           return;
         }
         const base = createDefaultJobFeedInput(browserTimeZone());
-        const draft: JobFeedSettingsInput = {
-          ...base,
+        const draft: Partial<JobFeedSettingsInput> = {
+          ...store.setupDraft,
           target_countries: parsed.countries,
           target_market: parsed.countries.length === 1 && parsed.countries[0] === 'ca' ? 'canada' : 'us',
-          remote_preference: parsed.remotePreference ?? base.remote_preference,
-          remote_preferences: [parsed.remotePreference ?? base.remote_preference],
-          salary_floor: parsed.salaryFloor,
-          enabled: true,
-          consent_accepted: true,
+          remote_preference: parsed.remotePreference ?? store.setupDraft.remote_preference ?? base.remote_preference,
+          remote_preferences: [parsed.remotePreference ?? store.setupDraft.remote_preference ?? base.remote_preference],
+          salary_floor: parsed.salaryFloor ?? store.setupDraft.salary_floor ?? null,
         };
         store.patchSetupDraft(draft);
-        say({
-          role: 'assistant',
-          content: `Got it: ${parsed.countries.map(countryLabel).join(' and ')}${parsed.salaryFloor ? `, from ${formatSalary(parsed.salaryFloor)}` : ''}. I'll search public job boards on your behalf and build it now.`,
-        });
-        await completeSetup(draft);
+        store.setSetupStep(3);
         return;
       }
 
@@ -488,7 +528,7 @@ export function FeedConversation() {
     } finally {
       setBusy(false);
     }
-  }, [applySteer, busy, completeSetup, input, phase, say]);
+  }, [applySteer, busy, input, phase, say]);
 
   // ---- render -------------------------------------------------------------
 
@@ -498,11 +538,15 @@ export function FeedConversation() {
     if (phase === 'setup' || phase === 'awaiting') return 'Not built yet';
     if (phase === 'error') return overview?.state === 'error' ? "Today's run failed" : 'Feed did not load';
     const day = formatFeedDay(new Date());
-    if (phase === 'feed') return `${day} · ${totalCount} new ${plural(totalCount, 'role', 'roles')}`;
+    if (phase === 'feed') {
+      const count = todayCount > 0 ? todayCount : totalCount;
+      const label = todayCount > 0 ? 'new' : '';
+      return `${day} · ${count} ${label} ${plural(count, 'role', 'roles')}`.replace('  ', ' ');
+    }
     return day;
   })();
 
-  const resolvedBuild = resolveFeedBuild(build, overview?.state);
+  const resolvedBuild = resolveFeedBuild(build, overview?.state, pollGaveUp);
   const stages = resolvedBuild
     ? buildStages(resolvedBuild, queryBudget, strategy?.queries.length ?? null)
     : null;
@@ -564,9 +608,9 @@ export function FeedConversation() {
           </div>
         )}
 
-        {phase === 'feed' && !canSteer && (
+        {phase === 'feed' && knownFree && (
           <p className="pl-9 text-sm text-warm-gray">
-            Plus searches more sources and shows all of them, with Edit feed to steer it.
+            Plus searches more sources and shows every role that matched.
           </p>
         )}
 
@@ -645,11 +689,11 @@ function buildStages(
 }
 
 function buildWhyAnswer(job: JobFeedFeedItem): string {
-  if (job.matchReason) return job.matchReason;
+  if (job.matchReason) return escapeMarkdown(job.matchReason);
   const facts: string[] = [];
   if (job.fitLabel === 'strong') facts.push('it came out as a strong match');
-  if (job.location) facts.push(job.location.toLowerCase());
-  if (job.salaryText) facts.push(job.salaryText);
+  if (job.location) facts.push(escapeMarkdown(job.location.toLowerCase()));
+  if (job.salaryText) facts.push(escapeMarkdown(job.salaryText));
   const tail = facts.length > 0 ? ` What I have on it: ${facts.join(', ')}.` : '';
   return `I don't have a written reason stored for this one.${tail} Open it and read the ad, then check the fit if it looks right.`;
 }
@@ -662,7 +706,9 @@ function buildOpening(params: {
   todayCount: number;
   totalCount: number;
   canSteer: boolean;
-  tier: string;
+  knownFree: boolean;
+  canRunToday: boolean;
+  tier: string | null;
   setupStep: 0 | 1 | 2 | 3;
   setupDraft: Partial<JobFeedSettingsInput>;
   errorMessage: string | null;
@@ -672,8 +718,9 @@ function buildOpening(params: {
   usedChipIds: string[];
 }): FeedMessage[] {
   const {
-    phase, overview, careerProfile, allJobs, totalCount, canSteer, setupStep,
-    setupDraft, errorMessage, queryBudget, usedChipIds,
+    phase, overview, careerProfile, allJobs, todayCount, canSteer,
+    canRunToday, setupStep, setupDraft, errorMessage, queryBudget,
+    plannedQueries, usedChipIds,
   } = params;
   const message = (content: string, chips?: FeedChip[], note?: string): FeedMessage => ({
     id: `feed-opening-${content.slice(0, 24)}`,
@@ -715,8 +762,8 @@ function buildOpening(params: {
     case 'awaiting':
       return [message(
         overview?.state === 'paused'
-          ? 'Your feed is paused. Turn it back on and I\'ll search again tomorrow morning.'
-          : 'Everything\'s set. I\'ll search public job boards for you and rank what I find against your CV.',
+          ? 'Your feed is paused. Turn it back on and I\'ll use these settings on the next run.'
+          : 'Everything\'s set. I\'ll search public job boards for you and rank what I find against your CV. You run it when you want a new list.',
         [{
           id: overview?.state === 'paused' ? 'resume-feed' : 'build-feed',
           label: overview?.state === 'paused' ? 'Turn it back on' : 'Build my feed',
@@ -732,8 +779,11 @@ function buildOpening(params: {
       // and the conversation is where that gets said.
       return [message(
         canSteer
-          ? "I searched but nothing came back strong enough to show you today. Tell me what to loosen and tomorrow's search picks it up. Your countries, work mode and salary floor are all fair game."
-          : 'I searched but nothing came back strong enough to show you today. Tomorrow morning I go again.',
+          ? "I searched but nothing came back strong enough to show you. Tell me what to loosen and the next run picks it up. Your countries, work mode and salary floor are all fair game."
+          : 'I searched but nothing came back strong enough to show you.',
+        canRunToday
+          ? [{ id: 'build-today', label: "Build today's feed", variant: 'primary' }]
+          : undefined,
       )];
 
     case 'setup': {
@@ -741,8 +791,8 @@ function buildOpening(params: {
       const readOut = describeProfile(careerProfile);
       items.push(message(
         readOut
-          ? `I read your CV: ${readOut}. I'll search for roles like that every morning. Three quick things I can't guess from the CV.`
-          : "I'll search public job boards for roles like yours every morning. Three quick things I can't read off your CV.",
+          ? `I read your CV: ${readOut}. I'll search for roles like that when you build the feed. Three quick things I can't guess from the CV.`
+          : "I'll search public job boards for roles like yours when you build the feed. Three quick things I can't read off your CV.",
       ));
 
       items.push({
@@ -818,29 +868,45 @@ function buildOpening(params: {
     case 'feed':
     default: {
       // Named companies are the strong matches themselves, so the count and
-      // the names can never disagree.
+      // the names can never disagree. Counts come from today's run, not the
+      // 7-day inbox, and only from jobs that are actually loaded.
       const strongTop = allJobs.filter((job) => job.fitLabel === 'strong').slice(0, 2);
       const strong = allJobs.filter((job) => job.fitLabel === 'strong').length;
-      const duplicates = overview?.latestRunDiagnostics?.duplicateCount ?? 0;
-      const searchLine = `I ran ${queryBudget} ${plural(queryBudget, 'search', 'searches')} for you`;
-      const countLine = `found ${totalCount} ${plural(totalCount, 'new role', 'new roles')}`;
+      const diagnosticsBelongToFeed = overview?.latestRun?.id === overview?.feedRun?.id;
+      const duplicates = diagnosticsBelongToFeed
+        ? (overview?.latestRunDiagnostics?.duplicateCount ?? 0)
+        : 0;
+      const ranToday = !canRunToday;
+      const searchCount = plannedQueries === null ? null : Math.min(plannedQueries, queryBudget);
+      const strongNames = strongTop.map((job) => escapeMarkdown(job.company)).join(' and ');
       const strongLine = strongTop.length > 0
-        ? `, ${strong} strong ${plural(strong, 'match', 'matches')} at the top: ${strongTop.map((job) => job.company).join(' and ')}`
+        ? ` ${strong} strong ${plural(strong, 'match', 'matches')} in this list: ${strongNames}.`
         : '';
-      const dupLine = duplicates > 0
+      const dupLine = ranToday && duplicates > 0
         ? ` ${duplicates} ${plural(duplicates, 'duplicate was', 'duplicates were')} removed.`
         : '';
 
       const lead = strongTop[0] ?? allJobs[0];
       const chips: FeedChip[] = [];
+      if (canRunToday) {
+        chips.push({ id: 'build-today', label: "Build today's feed", variant: 'primary' });
+      }
       if (lead) chips.push({ id: `why:${lead.id}`, label: `Why ${lead.company} first?`, variant: 'secondary' });
       if (canSteer) {
         chips.push({ id: 'only-remote', label: 'Only remote', variant: 'secondary' });
         chips.push({ id: 'raise-salary', label: 'Raise my salary floor', variant: 'secondary' });
       }
 
+      const body = ranToday
+        ? `Good morning. ${
+            searchCount === null
+              ? 'I searched for you'
+              : `I ran ${searchCount} ${plural(searchCount, 'search', 'searches')} for you`
+          } and found ${todayCount} ${plural(todayCount, 'new role', 'new roles')}.${strongLine}${dupLine}`
+        : `These ${plural(allJobs.length, 'role is', 'roles are')} from your last search.${strongLine} There is no automatic morning run. I can search again now.`;
+
       return [message(
-        `Good morning. ${searchLine} and ${countLine}${strongLine}.${dupLine}`,
+        body,
         chips.filter((chip) => !usedChipIds.includes(chip.id)),
       )];
     }

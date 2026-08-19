@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/auth/server';
-import { canAccessJobFeed } from '@/lib/job-feed/helpers';
+import { canViewJobFeed } from '@/lib/job-feed/helpers';
 import { listSavedJobFeedItemsAdmin } from '@/lib/job-feed/server';
 import { getProfile } from '@/db/repos/profiles';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to load saved jobs.' }, { status: 500 });
     }
 
-    if (!canAccessJobFeed(profile.subscription_tier)) {
-      return NextResponse.json({ jobs: [] });
+    if (!canViewJobFeed(profile.subscription_tier)) {
+      return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 
     const jobs = await listSavedJobFeedItemsAdmin({ userId: user.id });

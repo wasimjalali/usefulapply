@@ -51,13 +51,14 @@ const CITY_ADD = /\b(?:add|include|also search|search)\s+(?:in\s+)?([A-Z][\w'-]*
  * yearly salary, so "no agencies" never lands as a salary change.
  */
 export function readSalaryFloor(text: string): number | null {
-  const match = text.match(/(?:\$\s*)?(\d[\d,. ]*)\s*(k\b|000\b)?/i);
-  if (!match) return null;
-  const raw = Number(match[1].replace(/[,\s]/g, ''));
-  if (!Number.isFinite(raw)) return null;
-  const value = /^k$/i.test(match[2] ?? '') ? raw * 1000 : raw;
-  if (value < 10_000 || value > 2_000_000) return null;
-  return Math.round(value);
+  const matches = text.matchAll(/(?:\$\s*)?(\d[\d,. ]*)\s*(k\b|000\b)?/gi);
+  for (const match of matches) {
+    const raw = Number(match[1].replace(/[,\s]/g, ''));
+    if (!Number.isFinite(raw)) continue;
+    const value = /^k$/i.test(match[2] ?? '') ? raw * 1000 : raw;
+    if (value >= 10_000 && value <= 2_000_000) return Math.round(value);
+  }
+  return null;
 }
 
 export function detectFeedIntent(text: string): FeedIntent {

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { AlertCircle, ArrowUpRight, Briefcase, Check, Loader2, SlidersHorizontal } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
+import { CREDIT_COSTS } from '@/lib/credit-costs';
+import { useCreditsBalance } from '@/hooks/useCreditsBalance';
 import { resolveFeedBuild, useFeedStore } from '@/store/useFeedStore';
 import { FeedEditView } from './FeedEditView';
 import { FeedJobCard } from './FeedJobCard';
@@ -12,7 +14,7 @@ import { FeedJobDetail } from './FeedJobDetail';
 import { buildRankedForLine, plural } from './feed-format';
 import { getJobFeedPreviewMode, getJobFeedPreviewTier } from './preview-utils';
 import { useFeedJobActions } from './useFeedJobActions';
-import { useVisibleFeedJobs } from './useVisibleFeedJobs';
+import { useFeedJobLists, useVisibleFeedJobs } from './useVisibleFeedJobs';
 
 interface FeedCanvasProps {
   /**
@@ -26,10 +28,12 @@ interface FeedCanvasProps {
 export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
   const router = useRouter();
   const { profile } = useAuth();
+  const { credits } = useCreditsBalance();
   const overview = useFeedStore((state) => state.overview);
   const status = useFeedStore((state) => state.status);
   const errorMessage = useFeedStore((state) => state.errorMessage);
   const rawBuild = useFeedStore((state) => state.build);
+  const pollGaveUp = useFeedStore((state) => state.pollGaveUp);
   const strategy = useFeedStore((state) => state.strategy);
   const careerProfile = useFeedStore((state) => state.careerProfile);
   const view = useFeedStore((state) => state.view);
@@ -43,19 +47,26 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
   const extraJobs = useFeedStore((state) => state.extraJobs);
   const filters = useFeedStore((state) => state.filters);
   const jobs = useVisibleFeedJobs();
+  const { all: allJobs } = useFeedJobLists();
   const actions = useFeedJobActions();
   const [detailBusy, setDetailBusy] = useState(false);
   const [previewMode] = useState(() => getJobFeedPreviewMode());
 
   // Auth does not run in local dev, so a preview names the plan it is showing.
-  const tier = getJobFeedPreviewTier(previewMode) ?? profile?.subscription_tier ?? 'free';
+  const tier = getJobFeedPreviewTier(previewMode) ?? profile?.subscription_tier ?? null;
   const canSteer = (tier === 'plus' || tier === 'max') && !readOnly;
-  const queryBudget = getJobFeedTierLimits(tier).maxDailyQueries;
+  const knownFree = tier === 'free';
+  const queryBudget = getJobFeedTierLimits(tier ?? 'free').maxDailyQueries;
+  const canAffordFit = credits === null || credits.total >= CREDIT_COSTS.FIT_ANALYSIS;
+  const canAffordKit = credits === null || credits.total >= CREDIT_COSTS.FULL_APPLICATION;
   const selectedJob = useMemo(
-    () => jobs.find((job) => job.id === selectedJobId) ?? null,
-    [jobs, selectedJobId],
+    () => allJobs.find((job) => job.id === selectedJobId) ?? jobs.find((job) => job.id === selectedJobId) ?? null,
+    [allJobs, jobs, selectedJobId],
   );
-  const build = useMemo(() => resolveFeedBuild(rawBuild, overview?.state), [overview?.state, rawBuild]);
+  const build = useMemo(
+    () => resolveFeedBuild(rawBuild, overview?.state, pollGaveUp),
+    [overview?.state, pollGaveUp, rawBuild],
+  );
 
   // Building takes the whole canvas: J2's searches are the thing to look at.
   if (build) {
@@ -90,7 +101,10 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         }}
         onSave={(job) => { void actions.save(job); }}
         onOpenEmployerSite={actions.openEmployerSite}
+        onUpgrade={() => router.push('/pricing')}
         showCheckFit={!readOnly}
+        canAffordFit={canAffordFit}
+        canAffordKit={canAffordKit}
       />
     );
   }
@@ -124,8 +138,8 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         icon={<Briefcase className="h-6 w-6" />}
         title="Your feed lands here"
         body={readOnly
-          ? "Set your feed up on a computer and it'll show up here every morning."
-          : "Answer the three questions on the left and I'll build it. About a minute. After that it refreshes every morning on its own."}
+          ? "Set your feed up on a computer and it'll show up here."
+          : "Answer the three questions on the left and I'll build it. About a minute. After that you run it again when you want a new list."}
       />
     );
   }
@@ -136,8 +150,8 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         icon={<Briefcase className="h-6 w-6" />}
         title="Your feed lands here"
         body={readOnly
-          ? "Start your first feed on a computer. After that it refreshes every morning on its own."
-          : "Start it from the conversation. About a minute. After that it refreshes every morning on its own."}
+          ? "Start your first feed on a computer. After that you can run it again each day."
+          : "Start it from the conversation. About a minute. After that you run it again when you want a new list."}
       />
     );
   }
@@ -147,11 +161,14 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
   const narrowed = filters.remoteOnly || filters.minSalary !== null || filters.excludedTerms.length > 0;
   // A count nobody has fetched yet is not zero, so the heading holds off.
   const savedCountKnown = savedJobs !== null && !loadingSaved;
+  const todayCount = overview?.jobsTodayCount ?? 0;
   const headline = showingSaved
     ? (savedCountKnown ? `${jobs.length} saved ${plural(jobs.length, 'role', 'roles')}` : 'Saved roles')
-    : canSteer
-      ? `${jobs.length} new ${plural(jobs.length, 'role', 'roles')} today`
-      : `Your top ${jobs.length} today`;
+    : todayCount > 0
+      ? (knownFree
+        ? `Your top ${jobs.length} today`
+        : `${todayCount} new ${plural(todayCount, 'role', 'roles')} today`)
+      : `${jobs.length} ${plural(jobs.length, 'role', 'roles')}`;
   const rankedFor = buildRankedForLine(overview);
   const hasMore = !showingSaved
     && overview !== null
@@ -215,7 +232,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
               ? 'Nothing saved yet. The bookmark on a card keeps it here.'
               : narrowed
                 ? "Nothing left after the changes you asked for. Loosen one in the conversation and they come back."
-                : 'Nothing came back strong enough today. Tomorrow morning I go again.'}
+                : 'Nothing came back strong enough today. Run it again from the conversation when you want a new list.'}
           </p>
         )}
 
@@ -228,7 +245,9 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
             onCheckFit={(item) => { void actions.checkFit(item, 'analyze'); }}
             onSave={(item) => { void actions.save(item); }}
             onOpenEmployerSite={actions.openEmployerSite}
+            onUpgrade={() => router.push('/pricing')}
             showCheckFit={!readOnly}
+            canAffordFit={canAffordFit}
           />
         ))}
 
@@ -243,7 +262,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
           </button>
         )}
 
-        {!canSteer && !readOnly && !showingSaved && jobs.length > 0 && (
+        {knownFree && !readOnly && !showingSaved && jobs.length > 0 && (
           <div className="flex items-center gap-4 rounded-2xl border border-gold-200 bg-gold-50 px-5 py-4">
             <p className="min-w-0 flex-1 text-sm leading-relaxed text-charcoal">
               <strong className="font-semibold">You&apos;re seeing your top {jobs.length} today.</strong>{' '}
@@ -252,7 +271,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
             <button
               type="button"
               onClick={() => router.push('/pricing')}
-              className="inline-flex h-10 flex-shrink-0 items-center gap-2 rounded-full bg-gold-400 px-4 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer"
+              className="inline-flex h-10 flex-shrink-0 items-center gap-2 rounded-full border border-gold-400 bg-cream-50 px-4 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
             >
               See Plus
               <ArrowUpRight className="h-4 w-4" />
@@ -303,7 +322,7 @@ function BuildingCanvas({
         <p className="text-xs text-warm-gray">
           {queries.length > 0
             ? `${queries.length} ${plural(queries.length, 'search', 'searches')} today, in priority order.`
-            : `${queryBudget} ${plural(queryBudget, 'search', 'searches')} run on your plan each morning.`}
+            : `${queryBudget} ${plural(queryBudget, 'search', 'searches')} run on your plan each time you build the feed.`}
         </p>
       </header>
 

@@ -15,7 +15,7 @@ import type {
   JobFeedSettings,
   Json,
 } from '@/lib/supabase/types';
-import { getLocalDateKey, isJobFeedConfigured } from '@/lib/job-feed/helpers';
+import { getLocalDateKey, isJobFeedConfigured, isSafeExternalUrl } from '@/lib/job-feed/helpers';
 import { getJobFeedTierLimits, JOB_FEED_DEFAULT_SETTINGS, JOB_FEED_INBOX_RETENTION_DAYS } from '@/lib/job-feed/constants';
 import type {
   JobFeedFeedbackAction,
@@ -1673,8 +1673,8 @@ function toFeedItem(
     salaryText: job.salary_text,
     description: job.description,
     highlights: extractHighlights(sourceIdentifiers.highlights),
-    applyUrl: job.apply_url,
-    sourceUrl: job.source_url,
+    applyUrl: job.apply_url && isSafeExternalUrl(job.apply_url) ? job.apply_url : null,
+    sourceUrl: job.source_url && isSafeExternalUrl(job.source_url) ? job.source_url : null,
     via: typeof sourceIdentifiers.via === 'string' ? sourceIdentifiers.via : null,
     freshnessDays: job.freshness_days,
     postedAtText: job.posted_at_text,
@@ -1741,14 +1741,7 @@ function extractApplyOptions(value: Json | undefined, job: JobFeedCanonicalJob):
   return options;
 }
 
-function isSafeExternalUrl(value: string): boolean {
-  try {
-    const url = new URL(value);
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
+
 
 function readUrlProtocol(value: string): string | null {
   try {

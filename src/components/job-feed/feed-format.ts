@@ -5,6 +5,7 @@
 
 import type { JobFeedFeedItem, JobFeedOverviewResponse } from '@/lib/job-feed/types';
 import { JOB_FEED_COUNTRY_OPTIONS } from '@/lib/job-feed/constants';
+import { getLocalDateKey, isSafeExternalUrl } from '@/lib/job-feed/helpers';
 
 /** "Wednesday 19 August" for the conversation header. */
 export function formatFeedDay(date: Date): string {
@@ -57,8 +58,8 @@ export function buildRankedForLine(overview: JobFeedOverviewResponse | null): st
     parts.push(countries.map(countryLabel).join(' and '));
   }
 
-  const refreshed = formatFeedTime(overview.feedRun?.completed_at ?? null);
-  if (refreshed) parts.push(`refreshed ${refreshed}`);
+  const runStamp = formatRunStamp(overview);
+  if (runStamp) parts.push(runStamp);
 
   return parts.join(' · ');
 }
@@ -86,4 +87,31 @@ export function buildCardSummary(job: JobFeedFeedItem): string {
 
 export function plural(count: number, one: string, many: string): string {
   return count === 1 ? one : many;
+}
+
+/** Escape job-board / ranker strings before they go into MarkdownText. */
+export function escapeMarkdown(value: string): string {
+  return value.replace(/[\\`*_{}[\]()#+\-.!|]/g, '\\$&');
+}
+
+export function safeEmployerUrl(job: Pick<JobFeedFeedItem, 'applyUrl' | 'sourceUrl'>): string | null {
+  if (job.applyUrl && isSafeExternalUrl(job.applyUrl)) return job.applyUrl;
+  if (job.sourceUrl && isSafeExternalUrl(job.sourceUrl)) return job.sourceUrl;
+  return null;
+}
+
+/** "last run 09:25" when it is today, otherwise "last run 17 August". */
+function formatRunStamp(overview: JobFeedOverviewResponse): string | null {
+  const completedAt = overview.feedRun?.completed_at ?? null;
+  if (!completedAt) return null;
+  const date = new Date(completedAt);
+  if (Number.isNaN(date.getTime())) return null;
+  const timeZone = overview.settings?.user_timezone || overview.feedRun?.local_timezone || 'UTC';
+  const runDay = overview.feedRun?.local_date ?? getLocalDateKey(date, timeZone);
+  const today = getLocalDateKey(new Date(), timeZone);
+  if (runDay === today) {
+    const time = formatFeedTime(completedAt);
+    return time ? `last run ${time}` : null;
+  }
+  return `last run ${new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long' }).format(date)}`;
 }

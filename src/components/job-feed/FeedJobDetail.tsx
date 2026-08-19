@@ -3,7 +3,7 @@
 import { ArrowLeft, Bookmark, Clock, DollarSign, ExternalLink, Globe, MapPin, Search } from 'lucide-react';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { JobFeedDescription, workModeLabel } from './job-ad-text';
-import { formatJobAge } from './feed-format';
+import { formatJobAge, safeEmployerUrl } from './feed-format';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 
 interface FeedJobDetailProps {
@@ -13,9 +13,12 @@ interface FeedJobDetailProps {
   onGenerateKit: (job: JobFeedFeedItem) => void;
   onSave: (job: JobFeedFeedItem) => void;
   onOpenEmployerSite: (job: JobFeedFeedItem) => void;
+  onUpgrade?: () => void;
   busy?: boolean;
   /** False on the mobile read-only feed, where the kit cannot be generated. */
   showCheckFit?: boolean;
+  canAffordFit?: boolean;
+  canAffordKit?: boolean;
 }
 
 function MetaChip({ icon: Icon, label, tone = 'default' }: {
@@ -44,12 +47,15 @@ export function FeedJobDetail({
   onGenerateKit,
   onSave,
   onOpenEmployerSite,
+  onUpgrade,
   busy = false,
   showCheckFit = true,
+  canAffordFit = true,
+  canAffordKit = true,
 }: FeedJobDetailProps) {
   const age = formatJobAge(job);
   const isStrong = job.fitLabel === 'strong';
-  const employerLink = job.applyUrl || job.sourceUrl;
+  const employerLink = safeEmployerUrl(job);
   const isSaved = Boolean(job.feedback.savedAt);
 
   return (
@@ -113,24 +119,45 @@ export function FeedJobDetail({
           )}
           {showCheckFit && (
           <>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onCheckFit(job)}
-            className="inline-flex h-11 items-center gap-2 rounded-full bg-gold-400 px-5 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-warm-gray cursor-pointer"
-          >
-            <Search className="h-4 w-4" />
-            Check fit
-            <span className="font-medium opacity-85">· {CREDIT_COSTS.FIT_ANALYSIS} credits</span>
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onGenerateKit(job)}
-            className="text-[13px] font-medium text-navy-600 transition-colors duration-200 hover:text-navy-800 disabled:cursor-not-allowed disabled:text-warm-gray cursor-pointer"
-          >
-            Skip the check, generate the kit ({CREDIT_COSTS.FULL_APPLICATION} credits)
-          </button>
+          {canAffordFit ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onCheckFit(job)}
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-gold-400 px-5 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-warm-gray cursor-pointer"
+            >
+              <Search className="h-4 w-4" />
+              Check fit
+              <span className="font-medium opacity-85">· {CREDIT_COSTS.FIT_ANALYSIS} credits</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onUpgrade?.()}
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-gold-400 px-5 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer"
+            >
+              See Plus
+              <span className="font-medium opacity-85">· {CREDIT_COSTS.FIT_ANALYSIS} credits</span>
+            </button>
+          )}
+          {canAffordKit ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onGenerateKit(job)}
+              className="text-[13px] font-medium text-navy-600 transition-colors duration-200 hover:text-navy-800 disabled:cursor-not-allowed disabled:text-warm-gray cursor-pointer"
+            >
+              Skip the check, generate the kit ({CREDIT_COSTS.FULL_APPLICATION} credits)
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onUpgrade?.()}
+              className="text-[13px] font-medium text-navy-600 transition-colors duration-200 hover:text-navy-800 cursor-pointer"
+            >
+              Upgrade to generate the kit ({CREDIT_COSTS.FULL_APPLICATION} credits)
+            </button>
+          )}
           </>
           )}
         </div>

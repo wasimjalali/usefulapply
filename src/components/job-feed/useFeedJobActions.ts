@@ -53,8 +53,14 @@ export function useFeedJobActions(): FeedJobActions {
         return;
       }
       posthog?.capture('job_feed_item_saved', { job_id: job.id, company: job.company });
-      // The Saved list is fetched lazily; drop the cache so it refetches.
-      useFeedStore.getState().setSavedJobs(null);
+      const next = useFeedStore.getState();
+      if (next.savedJobs) {
+        const updated = { ...job, feedback: result.data };
+        const exists = next.savedJobs.some((item) => item.id === job.id);
+        next.setSavedJobs(exists
+          ? next.savedJobs.map((item) => (item.id === job.id ? updated : item))
+          : [...next.savedJobs, updated]);
+      }
     } finally {
       setBusyJobId(null);
     }

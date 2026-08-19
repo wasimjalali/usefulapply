@@ -79,6 +79,30 @@ export function toStoreApplicationSession(
       ? (generatedCvBlob._screeningUsageCount as number)
       : 0,
     cvEdits: Array.isArray(session.cv_edits) ? session.cv_edits as unknown as StoreApplicationSession['cvEdits'] : [],
+    optimizedPdfRef: session.optimized_pdf_path
+      ? {
+          id: session.id,
+          fileName: 'optimized.pdf',
+          size: 0,
+          type: 'optimized' as const,
+          createdAt: session.created_at,
+          url: session.optimized_pdf_path,
+        }
+      : undefined,
     chatMessages: [],
+  };
+}
+
+/** Keep local chat / fit state when a feed handoff reloads the same session. */
+export function mergeFeedSession(
+  mapped: StoreApplicationSession,
+  existing: StoreApplicationSession | undefined,
+): StoreApplicationSession {
+  if (!existing || existing.id !== mapped.id) return mapped;
+  return {
+    ...mapped,
+    chatMessages: existing.chatMessages.length > 0 ? existing.chatMessages : mapped.chatMessages,
+    pendingFitAnalysis: existing.pendingFitAnalysis ?? mapped.pendingFitAnalysis,
+    optimizedPdfRef: mapped.optimizedPdfRef ?? existing.optimizedPdfRef,
   };
 }

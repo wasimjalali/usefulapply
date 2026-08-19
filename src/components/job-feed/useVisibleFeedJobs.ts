@@ -37,7 +37,10 @@ export function useFeedJobLists(): FeedJobLists {
       seen.add(job.id);
       deduped.push(job);
     }
-    return { all: deduped, visible: deduped.filter((job) => matchesFilters(job, filters)) };
+    return {
+      all: deduped,
+      visible: listTab === 'saved' ? deduped : deduped.filter((job) => matchesFilters(job, filters)),
+    };
   }, [extraJobs, filters, listTab, overviewJobs, savedJobs]);
 }
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { canAccessJobFeed } from '@/lib/job-feed/helpers';
+import { canAccessJobFeed, canViewJobFeed } from '@/lib/job-feed/helpers';
 import {
   authorizeJobFeedJobActionAdmin,
   recordJobFeedFeedbackAdmin,
@@ -16,6 +16,9 @@ export const runtime = 'nodejs';
 // 'rated_helpful' / 'rated_not_relevant' capture the user's match-quality
 // signal from the details modal so the ranker can learn from it.
 const SUPPORTED_ACTIONS = new Set(['opened', 'saved', 'dismissed', 'rated_helpful', 'rated_not_relevant']);
+// Bookmarking and "I opened this" are part of viewing the feed. Ratings and
+// dismiss stay on Plus/Max because they train the ranker.
+const VIEW_ACTIONS = new Set(['opened', 'saved']);
 
 export async function POST(request: NextRequest) {
   let userId: string | null = null;
@@ -53,16 +56,16 @@ export async function POST(request: NextRequest) {
     const profile = await getProfile(user.id);
     subscriptionTier = profile?.subscription_tier ?? null;
 
-    if (!profile || !canAccessJobFeed(profile.subscription_tier)) {
+    if (!profile) {
       captureJobFeedActionRejected({
         userId,
         route: 'feedback',
         action: 'unknown',
-        reason: !profile ? 'profile_load_failed' : 'plan_not_allowed',
-        status: !profile ? 500 : 403,
+        reason: 'profile_load_failed',
+        status: 500,
         subscriptionTier,
       });
-      return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
+      return NextResponse.json({ error: 'Failed to record job feed feedback.' }, { status: 500 });
     }
 
     const body = await request.json().catch(() => ({} as Record<string, unknown>));
@@ -94,6 +97,21 @@ export async function POST(request: NextRequest) {
         subscriptionTier,
       });
       return NextResponse.json({ error: 'Unsupported feedback action.' }, { status: 400 });
+    }
+
+    const allowedOnPlan = VIEW_ACTIONS.has(action)
+      ? canViewJobFeed(profile.subscription_tier)
+      : canAccessJobFeed(profile.subscription_tier);
+    if (!allowedOnPlan) {
+      captureJobFeedActionRejected({
+        userId,
+        route: 'feedback',
+        action,
+        reason: 'plan_not_allowed',
+        status: 403,
+        subscriptionTier,
+      });
+      return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 
     const authorizedItem = await authorizeJobFeedJobActionAdmin({
