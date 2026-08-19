@@ -102,7 +102,7 @@ export function useAgentWorkflow(options?: {
   onInsufficientCredits?: (required: number, available: number) => void | Promise<void>;
   onAnonymousLimitReached?: () => void;
 }) {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const posthog = usePostHog();
   const { toast } = useToast();
   const { setActiveTab } = useUIStore();
@@ -112,9 +112,6 @@ export function useAgentWorkflow(options?: {
     createNewSession,
     addChatMessage,
     setJobDescription,
-    isAnalyzing,
-    isGenerating,
-    isAgentWorking,
     setIsAgentWorking,
     setAgentWorkflowPhase,
   } = useAppStore();

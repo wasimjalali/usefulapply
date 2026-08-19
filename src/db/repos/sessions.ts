@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { and, asc, desc, eq, isNotNull, like, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNotNull, sql } from 'drizzle-orm';
 import { getDb, nowIso, stripIdentity } from '../client';
 import { applicationSessions, chatMessages } from '../schema';
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
@@ -170,48 +170,6 @@ export interface TrackerApplicationRow {
   interview_at: string | null;
   follow_up_due_at: string | null;
   created_at: string;
-}
-
-/**
- * Tracker page: generated sessions only (generated_cv not null), newest first,
- * optional status filter and case-insensitive company/job title search.
- */
-export async function listTrackerApplications(
-  userId: string,
-  params: { offset: number; limit: number; search: string; status: string | 'all' },
-): Promise<{ data: TrackerApplicationRow[]; count: number }> {
-  const db = await getDb();
-  const conditions = [eq(applicationSessions.user_id, userId), isNotNull(applicationSessions.generated_cv)];
-  if (params.status !== 'all') {
-    conditions.push(eq(applicationSessions.status, params.status));
-  }
-  const normalizedSearch = params.search.replace(/[,%()']/g, ' ').trim();
-  if (normalizedSearch) {
-    const searchValue = `%${normalizedSearch}%`;
-    // SQLite LIKE is case-insensitive for ASCII, matching the old ilike.
-    conditions.push(or(like(applicationSessions.company, searchValue), like(applicationSessions.job_title, searchValue))!);
-  }
-  const where = and(...conditions);
-  const [rows, countRows] = await Promise.all([
-    db
-      .select({
-        id: applicationSessions.id,
-        company: applicationSessions.company,
-        job_title: applicationSessions.job_title,
-        match_score: applicationSessions.match_score,
-        status: applicationSessions.status,
-        interview_at: applicationSessions.interview_at,
-        follow_up_due_at: applicationSessions.follow_up_due_at,
-        created_at: applicationSessions.created_at,
-      })
-      .from(applicationSessions)
-      .where(where)
-      .orderBy(desc(applicationSessions.created_at))
-      .limit(params.limit)
-      .offset(params.offset),
-    db.select({ count: sql<number>`count(*)` }).from(applicationSessions).where(where),
-  ]);
-  return { data: rows, count: Number(countRows[0].count) };
 }
 
 /** Enough for any real job hunt, and it bounds the tracker chat prompt. */

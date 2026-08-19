@@ -21,24 +21,8 @@ interface AgentProgressV2Props {
   steps: AgentV2Step[];
   progress: AgentV2Progress | null;
   reflection: AgentV2Reflection | null;
-  models: { analysis: string; writing: string } | null;
   isWorking: boolean;
   companyResearch?: CompanyResearchData | null;  // NEW: Company research data
-  tokenUsage?: {
-    inputTokens: number;
-    outputTokens: number;
-    totalTokens: number;
-  };
-  actions?: ActionDetail[];
-}
-
-export interface ActionDetail {
-  id: string;
-  stepId: string;
-  name: string;
-  status: 'pending' | 'running' | 'completed' | 'error';
-  duration?: number;
-  tokens?: { input: number; output: number };
 }
 
 // Useful Apply Unified Agent Step Configuration
@@ -62,11 +46,8 @@ export function AgentProgressV2({
   steps, 
   progress, 
   reflection, 
-  models,
   isWorking,
   companyResearch,
-  tokenUsage,
-  actions = [],
 }: AgentProgressV2Props) {
   if (steps.length === 0 && !isWorking) return null;
 

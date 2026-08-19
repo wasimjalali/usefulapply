@@ -95,8 +95,6 @@ export function ChatPanel({
     agentSteps,
     v2Progress,
     v2Reflection,
-    v2Models,
-    v2TokenUsage,
     fitAnalysisContextId,
     fitAnalysisJD,
     setApplicationMode,
@@ -1286,9 +1284,7 @@ export function ChatPanel({
                   }))}
                   progress={v2Progress}
                   reflection={v2Reflection}
-                  models={v2Models}
                   isWorking={isAgentWorking}
-                  tokenUsage={v2TokenUsage || undefined}
                 />
               </div>
             </div>

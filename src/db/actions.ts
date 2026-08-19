@@ -170,14 +170,6 @@ export async function deleteSessionAction(userId: string, sessionId: string) {
   return sessionsRepo.deleteSession(userId, sessionId);
 }
 
-export async function listTrackerApplicationsAction(
-  userId: string,
-  params: { offset: number; limit: number; search: string; status: string | 'all' },
-) {
-  await requireUserId(userId);
-  return sessionsRepo.listTrackerApplications(userId, params);
-}
-
 export async function listTrackerOverviewAction(userId: string) {
   await requireUserId(userId);
   return sessionsRepo.listTrackerOverview(userId);

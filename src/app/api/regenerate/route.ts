@@ -149,32 +149,6 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    const trackRegenError = (step: string, error: unknown) => {
-      try {
-        const posthog = getPostHogServer();
-        const latencySeconds = (Date.now() - regenStartTime) / 1000;
-
-        posthog.capture({
-          distinctId: user.id,
-          event: '$ai_generation',
-          properties: {
-            $ai_provider: 'anthropic',
-            $ai_model: 'claude-sonnet-4-6',
-            $ai_is_error: true,
-            $ai_http_status: 500,
-            $ai_trace_id: traceId,
-            $ai_latency: latencySeconds,
-            $ai_error: error instanceof Error ? error.message : String(error),
-            step,
-            feature: 'regeneration',
-            workflow_action: `regen_${type}`,
-          },
-        });
-      } catch (e) {
-        console.error('[PostHog] Regen error tracking error:', e);
-      }
-    };
-
     if (type === 'cover-letter') {
       const { result: coverLetter, tokens } = await unifiedWriterAgent.generateCoverLetter(masterContext);
       trackRegenLLM('regen_cover_letter', tokens);

@@ -104,14 +104,6 @@
 			}
 		},
 		{
-			"name": "RATE_LIMIT_GENERATE_PDF",
-			"namespace_id": "3105",
-			"simple": {
-				"limit": 10,
-				"period": 60
-			}
-		},
-		{
 			"name": "RATE_LIMIT_REGENERATE",
 			"namespace_id": "3106",
 			"simple": {

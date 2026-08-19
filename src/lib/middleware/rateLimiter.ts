@@ -58,7 +58,6 @@ const RATE_LIMIT_BINDING_NAMES = {
   'parse-cv': 'RATE_LIMIT_PARSE_CV',
   'chat': 'RATE_LIMIT_CHAT',
   'contact': 'RATE_LIMIT_CONTACT',
-  'generate-pdf': 'RATE_LIMIT_GENERATE_PDF',
   'regenerate': 'RATE_LIMIT_REGENERATE',
   'signup': 'RATE_LIMIT_SIGNUP',
   'signin': 'RATE_LIMIT_SIGNIN',
@@ -94,7 +93,6 @@ declare global {
     RATE_LIMIT_PARSE_CV?: RateLimitBinding;
     RATE_LIMIT_CHAT?: RateLimitBinding;
     RATE_LIMIT_CONTACT?: RateLimitBinding;
-    RATE_LIMIT_GENERATE_PDF?: RateLimitBinding;
     RATE_LIMIT_REGENERATE?: RateLimitBinding;
     RATE_LIMIT_SIGNUP?: RateLimitBinding;
     RATE_LIMIT_SIGNIN?: RateLimitBinding;
@@ -227,7 +225,6 @@ export const RATE_LIMITS = {
   'parse-cv':           { name: 'parse-cv', limit: 10, windowMs: 60_000 },
   'chat':               { name: 'chat', limit: 20, windowMs: 60_000 },
   'contact':            { name: 'contact', limit: 3,  windowMs: 60_000 },
-  'generate-pdf':       { name: 'generate-pdf', limit: 10, windowMs: 60_000 },
   'regenerate':         { name: 'regenerate', limit: 10, windowMs: 60_000 },
   'signup':             { name: 'signup', limit: 3,  windowMs: 60_000 },
   'signin':             { name: 'signin', limit: 5,  windowMs: 60_000 },

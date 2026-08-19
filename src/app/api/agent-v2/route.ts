@@ -26,12 +26,6 @@ import { hasAnonymousGeneration, recordAnonymousGeneration } from '@/db/repos/an
 import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
 import { reserveCredits, captureReservation, releaseReservation } from '@/lib/supabase/credit-reservations';
 import { transitionJobFeedApplicationGenerationAdmin } from '@/lib/job-feed/server';
-import {
-  extractOriginalExperience,
-  extractOriginalHeadline,
-  extractSectionByHeader,
-  transformToGeneratedCV,
-} from '@/lib/utils/cv-transformers';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { randomUUID, createHash } from 'crypto';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
@@ -998,7 +992,6 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper to extract original experience bullets from CV text
-// CV transformer functions moved to @/lib/utils/cv-transformers
 
 // Helper to get workflow steps based on action - Useful Apply Unified Agent
 function getWorkflowSteps(action: string): Array<{ id: string; description: string }> {

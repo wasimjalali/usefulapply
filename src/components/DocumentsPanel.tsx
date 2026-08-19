@@ -182,7 +182,6 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
   const [isUploadingMasterCV, setIsUploadingMasterCV] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [masterCVUploadError, setMasterCVUploadError] = useState<string | null>(null);
-  const [isLoadingDocs, setIsLoadingDocs] = useState(true);
   const [supabaseDocs, setSupabaseDocs] = useState<{ primary?: SupabaseDocument; master?: SupabaseDocument }>({});
 
   // Load documents from Supabase on mount
@@ -265,20 +264,11 @@ export function DocumentsPanel({ mode = 'panel' }: DocumentsPanelProps) {
         }
       } catch (error) {
         console.error('Error loading documents:', error);
-      } finally {
-        setIsLoadingDocs(false);
       }
     };
 
     loadDocuments();
   }, [user]);
-
-  // Set loading to false immediately for anonymous users
-  useEffect(() => {
-    if (!authLoading && !user) {
-      setIsLoadingDocs(false);
-    }
-  }, [authLoading, user]);
 
   // Load profile photo from Supabase on mount
   useEffect(() => {
