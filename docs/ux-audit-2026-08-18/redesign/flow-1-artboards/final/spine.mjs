@@ -30,7 +30,7 @@ function sidebar({ active = 0, apps, menuOpen = false, credits = '2.5 of 4 credi
     </div>` : '';
   return `<div style="position: relative; width: 248px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; padding: 16px 12px 12px 12px; border-right: 1px solid #F5F0E8; background: #FAF7F2">
     <div style="padding: 2px 6px 4px 6px">${wordmark}</div>
-    <span class="btn-navy" style="height: 44px; font-size: 14px">${I.plus}New application</span>
+    <span class="btn-ghost" style="height: 44px; font-size: 14px">${I.plus}New application</span>
     <div class="card" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px">
       <span style="display: inline-flex; width: 30px; height: 30px; border-radius: 9999px; background: #F5ECD5; color: #A37824; align-items: center; justify-content: center">${I.briefcase}</span>
       <div style="display: flex; flex-direction: column; gap: 2px; flex: 1"><span style="font-size: 13px; font-weight: 600">Today's feed</span><span class="muted" style="font-size: 12px">5 new roles for you</span></div>
@@ -58,7 +58,6 @@ function sidebar({ active = 0, apps, menuOpen = false, credits = '2.5 of 4 credi
 function convoHeader(title, sub) {
   return `<div style="display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid #F5F0E8">
     <div style="display: flex; flex-direction: column; gap: 2px; flex: 1"><span class="serif" style="font-size: 16px; color: #182F4D">${title}</span><span class="muted" style="font-size: 12px">${sub}</span></div>
-    <span class="muted">${I.history}</span>
   </div>`;
 }
 function assistant(inner) {

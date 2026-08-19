@@ -37,7 +37,7 @@ Rules the line obeys: one primary action per step, price before commitment, name
 
 Three columns, no top header.
 
-**Sidebar (248 px).** Wordmark. "New application" (navy). "Today's feed" card with the new-roles count. APPLICATIONS: one entry per application, company, role and a status pill (Now, Kit ready, Drafted, Applied). "Tracker table" link. Bottom: profile (avatar, name, plan) with a **settings gear** to its right.
+**Sidebar (248 px).** Wordmark. "New application" (outlined, not gold: gold is reserved for the one primary action on a surface, decided in flow 2). "Today's feed" card with the new-roles count. APPLICATIONS: one entry per application, company, role and a status pill (Now, Kit ready, Drafted, Applied). "Tracker table" link. Bottom: profile (avatar, name, plan) with a **settings gear** to its right.
 
 **Settings menu** (pops up from the gear, five items, nothing more):
 1. Plan block: plan name, "2.5 of 4 credits", bar, **Upgrade to Plus** button
@@ -46,9 +46,9 @@ Three columns, no top header.
 4. Notifications
 5. Sign out
 
-The Upgrade button, the credit chip and the avatar leave the top of the app. The credit balance is also stated in the conversation header ("Kit ready · 2.5 credits left") and inline on any chip that costs credits.
+The Upgrade button, the credit chip and the avatar leave the top of the app. The credit balance lives in the settings menu and inline on any chip that costs credits.
 
-**Conversation (520 px).** Header: company and role in serif, status and balance beneath. Messages from the assistant carry the U mark; the user's messages sit right. Decisions arrive as **chips** inside the conversation with the cost on each: one primary gold chip, the rest secondary. Composer at the bottom.
+**Conversation (520 px).** Header: company and role in serif, status beneath ("Kit ready"). No history icon (the sidebar is the history) and no balance (it lives in the settings menu and on cost chips). Both removed in the flow 2 round. Messages from the assistant carry the U mark; the user's messages sit right. Decisions arrive as **chips** inside the conversation with the cost on each: one primary gold chip, the rest secondary. Composer at the bottom.
 
 **Canvas (rest).** Tabs CV / Cover letter / Emails. On the CV: Original / Tailored toggle, "ATS 78% · see every change" chip (the ATS insights modal, surfaced), toolbar Templates / Edit / Copy / Download PDF. Documents are white on the cream canvas. The canvas never blanks and never switches tab on its own; while something runs, a thin gold banner says what's happening and where the result will land.
 

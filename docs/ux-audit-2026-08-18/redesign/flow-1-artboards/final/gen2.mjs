@@ -157,7 +157,7 @@ const L4b = lineFrame(3, `
 // S1. Kit ready, the workspace opens
 const S1 = spineFrame(
   sidebar({ apps: APPS_READY }),
-  `${convoHeader('Pixellot, Product Manager', 'Kit ready · 2.5 credits left')}
+  `${convoHeader('Pixellot, Product Manager', 'Kit ready')}
    <div style="flex: 1; display: flex; flex-direction: column; gap: 22px; padding: 22px 20px; overflow: hidden">
      ${assistant(`<span>Your kit for Pixellot is ready. Everything is on the right: a tailored CV (ATS 78%), a cover letter that opens with your 40% engagement result, and two emails. Nothing was invented, every claim is from your CV.</span>
        <div style="display: flex; flex-direction: column; gap: 10px; align-items: flex-start">
@@ -174,7 +174,7 @@ const S1 = spineFrame(
 // S2. Settings menu open
 const S2 = spineFrame(
   sidebar({ apps: APPS_READY, menuOpen: true }),
-  `${convoHeader('Pixellot, Product Manager', 'Kit ready · 2.5 credits left')}
+  `${convoHeader('Pixellot, Product Manager', 'Kit ready')}
    <div style="flex: 1; display: flex; flex-direction: column; gap: 22px; padding: 22px 20px; overflow: hidden">
      ${assistant(`<span>Your kit for Pixellot is ready. Everything is on the right: a tailored CV (ATS 78%), a cover letter that opens with your 40% engagement result, and two emails.</span>
        <div style="display: flex; flex-direction: column; gap: 10px; align-items: flex-start">

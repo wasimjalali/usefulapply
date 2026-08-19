@@ -1,0 +1,18 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "title": "K1 · What changed (ATS view, Back to CV)", "x": 0, "y": 0, "w": 1440, "h": 900 },
+    { "file": "K2-Templates.dc.html", "title": "K2 · Templates strip", "x": 1560, "y": 0, "w": 1440, "h": 900 },
+    { "file": "K3-Cover-Letter.dc.html", "title": "K3 · Cover letter, rewrite via chat", "x": 3120, "y": 0, "w": 1440, "h": 900 },
+    { "file": "K4-Emails.dc.html", "title": "K4 · Emails, stacked", "x": 0, "y": 1060, "w": 1440, "h": 900 },
+    { "file": "K5-Screening-Answers.dc.html", "title": "K5 · Screening answers (auto-open in the canvas)", "x": 1560, "y": 1060, "w": 1440, "h": 900 }
+  ],
+  "annotations": [
+    { "id": "intro", "x": 0, "y": -280, "w": 980, "text": "Flow 2, the Application Kit panels inside the chat spine. Locked 19 Aug 2026.\n\nShell decisions applied everywhere (flow 1 updated to match): gold is the only button fill, used for the single primary action on a surface; 'New application' and 'Download all' are quiet outlined buttons. The chat header lost the history icon (the sidebar is the history) and the credit balance (it lives in the settings menu and on any chip that costs credits)." },
+    { "id": "k1", "x": 0, "y": -120, "w": 560, "text": "K1: 'ATS 78% · see every change' (sage tint, both states) opens a view of its own in the canvas: score, each change as before → after, and an explicit 'Nothing added' line. 'Back to CV' returns to the page. The CV is never squeezed beside a drawer." },
+    { "id": "k2", "x": 1560, "y": -120, "w": 560, "text": "K2: Templates opens a strip, all six visible with names and a 'best for' tag. Thumbnails draw instantly, the real preview fills in behind. Selected = gold ring." },
+    { "id": "k3", "x": 3120, "y": -120, "w": 560, "text": "K3: editing happens in the chat. Ask, see the cost on one gold chip, a named stage, a one-line confirmation. Toolbar: Edit (inline), Copy, one Download menu. No Regenerate button." },
+    { "id": "k4", "x": 0, "y": 940, "w": 560, "text": "K4: Emails stacked, full width of the canvas. Each card: title, Copy email, subject, body. Follow-up carries 'Send after 5 to 7 business days'. Sending tips are one line above." },
+    { "id": "k5", "x": 1560, "y": 940, "w": 560, "text": "K5: screening answers auto-open in the canvas (Wasim picked V3). Paste a question in the chat, the answer streams into an Answers document and the Answers tab opens itself; the chat shows the stage and a one-liner. Long Q&A never clogs the conversation." }
+  ],
+  "launch": { "view": "canvas" }
+}
