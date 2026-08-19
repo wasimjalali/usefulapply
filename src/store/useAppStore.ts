@@ -69,13 +69,6 @@ export const useAppStore = () => {
     
     // UI Store
     ...uiStore,
-    
-    // Combined reset function
-    resetAll: () => {
-      cvStore.resetCVData();
-      sessionStore.resetGenerated();
-      uiStore.resetUI();
-    },
   };
 };
 
@@ -87,14 +80,4 @@ useAppStore.getState = () => ({
   ...useCVStore.getState(),
   ...useSessionStore.getState(),
   ...useUIStore.getState(),
-  resetAll: () => {
-    useCVStore.getState().resetCVData();
-    useSessionStore.getState().resetSessionData();
-    useUIStore.getState().resetUI();
-  },
 });
-
-// Re-export individual stores for direct access
-export { useCVStore } from './useCVStore';
-export { useSessionStore } from './useSessionStore';
-export { useUIStore } from './useUIStore';

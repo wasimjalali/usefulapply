@@ -36,7 +36,6 @@ interface UIState {
   isAnalyzing: boolean;
   isGenerating: boolean;
   isAgentWorking: boolean;  // True when Useful Apply agent is running full workflow
-  isPdfGenerating: boolean;
   agentWorkflowPhase: 'fit_analysis' | 'full_generation' | null;  // Current agent phase for panel messages
 
   // UI state
@@ -93,7 +92,6 @@ interface UIActions {
   setIsAnalyzing: (value: boolean) => void;
   setIsGenerating: (value: boolean) => void;
   setIsAgentWorking: (value: boolean) => void;
-  setIsPdfGenerating: (value: boolean) => void;
   setAgentWorkflowPhase: (phase: 'fit_analysis' | 'full_generation' | null) => void;
 
   // UI state setters
@@ -125,7 +123,6 @@ const initialState: UIState = {
   isAnalyzing: false,
   isGenerating: false,
   isAgentWorking: false,
-  isPdfGenerating: false,
   agentWorkflowPhase: null,
   activeTab: 'cv',
   error: null,
@@ -154,7 +151,6 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
   setIsAnalyzing: (value) => set({ isAnalyzing: value }),
   setIsGenerating: (value) => set({ isGenerating: value }),
   setIsAgentWorking: (value) => set({ isAgentWorking: value }),
-  setIsPdfGenerating: (value) => set({ isPdfGenerating: value }),
   setAgentWorkflowPhase: (phase) => set({ agentWorkflowPhase: phase }),
 
   // UI state setters
