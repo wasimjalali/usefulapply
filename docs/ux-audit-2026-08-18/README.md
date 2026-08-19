@@ -52,6 +52,8 @@ Read `HANDOFF.md`. It sequences the work: fix the bugs first, UX second.
 - `flow-map.md`: step-by-step narrative of every flow, with click counts and decision points
 - `friction-log.md`: every friction point, rated, with what a Cursor-style fix would be
 - `bugs.md`: every defect found, with repro, evidence and confirmed cause
+- `design-philosophy.md`: the redesign thesis (Cursor / Grok Bot inspiration), the ten rules every flow must pass, and the flow-by-flow order. Read before any redesign work
+- `redesign/`: one locked design doc per flow plus artboard sources. `flow-1-first-run.md` is the shell every later flow inherits
 - `job-description.md`: the job ad used for every generation run
 
 ## Coverage
