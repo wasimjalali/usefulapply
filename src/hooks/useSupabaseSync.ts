@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore, type ApplicationSession } from '@/store/useSessionStore';
@@ -9,7 +9,6 @@ import {
   getSessions,
   createSession as createSupabaseSession,
   updateSession as updateSupabaseSession,
-  deleteSession as deleteSupabaseSession,
   getChatMessages,
   addChatMessage as addSupabaseChatMessage,
   getDocumentByType,
@@ -93,7 +92,6 @@ export function useSupabaseSync() {
     setProfilePhoto,
   } = useCVStore();
   const {
-    sessions,
     currentSession,
     setSessions,
   } = useSessionStore();
@@ -311,7 +309,6 @@ export function useSupabaseSync() {
               address: row.company_address || row.company_research?.address,
               contactPerson: row.company_contact_person || row.company_research?.contactPerson,
             } : null,
-            status: row.status ?? 'applied',
             fitAssessment: row.fit_assessment ?? null,
             generationStatus: row.generation_status ?? 'none',
             generationError: row.generation_error ?? null,
@@ -594,12 +591,15 @@ export function useSupabaseSync() {
             follow_up_email: currentSession.followUpEmail,
             company_research: currentSession.companyResearch,
             cv_edits: currentSession.cvEdits,
+            // `status` is deliberately not here. The tracker owns that column
+            // through setTrackerStatus. This payload used to carry a copy from
+            // the page-load snapshot, so opening an application wrote the
+            // pre-change status back over what the tracker had just saved.
             // New fields for enhanced data persistence
             optimized_cv_text: (currentSession as any).optimizedCVText,
             email_subject: (currentSession as any).emailSubject,
             email_body: (currentSession as any).emailBody,
             selected_template: (currentSession as any).selectedTemplate,
-            status: (currentSession as any).status,
             cover_letter_language: (currentSession as any).coverLetterLanguage,
             company_address: currentSession.companyResearch?.address,
             company_contact_person: currentSession.companyResearch?.contactPerson,

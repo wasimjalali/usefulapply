@@ -662,7 +662,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-cream-100">
+    <div className="flex h-full w-full min-w-0 min-h-0 flex-col bg-cream-100">
       <header className="flex h-[52px] flex-shrink-0 items-center gap-3 border-b border-cream-200 bg-cream-50 px-5">
         <BrandLogo variant="full" size="xs" theme="light" />
         <div className="flex-1" />
