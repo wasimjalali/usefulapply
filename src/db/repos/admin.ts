@@ -418,6 +418,133 @@ export async function listCheckInCandidates(welcomeCutoffIso: string, welcomeFlo
     .limit(CRON_BATCH_LIMIT);
 }
 
+export interface TrackerReminderCandidate {
+  id: string;
+  user_id: string;
+  company: string | null;
+  job_title: string | null;
+  interview_at: string | null;
+  follow_up_due_at: string | null;
+  email: string;
+  full_name: string | null;
+  timezone: string | null;
+}
+
+/**
+ * Interviews starting inside the reminder window whose owner still wants the
+ * email. `interview_reminder_sent_at` is the guard: one date, one reminder.
+ */
+export async function listInterviewReminderCandidates(
+  fromIso: string,
+  toIso: string,
+): Promise<TrackerReminderCandidate[]> {
+  const db = await getDb();
+  return db
+    .select({
+      id: applicationSessions.id,
+      user_id: applicationSessions.user_id,
+      company: applicationSessions.company,
+      job_title: applicationSessions.job_title,
+      interview_at: applicationSessions.interview_at,
+      follow_up_due_at: applicationSessions.follow_up_due_at,
+      email: authUsers.email,
+      full_name: profiles.full_name,
+      timezone: profiles.timezone,
+    })
+    .from(applicationSessions)
+    .innerJoin(profiles, eq(profiles.id, applicationSessions.user_id))
+    .innerJoin(authUsers, eq(authUsers.id, applicationSessions.user_id))
+    .where(and(
+      eq(applicationSessions.status, 'interview'),
+      isNull(applicationSessions.interview_reminder_sent_at),
+      sql`${applicationSessions.interview_at} is not null`,
+      gte(applicationSessions.interview_at, fromIso),
+      lt(applicationSessions.interview_at, toIso),
+      eq(profiles.notify_interview_tomorrow, true),
+      eq(authUsers.emailVerified, true),
+    ))
+    .orderBy(applicationSessions.interview_at)
+    .limit(CRON_BATCH_LIMIT);
+}
+
+/** Follow-ups due by the end of the window, same one-reminder-per-date guard. */
+export async function listFollowUpReminderCandidates(toIso: string): Promise<TrackerReminderCandidate[]> {
+  const db = await getDb();
+  return db
+    .select({
+      id: applicationSessions.id,
+      user_id: applicationSessions.user_id,
+      company: applicationSessions.company,
+      job_title: applicationSessions.job_title,
+      interview_at: applicationSessions.interview_at,
+      follow_up_due_at: applicationSessions.follow_up_due_at,
+      email: authUsers.email,
+      full_name: profiles.full_name,
+      timezone: profiles.timezone,
+    })
+    .from(applicationSessions)
+    .innerJoin(profiles, eq(profiles.id, applicationSessions.user_id))
+    .innerJoin(authUsers, eq(authUsers.id, applicationSessions.user_id))
+    .where(and(
+      inArray(applicationSessions.status, ['applied', 'follow_up']),
+      isNull(applicationSessions.follow_up_reminder_sent_at),
+      sql`${applicationSessions.follow_up_due_at} is not null`,
+      lte(applicationSessions.follow_up_due_at, toIso),
+      eq(profiles.notify_follow_up_due, true),
+      eq(authUsers.emailVerified, true),
+    ))
+    .orderBy(applicationSessions.follow_up_due_at)
+    .limit(CRON_BATCH_LIMIT);
+}
+
+/**
+ * Claims one reminder. The conditional update is the lock: a second run, or a
+ * second Worker, gets false and sends nothing.
+ */
+export async function claimTrackerReminder(
+  sessionId: string,
+  kind: 'interview' | 'follow_up',
+  sentAt: string,
+): Promise<boolean> {
+  const db = await getDb();
+  const result = kind === 'interview'
+    ? await db
+        .update(applicationSessions)
+        .set({ interview_reminder_sent_at: sentAt, updated_at: nowIso() })
+        .where(and(eq(applicationSessions.id, sessionId), isNull(applicationSessions.interview_reminder_sent_at)))
+        .returning({ id: applicationSessions.id })
+    : await db
+        .update(applicationSessions)
+        .set({ follow_up_reminder_sent_at: sentAt, updated_at: nowIso() })
+        .where(and(eq(applicationSessions.id, sessionId), isNull(applicationSessions.follow_up_reminder_sent_at)))
+        .returning({ id: applicationSessions.id });
+  return result.length > 0;
+}
+
+/** Releases a claim so the next run retries after a transient send failure. */
+export async function releaseTrackerReminderClaim(
+  sessionId: string,
+  kind: 'interview' | 'follow_up',
+  claimedAt: string,
+): Promise<void> {
+  const db = await getDb();
+  // Matching the timestamp means a claim taken by another run, or a guard the
+  // user's own status change already re-armed, is left alone.
+  await db
+    .update(applicationSessions)
+    .set(
+      kind === 'interview'
+        ? { interview_reminder_sent_at: null, updated_at: nowIso() }
+        : { follow_up_reminder_sent_at: null, updated_at: nowIso() },
+    )
+    .where(and(
+      eq(applicationSessions.id, sessionId),
+      kind === 'interview'
+        ? eq(applicationSessions.interview_reminder_sent_at, claimedAt)
+        : eq(applicationSessions.follow_up_reminder_sent_at, claimedAt),
+    ));
+}
+
 export async function listUnverifiedAuthUsers(
   createdBefore: Date = new Date(Date.now() - 24 * 60 * 60 * 1000),
 ): Promise<

@@ -3,6 +3,7 @@ export const CRON_DAILY_CLEANUP = '0 3 * * *';
 export const CRON_TEN_MINUTE_RECONCILE = '*/10 * * * *';
 export const CRON_HOURLY_CONFIRMATION_RESEND = '0 * * * *';
 export const CRON_WEEKDAY_WELCOME_CHECKIN = '0 9 * * 1-5';
+export const CRON_DAILY_TRACKER_REMINDERS = '0 8 * * *';
 
 /** Log the run summary; a run where every attempted send failed is a failed run. */
 function failIfNothingSent(label: string, result: { sent: number; errors: number }): void {
@@ -72,6 +73,12 @@ export async function dispatchScheduled(cron: string): Promise<void> {
       console.log('[cron] founder welcome check-in');
       const { runWelcomeCheckIn } = await import('@/cron/welcome-checkin');
       failIfNothingSent('founder welcome check-in', await runWelcomeCheckIn());
+      return;
+    }
+    case CRON_DAILY_TRACKER_REMINDERS: {
+      console.log('[cron] tracker reminders');
+      const { runTrackerReminders } = await import('@/cron/tracker-reminders');
+      failIfNothingSent('tracker reminders', await runTrackerReminders());
       return;
     }
     default:

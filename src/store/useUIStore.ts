@@ -43,6 +43,12 @@ interface UIState {
   activeTab: KitTab | 'tracker' | 'jobs';
   error: string | null;
 
+  // The conversation column can fold to a rail. Below roughly 1100px the shell
+  // folds it on its own, because the sidebar and a 520px conversation leave the
+  // canvas nothing. The tracker also reads this: SAVED returns as a column
+  // when the conversation is out of the way.
+  conversationCollapsed: boolean;
+
   // CV template shown in the kit. Owned here so Download all can render the
   // same template from any kit tab, not only while CVPanel is mounted.
   cvTemplateId: string;
@@ -92,6 +98,7 @@ interface UIActions {
   // UI state setters
   setActiveTab: (tab: KitTab | 'tracker' | 'jobs') => void;
   setError: (error: string | null) => void;
+  setConversationCollapsed: (collapsed: boolean) => void;
   setCvTemplateId: (id: string) => void;
   setRegenStage: (stage: { title: string; tab: KitTab } | null) => void;
   requestKitDownload: () => void;
@@ -120,6 +127,7 @@ const initialState: UIState = {
   agentWorkflowPhase: null,
   activeTab: 'cv',
   error: null,
+  conversationCollapsed: false,
   // Seeded with the fallback so server and first client render agree; the shell
   // hydrates it from localStorage on mount (see AppShell).
   cvTemplateId: FALLBACK_TEMPLATE_ID,
@@ -149,6 +157,7 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
   // UI state setters
   setActiveTab: (tab) => set({ activeTab: tab }),
   setError: (error) => set({ error }),
+  setConversationCollapsed: (collapsed) => set({ conversationCollapsed: collapsed }),
   setCvTemplateId: (id) => set({ cvTemplateId: id }),
   setRegenStage: (stage) => set({ regenStage: stage }),
   requestKitDownload: () => set((state) => ({ kitDownloadRequest: state.kitDownloadRequest + 1 })),

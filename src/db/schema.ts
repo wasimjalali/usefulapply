@@ -250,7 +250,16 @@ export const profiles = sqliteTable(
     notify_tips: integer('notify_tips', { mode: 'boolean' }).notNull().default(true),
     notify_updates: integer('notify_updates', { mode: 'boolean' }).notNull().default(true),
     notify_weekly: integer('notify_weekly', { mode: 'boolean' }).notNull().default(true),
+    // Product news in the Notifications pane.
     notify_marketing: integer('notify_marketing', { mode: 'boolean' }).notNull().default(false),
+    notify_feed_ready: integer('notify_feed_ready', { mode: 'boolean' }).notNull().default(true),
+    notify_follow_up_due: integer('notify_follow_up_due', { mode: 'boolean' }).notNull().default(true),
+    notify_interview_tomorrow: integer('notify_interview_tomorrow', { mode: 'boolean' }).notNull().default(true),
+    notify_credits_low: integer('notify_credits_low', { mode: 'boolean' }).notNull().default(true),
+    // Tracker view filter, kept per user so it survives a reload.
+    hide_rejected: integer('hide_rejected', { mode: 'boolean' }).notNull().default(false),
+    timezone: text('timezone'),
+    date_format: text('date_format'),
     job_searches_used: integer('job_searches_used').notNull().default(0),
     job_searches_reset_at: text('job_searches_reset_at').notNull().$defaultFn(isoNow),
     job_feed_last_seen_run_date: text('job_feed_last_seen_run_date'),
@@ -367,12 +376,28 @@ export const applicationSessions = sqliteTable(
     generation_failed_at: text('generation_failed_at'),
     generation_cancelled_at: text('generation_cancelled_at'),
     follow_up_email: text('follow_up_email', { mode: 'json' }).$type<Json>(),
+    // Tracker: what the NEXT column says, and the reminder guard so one date
+    // sends one email.
+    interview_at: text('interview_at'),
+    follow_up_due_at: text('follow_up_due_at'),
+    interview_reminder_sent_at: text('interview_reminder_sent_at'),
+    follow_up_reminder_sent_at: text('follow_up_reminder_sent_at'),
     generated_artifacts: text('generated_artifacts', { mode: 'json' }).$type<Json>(),
     created_at: text('created_at').notNull().$defaultFn(isoNow),
     updated_at: text('updated_at').notNull().$defaultFn(isoNow),
   },
   (t) => [
     index('application_sessions_user_created_idx').on(t.user_id, t.created_at),
+    // The daily reminder sweep scans by date; both stay tiny because they only
+    // hold dated rows whose reminder has not gone out.
+    // SQLite rejects qualified column names inside a partial index predicate,
+    // so these are written bare on purpose.
+    index('application_sessions_interview_reminder_idx')
+      .on(t.interview_at)
+      .where(sql`interview_reminder_sent_at is null and interview_at is not null`),
+    index('application_sessions_follow_up_reminder_idx')
+      .on(t.follow_up_due_at)
+      .where(sql`follow_up_reminder_sent_at is null and follow_up_due_at is not null`),
     check('application_sessions_status_check', sql`${t.status} in ('drafted', 'applied', 'interview', 'rejected', 'accepted', 'follow_up')`),
     check(
       'application_sessions_generation_status_check',

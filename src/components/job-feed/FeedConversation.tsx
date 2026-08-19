@@ -1,13 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { usePostHog } from 'posthog-js/react';
 import { Send } from 'lucide-react';
 import { BrandIcon } from '@/components/BrandLogo';
 import { MarkdownText } from '@/components/MarkdownText';
 import { NamedStages, type NamedStage } from '@/components/shell/NamedStages';
 import { useAuth } from '@/contexts/AuthContext';
+import { openSettings } from '@/store/useSettingsStore';
 import { useUIStore } from '@/store/useUIStore';
 import {
   resolveFeedBuild,
@@ -66,7 +66,6 @@ function browserTimeZone(): string {
 }
 
 export function FeedConversation() {
-  const router = useRouter();
   const posthog = usePostHog();
   const { user, profile } = useAuth();
 
@@ -456,7 +455,7 @@ export function FeedConversation() {
         return;
       case 'see-plus':
         posthog?.capture('job_feed_upgrade_clicked', { source: 'feed_conversation' });
-        router.push('/pricing');
+        openSettings('usage');
         return;
       case 'retry-run':
       case 'build-today':
@@ -490,7 +489,7 @@ export function FeedConversation() {
       say({ role: 'assistant', content: buildWhyAnswer(job) });
       return;
     }
-  }, [allJobs, applySteer, completeSetup, currentSettingsInput, posthog, router, say, setupDraft, triggerRun]);
+  }, [allJobs, applySteer, completeSetup, currentSettingsInput, posthog, say, setupDraft, triggerRun]);
 
   const handleSend = useCallback(async () => {
     const text = input.trim();

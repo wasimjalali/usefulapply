@@ -8,6 +8,7 @@ import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { useCreditsBalance } from '@/hooks/useCreditsBalance';
 import { resolveFeedBuild, useFeedStore } from '@/store/useFeedStore';
+import { openSettings } from '@/store/useSettingsStore';
 import { FeedEditView } from './FeedEditView';
 import { FeedJobCard } from './FeedJobCard';
 import { FeedJobDetail } from './FeedJobDetail';
@@ -101,7 +102,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         }}
         onSave={(job) => { void actions.save(job); }}
         onOpenEmployerSite={actions.openEmployerSite}
-        onUpgrade={() => router.push('/pricing')}
+        onUpgrade={() => openSettings('usage')}
         showCheckFit={!readOnly}
         canAffordFit={canAffordFit}
         canAffordKit={canAffordKit}
@@ -245,7 +246,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
             onCheckFit={(item) => { void actions.checkFit(item, 'analyze'); }}
             onSave={(item) => { void actions.save(item); }}
             onOpenEmployerSite={actions.openEmployerSite}
-            onUpgrade={() => router.push('/pricing')}
+            onUpgrade={() => openSettings('usage')}
             showCheckFit={!readOnly}
             canAffordFit={canAffordFit}
           />
@@ -270,7 +271,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
             </p>
             <button
               type="button"
-              onClick={() => router.push('/pricing')}
+              onClick={() => openSettings('usage')}
               className="inline-flex h-10 flex-shrink-0 items-center gap-2 rounded-full border border-gold-400 bg-cream-50 px-4 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
             >
               See Plus

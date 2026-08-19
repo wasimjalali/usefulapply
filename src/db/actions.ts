@@ -62,12 +62,37 @@ const USER_EDITABLE_PROFILE_FIELDS = [
   'notify_updates',
   'notify_weekly',
   'notify_marketing',
+  'notify_feed_ready',
+  'notify_follow_up_due',
+  'notify_interview_tomorrow',
+  'notify_credits_low',
+  'hide_rejected',
+  'timezone',
+  'date_format',
   'job_feed_last_seen_run_date',
 ] as const;
 type UserEditableProfile = Pick<Profile, (typeof USER_EDITABLE_PROFILE_FIELDS)[number]>;
 
+const DATE_FORMATS = ['dmy', 'mdy', 'iso'];
+
+/** A bad timezone would throw inside Intl later, so it never gets stored. */
+function isKnownTimezone(value: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-GB', { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function updateProfileAction(userId: string, updates: Partial<UserEditableProfile>) {
   await requireUserId(userId);
+  if (typeof updates.timezone === 'string' && !isKnownTimezone(updates.timezone)) {
+    throw new Error('Unknown timezone');
+  }
+  if (typeof updates.date_format === 'string' && !DATE_FORMATS.includes(updates.date_format)) {
+    throw new Error('Unknown date format');
+  }
   const safe: Partial<UserEditableProfile> = {};
   for (const key of USER_EDITABLE_PROFILE_FIELDS) {
     if (key in updates) {
@@ -156,9 +181,39 @@ export async function listTrackerApplicationsAction(
   return sessionsRepo.listTrackerApplications(userId, params);
 }
 
-export async function listTrackerStatusesAction(userId: string) {
+export async function listTrackerOverviewAction(userId: string) {
   await requireUserId(userId);
-  return sessionsRepo.listTrackerStatuses(userId);
+  return sessionsRepo.listTrackerOverview(userId);
+}
+
+const TRACKER_STATUSES = ['drafted', 'applied', 'follow_up', 'interview', 'accepted', 'rejected'] as const;
+type TrackerStatusValue = (typeof TRACKER_STATUSES)[number];
+
+function cleanDate(value: unknown): string | null {
+  if (typeof value !== 'string' || !value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) throw new Error('Invalid date');
+  return parsed.toISOString();
+}
+
+export async function setTrackerStatusAction(
+  userId: string,
+  sessionId: string,
+  next: { status: string; interviewAt?: string | null; followUpDueAt?: string | null },
+) {
+  await requireUserId(userId);
+  if (!TRACKER_STATUSES.includes(next.status as TrackerStatusValue)) {
+    throw new Error('Unknown status');
+  }
+  const { error } = await sessionsRepo.setTrackerStatus(userId, sessionId, {
+    status: next.status,
+    interview_at: cleanDate(next.interviewAt),
+    follow_up_due_at: cleanDate(next.followUpDueAt),
+  });
+  // The caller rolls its optimistic row back on a throw, so a write that hit
+  // nothing must not come back as success.
+  if (error) throw new Error('Application not found');
+  return { error: null };
 }
 
 export async function getChatMessagesAction(userId: string, sessionId: string) {
