@@ -2,11 +2,11 @@
 
 import { ChatPanel } from '@/components/ChatPanel';
 import { useSessionStore } from '@/store/useSessionStore';
-import { useUIStore } from '@/store/useUIStore';
+import { useUIStore, type KitTab } from '@/store/useUIStore';
 import { deriveApplicationStatus } from '@/components/shell/application-status';
 
 interface ConversationColumnProps {
-  onTabChange: (tab: 'cv' | 'cover-letter' | 'email') => void;
+  onTabChange: (tab: KitTab) => void;
 }
 
 export function ConversationColumn({ onTabChange }: ConversationColumnProps) {

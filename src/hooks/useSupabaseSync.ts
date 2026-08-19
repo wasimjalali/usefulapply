@@ -66,6 +66,24 @@ interface SupabaseSessionRow {
  * CRITICAL: This hook now PULLS data FROM Supabase on mount to enable cross-browser sync.
  * Supabase is the source of truth — localStorage is only a cache for the current browser.
  */
+/**
+ * Structured CV data and screening answers ride inside the generated_cv JSON
+ * column. Only keys the session actually holds are written, so a session
+ * loaded without them (older rows, partial mappers) never wipes what is stored.
+ */
+function embedKitData(session: ApplicationSession): Record<string, unknown> | null {
+  const base: Record<string, unknown> | null = session.generatedCV
+    ? { ...session.generatedCV }
+    : session.optimizedCVData
+      ? {}
+      : null;
+  if (!base) return null;
+  if (session.optimizedCVData !== undefined) base._optimizedCVData = session.optimizedCVData;
+  if (session.screeningAnswers !== undefined) base._screeningAnswers = session.screeningAnswers;
+  base._screeningUsageCount = session.screeningUsageCount ?? 0;
+  return base;
+}
+
 export function useSupabaseSync() {
   const { user } = useAuth();
   const {
@@ -284,6 +302,7 @@ export function useSupabaseSync() {
             generatedCV: row.generated_cv ?? null,
             // Restore optimizedCVData from generated_cv JSONB (embedded during save)
             optimizedCVData: row.generated_cv?._optimizedCVData ?? undefined,
+            screeningAnswers: Array.isArray(row.generated_cv?._screeningAnswers) ? row.generated_cv._screeningAnswers : [],
             coverLetter: row.cover_letter ?? null,
             email: row.email ?? null,
             followUpEmail: row.follow_up_email ?? null,
@@ -309,7 +328,7 @@ export function useSupabaseSync() {
               createdAt: row.created_at,
               url: row.optimized_pdf_path 
             } : undefined,
-            screeningUsageCount: 0,
+            screeningUsageCount: typeof row.generated_cv?._screeningUsageCount === 'number' ? row.generated_cv._screeningUsageCount : 0,
             chatMessages: [],
           }));
           
@@ -499,11 +518,7 @@ export function useSupabaseSync() {
               
               // Update the new session with full data
               if (currentSession.jobTitle || currentSession.company || currentSession.generatedCV) {
-                const newGenCV = currentSession.generatedCV
-                  ? { ...currentSession.generatedCV, _optimizedCVData: currentSession.optimizedCVData ?? undefined }
-                  : currentSession.optimizedCVData
-                    ? { _optimizedCVData: currentSession.optimizedCVData }
-                    : null;
+                const newGenCV = embedKitData(currentSession);
                 // Clamp match_score to INTEGER 0-100 to satisfy DB CHECK constraint
                 const safeMatchScore = currentSession.matchScore != null
                   ? Math.round(Math.min(100, Math.max(0, currentSession.matchScore)))
@@ -558,11 +573,7 @@ export function useSupabaseSync() {
         } else {
           // Update existing session in Supabase
           // Embed optimizedCVData inside generated_cv JSONB to persist Changes tab + structured CV data
-          const generatedCVWithData = currentSession.generatedCV
-            ? { ...currentSession.generatedCV, _optimizedCVData: currentSession.optimizedCVData ?? undefined }
-            : currentSession.optimizedCVData
-              ? { _optimizedCVData: currentSession.optimizedCVData }
-              : null;
+          const generatedCVWithData = embedKitData(currentSession);
           // Clamp match_score to INTEGER 0-100 to satisfy DB CHECK constraint
           const safeMatchScore = currentSession.matchScore != null
             ? Math.round(Math.min(100, Math.max(0, currentSession.matchScore)))

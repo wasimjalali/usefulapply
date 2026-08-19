@@ -11,7 +11,7 @@ import { AgentProgressV2 } from './AgentProgressV2';
 import { useAgentWorkflow } from './chat/useAgentWorkflow';
 import { useAppStore } from '@/store/useAppStore';
 import { useSessionStore } from '@/store/useSessionStore';
-import { useUIStore } from '@/store/useUIStore';
+import { useUIStore, type KitTab } from '@/store/useUIStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { submitMessageFeedback, getChatMessages } from '@/lib/supabase';
 import {
@@ -24,6 +24,8 @@ import {
   ArrowUpRight,
   Zap,
   Search,
+  Download,
+  Edit3,
 } from 'lucide-react';
 import { BrandIcon } from './BrandLogo';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -32,6 +34,9 @@ import { DecisionChips } from '@/components/shell/DecisionChips';
 import { useCreditsBalance, formatResetDate } from '@/hooks/useCreditsBalance';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { usePostHog } from 'posthog-js/react';
+import { NamedStages } from '@/components/shell/NamedStages';
+import { REGEN_META, detectRegenTarget, regenerateDocument, type RegenTarget } from '@/lib/regenerate-client';
+import { looksLikeScreeningQuestion, parseScreeningAnswers } from '@/lib/screening-answers';
 
 // Module-level dedupe set for Job Feed autostart. Kept as a safety net in
 // case the dashboard ever navigates between two sessions fast enough that
@@ -53,7 +58,7 @@ function buildJobFeedAutostartKey(params: {
 }
 
 interface ChatPanelProps {
-  onTabChange?: (tab: 'cv' | 'cover-letter' | 'email') => void;
+  onTabChange?: (tab: KitTab) => void;
   isMobileDrawer?: boolean;
   /** True when the panel is docked as the desktop right-hand column. */
   docked?: boolean;
@@ -99,6 +104,7 @@ export function ChatPanel({
     setIsScreeningMode,
     handleSend: workflowHandleSend,
     handleGeneralChat,
+    fetchScreeningAnswers,
     handleStopGeneration,
     runAgentWorkflow,
     runFitAnalysisFlow,
@@ -150,6 +156,17 @@ export function ChatPanel({
   const [shortCredits, setShortCredits] = useState<{ required: number; available: number } | null>(null);
   const [pendingDecisionJd, setPendingDecisionJd] = useState<string | null>(null);
   const [needsAccount, setNeedsAccount] = useState(false);
+  // Regeneration from the chat: the cost chip waits in pendingRegen, the
+  // named stage shows while runningRegen is set.
+  const [pendingRegen, setPendingRegen] = useState<RegenTarget | null>(null);
+  const [runningRegen, setRunningRegen] = useState<RegenTarget | null>(null);
+  const [runningScreening, setRunningScreening] = useState(false);
+  // Refs, not state: a guard that flips synchronously so a double click never
+  // starts a second paid request.
+  const regenInFlightRef = useRef(false);
+  const screeningInFlightRef = useRef(false);
+  const setRegenStage = useUIStore((state) => state.setRegenStage);
+  const requestKitDownload = useUIStore((state) => state.requestKitDownload);
 
   // Anonymous visitor hit something that needs an account. One line in the
   // conversation plus a chip to act on; the old modal wall is gone.
@@ -519,9 +536,212 @@ export function ChatPanel({
     }
   };
 
+  // ---- Kit follow-ups: rewrite requests and screening questions ----------
+
+  const startRegenPrompt = (target: RegenTarget) => {
+    if (!user) {
+      askForAccount();
+      return;
+    }
+    const meta = REGEN_META[target];
+    const balance = credits?.total;
+    // The regenerate route takes no instruction: say so before the click.
+    addChatMessage({
+      role: 'assistant',
+      content: balance !== undefined
+        ? `Rewriting the ${meta.noun} costs ${meta.cost} credits (you have ${balance}). It's a fresh draft, not an edit of this one.`
+        : `Rewriting the ${meta.noun} costs ${meta.cost} credits. It's a fresh draft, not an edit of this one.`,
+    });
+    setPendingRegen(target);
+  };
+
+  const confirmRegen = async (target: RegenTarget) => {
+    if (regenInFlightRef.current) return;
+    regenInFlightRef.current = true;
+    const meta = REGEN_META[target];
+    const startedIn = useSessionStore.getState().currentSession?.id ?? null;
+    setPendingRegen(null);
+    addChatMessage({ role: 'user', content: `Rewrite it · ${meta.cost} credits` });
+    setRunningRegen(target);
+    setRegenStage({ title: meta.stage, tab: meta.tab });
+    posthog?.capture('regeneration_requested', { section: meta.type, source: 'chat' });
+    try {
+      const result = await regenerateDocument(target);
+      // The document lands on the application that asked for it; the chat
+      // line only makes sense if the user is still looking at that one.
+      if (useSessionStore.getState().currentSession?.id !== startedIn) return;
+      if (result.ok) {
+        addChatMessage({
+          role: 'assistant',
+          content: `Done, ${result.wordCount} words. The new ${meta.noun} is on the right.`,
+          actions: [{ label: meta.stage, action: 'stage-done' }],
+        });
+      } else if (result.code === 'INSUFFICIENT_CREDITS') {
+        addChatMessage({
+          role: 'assistant',
+          content: `Rewriting the ${meta.noun} needs ${result.required} credits and you have ${result.available}. Nothing was charged.`,
+          actions: [{ label: 'Upgrade to Plus · 50 credits a month', action: 'navigate-pricing', icon: 'new' }],
+        });
+      } else if (result.code === 'SIGNED_OUT') {
+        addChatMessage({
+          role: 'assistant',
+          content: 'Your session expired. Sign in again and ask for the rewrite once more. Nothing was charged.',
+          actions: [{ label: 'Sign in', action: 'navigate-login' }],
+        });
+      } else if (result.code === 'NO_CONTEXT') {
+        addChatMessage({
+          role: 'assistant',
+          content: `I can't rewrite the ${meta.noun} without the job ad and your CV loaded. Open the application from the sidebar and try again.`,
+        });
+      } else {
+        addChatMessage({
+          role: 'assistant',
+          content: `That rewrite didn't go through. The ${meta.noun} on the right is unchanged. Try again in a moment.`,
+        });
+      }
+    } finally {
+      regenInFlightRef.current = false;
+      setRunningRegen(null);
+      setRegenStage(null);
+    }
+  };
+
+  // Screening turns per application. The old chip allowed two entries; pasting
+  // from the composer is per question, so the cap is per answered turn.
+  const SCREENING_TURN_CAP = 5;
+
+  const runScreening = async (question: string) => {
+    if (!user) {
+      askForAccount();
+      return;
+    }
+    if (screeningInFlightRef.current) return;
+    const session = useSessionStore.getState().currentSession;
+    const startedIn = session?.id ?? null;
+    if (!startedIn) return;
+    if ((session?.screeningUsageCount ?? 0) >= SCREENING_TURN_CAP) {
+      setIsScreeningMode(false);
+      addChatMessage({
+        role: 'assistant',
+        content: `That's the ${SCREENING_TURN_CAP} screening answers for this application. Start a new application for more.`,
+      });
+      return;
+    }
+    // Profile still loading means the tier is unknown; let the server decide.
+    const isPaidPlan = profile?.subscription_tier === 'plus' || profile?.subscription_tier === 'max';
+    if (profile && !isPaidPlan) {
+      setIsScreeningMode(false);
+      await handleAction('upgrade-for-screening');
+      return;
+    }
+    screeningInFlightRef.current = true;
+    setRunningScreening(true);
+    try {
+      const result = await fetchScreeningAnswers(question);
+      const stillHere = useSessionStore.getState().currentSession?.id === startedIn;
+      if (!result.ok) {
+        if (!stillHere) return;
+        if (result.code === 'PLAN_REQUIRED') {
+          await handleAction('upgrade-for-screening');
+        } else if (result.code === 'CHAT_LIMIT') {
+          addChatMessage({
+            role: 'assistant',
+            content: 'You\'ve reached the chat limit for this application. Start a new application to keep going.',
+            actions: [{ label: 'Start new application', action: 'start-new-application', icon: 'new' }],
+          });
+        } else if (result.code === 'SIGNED_OUT') {
+          addChatMessage({
+            role: 'assistant',
+            content: 'Your session expired. Sign in again and paste the question once more.',
+            actions: [{ label: 'Sign in', action: 'navigate-login' }],
+          });
+        } else {
+          addChatMessage({
+            role: 'assistant',
+            content: 'That answer didn\'t come through. Paste the question again in a moment.',
+          });
+        }
+        return;
+      }
+      const parsed = parseScreeningAnswers(result.reply);
+      if (!parsed) {
+        // No answer blocks: show the reply as a normal turn rather than lose it.
+        if (stillHere) addChatMessage({ role: 'assistant', content: result.reply });
+        return;
+      }
+      const now = new Date().toISOString();
+      const store = useSessionStore.getState();
+      const target = store.currentSession?.id === startedIn
+        ? store.currentSession
+        : store.sessions.find((s) => s.id === startedIn);
+      const existing = target?.screeningAnswers ?? [];
+      const items = parsed.map((a, i) => ({
+        id: `ans-${Date.now()}-${i}`,
+        question: a.question || question,
+        answer: a.answer,
+        createdAt: now,
+      }));
+      // Answers land on the application that asked, even if the user moved on.
+      store.updateSessionById(startedIn, {
+        screeningAnswers: [...existing, ...items],
+        screeningUsageCount: (target?.screeningUsageCount ?? 0) + 1,
+      });
+      posthog?.capture('screening_answers_generated', { count: items.length });
+      if (!stillHere) return;
+      // The one allowed auto-switch: the user just asked for exactly this.
+      onTabChange?.('answers');
+      addChatMessage({
+        role: 'assistant',
+        content: result.reply,
+        actions: [{ label: 'Answering from your CV', action: 'stage-done' }],
+      });
+    } finally {
+      screeningInFlightRef.current = false;
+      setRunningScreening(false);
+      setIsScreeningMode(false);
+    }
+  };
+
+  /**
+   * With a kit on screen the composer mostly carries follow-ups. Returns true
+   * when the message was handled here (rewrite or screening); false sends it
+   * down the normal chat path.
+   */
+  const routeKitMessage = async (text: string): Promise<boolean> => {
+    if (!currentSession?.generatedCV) return false;
+    const openTab = useUIStore.getState().activeTab;
+    const openDocument = openTab === 'cover-letter' ? 'cover-letter' : openTab === 'email' ? 'email' : openTab === 'cv' ? 'cv' : null;
+    const target = detectRegenTarget(text, openDocument);
+    if (target === 'cv') {
+      addChatMessage({
+        role: 'assistant',
+        content: 'I can\'t rewrite the CV on its own yet. Use Edit on the CV tab to change any line, or paste the job ad again for a fresh kit.',
+      });
+      return true;
+    }
+    if (target) {
+      startRegenPrompt(target);
+      return true;
+    }
+    if (isScreeningMode || looksLikeScreeningQuestion(text)) {
+      await runScreening(text);
+      return true;
+    }
+    return false;
+  };
+
   const handleSend = async () => {
     if (!inputValue.trim()) return;
     const text = inputValue.trim();
+    if (spine && currentSession?.generatedCV && (isScreeningMode || !looksLikeJobAd(text))) {
+      const draft = text;
+      setInputValue('');
+      addChatMessage({ role: 'user', content: draft });
+      if (await routeKitMessage(draft)) return;
+      // Plain question about the kit: the normal chat path, user message already added.
+      await handleGeneralChat(draft);
+      return;
+    }
     if (spine && looksLikeJobAd(text) && !isScreeningMode) {
       if (!user && hasUsedFreeGeneration()) {
         askForAccount();
@@ -629,15 +849,17 @@ export function ChatPanel({
         setIsScreeningMode(true);
         addChatMessage({
           role: 'assistant',
-          content: '📋 **Screening Question Mode**\n\nPaste your screening questions below and I\'ll draft personalized answers based on your CV and this job description.\n\nI\'ll format each answer separately so you can copy and paste them individually.',
+          content: 'Paste the screening question and I\'ll answer it from your CV. The answer lands in the Answers tab on the right.',
         });
         break;
       case 'start-screening-flow': {
         const isPaidPlan = profile?.subscription_tier === 'plus' || profile?.subscription_tier === 'max';
         await handleAction(isPaidPlan ? 'screening-questions' : 'upgrade-for-screening');
-        useAppStore.getState().updateCurrentSession({
-          screeningUsageCount: isPaidPlan ? (currentSession?.screeningUsageCount ?? 0) + 1 : 2,
-        });
+        // Paid plans count a use when an answer lands (runScreening). A free
+        // plan has seen the pitch, so the follow-up chips step aside.
+        if (!isPaidPlan) {
+          useAppStore.getState().updateCurrentSession({ screeningUsageCount: 2 });
+        }
         break;
       }
       case 'skip-screening':
@@ -649,14 +871,17 @@ export function ChatPanel({
         posthog?.capture('screening_upgrade_prompt_shown');
         addChatMessage({
           role: 'assistant',
-          content: '🔒 **Screening Question Answers** is available on **Plus and Max**.\n\nOn a paid plan, I can draft personalized answers to screening questions from your CV and the job description, formatted for easy copy and paste.',
+          content: 'Screening answers are on Plus and Max. On a paid plan I answer each question from your CV and the job ad, ready to paste into the form.',
           actions: [
-            { label: 'View Plans', action: 'navigate-pricing', icon: 'new' },
+            { label: 'Upgrade to Plus · 50 credits a month', action: 'navigate-pricing', icon: 'new' },
           ],
         });
         break;
       case 'navigate-pricing':
         router.push('/pricing');
+        break;
+      case 'navigate-login':
+        router.push('/auth/login');
         break;
     }
   };
@@ -716,6 +941,10 @@ export function ChatPanel({
     setPendingDecisionJd(null);
     setShortCredits(null);
     setNeedsAccount(false);
+    setPendingRegen(null);
+    setRunningRegen(null);
+    setRunningScreening(false);
+    setRegenStage(null);
     autostartedApplySessionRef.current = null;
     setShowHistory(false);
   };
@@ -1001,6 +1230,7 @@ export function ChatPanel({
               onFeedback={handleFeedbackClick}
               feedback={messageFeedback[message.id]}
               layout={spine ? 'spine' : 'classic'}
+              answersInDoc={(currentSession?.screeningAnswers?.length ?? 0) > 0}
             />
           ))}
 
@@ -1167,7 +1397,10 @@ export function ChatPanel({
                             onSelect: () => {
                               const jd = pendingDecisionJd;
                               setPendingDecisionJd(null);
-                              void handleGeneralChat(jd);
+                              void (async () => {
+                                if (await routeKitMessage(jd)) return;
+                                await handleGeneralChat(jd);
+                              })();
                             },
                           }]
                         : []),
@@ -1238,30 +1471,97 @@ export function ChatPanel({
             />
           )}
 
-          {/* Inline follow-up: Screening question prompt */}
-          {!isAgentWorking &&
-            !isScreeningMode &&
-            !!currentSession?.generatedCV &&
-            (currentSession?.screeningUsageCount ?? 0) < 2 &&
-            !(fitAnalysisContextId || hasFreshPendingFitAnalysis) && (
-            <div className="flex justify-end gap-2 mt-2">
-              <button
-                onClick={() => {
-                  void handleAction('start-screening-flow');
-                }}
-                className="flex items-center gap-2 rounded-full border border-gold-400 bg-gold-400 text-white px-4 py-2.5 text-sm font-semibold shadow-sm hover:bg-gold-500 hover:border-gold-500 transition-colors duration-200 cursor-pointer"
-              >
-                Answer Screening Questions
-              </button>
-              <button
-                onClick={() => {
-                  void handleAction('skip-screening');
-                }}
-                className="flex items-center gap-2 rounded-full border border-cream-200 bg-white text-charcoal px-4 py-2.5 text-sm font-medium hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer"
-              >
-                Skip For Now
-              </button>
+          {/* Rewrite from the chat: cost first, one gold chip, then a named stage */}
+          {spine && pendingRegen && !runningRegen && !isAgentWorking && (
+            <DecisionChips
+              chips={
+                (credits?.total ?? REGEN_META[pendingRegen].cost) >= REGEN_META[pendingRegen].cost
+                  ? [
+                      {
+                        id: 'rewrite',
+                        label: 'Rewrite it',
+                        cost: `${REGEN_META[pendingRegen].cost} credits`,
+                        variant: 'primary',
+                        icon: <Edit3 className="h-4 w-4" />,
+                        onSelect: () => { void confirmRegen(pendingRegen); },
+                      },
+                      {
+                        id: 'keep-it',
+                        label: 'Keep it as it is',
+                        variant: 'secondary',
+                        onSelect: () => setPendingRegen(null),
+                      },
+                    ]
+                  : [
+                      {
+                        id: 'upgrade-rewrite',
+                        label: 'Upgrade to Plus to rewrite it',
+                        cost: '50 credits a month',
+                        variant: 'secondary',
+                        icon: <ArrowUpRight className="h-4 w-4" />,
+                        onSelect: () => router.push('/pricing'),
+                      },
+                      {
+                        id: 'keep-it',
+                        label: 'Keep it as it is',
+                        variant: 'secondary',
+                        onSelect: () => setPendingRegen(null),
+                      },
+                    ]
+              }
+              hint={
+                (credits?.total ?? REGEN_META[pendingRegen].cost) < REGEN_META[pendingRegen].cost
+                  ? `A rewrite needs ${REGEN_META[pendingRegen].cost}. Your ${credits?.planTier === 'free' ? 'free ' : ''}credits reset${formatResetDate(credits?.nextResetDate) ? ` on ${formatResetDate(credits?.nextResetDate)}` : ' next month'}.`
+                  : undefined
+              }
+            />
+          )}
+
+          {spine && (runningRegen || runningScreening) && (
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 h-fit">
+                <BrandIcon size="xs" theme="light" />
+              </div>
+              <div className="flex-1 rounded-2xl border border-cream-200 bg-white p-3 shadow-sm">
+                <NamedStages
+                  stages={[{
+                    title: runningRegen ? REGEN_META[runningRegen].stage : 'Answering from your CV',
+                    state: 'active',
+                  }]}
+                />
+              </div>
             </div>
+          )}
+
+          {/* Kit ready: download it, or move on to screening questions */}
+          {spine &&
+            !isAgentWorking &&
+            !isScreeningMode &&
+            !pendingRegen &&
+            !runningRegen &&
+            !runningScreening &&
+            !!currentSession?.generatedCV &&
+            !(fitAnalysisContextId || hasFreshPendingFitAnalysis) && (
+            <DecisionChips
+              chips={[
+                {
+                  id: 'download-kit',
+                  label: 'Download the kit',
+                  variant: 'primary',
+                  icon: <Download className="h-4 w-4" />,
+                  onSelect: () => requestKitDownload(),
+                },
+                ...((currentSession?.screeningUsageCount ?? 0) < 2
+                  ? [{
+                      id: 'screening',
+                      label: 'Answer screening questions',
+                      variant: 'secondary' as const,
+                      icon: <Sparkles className="h-4 w-4" />,
+                      onSelect: () => { void handleAction('start-screening-flow'); },
+                    }]
+                  : []),
+              ]}
+            />
           )}
 
           <div ref={messagesEndRef} />
@@ -1288,7 +1588,7 @@ export function ChatPanel({
             onChange={setInputValue}
             onSend={handleSend}
             onStop={handleStopGeneration}
-            disabled={!currentCV || isAnalyzing || isGenerating || isTyping}
+            disabled={!currentCV || isAnalyzing || isGenerating || isTyping || !!runningRegen || runningScreening}
             isWorking={isAgentWorking || isTyping}
             placeholder={
               spine

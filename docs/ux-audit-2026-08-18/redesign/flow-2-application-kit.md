@@ -49,3 +49,17 @@ All of it lives in the canvas column. Tab row: **CV / Cover letter / Emails**, p
 ## Out of scope for flow 2
 
 Feed results and Edit feed (flow 3). Tracker table (flow 4). Settings pages (flow 5).
+
+## Build notes (batch 2, 19 August 2026)
+
+Built as designed, with these deliberate differences:
+
+1. **K4 keeps an Edit control.** The emails' inline editing already existed and losing it would be a regression, so the toolbar row carries an outlined Edit on the left with the muted "Attach the CV and cover letter as PDFs when you send." line beside it.
+2. **K5 has no subtitle under the document heading.** The copy rules say no helper text under headings; the footer line "Paste the next question in the chat and it lands here." stays because it tells the user how to add more.
+3. **ATS view shows reason lines only today.** The writer agent returns `analysis.key_changes` as one line per change and an empty `changes` array, so there is no original snippet to strike through. The view renders Before/After side by side only when a change carries both; the score card also lists `missing_keywords_added` as chips so nothing from the old modal is lost. Gaps that stayed gaps come from `missingSkills`.
+4. **Chat rewrites call the existing `/api/regenerate` route as is.** The route takes no instruction, so "shorter, two paragraphs" is not passed to the writer. The chat says so before the click ("It's a fresh draft, not an edit of this one") and the done line does not promise edits. A CV rewrite has no regenerate type, so a CV request gets a plain reply pointing at Edit or a fresh kit. Passing the instruction through the writer is an open product decision (it needs a prompt change in `src/lib/agents/**`).
+5. **Download all saves the files one by one** (the browser asks once to allow several downloads). No zip library is declared in the project.
+6. **Screening questions are detected by recruiter openers** once a kit exists ("Tell us about", "Why do you want", "Are you authorized", "Do you have", and so on), never by a bare question mark, so questions about the kit itself stay in the chat. The "Answer screening questions" chip still sets screening mode explicitly, so a missed detection costs one click. Screening turns are capped at 5 per application (the old chip allowed 2 entries); the count rides in `generated_cv._screeningUsageCount`.
+7. **Answers persist inside `generated_cv._screeningAnswers`** on the existing sessions row, the same embed pattern as `_optimizedCVData`. No schema change.
+8. **Download all runs from an always-mounted host** (`KitExportHost` in the shell), so the chat's "Download the kit" chip works from any tab and with the canvas collapsed. A kit without structured tailored CV data skips the CV and says so in the toast instead of shipping the original under a tailored name.
+
