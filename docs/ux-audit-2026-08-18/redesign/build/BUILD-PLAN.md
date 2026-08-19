@@ -24,6 +24,20 @@
 
 Order is fixed. A batch starts only after the previous one is merged into `rebrand/usefulapply`. Batches 1 and 2 are merged (19 August 2026). Every batch appends its backend gaps to `BACKEND-GAPS.md`.
 
+## After the batches: the sweep (batches 6 to 8)
+
+**Agreed 19 August 2026.** Building seven flows in five batches leaves debris: the batches ran in sequence, each one replaced screens the previous one had just wired up, and each one was fenced off from backend files it was standing on. Once batch 5 is merged, the redesign is not finished. Run a sweep across everything the five batches touched, in two or three passes, each one landing as its own branch and PR.
+
+The sweep is not a rebuild and not a redesign. It is: delete what is no longer reachable, and fix what is broken.
+
+**Pass 1, dead code and dead links.** Grep every component, route, store and helper the batches replaced and confirm it is either used or gone. Known candidates as of batch 4: `CreditIndicator.tsx` (rendered nowhere, kept only for its `CREDIT_UPDATE_EVENT` export), anything still importing the retired `SettingsScreen` / `TrackerPanel` / `JobFeedPanel` shapes, the four unused `notify_tips` / `notify_updates` / `notify_weekly` profile columns, orphaned routes under `src/app` that now only redirect, and any `/pricing` or `/subscription` link that should be a `?settings=` deep link. Every deletion needs a grep for references first, and gets listed in the PR.
+
+**Pass 2, the bug hunt.** Walk all seven flows end to end on staging as a real user, on a Free account and a paid one, and fix what breaks. This is where the cross-batch seams show: a store written by batch 1 and read by batch 4, a session loaded by the feed and mutated by the tracker, an SSE stream that has to survive a trip to another workspace. Use the `debugger` agent for anything with a stack trace and the adversarial review for anything touching auth, credits or data.
+
+**Pass 3, close the backend gaps that are cheap.** Work `BACKEND-GAPS.md` top to bottom and land the entries marked Small. The Medium and Large ones become their own tickets. The file is the work list; nothing in it gets dropped without a decision written next to it.
+
+Order matters: dead code first, so the bug hunt is not chasing code nobody calls, and the gaps last, so they land on a clean tree.
+
 ## Rules for the implementer (Grok)
 
 - Read, in this order, before writing code: `AGENTS.md` (loads automatically), this file, your batch file, `docs/ux-audit-2026-08-18/design-philosophy.md` section 5 (the 12 rules), the flow doc(s) for your batch, the PNGs under `flow-N-artboards/png/`, `.claude/rules/design-system.md`. The PNGs are the target; the flow doc's "Notes for the spec and build" are requirements.
