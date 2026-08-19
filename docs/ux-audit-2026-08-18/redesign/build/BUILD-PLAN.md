@@ -20,9 +20,11 @@
 | 2 | `batch-2-kit.md` | 2 | `build/flow-2-kit` | The kit canvas: tabs, ATS view, templates, cover letter, emails, answers. Big. |
 | 3 | `batch-3-feed.md` | 3 | `build/flow-3-feed` | The feed conversation and canvas, setup by chips, detail view, Edit feed. Big. |
 | 4 | `batch-4-tracker-settings.md` | 4 + 5 | `build/flow-4-5-tracker-settings` | Tracker table + conversation; settings modal. Two medium flows. |
-| 5 | `batch-5-auth-marketing.md` | 6 + 7 | `build/flow-6-7-auth-marketing` | Auth pages; marketing site. Two small flows; marketing last because its shots are real screenshots of the built screens. |
+| 5 | `batch-5-auth-marketing.md` | 6 + 7 | `rebrand/usefulapply` (direct) | Auth pages; marketing site. Two small flows; marketing last because its shots are real screenshots of the built screens. |
 
-Order is fixed. A batch starts only after the previous one is merged into `rebrand/usefulapply`. Batches 1 and 2 are merged (19 August 2026). Every batch appends its backend gaps to `BACKEND-GAPS.md`.
+Order is fixed. A batch starts only after the previous one is merged into `rebrand/usefulapply`. Batches 1 to 4 are merged (19 August 2026).
+
+**From batch 5 on, work directly on `rebrand/usefulapply`.** No more per-batch build branches: that branch is the redesign's own trunk, and the per-batch branches were only ever a staging area. `main` is still off limits. Every batch appends its backend gaps to `BACKEND-GAPS.md`.
 
 ## After the batches: the sweep (batches 6 to 8)
 

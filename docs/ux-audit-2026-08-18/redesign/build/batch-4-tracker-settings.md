@@ -1,6 +1,6 @@
 # Batch 4: the Tracker and the Settings modal (flows 4 and 5)
 
-**Status:** built 19 August 2026, on `build/flow-4-5-tracker-settings`, pending review and merge. Part A built inline, part B by an Opus subagent, both reviewed by four adversarial passes (security, logic, data integrity, design conformance). Two-factor was dropped by Wasim's decision, not deferred. Migration `0005_tracker_dates_and_prefs.sql` must be applied before the tracker dates or the notification toggles work.
+**Status:** done. Merged into `rebrand/usefulapply` 19 August 2026 (`b9bb60e1`); the build branch is deleted. Part A built inline, part B by an Opus subagent, both reviewed by four adversarial passes (security, logic, data integrity, design conformance). Two-factor was dropped by Wasim's decision, not deferred. Migration `0005_tracker_dates_and_prefs.sql` must be applied before the tracker dates or the notification toggles work.
 **Branch:** `build/flow-4-5-tracker-settings` off `rebrand/usefulapply`.
 **Design of record:** `../flow-4-tracker.md` (PNGs `../flow-4-artboards/png/`: T1 Tracker, T3 Status change, T4 Interview when) and `../flow-5-settings-billing.md` (PNGs `../flow-5-artboards/png/`: M1 General, M2 Usage & Billing, M3 Notifications, M4 Usage & Billing on Free). Rules: `../../design-philosophy.md` section 5.
 

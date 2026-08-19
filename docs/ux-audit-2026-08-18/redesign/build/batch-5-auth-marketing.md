@@ -1,7 +1,7 @@
 # Batch 5: the auth pages and the marketing site (flows 6 and 7)
 
 **Status:** not started. Starts after batch 4 is merged.
-**Branch:** `build/flow-6-7-auth-marketing` off `rebrand/usefulapply`.
+**Branch:** none. Work directly on `rebrand/usefulapply` (Wasim, 19 Aug 2026).
 **Design of record:** `../flow-6-auth.md` (PNGs `../flow-6-artboards/png/`: A1 Log in, A2 Sign up, A3 Forgot password, A4 Check email) and `../flow-7-marketing.md` (PNGs `../flow-7-artboards/png/`: M1 Landing 1440x4432, M2 Header states). Rules: `../../design-philosophy.md` section 5.
 
 Do part A (auth) first, then part B (marketing).
@@ -43,5 +43,5 @@ A1 to A4 match at 1440x900; titles are single; errors inline. The landing matche
 ## Kickoff prompt (paste into a fresh Grok 4.6 session in this repo)
 
 ```
-You are the implementer for batch 5 of the Useful Apply UX redesign. Claude Code is the orchestrator; it will review, fix and commit your work. Batches 1 to 4 are merged on rebrand/usefulapply; build on them. Read, in order: docs/ux-audit-2026-08-18/redesign/build/BUILD-PLAN.md, docs/ux-audit-2026-08-18/redesign/build/batch-5-auth-marketing.md, docs/ux-audit-2026-08-18/design-philosophy.md (section 5), docs/ux-audit-2026-08-18/redesign/flow-6-auth.md and flow-7-marketing.md, every PNG in flow-6-artboards/png/ and flow-7-artboards/png/, and .claude/rules/design-system.md. Then do part A, then part B, tasks in order, on branch build/flow-6-7-auth-marketing off rebrand/usefulapply. Do not commit or push. Do not add packages. Do not change Better Auth config, callbacks or session handling; do not redesign the final band, footer or /pricing layout. Finish with npx tsc --noEmit and npm run lint, then end with the exact report format from BUILD-PLAN.md.
+You are the implementer for batch 5 of the Useful Apply UX redesign. Claude Code is the orchestrator; it will review, fix and commit your work. Batches 1 to 4 are merged on rebrand/usefulapply; build on them. Read, in order: docs/ux-audit-2026-08-18/redesign/build/BUILD-PLAN.md, docs/ux-audit-2026-08-18/redesign/build/batch-5-auth-marketing.md, docs/ux-audit-2026-08-18/design-philosophy.md (section 5), docs/ux-audit-2026-08-18/redesign/flow-6-auth.md and flow-7-marketing.md, every PNG in flow-6-artboards/png/ and flow-7-artboards/png/, and .claude/rules/design-system.md. Then do part A, then part B, tasks in order, working directly on the rebrand/usefulapply branch. Do not commit or push. Do not add packages. Do not change Better Auth config, callbacks or session handling; do not redesign the final band, footer or /pricing layout. Finish with npx tsc --noEmit and npm run lint, then end with the exact report format from BUILD-PLAN.md.
 ```
