@@ -6,6 +6,7 @@ Approved by Wasim on 19 Aug 2026 with no changes. This is the design of record f
 
 - Direction exploration (A chat spine, B same room, C guided line): https://claude.ai/code/artifact/5553a469-bf6f-4d8e-b991-d2dd738345fb
 - **Locked flow (10 artboards):** https://claude.ai/code/artifact/8244abc5-adb3-4363-a4ed-59e66f7901da
+- **Rendered artboards (PNG, 1440x900):** `flow-1-artboards/png/` in step order (L1 Your CV, L1b, L2, L3, L3b, L4a, L4b, then S1 Kit ready, S2 Settings menu, S3 Short on credits).
 - Artboard sources: `flow-1-artboards/` (`lib.mjs` shared tokens and partials, `gen.mjs` directions, `final/gen2.mjs` the locked flow). `node gen2.mjs` regenerates the `.dc.html` files; re-seed with the Claude Design `/design` helper.
 
 ## The decision
