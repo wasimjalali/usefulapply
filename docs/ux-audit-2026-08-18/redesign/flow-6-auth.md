@@ -1,6 +1,6 @@
 # Flow 6: the auth pages. Locked 19 August 2026.
 
-Drafted and locked in one pass (Wasim: "lock in and go ahead"). Inherits the line header from `flow-1-first-run.md`.
+Drafted and locked in one pass; Wasim accepted it on 19 Aug 2026. Inherits the line header from `flow-1-first-run.md`.
 
 ## Canvas and visuals
 

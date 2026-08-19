@@ -53,7 +53,7 @@ Read `HANDOFF.md`. It sequences the work: fix the bugs first, UX second.
 - `friction-log.md`: every friction point, rated, with what a Cursor-style fix would be
 - `bugs.md`: every defect found, with repro, evidence and confirmed cause
 - `design-philosophy.md`: the redesign thesis (Cursor / Grok Bot inspiration), the ten rules every flow must pass, and the flow-by-flow order. Read before any redesign work
-- `redesign/`: one locked design doc per flow plus artboard sources. `flow-1-first-run.md` is the shell every later flow inherits, `flow-2-application-kit.md` the kit panels, `flow-3-job-feed.md` the feed, `flow-4-tracker.md` the tracker, `flow-5-settings-billing.md` the settings modal, `flow-6-auth.md` the auth pages; each has a `png/` folder with the rendered artboards
+- `redesign/`: the redesign track. `HANDOFF.md` (where the next session picks up), `WORKFLOW.md` (the end-to-end method, the seed for a future skill), one locked design doc per flow plus artboard sources. `flow-1-first-run.md` is the shell every later flow inherits, `flow-2-application-kit.md` the kit panels, `flow-3-job-feed.md` the feed, `flow-4-tracker.md` the tracker, `flow-5-settings-billing.md` the settings modal, `flow-6-auth.md` the auth pages; each has a `png/` folder with the rendered artboards
 - `job-description.md`: the job ad used for every generation run
 
 ## Coverage
