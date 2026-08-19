@@ -221,4 +221,49 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 
 ## Found in batch 5 (auth + marketing)
 
-_Add here._
+### The daily feed moment on the landing is still the mock
+- **UI today:** moment 3 renders `/images/moments/daily-feed.webp`, which is a crop of the flow-7 artboard, not a screenshot of the built feed. The other three shots (hero kit, fit result, ATS what changed) are real captures of the built screens at 1440x900.
+- **Missing:** the feed store is deliberately not persisted and the feed reads from the server, so a real capture needs a signed-in account with a completed feed run. Local seeding can't reach that state.
+- **Where:** `src/app/page.tsx` (`MOMENTS[2]`, marked PLACEHOLDER), `public/images/moments/daily-feed.webp`.
+- **Needs:** capture it during the end-to-end pass Wasim planned, then drop the WebP in at 1440x900 under 150 KB and remove the comment. Small, but it needs a real account. **Agreed with Wasim on 19 Aug 2026: placeholder stays until the end-to-end pass.**
+
+### The reset link window — CLOSED
+- **Was:** `resetPasswordTokenExpiresIn` was unset, so Better Auth 1.7 fell back to 3600 seconds while the flow-6 copy promised 30 minutes.
+- **Resolved 19 Aug 2026 (Wasim asked for the fix):** `resetPasswordTokenExpiresIn: 60 * 30` is now set in `src/auth/server.ts`, and all three places that state the window say 30 minutes: the reset card, the expired-link card and the reset email template (`src/lib/email/templates/password-reset.ts`, which had also said "about an hour").
+
+### Sign-up password floor — CLOSED
+- **Was:** the UI said 8 characters while `/api/auth/signup` rejected under 6 and `minPasswordLength` was 6, so a 6-character password got through any client that skipped our form.
+- **Resolved 19 Aug 2026 (Wasim asked for the fix):** `minPasswordLength: 8` in `src/auth/server.ts`, the signup route rejects under 8, and the guided line's inline sign-up card (`src/components/shell/GuidedLine.tsx`) was raised from 6 to 8 as well, so it can no longer submit a password the server will bounce.
+
+### "We couldn't find that address" can't be shown on the reset form — CLOSED
+- **UI today:** `/auth/forgot-password` shows inline errors for a malformed address and for rate limiting only. It never says the address is unknown.
+- **Missing:** nothing. This is not a bug. `/api/auth/forgot-password` always returns success for a well-formed address so account existence can't be enumerated, and Better Auth 1.7 returns 200 for unknown emails too, so the client never learns whether the account exists.
+- **Where:** `src/app/api/auth/forgot-password/route.ts`.
+- **Resolved 19 Aug 2026:** the string is dropped from `flow-6-auth.md` note 3 and the code is unchanged. Nothing further to do.
+
+### The landing height — CLOSED
+- **Was:** 4,699 px at 1440 wide, 199 over F28's 4,500 target, because the real footer is 813 px against the artboard mock's ~532 and the real navy band is 463 against ~420.
+- **Resolved 19 Aug 2026 (Wasim's call: the final band and the footer keep the old layout and design, so the trim comes from the new sections only):** the landing is now **4,495 px**. Hero 1052, moments 1437, founder 168, plans 504, all tightened on spacing only; the images stay at the doc's 1040 px hero and 680 px moments, and the final band (463) and footer (813) are byte-for-byte unchanged.
+
+### "Priority generation" on Max — CLOSED
+- **Was:** the Max card said "Priority generation" on the landing, in the settings modal and on `/pricing`, and it was the main line separating $79.99 from $19.99. The feature does not exist: `src/lib/models/**` and `src/lib/agents/**` have no reference to `plan_tier`, `planTier` or `subscription_tier` and there is no queue, so a Max generation runs the identical path and model as a Free one. The line came from the locked M1 artboard.
+- **Resolved 19 Aug 2026 (Wasim: "that's a copy bug, correct the copy because we don't have such thing yet"):** replaced with **"Twice the feed search"**, which is true and verifiable: `JOB_FEED_TIER_LIMITS` gives Max `maxDailyQueries: 4` and `maxRawJobsPerRun: 40` against Plus's 2 and 20. The `/pricing` Max list drops the line entirely and keeps its existing, accurate "Feed searches 4 job titles across 4 countries".
+- **Note for the flow-7 doc:** M1's Max card still shows "Priority generation". The artboard is now one line out of date against the build, on purpose.
+
+### The plan clicked on the landing is dropped at sign-up
+- **UI today:** a logged-out visitor clicking "Start with Plus" or "Go Max" goes to `/auth/signup?plan=plus|max`.
+- **Missing:** nothing reads `?plan=`. A grep for `get('plan')` returns zero hits. After sign-up and verification the user lands on `/dashboard` on Free, and the purchase intent is gone. Pre-existing behaviour, but the new landing cards make it the main upgrade entry point.
+- **Where:** `src/components/marketing/HomePricingButtons.tsx`, `src/app/auth/signup/page.tsx`.
+- **Needs:** carry the tier through sign-up and open checkout after verification, or drop the param. Small, but it needs a decision about when checkout should fire.
+
+### A failed verification resend still reports success
+- **UI today:** the check-email card now renders an error when the resend request fails, and all three callers set one.
+- **Missing:** `/api/auth/signup`'s `resendOnly` branch catches every `sendVerificationEmail` failure, logs it and returns `{ success: true }` with status 200, so a genuine email-infrastructure failure still reads as "Sent again." on screen.
+- **Where:** `src/app/api/auth/signup/route.ts`.
+- **Needs:** a decision. The uniform 200 is what stops the endpoint being used to test whether an address has an account, so it can't simply return 500. Splitting "unknown user" from "send failed" inside the catch would fix it without weakening that. Small.
+
+### The demo video is off the landing until it is re-recorded
+- **UI today:** the hero shows the kit screenshot and no video. The old Tella embed was removed with the rest of the pre-redesign hero.
+- **Missing:** the re-recorded demo. The old one still shows Karko AI branding (F24), so it could not be carried over.
+- **Where:** it goes back under the hero product shot in `src/app/page.tsx`.
+- **Needs:** the recording, then an embed. Flow 7 already schedules this for after the build.

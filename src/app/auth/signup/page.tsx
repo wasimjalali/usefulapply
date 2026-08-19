@@ -2,203 +2,167 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, User, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
-import BrandLogo from '@/components/BrandLogo';
+import { Loader2 } from 'lucide-react';
+import { AuthShell } from '@/components/auth/AuthShell';
+import { CheckEmailCard } from '@/components/auth/CheckEmailCard';
+import { AuthField, AUTH_CARD, AUTH_SUBMIT } from '@/components/auth/parts';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
+
+const MIN_PASSWORD = 8;
 
 export default function SignUpPage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [hasResent, setHasResent] = useState(false);
+
+  const handleResend = async () => {
+    setIsResending(true);
+    setFormError(null);
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, resendOnly: true }),
+      });
+      if (res.ok) {
+        setHasResent(true);
+      } else {
+        setFormError("We couldn't send that link. Try again in a minute.");
+      }
+    } catch {
+      setFormError("We couldn't send that link. Try again in a minute.");
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setPasswordError(null);
+    setFormError(null);
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (password.length < MIN_PASSWORD) {
+      setPasswordError(`Use at least ${MIN_PASSWORD} characters.`);
       return;
     }
 
     setIsLoading(true);
-
     try {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, fullName }),
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error ?? 'Signup failed. Please try again.');
-        setIsLoading(false);
-      } else {
-        setSuccess(true);
-        setIsLoading(false);
+      if (res.ok) {
+        setSent(true);
+        return;
       }
+      // The signup route returns one fixed string for every failure, on purpose,
+      // so an existing address can't be told apart from a broken one. Point at
+      // log in rather than guessing which it was.
+      setFormError("We couldn't create that account. If you already have one, log in.");
     } catch {
-      setError('An unexpected error occurred. Please try again.');
+      setFormError("We couldn't create that account. Try again.");
+    } finally {
       setIsLoading(false);
     }
   };
 
-  if (success) {
+  if (sent) {
     return (
-      <div className="min-h-screen bg-cream-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md p-8 text-center">
-          <div className="w-16 h-16 bg-gold-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Mail className="w-8 h-8 text-gold-600" />
-          </div>
-          <h2 className="text-xl font-semibold text-charcoal mb-2">Check your email</h2>
-          <p className="text-warm-gray mb-6">
-            We've sent a confirmation link to <strong>{email}</strong>. 
-            Please click the link to verify your account.
-          </p>
-          <Link href="/auth/login">
-            <Button variant="outline" className="w-full">
-              Back to Sign In
-            </Button>
-          </Link>
-        </Card>
-      </div>
+      <AuthShell linkLabel="Log in" linkHref="/auth/login">
+        <CheckEmailCard
+          email={email}
+          onResend={handleResend}
+          isResending={isResending}
+          hasResent={hasResent}
+          error={formError}
+          onStartOver={() => {
+            setSent(false);
+            setHasResent(false);
+            setFormError(null);
+            setEmail('');
+          }}
+        />
+      </AuthShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-cream-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo/Brand */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-3">
-            <BrandLogo variant="full" size="lg" theme="light" />
-          </div>
-          <p className="text-warm-gray mt-2">Create your free account to get started.</p>
+    <AuthShell linkLabel="Log in" linkHref="/auth/login">
+      <div className={AUTH_CARD}>
+        <h1 className="font-serif text-2xl font-semibold text-navy-800">Create your free account</h1>
+        <p className="mt-1.5 text-sm text-warm-gray">4 credits a month, no card.</p>
+
+        {formError && <p className="mt-3 text-sm text-red-600">{formError}</p>}
+
+        <div className="mt-6">
+          <GoogleSignInButton label="Continue with Google" onError={setFormError} />
         </div>
 
-        <Card className="p-8">
-          {/* Free tier highlight */}
-          <div className="mb-5 p-3 bg-cream-50 rounded-xl border border-cream-200">
-            <div className="flex items-center gap-2 text-sm">
-              <Sparkles className="w-4 h-4 text-gold-500 flex-shrink-0" />
-              <span className="text-charcoal font-medium">Free plan includes 4 credits (~2 applications/month)</span>
-            </div>
-          </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <AuthField
+            id="name"
+            label="Name"
+            type="text"
+            value={fullName}
+            onChange={setFullName}
+            placeholder="Your name"
+            autoComplete="name"
+          />
+          <AuthField
+            id="email"
+            label="Email"
+            type="email"
+            value={email}
+            onChange={setEmail}
+            placeholder="you@example.com"
+            autoComplete="email"
+          />
+          <AuthField
+            id="password"
+            label="Password"
+            type="password"
+            value={password}
+            onChange={setPassword}
+            placeholder={`At least ${MIN_PASSWORD} characters`}
+            autoComplete="new-password"
+            error={passwordError}
+          />
 
-          <GoogleSignInButton label="Sign up with Google" onError={setError} />
+          <button type="submit" disabled={isLoading} className={`mt-1 ${AUTH_SUBMIT}`}>
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create account'}
+          </button>
+        </form>
 
-          {/* Email Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-                {error}
-              </div>
-            )}
-
-            <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-charcoal mb-1.5">
-                Full Name
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-warm-gray" />
-                <input
-                  id="fullName"
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="John Doe"
-                  required
-                  className="w-full pl-10 pr-4 py-2.5 border border-cream-300 rounded-lg focus:border-navy-500 focus:ring-1 focus:ring-navy-500 focus:outline-none transition-colors"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-charcoal mb-1.5">
-                Email
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-warm-gray" />
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  required
-                  className="w-full pl-10 pr-4 py-2.5 border border-cream-300 rounded-lg focus:border-navy-500 focus:ring-1 focus:ring-navy-500 focus:outline-none transition-colors"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-charcoal mb-1.5">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-warm-gray" />
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  className="w-full pl-10 pr-12 py-2.5 border border-cream-300 rounded-lg focus:border-navy-500 focus:ring-1 focus:ring-navy-500 focus:outline-none transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-warm-gray hover:text-charcoal cursor-pointer"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-
-            <p className="text-xs text-warm-gray">
-              By signing up, you agree to our{' '}
-              <Link href="/terms" className="text-navy-600 hover:underline">Terms</Link>
-              {' '}and{' '}
-              <Link href="/privacy" className="text-navy-600 hover:underline">Privacy Policy</Link>
-            </p>
-
-            <Button
-              type="submit"
-              variant="primary"
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating account...
-                </>
-              ) : (
-                <>
-                  Create Account
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </>
-              )}
-            </Button>
-          </form>
-        </Card>
-
-        {/* Sign In Link */}
-        <p className="text-center mt-6 text-warm-gray">
-          Already have an account?{' '}
-          <Link href="/auth/login" className="text-navy-600 hover:text-navy-700 font-medium cursor-pointer">
-            Sign in
+        <p className="mt-4 text-center text-xs text-warm-gray">
+          By continuing you agree to the{' '}
+          <Link href="/terms" className="font-semibold text-navy-800 hover:text-navy-600 cursor-pointer">
+            Terms
+          </Link>{' '}
+          and{' '}
+          <Link href="/privacy" className="font-semibold text-navy-800 hover:text-navy-600 cursor-pointer">
+            Privacy policy
           </Link>
+          .
         </p>
       </div>
-    </div>
+
+      <p className="mt-5 text-center text-sm text-warm-gray">
+        Already have an account?{' '}
+        <Link
+          href="/auth/login"
+          className="font-semibold text-navy-800 transition-colors duration-200 hover:text-navy-600 cursor-pointer"
+        >
+          Log in
+        </Link>
+      </p>
+    </AuthShell>
   );
 }

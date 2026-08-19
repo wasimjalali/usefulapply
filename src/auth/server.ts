@@ -68,7 +68,10 @@ function createAuth(db: Database) {
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: true,
-      minPasswordLength: 6,
+      minPasswordLength: 8,
+      // 30 minutes. The reset card and the reset email both state this window,
+      // so it is set explicitly rather than left on Better Auth's 1 hour default.
+      resetPasswordTokenExpiresIn: 60 * 30,
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user: resetUser, url }) => {
         const firstName = resetUser.name?.trim().split(/\s+/)[0] || null;

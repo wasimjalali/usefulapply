@@ -1,6 +1,6 @@
 # Batch 5: the auth pages and the marketing site (flows 6 and 7)
 
-**Status:** not started. Starts after batch 4 is merged.
+**Status:** built 19 August 2026 by Claude on `rebrand/usefulapply` (uncommitted). Open: the daily-feed screenshot is still the artboard mock, agreed with Wasim to replace it in the end-to-end pass. Six items filed in `BACKEND-GAPS.md`.
 **Branch:** none. Work directly on `rebrand/usefulapply` (Wasim, 19 Aug 2026).
 **Design of record:** `../flow-6-auth.md` (PNGs `../flow-6-artboards/png/`: A1 Log in, A2 Sign up, A3 Forgot password, A4 Check email) and `../flow-7-marketing.md` (PNGs `../flow-7-artboards/png/`: M1 Landing 1440x4432, M2 Header states). Rules: `../../design-philosophy.md` section 5.
 

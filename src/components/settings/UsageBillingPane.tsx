@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { PLANS, CREDIT_PRICES } from '@/lib/plans';
 import {
   getUserCredits,
   getCreditTransactions,
@@ -12,11 +13,18 @@ import {
 } from '@/lib/supabase/credits';
 import { Caption, PaneHeading, RowGroup } from '@/components/settings/parts';
 
-const PLAN_ALLOWANCE: Record<string, number> = { free: 4, plus: 50, max: 200 };
-const PLAN_LABEL: Record<string, string> = { free: 'Free plan', plus: 'Plus plan', max: 'Max plan' };
-const PLAN_PRICE: Record<string, string> = { plus: '$19.99 a month', max: '$79.99 a month' };
+// All four derive from PLANS so a repricing in one file moves every surface.
+const PLAN_ALLOWANCE: Record<string, number> = Object.fromEntries(
+  PLANS.map((plan) => [plan.tier, Number.parseInt(plan.credits, 10)]),
+);
+const PLAN_LABEL: Record<string, string> = Object.fromEntries(
+  PLANS.map((plan) => [plan.tier, `${plan.name} plan`]),
+);
+const PLAN_PRICE: Record<string, string> = Object.fromEntries(
+  PLANS.filter((plan) => plan.tier !== 'free').map((plan) => [plan.tier, `${plan.price} ${plan.per}`]),
+);
 
-const PRICE_LIST = 'Fit check 0.5 · kit 2 (1.5 after a fit check) · rewrite 0.5.';
+const PRICE_LIST = `${CREDIT_PRICES}.`;
 
 const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
 function count(n: number, singular: string, plural: string) {
@@ -35,32 +43,6 @@ function formatDay(iso: string | null | undefined) {
   return date.toLocaleDateString(undefined, { day: 'numeric', month: 'long' });
 }
 
-const PLANS = [
-  {
-    tier: 'free' as const,
-    name: 'Free',
-    price: 'Free',
-    per: '',
-    credits: '4 credits a month',
-    line: 'Two applications, top-5 daily feed.',
-  },
-  {
-    tier: 'plus' as const,
-    name: 'Plus',
-    price: '$19.99',
-    per: '/month',
-    credits: '50 credits a month',
-    line: '25 applications, 20 roles a day, Edit feed.',
-  },
-  {
-    tier: 'max' as const,
-    name: 'Max',
-    price: '$79.99',
-    per: '/month',
-    credits: '200 credits a month',
-    line: '100 applications, priority generation.',
-  },
-];
 
 export function UsageBillingPane() {
   const { user } = useAuth();
@@ -283,10 +265,10 @@ export function UsageBillingPane() {
               </div>
               <p className="mt-1.5 font-serif text-[22px] font-semibold leading-none text-navy-900">
                 {plan.price}
-                {plan.per && <span className="ml-1 font-sans text-xs font-normal text-warm-gray">{plan.per}</span>}
+                <span className="ml-1 font-sans text-xs font-normal text-warm-gray">{plan.per}</span>
               </p>
               <p className="mt-2 text-[13px] font-semibold text-gold-600">{plan.credits}</p>
-              <p className="mt-1.5 text-xs leading-relaxed text-warm-gray">{plan.line}</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-warm-gray">{plan.settingsLine}</p>
               <div className="mt-auto pt-3">
                 {isTarget && (
                   <button

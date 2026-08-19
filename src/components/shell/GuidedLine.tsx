@@ -564,8 +564,8 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
   const handleAuthSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setAuthError(null);
-    if (authPassword.length < 6) {
-      setAuthError('Password must be at least 6 characters.');
+    if (authPassword.length < 8) {
+      setAuthError('Use at least 8 characters.');
       return;
     }
     setAuthLoading(true);

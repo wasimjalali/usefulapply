@@ -36,7 +36,7 @@ export function buildPasswordResetEmail({
     textGreeting,
     '',
     'We received a request to reset your Useful Apply password.',
-    'Open this link to choose a new password (expires in about 1 hour):',
+    'Open this link to choose a new password (it works for 30 minutes):',
     resetLink,
     '',
     "If you didn't request this, you can ignore this email. Your password will stay the same.",
@@ -56,7 +56,7 @@ export function buildPasswordResetEmail({
           We received a request to reset your password.
         </p>
         <p style="color: #555; line-height: 1.6; margin: 0 0 28px 0;">
-          Click the button below to choose a new one. This link expires in about an hour.
+          Click the button below to choose a new one. This link works for 30 minutes.
         </p>
 
         <div style="text-align: center; margin: 0 0 28px 0;">

@@ -3,13 +3,14 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Check, Zap, ArrowRight, ChevronDown, FileText, MessageSquare, BarChart3, Loader2, Clock } from 'lucide-react';
+import { Check, ArrowRight, ChevronDown, Loader2, Clock } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { PricingAurora } from '@/components/marketing/PricingAurora';
 import { useAuth } from '@/contexts/AuthContext';
 import { pricingFAQs } from '@/lib/marketing/pricing-faqs';
+import { CREDIT_PRICES } from '@/lib/plans';
 
 // Single add-on credit pack
 // TODO: Replace priceId value with actual Stripe Price ID
@@ -200,7 +201,7 @@ export default function PricingPage() {
                     { label: '2 full applications per month' },
                     { label: 'Tailored CV, cover letter, email, follow-up' },
                     { label: 'Fit analysis with match score' },
-                    { label: 'Smart Job Feed: top 5 roles a day' },
+                    { label: 'Top-5 daily feed' },
                     { label: 'US and EU ATS-optimized templates' },
                     { label: 'Application tracker' },
                   ].map((f, i) => (
@@ -247,7 +248,7 @@ export default function PricingPage() {
                   {[
                     { label: '50 credits per month', emphasis: true },
                     { label: '25 full applications per month' },
-                    { label: 'Smart Job Feed: up to 25 roles a day' },
+                    { label: '20 roles a day, Edit feed' },
                     { label: 'Feed searches 2 job titles across 2 countries' },
                     { label: 'Screening question answers' },
                     { label: 'Unlimited application tracker' },
@@ -442,35 +443,13 @@ export default function PricingPage() {
             <h2 className="font-bold text-navy-600 text-[32px] leading-[1.1] mb-3">
               How credits work.
             </h2>
-            <p className="text-warm-gray max-w-xl mx-auto">
-              Credits are simple. Each action costs a fixed number of credits. No surprises.
-            </p>
           </div>
           </ScrollReveal>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { icon: BarChart3, credits: '0.5', label: 'Fit Analysis', sub: 'Job fit score + skill gaps', gradient: 'from-navy-500 to-navy-600', iconBg: 'bg-gradient-to-br from-navy-50 to-navy-100', iconColor: 'text-navy-600' },
-              { icon: FileText, credits: '2', label: 'Full Application', sub: 'CV + Cover Letter + Email', gradient: 'from-gold-400 to-gold-500', iconBg: 'bg-gradient-to-br from-gold-50 to-gold-100', iconColor: 'text-gold-500' },
-              { icon: MessageSquare, credits: '0.5', label: 'Cover Letter Regen', sub: 'Regenerate with new tone', gradient: 'from-gold-500 to-gold-600', iconBg: 'bg-gradient-to-br from-gold-50 to-gold-100', iconColor: 'text-gold-600' },
-              { icon: Zap, credits: '0.5', label: 'Email Regen', sub: 'Regenerate application email', gradient: 'from-navy-600 to-navy-700', iconBg: 'bg-gradient-to-br from-gold-50 to-gold-100', iconColor: 'text-gold-600' },
-            ].map((item, idx) => {
-              const Icon = item.icon;
-              return (
-                <ScrollReveal key={idx} delay={idx * 100}>
-                <div className="text-center p-8 bg-white rounded-2xl border border-cream-200 card-hover-lift relative overflow-hidden">
-                  <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${item.gradient}`} />
-                  <div className={`w-14 h-14 ${item.iconBg} rounded-xl flex items-center justify-center mx-auto mb-4`}>
-                    <Icon className={`w-7 h-7 ${item.iconColor}`} />
-                  </div>
-                  <div className="text-3xl font-bold text-navy-600 mb-1">{item.credits}</div>
-                  <div className="text-sm font-semibold text-charcoal mb-2">credits</div>
-                  <div className="text-sm font-medium text-charcoal">{item.label}</div>
-                  <div className="text-xs text-warm-gray mt-2">{item.sub}</div>
-                </div>
-                </ScrollReveal>
-              );
-            })}
-          </div>
+          <ScrollReveal delay={100}>
+          <p className="text-center text-[15px] text-charcoal">
+            {CREDIT_PRICES}
+          </p>
+          </ScrollReveal>
         </div>
       </section>
 

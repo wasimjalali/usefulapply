@@ -80,7 +80,7 @@ interface AuthContextType {
   isLoading: boolean;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
-  signInWithGoogle: () => Promise<{ error: AuthError | null }>;
+  signInWithGoogle: (next?: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
   refreshProfile: () => Promise<void>;
@@ -221,10 +221,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: { message: message || 'Invalid email or password.' } };
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (next?: string) => {
+    // /auth/callback re-validates `next` with getSafeNextPath before it routes.
+    const callbackURL = next ? `/auth/callback?next=${encodeURIComponent(next)}` : '/auth/callback';
     const { error } = await authClient.signIn.social({
       provider: 'google',
-      callbackURL: '/auth/callback',
+      callbackURL,
     });
     if (error) {
       return { error: { message: error.message || 'Google sign-in failed.' } };

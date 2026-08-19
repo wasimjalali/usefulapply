@@ -27,7 +27,7 @@ First-timers normally never see the standalone sign-up page: they create the acc
 
 1. Fix the doubled title ("Sign In | Useful Apply | Useful Apply") at the layout level: one `title` template, page-specific first segment.
 2. `/login` and `/signup` redirect to the auth routes (B8 already done; keep).
-3. Errors appear inline under the field in one sentence, never a toast ("That password doesn't match this email." / "We couldn't find that address.").
+3. Errors appear inline under the field in one sentence, never a toast ("That password doesn't match this email."). **Amended 19 Aug 2026:** the second example, "We couldn't find that address.", is dropped. `/api/auth/forgot-password` always returns success for a well-formed address so account existence can't be enumerated, and telling the user the address is unknown would undo that. The reset form shows inline errors for a malformed address and for rate limiting only.
 4. After login, return to where the user was (`?next=`); a user with no kit lands on the guided line, not an empty spine (flow 1 note 2).
 5. Google is first on every page; the email form is the fallback. Magic-link sign-in is not in scope.
 6. "Try it free" starts the anonymous guided line (flow 1).

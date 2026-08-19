@@ -1,11 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, ArrowUpRight } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
 import { useAuth } from '@/contexts/AuthContext';
+
+// Blog, About and Contact live in the footer. The bar carries one link and one action.
+const NAV_LINKS = [{ href: '/pricing', label: 'Pricing' }];
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -13,10 +16,13 @@ export default function Navbar() {
   const { user } = useAuth();
   const isSignedIn = Boolean(user);
 
-  // Close mobile menu on route change (e.g., browser back/forward)
-  useEffect(() => {
+  // Close the mobile menu on a route change (e.g. browser back/forward).
+  // Adjusted during render rather than in an effect, so it costs no extra pass.
+  const [lastPath, setLastPath] = useState(pathname);
+  if (pathname !== lastPath) {
+    setLastPath(pathname);
     setMobileMenuOpen(false);
-  }, [pathname]);
+  }
 
   const handleLogoClick = (e: React.MouseEvent) => {
     if (pathname === '/') {
@@ -25,112 +31,98 @@ export default function Navbar() {
     }
   };
 
-  const navLinks = [
-    { href: '/features', label: 'Features' },
-    { href: '/#how-it-works', label: 'How It Works' },
-    { href: '/pricing', label: 'Pricing' },
-    { href: '/blog', label: 'Blog' },
-    { href: '/about', label: 'About' },
-    { href: '/contact', label: 'Contact' },
-  ];
-
   return (
     <header className="sticky top-3 z-50 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-lg shadow-navy-600/5 rounded-2xl px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14">
-          {/* Logo */}
+      <div className="rounded-2xl border border-cream-200 bg-cream-50 px-4 shadow-sm sm:px-6 lg:px-8">
+        <div className="flex h-14 items-center justify-between">
           <Link href="/" onClick={handleLogoClick} className="flex items-center">
             <BrandLogo variant="full" size="sm" theme="light" />
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
+          <nav className="hidden items-center gap-8 md:flex">
+            {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm font-medium text-charcoal hover:text-navy-600 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-gold-400 after:transition-all hover:after:w-full"
+                className="text-sm font-medium text-charcoal transition-colors duration-200 hover:text-navy-600"
               >
                 {link.label}
               </Link>
             ))}
-          </nav>
 
-          {/* Desktop CTA */}
-          <div className="hidden md:flex items-center gap-4">
             {isSignedIn ? (
               <Link
                 href="/dashboard"
-                className="px-5 py-2.5 text-sm font-semibold bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm hover:shadow-md"
+                className="inline-flex h-10 items-center gap-1.5 rounded-full border border-cream-200 bg-white px-5 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-cream-100"
               >
-                Dashboard
+                Open app
+                <ArrowUpRight className="h-4 w-4" />
               </Link>
             ) : (
               <>
                 <Link
                   href="/auth/login"
-                  className="text-sm font-medium text-charcoal hover:text-navy-600 transition-colors"
+                  className="text-sm font-medium text-charcoal transition-colors duration-200 hover:text-navy-600"
                 >
                   Log in
                 </Link>
                 <Link
                   href="/dashboard"
-                  className="px-5 py-2.5 text-sm font-semibold bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-sm hover:shadow-md"
+                  className="inline-flex h-10 items-center rounded-full bg-gold-400 px-5 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500"
                 >
-                  Try It Free
+                  Try it free
                 </Link>
               </>
             )}
-          </div>
+          </nav>
 
-          {/* Mobile menu button */}
           <button
-            className="md:hidden p-2 text-charcoal"
+            className="p-2 text-charcoal md:hidden cursor-pointer"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
           >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
-        {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-white/30 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="border-t border-cream-200 py-4 md:hidden">
             <nav className="flex flex-col gap-3">
-              {navLinks.map((link) => (
+              {NAV_LINKS.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="text-sm font-medium text-charcoal hover:text-navy-600 transition-colors"
+                  className="text-sm font-medium text-charcoal transition-colors duration-200 hover:text-navy-600"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {link.label}
                 </Link>
               ))}
-              <div className="flex flex-col gap-3 pt-4 border-t border-cream-200">
+              <div className="flex flex-col gap-3 border-t border-cream-200 pt-4">
                 {isSignedIn ? (
                   <Link
                     href="/dashboard"
-                    className="px-4 py-3 text-sm font-semibold bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all text-center shadow-sm"
+                    className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-cream-200 bg-white text-sm font-semibold text-navy-800 shadow-sm"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Dashboard
+                    Open app
+                    <ArrowUpRight className="h-4 w-4" />
                   </Link>
                 ) : (
                   <>
                     <Link
                       href="/auth/login"
-                      className="text-sm font-medium text-charcoal hover:text-navy-600 transition-colors"
+                      className="text-sm font-medium text-charcoal transition-colors duration-200 hover:text-navy-600"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       Log in
                     </Link>
                     <Link
                       href="/dashboard"
-                      className="px-4 py-3 text-sm font-semibold bg-gradient-to-r from-gold-400 to-gold-500 text-white rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all text-center shadow-sm"
+                      className="inline-flex h-11 items-center justify-center rounded-full bg-gold-400 text-sm font-semibold text-white shadow-sm"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      Try It Free
+                      Try it free
                     </Link>
                   </>
                 )}
