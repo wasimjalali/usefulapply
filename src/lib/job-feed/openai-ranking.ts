@@ -1,4 +1,5 @@
 import { AzureOpenAI } from 'openai';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { JOB_FEED_VISIBLE_MAX_COUNT } from '@/lib/job-feed/constants';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import type {
@@ -10,6 +11,57 @@ import type { JobFeedSettings } from '@/lib/supabase/types';
 
 const AZURE_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT ?? 'gpt-4.1-mini-1';
 const AZURE_MODEL_NAME = 'gpt-4.1-mini';
+
+// Workers AI (Cloudflare-hosted, billed to the Cloudflare account). Set
+// JOB_FEED_RANKING_MODEL in wrangler.jsonc vars to a @cf/... text model to
+// route ranking there; leave it unset to keep the Azure OpenAI path.
+// A/B candidates: @cf/openai/gpt-oss-120b, @cf/deepseek-ai/deepseek-v4-flash-0731,
+// @cf/meta/llama-4-scout-17b-16e-instruct.
+type WorkersAiBinding = {
+  run(model: string, input: Record<string, unknown>): Promise<unknown>;
+};
+
+// Workers AI text models answer in the OpenAI chat.completion shape
+// (choices[0].message.content); some also mirror the text in `response`.
+type WorkersAiTextResponse = {
+  response?: string;
+  choices?: Array<{ message?: { content?: string | null } }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    prompt_tokens_details?: { cached_tokens?: number };
+    neurons?: number;
+  };
+};
+
+function workersAiText(raw: WorkersAiTextResponse): string {
+  const fromChoices = raw.choices?.[0]?.message?.content;
+  if (typeof fromChoices === 'string' && fromChoices.length > 0) return fromChoices;
+  return raw.response ?? '';
+}
+
+async function getWorkersAiRanking(): Promise<{ ai: WorkersAiBinding; model: string } | null> {
+  let env: { AI?: WorkersAiBinding; JOB_FEED_RANKING_MODEL?: string } = {};
+  try {
+    ({ env } = await getCloudflareContext({ async: true }) as { env: typeof env });
+  } catch {
+    // Outside the Worker (unit scripts, plain next dev) there is no binding.
+    return null;
+  }
+  const model = env.JOB_FEED_RANKING_MODEL ?? process.env.JOB_FEED_RANKING_MODEL;
+  if (!model || !env.AI) return null;
+  return { ai: env.AI, model };
+}
+
+/** Reasoning models sometimes wrap the JSON in fences or prose. Pull the first object out. */
+function extractJsonObject(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.startsWith('{')) return trimmed;
+  const start = trimmed.indexOf('{');
+  const end = trimmed.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) return trimmed;
+  return trimmed.slice(start, end + 1);
+}
 
 type JobFeedRankingDecision = 'strong' | 'good' | 'skip';
 
@@ -182,8 +234,60 @@ export async function rankWithOpenAI(params: {
     return { status: 'no_candidates', items: [], errorMessage: null, model: null };
   }
 
-  if (!hasOpenAICredentials()) {
+  const workersAi = await getWorkersAiRanking();
+
+  if (!workersAi && !hasOpenAICredentials()) {
     return { status: 'completed_deterministic', items: deterministicItems, errorMessage: null, model: null };
+  }
+
+  const messages = [
+    { role: 'system' as const, content: SYSTEM_PROMPT },
+    { role: 'user' as const, content: buildUserProfileMessage(settings, yearsExperience, careerProfile, negativeTerms, excludedTerms) },
+    { role: 'user' as const, content: buildCandidatesMessage(candidates, visibleCap) },
+  ];
+
+  if (workersAi) {
+    const startTime = Date.now();
+    try {
+      const raw = (await workersAi.ai.run(workersAi.model, {
+        messages,
+        temperature: 0.2,
+        // Reasoning models spend part of this budget thinking before the JSON.
+        max_tokens: 12000,
+        response_format: { type: 'json_object' },
+      })) as WorkersAiTextResponse;
+      const latencyMs = Date.now() - startTime;
+      const content = extractJsonObject(workersAiText(raw));
+      const inputTokens = raw.usage?.prompt_tokens ?? 0;
+      const outputTokens = raw.usage?.completion_tokens ?? 0;
+      const cachedTokens = raw.usage?.prompt_tokens_details?.cached_tokens ?? 0;
+      const neurons = raw.usage?.neurons ?? null;
+      const modelInfo = { provider: 'workers-ai', name: workersAi.model, inputTokens, outputTokens, latencyMs };
+
+      console.log(
+        `[JobFeedRanking] ${workersAi.model} | ${inputTokens}in (${cachedTokens} cached) / ${outputTokens}out | ${latencyMs}ms | neurons=${neurons ?? 'n/a'} | candidates=${candidates.length}`
+      );
+
+      const parsed = JSON.parse(content) as JobFeedRankingModelResponse;
+      const llmItems = validateModelRankingResponse(parsed, candidates, visibleCap);
+      if (!llmItems) {
+        return {
+          status: 'llm_failed_fallback',
+          items: deterministicItems,
+          errorMessage: 'The ranking model response was incomplete or invalid, so the deterministic fallback was used.',
+          model: modelInfo,
+        };
+      }
+      return { status: 'completed_llm', items: llmItems, errorMessage: null, model: modelInfo };
+    } catch (error) {
+      console.error(`[JobFeedRanking] ${workersAi.model} failed`, error);
+      return {
+        status: 'llm_failed_fallback',
+        items: deterministicItems,
+        errorMessage: error instanceof Error ? error.message : 'Unknown Workers AI ranking failure',
+        model: { provider: 'workers-ai', name: workersAi.model, inputTokens: 0, outputTokens: 0, latencyMs: Date.now() - startTime },
+      };
+    }
   }
 
   const startTime = Date.now();
@@ -205,11 +309,7 @@ export async function rankWithOpenAI(params: {
       // deterministic fallback. 8k removes that cliff for the quality path.
       max_tokens: 8000,
       response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: buildUserProfileMessage(settings, yearsExperience, careerProfile, negativeTerms, excludedTerms) },
-        { role: 'user', content: buildCandidatesMessage(candidates, visibleCap) },
-      ],
+      messages,
     });
 
     const latencyMs = Date.now() - startTime;

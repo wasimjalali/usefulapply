@@ -52,6 +52,14 @@
 	"images": {
 		"binding": "IMAGES"
 	},
+	// Workers AI for job feed ranking. JOB_FEED_RANKING_MODEL picks the model;
+	// remove the var to fall back to Azure OpenAI (see openai-ranking.ts).
+	"ai": {
+		"binding": "AI"
+	},
+	"vars": {
+		"JOB_FEED_RANKING_MODEL": "@cf/openai/gpt-oss-120b"
+	},
 	"kv_namespaces": [
 		{
 			"binding": "CONTEXT_CACHE",
