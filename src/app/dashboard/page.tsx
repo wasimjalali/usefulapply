@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { JobBoardPanel } from '@/components/JobBoardPanel';
+import { MobileFeed } from '@/components/job-feed/MobileFeed';
 import { TrackerPanel } from '@/components/TrackerPanel';
 import { AppShell, GuidedLine } from '@/components/shell';
 import { useAppStore } from '@/store/useAppStore';
@@ -159,7 +159,7 @@ export default function Dashboard() {
           {mobileView === 'tracker' ? (
             <TrackerPanel />
           ) : mobileView === 'job-feed' ? (
-            <JobBoardPanel />
+            <MobileFeed />
           ) : (
             <div className="flex items-center justify-center h-full p-6">
               <div className="max-w-sm w-full text-center">

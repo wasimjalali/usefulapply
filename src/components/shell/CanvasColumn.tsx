@@ -5,7 +5,7 @@ import { FileText, Mail, Send, Sparkles, PanelRightClose, PanelRightOpen } from 
 import { CVPanel } from '@/components/CVPanel';
 import { CoverLetterPanel } from '@/components/CoverLetterPanel';
 import { EmailPanel } from '@/components/EmailPanel';
-import { JobBoardPanel } from '@/components/JobBoardPanel';
+import { FeedCanvas } from '@/components/job-feed/FeedCanvas';
 import { TrackerPanel } from '@/components/TrackerPanel';
 import { AnswersPanel } from '@/components/kit/AnswersPanel';
 import { ATSChangesView } from '@/components/kit/ATSChangesView';
@@ -67,12 +67,15 @@ export function CanvasColumn({
   };
 
   const bannerText = (() => {
+    if (activeTab === 'jobs' || activeTab === 'tracker') return null;
     if (regenStage) {
       return `${regenStage.title}. It will land in the ${TAB_LABEL[regenStage.tab]} tab.`;
     }
     if (!isAgentWorking) return null;
     if (agentWorkflowPhase === 'fit_analysis') {
-      return 'Checking your fit. The verdict will land in the conversation.';
+      return currentSession?.company
+        ? `Checking fit for ${currentSession.company}. Your CV stays here. The score lands in the chat.`
+        : 'Checking your fit. Your CV stays here. The score lands in the chat.';
     }
     if (activeTab === 'cover-letter') {
       return 'Writing your cover letter. It will land in this tab.';
@@ -179,11 +182,15 @@ export function CanvasColumn({
         </div>
       )}
 
+      {activeTab === 'jobs' ? (
+        /* The feed canvas owns its own header, pills and scrolling. */
+        <div className="min-h-0 flex-1">
+          <FeedCanvas />
+        </div>
+      ) : (
       <div className="min-h-0 flex-1 overflow-auto">
         {activeTab === 'tracker' ? (
           <TrackerPanel />
-        ) : activeTab === 'jobs' ? (
-          <JobBoardPanel />
         ) : activeTab === 'cover-letter' ? (
           <CoverLetterPanel toolbarPortal={toolbarNode} />
         ) : activeTab === 'email' ? (
@@ -204,6 +211,7 @@ export function CanvasColumn({
           </>
         )}
       </div>
+      )}
     </section>
   );
 }

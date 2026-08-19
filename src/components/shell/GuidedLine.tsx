@@ -323,6 +323,53 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
     [addChatMessage, createNewSession, runFitAnalysisFlow, setApplicationMode, setJobDescription, user],
   );
 
+  // A job handed off from the feed before this user has any kit. The shell
+  // shows the guided line rather than the workspace in that case, so the
+  // autostart signal ChatPanel normally consumes has to be honoured here too.
+  // Without this the click looks like it did nothing: the feed disappears and
+  // the job step sits empty even though the session already holds the ad.
+  const pendingJobFeedAutostart = useUIStore((s) => s.pendingJobFeedAutostart);
+  const setPendingJobFeedAutostart = useUIStore((s) => s.setPendingJobFeedAutostart);
+  useEffect(() => {
+    if (!pendingJobFeedAutostart) return;
+    if (!currentCV) return;
+    const live = useSessionStore.getState().currentSession;
+    if (!live || live.id !== pendingJobFeedAutostart.sessionId) return;
+    const jd = live.jobDescription?.trim() ?? '';
+    if (jd.length < MIN_JD) return;
+    // Already under way or already answered: consume the flag and leave it.
+    if (kitStartedRef.current || isAgentWorking || live.generatedCV || live.pendingFitAnalysis) {
+      setPendingJobFeedAutostart(null);
+      return;
+    }
+
+    const mode = pendingJobFeedAutostart.mode ?? 'apply';
+    const headline = pendingJobFeedAutostart.headline?.trim() || jd;
+    setPendingJobFeedAutostart(null);
+    addChatMessage({ role: 'user', content: headline });
+    setLineError(null);
+
+    if (mode === 'analyze') {
+      setApplicationMode('analyze_first');
+      setStep('fit-working');
+      window.setTimeout(() => { void runFitAnalysisFlow(jd); }, 0);
+      return;
+    }
+    kitStartedRef.current = true;
+    setApplicationMode('apply_directly');
+    setStep('kit-working');
+    window.setTimeout(() => { void runAgentWorkflow(jd); }, 0);
+  }, [
+    addChatMessage,
+    currentCV,
+    isAgentWorking,
+    pendingJobFeedAutostart,
+    runAgentWorkflow,
+    runFitAnalysisFlow,
+    setApplicationMode,
+    setPendingJobFeedAutostart,
+  ]);
+
   const handleParsed = useCallback(
     (parsed: ParsedCV, structured?: StructuredCV) => {
       setCurrentCV(parsed);

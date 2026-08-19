@@ -1,6 +1,6 @@
 # Batch 3: the Job Feed (flow 3)
 
-**Status:** not started. Starts after batch 2 is merged.
+**Status:** built 19 August 2026 on `build/flow-3-feed`. Awaiting review and the merge into `rebrand/usefulapply`.
 **Branch:** `build/flow-3-feed` off `rebrand/usefulapply`.
 **Design of record:** `../flow-3-job-feed.md`. PNGs: `../flow-3-artboards/png/` (J1 Setup chips, J2 Building, J3 Daily feed, J4 Job detail, J5 Check fit from card, J6 Edit feed, J7 Free top 5). Shell from batch 1, kit from batch 2. Rules: `../../design-philosophy.md` section 5. The `job-feed-specialist` agent's scope applies: `src/lib/job-feed/**`, `src/app/api/job-feed/**`, `src/components/job-feed/**`.
 

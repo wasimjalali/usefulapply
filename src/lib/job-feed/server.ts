@@ -1474,6 +1474,7 @@ async function buildFeedItemsForSnapshot(params: {
               fitLabel: rankedItem.fitLabel,
               pipelineStage: 'ranked',
               rankingSource: rankedItem.rankingSource,
+              reason: rankedItem.reason,
               companyDisplay: rankedItem.companyDisplay ?? null,
             }
           : undefined
@@ -1655,6 +1656,7 @@ function toFeedItem(
     fitLabel: JobFeedFeedItem['fitLabel'];
     pipelineStage: JobFeedFeedItem['pipelineStage'];
     rankingSource: JobFeedFeedItem['rankingSource'];
+    reason?: string | null;
     companyDisplay?: string | null;
   }
 ): JobFeedFeedItem {
@@ -1679,6 +1681,7 @@ function toFeedItem(
     fitLabel: ranking?.fitLabel ?? null,
     pipelineStage: ranking?.pipelineStage ?? 'shortlisted',
     rankingSource: ranking?.rankingSource ?? null,
+    matchReason: ranking?.reason ?? null,
     applyOptions: extractApplyOptions(sourceIdentifiers.apply_options, job),
     feedback: toJobFeedFeedbackState(feedback),
   };

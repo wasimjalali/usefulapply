@@ -4,12 +4,16 @@ import type {
   JobFeedOverviewState,
   JobFeedSettingsInput,
 } from '@/lib/job-feed/types';
+import type { CareerProfile } from '@/lib/job-feed/career-profile';
+import type { SearchStrategy } from '@/lib/job-feed/search-strategy';
 import { createDefaultJobFeedInput } from '@/lib/job-feed/helpers';
 
 export type JobFeedPreviewMode =
   | 'off'
   | 'signed_out'
   | 'upgrade_required'
+  // A free plan with a built feed: the tier can view the feed but not steer it.
+  | 'free_feed'
   | JobFeedOverviewState;
 
 export function getJobFeedPreviewMode(): JobFeedPreviewMode {
@@ -27,8 +31,11 @@ export function getJobFeedPreviewMode(): JobFeedPreviewMode {
   if (normalized === 'signed_out' || normalized === 'signedout') {
     return 'signed_out';
   }
-  if (normalized === 'free' || normalized === 'free_plan' || normalized === 'upgrade_required') {
+  if (normalized === 'upgrade_required') {
     return 'upgrade_required';
+  }
+  if (normalized === 'free' || normalized === 'free_plan' || normalized === 'free_feed') {
+    return 'free_feed';
   }
   if (normalized === 'setup_required') {
     return 'setup_required';
@@ -213,13 +220,16 @@ export function buildJobFeedPreviewSnapshot(
 
   const jobsForMode = mode === 'ready'
     ? readyJobs
-    : mode === 'thin_feed'
-      ? thinJobs
-      : [];
+    : mode === 'free_feed'
+      // Free tier sees the top 5 of the day, same cards, no steering.
+      ? readyJobs.slice(0, 5)
+      : mode === 'thin_feed'
+        ? thinJobs
+        : [];
 
   return {
     overview: {
-      canAccess: true,
+      canAccess: mode !== 'free_feed',
       settings: toPreviewJobFeedSettings(formByMode),
       latestRun,
       latestManualRun: latestRun.status === 'completed' ? latestRun : null,
@@ -230,9 +240,9 @@ export function buildJobFeedPreviewSnapshot(
       jobsHasMore: false,
       jobsTodayCount: jobsForMode.length,
       jobsBacklogCount: 0,
-      state: mode,
+      state: mode === 'free_feed' ? 'ready' : mode,
       foundationMode: true,
-      feedCap: 10,
+      feedCap: mode === 'free_feed' ? 5 : 10,
       target_roles_outdated: false,
     },
     form: formByMode,
@@ -328,6 +338,8 @@ export function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
       fitLabel: 'strong',
       pipelineStage: 'ranked',
       rankingSource: 'llm',
+      matchReason:
+        'Workflow automation ownership plus agent tooling maps onto your B2B SaaS roadmap work. Salary sits above your floor and it is remote. Gap: no marketplace pricing experience.',
       applyOptions: [
         { title: 'Apply on company site', link: 'https://example.com/jobs/preview-job-1' },
       ],
@@ -378,6 +390,8 @@ export function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
       fitLabel: 'strong',
       pipelineStage: 'ranked',
       rankingSource: 'llm',
+      matchReason:
+        'Activation and lifecycle experiments match your growth work, and the SQL and analytics ask is covered by your Mixpanel and A/B testing record. Gap: hybrid in New York, not remote.',
       applyOptions: [
         { title: 'Apply on Greenhouse', link: 'https://example.com/jobs/preview-job-2' },
       ],
@@ -411,6 +425,8 @@ export function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
       fitLabel: 'good',
       pipelineStage: 'ranked',
       rankingSource: 'llm',
+      matchReason:
+        'Internal platform and developer velocity line up with your integrations work. One step sideways rather than up, and the range sits just above your floor.',
       applyOptions: [
         { title: 'Apply on company site', link: 'https://example.com/jobs/preview-job-3' },
       ],
@@ -444,6 +460,8 @@ export function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
       fitLabel: 'good',
       pipelineStage: 'ranked',
       rankingSource: 'llm',
+      matchReason:
+        'Partner ecosystem, integrations and developer tooling are the closest match in today\'s list to your connector work. Gap: principal scope is a level above your last title.',
       applyOptions: [
         { title: 'Apply on Lever', link: 'https://example.com/jobs/preview-job-4' },
       ],
@@ -477,6 +495,7 @@ export function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
       fitLabel: 'good',
       pipelineStage: 'shortlisted',
       rankingSource: 'deterministic',
+      matchReason: null,
       applyOptions: [
         { title: 'Apply on Ashby', link: 'https://example.com/jobs/preview-job-5' },
       ],
@@ -510,6 +529,8 @@ export function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
       fitLabel: 'good',
       pipelineStage: 'ranked',
       rankingSource: 'llm',
+      matchReason:
+        'Automation ownership and team leadership fit the trajectory, but this is on-site in San Francisco and a people-management step.',
       applyOptions: [
         { title: 'Apply on employer site', link: 'https://example.com/jobs/preview-job-6' },
       ],
@@ -526,4 +547,92 @@ export function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
       },
     },
   ];
+}
+
+/**
+ * Plan the preview should render as. Auth does not run in local dev, so
+ * without this every preview would fall back to the free tier and the paid
+ * surfaces (Edit feed, the query list) could never be checked.
+ */
+export function getJobFeedPreviewTier(mode: JobFeedPreviewMode): 'free' | 'plus' | null {
+  if (mode === 'off') return null;
+  if (mode === 'free_feed' || mode === 'upgrade_required' || mode === 'signed_out') return 'free';
+  return 'plus';
+}
+
+export function buildJobFeedPreviewStrategy(): SearchStrategy {
+  return {
+    version: 1,
+    generatedAt: '2026-08-19T06:00:00.000Z',
+    sourceProfileGeneratedAt: '2026-08-19T05:58:00.000Z',
+    negativeTerms: ['agency', 'staffing'],
+    queries: [
+      {
+        type: 'short_tail',
+        query: 'Senior Product Manager B2B SaaS',
+        targetCountry: 'us',
+        rationale: 'Your most recent title plus the market you have shipped in.',
+        expectedRecall: 'high',
+        fallbackTo: null,
+      },
+      {
+        type: 'long_tail',
+        query: 'Product Manager API integrations',
+        targetCountry: 'us',
+        rationale: 'Zendesk and Salesforce connector work is your strongest differentiator.',
+        expectedRecall: 'medium',
+        fallbackTo: 0,
+      },
+      {
+        type: 'long_tail',
+        query: 'Group Product Manager B2B SaaS',
+        targetCountry: 'us',
+        rationale: 'One step up. Your pod-lead experience supports it.',
+        expectedRecall: 'low',
+        fallbackTo: 0,
+      },
+      {
+        type: 'localized',
+        query: 'Product Manager plateforme B2B',
+        targetCountry: 'ca',
+        rationale: 'Same role, French-language listings in Canada.',
+        expectedRecall: 'low',
+        fallbackTo: 0,
+      },
+    ],
+  };
+}
+
+export function buildJobFeedPreviewCareerProfile(): CareerProfile {
+  return {
+    version: 2,
+    generatedAt: '2026-08-19T05:58:00.000Z',
+    function: 'product',
+    inferredTitles: [
+      { canonical: 'Senior Product Manager', confidence: 'high', rationale: 'Current title.' },
+      { canonical: 'Product Manager, API and Integrations', confidence: 'high', rationale: 'Connector ownership.' },
+      { canonical: 'Product Manager, B2B SaaS', confidence: 'medium', rationale: 'Whole career in B2B.' },
+      { canonical: 'Group Product Manager', confidence: 'low', rationale: 'Pod lead for two squads.' },
+    ],
+    seniority: { level: 'senior', confidence: 'high', rationale: 'Seven years, owns a platform area.' },
+    targetDirection: {
+      aspirationalTitles: ['Group Product Manager'],
+      pivot: null,
+      confidence: 'medium',
+      rationale: 'Scope has grown each year.',
+    },
+    yearsTotal: 7,
+    yearsInFunction: 7,
+    primarySkillClusters: [
+      { name: 'B2B SaaS product management', skills: ['roadmap', 'backlog', 'OKRs', 'stakeholder alignment'], evidenceStrength: 'strong' },
+      { name: 'data-driven decisions', skills: ['Mixpanel', 'SQL', 'A/B testing'], evidenceStrength: 'strong' },
+      { name: 'API and integration ownership', skills: ['REST APIs', 'Zendesk', 'B2B integrations'], evidenceStrength: 'strong' },
+    ],
+    secondarySkillClusters: [],
+    industryDomains: ['Enterprise SaaS', 'Data analytics'],
+    toolsEnvironment: ['Mixpanel', 'SQL', 'Figma', 'Jira'],
+    workingLanguages: ['English'],
+    narrative: 'Senior Product Manager with 7 years in B2B SaaS, API-integrated products and analytics-driven roadmaps. Owns a 12,000+ MAU analytics dashboard and a cross-functional pod; 22% churn reduction, 38% adoption lift. Trajectory points to Group PM.',
+    negativeSignals: ['agency-side delivery roles'],
+  };
 }

@@ -11,7 +11,7 @@ You are the architecture lead for Useful Apply. Your job is high-leverage design
 
 | Area | Files |
 |------|-------|
-| Dashboard shell | `src/app/dashboard/page.tsx` — activeTab workspace routing, ChatPanel mount points, CVPanel/CoverLetterPanel/EmailPanel/JobFeedPanel/TrackerPanel composition |
+| Dashboard shell | `src/app/dashboard/page.tsx` — activeTab workspace routing, ChatPanel mount points, CVPanel/CoverLetterPanel/EmailPanel/FeedCanvas/TrackerPanel composition |
 | State stores | `src/store/useSessionStore.ts` (sessions + chatMessages, persisted), `useCVStore.ts` (currentCV), `useUIStore.ts` (activeTab + transient UI flags), `useAppStore.ts` (composite slice) |
 | Sync layer | `src/hooks/useSupabaseSync.ts` — session ↔ Supabase. Error-prone edge cases. 2s debounce. |
 | Agent pipeline | `src/lib/agents/unified-writer-agent.ts`, `src/lib/agents/context-builder.ts`, `src/lib/agents/prompts/**`, `src/app/api/agent-v2/**` |
