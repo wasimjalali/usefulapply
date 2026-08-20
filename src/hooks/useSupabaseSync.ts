@@ -7,6 +7,7 @@ import { useSessionStore, type ApplicationSession } from '@/store/useSessionStor
 import { updateDocumentStructuredDataAction } from '@/db/actions';
 import {
   getSessions,
+  getSession as getSupabaseSession,
   createSession as createSupabaseSession,
   updateSession as updateSupabaseSession,
   getChatMessages,
@@ -107,6 +108,11 @@ function normalizeText(value: string | null | undefined): string {
  * product did before. Measured: 104 of 115 rows are past `drafted`, so this is
  * the common case, not a corner one.
  *
+ * The status test is written the strict way round on purpose. A missing status
+ * is not treated as `drafted`, because defaulting an unknown into "safe to
+ * overwrite" is the wrong way for a destructive operation to fail. This is only
+ * a candidate filter: the caller re-reads the row before trusting it.
+ *
  * A company, a title and an ad are all required, because an unparsed ad has
  * none of them. A local draft is never a target: it has nothing stored to
  * reuse.
@@ -122,7 +128,7 @@ function findReusableSession(
   return sessions.find((session) =>
     !session.id.startsWith('session-')
     && session.id !== candidate.id
-    && (session.status ?? 'drafted') === 'drafted'
+    && session.status === 'drafted'
     && normalizeText(session.company) === company
     && normalizeText(session.jobTitle) === title
     && normalizeText(session.jobDescription) === ad,
@@ -528,10 +534,24 @@ export function useSupabaseSync() {
             // writing a second one (Wasim, 20 Aug 2026). The new CV and cover
             // letter replace the old pair, which is the overwrite half of that
             // call, so the match has to be exact: see findReusableSession.
-            const reuseTarget = findReusableSession(
+            const reuseCandidate = findReusableSession(
               useSessionStore.getState().sessions,
               currentSession,
             );
+            // The sessions array is a snapshot taken at page load and never
+            // refreshed, so it can say `drafted` for a row the user marked
+            // Applied in another tab an hour ago. Overwriting is destructive
+            // and unrecoverable, so the status is re-read live and anything
+            // other than a confirmed `drafted` falls through to a new entry.
+            let reuseTarget: ApplicationSession | null = null;
+            if (reuseCandidate) {
+              try {
+                const fresh = await getSupabaseSession(reuseCandidate.id, user.id);
+                if (fresh?.status === 'drafted') reuseTarget = reuseCandidate;
+              } catch (err) {
+                console.error('[SupabaseSync] Could not confirm the reuse target, writing a new application:', err);
+              }
+            }
             const created = reuseTarget
               ? { session: reuseTarget, error: null }
               : await createSupabaseSession(user.id, currentSession.jobDescription);

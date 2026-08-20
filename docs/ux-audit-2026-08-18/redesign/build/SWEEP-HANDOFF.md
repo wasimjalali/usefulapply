@@ -372,6 +372,15 @@ explicitly calls that a failure. It mattered more once the reuse path stopped
 inserting, because a generation landing on a row that was no longer there would
 have vanished behind a success log.
 
+**The commit security review then raised three more, all fixed.** The status
+test defaulted a missing value to `drafted`, which is the wrong way for a
+destructive operation to fail, so it now requires an explicit `drafted`. The
+sessions array is a snapshot taken at page load and never refreshed, so it
+could say `drafted` for a row marked Applied in another tab an hour ago; the
+status is now re-read live and anything else falls through to a new entry. And
+the chat clear sits behind that confirmed target, so it can only ever wipe an
+unsent draft's conversation.
+
 **Recorded, not fixed:**
 
 - **A reused entry keeps its original `created_at`,** so the tracker's SAVED
