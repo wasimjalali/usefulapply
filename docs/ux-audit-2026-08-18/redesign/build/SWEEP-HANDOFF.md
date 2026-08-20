@@ -2,7 +2,7 @@
 
 **Updated 20 August 2026, second session.** Branch `rebrand/usefulapply`.
 Staging is https://usefulapply.com, deployed from this branch at version
-`746c1bae`.
+`8d219c7e`.
 
 Passes 1 and 2 are done. Both adversarial reviews are done. Pass 3 landed its
 three unblocked entries and all four open decisions now have answers.
@@ -275,7 +275,7 @@ and rewrites the URL to `/dashboard`, the panes render, and Timezone reads
 `Europe/Berlin` with the date format on `20 Aug 2026`, which is what the
 formatter then uses everywhere.
 
-### The second walk, on version `746c1bae`
+### The second walk, on version `8d219c7e`
 
 The five later commits were checked on the same Max account:
 
