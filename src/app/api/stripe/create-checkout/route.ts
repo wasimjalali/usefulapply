@@ -110,8 +110,8 @@ export async function POST(req: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${BRAND.url}/subscription?session_id={CHECKOUT_SESSION_ID}&success=true`,
-      cancel_url: `${BRAND.url}/subscription?canceled=true`,
+      success_url: `${BRAND.url}/dashboard?settings=usage&session_id={CHECKOUT_SESSION_ID}&success=true`,
+      cancel_url: `${BRAND.url}/dashboard?settings=usage&canceled=true`,
       metadata: {
         userId,
         planTier,

@@ -110,8 +110,8 @@ export async function POST(req: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${BRAND.url}/subscription?addon_success=true`,
-      cancel_url: `${BRAND.url}/subscription?addon_canceled=true`,
+      success_url: `${BRAND.url}/dashboard?settings=usage&addon_success=true`,
+      cancel_url: `${BRAND.url}/dashboard?settings=usage&addon_canceled=true`,
       metadata: {
         userId,
         type: 'addon_credits',

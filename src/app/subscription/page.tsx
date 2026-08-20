@@ -1,7 +1,8 @@
 import { permanentRedirect } from 'next/navigation';
 
-// Stripe checkout still returns to /subscription, so the success flags ride
-// along to the Usage pane, which polls until the webhook lands.
+// Older checkout links still return here. New ones go straight to
+// /dashboard?settings=usage. The flags ride along either way so the Usage
+// pane can poll until the webhook lands.
 export default async function SubscriptionPage({
   searchParams,
 }: {
