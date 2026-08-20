@@ -35,7 +35,7 @@ export async function startFeedHandoff(
   // would mis-attribute it. Null lets the server resolve the job's own run.
   const feedState = useFeedStore.getState();
   const runId = feedState.listTab === 'saved' ? null : (feedState.overview?.feedRun?.id ?? null);
-  const created = await createFeedApplication(job, runId);
+  const created = await createFeedApplication(job, runId, mode);
   if (!created.ok) return created;
 
   const payload = created.data;

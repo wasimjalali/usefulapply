@@ -369,6 +369,7 @@ export async function recordFeedFeedback(
 export async function createFeedApplication(
   job: JobFeedFeedItem,
   runId: string | null,
+  mode: 'analyze' | 'apply',
 ): Promise<FeedResult<JobFeedApplyResponse>> {
   if (isPreviewing()) {
     return { ok: false, error: 'This is a preview. Sign in on a real account to check a fit.' };
@@ -377,14 +378,19 @@ export async function createFeedApplication(
     const response = await fetch('/api/job-feed/apply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobId: job.id, runId }),
+      // The mode is what the route prices against: the fit check and the kit
+      // cost different amounts and this is the same POST for both.
+      body: JSON.stringify({ jobId: job.id, runId, mode }),
     });
+    const payload = await readJson(response);
     if (!response.ok) {
       // The route's own strings are operator-facing ("Failed to start the
       // application handoff"), so the conversation says it in its own voice.
+      if (response.status === 402) {
+        return { ok: false, error: insufficientCreditsLine(payload, mode), status: 402 };
+      }
       return { ok: false, error: applyErrorFor(response.status) };
     }
-    const payload = await readJson(response);
     const typed = payload as unknown as JobFeedApplyResponse;
     useFeedStore.getState().patchJobFeedback(job.id, typed.feedback);
     return { ok: true, data: typed };
@@ -393,12 +399,23 @@ export async function createFeedApplication(
   }
 }
 
+/** Nothing was written, so the line says the price and what to do next. */
+function insufficientCreditsLine(payload: Record<string, unknown>, mode: 'analyze' | 'apply'): string {
+  const required = typeof payload.required === 'number' ? payload.required : null;
+  const available = typeof payload.available === 'number' ? payload.available : null;
+  const noun = mode === 'apply' ? 'the kit' : 'a fit check';
+  if (required === null || available === null) {
+    return `You don't have enough credits for ${noun}. Add credits in Usage and Billing.`;
+  }
+  return `You need ${required} credits for ${noun} and you have ${available}. Add credits in Usage and Billing.`;
+}
+
 function applyErrorFor(status: number): string {
   switch (status) {
     case 401:
       return 'Your session expired. Sign in again and pick the role once more.';
     case 403:
-      return 'Checking a fit needs an account with credits. Upgrade and I\'ll pick up here.';
+      return 'The job feed is not available on this account.';
     case 404:
       return 'That role is no longer in your feed. Refresh and pick another one.';
     case 409:

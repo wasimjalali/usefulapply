@@ -17,6 +17,7 @@ import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateL
 import { getPostHogServer } from '@/lib/posthog-server';
 import { getCurrentUser } from '@/auth/server';
 import { getProfile } from '@/db/repos/profiles';
+import { checkCreditBalance } from '@/db/repos/credits';
 
 export const runtime = 'nodejs';
 
@@ -74,6 +75,22 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({} as Record<string, unknown>));
     jobId = typeof body?.jobId === 'string' ? body.jobId.trim() : '';
     runId = typeof body?.runId === 'string' ? body.runId.trim() : '';
+    // Absent means the fit check, which is what an older tab sends and the
+    // cheaper of the two. A value we do not know is a client bug, not a
+    // default.
+    const rawMode = body?.mode;
+    if (rawMode !== undefined && rawMode !== 'analyze' && rawMode !== 'apply') {
+      captureJobFeedActionRejected({
+        userId,
+        route: 'apply',
+        action: 'apply_started',
+        reason: 'invalid_mode',
+        status: 400,
+        subscriptionTier,
+      });
+      return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
+    }
+    const creditAction = rawMode === 'apply' ? 'FULL_APPLICATION' : 'FIT_ANALYSIS';
 
     if (!jobId || jobId.length > 100 || runId.length > 100) {
       captureJobFeedActionRejected({
@@ -129,6 +146,31 @@ export async function POST(request: NextRequest) {
         subscriptionTier,
       });
       return NextResponse.json({ error: 'This role has already moved on.' }, { status: 409 });
+    }
+
+    // A finished kit reopens through this route and charges nothing, so only
+    // a request that will start a generation is priced. Everything else fails
+    // closed: no balance, no rows.
+    if (existingFeedback?.generation_status !== 'succeeded') {
+      const balance = await checkCreditBalance(user.id, creditAction);
+      if (!balance.hasEnough) {
+        captureJobFeedActionRejected({
+          userId,
+          route: 'apply',
+          action: 'apply_started',
+          reason: 'insufficient_credits',
+          jobId,
+          runId: validatedRunId,
+          status: 402,
+          subscriptionTier,
+        });
+        return NextResponse.json({
+          error: 'Not enough credits.',
+          code: 'INSUFFICIENT_CREDITS',
+          required: balance.required,
+          available: balance.available,
+        }, { status: 402 });
+      }
     }
 
     let session = existingFeedback?.application_session_id
