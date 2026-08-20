@@ -86,10 +86,10 @@ export function ConversationColumn({ onTabChange }: ConversationColumnProps) {
           showFeed || showTracker ? 'hidden' : 'flex'
         }`}
       >
-        <header className="flex flex-shrink-0 items-center gap-3 border-b border-cream-200 px-5 py-3.5">
+        <header className="flex flex-shrink-0 items-center gap-3 border-b border-cream-200 px-4 py-2">
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-base font-semibold text-navy-800">{title}</h2>
-            <p className="text-xs text-warm-gray">{statusLabel}</p>
+            <h2 className="truncate text-sm font-semibold text-navy-800">{title}</h2>
+            <p className="text-[11px] text-warm-gray">{statusLabel}</p>
           </div>
         </header>
         <div className="min-h-0 flex-1">

@@ -22,7 +22,7 @@ export function AppShell() {
   const setCanvasCollapsed = useUIStore((s) => s.setCanvasCollapsed);
   const [toolbarNode, setToolbarNode] = useState<HTMLDivElement | null>(null);
 
-  // Below this the 248px sidebar and the 520px conversation leave the canvas
+  // Below this the 224px sidebar and the 520px conversation leave the canvas
   // nothing to draw in, and the tracker table is the widest thing in it. Fold
   // the conversation on the way down, restore it on the way back up, and leave
   // the user's own choice alone in between.
