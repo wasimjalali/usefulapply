@@ -138,6 +138,12 @@ export interface NextStep {
   label: string;
   /** `overdue` prints in gold, `action` is the one that opens the kit. */
   tone: 'default' | 'overdue' | 'action' | 'muted';
+  /**
+   * What clicking the step does. `emails` opens the application on the
+   * Emails tab (drafting and sending live there). `popover` edits the date
+   * behind the label. `none` is informational.
+   */
+  opens: 'emails' | 'popover' | 'none';
 }
 
 export function deriveNextStep(row: TrackerRowDates, now: Date = new Date(), prefs?: DatePrefs): NextStep {
@@ -146,37 +152,42 @@ export function deriveNextStep(row: TrackerRowDates, now: Date = new Date(), pre
 
   switch (row.status) {
     case 'drafted':
-      return { label: 'Send it', tone: 'action' };
+      // Sending happens from the Emails tab, where the application email is.
+      return { label: 'Send it', tone: 'action', opens: 'emails' };
 
     case 'applied': {
+      // Every follow-up step lands on the Emails tab, where the follow-up
+      // is drafted and sent.
       const due = parseDate(row.followUpDueAt) ?? defaultFollowUpDue(row.createdAt);
-      if (!due) return { label: 'Follow up', tone: 'default' };
-      if (isPast(due)) return { label: 'Follow up overdue', tone: 'overdue' };
-      return { label: `Follow up by ${formatShortDate(due, prefs)}`, tone: 'default' };
+      if (!due) return { label: 'Follow up', tone: 'default', opens: 'emails' };
+      if (isPast(due)) return { label: 'Follow up overdue', tone: 'overdue', opens: 'emails' };
+      return { label: `Follow up by ${formatShortDate(due, prefs)}`, tone: 'default', opens: 'emails' };
     }
 
     case 'follow_up': {
       // The spec's label is Waiting. The chase date is a reminder trigger, not
       // something the column reports, until it has actually passed.
       const due = parseDate(row.followUpDueAt);
-      if (due && isPast(due)) return { label: 'Follow up overdue', tone: 'overdue' };
-      return { label: 'Waiting', tone: 'default' };
+      if (due && isPast(due)) return { label: 'Follow up overdue', tone: 'overdue', opens: 'emails' };
+      return { label: 'Waiting', tone: 'default', opens: 'popover' };
     }
 
     case 'interview': {
+      // Both labels are the interview date itself, so clicking edits it.
       const at = parseDate(row.interviewAt);
-      if (!at) return { label: 'Add a date', tone: 'muted' };
-      return { label: formatInterviewDate(at, prefs), tone: 'default' };
+      if (!at) return { label: 'Add a date', tone: 'muted', opens: 'popover' };
+      return { label: formatInterviewDate(at, prefs), tone: 'default', opens: 'popover' };
     }
 
     case 'accepted': {
+      // The respond-by date is a date edit, not a navigation.
       const due = parseDate(row.followUpDueAt);
-      if (!due) return { label: 'Offer in hand', tone: 'default' };
-      return { label: `Respond by ${formatShortDate(due, prefs)}`, tone: 'default' };
+      if (!due) return { label: 'Offer in hand', tone: 'default', opens: 'popover' };
+      return { label: `Respond by ${formatShortDate(due, prefs)}`, tone: 'default', opens: 'popover' };
     }
 
     case 'rejected':
-      return { label: '–', tone: 'muted' };
+      return { label: '–', tone: 'muted', opens: 'none' };
   }
 }
 

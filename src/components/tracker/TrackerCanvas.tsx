@@ -147,9 +147,9 @@ export function TrackerCanvas() {
     return prefs[key] !== false && prefs[key] !== 0;
   };
 
-  const openApplication = (sessionId: string) => {
+  const openApplication = (sessionId: string, tab: 'cv' | 'email' = 'cv') => {
     void openStoredSession(sessionId).then((opened) => {
-      if (opened) setActiveTab('cv');
+      if (opened) setActiveTab(tab);
     });
   };
 
@@ -323,16 +323,20 @@ export function TrackerCanvas() {
                   </div>
 
                   <div className="min-w-0" onClick={(event) => event.stopPropagation()}>
-                    {status === 'drafted' ? (
+                    {next.opens === 'emails' ? (
                       <button
                         type="button"
-                        onClick={() => openApplication(row.id)}
-                        className="inline-flex items-center gap-1 text-[13px] font-medium text-navy-800 hover:text-gold-600 cursor-pointer"
+                        onClick={() => openApplication(row.id, 'email')}
+                        className={`inline-flex items-center gap-1 text-[13px] font-medium cursor-pointer ${
+                          next.tone === 'overdue'
+                            ? 'font-semibold text-gold-600 hover:text-gold-700'
+                            : 'text-navy-800 hover:text-gold-600'
+                        }`}
                       >
                         {next.label}
                         <ArrowUpRight className="h-3.5 w-3.5" />
                       </button>
-                    ) : status === 'rejected' ? (
+                    ) : next.opens === 'none' ? (
                       <span className="text-[13px] text-warm-gray">{next.label}</span>
                     ) : (
                       <button
