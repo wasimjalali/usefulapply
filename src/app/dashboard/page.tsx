@@ -49,7 +49,7 @@ export default function Dashboard() {
     sessions,
   } = useAppStore();
   const { user, isLoading } = useAuth();
-  useSupabaseSync();
+  const { sessionsHydrated } = useSupabaseSync();
   const jobFeedBadge = useJobFeedBadge(Boolean(user), user?.id ?? null);
 
   const [mobileView, setMobileView] = useState<MobileView>(() => {
@@ -169,7 +169,11 @@ export default function Dashboard() {
   // kit is still on the line (fit running, verdict shown, sign-up pending).
   const showGuidedLine = !hasKit && activeWorkspace === 'application-kit';
 
-  if (!mounted || isLoading) {
+  // The third clause stops the guided line from flashing at a signed-in
+  // user whose sessions have not loaded yet: with no kit visible locally,
+  // hold the spinner until the first sessions load settles the question.
+  // Anonymous visitors and users with a persisted kit skip the wait.
+  if (!mounted || isLoading || (user && !hasKit && !sessionsHydrated)) {
     return (
       <div className="h-dvh flex items-center justify-center bg-cream-100">
         <Loader2 className="w-8 h-8 animate-spin text-navy-600" />

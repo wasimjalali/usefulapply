@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore, type ApplicationSession } from '@/store/useSessionStore';
@@ -138,6 +138,10 @@ export function useSupabaseSync() {
     setSessions,
   } = useSessionStore();
   
+  // True once the first sessions load has finished (or failed), so the
+  // dashboard can hold a neutral state instead of flashing the guided line
+  // at a signed-in user whose kits have not arrived yet.
+  const [sessionsHydrated, setSessionsHydrated] = useState(false);
   const lastSyncedSessionRef = useRef<string | null>(null);
   const isInitialLoadRef = useRef(true);
   const initialLoadCompleteRef = useRef(false);
@@ -160,6 +164,7 @@ export function useSupabaseSync() {
       docsLoadedRef.current = false;
       initialLoadCompleteRef.current = false;
       isInitialLoadRef.current = true;
+      setSessionsHydrated(false);
     }
     prevSyncUserIdRef.current = user.id;
   }, [user]);
@@ -410,7 +415,9 @@ export function useSupabaseSync() {
       }
     };
 
-    loadSessionsFromSupabase();
+    void loadSessionsFromSupabase().finally(() => {
+      if (user) setSessionsHydrated(true);
+    });
   }, [user, setSessions]);
 
   // Sync current session to Supabase when it changes
@@ -749,5 +756,5 @@ export function useSupabaseSync() {
     return () => clearTimeout(timeoutId);
   }, [user, editedOriginalCVData]);
 
-  return null;
+  return { sessionsHydrated };
 }

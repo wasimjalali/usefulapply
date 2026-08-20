@@ -30,6 +30,20 @@ function writeAuthUserId(userId: string) {
   localStorage.setItem(AUTH_USER_ID_STORAGE_KEY, userId);
 }
 
+/**
+ * Synchronous "was signed in last time" hint for first-paint decisions.
+ * The session itself resolves over the network; this lets the landing CTA
+ * pick the right label a frame after mount instead of flashing the
+ * signed-out default at a signed-in user.
+ */
+export function hasStoredAuthHint(): boolean {
+  try {
+    return Boolean(readAuthUserId());
+  } catch {
+    return false;
+  }
+}
+
 function clearAuthUserId() {
   localStorage.removeItem(AUTH_USER_ID_STORAGE_KEY);
   localStorage.removeItem(AUTH_USER_ID_STORAGE_KEY_OLD);

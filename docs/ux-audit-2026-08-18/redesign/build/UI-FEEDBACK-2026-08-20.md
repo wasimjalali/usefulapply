@@ -175,7 +175,7 @@ stays inert. Label-by-label review recorded in `tracker-status.ts`.
 **Fixed** in `7128bf09`. The scroll container carries one header padding
 (`pt-7` desktop) for all three panes; the mobile pill row got matching space.
 
-## 10. Auth state flashes on the landing and into the app
+## 10. Auth state flashes on the landing and into the app (FIXED)
 
 - **Proof:** none; timing bug, reproduce by revisiting the landing while
   signed in.
@@ -190,6 +190,17 @@ stays inert. Label-by-label review recorded in `tracker-status.ts`.
 - **Where:** the landing CTA in `src/app/page.tsx` (or its header
   component), `src/contexts/AuthContext.tsx`, and the dashboard's initial
   view logic in `src/app/dashboard/page.tsx` / `GuidedLine`.
+
+**Fixed.** Two roots, two fixes. The CTA: the session resolves over the
+network, so the navbar now reads the synchronous localStorage auth hint
+(`hasStoredAuthHint`) one frame after mount and holds a neutral slot for
+that single frame; signed-out visitors see "Try it free" immediately, and
+signed-in visitors never see it. The dashboard: the guided line was
+decided by `hasKit` before the sessions had loaded, so a signed-in user
+without a persisted kit saw the anonymous upload view flash;
+`useSupabaseSync` now reports `sessionsHydrated` and the dashboard holds
+its spinner for a signed-in, kit-less first paint until the first
+sessions load settles it. Anonymous visitors skip both waits.
 
 ## 11. No consistent global font (FIXED)
 

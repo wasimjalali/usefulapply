@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X, ArrowUpRight } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
-import { useAuth } from '@/contexts/AuthContext';
+import { hasStoredAuthHint, useAuth } from '@/contexts/AuthContext';
 
 // Only pages and anchors that exist. Contact and the legal pages stay in
 // the footer.
@@ -19,8 +19,17 @@ const NAV_LINKS = [
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
-  const { user } = useAuth();
-  const isSignedIn = Boolean(user);
+  const { user, isLoading } = useAuth();
+  // The session resolves over the network, so the CTA would flash "Try it
+  // free" at a signed-in visitor before flipping. The localStorage hint is
+  // synchronous: one frame after mount the CTA already knows which way to
+  // lean, and the resolved session settles it. null means "not decided yet"
+  // and renders a neutral placeholder for that first frame only.
+  const [hint, setHint] = useState<boolean | null>(null);
+  useEffect(() => {
+    setHint(hasStoredAuthHint());
+  }, []);
+  const isSignedIn: boolean | null = user ? true : isLoading ? hint : false;
 
   // Close the mobile menu on a route change (e.g. browser back/forward).
   // Adjusted during render rather than in an effect, so it costs no extra pass.
@@ -56,7 +65,10 @@ export default function Navbar() {
               </Link>
             ))}
 
-            {isSignedIn ? (
+            {isSignedIn === null ? (
+              /* Neutral for the first frame, until the stored hint is read. */
+              <span aria-hidden className="h-10 w-[120px]" />
+            ) : isSignedIn ? (
               <Link
                 href="/dashboard"
                 className="inline-flex h-10 items-center gap-1.5 rounded-full border border-cream-200 bg-white px-5 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-cream-100"

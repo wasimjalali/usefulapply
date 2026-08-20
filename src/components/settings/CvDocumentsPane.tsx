@@ -219,6 +219,16 @@ export function CvDocumentsPane() {
             fileType: primaryDoc.file_type,
           });
           setStructuredCV(primaryDoc.structured_data ?? null);
+        } else {
+          // The server is the source of truth. With no stored CV, cached
+          // browser state must not survive an account switch. A local CV
+          // that useSupabaseSync is still migrating is the one exception.
+          const localCV = useCVStore.getState().currentCV;
+          if (!localCV?.rawText) {
+            setCurrentCV(null);
+            setStructuredCV(null);
+            useCVStore.getState().setEditedOriginalCVData(null);
+          }
         }
 
         if (masterDoc) {
@@ -409,9 +419,18 @@ export function CvDocumentsPane() {
   };
 
   const handleRemoveMaster = async () => {
+    setMasterCVUploadError(null);
+    const previous = masterCV;
     setMasterCV(null);
     if (storedDocs.master) {
-      await deleteDocument(storedDocs.master.id);
+      const { error } = await deleteDocument(storedDocs.master.id);
+      if (error) {
+        // A failed delete must not pretend it worked: put the CV back.
+        console.error('Error deleting master CV:', error);
+        setMasterCV(previous);
+        setMasterCVUploadError('The master CV did not delete. Try again.');
+        return;
+      }
       setStoredDocs(prev => ({ ...prev, master: undefined }));
     }
   };
@@ -463,12 +482,15 @@ export function CvDocumentsPane() {
 
   const handleRemovePhoto = async () => {
     setPhotoError(null);
+    const previous = profilePhoto;
     setProfilePhoto(null);
     if (user) {
-      try {
-        await deleteProfilePhoto(user.id);
-      } catch (err) {
-        console.error('Error deleting profile photo:', err);
+      const { error } = await deleteProfilePhoto(user.id);
+      if (error) {
+        // A failed delete must not pretend it worked: put the photo back.
+        console.error('Error deleting profile photo:', error);
+        setProfilePhoto(previous);
+        setPhotoError('The photo did not delete. Try again.');
       }
     }
   };
