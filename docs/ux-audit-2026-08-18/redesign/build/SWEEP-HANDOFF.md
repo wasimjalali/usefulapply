@@ -2,7 +2,7 @@
 
 **Updated 20 August 2026, second session.** Branch `rebrand/usefulapply`.
 Staging is https://usefulapply.com, deployed from this branch at version
-`0c759553`.
+`746c1bae`.
 
 Passes 1 and 2 are done. Both adversarial reviews are done. Pass 3 landed its
 three unblocked entries and all four open decisions now have answers.
@@ -11,7 +11,7 @@ three unblocked entries and all four open decisions now have answers.
 
 ## What landed
 
-Twenty-four commits, all on `rebrand/usefulapply`, none on `main`. No PR.
+Twenty-nine commits, all on `rebrand/usefulapply`, none on `main`. No PR.
 
 | Commit | What |
 |---|---|
@@ -40,6 +40,12 @@ Twenty-four commits, all on `rebrand/usefulapply`, none on `main`. No PR.
 | `30671ae0` | `feat:` an Offer's respond-by date now gets its reminder |
 | `04695c95` | `fix:` the adversarial review findings on the three Pass 3 features |
 | `ed091d7b` | `fix:` the feed is real time, so the code and the copy say so |
+| `04d81f85` | `docs:` the handoff carries pass 3, the review and the decisions |
+| `3e00fbea` | `fix:` nothing ever wrote profiles.timezone, so nothing could read it |
+| `dcad8bee` | `feat:` the sidebar badge counts unseen runs, not unsaved roles |
+| `f1785737` | `feat:` a repeat generation reuses its entry instead of writing a second |
+| `433c0ccd` | `feat:` Free keeps a call in reserve, and it can actually be spent |
+| `80e05866` | `fix:` drop the notification toggle that could never send |
 
 Passes 1 and 2 are described in the git history of the first nine commits. What
 follows is what this session added.
@@ -340,40 +346,54 @@ No PR has been opened and nothing has been merged to `main`.
 
 > You are continuing the post-batch sweep of the Useful Apply UX redesign on
 > branch `rebrand/usefulapply`. `main` is off limits: no PR, no merge. Staging
-> is https://usefulapply.com, deployed from this branch at version `0c759553`.
+> is https://usefulapply.com, deployed from this branch at version `746c1bae`.
 >
 > Read `docs/ux-audit-2026-08-18/redesign/build/SWEEP-HANDOFF.md` first, then
 > `BACKEND-GAPS.md` in the same directory. Both are current as of 20 August
-> 2026. Passes 1 and 2 are done, both adversarial reviews are done, Pass 3
-> landed its three unblocked entries and all four open decisions are answered.
-> Twenty-four commits, none on `main`.
+> 2026. Passes 1 and 2 are done, Pass 3 is done, and all four open decisions
+> are answered and built. Twenty-nine commits, none on `main`.
 >
-> **1. Build the three answered decisions that are not built yet.** They are
-> listed under "What is left" in the handoff.
+> **1. Finish the adversarial review that was still running.** Three `opus`
+> agents were asked to attack `f1785737`, `dcad8bee` and `3e00fbea`, and the
+> session ended before the findings could be checked. Re-run it if you do not
+> have the output. The one that matters is `f1785737`: a repeat generation now
+> reuses an existing application entry and **overwrites its CV and cover
+> letter**, so a false match destroys a user's work. Trace `findReusableSession`
+> in `src/hooks/useSupabaseSync.ts` against a real load: is the ad text always
+> populated on loaded sessions, what happens when the reuse target is the
+> session on screen, and what happens to that row's tracker status, interview
+> date and follow-up date after the overwrite. Check every finding against the
+> code before acting on it.
 >
-> - **The sidebar badge counts unseen runs.** It should mean "there is a feed
->   you have not opened", clear when the feed is opened, and stop competing
->   with the canvas header. Today the sidebar says "18 new roles for you" while
->   the canvas says "5 roles". Start at `summary/route.ts:41`, where
->   `unprocessedCount` is defined as roles the user has not saved.
-> - **A repeat generation for the same job reuses its entry and overwrites it.**
->   `src/hooks/useSupabaseSync.ts:466-484`. Confirm with Wasim what the user
->   sees when it happens before you write the overwrite.
-> - **Raise the Free SerpAPI budget to two calls a day**, so a main query and a
->   rescue both fit. This one spends money and `constants.ts` says the daily
->   query count needs explicit sign-off, so confirm the number with Wasim
->   first, then check the fallback pass is actually reachable afterwards.
+> **2. Walk staging on the Max account** and confirm the five new commits.
+> Specifically: the sidebar badge now reads "You're up to date" once the feed
+> has been opened and no longer disagrees with the canvas header; Notifications
+> has four rows, not five, with no "Today's feed is ready"; and the Timezone
+> row in General now reflects a **saved** value. That last one is checkable
+> from the database, and it is the real test:
 >
-> **2. Ask Wasim about `notify_feed_ready`.** The toggle says "Today's feed is
-> ready" and controls nothing. Under real time the user starts the run and
-> watches it, so there is no moment to mail. It comes out of Notifications or
-> it gets repurposed, and that is his call.
+> ```
+> npx wrangler d1 execute usefulapply-db --remote --json --command "SELECT count(*) AS saved FROM profiles WHERE timezone IS NOT NULL"
+> ```
 >
-> **3. The landing page needs a Cloudflare cache purge.** The bare URL is
-> served with `s-maxage=31536000`, so the copy fix deployed in `ed091d7b` is
-> live in the Worker but the edge is still serving the old HTML. Ask Wasim to
-> purge, then confirm `https://usefulapply.com/` reads "Roles picked for you,
-> whenever you ask" without a cache-busting query.
+> It was 0 for every account before this session. Never run INSERT, UPDATE or
+> DELETE against the remote database.
+>
+> **3. Purge the landing page edge cache.** Wasim asked for this to be done for
+> him and it was not reached. The bare URL is served with
+> `cache-control: s-maxage=31536000`, so the copy fix in `ed091d7b` is live in
+> the Worker but the edge still serves "Roles picked for you every morning".
+> Confirm with a cache-busting query first, purge the zone, then confirm
+> `https://usefulapply.com/` reads "Roles picked for you, whenever you ask"
+> without one. Worth proposing a shorter `s-maxage` on the landing route as
+> well, because otherwise every future copy change needs a manual purge.
+>
+> **4. Then keep working `BACKEND-GAPS.md`.** Everything still open there needs
+> a schema change, an npm package, a Stripe route, an auth change or a prompt
+> change. Bring each one to Wasim rather than guessing. The security-flavoured
+> ones are worth raising first: job-feed rate limits are keyed by client IP
+> before authentication, `POST /api/job-feed/apply` does not check the credit
+> balance, and deleting an account needs no re-authentication.
 >
 > Rules: surgical edits only, npm only, no new packages. Do not touch Stripe
 > webhook or credit-deduction logic, D1 schema or migrations, Better Auth
@@ -386,19 +406,19 @@ No PR has been opened and nothing has been merged to `main`.
 > the default Node heap on this machine, on a clean `HEAD` too, so run it as
 > `NODE_OPTIONS=--max-old-space-size=8192 npx tsc --noEmit`. Then deploy with
 > `NEXT_PUBLIC_SITE_URL=https://usefulapply.com NEXT_PUBLIC_SITE_STAGE=staging npm run deploy:cf`
-> and verify on staging in the browser. Note the deploy hit a Cloudflare
+> and verify on staging in the browser. The deploy hit a Cloudflare
 > `Authentication error [code: 10000]` on the secrets endpoint once and worked
 > on a straight retry of `npx opennextjs-cloudflare deploy`, which also skips
 > the rebuild.
 >
-> Three habits from these two sessions that paid off, keep them. Check every
-> agent finding against the code before acting on it: five of the twenty-eight
-> raised so far did not survive that check. Measure heuristics against the real
-> database instead of reasoning about them, which is how the 97-row email
-> blast, the useless glued-list rule and the unbounded offer query were all
-> caught. And check the clock before trusting a cron result: the first run of
-> this session read zero sent rows because the 08:00 UTC sweep had not fired
-> yet.
+> Three habits from these sessions that paid off, keep them. **Check every
+> agent finding against the code before acting on it**: five of the twenty-eight
+> raised so far did not survive that check. **Measure against the real database
+> instead of reasoning about it**, which caught the 97-row email blast, the
+> useless glued-list rule, the unbounded offer query, a Free SerpAPI rescue
+> that could never fire, and an overwrite rule that would have destroyed the
+> wrong CV four times out of six. **And check the clock before trusting a cron
+> result**: one reading of zero sent rows was just the sweep not having run yet.
 >
 > Commit in logical chunks with conventional commits and push to
 > `rebrand/usefulapply`.
