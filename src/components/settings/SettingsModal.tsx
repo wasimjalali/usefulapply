@@ -144,7 +144,7 @@ export function SettingsModal() {
             <X className="h-6 w-6" />
           </button>
 
-          <div className="flex gap-2 px-6 pb-2 md:hidden">
+          <div className="flex gap-2 px-6 pt-5 pb-2 md:hidden">
             {NAV.map((item) => (
               <button
                 key={item.pane}
@@ -159,7 +159,7 @@ export function SettingsModal() {
             ))}
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 md:px-8">
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-4 pb-8 md:px-8 md:pt-7">
             {pane === 'general' && <GeneralPane />}
             {pane === 'usage' && <UsageBillingPane />}
             {pane === 'notifications' && <NotificationsPane />}
