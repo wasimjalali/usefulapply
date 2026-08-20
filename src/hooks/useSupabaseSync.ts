@@ -18,6 +18,7 @@ import {
   getProfilePhotoUrl,
 } from '@/lib/supabase';
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
+import { isSameJob } from '@/lib/utils/same-job';
 
 // Type for Supabase application_sessions row
 interface SupabaseSessionRow {
@@ -85,11 +86,6 @@ function embedKitData(session: ApplicationSession): Record<string, unknown> | nu
   return base;
 }
 
-/** Whitespace and casing vary between a pasted ad and a feed handoff. */
-function normalizeText(value: string | null | undefined): string {
-  return (value ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
-}
-
 /**
  * The existing entry for this exact job, or null. Reusing it overwrites its CV
  * and cover letter, and the row in D1 is the only copy, so both halves of this
@@ -121,17 +117,11 @@ function findReusableSession(
   sessions: ApplicationSession[],
   candidate: ApplicationSession,
 ): ApplicationSession | null {
-  const company = normalizeText(candidate.company);
-  const title = normalizeText(candidate.jobTitle);
-  const ad = normalizeText(candidate.jobDescription);
-  if (!company || !title || !ad) return null;
   return sessions.find((session) =>
     !session.id.startsWith('session-')
     && session.id !== candidate.id
     && session.status === 'drafted'
-    && normalizeText(session.company) === company
-    && normalizeText(session.jobTitle) === title
-    && normalizeText(session.jobDescription) === ad,
+    && isSameJob(candidate, session),
   ) ?? null;
 }
 

@@ -341,8 +341,22 @@ app was affected, because the signed-in routes are dynamic.
    **Not built.** Today the sidebar says "18 new roles for you" while the canvas
    says "5 roles", which is the disagreement, and the conversation on the same
    screen says the roles are from the last search rather than today.
-4. **A repeat generation reuses its entry and overwrites it. Not built.** It
-   would live at `src/hooks/useSupabaseSync.ts:466-484`.
+4. **A repeat generation reuses its entry and overwrites it. Built**, then
+   narrowed by the review, then finished. The behaviour now splits on whether
+   the user has sent the application:
+   - **Not sent** (`drafted`): reuse the entry and overwrite it. No second row,
+     nothing lost, because nothing went out.
+   - **Already sent**: write a new entry and **say so in the chat**. "You
+     already applied to this one on 1 April. This kit is saved separately, so
+     the one you sent stays as it is." Overwriting here would destroy the only
+     record of what the user actually applied with, and the tracker would keep
+     showing "Applied" over a document that never went out.
+
+   Measured: the explanation fires for exactly the Machine Learning Reply pair
+   Wasim reported and nothing else, so the duplicate he saw is now a stated
+   fact rather than a mystery. The match rule lives in one file,
+   `src/lib/utils/same-job.ts`, because two copies of a rule whose failure mode
+   is destroying a CV would drift.
 
 ### The adversarial review on the overwrite path
 

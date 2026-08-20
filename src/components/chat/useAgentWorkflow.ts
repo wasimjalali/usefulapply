@@ -8,6 +8,10 @@
 
 import { useState, useRef } from 'react';
 import { useAppStore } from '@/store/useAppStore';
+import { useSessionStore } from '@/store/useSessionStore';
+import { useDatePrefs } from '@/hooks/useDatePrefs';
+import { formatDate } from '@/lib/utils/format-date';
+import { findSentApplicationForJob } from '@/lib/utils/same-job';
 import { useUIStore } from '@/store/useUIStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePostHog } from 'posthog-js/react';
@@ -103,6 +107,7 @@ export function useAgentWorkflow(options?: {
   onAnonymousLimitReached?: () => void;
 }) {
   const { user } = useAuth();
+  const datePrefs = useDatePrefs();
   const posthog = usePostHog();
   const { toast } = useToast();
   const { setActiveTab } = useUIStore();
@@ -874,9 +879,24 @@ export function useAgentWorkflow(options?: {
                 const atsNote = typeof ctx?.optimizedCVData?.analysis?.ats_compatibility === 'number'
                   ? ` (ATS ${Math.round(ctx.optimizedCVData.analysis.ats_compatibility)}%)`
                   : '';
+                // A repeat on an application the user already sent gets its own
+                // entry, because overwriting the CV they applied with would
+                // destroy the only record of it. Saying so turns what looks
+                // like a duplicate into a stated fact. An unsent draft is
+                // reused instead, quietly, in useSupabaseSync.
+                const sessionForMatch = useAppStore.getState().currentSession;
+                const alreadySent = sessionForMatch
+                  ? findSentApplicationForJob(useSessionStore.getState().sessions, sessionForMatch)
+                  : null;
+                const sentOn = alreadySent?.createdAt
+                  ? formatDate(new Date(alreadySent.createdAt), datePrefs)
+                  : null;
+                const repeatNote = alreadySent
+                  ? `\n\nYou already applied to this one${sentOn ? ` on ${sentOn}` : ''}. This kit is saved separately, so the one you sent stays as it is.`
+                  : '';
                 addChatMessage({
                   role: 'assistant',
-                  content: `Your kit${kitCompany ? ` for ${kitCompany}` : ''} is ready. Tailored CV${atsNote}, a cover letter and two emails. Nothing was invented.${weakMatchNote}`,
+                  content: `Your kit${kitCompany ? ` for ${kitCompany}` : ''} is ready. Tailored CV${atsNote}, a cover letter and two emails. Nothing was invented.${weakMatchNote}${repeatNote}`,
                 });
                 if (isDirectPath && isWeakMatch) {
                   toast.warning(
