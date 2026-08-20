@@ -11,7 +11,7 @@ export const MANUAL_JOB_FEED_TRIGGER_SOURCES = [
   'manual_debug',
   'manual_debug_force',
 ] as const;
-export const JOB_FEED_MAX_DAILY_QUERIES = 4;
+export const JOB_FEED_MAX_DAILY_QUERIES = 5;
 // How many career-profile titles get mirrored into settings.target_roles. The
 // settings writer and the drift check must slice to the same number, or the
 // "your target roles are out of date" flag is true for every profile with more
@@ -77,10 +77,11 @@ export const JOB_FEED_FREE_TIER_LIMITS: JobFeedTierLimits = {
 
 export const JOB_FEED_TIER_LIMITS: Record<JobFeedTier, JobFeedTierLimits> = {
   plus: {
-    // maxDailyQueries = SerpAPI calls per run (paid per call). 2 calls x
-    // ~10 results each = up to 20 raw jobs. Do not raise without explicit
-    // approval — each call has a real cash cost.
-    maxDailyQueries: 2,
+    // Plus searches twice and keeps a third call in reserve (Wasim, 20 Aug
+    // 2026). The extra call is only spent on an empty or thin day, so a
+    // normal day still costs two. Do not raise without explicit approval:
+    // each call has a real cash cost.
+    maxDailyQueries: 3,
     maxMainQueries: 2,
     maxRawJobsPerRun: 20,
     // prefilterHardCap is in-memory only (no API cost). Sized to match
@@ -95,7 +96,10 @@ export const JOB_FEED_TIER_LIMITS: Record<JobFeedTier, JobFeedTierLimits> = {
     visibleCount: 25,
   },
   max: {
-    maxDailyQueries: 4,
+    // Max searches four times and keeps a fifth call in reserve (Wasim,
+    // 20 Aug 2026). Same shape as Plus and Free: the extra call is only
+    // spent on an empty or thin day.
+    maxDailyQueries: 5,
     maxMainQueries: 4,
     maxRawJobsPerRun: 40,
     prefilterHardCap: 30,
@@ -116,20 +120,27 @@ export interface JobFeedInputCaps {
 
 export const JOB_FEED_INPUT_CAPS: Record<JobFeedTier, JobFeedInputCaps> = {
   plus: {
-    // 2 queries total. 1 country → 2 roles. 2 countries → 1 role each.
+    // 2 main queries. 1 country → 2 roles. 2 countries → 1 role each.
     maxRoles: 2,
     maxCountries: 2,
     maxCitiesPerCountry: 2,
   },
   max: {
-    // 4 queries total. 1 country → 4 roles. 2 countries → 2 roles each.
+    // 4 main queries. 1 country → 4 roles. 2 countries → 2 roles each.
     maxRoles: 4,
     maxCountries: 4,
     maxCitiesPerCountry: 4,
   },
 };
 
-// Locked caps returned for free / unauthenticated / loading users.
+// Free searches once (the second call is a reserve). 1 country, 1 role.
+export const JOB_FEED_INPUT_CAPS_FREE: JobFeedInputCaps = {
+  maxRoles: 1,
+  maxCountries: 1,
+  maxCitiesPerCountry: 1,
+};
+
+// Locked caps returned for unauthenticated / loading users.
 // Shape-compatible with JobFeedInputCaps so all consumers compile unchanged.
 export const JOB_FEED_INPUT_CAPS_LOCKED: JobFeedInputCaps = {
   maxRoles: 0,
@@ -138,7 +149,8 @@ export const JOB_FEED_INPUT_CAPS_LOCKED: JobFeedInputCaps = {
 };
 
 export function getJobFeedInputCaps(subscriptionTier: string | null | undefined): JobFeedInputCaps {
-  if (!subscriptionTier || subscriptionTier === 'free') return JOB_FEED_INPUT_CAPS_LOCKED;
+  if (!subscriptionTier) return JOB_FEED_INPUT_CAPS_LOCKED;
+  if (subscriptionTier === 'free') return JOB_FEED_INPUT_CAPS_FREE;
   if (subscriptionTier === 'max') return JOB_FEED_INPUT_CAPS.max;
   return JOB_FEED_INPUT_CAPS.plus;
 }
