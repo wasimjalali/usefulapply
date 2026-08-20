@@ -1,8 +1,10 @@
 # Post-batch sweep: handoff
 
-**Updated 20 August 2026, second session.** Branch `rebrand/usefulapply`.
+**Updated 20 August 2026, third session.** Branch `rebrand/usefulapply`.
 Staging is https://usefulapply.com, deployed from this branch at version
-`6e8f3950`.
+`6905dc77`. The three security and money gaps in `BACKEND-GAPS.md` are closed,
+along with the landing cache and the ranking prompt. See "The backend pass"
+near the end.
 
 Passes 1 and 2 are done. Both adversarial reviews are done. Pass 3 landed its
 three unblocked entries and all four open decisions now have answers.
@@ -427,6 +429,147 @@ unsent draft's conversation.
   model prompt, so changing it can shift ranking behaviour. Left alone.
 
 No PR has been opened and nothing has been merged to `main`.
+
+---
+
+## The backend pass, 20 August 2026 (third session)
+
+Staging is version `6905dc77`. Five commits, all on `rebrand/usefulapply`, none
+on `main`.
+
+| Commit | What |
+|---|---|
+| `22790163` | `fix:` the apply route prices the request before it writes anything |
+| `ccfe48a8` | `fix:` job-feed limits are two tiers, a flood gate then the user |
+| `64bdbafc` | `fix:` the ranker is told it runs on a click, not every morning |
+| `edc2d6da` | `feat:` account deletion is confirmed by email, and a live plan blocks it |
+
+### The three security and money gaps are closed
+
+**The apply route now checks the balance.** The client sends the same POST for
+the fit check (0.5) and the kit (2.0), so the mode rides in the body and the
+route checks the cost that request will actually incur. It reads the balance
+and never deducts. Reopening a finished kit skips the check, because that
+charges nothing. Measured before the change: 16 generation rows, and all five
+that are not succeeded belong to one free test account holding 1 credit, so
+nobody had hit it.
+
+**Job-feed limits are two tiers.** A shared per-IP gate at 600 a minute runs
+before authentication, then each handler applies its own limit keyed on the
+user id. All fourteen handlers, not the eleven the entry named: the three that
+were already user-keyed had nothing in front of the session lookup, which is
+the other half of the problem. Per-route ceilings unchanged.
+
+**Account deletion is confirmed by email.** Better Auth's `user.deleteUser`
+with `sendDeleteAccountVerification`. The DELETE asks, only the callback
+deletes, and the callback needs a live session for that user, so an attacker
+needs the mailbox and the browser. A password check was the smaller change but
+it only covers credential accounts, and Google users have no credential row.
+
+### The billing wall, which came out of the review
+
+Nothing in this app cancels at Stripe, and `deleteAllUserData` drops both the
+`subscriptions` row and the `user_credits` row the webhook resolves customers
+through. A paying user who deleted their account kept being charged with no
+record left to reconcile against. Wasim's call: block the deletion until the
+subscription is cancelled. The route returns 409 while Stripe would still bill,
+and the settings row says so and points at Usage and Billing.
+
+A plan already set to cancel at the period end does not block. It is not billed
+again, and making someone wait weeks to close their account is the wrong trade.
+The rule is `willBillAgain` in one file, because two copies of a rule that
+decides whether a card keeps being charged would drift. The read is
+`getBillingSubscription`, not `getSubscription`, which filters to status
+'active' and would miss a `past_due` subscription Stripe is still retrying.
+
+Verified against the real row: the one Stripe subscriber is plus, active,
+`cancel_at_period_end` 0 with a subscription id set, so the wall fires for
+exactly the account that would otherwise keep being billed.
+
+### The adversarial review on the delete flow
+
+Three `opus` agents: security, logic and flow correctness. Every finding was
+checked against the code before anything changed.
+
+**One of this session's own comments was wrong, and two agents caught it.**
+Better Auth spends the verification token *before* it calls `beforeDelete`
+(`update-user.mjs:390` then `:393`), so the comment claiming a failed purge
+leaves the link usable was false. The link is dead. Recovery is asking for a
+new one, which works because the account survived and every delete in the wipe
+is idempotent. The comment now says that.
+
+**A failed send returned 200 and the UI said "check your email" anyway.**
+Better Auth awaits the send hook and then swallows the throw
+(`create-context.mjs:214`), so the route could not tell. The outcome is
+recorded and the route reads it, so a failed send is a 500 the user sees.
+
+**The pane could stack the success line and the error line** after a retry.
+
+**Independently confirmed safe:** the token is single-use, 165 bits, bound to
+the session user and expiry-checked; `originCheck` rejects protocol-relative
+redirects; the emailed URL is never logged; `deleteSessionCookie` clears the
+cookie-cache cookie too, so dropping the old explicit `signOut` is safe; and
+`USER_ID_TABLES` covers every table in the schema carrying a `user_id`.
+
+**Known and not fixed:** a second device holding a warm `session_data` cookie
+keeps authenticating for up to 5 minutes after deletion (pre-existing, same
+under the old route); the callback's failure path renders raw Better Auth JSON
+rather than an app page, and the most likely failure is opening the link on a
+phone that is not signed in; and another signed-in user who opens the URL burns
+the token without being able to use it.
+
+### The landing cache, wider than the entry said
+
+Measured: `/dashboard`, `/documents`, `/auth/login` and `/auth/signup` carried
+the same `s-maxage=31536000`, so the whole prerendered surface was frozen, not
+just marketing. One `export const revalidate = 300` in the root layout covers
+all of it, and three of the marketing pages are `'use client'` so they cannot
+carry the export themselves. Verified on staging: `/`, `/pricing` and
+`/dashboard` now serve `s-maxage=300, stale-while-revalidate=2592000`, and no
+purge was needed.
+
+Confirmed by review: no page reads `cookies()` or `headers()` server-side, so
+nothing per-user is prerendered and the edge cannot serve one user's HTML to
+another. Route handlers do not inherit a layout's `revalidate`.
+
+**One thing to know.** `open-next.config.ts` sets only `incrementalCache`, so
+the queue resolves to `dummy`, whose `send()` throws. `revalidateIfRequired`
+catches it and logs "Failed to revalidate stale page". Before this change no
+page had a numeric revalidate so the path was never reached. Pages still
+regenerate through Next's own background revalidate, so this is log noise, not
+breakage. `wrangler.jsonc` already carries a `WORKER_SELF_REFERENCE` binding
+commented "so ISR revalidation can call this worker" that the config never
+wires up. Wiring `memoryQueue` would close both.
+
+### The ranking prompt
+
+Wasim asked for it. Three spots carried the schedule, not one: the opening
+"Every morning you evaluate", the "The feed is daily" premise under
+quality-over-quantity, and the `rank_today` key in the per-run message. The
+cooldown is once per **local day**, not a rolling 24 hours, so the new line
+says "once a day".
+
+No clean A/B was cheap here: re-ranking a stored candidate set needs the `AI`
+binding, which only exists inside the Worker, and a forced run spends SerpAPI
+budget. The before-measurement is the stored distribution across the last four
+runs: 5 good / 0 strong, 15 good / 1 strong, 18 good / 2 strong, 5 good / 0
+strong. Strong is rare and good dominates. The next real run should look like
+that; all-skip or half-strong is the signal to revert. The weights and the
+strong/good/skip calibration were not touched, and freshness reads
+`freshnessDays`, a number in the payload.
+
+### Verification state
+
+- `npx tsc --noEmit`: **0 errors**.
+- `npm run lint`: **72 errors, 60 warnings**, one warning under the 72 / 61
+  baseline, from removing the dead `deleteUserAccount`.
+- Deployed to staging as `6905dc77` on the first attempt, no transient failure.
+- Walked on the Max account: the feed loads 5 ranked roles, and
+  `summary`, `overview`, `search-strategy` and `career-profile` all return 200
+  with no 429, which is the two-tier limiter working. The delete row renders
+  the type-DELETE box with "Send the link". Console clean.
+- The link itself was **not** sent, because it is a live deletion link to
+  Wasim's own inbox.
 
 ---
 
