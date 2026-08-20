@@ -1,199 +1,221 @@
 # Post-batch sweep: handoff
 
-**Written 20 August 2026.** Branch `rebrand/usefulapply`. Staging is
-https://usefulapply.com, last deployed version `7c3b2261` plus the alignment
-fix in the commit that carries this file.
+**Updated 20 August 2026.** Branch `rebrand/usefulapply`. Staging is
+https://usefulapply.com, deployed from this branch at version `0102d48f`.
 
-This covers passes 1 and 2 of the sweep in `BUILD-PLAN.md`. Pass 3, the
-backend gaps, has not started.
+Passes 1 and 2 are done. The adversarial review on `62885ddc` is done. Pass 3
+has started.
 
 ---
 
 ## What landed
 
-Eight commits, all on `rebrand/usefulapply`, none on `main`.
+Fourteen commits, all on `rebrand/usefulapply`, none on `main`. No PR.
 
 | Commit | What |
 |---|---|
 | `07fb9bd5` | `chore:` dead UI, CSS and images |
 | `4cff60ae` | `chore:` dead routes, dead exports, obsolete props |
 | `f12e72bf` | `fix:` session sync overwrote the tracker status; guided line centred |
-| `62885ddc` | `fix:` the job feed bug pass, plus the deferred work recorded in BACKEND-GAPS.md |
+| `62885ddc` | `fix:` the job feed bug pass, plus the deferred work in BACKEND-GAPS.md |
 | `8d19de4a` | `fix:` the tracker crashed the app; the dashboard lost its first click |
 | `c1e007aa` | `fix:` one collapse control; conversation stays a reading column |
 | `ddf01ac3` | `fix:` no divider when the canvas is folded |
 | `d28728bc` | `fix:` kit view pushed the page up; cards cap, not the panel |
 | `94091f67` | `fix:` the off-screen CV renderer pushed the whole app off the top |
+| `2aaf3fc9` | `docs:` handoff, kickoff prompt and BUILD-PLAN status |
+| `830a8ef6` | `fix:` the adversarial review findings on the bug pass |
+| `c6db3306` | `fix:` job ads read as ads again, not as one run-on blob |
+| `86d3d75f` | `fix:` three copy and state bugs found walking staging |
+| `c483a857` | `fix:` pass 3 lands the first four Small backend gaps |
 
-### Pass 1, dead code
+Passes 1 and 2 are described in the git history of the first nine commits. What
+follows is what this session added.
 
-Deleted, each after a grep that returned zero references:
+---
 
-- `src/components/ui/LowCreditsModal.tsx`, `LowCreditsBanner.tsx`,
-  `PortalTooltip.tsx`, `CreditIndicator.tsx` (the last kept alive only by the
-  first two importing a duplicate `CREDIT_UPDATE_EVENT`; the live path was
-  already `src/lib/utils/creditEvents.ts` + `useCreditsBalance.ts`)
-- `src/components/marketing/TrustpilotReviews.tsx` and its only dependency
-  `AnimatedBackground.tsx`
-- `src/store/index.ts`, an unused barrel
-- `/api/generate-pdf` and its `RATE_LIMIT_GENERATE_PDF` binding: a pdf-lib
-  renderer with no caller in the entire git history. **`pdf-lib` is now an
-  unused dependency, left in package.json for Wasim to decide.**
-- `/api/auth/recovery-status` + `src/lib/auth/recovery-cookie.ts`, a dead pair
-- `src/lib/utils/cv-transformers.ts`, orphaned once `/api/agent-v2` stopped
-  importing four helpers it never called
-- `listTrackerApplicationsAction` / `listTrackerApplications`, replaced by
-  `listTrackerOverviewAction` in batch 4
-- `trackRegenError`, `isLoadingDocs`, `resetAll`, `StaggerChildren`,
-  `isPdfGenerating`, the `AgentProgressV2` props no caller passed, and the
-  three legacy `notify_*` fields in `USER_EDITABLE_PROFILE_FIELDS`
-- 37 CSS rule blocks and 32 `@keyframes` in globals.css (1032 lines to 572)
-- 20 orphaned assets in public/
-- ~20 job-feed symbols, each judged individually as dead rather than
-  dropped-caller
+## The adversarial review on `62885ddc` is done
 
-**Kept, and why:** the `/settings`, `/profile`, `/account`, `/notifications`
-and `/subscription` route stubs. They are batch 4's deliberate 301s and all
-five were verified to land on the right settings pane. `/subscription` is also
-where Stripe returns. `/documents` is still linked from three places.
+Three `opus` agents ran in parallel against `git show 62885ddc`: security and
+authorization, logic and race conditions, data integrity. Every finding was
+checked against the code before anything was changed; two did not survive that
+check and are recorded below as refuted.
 
-### Pass 2, bugs fixed
+**Seven high findings. Five fixed in `830a8ef6`:**
 
-Confirmed on staging before and after:
+1. **A rerun that ranked nothing wiped the feed.**
+   `persistJobFeedRankedItemsForRunAdmin` deleted by `run_id` and only then
+   returned early on an empty list. The delete and the inserts are now one
+   batch in `replaceRankedItemsForRun`, and an empty ranking leaves the
+   previous one alone and reports what survived.
+2. **Two requests could run the whole workflow twice.**
+   `createJobFeedRunForToday` swallowed the unique-index violation and returned
+   the winner's row, but the completed and running guards had already run
+   against nothing. It now reports that it lost the race and the guards run
+   again over the row that won.
+3. **A bad rank counted as ranker coverage.** `seenJobIds` took the job before
+   the rank was validated, so a model returning every candidate with an
+   unusable rank scored full coverage and handed back an empty ranking, which
+   read as a successful run with no roles.
+4. **A dismissed job could be applied to.** The apply route and
+   `recordJobFeedFeedbackAdmin` each carried their own version of "blocked but
+   it already has a session" and disagreed. Both now read
+   `canReuseBlockedFeedbackSession`.
+5. **Three lows worth the keystrokes:** the retention compaction dropped
+   `orchestrator` from its copy list; the compaction pass now takes 200 rows at
+   a time, because the first pass after a version bump would otherwise rewrite
+   the whole backlog in one invocation and blow the subrequest cap; and the
+   SerpAPI error body was redacted for the log line but not for the copy stored
+   in D1.
 
-1. **The tracker crashed the whole app.** React #185, maximum update depth.
-   Two zustand selectors ended in `.filter()`, so every read returned a new
-   array and the `useSyncExternalStore` snapshot never settled.
-2. **The dashboard threw a hydration error and ate the first click.** React
-   #418 on every load; the first click on the sidebar did nothing.
-3. **Clicking a Kit ready application pushed the whole app off the top.**
-   `KitExportHost` renders the CV off-screen with `position: absolute`, which
-   kept 1513px inside the shell's scroll box; the first focus scrolled it.
-4. **Tracker status changes were silently reverted in D1** by the session sync.
-5. **The job feed pass**, `62885ddc`: SerpAPI spend exceeded the documented
-   per-tier budget on every tier; the daily cooldown query filtered on a
-   `trigger_source` nothing writes, so both the cooldown and the first-setup
-   force were unreachable; one bad job id threw away the whole LLM ranking;
-   saved jobs lost their match badge and reason; checking fit un-saved a job;
-   plus ~15 medium and low fixes.
-6. **Shell layout**: two collapse controls with different jobs, the
-   conversation running to 1192px when the canvas is folded, a stray divider.
+**Two high findings NOT fixed, because both need a decision from Wasim:**
+
+- **The shared SerpAPI budget leaves nothing for the extra passes.**
+  `extraCallsRemaining = max(0, dailyCallBudget - mainPlanLength)`, and the
+  plan is `strategy.queries.slice(0, maxQueries)`, so the plan almost always
+  fills the budget exactly and the remainder is zero. Both the pagination pass
+  and the fallback pass are therefore unreachable on every tier, along with
+  `JOB_FEED_FALLBACK_BUDGET`, `JOB_FEED_PAGINATION_BUDGET` and the `fallbackTo`
+  half of the strategy prompt. The bite: a Free user gets one query, and if it
+  returns nothing there is no rescue and the day is empty. Fixing it means
+  either reserving a call inside the tier budget (one fewer main query) or
+  deleting the two passes. That is a spend decision, and `constants.ts` says
+  the daily query count needs explicit sign-off.
+- **The daily cooldown has no escape hatch.** `firstSetupAfterRun` requires
+  `settings.created_at > latestManualRun.completed_at`, but settings are always
+  provisioned before a run row exists (free users at `server.ts:1192`, premium
+  users throw without settings) and `upsertSettings` preserves `created_at`.
+  The flag can never be true, so a user who edits their roles or countries is
+  locked out until local midnight with the bypass unreachable. Reopening the
+  window costs a SerpAPI run, so it is Wasim's call.
+
+**Refuted, and worth recording so nobody re-raises them:**
+
+- The saved-list join is correctly scoped. `listRankedItemsByJobIds` filters on
+  `user_id`, its only caller derives ids from the caller's own feedback rows,
+  and `chunk(jobIds, D1_MAX_PARAMS - 1)` reserves the hundredth bound parameter
+  for `user_id`. No cross-tenant read.
+- The apply route's double-POST does not produce the duplicate applications
+  seen on staging. See below.
+
+**Still to do:** `/code-review` at `high` on the branch. Only Wasim can invoke
+it.
+
+---
+
+## The eight staging bugs
+
+| # | Bug | State |
+|---|---|---|
+| 1 | Card summary was a bare heading | Fixed, `c6db3306` |
+| 2 | Job ad lists rendered as run-on text | Fixed, `c6db3306` |
+| 3 | Salary chip missing | Fixed, `c6db3306` |
+| 4 | "These role is from your last search." | Fixed, `86d3d75f` |
+| 5 | Duplicate "Machine Learning Reply" application | **Not a bug** |
+| 6 | Tracker opening line under-reported | Fixed, `86d3d75f` |
+| 7 | Settings modal opened for signed-out visitors | Fixed, `86d3d75f` |
+| 8 | Feed header and sidebar badge disagree | **Wasim's call** |
+| 9 | Composer alignment | Verified on staging |
+
+### 1, 2 and 3 were one weakness
+
+Google Jobs strips list markup and hands back the items glued together, and it
+opens plenty of ads with a bare heading. `splitGluedAdText` puts the separators
+back: the provider's own highlight items are exact and go first, and they only
+count where the separator is genuinely missing, which keeps an ad's opening
+paragraph a paragraph. Two boundary rules cover what the items miss, and the
+risky one (a word glued onto a capital) only runs on a long line, only where
+several appear, and never inside a word that carries a capital on purpose.
+Checked over 40 real ads: 57 lines split, no word cut in half, six salaries
+recovered, no summary left empty.
+
+### 5 is not a bug
+
+The `debugger` agent traced it to the real rows. The two
+`application_sessions` were written seven minutes apart on 2026-04-01, one in
+Apply Directly mode and one in Analyze First mode, five weeks before the job
+feed existed. The generated CV, cover letter and follow-up all differ between
+them, so it cannot be one write duplicated, and both read models are
+single-table with no joins. A whole-table scan found eight duplicate
+`(user, title, company)` groups and not one sub-second pair, so the concurrency
+hypothesis has never fired in production.
+
+Left open deliberately: whether generating twice for the same job should reuse
+the existing entry is a product question, not a regression. It would live at
+`src/hooks/useSupabaseSync.ts:466-484` and would silently overwrite the earlier
+CV and cover letter, so it needs a decision on replace-versus-version first.
+
+### 8 is Wasim's call
+
+The two numbers measure different things and both are right. The canvas header
+counts roles in the list; the sidebar badge is `unprocessedCount`, which
+`summary/route.ts:41` defines as roles the user has not **saved**. `hasPending`
+is `unprocessedCount > 0` and does not depend on the run being seen, so the
+badge sits next to Jobs permanently and disagrees with the header the moment
+the user saves anything. No filter definition removes the disagreement: it
+needs a decision on what the badge should count, or whether the header should
+stop competing with it.
+
+---
+
+## Pass 3: four Small gaps landed
+
+Working `BACKEND-GAPS.md` top to bottom, taking only entries marked Small that
+need no schema change and no decision.
+
+- **"Add Berlin" now carries its country.** `countryForCity` reverses
+  `JOB_FEED_CITY_SUGGESTIONS` and tolerates accents, casing and the obvious
+  short forms. An unrecognised city changes nothing.
+- **Reminder emails land on the right day.** The sweep queries a three-day UTC
+  window, the smallest that contains every zone's tomorrow, then judges each
+  candidate in its owner's own timezone. Day arithmetic runs on the day key, so
+  a DST shift cannot skip a day.
+- **Applied rows from before `follow_up_due_at` existed get their reminder.**
+  No backfill, which would have written a different date shape from every other
+  writer. The query returns those rows and the sweep derives the date with the
+  same `defaultFollowUpDue` the tracker shows the user.
+- **"Why it's a match" on saved jobs** was already closed by `62885ddc`. The
+  entry was stale and is now marked closed.
+
+The rest of `BACKEND-GAPS.md` is untouched. Every remaining entry needs a
+schema change, a product decision, an npm package, a Stripe route, an auth
+change or a prompt change, all of which this sweep was told to leave alone.
 
 ---
 
 ## Verification state
 
-- `npx tsc --noEmit`: **0 errors**.
-- `npm run lint`: **72 errors, 61 warnings**, against a **73 / 89** baseline.
-  Below baseline on both counts; no new error or warning in any file touched.
-- Public flows walked at 1440x900 with a clean console: landing, pricing,
-  auth pages, the anonymous guided line, and all five retired routes.
-- Signed-in flows walked on staging on the **Free** account: shell, feed
-  conversation and canvas, job detail, Saved, tracker table and conversation,
-  settings modal (all three panes), kit canvas with the CV tab.
-  Console clean after the deploy.
+- `npx tsc --noEmit`: **0 errors**. Note it needs more than the default Node
+  heap on this machine and OOMs without it, on a clean `HEAD` too, so this is
+  pre-existing and not from these commits. Run it as
+  `NODE_OPTIONS=--max-old-space-size=8192 npx tsc --noEmit`.
+- `npm run lint`: **72 errors, 61 warnings**, unchanged, against a 73 / 89
+  baseline.
+- Deployed to staging as `0102d48f` and walked on the **Free** account: feed
+  conversation and canvas, the Glint job detail (headings, clean bullet lists,
+  prose still prose, salary chip), the tracker table and conversation, the
+  settings modal on `/settings`. Console clean, no React errors.
+- Checked anonymously over HTTP: `/`, `/pricing`, `/login`, `/signup` and all
+  five retired routes return 200 and land on the right settings pane.
+
+### Not verified
+
+- **The Max account.** Only one Chrome browser is connected and it holds the
+  Free account. Reaching the Max account needs a sign-in, which is Wasim's to
+  do.
+- **The settings modal signed out.** Verifying it needs a signed-out session,
+  and the only way there from here is signing Wasim out of his own. The
+  signed-in half was verified (the modal still opens on `/settings` and the
+  URL is rewritten). One click each way from Wasim closes both.
 
 ---
 
 ## What is left
 
-### 1. The adversarial review on `62885ddc` — do this first
-
-Three passes were started (security, logic and races, data integrity) and all
-three died on session limits before reporting. That commit changes D1 queries,
-the saved-list authorization join, a cron that compacts historical rows, and
-the SerpAPI spend path. **It must not go near `main` unreviewed.** Also run
-`/code-review` at `high` on the branch; only Wasim can invoke it.
-
-### 2. Bugs found on staging and not fixed
-
-Found while walking, none of them fixed, all reproducible on the Free account:
-
-1. **A feed card's summary can be a bare heading.** The Glint Tech Solutions
-   card's whole summary reads "About The Role", because the summary takes the
-   ad's opening text without skipping headings.
-2. **Job ad list items render as run-on text.** In the detail view:
-   "$190,000 – $250,000 base salaryCompetitive equity packageFully covered
-   Medical, Dental, and Vision insurance401(k) with company match…". A list
-   is being flattened without separators in `job-ad-text.tsx`.
-3. **The salary chip is missing** on that same card while the detail clearly
-   states the range, because the salary sits inside a run-on paragraph.
-4. **Pluralisation copy bug** in the feed conversation: "These role is from
-   your last search." Should read "This role is…" when the count is one.
-5. **A duplicate application.** "Machine Learning Reply GmbH — Agentic AI
-   Software Engineer" appears twice in the sidebar and twice in the tracker,
-   same title, same 52% match. Two sessions exist for one job. Worth checking
-   against the orphan-session path in `/api/job-feed/apply`.
-6. **The tracker's opening line under-reports.** "Four follow-ups overdue
-   (Ellucian, Revalize)" while the table shows four overdue rows.
-7. **The settings modal opens for signed-out visitors** who hit `/settings`
-   directly: it shows "Sign out" and a credit balance for nobody.
-8. **The feed header and the sidebar badge disagree.** Header says "5 roles",
-   sidebar says 4, because the header count shrinks as the user acts.
-9. **The composer and the message cards were 6px out of alignment.** Fixed in
-   the commit carrying this file; verify it on the next deploy.
-
-### 3. Pass 3, the backend gaps
-
-`BACKEND-GAPS.md` now carries 11 new entries from this sweep on top of what the
-batches left. Every one needs either a schema change or a decision from Wasim.
-The ones that block real users: a saved job stops working after 7 days, and
-deleting an application is gone from the product entirely (batch 4 dropped the
-only delete path, server chain intact and orphaned).
-
-### 4. Not yet pushed to a PR
-
-The branch is committed and pushed. No PR has been opened, and nothing has
-been merged to `main`.
-
----
-
-## Kickoff prompt for the next session
-
-> You are continuing the post-batch sweep of the Useful Apply UX redesign on
-> branch `rebrand/usefulapply`. `main` is off limits. Staging is
-> https://usefulapply.com and is already deployed from this branch.
->
-> Read `docs/ux-audit-2026-08-18/redesign/build/SWEEP-HANDOFF.md` first, then
-> `BACKEND-GAPS.md`. Both are current as of 20 August 2026.
->
-> Do these in order.
->
-> **1. Adversarially review commit `62885ddc`.** It is the job-feed bug pass
-> and it has never been reviewed; three attempts died on session limits. Run
-> up to three parallel `opus` agents with distinct lenses (security and
-> authorization, logic and race conditions, data integrity) against
-> `git show 62885ddc`. Pay particular attention to: the new
-> `listRankedItemsByJobIds` join and its D1 parameter chunking, the narrowed
-> "blocked" filter on the saved list, the shared SerpAPI call budget in
-> `ingestion.ts`, the revived cooldown query, the 60% coverage floor in the
-> ranker, and the retention-compaction helpers moved from `cleanup.ts` into
-> `db/repos/admin.ts`. Fix anything critical or high before doing anything
-> else. Then ask Wasim to run `/code-review` at `high`; you cannot invoke it.
->
-> **2. Fix the eight open bugs** listed under "Bugs found on staging and not
-> fixed" in the handoff. Items 1, 2 and 3 are all the same weakness in
-> `src/components/job-feed/job-ad-text.tsx` and the card summary builder, so
-> do them together. Item 5, the duplicate application, needs investigating
-> before fixing; use the `debugger` agent.
->
-> **3. Then start Pass 3**, the backend gaps, working `BACKEND-GAPS.md` top to
-> bottom and landing only the entries marked Small. Anything needing a schema
-> change or a product decision goes to Wasim, it does not get guessed.
->
-> Rules: surgical edits only, npm only, no new packages. Do not touch Stripe
-> webhook or credit-deduction logic, D1 schema or migrations, Better Auth
-> config, or `src/lib/agents/**` prompts without asking. Copy rules on any
-> user-facing string: no em dashes, contractions, short sentences, no filler,
-> "X, Y and Z".
->
-> Before calling anything done: `npx tsc --noEmit` must be 0, and
-> `npm run lint` must not exceed 72 errors and 61 warnings. Then deploy with
-> `NEXT_PUBLIC_SITE_URL=https://usefulapply.com NEXT_PUBLIC_SITE_STAGE=staging npm run deploy:cf`
-> and verify on staging in the browser. Wasim keeps a Free account and a Max
-> account signed in; the Claude in Chrome tools reach them. Test both tiers,
-> and test anonymously without an account too.
->
-> Commit in logical chunks with conventional commits and push to
-> `rebrand/usefulapply`. Do not open a PR or merge to `main` until step 1 is
-> green.
+1. `/code-review` at `high` on the branch. Wasim only.
+2. Two decisions from the review: the shared SerpAPI budget, and the daily
+   cooldown's unreachable bypass.
+3. Two decisions from the bug list: what the sidebar badge counts (bug 8), and
+   whether a repeat generation for the same job reuses its entry (bug 5).
+4. The rest of Pass 3, all of it gated on one of the above.
+5. No PR has been opened and nothing has been merged to `main`.
