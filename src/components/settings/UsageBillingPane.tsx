@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
 import { formatDayMonth, type DatePrefs } from '@/lib/utils/format-date';
@@ -54,6 +54,9 @@ export function UsageBillingPane() {
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Until the first load lands, `credits` is null and the pane would guess
+  // "free", flashing the wrong plan at a paying user. Hold a spinner instead.
+  const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -66,13 +69,15 @@ export function UsageBillingPane() {
       setTransactions(txResult.transactions ?? []);
     } catch {
       setError('We could not load your usage. Try again in a moment.');
+    } finally {
+      setLoaded(true);
     }
   }, [user]);
 
   useEffect(() => { void load(); }, [load]);
 
-  // The Stripe portal opens in a new tab, so the numbers here can be stale by
-  // the time the user comes back.
+  // Coming back from the Stripe portal or another window, the numbers here
+  // can be stale.
   useEffect(() => {
     const refetch = () => { void load(); };
     window.addEventListener('focus', refetch);
@@ -141,24 +146,22 @@ export function UsageBillingPane() {
     return (await res.json()) as { url?: string; error?: string };
   };
 
+  // Same-tab navigation, like checkout. The old version pre-opened a tab
+  // with window.open(..., 'noopener'), which returns null by spec even when
+  // the tab opens, so the blank tab was orphaned and the current page
+  // navigated too. The portal's return URL brings the user back here.
   const handlePortal = async () => {
     setError(null);
     setBusy('portal');
-    // Open the tab first so the click still counts as a user gesture.
-    const tab = window.open('', '_blank', 'noopener,noreferrer');
     try {
       const data = await post('/api/stripe/create-portal', {});
-      if (data.url) {
-        if (tab) tab.location.href = data.url;
-        else window.location.href = data.url;
-      } else {
-        tab?.close();
+      if (data.url) window.location.href = data.url;
+      else {
         setError('We could not open the billing portal. Try again.');
+        setBusy(null);
       }
     } catch {
-      tab?.close();
       setError('We could not open the billing portal. Try again.');
-    } finally {
       setBusy(null);
     }
   };
@@ -182,6 +185,17 @@ export function UsageBillingPane() {
   const upgradeTarget = isFree ? 'plus' : tier === 'plus' ? 'max' : null;
   // The bar fills with what the month has used, so it grows as credits go.
   const percent = allowance > 0 ? Math.min(100, Math.max(0, ((allowance - total) / allowance) * 100)) : 0;
+
+  if (!loaded) {
+    return (
+      <div>
+        <PaneHeading>Usage &amp; Billing</PaneHeading>
+        <div className="flex min-h-[240px] items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-navy-600" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -226,10 +240,9 @@ export function UsageBillingPane() {
                 type="button"
                 disabled={busy === 'portal'}
                 onClick={() => { void handlePortal(); }}
-                className="inline-flex h-9 flex-shrink-0 items-center gap-2 rounded-full border border-cream-200 bg-cream-50 px-4 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white disabled:text-warm-gray cursor-pointer"
+                className="inline-flex h-9 flex-shrink-0 items-center rounded-full border border-cream-200 bg-cream-50 px-4 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white disabled:text-warm-gray cursor-pointer"
               >
                 Manage billing
-                <ExternalLink className="h-4 w-4" />
               </button>
             </div>
             <div className="flex items-center justify-between gap-4 px-5 py-4">

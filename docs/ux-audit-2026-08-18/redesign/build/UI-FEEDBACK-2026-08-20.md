@@ -254,6 +254,33 @@ wordmark keep their fonts. Design system typography section updated in the
 same commit. Found along the way: `--font-sans` named Inter but nothing
 loaded it, so the whole app was actually rendering the OS system font.
 
+## 12. Manage billing opened a blank extra tab AND navigated the page (FIXED)
+
+- **Proof:** reported by Wasim on staging, second batch.
+- **Seen:** clicking Manage billing in Usage & Billing opened a blank new
+  tab, and the Stripe portal opened in the current tab.
+- **Wrong:** `handlePortal` pre-opened a tab with
+  `window.open('', '_blank', 'noopener,noreferrer')`. With `noopener` the
+  call returns null by spec even when the tab opens, so the blank tab was
+  orphaned (never got the URL, never closed) and the null handle sent the
+  code down the same-tab fallback too.
+- **Fixed:** the portal now navigates the current tab, same as checkout;
+  the portal's return URL brings the user back to the Usage pane. The
+  external-link icon came off the button because it no longer opens a tab.
+- **Where:** `src/components/settings/UsageBillingPane.tsx` (`handlePortal`).
+
+## 13. Usage & Billing flashes the wrong plan while loading (FIXED)
+
+- **Proof:** reported by Wasim on staging, second batch.
+- **Seen:** entering the Usage pane blinks something else for a moment
+  before the real content appears.
+- **Wrong:** `credits` starts null and the tier defaulted to `'free'`, so a
+  paying user saw the Free-plan row and "0 of 4 credits" until the fetch
+  landed.
+- **Fixed:** the pane holds a spinner until the first load resolves, then
+  renders once with the real plan.
+- **Where:** `src/components/settings/UsageBillingPane.tsx` (`loaded` state).
+
 ---
 
 ## Not yet documented
