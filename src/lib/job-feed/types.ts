@@ -47,9 +47,9 @@ export interface JobFeedOverviewResponse {
   // Most recent run of any kind — used for display state (generating,
   // error banner, preview items).
   latestRun: JobFeedRun | null;
-  // Most recent *manual* completed run — the only source the "Run for
-  // today" 24h cooldown should consider. Scheduled/system runs must not
-  // lock the button.
+  // Most recent completed run the user started, which is the only source the
+  // "Run for today" 24h cooldown considers. Preview mode's fake run sits
+  // outside that list so it never locks the button.
   latestManualRun: JobFeedRun | null;
   feedRun: JobFeedRun | null;
   latestRunDiagnostics: JobFeedRunDiagnostics | null;

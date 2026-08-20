@@ -1159,7 +1159,7 @@ export async function runJobFeedFoundationWorkflow(params: {
   force?: boolean;
   orchestrator?: JobFeedRunDiagnostics['orchestrator'];
 }): Promise<JobFeedRunWorkflowResult> {
-  const { userId, triggerSource = 'scheduled', now = new Date(), force = false, orchestrator = 'direct' } = params;
+  const { userId, triggerSource = 'manual_user', now = new Date(), force = false, orchestrator = 'direct' } = params;
 
   // Resolve the subscription tier early so we can auto-provision settings for
   // free users who have never gone through the (premium-only) settings UI.

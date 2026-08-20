@@ -37,19 +37,11 @@ export async function POST(request: NextRequest) {
     const now = new Date();
     const todayKey = getLocalDateKey(now, userTimeZone);
 
-    // One manual run per local calendar day. If today already has a
-    // completed manual run, the next window opens at local midnight.
+    // One run per local calendar day, and the user starts it. If today already
+    // has a completed run, the next window opens at local midnight. There is no
+    // bypass: an edit to roles or countries costs no extra SerpAPI call, it just
+    // applies to the next run.
     const latestManualRun = await getLatestManualCompletedJobFeedRunAdmin(user.id);
-    // First-time setup on an account whose feed already ran today (a free
-    // auto-feed before the user configured anything). The settings row is
-    // created once and never deleted, so this can only be true for one run;
-    // ordinary edits do not reopen the daily window.
-    const settings = await getSettings(user.id);
-    const firstSetupAfterRun = Boolean(
-      settings?.created_at &&
-      latestManualRun?.completed_at &&
-      settings.created_at > latestManualRun.completed_at
-    );
     const cooldown = getCalendarDayCooldown({
       latestManualLocalDate: latestManualRun?.local_date ?? null,
       todayKey,
@@ -57,7 +49,7 @@ export async function POST(request: NextRequest) {
       timeZone: userTimeZone,
     });
 
-    if (cooldown.blocked && !firstSetupAfterRun) {
+    if (cooldown.blocked) {
       const diagnostics = getJobFeedRunDiagnostics(latestManualRun ?? null);
       return NextResponse.json({
         success: true,
@@ -85,9 +77,6 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       triggerSource: 'manual_user',
       now,
-      // Only a first-time setup after today's run may force a rerun; the
-      // workflow otherwise skips a completed same-day run.
-      force: firstSetupAfterRun,
       orchestrator: 'direct',
     });
 

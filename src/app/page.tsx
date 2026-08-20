@@ -35,13 +35,13 @@ const MOMENTS = [
     alt: 'The what-changed view of a tailored CV, showing each edit before and after with an ATS score',
   },
   {
-    title: 'Roles picked for you every morning',
-    body: 'Five on Free, twenty on Plus. One click checks the fit, one more writes the kit, and the tracker fills itself.',
+    title: 'Roles picked for you, whenever you ask',
+    body: 'Five on Free, twenty on Plus, once a day. One click checks the fit, one more writes the kit, and the tracker fills itself.',
     // PLACEHOLDER: still the flow-7 mock. The feed reads from the server, so the
     // real shot needs a signed-in account with a feed run. Replaced in the
     // end-to-end pass (BACKEND-GAPS, batch 5).
     image: '/images/moments/daily-feed.webp',
-    alt: "A morning job feed listing today's roles with match strength, salary and a check-fit button on each",
+    alt: "A job feed listing today's roles with match strength, salary and a check-fit button on each",
   },
 ];
 

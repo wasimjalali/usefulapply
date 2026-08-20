@@ -782,7 +782,7 @@ function buildOpening(params: {
       return [message(
         overview?.state === 'paused'
           ? 'Your feed is paused. Turn it back on and I\'ll use these settings on the next run.'
-          : 'Everything\'s set. I\'ll search public job boards for you and rank what I find against your CV. You run it when you want a new list.',
+          : 'Everything\'s set. I\'ll search public job boards for you and rank what I find against your CV. Run it once a day, whenever you want a new list.',
         [{
           id: overview?.state === 'paused' ? 'resume-feed' : 'build-feed',
           label: overview?.state === 'paused' ? 'Turn it back on' : 'Build my feed',
@@ -917,11 +917,11 @@ function buildOpening(params: {
       }
 
       const body = ranToday
-        ? `Good morning. ${
+        ? `${
             searchCount === null
               ? 'I searched for you'
               : `I ran ${searchCount} ${plural(searchCount, 'search', 'searches')} for you`
-          } and found ${todayCount} ${plural(todayCount, 'new role', 'new roles')}.${strongLine}${dupLine}`
+          } and found ${todayCount} ${plural(todayCount, 'new role', 'new roles')}.${strongLine}${dupLine} That's your run for today. The next one opens tomorrow.`
         : `${plural(allJobs.length, 'This role is', 'These roles are')} from your last search.${strongLine} There is no automatic morning run. I can search again now.`;
 
       return [message(

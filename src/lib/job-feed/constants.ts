@@ -1,9 +1,11 @@
 export const PREMIUM_JOB_FEED_TIERS = ['plus', 'max'] as const;
 export const JOB_FEED_PROVIDER = 'serpapi' as const;
-// The once-per-local-day cooldown is driven only by runs the user kicked off
-// themselves. Scheduled/system runs must not lock the manual button. These are
-// the exact values written to job_feed_runs.trigger_source by the run routes,
-// so the cooldown query and the workflow must both read from this list.
+// The once-per-local-day cooldown is driven by runs the user kicked off, which
+// is all of them: the feed runs in real time on a click, there is no scheduler.
+// These are the exact values written to job_feed_runs.trigger_source by the run
+// routes, so the cooldown query and the workflow must both read from this list.
+// Preview mode writes a value outside this list on purpose, so its fake run
+// never locks the button.
 export const MANUAL_JOB_FEED_TRIGGER_SOURCES = [
   'manual_user',
   'manual_debug',
