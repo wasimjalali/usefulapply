@@ -7,6 +7,12 @@
  */
 
 import type { JobFeedFeedItem, JobFeedHighlight } from '@/lib/job-feed/types';
+import {
+  INLINE_AD_HEADINGS,
+  looksLikeAdHeading,
+  splitGluedAdText,
+  straightenQuotes,
+} from './feed-format';
 
 export function workModeLabel(value: JobFeedFeedItem['workMode']): string {
   switch (value) {
@@ -21,12 +27,6 @@ export function workModeLabel(value: JobFeedFeedItem['workMode']): string {
   }
 }
 
-// Common section headers job boards use. When a description arrives as one
-// run-on blob (no line breaks), we put these on their own line so the line
-// parser below can turn them into real headings + bullet lists. No lookbehind
-// (older Safari throws on it at parse time, which would crash this component).
-const INLINE_SECTION_HEADERS = /\s*\b(Key Responsibilities|Responsibilities|Minimum Qualifications|Preferred Qualifications|Qualifications|Requirements|What You'?ll Do|What You Will Do|What We Offer|What You Bring|What We're Looking For|Who You Are|Your Role|Your Profile|About The Role|About You|About Us|Benefits|Perks|Nice To Have|Compensation)\s*:/gi;
-
 interface ParsedDescription {
   nodes: React.ReactNode[];
   /** True when the text produced real structure (a list, a heading, or more
@@ -34,15 +34,15 @@ interface ParsedDescription {
   structured: boolean;
 }
 
-function parseDescriptionText(text: string): ParsedDescription {
-  const normalized = text
+function parseDescriptionText(text: string, knownItems: string[]): ParsedDescription {
+  const normalized = straightenQuotes(text)
     .replace(/\r\n?/g, '\n')
     .replace(/\\r\\n|\\n/g, '\n')
     .replace(/\\t/g, ' ')
     // Break a run-on blob around known section headers so it segments even
     // without source line breaks: header on its own line (so it renders as a
     // heading), content on the next.
-    .replace(INLINE_SECTION_HEADERS, (_match, header: string) => `\n\n${header}:\n`);
+    .replace(INLINE_AD_HEADINGS, (_match, header: string) => `\n\n${header}:\n`);
 
   const lines = normalized.split(/\n/).map((line) => line.trimEnd());
   const nodes: React.ReactNode[] = [];
@@ -81,19 +81,23 @@ function parseDescriptionText(text: string): ParsedDescription {
     }
 
     const trimmed = line.trim();
-    const isHeader = (
-      (trimmed.endsWith(':') && trimmed.length < 80) ||
-      (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && trimmed.length < 80 && /[A-Z]/.test(trimmed))
-    );
 
-    if (isHeader) {
+    if (looksLikeAdHeading(trimmed)) {
       flushList();
       headingCount += 1;
       nodes.push(
         <h4 key={`heading-${nodes.length}`} className="mb-1.5 mt-4 font-semibold text-charcoal">
-          {trimmed}
+          {trimmed.replace(/:$/, '')}
         </h4>
       );
+      continue;
+    }
+
+    // Boards strip list markup and leave the items glued together. When we can
+    // put the separators back, the line was a list, so render it as one.
+    const pieces = splitGluedAdText(trimmed, knownItems);
+    if (pieces.length > 1) {
+      currentList.push(...pieces);
       continue;
     }
 
@@ -140,8 +144,11 @@ export function JobFeedDescription({
   text: string | null;
   highlights?: JobFeedHighlight[];
 }) {
-  const parsed = text ? parseDescriptionText(text) : { nodes: [], structured: false };
   const usableHighlights = highlights.filter((section) => section.items.length > 0);
+  const knownItems = usableHighlights.flatMap((section) => section.items);
+  const parsed = text
+    ? parseDescriptionText(text, knownItems)
+    : { nodes: [], structured: false };
 
   // The free-text description already reads as structured sections — trust it.
   if (parsed.structured) {

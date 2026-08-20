@@ -15,7 +15,7 @@ import type {
   JobFeedSettings,
   Json,
 } from '@/lib/supabase/types';
-import { getLocalDateKey, isJobFeedConfigured, isSafeExternalUrl } from '@/lib/job-feed/helpers';
+import { extractSalaryTextFromAd, getLocalDateKey, isJobFeedConfigured, isSafeExternalUrl } from '@/lib/job-feed/helpers';
 import { getJobFeedTierLimits, JOB_FEED_DEFAULT_SETTINGS, JOB_FEED_INBOX_RETENTION_DAYS } from '@/lib/job-feed/constants';
 import type {
   JobFeedFeedbackAction,
@@ -1813,6 +1813,12 @@ function toFeedItem(
 ): JobFeedFeedItem {
   const sourceIdentifiers = isJsonRecord(job.source_identifiers) ? job.source_identifiers : {};
   const displayCompany = ranking?.companyDisplay?.trim() || job.company;
+  const highlights = extractHighlights(sourceIdentifiers.highlights);
+  // Google Jobs leaves detected_extensions.salary empty on plenty of ads that
+  // state the range in the body, so fall back to the ad text before giving up
+  // on the chip.
+  const salaryText = job.salary_text
+    ?? extractSalaryTextFromAd(job.description, highlights.flatMap((section) => section.items));
 
   return {
     id: job.id,
@@ -1821,9 +1827,9 @@ function toFeedItem(
     location: job.location_text,
     workMode: job.work_mode,
     employmentType: job.employment_type,
-    salaryText: job.salary_text,
+    salaryText,
     description: job.description,
-    highlights: extractHighlights(sourceIdentifiers.highlights),
+    highlights,
     applyUrl: job.apply_url && isSafeExternalUrl(job.apply_url) ? job.apply_url : null,
     sourceUrl: job.source_url && isSafeExternalUrl(job.source_url) ? job.source_url : null,
     via: typeof sourceIdentifiers.via === 'string' ? sourceIdentifiers.via : null,

@@ -579,3 +579,69 @@ function asNullableInteger(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null;
   return asInteger(value);
 }
+
+// Currencies job boards actually quote in, plus the bare symbols. Anything
+// outside this list is left alone rather than guessed at.
+const SALARY_CURRENCY = String.raw`(?:[$€£¥₹]|\b(?:USD|EUR|GBP|CHF|SEK|NOK|DKK|PLN|CZK|CAD|AUD|NZD|SGD|INR)\b)`;
+// The K/M suffix must not run into a word, or "$124,000.00 Minimum" reads as
+// 124 million.
+const SALARY_AMOUNT = String.raw`\d[\d.,]*(?:\s?[KkMm](?![A-Za-z]))?`;
+const SALARY_RANGE = new RegExp(
+  `${SALARY_CURRENCY}\\s*${SALARY_AMOUNT}(?:\\s*(?:-|–|—|to)\\s*(?:${SALARY_CURRENCY}\\s*)?${SALARY_AMOUNT})?`,
+  'i'
+);
+const HOURLY_MARKER = /(?:\/\s*(?:hr|hour)|per hour|an hour|hourly)/i;
+
+/** "190,000" and "60.000" are both 60k-style thousands; "1.5" is a decimal. */
+function toSalaryNumber(amount: string): number {
+  const cleaned = amount.replace(/[^\d.,]/g, '');
+  const withoutGrouping = cleaned.replace(/[.,](?=\d{3}(?:\D|$))/g, '');
+  const value = Number(withoutGrouping.replace(',', '.'));
+  if (!Number.isFinite(value)) return 0;
+  if (/[Mm]\s*$/.test(amount)) return value * 1_000_000;
+  if (/[Kk]\s*$/.test(amount)) return value * 1_000;
+  return value;
+}
+
+function matchSalaryText(text: string): string | null {
+  const match = SALARY_RANGE.exec(text);
+  if (!match) return null;
+
+  const amounts = match[0].match(new RegExp(SALARY_AMOUNT, 'g')) ?? [];
+  const magnitude = Math.max(...amounts.map(toSalaryNumber), 0);
+  const tail = text.slice(match.index + match[0].length, match.index + match[0].length + 24);
+  const hourly = HOURLY_MARKER.test(tail);
+
+  // A yearly figure under a thousand is a benefit ("$500 learning budget"),
+  // not pay. An hourly rate is allowed to be small.
+  if (!hourly && magnitude < 1000) return null;
+  if (hourly && magnitude < 5) return null;
+
+  return match[0]
+    // Normalise the separator so the chip never carries an em dash.
+    .replace(/\s*[-–—]\s*/g, ' - ')
+    // "$ 110,300" reads as a typo on a chip.
+    .replace(/([$€£¥₹])\s+/g, '$1')
+    .replace(/\s+/g, ' ')
+    // A sentence's full stop is not part of the figure.
+    .replace(/[.,;:]+$/, '')
+    .trim();
+}
+
+/**
+ * Boards often leave the pay out of the structured salary field and state it in
+ * the ad text instead, so the card shows no salary chip while the detail view
+ * clearly names a range. Pull it back out of the provider's highlight items
+ * first, since those are clean, then the description. Returns null when nothing
+ * plausible is there: no chip beats a guessed one.
+ */
+export function extractSalaryTextFromAd(
+  description: string | null | undefined,
+  highlightItems: readonly string[] = []
+): string | null {
+  for (const item of highlightItems) {
+    const found = matchSalaryText(item);
+    if (found) return found;
+  }
+  return description ? matchSalaryText(description) : null;
+}
