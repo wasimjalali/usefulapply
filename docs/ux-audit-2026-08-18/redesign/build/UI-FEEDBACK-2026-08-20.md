@@ -4,9 +4,9 @@ Wasim walked the app on staging and reported what he saw, with screenshots.
 Screenshots live in `ui-feedback/` next to this file. Each entry records what
 he saw, what is wrong, and where it lives in the code.
 
-**Status: collecting.** More batches may follow. When Wasim says the list is
-complete, this file gets an implementation plan section and the fixes land
-through the normal loop (tsc, lint, staging deploy, verify).
+**Status: all eleven entries built, 20 Aug 2026.** Each entry below carries
+its commit. Entry 2 is rendering-side only; the image retakes happen with
+Wasim on the finished UI. More batches append here in the same format.
 
 **Standing instruction from Wasim:** while fixing these, document and fix any
 other UI, UX or wiring bug found along the way, and apply improvements where
@@ -72,9 +72,17 @@ end-to-end pass (BACKEND-GAPS.md C1).
 - **Where:** `src/app/globals.css:83-141` (`::-webkit-scrollbar*` plus the
   Firefox fallback and `.scrollbar-on-dark`).
 
-**Fixed** in `c081a756`. Thumb is `#E7E0D2` (soft white-family) at rest,
-`#C9BDA4` deeper sand on hover, no navy anywhere. Firefox fallback follows.
-The design system's scrollbar rule was rewritten in the same commit.
+**Fixed twice.** `c081a756` recolored the thumb, but two problems came
+back from staging: the deploy shipped a stale-cached CSS chunk that still
+held the old sand-and-navy rules (repo greps clean, the built chunk did
+not), and Wasim tightened the spec to an overlay bar. Final behavior:
+invisible at rest, revealed while scrolling or while hovering the
+scroller (soft white, faint navy hairline so it reads on white
+documents), solid white when the thumb itself is hovered or grabbed.
+`ScrollbarReveal` stamps `data-scrolling` for the scroll-reveal half.
+Firefox keeps an always-visible soft white thin bar (it has no per-state
+scrollbar colors). Redeployed with a cleared build cache and the served
+CSS chunk verified by hand.
 
 ## 4. Canvas collapse toggle jumps around (FIXED)
 

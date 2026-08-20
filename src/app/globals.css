@@ -82,21 +82,19 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Custom scrollbar - brand styled.
-   12px, not 8px: the dashboard puts a drag-to-resize sash immediately to the
-   right of the document panel's scrollbar, and an 8px target sitting flush
-   against a draggable seam is too easy to miss. The transparent border keeps
-   the thumb reading as 8px while the track stays 12px wide and grabbable.
-   The thumb is a soft white-family tone (#E7E0D2, between cream-200 and
-   cream-300). The earlier sand thumb (#C4B69C) with a navy-600 hover read
-   louder than every surface around it; Wasim asked for a thumb that sits
-   inside the cream family and only firms up on hover. Hover is #C9BDA4, a
-   deeper sand: clearly stronger, still warm, never navy.
-   The track is transparent: an opaque cream band would paint a warm 12px
-   stripe down every white document surface and every dark landing section.
-   Chrome paints the scroller's own background under the gutter, so the 2px
-   transparent border resolves to a flat colour and the thumb reads as a clean
-   8px pill on all three surface roles. */
+/* Custom scrollbar - overlay style.
+   Invisible at rest, like the macOS overlay bar. It appears while the
+   pointer is over a scroller or while that scroller is actually scrolling
+   (ScrollbarReveal stamps data-scrolling for the second case), as a soft
+   white pill, and turns solid white when the thumb itself is hovered. The
+   faint navy inset hairline keeps the white pill findable on white
+   document surfaces, where a plain white thumb would vanish.
+   12px, not 8px: the dashboard puts a drag-to-resize sash immediately to
+   the right of the document panel's scrollbar, and an 8px target sitting
+   flush against a draggable seam is too easy to miss. The transparent
+   border keeps the thumb reading as 8px while the track stays 12px wide
+   and grabbable. The track is transparent: an opaque band would paint a
+   12px stripe down every surface. */
 ::-webkit-scrollbar {
   width: 12px;
   height: 12px;
@@ -107,35 +105,46 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #E7E0D2; /* soft white-family, between cream-200 and cream-300 */
+  background: transparent; /* invisible until revealed below */
   border-radius: 6px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 
-/* The background shorthand above resets background-clip, so repeat it here or
-   the thumb jumps from 8px to 12px on hover. */
-::-webkit-scrollbar-thumb:hover {
-  background: #C9BDA4; /* deeper sand, stronger but still warm */
+/* Reveal: pointer over the scroller, or the scroller is scrolling. The
+   background shorthand resets background-clip, so it repeats everywhere. */
+:hover::-webkit-scrollbar-thumb,
+[data-scrolling]::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.75); /* soft white */
   background-clip: padding-box;
+  box-shadow: inset 0 0 0 1px rgba(30, 58, 95, 0.12);
+}
+
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
+  background: #FFFFFF; /* stronger white while grabbed or hovered */
+  background-clip: padding-box;
+  box-shadow: inset 0 0 0 1px rgba(30, 58, 95, 0.2);
 }
 
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
 
-/* Dark scroll surfaces. The palette above is tuned for cream and white, where
-   darker means more prominent. On a navy panel that inverts: navy-600 on
-   navy-700 is 1.18:1, so hovering would make the thumb disappear. Flip the
-   ramp so hover still means brighter: cream-300 at rest, white on hover. */
-.scrollbar-on-dark::-webkit-scrollbar-thumb {
-  background: #EBE4D8; /* cream-300 */
+/* Dark scroll surfaces keep the same overlay behavior; the hairline goes,
+   white already carries on navy. */
+.scrollbar-on-dark:hover::-webkit-scrollbar-thumb,
+.scrollbar-on-dark[data-scrolling]::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.45);
   background-clip: padding-box;
+  box-shadow: none;
 }
 
-.scrollbar-on-dark::-webkit-scrollbar-thumb:hover {
+.scrollbar-on-dark::-webkit-scrollbar-thumb:hover,
+.scrollbar-on-dark::-webkit-scrollbar-thumb:active {
   background: #FFFFFF;
   background-clip: padding-box;
+  box-shadow: none;
 }
 
 /* Firefox ignores ::-webkit-scrollbar, so it needs the standard properties.
@@ -145,13 +154,15 @@ body {
    The guard is a Firefox-only property, NOT @supports selector(::-webkit-
    scrollbar): Firefox 153 recognizes that selector while still not honouring
    it, so a selector() test lands on the wrong side.
+   Firefox has no per-state scrollbar colors, so it keeps an always-visible
+   soft white thumb instead of the overlay reveal.
    scrollbar-color is inherited, so html carries it through the tree.
    scrollbar-width is not, hence the universal selector: without it Firefox
    draws a ~16px solid bar where Chrome draws an 8px pill inside a 12px
    gutter. .scrollbar-hide still wins, a class beats the universal selector. */
 @supports (-moz-orient: inline) {
   html {
-    scrollbar-color: #E7E0D2 transparent; /* soft white-family thumb */
+    scrollbar-color: rgba(255, 255, 255, 0.75) transparent; /* soft white */
   }
 
   * {
@@ -159,7 +170,7 @@ body {
   }
 
   .scrollbar-on-dark {
-    scrollbar-color: #EBE4D8 transparent; /* cream-300 thumb */
+    scrollbar-color: rgba(255, 255, 255, 0.6) transparent;
   }
 }
 

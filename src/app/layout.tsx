@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ScrollbarReveal } from "@/components/ScrollbarReveal";
 import { ToastProvider } from "@/components/ui/Toast";
 import { PostHogProvider } from "@/providers/PostHogProvider";
 import PostHogPageView from "@/providers/PostHogPageView";
@@ -198,6 +199,7 @@ export default function RootLayout({
         className={`${inter.variable} ${plusJakarta.variable} antialiased`}
         suppressHydrationWarning
       >
+        <ScrollbarReveal />
         <PostHogProvider>
           <AuthProvider>
             <PostHogPageView />
