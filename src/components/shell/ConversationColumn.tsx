@@ -1,6 +1,6 @@
 'use client';
 
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { PanelLeftOpen } from 'lucide-react';
 import { ChatPanel } from '@/components/ChatPanel';
 import { FeedConversation } from '@/components/job-feed/FeedConversation';
 import { TrackerConversation } from '@/components/tracker/TrackerConversation';
@@ -26,6 +26,11 @@ export function ConversationColumn({ onTabChange }: ConversationColumnProps) {
   // survive a trip to either one.
   const showFeed = activeTab === 'jobs';
   const showTracker = activeTab === 'tracker';
+
+  // Folding the canvas hands this column the whole window. The conversation is
+  // a reading column, so centre it and cap it instead of letting the cards and
+  // the composer run to 1200px.
+  const readingWidth = canvasCollapsed ? 'mx-auto w-full max-w-[760px]' : 'w-full';
 
   const title = currentSession
     ? [currentSession.company, currentSession.jobTitle].filter(Boolean).join(', ') || 'New application'
@@ -65,24 +70,20 @@ export function ConversationColumn({ onTabChange }: ConversationColumnProps) {
         canvasCollapsed ? 'min-w-0 flex-1' : 'w-[520px] flex-shrink-0'
       }`}
     >
-      <button
-        type="button"
-        onClick={() => setCollapsed(true)}
-        className="absolute right-0 top-1/2 z-10 translate-x-1/2 -translate-y-1/2 rounded-full border border-cream-200 bg-cream-50 p-1 text-warm-gray shadow-sm hover:text-navy-700 cursor-pointer"
-        aria-label="Hide the conversation"
-      >
-        <PanelLeftClose className="h-3.5 w-3.5" />
-      </button>
       {/* Hidden rather than unmounted, like the application conversation below:
           unmounting tears down the feed's run poller and refires a full
           overview load on every visit, which flashes the loading state over a
           feed that is already on screen. */}
-      <div className={`h-full w-full min-w-0 ${showFeed ? 'flex' : 'hidden'}`}>
+      <div className={`h-full min-w-0 ${readingWidth} ${showFeed ? 'flex' : 'hidden'}`}>
         <FeedConversation />
       </div>
-      {showTracker && <TrackerConversation />}
+      {showTracker && (
+        <div className={`flex h-full min-w-0 ${readingWidth}`}>
+          <TrackerConversation />
+        </div>
+      )}
       <section
-        className={`h-full w-full min-w-0 flex-col border-r border-cream-200 bg-cream-50 ${
+        className={`h-full min-w-0 flex-col border-r border-cream-200 bg-cream-50 ${readingWidth} ${
           showFeed || showTracker ? 'hidden' : 'flex'
         }`}
       >
