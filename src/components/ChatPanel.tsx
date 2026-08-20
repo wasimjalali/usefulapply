@@ -338,7 +338,9 @@ export function ChatPanel({
   useEffect(() => {
     if (jdFocusRequest === handledJdFocusRef.current) return;
     handledJdFocusRef.current = jdFocusRequest;
-    heroTextareaRef.current?.focus();
+    // preventScroll: focusing scrolls the element into view, and on a browser
+    // whose 100vh exceeds the visible viewport that drags the whole page down.
+    heroTextareaRef.current?.focus({ preventScroll: true });
     setHeroFocusRing(true);
     const t = setTimeout(() => setHeroFocusRing(false), 1200);
     return () => clearTimeout(t);
@@ -1068,7 +1070,10 @@ export function ChatPanel({
           // The dashboard's resize sash overlays this panel's left edge and
           // forwards wheel events here, so it needs to find this scroller.
           data-chat-scroll
-          className={`flex-1 overflow-auto space-y-4 relative ${
+          // Folding the canvas widens this column to the whole window. The
+          // surface stays full width; the cards inside it cap and centre so
+          // they line up with the composer instead of running edge to edge.
+          className={`flex-1 overflow-auto space-y-4 relative [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[760px] ${
             isDesktopDocked ? 'px-4 pt-4 pb-3' : 'p-4'
           }`}
         >
@@ -1584,7 +1589,7 @@ export function ChatPanel({
 
         {/* Input Area — hidden while the launchpad owns the JD input */}
         {(spine || !isLaunchpadState) && (
-        <div className={isDesktopDocked || spine ? 'border-t border-cream-200 bg-cream-50 px-5 pt-2.5 pb-4' : ''}>
+        <div className={isDesktopDocked || spine ? 'border-t border-cream-200 bg-cream-50 px-4 pt-2.5 pb-4 [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[760px]' : ''}>
           <ChatInput
             value={inputValue}
             onChange={setInputValue}

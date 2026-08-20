@@ -156,14 +156,14 @@ export default function Dashboard() {
 
   if (!mounted || isLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-cream-100">
+      <div className="h-dvh flex items-center justify-center bg-cream-100">
         <Loader2 className="w-8 h-8 animate-spin text-navy-600" />
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-cream-100">
+    <div className="h-dvh overflow-hidden flex flex-col bg-cream-100">
       {/* The gear opens this over whatever is on screen, guided line included. */}
       <SettingsModal />
       {!isNarrow && (

@@ -27,14 +27,9 @@ export function ConversationColumn({ onTabChange }: ConversationColumnProps) {
   const showFeed = activeTab === 'jobs';
   const showTracker = activeTab === 'tracker';
 
-  // Folding the canvas hands this column the whole window. The conversation is
-  // a reading column, so centre it and cap it instead of letting the cards and
-  // the composer run to 1200px.
   // The right border divides this column from the canvas. With the canvas
   // folded there is nothing to divide, and it reads as a stray rule.
-  const readingWidth = canvasCollapsed
-    ? 'mx-auto w-full max-w-[760px]'
-    : 'w-full border-r border-cream-200';
+  const readingWidth = canvasCollapsed ? 'w-full' : 'w-full border-r border-cream-200';
 
   const title = currentSession
     ? [currentSession.company, currentSession.jobTitle].filter(Boolean).join(', ') || 'New application'

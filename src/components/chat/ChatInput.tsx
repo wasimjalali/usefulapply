@@ -39,7 +39,8 @@ export function ChatInput({
   useEffect(() => {
     if (focusSignal === handledFocusSignalRef.current) return;
     handledFocusSignalRef.current = focusSignal;
-    textareaRef.current?.focus();
+    // preventScroll: see the note on the hero textarea in ChatPanel.
+    textareaRef.current?.focus({ preventScroll: true });
   }, [focusSignal]);
 
   useLayoutEffect(() => {
