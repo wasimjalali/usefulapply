@@ -25,6 +25,9 @@ The chat becomes the control surface of the product. gpt-oss-120b (now serving c
 4. **Document inventory**: "which CV am I using, what did I upload?" Lists primary CV, master CV, certifications.
 5. **Feed digest**: "anything strong in today's feed?" Reads latest run's ranked items.
 6. **Navigate**: "take me to the tracker / documents / billing." Returns a navigation action the client executes.
+7. **Morning briefing**: "what should I do today?" One composed answer from due follow-ups, upcoming interviews and new strong feed matches.
+
+**Suggested prompts in the chat empty state.** When a chat (or a new application) starts, show example prompt chips that teach these capabilities. The set adapts to state: with a fresh job ad present, lead with "Analyze this job description" and "How well do I fit this role?"; otherwise lead with "What should I do today?" (the briefing), "Which follow-ups are due?", "Refresh my job feed". Clicking a chip sends it as the message. Copy follows the app voice rules.
 
 ### Phase 2 — tracker writes (unify with existing tracker chat)
 7. **Status changes**: "mark Bosch as interviewing", "Siemens rejected me." Already live in tracker chat; moves into the unified tool registry so the main chat can do it too.
