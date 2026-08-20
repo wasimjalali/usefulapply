@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { normalizeJobFeedSettingsInput } from '@/lib/job-feed/helpers';
-import { JOB_FEED_MIRRORED_ROLE_LIMIT } from '@/lib/job-feed/constants';
+import { countriesImpliedByNewCities, normalizeJobFeedSettingsInput } from '@/lib/job-feed/helpers';
+import { JOB_FEED_MIRRORED_ROLE_LIMIT, legacyMarketFromCountries } from '@/lib/job-feed/constants';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
@@ -46,6 +46,17 @@ export async function PUT(request: NextRequest) {
     }
 
     const existingSettings = await getSettings(user.id);
+
+    // A city named for the first time brings its country with it. Scoped to
+    // new cities so unchecking a country still sticks.
+    const targetCountries = countriesImpliedByNewCities(
+      normalized.data.target_cities,
+      existingSettings?.target_cities ?? [],
+      normalized.data.target_countries,
+    );
+    // The legacy scalar has to follow the list it is derived from, or adding
+    // Toronto would leave the market reading "us".
+    const targetMarket = legacyMarketFromCountries(targetCountries);
 
     const consentAcceptedAt = existingSettings?.consent_accepted_at
       ?? (normalized.data.consent_accepted ? new Date().toISOString() : null);
@@ -95,12 +106,12 @@ export async function PUT(request: NextRequest) {
         consent_accepted_at: consentAcceptedAt,
         user_timezone: normalized.data.user_timezone,
         // New multi-select columns — primary source of truth for the feed.
-        target_countries: normalized.data.target_countries,
+        target_countries: targetCountries,
         target_cities: normalized.data.target_cities,
         remote_preferences: normalized.data.remote_preferences,
         seniority_targets: seniorityTargets,
         // Legacy scalar columns — kept in sync so older code paths keep working.
-        target_market: normalized.data.target_market,
+        target_market: targetMarket,
         remote_preference: normalized.data.remote_preference,
         seniority_target: seniorityTarget,
         // Shared arrays — AI-mirrored where a profile exists.
@@ -133,7 +144,7 @@ export async function PUT(request: NextRequest) {
         employment_types: employmentTypes,
         target_roles: targetRoles,
         user_skills: userSkills,
-        target_market: normalized.data.target_market,
+        target_market: targetMarket,
         seniority_target: seniorityTarget,
       });
     } catch (prefError) {

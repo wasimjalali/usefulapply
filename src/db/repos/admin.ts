@@ -561,9 +561,11 @@ export async function listInterviewReminderCandidates(
  * Follow-ups that have come due, plus the ones that never got a stored date.
  * An Applied row from before follow_up_due_at was written still shows the user
  * a follow-up date derived from created_at, so the sweep has to see it too or
- * the email the Notifications toggle promises never arrives. The exact
- * business-day maths stays in the sweep, which uses the same helper the
- * tracker does; the two created_at bounds are only a coarse band so the query
+ * the email the Notifications toggle promises never arrives. The sweep derives
+ * it with the same helper the tracker does, so the two agree to within a day:
+ * addBusinessDays walks with runtime-local date methods, which is UTC on the
+ * Worker and the reader's own zone in the browser, so a created_at near a day
+ * boundary can land the two on different weekdays; the two created_at bounds are only a coarse band so the query
  * does not drag in rows that cannot possibly be due yet, and does not drag in
  * every Applied row ever written. Without the lower bound the first sweep after
  * this shipped would have mailed 97 rows going back five months.

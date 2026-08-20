@@ -1305,6 +1305,13 @@ export async function runJobFeedFoundationWorkflow(params: {
 
       return { run: winner, created: false, skipped: true };
     }
+
+    // Falling through means the winner is a stale running row. Mirror the
+    // non-raced path and clear the previous attempt's artifacts before it is
+    // reused, or the run keeps a ranking it never produced.
+    if (winner.status === 'running') {
+      await resetJobFeedRunArtifactsForRerun(winner.id);
+    }
   }
 
   const run = creation.run;

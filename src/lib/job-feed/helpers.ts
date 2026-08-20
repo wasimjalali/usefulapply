@@ -8,9 +8,9 @@ import {
   JOB_FEED_VISIBLE_DEFAULT_COUNT,
   JOB_FEED_WORK_AUTH_OPTIONS,
   PREMIUM_JOB_FEED_TIERS,
-  countryForCity,
   legacyMarketFromCountries,
 } from '@/lib/job-feed/constants';
+import { countryForCity } from '@/lib/job-feed/constants';
 import { splitCompositeRole } from '@/lib/job-feed/cv-suggestions';
 import type { JobFeedOverviewState, JobFeedSettingsInput } from '@/lib/job-feed/types';
 import type { JobFeedRun, JobFeedSettings } from '@/lib/supabase/types';
@@ -293,17 +293,6 @@ export function normalizeJobFeedSettingsInput(input: unknown): { data?: JobFeedS
   }
 
   const targetCities = sanitizeStringArray(payload.target_cities, 20);
-
-  // A city carries its country. "Add Berlin" from the chat used to leave
-  // target_countries alone, so the feed searched Berlin in whatever markets
-  // were already selected and came back with the wrong roles. A city we do not
-  // recognise is left as it is rather than guessed at.
-  for (const city of targetCities) {
-    const implied = countryForCity(city);
-    if (implied && !targetCountries.includes(implied) && targetCountries.length < 12) {
-      targetCountries.push(implied);
-    }
-  }
 
   const targetMarket = legacyMarketFromCountries(targetCountries);
   if (!MARKET_VALUES.has(targetMarket)) {
@@ -598,11 +587,25 @@ const SALARY_CURRENCY = String.raw`(?:[$€£¥₹]|\b(?:USD|EUR|GBP|CHF|SEK|NOK
 // The K/M suffix must not run into a word, or "$124,000.00 Minimum" reads as
 // 124 million.
 const SALARY_AMOUNT = String.raw`\d[\d.,]*(?:\s?[KkMm](?![A-Za-z]))?`;
-const SALARY_RANGE = new RegExp(
+const SALARY_RANGE_GLOBAL = new RegExp(
   `${SALARY_CURRENCY}\\s*${SALARY_AMOUNT}(?:\\s*(?:-|–|—|to)\\s*(?:${SALARY_CURRENCY}\\s*)?${SALARY_AMOUNT})?`,
-  'i'
+  'gi'
 );
 const HOURLY_MARKER = /(?:\/\s*(?:hr|hour)|per hour|an hour|hourly)/i;
+
+/**
+ * An ad that states pay says so. Requiring the words is what separates
+ * "the salary range for this position is $87,500 - $180,000" from
+ * "tuition assistance up to $5,250", which a magnitude test cannot do.
+ */
+const PAY_CONTEXT = /(salary|salaries|compensation|base pay|pay range|pay rate|pay scale|hiring range|target earnings|\bOTE\b|\bwage\b|remuneration|per year|per annum|a year|annually|\/\s*(?:yr|year|hr|hour)|per hour|an hour|hourly)/i;
+
+/** Money in the benefits list is not pay. */
+const NOT_PAY_CONTEXT = /(stipend|tuition|reimburs|allowance|budget|discount|assistance|voucher|credit toward)/i;
+
+const PAY_CONTEXT_BEFORE = 140;
+const PAY_CONTEXT_AFTER = 60;
+const NOT_PAY_WINDOW = 45;
 
 /** "190,000" and "60.000" are both 60k-style thousands; "1.5" is a decimal. */
 function toSalaryNumber(amount: string): number {
@@ -616,12 +619,19 @@ function toSalaryNumber(amount: string): number {
 }
 
 function matchSalaryText(text: string): string | null {
-  const match = SALARY_RANGE.exec(text);
-  if (!match) return null;
+  // Every currency figure gets a look, not just the first. An ad that opens
+  // with "$1,000 annual learning stipend" still states its range further down.
+  for (const match of text.matchAll(SALARY_RANGE_GLOBAL)) {
+    const found = plausibleSalary(text, match[0], match.index ?? 0);
+    if (found) return found;
+  }
+  return null;
+}
 
-  const amounts = match[0].match(new RegExp(SALARY_AMOUNT, 'g')) ?? [];
+function plausibleSalary(text: string, match: string, index: number): string | null {
+  const amounts = match.match(new RegExp(SALARY_AMOUNT, 'g')) ?? [];
   const magnitude = Math.max(...amounts.map(toSalaryNumber), 0);
-  const tail = text.slice(match.index + match[0].length, match.index + match[0].length + 24);
+  const tail = text.slice(index + match.length, index + match.length + 24);
   const hourly = HOURLY_MARKER.test(tail);
 
   // A yearly figure under a thousand is a benefit ("$500 learning budget"),
@@ -629,7 +639,12 @@ function matchSalaryText(text: string): string | null {
   if (!hourly && magnitude < 1000) return null;
   if (hourly && magnitude < 5) return null;
 
-  return match[0]
+  const before = text.slice(Math.max(0, index - PAY_CONTEXT_BEFORE), index);
+  const after = text.slice(index + match.length, index + match.length + PAY_CONTEXT_AFTER);
+  if (!PAY_CONTEXT.test(before) && !PAY_CONTEXT.test(after)) return null;
+  if (NOT_PAY_CONTEXT.test(text.slice(Math.max(0, index - NOT_PAY_WINDOW), index))) return null;
+
+  return match
     // Normalise the separator so the chip never carries an em dash.
     .replace(/\s*[-–—]\s*/g, ' - ')
     // "$ 110,300" reads as a typo on a chip.
@@ -638,6 +653,35 @@ function matchSalaryText(text: string): string | null {
     // A sentence's full stop is not part of the figure.
     .replace(/[.,;:]+$/, '')
     .trim();
+}
+
+/**
+ * A city carries its country. "Add Berlin" from the chat leaves
+ * target_countries alone, so the feed would search Berlin in whatever markets
+ * were already selected and come back with the wrong roles.
+ *
+ * Only cities that are new in this payload imply anything. Applying it to
+ * every saved city would make the country toggle un-removable: unchecking the
+ * US while "New York" sits in the city list would silently put the US back.
+ * A city we do not recognise changes nothing, because inventing a country is
+ * worse than leaving the search alone.
+ */
+export function countriesImpliedByNewCities(
+  cities: readonly string[],
+  previousCities: readonly string[],
+  countries: readonly string[],
+  maxCountries = 12
+): string[] {
+  const seen = new Set(previousCities.map((city) => city.trim().toLowerCase()));
+  const result = [...countries];
+  for (const city of cities) {
+    if (seen.has(city.trim().toLowerCase())) continue;
+    const implied = countryForCity(city);
+    if (implied && !result.includes(implied) && result.length < maxCountries) {
+      result.push(implied);
+    }
+  }
+  return result;
 }
 
 /**

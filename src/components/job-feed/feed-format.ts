@@ -150,89 +150,27 @@ export function looksLikeAdHeading(line: string): boolean {
   return trimmed.length > 3 && trimmed === trimmed.toUpperCase() && /[A-Z]/.test(trimmed);
 }
 
-/**
- * Words that carry a capital in the middle on purpose. A glued-list split must
- * not cut them in half. Only entries whose first half is four characters or
- * longer need to be here; shorter ones are already ruled out by the length
- * guard in findGlueBoundaries.
- */
-const INNER_CAPITAL_WORDS = new Set([
-  'javascript',
-  'typescript',
-  'coffeescript',
-  'actionscript',
-  'linkedin',
-  'tensorflow',
-  'wordpress',
-  'powerpoint',
-  'powershell',
-  'powerbi',
-  'sharepoint',
-  'cloudwatch',
-  'cloudformation',
-  'cloudflare',
-  'openshift',
-  'opentelemetry',
-  'quickbooks',
-  'servicenow',
-  'salesloft',
-  'mailchimp',
-  'datadog',
-  'pagerduty',
-  'lookerstudio',
-  'base64',
-  'sha256',
-  'utf8',
-]);
-
-const MIN_GLUED_LINE_LENGTH = 120;
-const MIN_PIECE_LENGTH = 10;
-const MIN_PIECE_WORDS = 2;
-
 function wordCount(value: string): number {
   const trimmed = value.trim();
   return trimmed ? trimmed.split(/\s+/).length : 0;
 }
 
-/** The run of letters and digits either side of a boundary, joined and cased
- *  down, so "JavaScript" can be checked against INNER_CAPITAL_WORDS. */
-function gluedWordAt(text: string, index: number): string {
-  let start = index;
-  while (start > 0 && /[A-Za-z0-9]/.test(text[start - 1])) start -= 1;
-  let end = index;
-  while (end < text.length && /[A-Za-z0-9]/.test(text[end])) end += 1;
-  return text.slice(start, end).toLowerCase();
-}
+const MIN_PIECE_LENGTH = 10;
+const MIN_PIECE_WORDS = 2;
 
+/**
+ * A sentence that ends and restarts with no space is always a lost separator:
+ * "…B2B SaaS products.Partner closely with…". This is the only shape we infer.
+ * A rule for a word glued straight onto a capital was tried and removed: over
+ * 41 real ads it never produced a boundary the provider's own items or this
+ * rule had not already found, and it cannot tell "salaryCompetitive" from
+ * "HealthTech".
+ */
 function findGlueBoundaries(text: string): number[] {
   const boundaries = new Set<number>();
-
-  // A sentence that ends and restarts with no space is always a lost
-  // separator. "…B2B SaaS products.Partner closely with…"
   for (const match of text.matchAll(/[.!?][A-Z][a-z]/g)) {
     if (match.index !== undefined) boundaries.add(match.index + 1);
   }
-
-  // A word glued straight onto a capital or a digit. Riskier, because a name
-  // like "SnowFlake" looks the same, so it only runs on a long line and only
-  // when the line carries several of them. A stripped list has many; a stray
-  // brand name has one.
-  if (text.length >= MIN_GLUED_LINE_LENGTH) {
-    const risky: number[] = [];
-    for (const match of text.matchAll(/[a-z](?=[A-Z][a-z]|\d)/g)) {
-      if (match.index === undefined) continue;
-      const index = match.index + 1;
-      let leftLength = 0;
-      while (leftLength < index && /[A-Za-z0-9]/.test(text[index - 1 - leftLength])) leftLength += 1;
-      if (leftLength < 4) continue;
-      if (INNER_CAPITAL_WORDS.has(gluedWordAt(text, index))) continue;
-      risky.push(index);
-    }
-    if (risky.length >= 2) {
-      for (const index of risky) boundaries.add(index);
-    }
-  }
-
   return Array.from(boundaries).sort((a, b) => a - b);
 }
 
@@ -319,11 +257,14 @@ export function buildCardSummary(job: JobFeedFeedItem): string {
 
   const blocks = raw
     .split(/\n\s*\n/)
+    // A bullet means the prose is over and the lists have started, and plenty
+    // of ads put the first bullet on the very next line rather than after a
+    // blank one. Cut there, before the newlines are flattened away.
+    .map((block) => block.split(/\n\s*[•\-*►●○■▪–·]/)[0] ?? '')
     .map((block) => block.replace(/\s+/g, ' ').trim())
     .filter(Boolean);
 
   for (const block of blocks) {
-    // A bullet means the prose is over and the lists have started.
     if (/^[•\-*►●○■▪–·]\s/.test(block)) break;
     if (looksLikeAdHeading(block)) continue;
     const text = splitGluedAdText(block)[0]?.trim() ?? '';
