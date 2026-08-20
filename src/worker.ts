@@ -26,6 +26,10 @@ import { runWithCloudflareRequestContext } from '../.open-next/cloudflare/init.j
 
 const worker = {
   fetch(request: Request, env: CloudflareEnv, ctx: ExecutionContext) {
+    const url = new URL(request.url);
+    if (url.hostname === 'admin.usefulapply.com' && url.pathname === '/') {
+      return Response.redirect(`${url.origin}/admin-dashboard`, 308);
+    }
     return nextApp.fetch(request, env, ctx);
   },
   async scheduled(controller: { cron: string }, env: CloudflareEnv, ctx: ExecutionContext) {

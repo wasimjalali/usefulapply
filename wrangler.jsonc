@@ -348,6 +348,12 @@
 		{
 			"pattern": "www.usefulapply.com",
 			"custom_domain": true
+		},
+		{
+			// Admin dashboard host. Cloudflare Access (Zero Trust) fronts this
+			// hostname; the Worker still verifies the Access JWT in-app.
+			"pattern": "admin.usefulapply.com",
+			"custom_domain": true
 		}
 	]
 }

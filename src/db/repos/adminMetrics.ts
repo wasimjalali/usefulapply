@@ -57,32 +57,40 @@ export async function startLlmGeneration(params: {
   model: string;
   startedAt?: string;
 }): Promise<{ id: string; startedAt: string }> {
-  // Fail closed before provider spend. Without this durable marker there is no
-  // truthful way to distinguish an unrecorded call from a zero-call interval.
-  const db = await getDb();
   const id = crypto.randomUUID();
   const startedAt = params.startedAt ?? nowIso();
 
-  await db.insert(llmGenerations).values({
-    id,
-    request_execution_id: params.context.requestExecutionId,
-    client_request_id: params.context.clientRequestId ?? null,
-    parent_generation_id: params.context.parentGenerationId ?? null,
-    user_id: params.context.userId ?? null,
-    anonymous_subject_hash: params.context.anonymousSubjectHash
-      ? await hashMetricSubject(params.context.anonymousSubjectHash)
-      : null,
-    application_session_id: params.context.applicationSessionId ?? null,
-    job_feed_run_id: params.context.jobFeedRunId ?? null,
-    route: params.context.route,
-    feature: params.context.feature,
-    operation: params.context.operation,
-    provider: params.provider,
-    model: params.model,
-    status: 'started',
-    started_at: startedAt,
-    updated_at: startedAt,
-  });
+  // The ledger observes the product; it must never take it down. A failed
+  // write here costs one ledger row, not the user's generation. The terminal
+  // update then matches zero rows and is swallowed at its call sites.
+  try {
+    const db = await getDb();
+    await db.insert(llmGenerations).values({
+      id,
+      request_execution_id: params.context.requestExecutionId,
+      client_request_id: params.context.clientRequestId ?? null,
+      parent_generation_id: params.context.parentGenerationId ?? null,
+      user_id: params.context.userId ?? null,
+      anonymous_subject_hash: params.context.anonymousSubjectHash
+        ? await hashMetricSubject(params.context.anonymousSubjectHash)
+        : null,
+      application_session_id: params.context.applicationSessionId ?? null,
+      job_feed_run_id: params.context.jobFeedRunId ?? null,
+      route: params.context.route,
+      feature: params.context.feature,
+      operation: params.context.operation,
+      provider: params.provider,
+      model: params.model,
+      status: 'started',
+      started_at: startedAt,
+      updated_at: startedAt,
+    });
+  } catch (error) {
+    console.error(
+      '[admin-metrics] startLlmGeneration write failed:',
+      error instanceof Error ? error.message : error,
+    );
+  }
 
   return { id, startedAt };
 }
