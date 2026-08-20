@@ -16,6 +16,7 @@ import {
 } from '@/lib/job-feed/server';
 import { getProfile } from '@/db/repos/profiles';
 import { getSearchStrategyRow } from '@/db/repos/jobFeed';
+import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -152,7 +153,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Career profile required first. Open the wizard to generate it.' }, { status: 400 });
     }
 
-    const strategy = await loadOrGenerateSearchStrategyAdmin({ userId, settings, profile });
+    const generationContext: LlmGenerationContext = {
+      requestExecutionId: crypto.randomUUID(),
+      clientRequestId: request.headers.get('x-request-id'),
+      userId,
+      route: '/api/job-feed/search-strategy',
+      feature: 'job_feed',
+      operation: 'search_strategy_generation',
+    };
+    const strategy = await loadOrGenerateSearchStrategyAdmin({ userId, settings, profile, generationContext });
 
     return NextResponse.json<SearchStrategyResponseBody>({
       strategy: strategy ?? null,

@@ -23,6 +23,7 @@
 import { sql } from 'drizzle-orm';
 import {
   check,
+  type AnySQLiteColumn,
   index,
   integer,
   real,
@@ -1008,5 +1009,114 @@ export const creditReservations = sqliteTable(
     index('credit_reservations_session_idx').on(t.session_id),
     check('credit_reservations_amount_check', sql`${t.amount} > 0`),
     check('credit_reservations_status_check', sql`${t.status} in ('reserved', 'captured', 'released', 'refunded')`),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Admin metrics
+//
+// Append-only operational ledgers. They carry no email address, CV content,
+// job description or model cost. Dollar cost belongs to provider billing.
+// ---------------------------------------------------------------------------
+
+export const adminAuthEvents = sqliteTable(
+  'admin_auth_events',
+  {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    source_id: text('source_id').notNull(),
+    subject_hash: text('subject_hash').notNull(),
+    event_type: text('event_type').notNull(),
+    occurred_at: text('occurred_at').notNull().$defaultFn(isoNow),
+  },
+  (t) => [
+    uniqueIndex('admin_auth_events_source_uidx').on(t.source_id),
+    index('admin_auth_events_type_time_idx').on(t.event_type, t.occurred_at),
+    index('admin_auth_events_subject_time_idx').on(t.subject_hash, t.occurred_at),
+    check('admin_auth_events_type_check', sql`${t.event_type} in ('signup', 'session_started')`),
+  ],
+);
+
+export const adminMetricSources = sqliteTable(
+  'admin_metric_sources',
+  {
+    source: text('source').primaryKey(),
+    tracking_started_at: text('tracking_started_at').notNull(),
+  },
+  (t) => [check('admin_metric_sources_source_check', sql`${t.source} in ('auth', 'llm')`)],
+);
+
+export const llmGenerations = sqliteTable(
+  'llm_generations',
+  {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    request_execution_id: text('request_execution_id').notNull(),
+    client_request_id: text('client_request_id'),
+    parent_generation_id: text('parent_generation_id').references((): AnySQLiteColumn => llmGenerations.id, {
+      onDelete: 'set null',
+    }),
+    user_id: text('user_id').references(() => profiles.id, { onDelete: 'set null' }),
+    anonymous_subject_hash: text('anonymous_subject_hash'),
+    application_session_id: text('application_session_id').references(() => applicationSessions.id, {
+      onDelete: 'set null',
+    }),
+    job_feed_run_id: text('job_feed_run_id').references(() => jobFeedRuns.id, { onDelete: 'set null' }),
+    route: text('route').notNull(),
+    provider: text('provider').notNull(),
+    model: text('model').notNull(),
+    feature: text('feature').notNull(),
+    operation: text('operation').notNull(),
+    status: text('status').notNull(),
+    started_at: text('started_at').notNull().$defaultFn(isoNow),
+    response_received_at: text('response_received_at'),
+    failed_at: text('failed_at'),
+    latency_ms: integer('latency_ms'),
+    attempt_count: integer('attempt_count').notNull().default(1),
+    error_kind: text('error_kind'),
+    http_status: integer('http_status'),
+    provider_request_id: text('provider_request_id'),
+    usage_reported: integer('usage_reported', { mode: 'boolean' }).notNull().default(false),
+    input_tokens: integer('input_tokens'),
+    output_tokens: integer('output_tokens'),
+    cache_read_input_tokens: integer('cache_read_input_tokens'),
+    cache_write_input_tokens: integer('cache_write_input_tokens'),
+    provider_total_tokens: integer('provider_total_tokens'),
+    provider_usage: text('provider_usage', { mode: 'json' }).$type<Json>(),
+    updated_at: text('updated_at').notNull().$defaultFn(isoNow),
+  },
+  (t) => [
+    index('llm_generations_status_time_idx').on(t.status, t.started_at),
+    index('llm_generations_user_time_idx').on(t.user_id, t.started_at),
+    index('llm_generations_feature_operation_time_idx').on(t.feature, t.operation, t.started_at),
+    index('llm_generations_request_execution_idx').on(t.request_execution_id),
+    index('llm_generations_job_feed_run_idx').on(t.job_feed_run_id),
+    check(
+      'llm_generations_provider_check',
+      sql`${t.provider} in ('anthropic', 'bedrock', 'digitalocean', 'workers-ai')`,
+    ),
+    check('llm_generations_status_check', sql`${t.status} in ('started', 'response_received', 'failed')`),
+    check(
+      'llm_generations_tokens_check',
+      sql`(${t.input_tokens} is null or ${t.input_tokens} >= 0)
+        and (${t.output_tokens} is null or ${t.output_tokens} >= 0)
+        and (${t.cache_read_input_tokens} is null or ${t.cache_read_input_tokens} >= 0)
+        and (${t.cache_write_input_tokens} is null or ${t.cache_write_input_tokens} >= 0)
+        and (${t.provider_total_tokens} is null or ${t.provider_total_tokens} >= 0)`,
+    ),
+    check('llm_generations_latency_check', sql`${t.latency_ms} is null or ${t.latency_ms} >= 0`),
+    check('llm_generations_attempt_check', sql`${t.attempt_count} >= 1`),
+    check('llm_generations_usage_reported_check', sql`${t.usage_reported} in (0, 1)`),
+    check(
+      'llm_generations_usage_state_check',
+      sql`${t.usage_reported} = 0 or (
+        ${t.status} = 'response_received'
+        and (${t.provider_total_tokens} is not null or (${t.input_tokens} is not null and ${t.output_tokens} is not null))
+      )`,
+    ),
+    check(
+      'llm_generations_lifecycle_check',
+      sql`(${t.status} = 'started' and ${t.response_received_at} is null and ${t.failed_at} is null)
+        or (${t.status} = 'response_received' and ${t.response_received_at} is not null and ${t.failed_at} is null)
+        or (${t.status} = 'failed' and ${t.failed_at} is not null and ${t.response_received_at} is null)`,
+    ),
   ],
 );

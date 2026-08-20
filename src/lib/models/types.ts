@@ -4,6 +4,8 @@
  * Primary: Claude Sonnet 4.6 | Fallback: Claude Haiku 4.5 (toggle via USE_FALLBACK_MODEL env var)
  */
 
+import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
+
 export type ModelProvider = 'anthropic' | 'bedrock' | 'digitalocean';
 
 export type TaskType =
@@ -39,6 +41,7 @@ export interface ModelResponse {
   model: string;
   provider: ModelProvider;
   latencyMs: number;
+  generationId: string;
 }
 
 export interface ConversationMessage {
@@ -62,6 +65,7 @@ export interface ModelCallOptions {
   maxTokens?: number;
   jsonMode?: boolean;
   conversationHistory?: ConversationMessage[];
+  generationContext?: LlmGenerationContext;
 }
 
 // Model configurations - All tasks use Claude Sonnet 4.6 (model ID resolved at runtime in anthropic.ts)

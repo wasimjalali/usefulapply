@@ -7,6 +7,13 @@ import type {
   JobFeedRankedItemRecord,
 } from '@/lib/job-feed/types';
 import type { JobFeedSettings } from '@/lib/supabase/types';
+import {
+  completeLlmGeneration,
+  failLlmGeneration,
+  startLlmGeneration,
+  type LlmGenerationContext,
+} from '@/db/repos/adminMetrics';
+import type { Json } from '@/db/schema';
 
 // Ranking runs on Workers AI (Cloudflare-hosted, billed to the Cloudflare
 // account). JOB_FEED_RANKING_MODEL / JOB_FEED_RANKING_FALLBACK_MODEL in
@@ -19,6 +26,8 @@ type WorkersAiBinding = {
 // Workers AI text models answer in the OpenAI chat.completion shape
 // (choices[0].message.content); some also mirror the text in `response`.
 type WorkersAiTextResponse = {
+  id?: string;
+  request_id?: string;
   response?: string;
   choices?: Array<{ message?: { content?: string | null } }>;
   usage?: {
@@ -26,8 +35,17 @@ type WorkersAiTextResponse = {
     completion_tokens?: number;
     prompt_tokens_details?: { cached_tokens?: number };
     neurons?: number;
+    total_tokens?: number;
   };
 };
+
+function exactUsageNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null;
+}
+
+function workersUsageJson(usage: WorkersAiTextResponse['usage']): Json | null {
+  return usage ? JSON.parse(JSON.stringify(usage)) as Json : null;
+}
 
 function workersAiText(raw: WorkersAiTextResponse): string {
   const fromChoices = raw.choices?.[0]?.message?.content;
@@ -218,22 +236,75 @@ async function runWorkersAiRanking(params: {
   messages: Array<{ role: 'system' | 'user'; content: string }>;
   candidates: JobFeedRankingCandidate[];
   visibleCap: number;
-}): Promise<{ items: JobFeedRankedItemRecord[] | null; model: JobFeedRankingExecutionResult['model']; error: string | null }> {
-  const { ai, model, messages, candidates, visibleCap } = params;
+  generationContext: LlmGenerationContext;
+}): Promise<{
+  items: JobFeedRankedItemRecord[] | null;
+  model: JobFeedRankingExecutionResult['model'];
+  error: string | null;
+  generationId: string;
+}> {
+  const { ai, model, messages, candidates, visibleCap, generationContext } = params;
   const startTime = Date.now();
+  const ledger = await startLlmGeneration({
+    context: generationContext,
+    provider: 'workers-ai',
+    model,
+  });
+  let raw: WorkersAiTextResponse;
+
   try {
-    const raw = (await ai.run(model, {
+    raw = (await ai.run(model, {
       messages,
       temperature: 0.2,
       // Reasoning models spend part of this budget thinking before the JSON.
       max_tokens: 12000,
       response_format: { type: 'json_object' },
     })) as WorkersAiTextResponse;
-    const latencyMs = Date.now() - startTime;
-    const inputTokens = raw.usage?.prompt_tokens ?? 0;
-    const outputTokens = raw.usage?.completion_tokens ?? 0;
-    const cachedTokens = raw.usage?.prompt_tokens_details?.cached_tokens ?? 0;
-    const neurons = raw.usage?.neurons ?? null;
+  } catch (error) {
+    try {
+      await failLlmGeneration({
+        id: ledger.id,
+        latencyMs: Date.now() - startTime,
+        errorKind: 'workers_ai_provider_error',
+      });
+    } catch (ledgerError) {
+      console.error('[llm-ledger] Workers AI failure write failed', ledger.id, ledgerError);
+    }
+    console.error(`[JobFeedRanking] ${model} failed after ${Date.now() - startTime}ms`, error);
+    return {
+      items: null,
+      model: null,
+      error: error instanceof Error ? error.message : 'Unknown Workers AI ranking failure',
+      generationId: ledger.id,
+    };
+  }
+
+  const latencyMs = Date.now() - startTime;
+  const exactInputTokens = exactUsageNumber(raw.usage?.prompt_tokens);
+  const exactOutputTokens = exactUsageNumber(raw.usage?.completion_tokens);
+  const exactCachedTokens = exactUsageNumber(raw.usage?.prompt_tokens_details?.cached_tokens);
+  const exactTotalTokens = exactUsageNumber(raw.usage?.total_tokens);
+  try {
+    await completeLlmGeneration({
+      id: ledger.id,
+      latencyMs,
+      providerRequestId: raw.request_id ?? raw.id ?? null,
+      usageReported: exactTotalTokens !== null || (exactInputTokens !== null && exactOutputTokens !== null),
+      inputTokens: exactInputTokens,
+      outputTokens: exactOutputTokens,
+      cacheReadInputTokens: exactCachedTokens,
+      providerTotalTokens: exactTotalTokens,
+      providerUsage: workersUsageJson(raw.usage),
+    });
+  } catch (ledgerError) {
+    console.error('[llm-ledger] Workers AI completion write failed', ledger.id, ledgerError);
+  }
+
+  const inputTokens = exactInputTokens ?? 0;
+  const outputTokens = exactOutputTokens ?? 0;
+  const cachedTokens = exactCachedTokens ?? 0;
+  const neurons = raw.usage?.neurons ?? null;
+  try {
     console.log(
       `[JobFeedRanking] ${model} | ${inputTokens}in (${cachedTokens} cached) / ${outputTokens}out | ${latencyMs}ms | neurons=${neurons ?? 'n/a'} | candidates=${candidates.length}`
     );
@@ -244,13 +315,15 @@ async function runWorkersAiRanking(params: {
       items,
       model: modelInfo,
       error: items ? null : 'The ranking model response was incomplete or invalid.',
+      generationId: ledger.id,
     };
   } catch (error) {
-    console.error(`[JobFeedRanking] ${model} failed after ${Date.now() - startTime}ms`, error);
+    console.error(`[JobFeedRanking] ${model} returned an invalid response`, error);
     return {
       items: null,
-      model: null,
-      error: error instanceof Error ? error.message : 'Unknown Workers AI ranking failure',
+      model: { provider: 'workers-ai', name: model, inputTokens, outputTokens, latencyMs },
+      error: error instanceof Error ? error.message : 'Invalid Workers AI ranking response',
+      generationId: ledger.id,
     };
   }
 }
@@ -263,6 +336,7 @@ export async function rankWithWorkersAi(params: {
   careerProfile?: CareerProfile | null;
   negativeTerms?: string[];
   excludedTerms?: string[];
+  generationContext?: LlmGenerationContext;
 }): Promise<JobFeedRankingExecutionResult> {
   const {
     settings,
@@ -272,6 +346,7 @@ export async function rankWithWorkersAi(params: {
     careerProfile = null,
     negativeTerms = [],
     excludedTerms = [],
+    generationContext,
   } = params;
   const deterministicItems = buildDeterministicRankedItems(candidates, visibleCap);
 
@@ -291,14 +366,38 @@ export async function rankWithWorkersAi(params: {
     { role: 'user' as const, content: buildCandidatesMessage(candidates, visibleCap) },
   ];
 
-  const primary = await runWorkersAiRanking({ ai: workersAi.ai, model: workersAi.model, messages, candidates, visibleCap });
+  const rankingGenerationContext = generationContext ?? {
+    requestExecutionId: crypto.randomUUID(),
+    route: 'job-feed/ranking',
+    feature: 'job_feed',
+    operation: 'job_feed_ranking',
+  };
+
+  const primary = await runWorkersAiRanking({
+    ai: workersAi.ai,
+    model: workersAi.model,
+    messages,
+    candidates,
+    visibleCap,
+    generationContext: rankingGenerationContext,
+  });
   if (primary.items) {
     return { status: 'completed_llm', items: primary.items, errorMessage: null, model: primary.model };
   }
 
   if (workersAi.fallbackModel) {
     console.warn(`[JobFeedRanking] ${workersAi.model} failed (${primary.error}), retrying on ${workersAi.fallbackModel}`);
-    const fallback = await runWorkersAiRanking({ ai: workersAi.ai, model: workersAi.fallbackModel, messages, candidates, visibleCap });
+    const fallback = await runWorkersAiRanking({
+      ai: workersAi.ai,
+      model: workersAi.fallbackModel,
+      messages,
+      candidates,
+      visibleCap,
+      generationContext: {
+        ...rankingGenerationContext,
+        parentGenerationId: primary.generationId,
+      },
+    });
     if (fallback.items) {
       return { status: 'completed_llm', items: fallback.items, errorMessage: null, model: fallback.model };
     }

@@ -8,6 +8,7 @@ import { getOrSynthesizeCareerProfileAdmin } from '@/lib/job-feed/server';
 import type { JobFeedSettingsInput } from '@/lib/job-feed/types';
 import { getProfile } from '@/db/repos/profiles';
 import { getSettings, upsertSettings, upsertJobPreferences } from '@/db/repos/jobFeed';
+import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
 export const runtime = 'nodejs';
 
@@ -79,7 +80,14 @@ export async function PUT(request: NextRequest) {
     // The strategy generator still reads these mirrored fields downstream.
     // profileMirror is the authoritative source for targetRoles — we never
     // fall back to client-supplied roles so drift is impossible.
-    const profileMirror = await loadCareerProfileMirror(user.id);
+    const profileMirror = await loadCareerProfileMirror(user.id, {
+      requestExecutionId: crypto.randomUUID(),
+      clientRequestId: request.headers.get('x-request-id'),
+      userId: user.id,
+      route: '/api/job-feed/settings',
+      feature: 'job_feed',
+      operation: 'career_profile_synthesis',
+    });
 
     if (!profileMirror?.targetRoles?.length) {
       return NextResponse.json(
@@ -178,8 +186,11 @@ interface CareerProfileMirror {
  * path in this flow would rebuild. Returns null only when there's genuinely no
  * CV to synthesize from; the caller then surfaces "profile not ready".
  */
-async function loadCareerProfileMirror(userId: string): Promise<CareerProfileMirror | null> {
-  const profile: CareerProfile | null = await getOrSynthesizeCareerProfileAdmin(userId);
+async function loadCareerProfileMirror(
+  userId: string,
+  generationContext: LlmGenerationContext,
+): Promise<CareerProfileMirror | null> {
+  const profile: CareerProfile | null = await getOrSynthesizeCareerProfileAdmin(userId, generationContext);
   if (!profile) return null;
 
   // Dedupe case-insensitively, matching the drift check in the overview route.

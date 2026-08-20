@@ -10,6 +10,7 @@ import { buildDeleteAccountEmail } from '@/lib/email/templates/delete-account';
 import { getDb, getDbBinding, type Database } from '@/db/client';
 import { account, session, user, verification } from '@/db/schema';
 import { initializeUserCredits } from '@/db/repos/credits';
+import { recordAuthMetricEvent } from '@/db/repos/adminMetrics';
 import { getConfirmationResendMeta, getOrCreateProfile } from '@/db/repos/profiles';
 
 /**
@@ -218,6 +219,32 @@ function createAuth(db: Database) {
               }
             } catch (error) {
               console.error('[auth] user.create.after failed', created.id, error);
+            }
+            try {
+              await recordAuthMetricEvent({
+                sourceId: `user:${created.id}`,
+                userId: created.id,
+                eventType: 'signup',
+                occurredAt: created.createdAt.toISOString(),
+              });
+            } catch (error) {
+              console.error('[auth] signup metric write failed', created.id, error);
+            }
+          },
+        },
+      },
+      session: {
+        create: {
+          after: async (created) => {
+            try {
+              await recordAuthMetricEvent({
+                sourceId: `session:${created.id}`,
+                userId: created.userId,
+                eventType: 'session_started',
+                occurredAt: created.createdAt.toISOString(),
+              });
+            } catch (error) {
+              console.error('[auth] session metric write failed', created.id, error);
             }
           },
         },

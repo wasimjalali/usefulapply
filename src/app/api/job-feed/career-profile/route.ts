@@ -12,6 +12,7 @@ import type { StructuredCV } from '@/lib/types/cv-schema';
 import type { Json } from '@/lib/supabase/types';
 import { getDocumentByType } from '@/db/repos/documents';
 import { getCareerProfileRow, upsertCareerProfile } from '@/db/repos/jobFeed';
+import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -158,7 +159,15 @@ export async function POST(request: NextRequest) {
     }
 
     const cv = primaryDoc.structured_data as StructuredCV;
-    const result = await generateCareerProfile(cv);
+    const generationContext: LlmGenerationContext = {
+      requestExecutionId: crypto.randomUUID(),
+      clientRequestId: request.headers.get('x-request-id'),
+      userId,
+      route: '/api/job-feed/career-profile',
+      feature: 'job_feed',
+      operation: 'career_profile_synthesis',
+    };
+    const result = await generateCareerProfile(cv, generationContext);
 
     try {
       await upsertCareerProfile(userId, {

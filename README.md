@@ -192,6 +192,16 @@ SERPAPI_API_KEY
 # Cron
 CRON_SECRET
 
+# Admin dashboard, Cloudflare Access JWT validation
+CLOUDFLARE_ACCESS_ISSUER
+CLOUDFLARE_ACCESS_AUD
+CLOUDFLARE_ACCESS_ADMIN_SUBJECTS
+CLOUDFLARE_ACCESS_ADMIN_EMAILS
+ADMIN_METRICS_HASH_KEY
+# Localhost development only. Never set in production.
+CLOUDFLARE_ACCESS_DEV_BYPASS
+CLOUDFLARE_ACCESS_DEV_BYPASS_KEY
+
 # Job feed debug run. Server-only. Send as header x-job-feed-debug-secret.
 # Unset, the route 404s. Not a NEXT_PUBLIC_ flag: that was inlined into the client.
 JOB_FEED_DEBUG_SECRET

@@ -8,6 +8,7 @@ import { detectLanguage } from '@/lib/utils/language-detector';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { randomUUID } from 'crypto';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
 /**
  * API endpoint for regenerating cover letter or email
@@ -106,6 +107,14 @@ export async function POST(request: NextRequest) {
       match: context.match,
       verifiedMetrics: context.verifiedMetrics,
     };
+    const generationContext: LlmGenerationContext = {
+      requestExecutionId: randomUUID(),
+      clientRequestId,
+      userId: user.id,
+      route: '/api/regenerate',
+      feature: 'regeneration',
+      operation: `regen_${type}`,
+    };
 
     // PostHog LLM analytics for regeneration
     const traceId = `trace_${randomUUID()}`;
@@ -150,7 +159,7 @@ export async function POST(request: NextRequest) {
     };
 
     if (type === 'cover-letter') {
-      const { result: coverLetter, tokens } = await unifiedWriterAgent.generateCoverLetter(masterContext);
+      const { result: coverLetter, tokens } = await unifiedWriterAgent.generateCoverLetter(masterContext, generationContext);
       trackRegenLLM('regen_cover_letter', tokens);
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
       return NextResponse.json({
@@ -159,7 +168,7 @@ export async function POST(request: NextRequest) {
         tokens,
       });
     } else if (type === 'email') {
-      const { result: email, tokens } = await unifiedWriterAgent.generateApplicationEmail(masterContext);
+      const { result: email, tokens } = await unifiedWriterAgent.generateApplicationEmail(masterContext, generationContext);
       trackRegenLLM('regen_email', tokens);
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
       return NextResponse.json({
@@ -171,7 +180,7 @@ export async function POST(request: NextRequest) {
       if (context.applicationEmail) {
         masterContext.applicationEmail = context.applicationEmail;
       }
-      const { result: followUpEmail, tokens } = await unifiedWriterAgent.generateFollowUpEmail(masterContext);
+      const { result: followUpEmail, tokens } = await unifiedWriterAgent.generateFollowUpEmail(masterContext, generationContext);
       trackRegenLLM('regen_follow_up_email', tokens);
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
       return NextResponse.json({

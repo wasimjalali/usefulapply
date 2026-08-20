@@ -21,6 +21,7 @@
 
 import type { MasterContext, AgentEventHandler, AgentResult, TokenUsage } from './types';
 import { callModel } from '@/lib/models';
+import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import { loadApplicantDocuments } from '@/lib/storage/applicantStore';
 import { fixTypos, sanitizeDashes } from '@/lib/config/typo-corrections';
 import { COVER_LETTER_BLACKLIST } from '@/lib/config/cover-letter-blacklist';
@@ -56,6 +57,7 @@ export interface UnifiedAgentInput {
   primaryCV: string;
   masterCV?: string;
   jobPreferences?: MasterContext['jobPreferences'];
+  generationContext?: LlmGenerationContext;
 }
 
 // =====================================================
@@ -114,9 +116,9 @@ export const unifiedWriterAgent = {
       // Step 1+2: Extract applicant profile and parse JD in parallel — they're independent
       emit({ type: 'progress', percent: 10, message: 'Analyzing CV and job description...' });
       const [applicantSettled, jobSettled, metricsSettled] = await Promise.allSettled([
-        this.extractApplicantProfile(context.rawCV, context.masterCV),
-        this.parseJobDescription(context.jobDescription),
-        this.extractVerifiedMetrics(context.rawCV, context.masterCV),
+        this.extractApplicantProfile(context.rawCV, context.masterCV, input.generationContext),
+        this.parseJobDescription(context.jobDescription, input.generationContext),
+        this.extractVerifiedMetrics(context.rawCV, context.masterCV, input.generationContext),
       ]);
       // Critical: applicant and job must succeed
       if (applicantSettled.status === 'rejected') throw applicantSettled.reason;
@@ -144,7 +146,7 @@ export const unifiedWriterAgent = {
       // Step 3: Compute skill match (depends on both applicant + job from above)
       emit({ type: 'step_started', step: { id: 'matching', description: 'Useful Apply: Matching skills and identifying gaps' } });
       emit({ type: 'progress', percent: 35, message: 'Analyzing skill match...' });
-      context.match = await this.computeSkillMatch(context.applicant, context.job, context.masterCV);
+      context.match = await this.computeSkillMatch(context.applicant, context.job, context.masterCV, input.generationContext);
 
       emit({ type: 'step_completed', step: { id: 'matching', description: 'Skills matched' }, tokens: jobResult.tokens });
 
@@ -160,9 +162,9 @@ export const unifiedWriterAgent = {
       emit({ type: 'progress', percent: 45, message: 'Generating CV, cover letter, and email...' });
 
       const [cvResult, coverLetterResult, emailResult] = await Promise.all([
-        this.generateOptimizedCVData(context),
-        this.generateCoverLetter(context),
-        this.generateApplicationEmail(context),
+        this.generateOptimizedCVData(context, input.generationContext),
+        this.generateCoverLetter(context, input.generationContext),
+        this.generateApplicationEmail(context, input.generationContext),
       ]);
 
       const { cvData, legacyCV, tokens: cvTokens } = cvResult;
@@ -177,7 +179,7 @@ export const unifiedWriterAgent = {
 
       // Follow-up email depends on application email content
       emit({ type: 'progress', percent: 85, message: 'Composing follow-up email...' });
-      const followUpResult = await this.generateFollowUpEmail(context);
+      const followUpResult = await this.generateFollowUpEmail(context, input.generationContext);
       context.followUpEmail = followUpResult.result;
       const emailStepTokens: TokenUsage = {
         input: emailResult.tokens.input + followUpResult.tokens.input,
@@ -263,9 +265,9 @@ export const unifiedWriterAgent = {
 
       // Run applicant extraction, JD parsing, and metrics extraction in parallel — they're independent
       const [applicantSettled2, jobSettled2, metricsSettled2] = await Promise.allSettled([
-        this.extractApplicantProfile(context.rawCV, context.masterCV),
-        this.parseJobDescription(context.jobDescription),
-        this.extractVerifiedMetrics(context.rawCV, context.masterCV),
+        this.extractApplicantProfile(context.rawCV, context.masterCV, input.generationContext),
+        this.parseJobDescription(context.jobDescription, input.generationContext),
+        this.extractVerifiedMetrics(context.rawCV, context.masterCV, input.generationContext),
       ]);
       if (applicantSettled2.status === 'rejected') throw applicantSettled2.reason;
       if (jobSettled2.status === 'rejected') throw jobSettled2.reason;
@@ -281,13 +283,13 @@ export const unifiedWriterAgent = {
       emit({ type: 'step_started', step: { id: 'matching', description: 'Useful Apply: Matching skills and identifying gaps' } });
       
       emit({ type: 'progress', percent: 50, message: 'Analyzing skill match...' });
-      context.match = await this.computeSkillMatch(context.applicant, context.job, context.masterCV);
+      context.match = await this.computeSkillMatch(context.applicant, context.job, context.masterCV, input.generationContext);
       emit({ type: 'step_completed', step: { id: 'matching', description: 'Skills matched' }, tokens: jobResult.tokens });
 
       // Step 3: Generate fit assessment
       emit({ type: 'step_started', step: { id: 'fit_assessment', description: 'Useful Apply: Assessing job fit' } });
       emit({ type: 'progress', percent: 70, message: 'Generating fit assessment...' });
-      const fitResult = await this.generateFitAssessment(context);
+      const fitResult = await this.generateFitAssessment(context, input.generationContext);
       context.fitAnalysis = fitResult.result;
       emit({ type: 'step_completed', step: { id: 'fit_assessment', description: 'Fit assessment complete' }, tokens: fitResult.tokens });
 
@@ -321,7 +323,8 @@ export const unifiedWriterAgent = {
    */
   async runWithContext(
     context: MasterContext,
-    emit: AgentEventHandler
+    emit: AgentEventHandler,
+    generationContext?: LlmGenerationContext,
   ): Promise<AgentResult<OrchestrationResult>> {
     const startTime = Date.now();
 
@@ -336,9 +339,9 @@ export const unifiedWriterAgent = {
       emit({ type: 'progress', percent: 15, message: 'Generating CV, cover letter, and email...' });
 
       const [cvResult2, coverLetterResult2, emailResult2] = await Promise.all([
-        this.generateOptimizedCVData(context),
-        this.generateCoverLetter(context),
-        this.generateApplicationEmail(context),
+        this.generateOptimizedCVData(context, generationContext),
+        this.generateCoverLetter(context, generationContext),
+        this.generateApplicationEmail(context, generationContext),
       ]);
 
       const { cvData: cvData2, legacyCV: legacyCV2, tokens: cvTokens2 } = cvResult2;
@@ -353,7 +356,7 @@ export const unifiedWriterAgent = {
 
       // Follow-up email depends on application email content
       emit({ type: 'progress', percent: 85, message: 'Composing follow-up email...' });
-      const followUpResult2 = await this.generateFollowUpEmail(context);
+      const followUpResult2 = await this.generateFollowUpEmail(context, generationContext);
       context.followUpEmail = followUpResult2.result;
       const emailStepTokens2: TokenUsage = {
         input: emailResult2.tokens.input + followUpResult2.tokens.input,
@@ -389,7 +392,10 @@ export const unifiedWriterAgent = {
    * Generate a fit assessment paragraph using LLM
    * Classifies the fit as strong/good/weak and writes a concise assessment
    */
-  async generateFitAssessment(context: MasterContext): Promise<WithTokens<NonNullable<MasterContext['fitAnalysis']>>> {
+  async generateFitAssessment(
+    context: MasterContext,
+    generationContext?: LlmGenerationContext,
+  ): Promise<WithTokens<NonNullable<MasterContext['fitAnalysis']>>> {
     const { applicant, job, match } = context;
     
     const fitLevel = computeFitLevel(match?.score ?? 0);
@@ -398,6 +404,7 @@ export const unifiedWriterAgent = {
       task: 'fit_assessment',
       prompt: buildFitAssessmentPrompt({ applicant, job, match, masterCV: context.masterCV }),
       systemBlocks: buildFitAssessmentSystemBlocks(),
+      generationContext,
     });
 
     const tokens: TokenUsage = {
@@ -435,7 +442,7 @@ export const unifiedWriterAgent = {
    * Generate optimized CV as structured JSON (CVData format)
    * AI outputs structured data directly - no text parsing needed
    */
-  async generateOptimizedCVData(context: MasterContext): Promise<{
+  async generateOptimizedCVData(context: MasterContext, generationContext?: LlmGenerationContext): Promise<{
     cvData: NonNullable<MasterContext['optimizedCVData']>;
     legacyCV: { content: string; changes: Array<{ section: string; before: string; after: string; reason: string }> };
     tokens: TokenUsage;
@@ -455,6 +462,7 @@ export const unifiedWriterAgent = {
       prompt: buildCVOptimizationUserPrompt(context),
       systemBlocks: cvOptimizationSystemBlocks,
       jsonMode: true,
+      generationContext,
     });
 
     const tokens: TokenUsage = {
@@ -767,7 +775,7 @@ export const unifiedWriterAgent = {
   /**
    * Generate cover letter using Problem-Solution format
    */
-  async generateCoverLetter(context: MasterContext): Promise<WithTokens<string>> {
+  async generateCoverLetter(context: MasterContext, generationContext?: LlmGenerationContext): Promise<WithTokens<string>> {
     const outputLang = this.getOutputLanguage(context);
     
     console.log('[UnifiedAgent] Generating cover letter in language:', outputLang);
@@ -779,6 +787,7 @@ export const unifiedWriterAgent = {
       task: 'write_cover_letter',
       prompt: buildCoverLetterUserPrompt(context),
       systemBlocks: coverLetterSystemBlocks,
+      generationContext,
     });
 
     const tokens: TokenUsage = {
@@ -797,7 +806,7 @@ export const unifiedWriterAgent = {
    * Generate application email
    * Returns JSON with separate subject and body fields
    */
-  async generateApplicationEmail(context: MasterContext): Promise<WithTokens<{ subject: string; body: string }>> {
+  async generateApplicationEmail(context: MasterContext, generationContext?: LlmGenerationContext): Promise<WithTokens<{ subject: string; body: string }>> {
     const { job } = context;
     
     const outputLang = this.getOutputLanguage(context);
@@ -809,6 +818,7 @@ export const unifiedWriterAgent = {
       prompt: buildApplicationEmailUserPrompt(context),
       systemBlocks: buildApplicationEmailSystemBlocks(),
       jsonMode: true,
+      generationContext,
     });
 
     const tokens: TokenUsage = {
@@ -880,7 +890,7 @@ export const unifiedWriterAgent = {
    * Generate follow-up email to send 5-7 days after the primary application email
    * Uses a DIFFERENT achievement than the primary email for the value hook
    */
-  async generateFollowUpEmail(context: MasterContext): Promise<WithTokens<{ subject: string; body: string; recommendedDelay: number }>> {
+  async generateFollowUpEmail(context: MasterContext, generationContext?: LlmGenerationContext): Promise<WithTokens<{ subject: string; body: string; recommendedDelay: number }>> {
     const { applicant, job } = context;
     
     const outputLang = this.getOutputLanguage(context);
@@ -894,6 +904,7 @@ export const unifiedWriterAgent = {
       prompt: buildFollowUpEmailUserPrompt(context),
       systemBlocks: buildFollowUpEmailSystemBlocks(),
       jsonMode: true,
+      generationContext,
     });
 
     const tokens: TokenUsage = {
@@ -993,9 +1004,10 @@ export async function runFitAnalysis(
  */
 export async function runWithContext(
   context: MasterContext,
-  emit: AgentEventHandler
+  emit: AgentEventHandler,
+  generationContext?: LlmGenerationContext,
 ): Promise<AgentResult<OrchestrationResult>> {
-  return unifiedWriterAgent.runWithContext(context, emit);
+  return unifiedWriterAgent.runWithContext(context, emit, generationContext);
 }
 
 // END OF FILE — old inline code removed, now in:

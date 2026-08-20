@@ -34,6 +34,20 @@ npx wrangler d1 migrations apply usefulapply-db --local
 
 This applies `migrations/d1/*.sql` to the local Miniflare D1 that `npm run dev` and `npm run preview` share.
 
+## Admin dashboard access
+
+The admin dashboard lives at `/admin-dashboard` and validates Cloudflare Access JWTs inside the Worker. Configure a self-hosted Access application for both the exact path and its subpaths. Use a default-deny policy that allows only the administrator identity and requires independent MFA.
+
+Set these Worker secrets:
+
+- `CLOUDFLARE_ACCESS_ISSUER`: the HTTPS team issuer ending in `.cloudflareaccess.com`
+- `CLOUDFLARE_ACCESS_AUD`: the Access application audience tag
+- `CLOUDFLARE_ACCESS_ADMIN_EMAILS`: comma-separated Access email identities allowed to administer the app
+- `CLOUDFLARE_ACCESS_ADMIN_SUBJECTS`: optional comma-separated stable Access JWT subject IDs for additional identities
+- `ADMIN_METRICS_HASH_KEY`: a random key used to HMAC pseudonymous metric subjects
+
+Configure the same email identity in the Cloudflare Access policy and require the one-time PIN identity provider. A subject ID is available from the Access identity endpoint after authentication. `CLOUDFLARE_ACCESS_DEV_BYPASS=true` is accepted only in development on `localhost` or `127.0.0.1` when the request also supplies the `CLOUDFLARE_ACCESS_DEV_BYPASS_KEY` value in `x-usefulapply-admin-dev-key`. Never set either bypass variable in production.
+
 ## Dev loop
 
 ```bash

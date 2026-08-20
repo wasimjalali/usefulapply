@@ -7,7 +7,150 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { AnthropicBedrock } from '@anthropic-ai/bedrock-sdk';
+import {
+  completeLlmGeneration,
+  failLlmGeneration,
+  startLlmGeneration,
+  type LlmGenerationContext,
+  type LlmUsageProvider,
+} from '@/db/repos/adminMetrics';
+import type { Json } from '@/db/schema';
 import type { ModelResponse, ConversationMessage, CacheableContentBlock } from './types';
+
+type ProviderLedgerMetadata = {
+  attemptCount?: number;
+  providerRequestId?: string | null;
+  rawUsage?: unknown;
+};
+
+type LedgerAwareResponse = {
+  usage?: unknown;
+  id?: string;
+  _request_id?: string;
+  __ledger?: ProviderLedgerMetadata;
+};
+
+class ProviderHttpError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly attemptCount: number,
+  ) {
+    super(message);
+    this.name = 'ProviderHttpError';
+  }
+}
+
+function exactTokenCount(value: unknown): number | null {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null;
+}
+
+function usageRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function usageJson(value: unknown): Json | null {
+  if (value === undefined || value === null) return null;
+  try {
+    return JSON.parse(JSON.stringify(value)) as Json;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeProviderUsage(value: unknown): {
+  usageReported: boolean;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  cacheReadInputTokens: number | null;
+  cacheWriteInputTokens: number | null;
+  providerTotalTokens: number | null;
+  providerUsage: Json | null;
+} {
+  const usage = usageRecord(value);
+  const inputTokens = exactTokenCount(usage?.input_tokens ?? usage?.inputTokens ?? usage?.prompt_tokens);
+  const outputTokens = exactTokenCount(usage?.output_tokens ?? usage?.outputTokens ?? usage?.completion_tokens);
+  const cacheReadInputTokens = exactTokenCount(
+    usage?.cache_read_input_tokens
+      ?? usage?.cacheReadInputTokens
+      ?? usageRecord(usage?.prompt_tokens_details)?.cached_tokens,
+  );
+  const cacheWriteInputTokens = exactTokenCount(
+    usage?.cache_creation_input_tokens ?? usage?.cacheWriteInputTokens,
+  );
+  const providerTotalTokens = exactTokenCount(usage?.total_tokens ?? usage?.totalTokens);
+  return {
+    usageReported: providerTotalTokens !== null || (inputTokens !== null && outputTokens !== null),
+    inputTokens,
+    outputTokens,
+    cacheReadInputTokens,
+    cacheWriteInputTokens,
+    providerTotalTokens,
+    providerUsage: usageJson(value),
+  };
+}
+
+function fallbackGenerationContext(operation: string): LlmGenerationContext {
+  return {
+    requestExecutionId: crypto.randomUUID(),
+    route: 'unattributed',
+    feature: 'unattributed',
+    operation,
+  };
+}
+
+function providerHttpStatus(error: unknown): number | null {
+  if (error instanceof ProviderHttpError) return error.status;
+  if (error && typeof error === 'object' && 'status' in error) {
+    return exactTokenCount((error as { status?: unknown }).status);
+  }
+  return null;
+}
+
+function providerAttemptCount(error: unknown): number {
+  return error instanceof ProviderHttpError ? error.attemptCount : 1;
+}
+
+async function completeProviderGeneration(params: {
+  id: string;
+  startedAtMs: number;
+  response: LedgerAwareResponse;
+  fallbackUsage?: unknown;
+}): Promise<void> {
+  const metadata = params.response.__ledger;
+  const rawUsage = metadata && Object.prototype.hasOwnProperty.call(metadata, 'rawUsage')
+    ? metadata.rawUsage
+    : params.response.usage ?? params.fallbackUsage;
+  const normalized = normalizeProviderUsage(rawUsage);
+  try {
+    await completeLlmGeneration({
+      id: params.id,
+      latencyMs: Date.now() - params.startedAtMs,
+      attemptCount: metadata?.attemptCount ?? 1,
+      providerRequestId: metadata?.providerRequestId
+        ?? params.response._request_id
+        ?? params.response.id
+        ?? null,
+      ...normalized,
+    });
+  } catch (error) {
+    // The durable started row remains an explicit coverage gap. Do not discard
+    // a valid provider response because its terminal observability write failed.
+    console.error('[llm-ledger] completion write failed', params.id, error);
+  }
+}
+
+async function recordProviderFailure(params: Parameters<typeof failLlmGeneration>[0]): Promise<void> {
+  try {
+    await failLlmGeneration(params);
+  } catch (error) {
+    // Preserve the original provider error. The started row still records that
+    // the call has no trustworthy terminal usage.
+    console.error('[llm-ledger] failure write failed', params.id, error);
+  }
+}
 
 // Provider selection: AI_PROVIDER env var overrides auto-detect
 // Values: 'digitalocean' | 'bedrock' | 'anthropic'
@@ -148,12 +291,21 @@ class BedrockBearerTokenClient {
             output_tokens: data.usage?.outputTokens || 0,
             cache_read_input_tokens: data.usage?.cacheReadInputTokens || 0,
             cache_creation_input_tokens: data.usage?.cacheWriteInputTokens || 0,
-          }
+          },
+          __ledger: {
+            attemptCount: attempt + 1,
+            providerRequestId: response.headers.get('x-amzn-requestid'),
+            rawUsage: data.usage ?? null,
+          },
         };
       }
 
       const errorText = await response.text();
-      lastError = new Error(`Bedrock API error: ${response.status} ${errorText}`);
+      lastError = new ProviderHttpError(
+        `Bedrock API error: ${response.status} ${errorText}`,
+        response.status,
+        attempt + 1,
+      );
 
       // Only retry on transient errors
       if (![500, 503, 429].includes(response.status)) {
@@ -244,11 +396,20 @@ class DigitalOceanClient {
             input_tokens: data.usage?.prompt_tokens || 0,
             output_tokens: data.usage?.completion_tokens || 0,
           },
+          __ledger: {
+            attemptCount: attempt + 1,
+            providerRequestId: response.headers.get('x-request-id') ?? data.id ?? null,
+            rawUsage: data.usage ?? null,
+          },
         };
       }
 
       const errorText = await response.text();
-      lastError = new Error(`DigitalOcean API error: ${response.status} ${errorText}`);
+      lastError = new ProviderHttpError(
+        `DigitalOcean API error: ${response.status} ${errorText}`,
+        response.status,
+        attempt + 1,
+      );
 
       if (![500, 503, 429].includes(response.status)) {
         throw lastError;
@@ -268,6 +429,7 @@ class DigitalOceanClient {
   }, onChunk: (chunk: string) => void): Promise<{
     content: string;
     usage: { input_tokens: number; output_tokens: number };
+    __ledger: ProviderLedgerMetadata;
   }> {
     const url = `${this.endpoint}/v1/chat/completions`;
     const openaiMessages = this.buildOpenAIMessages(params.system, params.messages);
@@ -284,17 +446,24 @@ class DigitalOceanClient {
         max_tokens: params.max_tokens,
         temperature: params.temperature,
         stream: true,
+        stream_options: { include_usage: true },
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`DigitalOcean streaming error: ${response.status} ${errorText}`);
+      throw new ProviderHttpError(
+        `DigitalOcean streaming error: ${response.status} ${errorText}`,
+        response.status,
+        1,
+      );
     }
 
     let fullContent = '';
     let inputTokens = 0;
     let outputTokens = 0;
+    let rawUsage: unknown = null;
+    let providerRequestId = response.headers.get('x-request-id');
 
     const reader = response.body?.getReader();
     if (!reader) throw new Error('DigitalOcean: No response body for streaming');
@@ -318,6 +487,9 @@ class DigitalOceanClient {
 
         try {
           const parsed = JSON.parse(data);
+          if (!providerRequestId && typeof parsed.id === 'string') {
+            providerRequestId = parsed.id;
+          }
           const delta = parsed.choices?.[0]?.delta;
           if (delta?.content) {
             fullContent += delta.content;
@@ -325,6 +497,7 @@ class DigitalOceanClient {
           }
           // Capture usage from the final chunk if present
           if (parsed.usage) {
+            rawUsage = parsed.usage;
             inputTokens = parsed.usage.prompt_tokens || 0;
             outputTokens = parsed.usage.completion_tokens || 0;
           }
@@ -337,6 +510,11 @@ class DigitalOceanClient {
     return {
       content: fullContent,
       usage: { input_tokens: inputTokens, output_tokens: outputTokens },
+      __ledger: {
+        attemptCount: 1,
+        providerRequestId,
+        rawUsage,
+      },
     };
   }
 }
@@ -394,6 +572,7 @@ export interface AnthropicCallOptions {
   maxTokens?: number;
   jsonMode?: boolean;
   conversationHistory?: ConversationMessage[];
+  generationContext?: LlmGenerationContext;
 }
 
 /**
@@ -436,6 +615,14 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
     messages.push({ role: 'user', content: prompt });
   }
   
+  const activeProvider: LlmUsageProvider = USE_DIGITALOCEAN ? 'digitalocean' : USE_BEDROCK ? 'bedrock' : 'anthropic';
+  const ledger = await startLlmGeneration({
+    context: options.generationContext ?? fallbackGenerationContext('direct_anthropic_call'),
+    provider: activeProvider,
+    model: MODEL_ID,
+  });
+  let providerResponseReceived = false;
+
   try {
     let response;
 
@@ -471,6 +658,13 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
       });
     }
 
+    providerResponseReceived = true;
+    await completeProviderGeneration({
+      id: ledger.id,
+      startedAtMs: startTime,
+      response: response as LedgerAwareResponse,
+    });
+
     // Extract text content
     const textContent = response.content.find(block => block.type === 'text');
     const content = textContent?.type === 'text' ? textContent.text : '';
@@ -484,8 +678,6 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
       console.log(`[Anthropic Cache] write=${cacheCreation} read=${cacheRead} input=${usage.input_tokens} output=${usage.output_tokens}`);
     }
 
-    const activeProvider = USE_DIGITALOCEAN ? 'digitalocean' : USE_BEDROCK ? 'bedrock' : 'anthropic';
-
     return {
       content,
       usage: {
@@ -497,8 +689,18 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
       model: MODEL_ID,
       provider: activeProvider,
       latencyMs: Date.now() - startTime,
+      generationId: ledger.id,
     };
   } catch (error) {
+    if (!providerResponseReceived) {
+      await recordProviderFailure({
+        id: ledger.id,
+        latencyMs: Date.now() - startTime,
+        attemptCount: providerAttemptCount(error),
+        errorKind: error instanceof ProviderHttpError ? 'provider_http_error' : 'provider_error',
+        httpStatus: providerHttpStatus(error),
+      });
+    }
     console.error('Anthropic API error:', error);
     throw new Error(`Anthropic API call failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
@@ -519,6 +721,8 @@ export async function callAnthropicStream(
   let outputTokens = 0;
   let cacheCreationTokens = 0;
   let cacheReadTokens = 0;
+  let providerRequestId: string | null = null;
+  const finalUsage: Record<string, number> = {};
 
   // Build system parameter — mirrors callAnthropic: prefer systemBlocks (with cache_control)
   // over plain systemPrompt string
@@ -535,8 +739,15 @@ export async function callAnthropicStream(
     systemParam = jsonMode ? systemPrompt + jsonInstruction : systemPrompt;
   }
 
+  const activeProvider: LlmUsageProvider = USE_DIGITALOCEAN ? 'digitalocean' : USE_BEDROCK ? 'bedrock' : 'anthropic';
+  const ledger = await startLlmGeneration({
+    context: options.generationContext ?? fallbackGenerationContext('direct_anthropic_stream'),
+    provider: activeProvider,
+    model: MODEL_ID,
+  });
+  let providerResponseReceived = false;
+
   try {
-    const activeProvider = USE_DIGITALOCEAN ? 'digitalocean' : USE_BEDROCK ? 'bedrock' : 'anthropic';
 
     if (USE_DIGITALOCEAN) {
       // DigitalOcean supports true SSE streaming via OpenAI-compatible endpoint
@@ -549,6 +760,13 @@ export async function callAnthropicStream(
         messages: [{ role: 'user', content: prompt }],
       }, onChunk);
 
+      providerResponseReceived = true;
+      await completeProviderGeneration({
+        id: ledger.id,
+        startedAtMs: startTime,
+        response: result as LedgerAwareResponse,
+      });
+
       return {
         content: result.content,
         usage: {
@@ -558,6 +776,7 @@ export async function callAnthropicStream(
         model: MODEL_ID,
         provider: activeProvider,
         latencyMs: Date.now() - startTime,
+        generationId: ledger.id,
       };
     }
 
@@ -579,6 +798,13 @@ export async function callAnthropicStream(
       inputTokens = response.usage?.input_tokens || 0;
       outputTokens = response.usage?.output_tokens || 0;
 
+      providerResponseReceived = true;
+      await completeProviderGeneration({
+        id: ledger.id,
+        startedAtMs: startTime,
+        response: response as LedgerAwareResponse,
+      });
+
       return {
         content: fullContent,
         usage: {
@@ -588,6 +814,7 @@ export async function callAnthropicStream(
         model: MODEL_ID,
         provider: activeProvider,
         latencyMs: Date.now() - startTime,
+        generationId: ledger.id,
       };
     } else {
       // Use Anthropic SDK streaming
@@ -609,19 +836,46 @@ export async function callAnthropicStream(
       }
 
       if (event.type === 'message_delta' && event.usage) {
-        outputTokens = event.usage.output_tokens;
+        const exactOutputTokens = exactTokenCount(event.usage.output_tokens);
+        if (exactOutputTokens !== null) {
+          outputTokens = exactOutputTokens;
+          finalUsage.output_tokens = exactOutputTokens;
+        }
       }
 
       if (event.type === 'message_start' && event.message.usage) {
-        inputTokens = event.message.usage.input_tokens;
-        const usage = event.message.usage as unknown as Record<string, number>;
-        cacheCreationTokens = usage.cache_creation_input_tokens || 0;
-        cacheReadTokens = usage.cache_read_input_tokens || 0;
+        providerRequestId = event.message.id ?? null;
+        const exactInputTokens = exactTokenCount(event.message.usage.input_tokens);
+        const usage = event.message.usage as unknown as Record<string, unknown>;
+        const exactCacheCreationTokens = exactTokenCount(usage.cache_creation_input_tokens);
+        const exactCacheReadTokens = exactTokenCount(usage.cache_read_input_tokens);
+        if (exactInputTokens !== null) {
+          inputTokens = exactInputTokens;
+          finalUsage.input_tokens = exactInputTokens;
+        }
+        if (exactCacheCreationTokens !== null) {
+          cacheCreationTokens = exactCacheCreationTokens;
+          finalUsage.cache_creation_input_tokens = exactCacheCreationTokens;
+        }
+        if (exactCacheReadTokens !== null) {
+          cacheReadTokens = exactCacheReadTokens;
+          finalUsage.cache_read_input_tokens = exactCacheReadTokens;
+        }
         if (cacheCreationTokens > 0 || cacheReadTokens > 0) {
           console.log(`[Anthropic Cache Stream] write=${cacheCreationTokens} read=${cacheReadTokens} input=${inputTokens}`);
         }
       }
     }
+
+    providerResponseReceived = true;
+    await completeProviderGeneration({
+      id: ledger.id,
+      startedAtMs: startTime,
+      response: {
+        usage: Object.keys(finalUsage).length > 0 ? finalUsage : undefined,
+        _request_id: providerRequestId ?? undefined,
+      },
+    });
 
     return {
       content: fullContent,
@@ -634,8 +888,18 @@ export async function callAnthropicStream(
       model: MODEL_ID,
       provider: activeProvider,
       latencyMs: Date.now() - startTime,
+      generationId: ledger.id,
     };
   } catch (error) {
+    if (!providerResponseReceived) {
+      await recordProviderFailure({
+        id: ledger.id,
+        latencyMs: Date.now() - startTime,
+        attemptCount: providerAttemptCount(error),
+        errorKind: error instanceof ProviderHttpError ? 'provider_http_error' : 'provider_stream_error',
+        httpStatus: providerHttpStatus(error),
+      });
+    }
     console.error('Anthropic streaming error:', error);
     throw new Error(`Anthropic streaming failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
@@ -646,12 +910,22 @@ export async function callAnthropicStream(
  * Sends the PDF as a proper document content block — NOT as base64 text.
  * Works for scanned PDFs and PDFs with broken font encoding.
  */
-export async function extractDocumentText(pdfBuffer: Buffer): Promise<string> {
+export async function extractDocumentText(
+  pdfBuffer: Buffer,
+  generationContext?: LlmGenerationContext,
+): Promise<string> {
   const base64Data = pdfBuffer.toString('base64');
   const startTime = Date.now();
 
   const systemPrompt = 'You are a document text extractor. Extract ALL text content from the provided document faithfully. Preserve the original structure, section headers, dates, bullet points, and formatting. Return ONLY the extracted text, nothing else.';
   const userText = 'Extract ALL text content from this CV/resume document. Preserve the original structure including section headers, dates, company names, job titles, bullet points, skills, education, and languages. Return ONLY the extracted text with proper formatting.';
+  const activeProvider: LlmUsageProvider = USE_DIGITALOCEAN ? 'digitalocean' : USE_BEDROCK ? 'bedrock' : 'anthropic';
+  const ledger = await startLlmGeneration({
+    context: generationContext ?? fallbackGenerationContext('extract_document_text'),
+    provider: activeProvider,
+    model: MODEL_ID,
+  });
+  let providerResponseReceived = false;
 
   try {
     if (USE_DIGITALOCEAN) {
@@ -667,6 +941,13 @@ export async function extractDocumentText(pdfBuffer: Buffer): Promise<string> {
           role: 'user',
           content: `${userText}\n\n[PDF document provided as base64 — decode and extract text]\n\nBase64 PDF data:\n${base64Data.substring(0, 20000)}`,
         }],
+      });
+
+      providerResponseReceived = true;
+      await completeProviderGeneration({
+        id: ledger.id,
+        startedAtMs: startTime,
+        response: response as LedgerAwareResponse,
       });
 
       const text = response.content[0]?.text || '';
@@ -707,10 +988,19 @@ export async function extractDocumentText(pdfBuffer: Buffer): Promise<string> {
 
       if (!res.ok) {
         const errorText = await res.text();
-        throw new Error(`Bedrock document extraction error: ${res.status} ${errorText}`);
+        throw new ProviderHttpError(`Bedrock document extraction error: ${res.status} ${errorText}`, res.status, 1);
       }
 
       const data = await res.json();
+      providerResponseReceived = true;
+      await completeProviderGeneration({
+        id: ledger.id,
+        startedAtMs: startTime,
+        response: {
+          usage: data.usage,
+          _request_id: res.headers.get('x-amzn-requestid') ?? undefined,
+        },
+      });
       const text = data.output?.message?.content?.[0]?.text || '';
       console.log(`[Anthropic] PDF document extraction via Bedrock: ${text.length} chars in ${Date.now() - startTime}ms`);
       return text;
@@ -740,11 +1030,27 @@ export async function extractDocumentText(pdfBuffer: Buffer): Promise<string> {
       }],
     });
 
+    providerResponseReceived = true;
+    await completeProviderGeneration({
+      id: ledger.id,
+      startedAtMs: startTime,
+      response: response as LedgerAwareResponse,
+    });
+
     const textContent = response.content.find((b: any) => b.type === 'text');
     const text = textContent?.text || '';
     console.log(`[Anthropic] PDF document extraction: ${text.length} chars in ${Date.now() - startTime}ms`);
     return text;
   } catch (error) {
+    if (!providerResponseReceived) {
+      await recordProviderFailure({
+        id: ledger.id,
+        latencyMs: Date.now() - startTime,
+        attemptCount: providerAttemptCount(error),
+        errorKind: error instanceof ProviderHttpError ? 'provider_http_error' : 'document_extraction_provider_error',
+        httpStatus: providerHttpStatus(error),
+      });
+    }
     console.error('[Anthropic] Document extraction failed:', error);
     throw error;
   }
@@ -769,6 +1075,7 @@ export async function parseDocumentAsCV(options: {
    * Use for primary CVs (1-2 pages). Keep false for Master CVs (3-8 pages, cost saving).
    */
   visualMode?: boolean;
+  generationContext?: LlmGenerationContext;
 }): Promise<string> {
   const { buffer, docFormat, prompt, systemPrompt, maxTokens = 8192, temperature = 0.3, visualMode = false } = options;
   const base64Data = buffer.toString('base64');
@@ -777,97 +1084,131 @@ export async function parseDocumentAsCV(options: {
   if (USE_DIGITALOCEAN) {
     throw new Error('DigitalOcean provider does not support document content blocks. Switch to Bedrock or direct Anthropic.');
   }
-
-  if (HAS_BEARER_TOKEN) {
-    // Bedrock Converse API — native document block support (pdf, docx, txt, md, csv, etc.)
-    const bearerToken = process.env.AWS_BEARER_TOKEN_BEDROCK!;
-    const region = process.env.AWS_BEDROCK_ENDPOINT_URL || AWS_REGION;
-    const url = `https://bedrock-runtime.${region}.amazonaws.com/model/${MODEL_ID}/converse`;
-
-    // Build document block: add citations: { enabled: true } for visual mode (PDF Chat)
-    const documentBlock: Record<string, unknown> = {
-      name: 'cv',
-      format: docFormat,
-      source: { bytes: base64Data },
-    };
-    if (visualMode && docFormat === 'pdf') {
-      documentBlock.citations = { enabled: true };
-    }
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${bearerToken}`,
-      },
-      body: JSON.stringify({
-        messages: [{
-          role: 'user',
-          content: [
-            { document: documentBlock },
-            { text: prompt },
-          ],
-        }],
-        system: [{ text: systemPrompt }],
-        inferenceConfig: { maxTokens, temperature },
-      }),
-    });
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`Bedrock document parse error: ${res.status} ${errorText}`);
-    }
-
-    const data = await res.json();
-    // When citations are enabled, response may include citation content blocks alongside the text block.
-    // Find the text block explicitly rather than assuming content[0] is text.
-    const contentBlocks: Array<Record<string, unknown>> = data.output?.message?.content || [];
-    const textBlock = contentBlocks.find(b => typeof b.text === 'string');
-    const text = (textBlock?.text as string) || '';
-    console.log(`[Anthropic] CV document parse via Bedrock (visualMode=${visualMode}): ${text.length} chars, ${data.usage?.outputTokens || 0} output tokens in ${Date.now() - startTime}ms`);
-    return text;
-  }
-
-  // Anthropic SDK (Bedrock traditional keys or direct Anthropic API) - PDF only
-  // DOCX is handled by the route's ZIP/XML text extraction fallback for these providers.
-  if (docFormat !== 'pdf') {
+  if (!HAS_BEARER_TOKEN && docFormat !== 'pdf') {
     throw new Error('Native DOCX document blocks are only supported through the Bedrock bearer path in this client.');
   }
 
-  // Anthropic SDK (Bedrock traditional keys or direct Anthropic API) - PDF only
-  if (!anthropic) throw new Error('Anthropic client not initialized');
-
-  // Build document block with optional citations for visual mode
-  const sdkDocumentBlock: Record<string, unknown> = {
-    type: 'document',
-    source: {
-      type: 'base64',
-      media_type: 'application/pdf',
-      data: base64Data,
-    },
-  };
-  if (visualMode && docFormat === 'pdf') {
-    sdkDocumentBlock.citations = { enabled: true };
-  }
-
-  const response = await (anthropic as any).messages.create({
+  const activeProvider: LlmUsageProvider = USE_BEDROCK ? 'bedrock' : 'anthropic';
+  const ledger = await startLlmGeneration({
+    context: options.generationContext ?? fallbackGenerationContext('parse_cv_document'),
+    provider: activeProvider,
     model: MODEL_ID,
-    max_tokens: maxTokens,
-    temperature,
-    system: systemPrompt,
-    messages: [{
-      role: 'user',
-      content: [
-        sdkDocumentBlock,
-        { type: 'text', text: prompt },
-      ],
-    }],
   });
+  let providerResponseReceived = false;
 
-  const textContent = response.content.find((b: any) => b.type === 'text');
-  const text = textContent?.text || '';
-  console.log(`[Anthropic] CV document parse (visualMode=${visualMode}): ${text.length} chars in ${Date.now() - startTime}ms`);
-  return text;
+  try {
+    if (HAS_BEARER_TOKEN) {
+      // Bedrock Converse API: native document block support (pdf, docx, txt, md, csv, etc.)
+      const bearerToken = process.env.AWS_BEARER_TOKEN_BEDROCK!;
+      const region = process.env.AWS_BEDROCK_ENDPOINT_URL || AWS_REGION;
+      const url = `https://bedrock-runtime.${region}.amazonaws.com/model/${MODEL_ID}/converse`;
+
+      // Build document block: add citations: { enabled: true } for visual mode (PDF Chat)
+      const documentBlock: Record<string, unknown> = {
+        name: 'cv',
+        format: docFormat,
+        source: { bytes: base64Data },
+      };
+      if (visualMode && docFormat === 'pdf') {
+        documentBlock.citations = { enabled: true };
+      }
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${bearerToken}`,
+        },
+        body: JSON.stringify({
+          messages: [{
+            role: 'user',
+            content: [
+              { document: documentBlock },
+              { text: prompt },
+            ],
+          }],
+          system: [{ text: systemPrompt }],
+          inferenceConfig: { maxTokens, temperature },
+        }),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new ProviderHttpError(`Bedrock document parse error: ${res.status} ${errorText}`, res.status, 1);
+      }
+
+      const data = await res.json();
+      providerResponseReceived = true;
+      await completeProviderGeneration({
+        id: ledger.id,
+        startedAtMs: startTime,
+        response: {
+          usage: data.usage,
+          _request_id: res.headers.get('x-amzn-requestid') ?? undefined,
+        },
+      });
+      // When citations are enabled, response may include citation content blocks alongside the text block.
+      // Find the text block explicitly rather than assuming content[0] is text.
+      const contentBlocks: Array<Record<string, unknown>> = data.output?.message?.content || [];
+      const textBlock = contentBlocks.find(b => typeof b.text === 'string');
+      const text = (textBlock?.text as string) || '';
+      console.log(`[Anthropic] CV document parse via Bedrock (visualMode=${visualMode}): ${text.length} chars, ${data.usage?.outputTokens || 0} output tokens in ${Date.now() - startTime}ms`);
+      return text;
+    }
+
+    // Anthropic SDK (Bedrock traditional keys or direct Anthropic API) - PDF only
+    if (!anthropic) throw new Error('Anthropic client not initialized');
+
+    // Build document block with optional citations for visual mode
+    const sdkDocumentBlock: Record<string, unknown> = {
+      type: 'document',
+      source: {
+        type: 'base64',
+        media_type: 'application/pdf',
+        data: base64Data,
+      },
+    };
+    if (visualMode && docFormat === 'pdf') {
+      sdkDocumentBlock.citations = { enabled: true };
+    }
+
+    const response = await (anthropic as any).messages.create({
+      model: MODEL_ID,
+      max_tokens: maxTokens,
+      temperature,
+      system: systemPrompt,
+      messages: [{
+        role: 'user',
+        content: [
+          sdkDocumentBlock,
+          { type: 'text', text: prompt },
+        ],
+      }],
+    });
+
+    providerResponseReceived = true;
+    await completeProviderGeneration({
+      id: ledger.id,
+      startedAtMs: startTime,
+      response: response as LedgerAwareResponse,
+    });
+
+    const textContent = response.content.find((b: any) => b.type === 'text');
+    const text = textContent?.text || '';
+    console.log(`[Anthropic] CV document parse (visualMode=${visualMode}): ${text.length} chars in ${Date.now() - startTime}ms`);
+    return text;
+  } catch (error) {
+    if (!providerResponseReceived) {
+      await recordProviderFailure({
+        id: ledger.id,
+        latencyMs: Date.now() - startTime,
+        attemptCount: providerAttemptCount(error),
+        errorKind: error instanceof ProviderHttpError ? 'provider_http_error' : 'document_parse_provider_error',
+        httpStatus: providerHttpStatus(error),
+      });
+    }
+    throw error;
+  }
 }
 
 /**

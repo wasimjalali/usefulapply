@@ -48,6 +48,7 @@ import {
 } from '@/lib/job-feed/search-strategy';
 import { generateCareerProfile } from '@/lib/job-feed/career-profile-synthesis';
 import type { StructuredCV } from '@/lib/types/cv-schema';
+import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
 type JobFeedRunUpdate = Partial<Pick<JobFeedRun,
   | 'status'
@@ -1192,6 +1193,8 @@ async function ensureFreeFeedConsent(
 
 export async function runJobFeedFoundationWorkflow(params: {
   userId: string;
+  requestExecutionId?: string;
+  clientRequestId?: string | null;
   triggerSource?: string;
   now?: Date;
   force?: boolean;
@@ -1200,12 +1203,22 @@ export async function runJobFeedFoundationWorkflow(params: {
 }): Promise<JobFeedRunWorkflowResult> {
   const {
     userId,
+    requestExecutionId = crypto.randomUUID(),
+    clientRequestId = null,
     triggerSource = 'manual_user',
     now = new Date(),
     force = false,
     orchestrator = 'direct',
     consentAccepted = false,
   } = params;
+  const workflowGenerationContext: LlmGenerationContext = {
+    requestExecutionId,
+    clientRequestId,
+    userId,
+    route: 'job-feed/workflow',
+    feature: 'job_feed',
+    operation: 'job_feed_workflow',
+  };
 
   // Resolve the subscription tier early so we can auto-provision settings for
   // free users who have never gone through the (premium-only) settings UI.
@@ -1229,7 +1242,7 @@ export async function runJobFeedFoundationWorkflow(params: {
       // provisioned row satisfies the non-empty target_roles constraint. The
       // profile is reused below for the search strategy
       // (getOrSynthesizeCareerProfileAdmin is cached, so this is one synthesis).
-      const careerProfileForSeed = await getOrSynthesizeCareerProfileAdmin(userId);
+      const careerProfileForSeed = await getOrSynthesizeCareerProfileAdmin(userId, workflowGenerationContext);
       const seedRoles = deriveFreeFeedSeedRoles(careerProfileForSeed);
       if (seedRoles.length === 0) {
         // Sparse CV (no inferred or aspirational titles). Provisioning would throw
@@ -1399,11 +1412,19 @@ export async function runJobFeedFoundationWorkflow(params: {
     // missing (first-time runs before async UI synthesis lands, or after a
     // schema bump). Returns null only when there's no primary CV to synthesize
     // from; ingestJobFeedRunJobs then falls back to the legacy planner.
-    const careerProfileForStrategy = await getOrSynthesizeCareerProfileAdmin(userId);
+    const careerProfileForStrategy = await getOrSynthesizeCareerProfileAdmin(userId, {
+      ...workflowGenerationContext,
+      jobFeedRunId: run.id,
+      operation: 'career_profile_synthesis',
+    });
     const searchStrategy = await loadOrGenerateSearchStrategyAdmin({
       userId,
       settings,
       profile: careerProfileForStrategy,
+      generationContext: {
+        ...workflowGenerationContext,
+        jobFeedRunId: run.id,
+      },
     });
 
     const ingestion = await ingestJobFeedRunJobs({
@@ -1456,6 +1477,11 @@ export async function runJobFeedFoundationWorkflow(params: {
       // Explicit user exclusions (titles/companies/keywords). Honored more
       // strongly than the auto-derived negativeTerms.
       excludedTerms: settings.excluded_terms ?? [],
+      generationContext: {
+        ...workflowGenerationContext,
+        jobFeedRunId: run.id,
+        operation: 'job_feed_ranking',
+      },
     });
     const materializedRanking = await persistJobFeedRankedItemsForRunAdmin({
       runId: run.id,
@@ -2199,7 +2225,10 @@ export async function getUserCareerProfileAdmin(userId: string): Promise<CareerP
  * Read-only contract still holds: the synthesized profile is NEVER read by
  * `src/lib/agents/**`.
  */
-export async function getOrSynthesizeCareerProfileAdmin(userId: string): Promise<CareerProfile | null> {
+export async function getOrSynthesizeCareerProfileAdmin(
+  userId: string,
+  generationContext?: LlmGenerationContext,
+): Promise<CareerProfile | null> {
   const existing = await getUserCareerProfileAdmin(userId);
   if (existing) return existing;
 
@@ -2209,7 +2238,18 @@ export async function getOrSynthesizeCareerProfileAdmin(userId: string): Promise
   if (!structured || typeof structured !== 'object') return null;
 
   try {
-    const result = await generateCareerProfile(structured as StructuredCV);
+    const result = await generateCareerProfile(
+      structured as StructuredCV,
+      generationContext
+        ? { ...generationContext, operation: 'career_profile_synthesis' }
+        : {
+            requestExecutionId: crypto.randomUUID(),
+            userId,
+            route: 'job-feed/internal',
+            feature: 'job_feed',
+            operation: 'career_profile_synthesis',
+          },
+    );
     try {
       await jobFeedRepo.upsertCareerProfile(userId, {
         profile: result.profile as unknown as Json,
@@ -2252,8 +2292,9 @@ export async function loadOrGenerateSearchStrategyAdmin(params: {
   userId: string;
   settings: JobFeedSettings;
   profile: CareerProfile | null;
+  generationContext?: LlmGenerationContext;
 }): Promise<SearchStrategy | null> {
-  const { userId, settings, profile } = params;
+  const { userId, settings, profile, generationContext } = params;
 
   if (!profile) return null;
   if (!settings.target_countries || settings.target_countries.length === 0) return null;
@@ -2285,7 +2326,19 @@ export async function loadOrGenerateSearchStrategyAdmin(params: {
 
   // Cache miss / stale / version bump — synthesize a fresh one and upsert.
   try {
-    const result = await generateSearchStrategy({ profile, settings });
+    const result = await generateSearchStrategy({
+      profile,
+      settings,
+      generationContext: generationContext
+        ? { ...generationContext, operation: 'search_strategy_generation' }
+        : {
+            requestExecutionId: crypto.randomUUID(),
+            userId,
+            route: 'job-feed/internal',
+            feature: 'job_feed',
+            operation: 'search_strategy_generation',
+          },
+    });
     await jobFeedRepo.upsertSearchStrategy(userId, {
       settings_hash: settingsHash,
       strategy: result.strategy as unknown as Json,

@@ -8,6 +8,7 @@ import { getCurrentUser } from '@/auth/server';
 import { getObject } from '@/storage/r2';
 import { detectCVLanguage, extractOriginalHeaders, generateLocalizedHeaders } from '@/lib/cv-parser/section-splitter';
 import { callAnthropic, parseDocumentAsCV } from '@/lib/models/anthropic';
+import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -74,6 +75,16 @@ export async function POST(request: NextRequest) {
     // Auth check: determines rate limiting (anonymous = 5/24h IP limit, authenticated = unlimited)
     const user = await getCurrentUser(request);
     const isAuthenticated = !!user;
+    const clientRequestId = request.headers.get('x-request-id') ?? crypto.randomUUID();
+    const generationContext: LlmGenerationContext = {
+      requestExecutionId: crypto.randomUUID(),
+      clientRequestId,
+      userId: user?.id ?? null,
+      anonymousSubjectHash: user ? null : `parse-cv:${clientIP}`,
+      route: '/api/parse-cv',
+      feature: 'cv_parse',
+      operation: 'parse_cv',
+    };
 
     // Two input modes:
     // 1) FormData with 'file' field — direct upload (≤ 4.5 MB, Vercel body limit)
@@ -228,6 +239,7 @@ export async function POST(request: NextRequest) {
           fileExt,
           region: region as 'US' | 'EU',
           documentType,
+          generationContext,
         });
         rawText = documentResult.rawText;
         structuredCV = documentResult.structuredCV;
@@ -254,7 +266,11 @@ export async function POST(request: NextRequest) {
       const textForAI = prepareTextForAI(rawText);
 
       try {
-        structuredCV = await parseWithAI(textForAI, region as 'US' | 'EU');
+        structuredCV = await parseWithAI(
+          textForAI,
+          region as 'US' | 'EU',
+          { ...generationContext, operation: 'parse_cv_text' },
+        );
         parserUsed = 'ai-text';
       } catch (e) {
         const errMsg = e instanceof Error ? e.message : String(e);
@@ -352,8 +368,9 @@ async function parseDocumentWithAIOrFallback(options: {
   fileExt: DocumentFileExt;
   region: 'US' | 'EU';
   documentType: 'primary_cv' | 'master_cv';
+  generationContext: LlmGenerationContext;
 }): Promise<{ rawText: string; structuredCV: StructuredCV; parserUsed: string }> {
-  const { buffer, fileExt, region, documentType } = options;
+  const { buffer, fileExt, region, documentType, generationContext } = options;
   const docFormat = fileExt === '.pdf' ? 'pdf' : 'docx';
 
   try {
@@ -365,6 +382,7 @@ async function parseDocumentWithAIOrFallback(options: {
       maxTokens: 8192,
       temperature: 0.3,
       visualMode: docFormat === 'pdf' && documentType !== 'master_cv',
+      generationContext: { ...generationContext, operation: 'parse_cv_document_native' },
     });
     const structuredCV = parseAIResponse(jsonContent, region);
     const rawText = reconstructRawText(structuredCV);
@@ -392,7 +410,11 @@ async function parseDocumentWithAIOrFallback(options: {
     throw new Error(`${docFormat.toUpperCase()} text extraction returned too little content. The document may be scanned, encrypted, or corrupted.`);
   }
 
-  const structuredCV = await parseWithAI(prepareTextForAI(extractedText), region);
+  const structuredCV = await parseWithAI(
+    prepareTextForAI(extractedText),
+    region,
+    { ...generationContext, operation: 'parse_cv_extracted_text_fallback' },
+  );
   console.log(`[Parser] ${docFormat.toUpperCase()} extracted-text fallback complete: ${extractedText.length} chars`);
   return { rawText: extractedText, structuredCV, parserUsed: 'ai-extracted-text' };
 }
@@ -586,7 +608,11 @@ function decodeXmlEntities(text: string): string {
 /**
  * Parse CV using AI with text input (for TXT/MD/TEX)
  */
-async function parseWithAI(rawText: string, region: 'US' | 'EU'): Promise<StructuredCV> {
+async function parseWithAI(
+  rawText: string,
+  region: 'US' | 'EU',
+  generationContext: LlmGenerationContext,
+): Promise<StructuredCV> {
   const prompt = getParsingPrompt(rawText);
 
   const response = await callAnthropic({
@@ -595,6 +621,7 @@ async function parseWithAI(rawText: string, region: 'US' | 'EU'): Promise<Struct
     temperature: 0.3,
     maxTokens: 8192,  // Master CVs with 10+ years of experience can exceed 4096 tokens of JSON output
     jsonMode: true,
+    generationContext,
   });
 
   console.log(`[Parser] AI response: ${response.usage.outputTokens} output tokens, ${response.content.length} chars`);

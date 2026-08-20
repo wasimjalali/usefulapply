@@ -20,7 +20,7 @@ import {
   type MasterContext,
 } from '@/lib/agents';
 import { getCurrentUser } from '@/auth/server';
-import { updateSession } from '@/db/repos/sessions';
+import { getSession, updateSession } from '@/db/repos/sessions';
 import { getJobPreferences } from '@/db/repos/jobFeed';
 import { hasAnonymousGeneration, recordAnonymousGeneration } from '@/db/repos/anonymous';
 import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
@@ -30,6 +30,7 @@ import { getPostHogServer } from '@/lib/posthog-server';
 import { randomUUID, createHash } from 'crypto';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -233,6 +234,7 @@ export async function POST(request: NextRequest) {
     async start(controller) {
       // PostHog LLM analytics — hoisted above try/catch so error tracking works in catch block
       const traceId = `trace_${randomUUID()}`;
+      const requestExecutionId = randomUUID();
       const stepStartTimes = new Map<string, number>();
       let distinctId = 'anonymous';
       let currentAction = 'unknown';
@@ -431,6 +433,22 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        const attributableSessionId = user && clientSessionId
+          && !clientSessionId.startsWith('session-')
+          && !clientSessionId.startsWith('fit-')
+          ? (await getSession(user.id, clientSessionId))?.id ?? null
+          : null;
+        const generationContext: LlmGenerationContext = {
+          requestExecutionId,
+          clientRequestId,
+          userId: user?.id ?? null,
+          anonymousSubjectHash: isAnonymous ? ipHash : null,
+          applicationSessionId: attributableSessionId,
+          route: '/api/agent-v2',
+          feature: action === 'fit_analysis' ? 'fit_analysis' : 'application_generation',
+          operation: action,
+        };
+
         console.log('[API_AGENT_V2] Request received:', {
           action,
           contextId,
@@ -554,6 +572,7 @@ export async function POST(request: NextRequest) {
             primaryCV: currentCV,
             masterCV,
             jobPreferences,
+            generationContext,
           }, eventHandler);
 
           if (result.success && result.data) {
@@ -697,6 +716,7 @@ export async function POST(request: NextRequest) {
                 primaryCV: currentCV,
                 masterCV,
                 jobPreferences,
+                generationContext,
               }, eventHandler);
 
               if (result.success && result.data) {
@@ -778,7 +798,7 @@ export async function POST(request: NextRequest) {
 
           const eventHandler = createEventHandler((id) => getGenerateWithContextStepIndex(id));
           if (jobPreferences) cachedContext.jobPreferences = jobPreferences;
-          const result = await runWithContext(cachedContext, eventHandler);
+          const result = await runWithContext(cachedContext, eventHandler, generationContext);
 
           await removeCachedContext(user?.id ?? 'anon', contextId);
 
@@ -880,6 +900,7 @@ export async function POST(request: NextRequest) {
             primaryCV: currentCV,
             masterCV,
             jobPreferences,
+            generationContext,
           }, eventHandler);
           
           if (result.success && result.data) {
@@ -904,6 +925,7 @@ export async function POST(request: NextRequest) {
             primaryCV: currentCV,
             masterCV,
             jobPreferences,
+            generationContext,
           }, eventHandler);
 
           if (result.success && result.data) {

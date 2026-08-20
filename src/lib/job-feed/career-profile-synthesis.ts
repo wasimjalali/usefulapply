@@ -12,6 +12,7 @@
  */
 
 import { callAnthropic } from '@/lib/models/anthropic';
+import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import type { StructuredCV } from '@/lib/types/cv-schema';
 import {
   CAREER_PROFILE_SCHEMA_VERSION,
@@ -133,7 +134,10 @@ export interface GenerateCareerProfileResult {
   latencyMs: number;
 }
 
-export async function generateCareerProfile(cv: StructuredCV): Promise<GenerateCareerProfileResult> {
+export async function generateCareerProfile(
+  cv: StructuredCV,
+  generationContext?: LlmGenerationContext,
+): Promise<GenerateCareerProfileResult> {
   const startTime = Date.now();
   const userPrompt = buildSynthesisUserPrompt(cv);
 
@@ -143,6 +147,7 @@ export async function generateCareerProfile(cv: StructuredCV): Promise<GenerateC
     temperature: SYNTHESIS_TEMPERATURE,
     maxTokens: SYNTHESIS_MAX_TOKENS,
     jsonMode: true,
+    generationContext,
   });
 
   const latencyMs = Date.now() - startTime;

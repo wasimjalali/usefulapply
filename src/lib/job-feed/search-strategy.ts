@@ -13,6 +13,7 @@
 
 import { createHash } from 'node:crypto';
 import { callAnthropic } from '@/lib/models/anthropic';
+import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import type { JobFeedSettings } from '@/lib/supabase/types';
 
@@ -186,6 +187,7 @@ export interface GenerateSearchStrategyResult {
 export async function generateSearchStrategy(params: {
   profile: CareerProfile;
   settings: JobFeedSettings;
+  generationContext?: LlmGenerationContext;
 }): Promise<GenerateSearchStrategyResult> {
   const startTime = Date.now();
   const userPrompt = buildStrategyUserPrompt(params.profile, params.settings);
@@ -196,6 +198,7 @@ export async function generateSearchStrategy(params: {
     temperature: STRATEGY_TEMPERATURE,
     maxTokens: STRATEGY_MAX_TOKENS,
     jsonMode: true,
+    generationContext: params.generationContext,
   });
 
   const latencyMs = Date.now() - startTime;

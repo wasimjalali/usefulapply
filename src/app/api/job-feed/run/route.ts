@@ -87,6 +87,8 @@ export async function POST(request: NextRequest) {
 
     const result = await runJobFeedFoundationWorkflow({
       userId: user.id,
+      requestExecutionId: crypto.randomUUID(),
+      clientRequestId: request.headers.get('x-request-id'),
       triggerSource: 'manual_user',
       now,
       orchestrator: 'direct',

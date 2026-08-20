@@ -10,6 +10,7 @@ import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getSession, updateSession, type ApplicationSession } from '@/db/repos/sessions';
 import { getDocumentByType, type Document } from '@/db/repos/documents';
+import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -140,13 +141,22 @@ export async function POST(request: NextRequest) {
     }
 
     const masterContext = buildContextFromSession(session, rawCV, masterCv?.raw_text || undefined, primaryCv);
+    const generationContext: LlmGenerationContext = {
+      requestExecutionId: randomUUID(),
+      clientRequestId,
+      userId: user.id,
+      applicationSessionId: session.id,
+      route: '/api/tracker/follow-up',
+      feature: 'tracker_follow_up',
+      operation: 'regen_follow_up_email',
+    };
 
     const traceId = `trace_${randomUUID()}`;
     const INPUT_COST_PER_M = 3;
     const OUTPUT_COST_PER_M = 15;
     const regenStartTime = Date.now();
 
-    const { result: followUpEmail, tokens } = await unifiedWriterAgent.generateFollowUpEmail(masterContext);
+    const { result: followUpEmail, tokens } = await unifiedWriterAgent.generateFollowUpEmail(masterContext, generationContext);
     if (!followUpEmail?.subject?.trim() || !followUpEmail?.body?.trim()) {
       await releaseReservation({
         idempotencyKey: reservationKey,
