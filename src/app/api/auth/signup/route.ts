@@ -48,6 +48,15 @@ export async function POST(request: NextRequest) {
         });
       } catch (error) {
         console.error('[/api/auth/signup] sendVerificationEmail error:', error);
+        // Unknown address stays 200 so this endpoint cannot be used to test
+        // whether an account exists. A real send failure is the only 500.
+        if (isUnknownVerificationTarget(error)) {
+          return NextResponse.json({ success: true });
+        }
+        return NextResponse.json(
+          { error: "We couldn't send that email. Try again in a moment." },
+          { status: 500 },
+        );
       }
       return NextResponse.json({ success: true });
     }
@@ -77,4 +86,10 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function isUnknownVerificationTarget(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const record = error as { body?: { code?: string } };
+  return record.body?.code === 'USER_NOT_FOUND';
 }
