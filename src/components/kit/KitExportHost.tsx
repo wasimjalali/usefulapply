@@ -146,7 +146,11 @@ export function KitExportHost() {
   if (!cvData) return null;
 
   return (
-    <div aria-hidden className="pointer-events-none absolute left-[-10000px] top-0 z-[-1]">
+    // Fixed, not absolute. Absolute keeps this 1500px-tall CV inside the
+    // shell's scrollable overflow, so the first focus or scrollIntoView after
+    // a kit loads scrolled the overflow-hidden shell and pushed the whole app
+    // off the top of the screen. Fixed takes it out of that box entirely.
+    <div aria-hidden className="pointer-events-none fixed left-[-10000px] top-0 z-[-1]">
       <div ref={cvRef} className="bg-white">
         <CVTemplateRenderer data={cvData} templateId={cvTemplateId} />
       </div>
