@@ -88,7 +88,7 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Where:** UI `src/components/job-feed/FeedConversation.tsx` (`applySteer`), `src/lib/job-feed/rerank-intent.ts`; backend `src/lib/job-feed/server.ts`, `src/lib/job-feed/workers-ai-ranking.ts`, `src/app/api/job-feed/run/route.ts`.
 - **Needs:** a `POST /api/job-feed/rerank` that re-runs the ranker over the run's existing canonical jobs with the new settings and rewrites `job_feed_ranked_items` (no SerpAPI cost, only a Workers AI call). Medium. Decision: is a re-rank free, or does it count against the daily run?
 
-### "Add Berlin" is understood but never saved — CLOSED
+### "Add Berlin" is understood but never saved - CLOSED
 - **Closed 20 August 2026.** `countryForCity` in constants.ts reverses `JOB_FEED_CITY_SUGGESTIONS` (accent, casing and alias tolerant), and `normalizeJobFeedSettingsInput` adds the implied country when a city names one. An unknown city changes nothing, which is the honest fallback.
 - **UI today:** `detectFeedIntent` recognises "add Berlin" and the assistant confirms "Berlin is in the search now." The city is added to `target_cities` on the settings payload.
 - **Missing:** a city outside the saved `target_countries` is searched in the wrong market, and nothing maps a city name to a country. `JOB_FEED_CITY_SUGGESTIONS` in constants.ts is a per-country list, not a reverse index, and the settings route does not validate that a city belongs to a selected country.
@@ -101,7 +101,7 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Where:** `src/app/api/job-feed/overview/route.ts` (`visibleCap`, `totalCount`), UI `src/components/job-feed/FeedCanvas.tsx`.
 - **Needs:** return the uncapped count as a separate field (e.g. `jobsMatchedCount`) while keeping the item list capped. Small.
 
-### "Why it's a match" is empty on saved jobs — CLOSED
+### "Why it's a match" is empty on saved jobs - CLOSED
 - **Closed by `62885ddc`.** `listSavedJobFeedItemsAdmin` joins `listRankedItemsByJobIds`, so a saved job carries its badge and its reason. A job with no ranked row still shows neither, by design.
 - **UI today:** the job detail shows "Why it's a match" from `matchReason`, which this batch threaded through from `job_feed_ranked_items.reason`. The section is hidden when there is no reason.
 - **Missing:** `listSavedJobFeedItemsAdmin` builds its items straight from the feedback rows and the canonical jobs, with no ranked-item join, so every job opened from the Saved tab has `matchReason: null`. The same is true for any job whose run has aged out of the 7-day window.
@@ -131,7 +131,7 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 
 ### Batch 4 (part A, tracker)
 
-### Reminder windows are UTC, not the user's timezone — CLOSED
+### Reminder windows are UTC, not the user's timezone - CLOSED
 - **Closed 20 August 2026.** The sweep queries a three-day UTC window (the smallest that contains every zone's tomorrow, UTC-12 to UTC+14) and then judges each candidate in its owner's own timezone. Day arithmetic runs on the day key, so a DST shift cannot skip a day.
 - **UI today:** the popover promises "I'll remind you the day before" and the daily cron (`0 8 * * *`) sends for interviews falling on tomorrow's **UTC** calendar day.
 - **Missing:** `profiles.timezone` is now stored (General pane sets it) but the cron does not read it, so a user in UTC+13 can get "tomorrow" a few hours early or late.
@@ -162,7 +162,7 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Where:** `src/db/repos/admin.ts` (`listFollowUpReminderCandidates`), `src/lib/email/templates/tracker-reminder.ts`.
 - **Needs:** an offer-deadline branch in the sweep and its own two-line template. Small.
 
-### Applications that reached Applied before this batch get a NEXT date the cron cannot act on — CLOSED
+### Applications that reached Applied before this batch get a NEXT date the cron cannot act on - CLOSED
 - **Closed 20 August 2026.** No backfill. `listFollowUpReminderCandidates` also returns Applied rows with a null `follow_up_due_at`, and the sweep derives the date with the same `defaultFollowUpDue` the tracker shows the user, so the two cannot disagree.
 - **UI today:** an Applied row with no stored `follow_up_due_at` still shows "Follow up by <date>" or "Follow up overdue", derived from `created_at` plus seven business days, and counts toward "N follow-ups due this week".
 - **Missing:** the reminder sweep requires `follow_up_due_at is not null`, so those rows never trigger the email the Notifications toggle promises. No SQL backfill was written because `datetime()` returns a different string shape than the ISO values every other writer stores, which would break the date comparisons.
@@ -217,7 +217,7 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Where:** `src/app/api/stripe/create-checkout/route.ts`, `create-addon-checkout/route.ts`, `create-portal/route.ts`.
 - **Needs:** point the three URLs at `/dashboard?settings=usage`. Trivial, but it is a Stripe route, which this batch was told not to touch.
 
-### CreditIndicator is dead UI that still links at the old routes — CLOSED
+### CreditIndicator is dead UI that still links at the old routes - CLOSED
 - **Was:** `CreditIndicator.tsx` was rendered nowhere but could not be deleted, because `LowCreditsModal` and `LowCreditsBanner` imported its `CREDIT_UPDATE_EVENT`.
 - **Resolved in the post-batch sweep (pass 1, 19 August 2026):** all three components had zero inbound references and are deleted. The live event path was already elsewhere, `src/lib/utils/creditEvents.ts` plus `src/hooks/useCreditsBalance.ts`, so nothing had to move.
 
@@ -229,25 +229,25 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Where:** `src/app/page.tsx` (`MOMENTS[2]`, marked PLACEHOLDER), `public/images/moments/daily-feed.webp`.
 - **Needs:** capture it during the end-to-end pass Wasim planned, then drop the WebP in at 1440x900 under 150 KB and remove the comment. Small, but it needs a real account. **Agreed with Wasim on 19 Aug 2026: placeholder stays until the end-to-end pass.**
 
-### The reset link window — CLOSED
+### The reset link window - CLOSED
 - **Was:** `resetPasswordTokenExpiresIn` was unset, so Better Auth 1.7 fell back to 3600 seconds while the flow-6 copy promised 30 minutes.
 - **Resolved 19 Aug 2026 (Wasim asked for the fix):** `resetPasswordTokenExpiresIn: 60 * 30` is now set in `src/auth/server.ts`, and all three places that state the window say 30 minutes: the reset card, the expired-link card and the reset email template (`src/lib/email/templates/password-reset.ts`, which had also said "about an hour").
 
-### Sign-up password floor — CLOSED
+### Sign-up password floor - CLOSED
 - **Was:** the UI said 8 characters while `/api/auth/signup` rejected under 6 and `minPasswordLength` was 6, so a 6-character password got through any client that skipped our form.
 - **Resolved 19 Aug 2026 (Wasim asked for the fix):** `minPasswordLength: 8` in `src/auth/server.ts`, the signup route rejects under 8, and the guided line's inline sign-up card (`src/components/shell/GuidedLine.tsx`) was raised from 6 to 8 as well, so it can no longer submit a password the server will bounce.
 
-### "We couldn't find that address" can't be shown on the reset form — CLOSED
+### "We couldn't find that address" can't be shown on the reset form - CLOSED
 - **UI today:** `/auth/forgot-password` shows inline errors for a malformed address and for rate limiting only. It never says the address is unknown.
 - **Missing:** nothing. This is not a bug. `/api/auth/forgot-password` always returns success for a well-formed address so account existence can't be enumerated, and Better Auth 1.7 returns 200 for unknown emails too, so the client never learns whether the account exists.
 - **Where:** `src/app/api/auth/forgot-password/route.ts`.
 - **Resolved 19 Aug 2026:** the string is dropped from `flow-6-auth.md` note 3 and the code is unchanged. Nothing further to do.
 
-### The landing height — CLOSED
+### The landing height - CLOSED
 - **Was:** 4,699 px at 1440 wide, 199 over F28's 4,500 target, because the real footer is 813 px against the artboard mock's ~532 and the real navy band is 463 against ~420.
 - **Resolved 19 Aug 2026 (Wasim's call: the final band and the footer keep the old layout and design, so the trim comes from the new sections only):** the landing is now **4,495 px**. Hero 1052, moments 1437, founder 168, plans 504, all tightened on spacing only; the images stay at the doc's 1040 px hero and 680 px moments, and the final band (463) and footer (813) are byte-for-byte unchanged.
 
-### "Priority generation" on Max — CLOSED
+### "Priority generation" on Max - CLOSED
 - **Was:** the Max card said "Priority generation" on the landing, in the settings modal and on `/pricing`, and it was the main line separating $79.99 from $19.99. The feature does not exist: `src/lib/models/**` and `src/lib/agents/**` have no reference to `plan_tier`, `planTier` or `subscription_tier` and there is no queue, so a Max generation runs the identical path and model as a Free one. The line came from the locked M1 artboard.
 - **Resolved 19 Aug 2026 (Wasim: "that's a copy bug, correct the copy because we don't have such thing yet"):** replaced with **"Twice the feed search"**, which is true and verifiable: `JOB_FEED_TIER_LIMITS` gives Max `maxDailyQueries: 4` and `maxRawJobsPerRun: 40` against Plus's 2 and 20. The `/pricing` Max list drops the line entirely and keeps its existing, accurate "Feed searches 4 job titles across 4 countries".
 - **Note for the flow-7 doc:** M1's Max card still shows "Priority generation". The artboard is now one line out of date against the build, on purpose.
