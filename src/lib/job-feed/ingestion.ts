@@ -328,6 +328,11 @@ export async function ingestJobFeedRunJobs(params: {
   userId: string;
   settings: JobFeedSettings;
   maxQueries?: number;
+  /**
+   * How many of `maxQueries` the main plan may spend. Defaults to the whole
+   * budget, which is the old behaviour and leaves the extra passes unreachable.
+   */
+  maxMainQueries?: number;
   maxRawJobs?: number;
   /**
    * AI-generated search strategy. When provided, queries come from the
@@ -337,13 +342,17 @@ export async function ingestJobFeedRunJobs(params: {
    */
   strategy?: SearchStrategy | null;
 }): Promise<JobFeedIngestionResult> {
-  const { runId, userId, settings, maxQueries, maxRawJobs = JOB_FEED_MAX_RAW_JOBS_PER_RUN, strategy = null } = params;
+  const {
+    runId, userId, settings, maxQueries, maxMainQueries,
+    maxRawJobs = JOB_FEED_MAX_RAW_JOBS_PER_RUN, strategy = null,
+  } = params;
+  const planQueryCap = maxMainQueries ?? maxQueries;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the new tables here.
   const admin = createAdminClient() as any;
 
   const searchPlan = strategy
-    ? buildJobFeedSearchPlanFromStrategy(strategy, settings, maxQueries)
-    : buildJobFeedSearchPlan(settings, maxQueries);
+    ? buildJobFeedSearchPlanFromStrategy(strategy, settings, planQueryCap)
+    : buildJobFeedSearchPlan(settings, planQueryCap);
 
   // Apply the cached "Past week" date_posted filter to every plan item in
   // a market where filtering is safe. First-run users for any country see
@@ -516,6 +525,45 @@ export async function ingestJobFeedRunJobs(params: {
       searchPlan.push(fallbackPlanItem); // make the fallback visible in diagnostics
 
       if (rawJobsFetched >= maxRawJobs) break;
+    }
+  }
+
+  // ---- Unfiltered retry ----
+  // Last resort, and the only pass a Free user can actually reach. The
+  // fallback above needs a strategy entry with `fallbackTo` set, and measured
+  // across every stored strategy the top query is always short_tail with
+  // `fallbackTo: null`, so a one-query plan could never be rescued by it.
+  //
+  // This one asks a different question: the whole run came back empty, so was
+  // it the "Past week" filter rather than the query? Re-running the same query
+  // unfiltered is cheap to reason about and needs nothing from the model. It
+  // fires only on a completely empty run, so a normal day never pays for it,
+  // and only where a filter was actually applied, because repeating an
+  // unfiltered call that already returned nothing would just burn the call.
+  if (rawJobsFetched === 0 && extraCallsRemaining > 0) {
+    const filtered = searchPlan.find(
+      (item) => !item.isFallbackRetry && (item.filterTokens?.length ?? 0) > 0,
+    );
+    if (filtered) {
+      const retryPlanItem: JobFeedSearchPlanItem = {
+        ...filtered,
+        isFallbackRetry: true,
+        fallbackToIndex: null,
+        filterTokens: [],
+      };
+      const fetchResult = await runOneSerpApiFetch({
+        admin,
+        runId,
+        userId,
+        planItem: retryPlanItem,
+        remainingRawCapacity: Math.max(0, maxRawJobs - rawJobsFetched),
+      });
+      rawFetchIds.push(fetchResult.rawFetchId);
+      if (fetchResult.failedFetch) failedFetches.push(fetchResult.failedFetch);
+      for (const observed of fetchResult.observedJobs) observedJobs.push(observed);
+      rawJobsFetched += fetchResult.observedJobs.length;
+      extraCallsRemaining -= 1;
+      searchPlan.push(retryPlanItem); // make the retry visible in diagnostics
     }
   }
 

@@ -39,7 +39,16 @@ export const JOB_FEED_VISIBLE_MAX_COUNT = 25;
 export type JobFeedTier = 'plus' | 'max';
 
 export interface JobFeedTierLimits {
+  /** Hard ceiling on SerpAPI calls per run, main plan plus every extra pass. */
   maxDailyQueries: number;
+  /**
+   * How many of those calls the main plan may spend. Anything left over is the
+   * pool the pagination, fallback and unfiltered-retry passes draw from, and
+   * those only fire when the day needs rescuing, so a reserved call is not a
+   * call spent. Where this equals maxDailyQueries the extra passes are
+   * unreachable by design.
+   */
+  maxMainQueries: number;
   maxRawJobsPerRun: number;
   prefilterHardCap: number;
   visibleCount: number;
@@ -52,9 +61,15 @@ export interface JobFeedTierLimits {
  *
  * 1 SerpAPI call per run = real cash. Do not raise maxDailyQueries without
  * explicit approval.
+ *
+ * Free searches once and keeps a second call in reserve (Wasim, 20 Aug 2026).
+ * One query used to mean an empty day had no way back. The reserve is only
+ * spent when the run returned nothing at all, so a normal day still costs one
+ * call and the average barely moves.
  */
 export const JOB_FEED_FREE_TIER_LIMITS: JobFeedTierLimits = {
-  maxDailyQueries: 1,
+  maxDailyQueries: 2,
+  maxMainQueries: 1,
   maxRawJobsPerRun: 10,
   prefilterHardCap: 10,
   visibleCount: 5,
@@ -66,6 +81,7 @@ export const JOB_FEED_TIER_LIMITS: Record<JobFeedTier, JobFeedTierLimits> = {
     // ~10 results each = up to 20 raw jobs. Do not raise without explicit
     // approval — each call has a real cash cost.
     maxDailyQueries: 2,
+    maxMainQueries: 2,
     maxRawJobsPerRun: 20,
     // prefilterHardCap is in-memory only (no API cost). Sized to match
     // the raw cap so we never drop a raw job before the LLM sees it.
@@ -80,6 +96,7 @@ export const JOB_FEED_TIER_LIMITS: Record<JobFeedTier, JobFeedTierLimits> = {
   },
   max: {
     maxDailyQueries: 4,
+    maxMainQueries: 4,
     maxRawJobsPerRun: 40,
     prefilterHardCap: 30,
     visibleCount: 25,

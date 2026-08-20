@@ -1362,6 +1362,7 @@ export async function runJobFeedFoundationWorkflow(params: {
       userId,
       settings,
       maxQueries: tierLimits.maxDailyQueries,
+      maxMainQueries: tierLimits.maxMainQueries,
       maxRawJobs: tierLimits.maxRawJobsPerRun,
       strategy: searchStrategy,
     });

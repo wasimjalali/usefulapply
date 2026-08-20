@@ -59,7 +59,10 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
   const tier = getJobFeedPreviewTier(previewMode) ?? profile?.subscription_tier ?? null;
   const canSteer = (tier === 'plus' || tier === 'max') && !readOnly;
   const knownFree = tier === 'free';
-  const queryBudget = getJobFeedTierLimits(tier ?? 'free').maxDailyQueries;
+  // What actually runs, not the ceiling. Free keeps a second call in reserve
+  // for an empty day, and telling the user "2 searches" when one runs would be
+  // a promise the normal day does not keep.
+  const queryBudget = getJobFeedTierLimits(tier ?? 'free').maxMainQueries;
   const canAffordFit = credits === null || credits.total >= CREDIT_COSTS.FIT_ANALYSIS;
   const canAffordKit = credits === null || credits.total >= CREDIT_COSTS.FULL_APPLICATION;
   const selectedJob = useMemo(
