@@ -10,7 +10,6 @@ import {
   getSession as getSupabaseSession,
   createSession as createSupabaseSession,
   updateSession as updateSupabaseSession,
-  getChatMessages,
   addChatMessage as addSupabaseChatMessage,
   clearChatMessages as clearSupabaseChatMessages,
   getDocumentByType,
@@ -19,6 +18,7 @@ import {
 } from '@/lib/supabase';
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
 import { isSameJob } from '@/lib/utils/same-job';
+import { hydrateChatIfEmpty, mapSessionRowToStore, type StoredSessionRow } from '@/lib/open-session';
 
 // Type for Supabase application_sessions row
 interface SupabaseSessionRow {
@@ -324,53 +324,11 @@ export function useSupabaseSync() {
             // with the fresh Supabase version below (after building supabaseSessions).
           }
           
-          // Convert Supabase format to Zustand store format
-          // Each session starts with empty chatMessages — they'll be loaded per-session
-          const supabaseSessions: ApplicationSession[] = data.map((row) => ({
-            id: row.id,
-            status: row.status ?? 'drafted',
-            jobTitle: row.job_title || '',
-            company: row.company || '',
-            jobDescription: row.job_description || '',
-            createdAt: row.created_at,
-            updatedAt: row.updated_at,
-            matchScore: row.match_score ?? undefined,
-            matchingSkills: row.matching_skills || [],
-            missingSkills: row.missing_skills || [],
-            suggestions: row.suggestions || [],
-            requirements: row.requirements ?? null,
-            gaps: row.gaps ?? null,
-            generatedCV: row.generated_cv ?? null,
-            // Restore optimizedCVData from generated_cv JSONB (embedded during save)
-            optimizedCVData: row.generated_cv?._optimizedCVData ?? undefined,
-            screeningAnswers: Array.isArray(row.generated_cv?._screeningAnswers) ? row.generated_cv._screeningAnswers : [],
-            coverLetter: row.cover_letter ?? null,
-            email: row.email ?? null,
-            followUpEmail: row.follow_up_email ?? null,
-            companyResearch: row.company_research ? {
-              ...row.company_research,
-              address: row.company_address || row.company_research?.address,
-              contactPerson: row.company_contact_person || row.company_research?.contactPerson,
-            } : null,
-            fitAssessment: row.fit_assessment ?? null,
-            generationStatus: row.generation_status ?? 'none',
-            generationError: row.generation_error ?? null,
-            generationStartedAt: row.generation_started_at ?? null,
-            generationCompletedAt: row.generation_completed_at ?? null,
-            generationFailedAt: row.generation_failed_at ?? null,
-            generationCancelledAt: row.generation_cancelled_at ?? null,
-            cvEdits: row.cv_edits || [],
-            optimizedPdfRef: row.optimized_pdf_path ? { 
-              id: row.id, 
-              fileName: 'optimized.pdf', 
-              size: 0, 
-              type: 'optimized' as const, 
-              createdAt: row.created_at,
-              url: row.optimized_pdf_path 
-            } : undefined,
-            screeningUsageCount: typeof row.generated_cv?._screeningUsageCount === 'number' ? row.generated_cv._screeningUsageCount : 0,
-            chatMessages: [],
-          }));
+          // Convert D1 rows to the store shape. Chat stays empty here; it
+          // loads when that application opens (see openStoredSession).
+          const supabaseSessions: ApplicationSession[] = data.map((row) =>
+            mapSessionRowToStore(row as unknown as StoredSessionRow),
+          );
           
           // Get current localStorage sessions — only keep truly local ones not yet in Supabase
           const { sessions: localSessions, currentSession: cachedCurrent } = useSessionStore.getState();
@@ -422,46 +380,15 @@ export function useSupabaseSync() {
             total: sessionMap.size,
           });
           
-          // Load chat messages for the 10 most recent Supabase sessions
-          // CRITICAL FIX: Each session gets its OWN messages — never mix them
-          const recentSessions = supabaseSessions.slice(0, 10);
-          const messagePromises = recentSessions.map(async (session) => {
-            try {
-              const messages = await getChatMessages(session.id);
-              if (messages && messages.length > 0) {
-                const mappedMessages = messages.map((msg: any) => ({
-                  id: msg.id,
-                  role: msg.role,
-                  content: msg.content,
-                  timestamp: msg.created_at,
-                  actions: msg.actions || [],
-                }));
-                // Update this specific session in the map
-                const existing = sessionMap.get(session.id);
-                if (existing) {
-                  sessionMap.set(session.id, { ...existing, chatMessages: mappedMessages });
-                }
-                console.log(`[SupabaseSync] Loaded ${messages.length} messages for session ${session.id.substring(0, 8)}...`);
-              }
-            } catch (err) {
-              console.error(`[SupabaseSync] Error loading messages for session ${session.id}:`, err);
-            }
-          });
-          
-          await Promise.all(messagePromises);
-          
-          // Update store with chat messages populated — each session has its own messages
-          setSessions(Array.from(sessionMap.values()));
-          
-          // Also refresh currentSession with chat messages if it's in the map
-          const currentAfterMessages = useSessionStore.getState().currentSession;
-          if (currentAfterMessages && sessionMap.has(currentAfterMessages.id)) {
-            const withMessages = sessionMap.get(currentAfterMessages.id)!;
-            if (withMessages.chatMessages.length > 0) {
-              useSessionStore.setState({ currentSession: withMessages });
-            }
+          // Chat for the open application only. The rest loads when that
+          // session is opened. Sweeping the ten newest left older kits empty.
+          const openSession = useSessionStore.getState().currentSession;
+          if (openSession && !openSession.id.startsWith('session-')) {
+            await hydrateChatIfEmpty(openSession.id).catch((err) => {
+              console.error('[SupabaseSync] Chat did not load for the open application:', err);
+            });
           }
-          
+
           // Mark initial load as complete — sync effect can now fire safely
           initialLoadCompleteRef.current = true;
           
@@ -471,7 +398,7 @@ export function useSupabaseSync() {
             lastSyncedSessionRef.current = finalCurrentSession.id + finalCurrentSession.updatedAt;
           }
           
-          console.log('[SupabaseSync] All chat messages loaded for recent sessions');
+          console.log('[SupabaseSync] Sessions loaded. Chat hydrates when an application opens.');
         } else {
           initialLoadCompleteRef.current = true;
           console.log('[SupabaseSync] No sessions found in Supabase for this user');

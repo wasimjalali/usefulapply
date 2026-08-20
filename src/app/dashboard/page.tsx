@@ -6,6 +6,7 @@ import { TrackerCanvas } from '@/components/tracker/TrackerCanvas';
 import { AppShell, GuidedLine } from '@/components/shell';
 import { SettingsModal } from '@/components/settings/SettingsModal';
 import { useAppStore } from '@/store/useAppStore';
+import { openStoredSession } from '@/lib/open-session';
 import { useUIStore } from '@/store/useUIStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
@@ -46,7 +47,6 @@ export default function Dashboard() {
     setActiveTab,
     currentSession,
     sessions,
-    loadSession,
   } = useAppStore();
   const { user, isLoading } = useAuth();
   useSupabaseSync();
@@ -104,15 +104,15 @@ export default function Dashboard() {
       return;
     }
 
+    if (requestedSessionId && currentSession?.id !== requestedSessionId) {
+      void openStoredSession(requestedSessionId);
+    }
+
     const navKey = `${requestedWorkspace ?? ''}|${requestedSessionId ?? ''}|${requestedTab ?? ''}|${autostart ?? ''}`;
     if (processedWorkspaceRef.current === navKey) {
       return;
     }
     processedWorkspaceRef.current = navKey;
-
-    if (requestedSessionId && currentSession?.id !== requestedSessionId && sessions.some((session) => session.id === requestedSessionId)) {
-      loadSession(requestedSessionId);
-    }
 
     const resolvedTab: ApplicationTab = requestedTab === 'cover-letter' || requestedTab === 'email'
       ? requestedTab
@@ -134,8 +134,7 @@ export default function Dashboard() {
     }
   }, [
     currentSession?.id,
-    loadSession,
-    sessions,
+    sessions.length,
     setActiveTab,
   ]);
 

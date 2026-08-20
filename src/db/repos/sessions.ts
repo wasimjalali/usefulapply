@@ -123,9 +123,11 @@ export async function updateSession(
 
 export async function deleteSession(userId: string, sessionId: string): Promise<{ error: Error | null }> {
   const db = await getDb();
-  await db
+  const deleted = await db
     .delete(applicationSessions)
-    .where(and(eq(applicationSessions.id, sessionId), eq(applicationSessions.user_id, userId)));
+    .where(and(eq(applicationSessions.id, sessionId), eq(applicationSessions.user_id, userId)))
+    .returning({ id: applicationSessions.id });
+  if (deleted.length === 0) return { error: new Error('Application not found') };
   return { error: null };
 }
 

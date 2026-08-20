@@ -7,7 +7,7 @@ import { MarkdownText } from '@/components/MarkdownText';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
 import type { DatePrefs } from '@/lib/utils/format-date';
-import { useSessionStore } from '@/store/useSessionStore';
+import { openStoredSession } from '@/lib/open-session';
 import { useUIStore } from '@/store/useUIStore';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { regenerateDocument } from '@/lib/regenerate-client';
@@ -45,7 +45,6 @@ export function TrackerConversation() {
   const setThinking = useTrackerStore((s) => s.setThinking);
   const applyStatus = useTrackerStore((s) => s.applyStatus);
   const setHideRejected = useTrackerStore((s) => s.setHideRejected);
-  const loadSession = useSessionStore((s) => s.loadSession);
   const setActiveTab = useUIStore((s) => s.setActiveTab);
 
   const loading = useTrackerStore((s) => s.loading);
@@ -81,7 +80,11 @@ export function TrackerConversation() {
   const runFollowUp = useCallback(
     async (sessionId: string) => {
       const row = rows.find((candidate) => candidate.id === sessionId);
-      loadSession(sessionId);
+      const opened = await openStoredSession(sessionId);
+      if (!opened) {
+        say('I could not open that application. Try from the row.');
+        return;
+      }
       setThinking(true);
       const result = await regenerateDocument('follow-up');
       setThinking(false);
@@ -100,7 +103,7 @@ export function TrackerConversation() {
       }
       say('That did not go through. Try again in a moment.');
     },
-    [loadSession, rows, say, setActiveTab, setThinking],
+    [rows, say, setActiveTab, setThinking],
   );
 
   const handleChip = useCallback(
@@ -116,7 +119,11 @@ export function TrackerConversation() {
       }
 
       if (action.kind === 'prep') {
-        loadSession(action.sessionId);
+        const opened = await openStoredSession(action.sessionId);
+        if (!opened) {
+          say('I could not open that application. Try from the row.');
+          return;
+        }
         setActiveTab('cv');
         say('Opened it. Ask for prep in that conversation and I’ll use the job description and your CV.');
         return;
@@ -141,7 +148,7 @@ export function TrackerConversation() {
         ]);
       }
     },
-    [loadSession, pendingFollowUp, rows, runFollowUp, say, setActiveTab, setHideRejected, user],
+    [pendingFollowUp, rows, runFollowUp, say, setActiveTab, setHideRejected, user],
   );
 
   const handleSend = useCallback(async () => {

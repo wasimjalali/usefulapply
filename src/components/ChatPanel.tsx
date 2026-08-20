@@ -14,7 +14,8 @@ import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore, type KitTab } from '@/store/useUIStore';
 import { openSettings } from '@/store/useSettingsStore';
 import { useAuth } from '@/contexts/AuthContext';
-import { submitMessageFeedback, getChatMessages } from '@/lib/supabase';
+import { submitMessageFeedback } from '@/lib/supabase';
+import { openStoredSession } from '@/lib/open-session';
 import {
   Loader2,
   Plus,
@@ -86,7 +87,6 @@ export function ChatPanel({
     isGenerating,
     isAgentWorking,
     sessions,
-    loadSession,
   } = useAppStore();
 
   // Agent workflow hook — handles all SSE logic, JD detection, fit analysis, generation
@@ -1028,36 +1028,8 @@ export function ChatPanel({
             currentSessionId={currentSession?.id}
             onClose={() => setShowHistory(false)}
             onSelectSession={async (sessionId) => {
-              loadSession(sessionId);
               setShowHistory(false);
-              
-              // On-demand: fetch chat messages from Supabase if session has none loaded
-              const sessionStore = useSessionStore.getState();
-              const loaded = sessionStore.sessions.find(s => s.id === sessionId);
-              if (loaded && loaded.chatMessages.length === 0 && !sessionId.startsWith('session-')) {
-                try {
-                  const messages = await getChatMessages(sessionId);
-                  // Guard: if user switched sessions during async fetch, discard stale messages
-                  if (useSessionStore.getState().currentSession?.id !== sessionId) return;
-                  if (messages && messages.length > 0) {
-                    const mapped = messages.map((msg) => ({
-                      id: msg.id,
-                      role: msg.role,
-                      content: msg.content,
-                      timestamp: msg.created_at,
-                      actions: msg.actions || [],
-                    }));
-                    sessionStore.updateCurrentSession({ chatMessages: mapped });
-                    // Also update in the sessions array
-                    sessionStore.setSessions(
-                      sessionStore.sessions.map(s => s.id === sessionId ? { ...s, chatMessages: mapped } : s)
-                    );
-                    console.log(`[ChatPanel] Loaded ${messages.length} messages on-demand for session ${sessionId.substring(0, 8)}...`);
-                  }
-                } catch (err) {
-                  console.error('[ChatPanel] Error loading messages on-demand:', err);
-                }
-              }
+              await openStoredSession(sessionId);
             }}
           />
         )}

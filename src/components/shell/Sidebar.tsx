@@ -5,6 +5,7 @@ import { Briefcase, ClipboardList, Plus, Settings } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSessionStore } from '@/store/useSessionStore';
+import { openStoredSession } from '@/lib/open-session';
 import { useUIStore } from '@/store/useUIStore';
 import { openSettings } from '@/store/useSettingsStore';
 import { fileDisplayUrl } from '@/storage/paths';
@@ -23,7 +24,7 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
   const { user, profile } = useAuth();
   const sessions = useSessionStore((s) => s.sessions);
   const currentSession = useSessionStore((s) => s.currentSession);
-  const loadSession = useSessionStore((s) => s.loadSession);
+
   const activeTab = useUIStore((s) => s.activeTab);
   const setActiveTab = useUIStore((s) => s.setActiveTab);
   const jobFeedBadge = useJobFeedBadge(Boolean(user), user?.id ?? null);
@@ -116,7 +117,7 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
               key={session.id}
               type="button"
               onClick={() => {
-                loadSession(session.id);
+                void openStoredSession(session.id);
                 setActiveTab('cv');
               }}
               className={`flex w-full flex-col gap-1.5 rounded-lg px-3 py-2.5 text-left cursor-pointer ${

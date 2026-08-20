@@ -356,19 +356,22 @@ export const useSessionStore = create<SessionState & SessionActions>()(
       }),
 
       loadSession: (sessionId) => set((state) => {
-        const session = state.sessions.find((s) => s.id === sessionId);
-        if (session) {
-          return {
-            currentSession: session,
-            jobDescription: session.jobDescription,
-            requirements: session.requirements,
-            gaps: session.gaps,
-            generatedCV: session.generatedCV,
-            coverLetter: session.coverLetter,
-            email: session.email,
-          };
+        const session = state.sessions.find((s) => s.id === sessionId)
+          ?? (state.currentSession?.id === sessionId ? state.currentSession : undefined);
+        if (!session) {
+          // A miss used to blank the kit. The row is usually in D1 and the
+          // store just has not loaded it. openStoredSession fetches it.
+          return state;
         }
-        return { currentSession: null };
+        return {
+          currentSession: session,
+          jobDescription: session.jobDescription,
+          requirements: session.requirements,
+          gaps: session.gaps,
+          generatedCV: session.generatedCV,
+          coverLetter: session.coverLetter,
+          email: session.email,
+        };
       }),
 
       deleteSession: (sessionId) => set((state) => ({

@@ -1,7 +1,8 @@
 'use client';
 
 import { create } from 'zustand';
-import { listTrackerOverviewAction, setTrackerStatusAction, updateProfileAction } from '@/db/actions';
+import { deleteSessionAction, listTrackerOverviewAction, setTrackerStatusAction, updateProfileAction } from '@/db/actions';
+import { useSessionStore } from '@/store/useSessionStore';
 import type { TrackerApplicationRow } from '@/db/repos/sessions';
 import {
   addBusinessDays,
@@ -53,6 +54,7 @@ interface TrackerState {
     sessionId: string,
     next: { status: TrackerStatus; interviewAt?: string | null; followUpDueAt?: string | null },
   ) => Promise<void>;
+  remove: (userId: string, sessionId: string) => Promise<void>;
   addMessage: (message: TrackerMessage) => void;
   setThinking: (thinking: boolean) => void;
 }
@@ -161,6 +163,22 @@ export const useTrackerStore = create<TrackerState>((set, get) => ({
         error: 'That status did not save. Try again.',
       }));
       throw new Error('Status update failed');
+    }
+  },
+
+  remove: async (userId, sessionId) => {
+    const before = get().rows;
+    set({ rows: before.filter((row) => row.id !== sessionId), error: null });
+    try {
+      const { error } = await deleteSessionAction(userId, sessionId);
+      if (error) throw error;
+      useSessionStore.getState().deleteSession(sessionId);
+    } catch {
+      set({
+        rows: before,
+        error: 'That application did not delete. Try again.',
+      });
+      throw new Error('Delete failed');
     }
   },
 

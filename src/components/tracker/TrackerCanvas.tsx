@@ -1,16 +1,17 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowUpRight, ChevronDown, Loader2, Plus, Search } from 'lucide-react';
+import { ArrowUpRight, ChevronDown, Loader2, Plus, Search, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
-import { useSessionStore } from '@/store/useSessionStore';
+import { openStoredSession } from '@/lib/open-session';
 import { useUIStore } from '@/store/useUIStore';
 import {
   selectRowsForCounts,
   selectVisibleRows,
   useTrackerStore,
 } from '@/store/useTrackerStore';
+import { DeleteConfirm } from './DeleteConfirm';
 import { StatusPopover } from './StatusPopover';
 import {
   STATUSES_WITH_DATE,
@@ -31,7 +32,6 @@ const SAVED_COLUMN_WIDTH = 760;
 export function TrackerCanvas() {
   const { user, profile } = useAuth();
   const datePrefs = useDatePrefs();
-  const loadSession = useSessionStore((s) => s.loadSession);
   const setActiveTab = useUIStore((s) => s.setActiveTab);
   const requestNewApplication = useUIStore((s) => s.requestNewApplication);
 
@@ -43,6 +43,7 @@ export function TrackerCanvas() {
   const setSearch = useTrackerStore((s) => s.setSearch);
   const setStatusFilter = useTrackerStore((s) => s.setStatusFilter);
   const applyStatus = useTrackerStore((s) => s.applyStatus);
+  const remove = useTrackerStore((s) => s.remove);
 
   const hideRejected = useTrackerStore((s) => s.hideRejected);
   const load = useTrackerStore((s) => s.load);
@@ -65,6 +66,9 @@ export function TrackerCanvas() {
   const conversationCollapsed = useUIStore((s) => s.conversationCollapsed);
 
   const [openRow, setOpenRow] = useState<{ id: string; mode: 'status' | 'when'; anchor: HTMLElement } | null>(null);
+  const [deleteRow, setDeleteRow] = useState<{ id: string; company: string; anchor: HTMLElement } | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [hasRoom, setHasRoom] = useState(false);
   const shellRef = useRef<HTMLDivElement>(null);
 
@@ -143,7 +147,7 @@ export function TrackerCanvas() {
   };
 
   const openApplication = (sessionId: string) => {
-    loadSession(sessionId);
+    void openStoredSession(sessionId);
     setActiveTab('cv');
   };
 
@@ -223,8 +227,8 @@ export function TrackerCanvas() {
             <div
               className={`grid items-center gap-3 border-b border-cream-200 px-5 py-2.5 text-[11px] font-semibold tracking-[0.08em] text-warm-gray ${
                 wide
-                  ? 'grid-cols-[minmax(0,1fr)_68px_150px_150px_100px]'
-                  : 'grid-cols-[minmax(0,1fr)_68px_150px_150px_72px]'
+                  ? 'grid-cols-[minmax(0,1fr)_68px_150px_150px_100px_32px]'
+                  : 'grid-cols-[minmax(0,1fr)_68px_150px_150px_72px_32px]'
               }`}
             >
               <span>APPLICATION</span>
@@ -232,6 +236,7 @@ export function TrackerCanvas() {
               <span>STATUS</span>
               <span>NEXT</span>
               <span className="text-right">{wide ? 'SAVED' : ''}</span>
+              <span className="sr-only">Delete</span>
             </div>
 
             {rows.map((row) => {
@@ -262,8 +267,8 @@ export function TrackerCanvas() {
                   }}
                   className={`group relative grid cursor-pointer items-center gap-3 border-b border-cream-200 px-5 py-3 last:border-b-0 hover:bg-cream-100 ${
                     wide
-                  ? 'grid-cols-[minmax(0,1fr)_68px_150px_150px_100px]'
-                  : 'grid-cols-[minmax(0,1fr)_68px_150px_150px_72px]'
+                  ? 'grid-cols-[minmax(0,1fr)_68px_150px_150px_100px_32px]'
+                  : 'grid-cols-[minmax(0,1fr)_68px_150px_150px_72px_32px]'
                   }`}
                 >
                   <div className="min-w-0">
@@ -354,12 +359,59 @@ export function TrackerCanvas() {
                   >
                     {formatSavedDate(row.created_at, datePrefs)}
                   </span>
+
+                  <div className="flex justify-end" onClick={(event) => event.stopPropagation()}>
+                    <button
+                      type="button"
+                      aria-label="Delete this application"
+                      onClick={(event) => {
+                        setOpenRow(null);
+                        setDeleteError(null);
+                        setDeleteRow({
+                          id: row.id,
+                          company: row.company ?? '',
+                          anchor: event.currentTarget,
+                        });
+                      }}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-warm-gray opacity-0 transition-opacity duration-200 hover:bg-cream-50 hover:text-navy-800 group-hover:opacity-100 cursor-pointer"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
               );
             })}
           </div>
         )}
 
+        {deleteRow && (
+          <DeleteConfirm
+            company={deleteRow.company}
+            anchor={deleteRow.anchor}
+            busy={deleteBusy}
+            error={deleteError}
+            onClose={() => {
+              if (deleteBusy) return;
+              setDeleteRow(null);
+              setDeleteError(null);
+            }}
+            onConfirm={() => {
+              if (!user) return;
+              setDeleteBusy(true);
+              setDeleteError(null);
+              void remove(user.id, deleteRow.id)
+                .then(() => {
+                  setDeleteRow(null);
+                })
+                .catch(() => {
+                  setDeleteError('That application did not delete. Try again.');
+                })
+                .finally(() => {
+                  setDeleteBusy(false);
+                });
+            }}
+          />
+        )}
 
       </div>
     </div>
