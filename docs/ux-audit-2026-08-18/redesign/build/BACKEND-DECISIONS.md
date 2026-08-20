@@ -4,12 +4,16 @@
 `rebrand/usefulapply`. This is the companion to `BACKEND-GAPS.md`: that file
 records what is missing, this one records what was decided and why.
 
-**Status: locked.** Wasim accepted every recommendation on 20 August except A6,
-which he set to free. A `fable` agent then reviewed the locked set, and five of
-its findings were verified against the code and folded in. Those five are
-marked **REVISED** below, with what changed and what it was checked against.
-One of them, A8, reverses a recommendation Wasim had already approved, so it is
-marked **NEEDS RECONFIRMATION** and must not be built until he answers.
+**Status: locked, nothing outstanding.** Wasim accepted every recommendation on
+20 August except A6, which he set to free. A `fable` agent then reviewed the
+locked set, and five of its findings were verified against the code and folded
+in. Those five are marked **REVISED** below, with what changed and what it was
+checked against.
+
+One of them, A8, reversed a recommendation Wasim had already approved. He then
+ruled generally: where the review's version is the correct one, the review's
+version wins over what he had already said yes to. A8 is settled on that basis
+and is cleared to build.
 
 Thirty-eight entries are still open in `BACKEND-GAPS.md`. They split three ways:
 
@@ -96,7 +100,8 @@ is live.
 again would either duplicate shipped work or, worse, push Free to three calls
 on top of the reserve that already exists.
 
-**A8. Do Plus and Max get a reserve call? REVISED, NEEDS RECONFIRMATION.**
+**A8. Keep both passes, and give Plus and Max a reserve call. REVISED, and
+cleared.**
 The original recommendation was to reserve a call for the fallback pass and
 delete the pagination pass, on the reasoning that "pagination just fetches more
 of a query that already worked". That reasoning is wrong and Wasim approved it
@@ -117,10 +122,16 @@ reserve at all.** Both run `maxMainQueries === maxDailyQueries` (2/2 and 4/4 in
 `constants.ts`), so `extraCallsRemaining` is zero and neither extra pass can
 ever fire for a paying user. Giving them Free's shape is +1 `maxDailyQueries`
 each, spent only on an empty or thin day.
-**Recommend: yes, +1 on each paid tier.** It is the failure a paying user feels
-most, and at four paid accounts the worst case is a handful of extra calls a
-day. But it raises the daily query count, which `constants.ts` says needs
-explicit sign-off, so it waits for Wasim.
+**Locked: yes, +1 on each paid tier.** Plus goes to `maxDailyQueries: 3,
+maxMainQueries: 2`, Max to `maxDailyQueries: 5, maxMainQueries: 4`. The extra
+call is only spent on an empty or thin day, so a normal day costs what it costs
+today. It is the failure a paying user feels most, and at four paid accounts
+the worst case is a handful of extra calls a day.
+
+This raises the daily query count, which `constants.ts` says needs explicit
+sign-off. Wasim gave it on 20 August, after the corrected version was put to
+him with the cost stated. Update the comment in `constants.ts` to record that,
+the way the Free reserve comment already does.
 
 **A9. The design promises "ten searches", reality is two on Plus and one on
 Free.** Either raise the daily query budget, which is real money per call, or
@@ -355,9 +366,9 @@ only caught because a reviewer went and looked. Assume there is another one.
    edge. A11 last, because the flag is set nowhere and deployed builds run with
    `NODE_ENV=production`, so the route 404s everywhere that matters. It is the
    wrong shape, not a live hole.
-3. **A7 verification, then A8 if Wasim confirms.** A7 is one live Free run to
-   confirm what is already shipped. A8 is a two-line change to `constants.ts`
-   once the spend is signed off.
+3. **A7 verification, then A8.** A7 is one live Free run to confirm what is
+   already shipped. A8 is a change to the two paid tiers in `constants.ts`,
+   plus the comment recording the sign-off.
 4. **B4 to B12.** The honesty pass. Mostly copy and one shared balance fetch.
    B12 is included: Wasim approving this doc is the nod the Stripe fence asks
    for, and it is three URL strings.
@@ -377,7 +388,7 @@ code before it was accepted; all five that survived are folded in above.
 | Finding | Verified against | Effect |
 |---|---|---|
 | A7 was already built | `constants.ts` free tier limits, commit `433c0ccd` | Stopped a rebuild that could have pushed Free to three calls |
-| Pagination is Free's thin-day rescue | `ingestion.ts:445-446` | Reversed A8; the approved version would have broken a working rescue |
+| Pagination is Free's thin-day rescue | `ingestion.ts:445-446` | Reversed A8; the approved version would have broken a working rescue. Wasim ruled that the corrected version wins, so both passes stay and the paid tiers get a reserve |
 | Free users cannot withdraw consent, and the free run path invents the grant | `settings/route.ts:38`, `server.ts:152` and `:1191` | A12 grew from "small" to a real scope |
 | `ranked_item_id` is already nullable | `schema.ts:898` | A16's stated reason was false; decision unchanged, reasoning replaced |
 | A screening cap on client-written state is not a cap | `useSupabaseSync.ts:85` | A3 needs a server-owned counter, so it joins the migration batch |

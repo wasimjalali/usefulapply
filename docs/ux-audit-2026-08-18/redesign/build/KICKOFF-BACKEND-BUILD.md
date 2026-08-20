@@ -14,10 +14,12 @@ Then read `BACKEND-GAPS.md` in the same directory for the underlying detail on
 any entry you are about to build, and `SWEEP-HANDOFF.md` for what already
 landed. All three are current as of 20 August 2026.
 
-**The decisions are locked. Do not reopen them.** If building one shows the
-decision was wrong, stop and say so with the evidence rather than quietly
-choosing differently. That has already happened once and it is how A7 and A8
-got caught.
+**The decisions are locked and nothing is outstanding.** Do not reopen them. If
+building one shows the decision was wrong, stop and say so with the evidence
+rather than quietly choosing differently. That has already happened twice, and
+it is how A7 and A8 got caught. The standing rule from Wasim: where a review's
+version is demonstrably the correct one, it wins over an answer he has already
+given.
 
 ## Step 0, before you write any code
 
@@ -27,15 +29,6 @@ built" when it had shipped in `433c0ccd`, and rebuilding it would have pushed
 the Free tier to three SerpAPI calls a day. Assume there is another one. Report
 what you find before you start.
 
-## One item is not cleared to build
-
-**A8 needs Wasim to confirm before you touch it.** The version he approved was
-reversed by the review: deleting the pagination pass would break the Free
-tier's thin-day rescue (`ingestion.ts:445-446`). The corrected proposal is to
-keep both passes and give Plus and Max a reserve call each, which raises the
-daily query count and needs sign-off per `constants.ts`. If he has not answered,
-skip it.
-
 ## Build order
 
 1. **A15, B3, A14, and A16 if there is room.** The data-loss cluster. One code
@@ -43,8 +36,12 @@ skip it.
    touches a fence.
 2. **A12, B1, B2, A11.** Correctness and compliance. A12 first, because the
    free run path records a consent the user never gave.
-3. **A7 verification.** One live Free run to confirm what already shipped, then
-   close the entry.
+3. **A7 verification, then A8.** A7 is one live Free run to confirm what
+   already shipped. A8 raises the two paid tiers in `constants.ts` to
+   `maxDailyQueries: 3, maxMainQueries: 2` on Plus and
+   `maxDailyQueries: 5, maxMainQueries: 4` on Max, and records the sign-off in
+   the comment the way the Free reserve already does. Do not delete the
+   pagination pass: it is what rescues a lane that returned 1 to 4 jobs.
 4. **B4 to B12.** The honesty pass, mostly copy plus one shared balance fetch.
 5. **The migration batch.** A3's counter, A6's ceiling, B10's typed column and
    C3's pending production migration, as one pass.
