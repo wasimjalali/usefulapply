@@ -175,7 +175,14 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
 
   // Focus signal
   requestJdFocus: () => set((state) => ({ jdFocusRequest: state.jdFocusRequest + 1 })),
-  requestNewApplication: () => set((state) => ({ newApplicationRequest: state.newApplicationRequest + 1 })),
+  // The tick resets the workspace, which ChatPanel owns. ChatPanel is mounted
+  // but hidden behind the feed and the tracker, so the reset ran and the user
+  // stayed looking at the feed with nothing to show for the click. Starting an
+  // application has to bring the application back into view as well.
+  requestNewApplication: () => set((state) => ({
+    newApplicationRequest: state.newApplicationRequest + 1,
+    activeTab: 'cv',
+  })),
 
   // Reset
   resetUI: () => set({ ...initialState, cvTemplateId: readDefaultTemplate() }),
