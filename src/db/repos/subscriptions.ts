@@ -1,7 +1,8 @@
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { getDb, nowIso } from '../client';
-import { connectedAccounts, subscriptions } from '../schema';
+import { connectedAccounts, subscriptions, userCredits } from '../schema';
 import type { SubscriptionTier } from '@/lib/supabase/types';
+import type { BillingSubscriptionLike } from '@/lib/subscription-billing';
 
 export interface ConnectedAccount {
   id: string;
@@ -55,6 +56,49 @@ export async function getSubscription(userId: string): Promise<Subscription | nu
     .where(and(eq(subscriptions.user_id, userId), eq(subscriptions.status, 'active')))
     .limit(1);
   return (rows[0] as Subscription | undefined) ?? null;
+}
+
+/**
+ * The user's Stripe subscription whatever its status, for the billing wall in
+ * front of account deletion. Deliberately not `getSubscription`, which filters
+ * to status 'active' and would hide a past_due subscription Stripe is still
+ * retrying. Falls back to user_credits when there is no subscriptions row,
+ * because the webhook writes both and they can drift.
+ */
+export async function getBillingSubscription(userId: string): Promise<BillingSubscriptionLike | null> {
+  const db = await getDb();
+  const rows = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.user_id, userId))
+    .orderBy(desc(subscriptions.updated_at))
+    .limit(1);
+  const row = rows[0] as Subscription | undefined;
+  if (row) {
+    return {
+      status: row.status,
+      stripe_subscription_id: row.stripe_subscription_id ?? null,
+      cancel_at_period_end: row.cancel_at_period_end,
+    };
+  }
+
+  const credits = await db
+    .select({
+      status: userCredits.subscription_status,
+      stripeSubscriptionId: userCredits.stripe_subscription_id,
+    })
+    .from(userCredits)
+    .where(eq(userCredits.user_id, userId))
+    .limit(1);
+  const creditsRow = credits[0];
+  if (!creditsRow?.stripeSubscriptionId) return null;
+  // user_credits has no cancel_at_period_end column, so a scheduled cancel is
+  // invisible here. It only matters when the subscriptions row is missing.
+  return {
+    status: creditsRow.status,
+    stripe_subscription_id: creditsRow.stripeSubscriptionId,
+    cancel_at_period_end: false,
+  };
 }
 
 export async function createFreeSubscription(

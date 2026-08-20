@@ -8,6 +8,9 @@ import { authClient } from '@/auth/client';
 import { changePassword } from '@/lib/supabase';
 import { uploadAvatar, deleteAvatar } from '@/lib/supabase/storage';
 import { fileDisplayUrl } from '@/storage/paths';
+import { getBillingSubscriptionAction } from '@/db/actions';
+import { willBillAgain, type BillingSubscriptionLike } from '@/lib/subscription-billing';
+import { openSettings } from '@/store/useSettingsStore';
 import {
   Caption,
   LinkButton,
@@ -187,23 +190,53 @@ export function GeneralPane() {
     setTimeout(() => setPasswordDone(false), 2400);
   };
 
+  const [billing, setBilling] = useState<BillingSubscriptionLike | null>(null);
+  // Same rule the delete route enforces, so the row never offers something the
+  // server will refuse.
+  const subscriptionBlocksDelete = willBillAgain(billing);
+
+  const billingUserId = user?.id;
+  useEffect(() => {
+    if (!billingUserId) return;
+    let cancelled = false;
+    void getBillingSubscriptionAction(billingUserId)
+      .then((row) => { if (!cancelled) setBilling(row); })
+      .catch(() => { if (!cancelled) setBilling(null); });
+    return () => { cancelled = true; };
+  }, [billingUserId]);
+
   // Confirmed inside the modal. A native OS prompt in the middle of this
   // surface is the cheapest-looking moment in the flow.
   const handleDelete = async () => {
-    if (deleteTyped !== 'DELETE') return;
+    if (deleteTyped !== 'DELETE' || subscriptionBlocksDelete) return;
     setDeleteBusy(true);
     setDeleteError(null);
+    setDeleteSentTo(null);
     try {
       const res = await fetch('/api/auth/delete-account', { method: 'DELETE' });
       if (!res.ok) {
+        const failure = await res.json().catch(() => ({}));
         setDeleteBusy(false);
-        setDeleteError('We could not delete the account. Please contact support.');
+        if (failure.code === 'SUBSCRIPTION_ACTIVE') {
+          // The client checks this too, so landing here means the plan changed
+          // somewhere else. Re-read rather than guess at the new state.
+          if (billingUserId) {
+            setBilling(await getBillingSubscriptionAction(billingUserId).catch(() => null));
+          }
+          setDeleteError(null);
+          return;
+        }
+        setDeleteError('We could not send the link. Please contact support.');
         return;
       }
-      window.location.assign('/');
+      const payload = await res.json().catch(() => ({}));
+      setDeleteBusy(false);
+      setConfirmingDelete(false);
+      setDeleteTyped('');
+      setDeleteSentTo(typeof payload.email === 'string' ? payload.email : (user?.email ?? null));
     } catch {
       setDeleteBusy(false);
-      setDeleteError('We could not delete the account. Please contact support.');
+      setDeleteError('We could not send the link. Please contact support.');
     }
   };
 
@@ -211,6 +244,7 @@ export function GeneralPane() {
   const [deleteTyped, setDeleteTyped] = useState('');
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteSentTo, setDeleteSentTo] = useState<string | null>(null);
 
   const displayName = profile?.full_name || user?.name || user?.email || 'Your account';
   const initials = useMemo(() => {
@@ -404,7 +438,17 @@ export function GeneralPane() {
             <LinkButton onClick={() => setConfirmingDelete(true)}>Delete</LinkButton>
           )}
         </Row>
-        {confirmingDelete && (
+        {confirmingDelete && subscriptionBlocksDelete && (
+          <div className="border-t border-cream-200 px-5 py-3">
+            <p className="text-xs text-warm-gray">
+              Your plan is still billing. Cancel it first, otherwise the card keeps being charged after the account is gone.
+            </p>
+            <div className="mt-2">
+              <LinkButton onClick={() => openSettings('usage')}>Go to Usage and Billing</LinkButton>
+            </div>
+          </div>
+        )}
+        {confirmingDelete && !subscriptionBlocksDelete && (
           <div className="flex items-center gap-2 border-t border-cream-200 px-5 py-3">
             <input
               value={deleteTyped}
@@ -420,9 +464,14 @@ export function GeneralPane() {
               onClick={() => { void handleDelete(); }}
               className="h-9 rounded-lg px-3 text-sm font-semibold text-red-600 hover:bg-cream-100 disabled:cursor-not-allowed disabled:text-warm-gray cursor-pointer"
             >
-              {deleteBusy ? 'Deleting' : 'Delete for good'}
+              {deleteBusy ? 'Sending' : 'Send the link'}
             </button>
           </div>
+        )}
+        {deleteSentTo && (
+          <p className="border-t border-cream-200 px-5 py-3 text-xs text-warm-gray">
+            Check {deleteSentTo}. The link deletes everything and works for 30 minutes. Open it in this browser.
+          </p>
         )}
         {deleteError && <p className="px-5 pb-3 text-xs text-red-600">{deleteError}</p>}
       </RowGroup>

@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { eq } from 'drizzle-orm';
-import { getAuth, getCurrentUser } from '@/auth/server';
+import { getAuth, getCurrentUser, takeDeleteEmailFailure } from '@/auth/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
-import { getDb } from '@/db/client';
-import { user as authUser } from '@/db/schema';
-import { deletePrefix } from '@/storage/r2';
-import { ALLOWED_FILE_BUCKETS } from '@/storage/paths';
+import { getBillingSubscription } from '@/db/repos/subscriptions';
+import { willBillAgain } from '@/lib/subscription-billing';
 
 export const runtime = 'nodejs';
 
+/**
+ * Asks for the deletion, it does not perform it. Better Auth mails a link and
+ * only its callback deletes anything, so a borrowed session is no longer
+ * enough on its own. The R2 purge and the D1 wipe run in the `beforeDelete`
+ * hook in `src/auth/server.ts`, before the user row goes.
+ */
 export async function DELETE(request: NextRequest) {
   try {
     const user = await getCurrentUser(request);
@@ -24,32 +27,30 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const userId = user.id;
+    // Deleting the account drops the local subscription row, and nothing in
+    // this app cancels at Stripe, so the card would keep being charged with no
+    // record left to reconcile against. The subscription has to go first.
+    const subscription = await getBillingSubscription(user.id);
+    if (willBillAgain(subscription)) {
+      return NextResponse.json(
+        { error: 'Cancel your subscription first.', code: 'SUBSCRIPTION_ACTIVE' },
+        { status: 409 },
+      );
+    }
+
     const auth = await getAuth();
+    await auth.api.deleteUser({
+      headers: request.headers,
+      body: { callbackURL: '/' },
+    });
 
-    // Order: files, app data, then the auth user row. Anything that fails
-    // before the user row is gone leaves the account signed in, so the user
-    // can simply retry; nothing is orphaned without a way back to it.
-    for (const bucket of ALLOWED_FILE_BUCKETS) {
-      await deletePrefix(`${bucket}/${userId}/`);
+    // Better Auth answers 200 whether or not the mail went out, so telling the
+    // user to check their inbox without this would be a guess.
+    if (takeDeleteEmailFailure(user.id)) {
+      return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 });
     }
 
-    const { deleteAllUserData } = await import('@/db/repos/admin');
-    await deleteAllUserData(userId);
-
-    // user row last (sessions/accounts cascade).
-    const db = await getDb();
-    await db.delete(authUser).where(eq(authUser.id, userId));
-
-    // Clear this request's session + cookieCache so the 5-minute cache
-    // cannot keep a deleted account authenticated.
-    try {
-      await auth.api.signOut({ headers: request.headers });
-    } catch (error) {
-      console.error('[delete-account] signOut failed after user row was deleted:', error);
-    }
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ requested: true, email: user.email });
   } catch (error) {
     console.error('[delete-account] Unexpected error:', error);
     return NextResponse.json(

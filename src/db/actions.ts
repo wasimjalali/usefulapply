@@ -257,6 +257,11 @@ export async function getSubscriptionAction(userId: string) {
   return subscriptionsRepo.getSubscription(userId);
 }
 
+export async function getBillingSubscriptionAction(userId: string) {
+  await requireUserId(userId);
+  return subscriptionsRepo.getBillingSubscription(userId);
+}
+
 export async function submitMessageFeedbackAction(
   userId: string,
   messageId: string,

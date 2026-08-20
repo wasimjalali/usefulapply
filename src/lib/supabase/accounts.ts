@@ -158,27 +158,3 @@ export async function connectOAuthProvider(
   return { error: null };
 }
 
-/**
- * Delete user account and all associated data
- * This deletes:
- * - User profile
- * - All documents (CVs)
- * - All application sessions
- * - Connected accounts
- * - Subscription
- * - Storage files (avatars, profile photos, generated PDFs)
- */
-export async function deleteUserAccount(_userId: string): Promise<{ error: Error | null }> {
-  try {
-    const res = await fetch('/api/auth/delete-account', { method: 'DELETE' });
-    if (!res.ok) {
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
-      return { error: new Error(data.error || 'Failed to delete account') };
-    }
-    await authClient.signOut();
-    return { error: null };
-  } catch (err) {
-    console.error('Error deleting account:', err);
-    return { error: err as Error };
-  }
-}

@@ -171,11 +171,13 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Where:** `src/components/tracker/tracker-status.ts` (`defaultFollowUpDue`), `src/db/repos/admin.ts` (`listFollowUpReminderCandidates`).
 - **Needs:** either a TypeScript backfill script that writes proper ISO dates, or the same created_at fallback inside the candidate query. Small. Any status change on the row fixes it by itself.
 
-### Deleting an account needs no re-authentication
-- **UI today:** ACCOUNT DATA has a Delete row that opens an inline confirm inside the modal; typing DELETE and clicking "Delete for good" calls `/api/auth/delete-account`, which wipes the R2 prefixes, every application and the auth user.
-- **Missing:** the endpoint authenticates and rate-limits but never asks for the current password or a fresh session, so a borrowed session or an XSS destroys the account with no recovery. This predates batch 4 (the old modal was a single click), and auth config was fenced off for this batch.
-- **Where:** UI `src/components/settings/GeneralPane.tsx` (`handleDelete`); backend `src/app/api/auth/delete-account/route.ts`, `src/auth/server.ts`.
-- **Needs:** a password check for credential accounts, or Better Auth's fresh-session requirement, on the DELETE handler. Small, but it touches auth.
+### Deleting an account needs no re-authentication - CLOSED
+- **Closed 20 August 2026.** Better Auth's `user.deleteUser` is enabled with `sendDeleteAccountVerification`, so the DELETE now asks for the deletion and mails a link. Only Better Auth's `/api/auth/delete-user/callback` deletes anything, and it only completes for the session that asked, so an attacker needs the mailbox and the browser. The link expires in 30 minutes, the same window the reset link uses.
+- **Why not a password.** `auth.api.verifyPassword` exists and is a route-level change, but it only covers credential accounts. Google users have no credential row, and an email gate is uniform. Measured: 38 users, 2 `account` rows, both `credential`, because the migration imported users without passwords.
+- **The wipe moved, not the order.** R2 prefixes then app data, both in the `beforeDelete` hook, which runs before the user row goes. A throw there aborts the deletion and the link can be used again.
+- **A subscription now blocks the deletion.** Found during the review: nothing in this app cancels at Stripe, and `deleteAllUserData` drops both the `subscriptions` row and the `user_credits` row the webhook resolves customers through. A paying user who deleted their account kept being billed with no record left to reconcile against. The route refuses with a 409 while Stripe would charge again, and the settings row says so and points at Usage and Billing. A subscription already set to cancel at the period end does not block, because it is not billed again and making someone wait weeks to close their account is the wrong trade.
+- **One rule, two callers.** `willBillAgain` in `src/lib/subscription-billing.ts`, used by the route and the pane, because two copies of a rule whose failure mode is charging a card that has no account would drift. The read is `getBillingSubscription`, not `getSubscription`, which filters to status 'active' and would miss a `past_due` subscription Stripe is still retrying.
+- **Where:** `src/auth/server.ts`, `src/app/api/auth/delete-account/route.ts`, `src/app/api/auth/[...all]/route.ts`, `src/components/settings/GeneralPane.tsx`, `src/lib/email/templates/delete-account.ts`, `src/lib/subscription-billing.ts`, `src/db/repos/subscriptions.ts`, `src/db/actions.ts`.
 
 ### Batch 4 (part B, settings)
 
@@ -318,11 +320,10 @@ or UI the locked flow docs do not specify.
 - **Where:** `src/lib/job-feed/constants.ts` (the caps exist), `src/components/job-feed/FeedEditView.tsx` (the note would go in the Preferences pill).
 - **Needs:** one line of copy per tier against `getJobFeedInputCaps(tier)`. Small, but the wording is not in the locked flow doc.
 
-### Job-feed rate limits are keyed by client IP, before authentication
-- **UI today:** nothing visible until two users share an IP. `job-feed-run` is 2 per minute per IP, so two colleagues behind one NAT block each other's daily feed.
-- **Missing:** 11 of 14 job-feed routes rate-limit on `getClientIP` before `getCurrentUser`. `apply/generation`, `apply/status` and `career-profile` POST already do it correctly, auth first, keyed on `user.id`.
-- **Where:** `src/app/api/job-feed/**`.
-- **Needs:** move auth above the limiter and key on the user id, route by route. Medium, and it is worth doing as one deliberate change rather than inside a sweep.
+### Job-feed rate limits are keyed by client IP, before authentication - CLOSED
+- **Closed 20 August 2026.** Two tiers now. Every job-feed handler runs a shared per-IP gate first, then authenticates, then applies its own limit keyed on the user id. The gate is one binding (`RATE_LIMIT_JOB_FEED_IP`, namespace 3131) at 600 a minute for the whole feed: it exists so an unauthenticated hammer cannot make every request pay a session lookup, not to price the route. Per-route ceilings are unchanged.
+- **All fourteen handlers, not eleven.** `apply/generation`, `apply/status` and `career-profile` POST were already keyed on the user, but they had nothing in front of the session lookup, which is the other half of the problem.
+- **Where:** `src/app/api/job-feed/**`, `src/lib/middleware/rateLimiter.ts` (`checkJobFeedIpGate`), `wrangler.jsonc`.
 
 ### `NEXT_PUBLIC_ENABLE_JOB_FEED_DEBUG` unlocks a forced feed run
 - **UI today:** nothing. The flag is set nowhere, so `/api/job-feed/dev/run` 404s today.
@@ -342,11 +343,11 @@ or UI the locked flow docs do not specify.
 - **Where:** `src/app/api/job-feed/career-profile/route.ts`, `src/app/api/job-feed/search-strategy/route.ts`, `src/components/job-feed/FeedEditView.tsx`.
 - **Needs:** a decision. If the paywall is intended, the copy is wrong. If not, the GETs move to `canViewJobFeed`. Small either way.
 
-### `POST /api/job-feed/apply` does not check the credit balance
-- **UI today:** the Check fit button is gated client-side on the balance. The route is not.
-- **Missing:** the route gates on `canViewJobFeed` only, on the reasoning that the paywall lives downstream in the agent flow. A free user with no credits can create an `application_sessions` row and a generation intent and only be refused later, leaving both rows behind. The 403 copy in `feed-actions.ts` also says "needs an account with credits" when the route's only 403 is a plan gate.
-- **Where:** `src/app/api/job-feed/apply/route.ts`, `src/components/job-feed/feed-actions.ts`.
-- **Needs:** a decision from Wasim, because pre-checking the balance is credit logic. Deliberately untouched by the sweep.
+### `POST /api/job-feed/apply` does not check the credit balance - CLOSED
+- **Closed 20 August 2026.** The client sends the same POST for the fit check (0.5) and the kit (2.0), so the mode now rides in the body and the route checks the cost that request will actually incur. It reads the balance through `checkCreditBalance` and never deducts, so no deduction logic moved. A finished kit reopens through this route and charges nothing, so that case skips the check. Anything else fails closed with a 402 that names the price and the balance.
+- **The copy was wrong either way.** The 403 line said "Checking a fit needs an account with credits" when the route's only 403 is the plan gate. It says what it means now.
+- **Measured before the change:** 16 generation rows on the remote database, and all five that are not succeeded belong to one free test account holding 1 credit. Nobody had hit it.
+- **Where:** `src/app/api/job-feed/apply/route.ts`, `src/components/job-feed/feed-actions.ts`, `src/components/job-feed/feed-handoff.ts`.
 
 ### Extra SerpAPI passes have no budget of their own
 - **UI today:** nothing visible.

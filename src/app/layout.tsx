@@ -25,6 +25,11 @@ const plusJakarta = Plus_Jakarta_Sans({
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
 
+// Without this every prerendered page is served with s-maxage=31536000, so a
+// copy change only reaches visitors after a manual Cloudflare purge. Five
+// minutes at the edge, and child segments can still set their own.
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {

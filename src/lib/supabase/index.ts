@@ -53,7 +53,6 @@ export {
   changePassword,
   sendPasswordResetEmail,
   connectOAuthProvider,
-  deleteUserAccount,
 } from './accounts';
 export type { ConnectedAccount, Subscription } from './accounts';
 

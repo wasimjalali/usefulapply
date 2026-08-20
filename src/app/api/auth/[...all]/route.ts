@@ -18,7 +18,9 @@ export async function POST(request: Request) {
         ? { key: 'forgot-password', config: RATE_LIMITS['forgot-password'] }
         : pathname.endsWith('/sign-in/email')
           ? { key: 'signin', config: RATE_LIMITS.signin }
-          : null;
+          : pathname.endsWith('/delete-user')
+            ? { key: 'delete-account', config: RATE_LIMITS['delete-account'] }
+            : null;
 
   if (limit) {
     const clientIP = getClientIP(request);

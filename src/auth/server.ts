@@ -6,10 +6,27 @@ import { getSiteUrl } from '@/lib/auth/site-url';
 import { sendEmail } from '@/lib/email/send';
 import { buildConfirmationEmail } from '@/lib/email/templates/confirmation';
 import { buildPasswordResetEmail } from '@/lib/email/templates/password-reset';
+import { buildDeleteAccountEmail } from '@/lib/email/templates/delete-account';
 import { getDb, getDbBinding, type Database } from '@/db/client';
 import { account, session, user, verification } from '@/db/schema';
 import { initializeUserCredits } from '@/db/repos/credits';
 import { getConfirmationResendMeta, getOrCreateProfile } from '@/db/repos/profiles';
+
+/**
+ * Better Auth awaits `sendDeleteAccountVerification` but catches a throw and
+ * still answers 200, so a failed send would read as "check your email" with no
+ * email coming. The outcome is recorded here instead. The hook finishes before
+ * `auth.api.deleteUser` returns, in the same isolate and the same request, so
+ * the route that asked reads its own result.
+ */
+const deleteEmailFailures = new Map<string, number>();
+
+/** True when this user's confirmation email failed to send. Clears on read. */
+export function takeDeleteEmailFailure(userId: string): boolean {
+  const failedAt = deleteEmailFailures.get(userId);
+  deleteEmailFailures.delete(userId);
+  return failedAt !== undefined && Date.now() - failedAt < 30_000;
+}
 
 export type AuthUser = {
   id: string;
@@ -112,6 +129,49 @@ function createAuth(db: Database) {
       },
     },
     socialProviders: googleProvider(),
+    user: {
+      // Deleting an account is irreversible and D1 holds the only copy, so a
+      // borrowed session is not enough on its own. Better Auth mails a link,
+      // and its callback only completes for the session that asked, so the
+      // attacker would need the mailbox and the browser.
+      deleteUser: {
+        enabled: true,
+        // 30 minutes, the same window the reset link uses and the email states.
+        deleteTokenExpiresIn: 60 * 30,
+        sendDeleteAccountVerification: async ({ user: deleteUser, url }) => {
+          const firstName = deleteUser.name?.trim().split(/\s+/)[0] || null;
+          const built = buildDeleteAccountEmail({ confirmLink: url, firstName });
+          try {
+            await sendEmail({
+              to: deleteUser.email,
+              subject: built.subject,
+              html: built.html,
+              text: built.text,
+              from: built.from,
+            });
+            deleteEmailFailures.delete(deleteUser.id);
+          } catch (error) {
+            console.error('[auth] delete-account verification email failed', deleteUser.id, error);
+            deleteEmailFailures.set(deleteUser.id, Date.now());
+          }
+        },
+        // Files, then app data, both before the user row goes. A throw here
+        // aborts the deletion and the account stays signed in, but Better Auth
+        // spends the token before calling this, so that link is dead. Recovery
+        // is asking for a new one from Settings, which still works because the
+        // account survived. Every delete in here is idempotent, so the retry
+        // finishes what the first attempt started.
+        beforeDelete: async (deleting) => {
+          const { deletePrefix } = await import('@/storage/r2');
+          const { ALLOWED_FILE_BUCKETS } = await import('@/storage/paths');
+          for (const bucket of ALLOWED_FILE_BUCKETS) {
+            await deletePrefix(`${bucket}/${deleting.id}/`);
+          }
+          const { deleteAllUserData } = await import('@/db/repos/admin');
+          await deleteAllUserData(deleting.id);
+        },
+      },
+    },
     session: {
       cookieCache: {
         enabled: true,
