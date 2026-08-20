@@ -36,7 +36,7 @@ This applies `migrations/d1/*.sql` to the local Miniflare D1 that `npm run dev` 
 
 ## Admin dashboard access
 
-The admin dashboard lives at `/admin-dashboard` and validates Cloudflare Access JWTs inside the Worker. In production it is served at `admin.usefulapply.com` (the Worker redirects `/` to `/admin-dashboard` on that host). A self-hosted Access application ("Useful Apply Admin Dashboard") covers `admin.usefulapply.com` plus `/admin-dashboard` on the apex and www, with a default-deny policy that allows only the administrator email via one-time PIN.
+The admin dashboard lives at `/admin-dashboard` and validates Cloudflare Access JWTs inside the Worker. In production it is served only at `admin.usefulapply.com` (the Worker redirects `/` to `/admin-dashboard` on that host). A self-hosted Access application ("Useful Apply Admin Dashboard") covers that hostname with a default-deny policy that allows only the administrator email via one-time PIN. On the apex and www the path carries no Access JWT, so the in-app check returns a 404.
 
 Set these Worker secrets:
 

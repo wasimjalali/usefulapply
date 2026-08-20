@@ -55,6 +55,33 @@ export function LineChart({
     ...valueFormat,
   });
 
+  // End-of-line labels collide when series finish at similar values, so
+  // resolve overlaps by spreading them apart inside the plot's vertical bounds.
+  const LABEL_GAP = 16;
+  const endLabels = series
+    .map((item) => {
+      const visibleValues = item.values.slice(0, labels.length);
+      const lastIndex = visibleValues.findLastIndex(
+        (value) => value !== null && Number.isFinite(value),
+      );
+      const lastValue = lastIndex >= 0 ? visibleValues[lastIndex] : null;
+      if (lastValue === null || lastValue === undefined || !Number.isFinite(lastValue)) return null;
+      return { item, x: xAt(lastIndex) + 10, y: yAt(lastValue) + 4 };
+    })
+    .filter((entry): entry is { item: LineChartSeries; x: number; y: number } => entry !== null)
+    .sort((a, b) => a.y - b.y);
+  for (let index = 1; index < endLabels.length; index += 1) {
+    if (endLabels[index].y - endLabels[index - 1].y < LABEL_GAP) {
+      endLabels[index].y = endLabels[index - 1].y + LABEL_GAP;
+    }
+  }
+  const labelOverflow = endLabels.length
+    ? endLabels[endLabels.length - 1].y - (HEIGHT - MARGIN.bottom)
+    : 0;
+  if (labelOverflow > 0) {
+    for (const entry of endLabels) entry.y -= labelOverflow;
+  }
+
   const pathFor = (values: Array<number | null>) => {
     let drawing = false;
 
@@ -108,41 +135,34 @@ export function LineChart({
             </text>
           ))}
 
-          {series.map((item) => {
-            const visibleValues = item.values.slice(0, labels.length);
-            const lastIndex = visibleValues.findLastIndex(
-              (value) => value !== null && Number.isFinite(value),
-            );
-            const lastValue = lastIndex >= 0 ? visibleValues[lastIndex] : null;
+          {series.map((item) => (
+            <path
+              key={item.id}
+              className={
+                item.focal
+                  ? 'admin-line-chart__series admin-line-chart__series--focal'
+                  : 'admin-line-chart__series'
+              }
+              d={pathFor(item.values)}
+              fill="none"
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
 
-            return (
-              <g key={item.id}>
-                <path
-                  className={
-                    item.focal
-                      ? 'admin-line-chart__series admin-line-chart__series--focal'
-                      : 'admin-line-chart__series'
-                  }
-                  d={pathFor(item.values)}
-                  fill="none"
-                  vectorEffect="non-scaling-stroke"
-                />
-                {lastValue !== null && lastValue !== undefined && Number.isFinite(lastValue) ? (
-                  <text
-                    className={
-                      item.focal
-                        ? 'admin-line-chart__label admin-line-chart__label--focal'
-                        : 'admin-line-chart__label'
-                    }
-                    x={xAt(lastIndex) + 10}
-                    y={yAt(lastValue) + 4}
-                  >
-                    {shortenLabel(item.name, 14)}
-                  </text>
-                ) : null}
-              </g>
-            );
-          })}
+          {endLabels.map(({ item, x, y }) => (
+            <text
+              key={`label-${item.id}`}
+              className={
+                item.focal
+                  ? 'admin-line-chart__label admin-line-chart__label--focal'
+                  : 'admin-line-chart__label'
+              }
+              x={x}
+              y={y}
+            >
+              {shortenLabel(item.name, 14)}
+            </text>
+          ))}
         </g>
       </svg>
     </div>
