@@ -44,8 +44,10 @@
   --color-charcoal: #2D3748;
   --color-warm-gray: #6B7280;
 
-  /* Font family */
-  --font-sans: 'Inter', system-ui, sans-serif;
+  /* Font family: Inter everywhere in the app UI (self-hosted via next/font).
+     The serif/sans split is retired; only CV templates and exported documents
+     keep Arial and Georgia. */
+  --font-sans: var(--font-inter), 'Inter', system-ui, sans-serif;
 
   /* ─── Premium motion + depth tokens (UI premium pass) ───
      Central language for easing, shadow depth and accent glow. Every
@@ -467,18 +469,6 @@ select:focus-visible {
 }
 
 /* Floating badge animation */
-/* Quote decoration */
-.quote-decoration::before {
-  content: '\201C';
-  position: absolute;
-  top: -10px;
-  left: -5px;
-  font-size: 80px;
-  font-family: Georgia, serif;
-  color: rgba(212, 168, 83, 0.2);
-  line-height: 1;
-  pointer-events: none;
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    ETHEREAL CLOUD BACKGROUND ANIMATIONS

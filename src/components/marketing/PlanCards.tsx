@@ -29,7 +29,7 @@ export function PlanCards() {
                 )}
               </div>
 
-              <p className="mt-3 font-serif text-[32px] font-semibold leading-none text-navy-900">
+              <p className="mt-3 text-[32px] font-semibold leading-none text-navy-900">
                 {plan.price}
                 <span className="ml-1.5 font-sans text-sm font-normal text-warm-gray">{plan.per}</span>
               </p>

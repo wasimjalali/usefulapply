@@ -683,7 +683,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
         {step === 'cv' && (
           <div className="mt-9 flex w-full max-w-[720px] flex-col gap-6">
             <div className="rounded-2xl border border-cream-200 bg-white p-8 shadow-sm">
-              <h1 className="font-serif text-2xl font-semibold text-navy-800">Start with your CV</h1>
+              <h1 className="text-2xl font-semibold text-navy-800">Start with your CV</h1>
               {uploadError && (
                 <p className="mt-3 text-sm text-red-600">{uploadError}</p>
               )}
@@ -748,7 +748,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
           <div className="mt-9 flex w-full max-w-[720px] flex-col gap-6">
             <div className="rounded-2xl border border-cream-200 bg-white p-8 shadow-sm">
               <div className="mb-5 flex items-center gap-3">
-                <h1 className="font-serif text-2xl font-semibold text-navy-800">
+                <h1 className="text-2xl font-semibold text-navy-800">
                   Reading {fileName || 'your CV'}
                 </h1>
                 <div className="flex-1" />
@@ -774,7 +774,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
         {step === 'job' && (
           <div className="mt-9 flex w-full max-w-[720px] flex-col gap-6">
             <div className="rounded-2xl border border-cream-200 bg-white p-8 shadow-sm">
-              <h1 className="font-serif text-2xl font-semibold text-navy-800">
+              <h1 className="text-2xl font-semibold text-navy-800">
                 Which job are you applying for?
               </h1>
               <textarea
@@ -831,7 +831,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
         {step === 'fit-working' && (
           <div className="mt-9 w-full max-w-[720px] rounded-2xl border border-cream-200 bg-white p-8 shadow-sm">
             <div className="mb-5 flex items-center gap-3">
-              <h1 className="font-serif text-2xl font-semibold text-navy-800">
+              <h1 className="text-2xl font-semibold text-navy-800">
                 Checking your fit{companyName ? ` for ${companyName}` : ''}
               </h1>
               <div className="flex-1" />
@@ -846,14 +846,14 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
             <div className="rounded-2xl border border-cream-200 bg-white p-8 shadow-sm">
               <div className="flex items-center gap-5">
                 <div className="min-w-0 flex-1">
-                  <h1 className="font-serif text-2xl font-semibold text-navy-800">
+                  <h1 className="text-2xl font-semibold text-navy-800">
                     {fitHeading(fitLevel, companyName || jobTitle)}
                   </h1>
                   <p className="mt-1 text-sm text-warm-gray">{reason}</p>
                 </div>
                 {typeof score === 'number' && (
                   <div className="flex h-[84px] w-[84px] flex-shrink-0 flex-col items-center justify-center rounded-full border-4 border-gold-400 bg-[#FBF7EE]">
-                    <span className="font-serif text-[26px] font-semibold leading-none text-navy-800">{Math.round(score)}%</span>
+                    <span className="text-[26px] font-semibold leading-none text-navy-800">{Math.round(score)}%</span>
                     <span className="mt-1 text-[10px] font-semibold tracking-[0.06em] text-gold-600">MATCH</span>
                   </div>
                 )}
@@ -922,7 +922,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
 
         {step === 'signup' && (
           <div className="mt-9 w-full max-w-[720px] rounded-2xl border border-cream-200 bg-white p-8 shadow-sm">
-            <h1 className="font-serif text-2xl font-semibold text-navy-800">
+            <h1 className="text-2xl font-semibold text-navy-800">
               {authMode === 'signup' ? 'Create your free account to get the kit' : 'Log in to get the kit'}
             </h1>
             <p className="mt-1.5 text-sm text-warm-gray">
@@ -994,7 +994,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
 
         {step === 'verify-email' && (
           <div className="mt-9 w-full max-w-[720px] rounded-2xl border border-cream-200 bg-white p-8 shadow-sm">
-            <h1 className="font-serif text-2xl font-semibold text-navy-800">Check your inbox</h1>
+            <h1 className="text-2xl font-semibold text-navy-800">Check your inbox</h1>
             <p className="mt-3 text-sm text-warm-gray">
               We sent a confirmation link to <strong className="text-navy-800">{authEmail}</strong>. Open it and your kit
               {companyName ? ` for ${companyName}` : ''} starts building the moment you land back here.
@@ -1006,7 +1006,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
         {step === 'kit-working' && (
           <div className="mt-9 w-full max-w-[720px] rounded-2xl border border-cream-200 bg-white p-8 shadow-sm">
             <div className="mb-5 flex items-center gap-3">
-              <h1 className="font-serif text-2xl font-semibold text-navy-800">
+              <h1 className="text-2xl font-semibold text-navy-800">
                 Building your kit{companyName ? ` for ${companyName}` : ''}
               </h1>
               <div className="flex-1" />

@@ -104,7 +104,7 @@ export function FeedJobDetail({
             {isStrong ? 'Strong match' : 'Good match'}
           </p>
         )}
-        <h2 className="mt-2 font-serif text-2xl font-semibold text-navy-800">{job.title}</h2>
+        <h2 className="mt-2 text-2xl font-semibold text-navy-800">{job.title}</h2>
         <p className="mt-0.5 text-sm text-warm-gray">{job.company}</p>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">

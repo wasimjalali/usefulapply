@@ -53,7 +53,7 @@ export function ATSChangesView({ onBack }: ATSChangesViewProps) {
           <ArrowLeft className="h-4 w-4" />
           Back to CV
         </button>
-        <h2 className="font-serif text-lg font-semibold text-navy-800">What changed in your CV</h2>
+        <h2 className="text-lg font-semibold text-navy-800">What changed in your CV</h2>
         <div className="flex-1" />
         {score !== null && (
           <span className="inline-flex h-9 items-center gap-2 rounded-full bg-sage-50 px-3 text-[13px] font-semibold text-sage-700">
@@ -70,7 +70,7 @@ export function ATSChangesView({ onBack }: ATSChangesViewProps) {
             <div className="flex items-baseline justify-between">
               <span className="text-sm font-semibold text-navy-800">ATS compatibility</span>
               {score !== null && (
-                <span className="font-serif text-2xl font-semibold text-navy-800">{score}%</span>
+                <span className="text-2xl font-semibold text-navy-800">{score}%</span>
               )}
             </div>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-cream-200">

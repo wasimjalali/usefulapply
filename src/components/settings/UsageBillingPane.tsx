@@ -271,7 +271,7 @@ export function UsageBillingPane() {
                   </span>
                 )}
               </div>
-              <p className="mt-1.5 font-serif text-[22px] font-semibold leading-none text-navy-900">
+              <p className="mt-1.5 text-[22px] font-semibold leading-none text-navy-900">
                 {plan.price}
                 <span className="ml-1 font-sans text-xs font-normal text-warm-gray">{plan.per}</span>
               </p>

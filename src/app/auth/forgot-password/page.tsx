@@ -71,7 +71,7 @@ export default function ForgotPasswordPage() {
   return (
     <AuthShell linkLabel="Log in" linkHref="/auth/login">
       <div className={AUTH_CARD}>
-        <h1 className="font-serif text-2xl font-semibold text-navy-800">Reset your password</h1>
+        <h1 className="text-2xl font-semibold text-navy-800">Reset your password</h1>
         <p className="mt-1.5 text-sm text-warm-gray">We&apos;ll email you a link. It works for 30 minutes.</p>
 
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">

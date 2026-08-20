@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 
 export function PaneHeading({ children }: { children: ReactNode }) {
   return (
-    <h2 id="settings-pane-heading" className="font-serif text-[26px] font-semibold leading-tight text-navy-900">
+    <h2 id="settings-pane-heading" className="text-[26px] font-semibold leading-tight text-navy-900">
       {children}
     </h2>
   );

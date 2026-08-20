@@ -37,7 +37,7 @@ export function CheckEmailCard({
         <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gold-100">
           <Mail className="h-6 w-6 text-gold-600" />
         </span>
-        <h1 className="mt-5 font-serif text-2xl font-semibold text-navy-800">Check your email</h1>
+        <h1 className="mt-5 text-2xl font-semibold text-navy-800">Check your email</h1>
         <p className="mt-3 text-sm text-charcoal">
           We sent a link to <strong className="font-semibold text-navy-800">{email}</strong>. Open it on this
           device and you&apos;re back in.

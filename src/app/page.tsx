@@ -153,7 +153,7 @@ export default function Home() {
           <HeroAurora />
           <div className="relative mx-auto max-w-5xl text-center">
             <ScrollReveal delay={100}>
-              <h1 className="font-serif text-[40px] font-semibold leading-[1.05] tracking-tight text-navy-800 sm:text-[50px] lg:text-[56px]">
+              <h1 className="text-[40px] font-semibold leading-[1.05] tracking-tight text-navy-800 sm:text-[50px] lg:text-[56px]">
                 Your entire job search, <span className="text-gold-500">in one app.</span>
               </h1>
             </ScrollReveal>
@@ -203,7 +203,7 @@ export default function Home() {
                   }`}
                 >
                   <div className="w-full lg:w-[320px] lg:flex-shrink-0">
-                    <h2 className="font-serif text-[30px] font-semibold leading-[1.15] text-navy-800">
+                    <h2 className="text-[30px] font-semibold leading-[1.15] text-navy-800">
                       {moment.title}
                     </h2>
                     <p className="mt-4 text-[15px] leading-relaxed text-warm-gray">{moment.body}</p>
@@ -248,7 +248,7 @@ export default function Home() {
         {/* Plans. Same cards as the settings modal. */}
         <section className="bg-cream-100 px-4 py-10 sm:px-6 lg:px-8">
           <ScrollReveal>
-            <h2 className="mb-7 text-center font-serif text-[32px] font-semibold leading-[1.1] text-navy-800 md:text-[36px]">
+            <h2 className="mb-7 text-center text-[32px] font-semibold leading-[1.1] text-navy-800 md:text-[36px]">
               Start free. Pay when you&apos;re applying every week.
             </h2>
           </ScrollReveal>

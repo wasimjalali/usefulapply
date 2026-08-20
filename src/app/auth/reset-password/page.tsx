@@ -78,7 +78,7 @@ function ResetPasswordForm() {
     return (
       <AuthShell linkLabel="Log in" linkHref="/auth/login">
         <div className={AUTH_CARD}>
-          <h1 className="font-serif text-2xl font-semibold text-navy-800">This link has expired</h1>
+          <h1 className="text-2xl font-semibold text-navy-800">This link has expired</h1>
           <p className="mt-3 text-sm text-charcoal">
             Reset links work for 30 minutes. Ask for a new one and open it on this device.
           </p>
@@ -103,7 +103,7 @@ function ResetPasswordForm() {
     return (
       <AuthShell linkLabel="Log in" linkHref="/auth/login">
         <div className={`${AUTH_CARD} text-center`}>
-          <h1 className="font-serif text-2xl font-semibold text-navy-800">Password updated</h1>
+          <h1 className="text-2xl font-semibold text-navy-800">Password updated</h1>
           <p className="mt-3 text-sm text-charcoal">Taking you to the log in page.</p>
         </div>
       </AuthShell>
@@ -113,7 +113,7 @@ function ResetPasswordForm() {
   return (
     <AuthShell linkLabel="Log in" linkHref="/auth/login">
       <div className={AUTH_CARD}>
-        <h1 className="font-serif text-2xl font-semibold text-navy-800">Set a new password</h1>
+        <h1 className="text-2xl font-semibold text-navy-800">Set a new password</h1>
 
         {formError && <p className="mt-3 text-sm text-red-600">{formError}</p>}
 

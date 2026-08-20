@@ -117,7 +117,7 @@ export function FeedEditView({
           <ArrowLeft className="h-4 w-4" />
           Back to feed
         </button>
-        <h2 className="truncate font-serif text-lg font-semibold text-navy-800">How I search for you</h2>
+        <h2 className="truncate text-lg font-semibold text-navy-800">How I search for you</h2>
         <div className="flex-1" />
         <div className="inline-flex flex-shrink-0 items-center rounded-full border border-cream-200 bg-cream-50 p-0.5" role="tablist">
           {PILLS.map((item) => {
@@ -151,7 +151,7 @@ export function FeedEditView({
         {pill === 'profile' && (
           <div className="rounded-2xl border border-cream-200 bg-cream-50 px-5 py-5 shadow-sm">
             <div className="flex items-start gap-3">
-              <h3 className="flex-1 font-serif text-base font-semibold text-navy-800">
+              <h3 className="flex-1 text-base font-semibold text-navy-800">
                 What I read from your CV
                 {profile?.generatedAt && (
                   <span className="ml-2 text-xs font-normal text-warm-gray">

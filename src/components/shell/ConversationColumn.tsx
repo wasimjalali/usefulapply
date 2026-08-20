@@ -88,7 +88,7 @@ export function ConversationColumn({ onTabChange }: ConversationColumnProps) {
       >
         <header className="flex flex-shrink-0 items-center gap-3 border-b border-cream-200 px-5 py-3.5">
           <div className="min-w-0 flex-1">
-            <h2 className="truncate font-serif text-base font-semibold text-navy-800">{title}</h2>
+            <h2 className="truncate text-base font-semibold text-navy-800">{title}</h2>
             <p className="text-xs text-warm-gray">{statusLabel}</p>
           </div>
         </header>

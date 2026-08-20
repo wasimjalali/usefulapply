@@ -99,7 +99,7 @@ function LoginForm() {
   return (
     <AuthShell linkLabel="New here? Try it free" linkHref="/dashboard">
       <div className={AUTH_CARD}>
-        <h1 className="font-serif text-2xl font-semibold text-navy-800">Log in</h1>
+        <h1 className="text-2xl font-semibold text-navy-800">Log in</h1>
 
         {formError && <p className="mt-3 text-sm text-red-600">{formError}</p>}
 

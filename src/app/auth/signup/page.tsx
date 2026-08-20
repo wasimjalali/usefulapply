@@ -97,7 +97,7 @@ export default function SignUpPage() {
   return (
     <AuthShell linkLabel="Log in" linkHref="/auth/login">
       <div className={AUTH_CARD}>
-        <h1 className="font-serif text-2xl font-semibold text-navy-800">Create your free account</h1>
+        <h1 className="text-2xl font-semibold text-navy-800">Create your free account</h1>
         <p className="mt-1.5 text-sm text-warm-gray">4 credits a month, no card.</p>
 
         {formError && <p className="mt-3 text-sm text-red-600">{formError}</p>}

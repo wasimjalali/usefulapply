@@ -168,7 +168,7 @@ export function TrackerCanvas() {
       <header className="flex-shrink-0 border-b border-cream-200 px-6 pb-4 pt-5">
         <div className="flex items-start gap-4">
           <div className="min-w-0 flex-1">
-            <h2 className="font-serif text-xl font-semibold text-navy-800">Tracker</h2>
+            <h2 className="text-xl font-semibold text-navy-800">Tracker</h2>
             <p className="mt-0.5 text-[13px] text-warm-gray">{headerLine}</p>
           </div>
           <label className="relative w-[228px] flex-shrink-0">

@@ -66,7 +66,7 @@ export default function CompareHubPage() {
               </div>
             </ScrollReveal>
             <ScrollReveal delay={150}>
-              <h1 className="font-serif font-semibold text-navy-600 text-[44px] sm:text-[52px] lg:text-[56px] leading-[1.05] tracking-tight mb-5">
+              <h1 className="font-semibold text-navy-600 text-[44px] sm:text-[52px] lg:text-[56px] leading-[1.05] tracking-tight mb-5">
                 Useful Apply vs <span className="text-gold-500">the alternatives.</span>
               </h1>
             </ScrollReveal>
@@ -107,7 +107,7 @@ export default function CompareHubPage() {
             </div>
 
             <div className="mt-16 bg-cream-50 border border-cream-200 rounded-2xl p-8 sm:p-10 text-center shadow-sm">
-              <h2 className="font-serif font-semibold text-navy-600 text-[28px] md:text-[32px] leading-[1.15] mb-3">
+              <h2 className="font-semibold text-navy-600 text-[28px] md:text-[32px] leading-[1.15] mb-3">
                 Not sure which one fits?
               </h2>
               <p className="text-warm-gray max-w-xl mx-auto mb-6">

@@ -200,7 +200,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
     <div className="flex h-full min-h-0 flex-col">
       <header className="flex flex-shrink-0 items-start gap-3 border-b border-cream-200 px-5 py-3">
         <div className="min-w-0 flex-1">
-          <h2 className="truncate font-serif text-xl font-semibold text-navy-800">{headline}</h2>
+          <h2 className="truncate text-xl font-semibold text-navy-800">{headline}</h2>
           {rankedFor && <p className="truncate text-xs text-warm-gray">{rankedFor}</p>}
         </div>
         <div className="inline-flex flex-shrink-0 items-center rounded-full border border-cream-200 bg-cream-50 p-0.5" role="tablist">
@@ -315,7 +315,7 @@ function EmptyCanvas({ icon, title, body }: { icon: React.ReactNode; title: stri
         <span className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-full bg-gold-100 text-gold-600">
           {icon}
         </span>
-        <h2 className="font-serif text-2xl font-semibold text-navy-800">{title}</h2>
+        <h2 className="text-2xl font-semibold text-navy-800">{title}</h2>
         {body && <p className="mt-2 text-sm leading-relaxed text-warm-gray">{body}</p>}
       </div>
     </div>
@@ -345,7 +345,7 @@ function BuildingCanvas({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <header className="flex-shrink-0 border-b border-cream-200 px-5 py-3">
-        <h2 className="font-serif text-xl font-semibold text-navy-800">Searching for you</h2>
+        <h2 className="text-xl font-semibold text-navy-800">Searching for you</h2>
         <p className="text-xs text-warm-gray">
           {queries.length > 0
             ? `${queries.length} ${plural(queries.length, 'search', 'searches')} today, in priority order.`

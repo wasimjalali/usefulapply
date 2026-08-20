@@ -24,10 +24,10 @@ Rules:
 - **Scrollbars are warm sand, not navy and not gold.** Thumb `#C4B69C` (a step past `cream-400`, not a ramp token), `navy-600` on hover, transparent track, 12px wide with a 2px transparent border so the thumb reads as 8px (`globals.css`). `cream-400` on a cream track measures 1.37:1, invisible rather than subtle; `navy-400` read as washed-out blue; `gold-600` was too loud. `#C4B69C` sits at ~1.9:1 on `cream-100` and ~2:1 on white, deliberately under the 3:1 UI bar because the hover state carries the contrast. On dark surfaces the ramp flips, so scrollable navy panels take `.scrollbar-on-dark` (`cream-300` thumb, white on hover) - otherwise hover makes the thumb vanish instead of stand out.
 
 ### Typography
-- **Headings that anchor the user's eye** → `font-serif` (Georgia via Tailwind `font-serif`, semi-bold): page title `h1`, panel/section `h2`, modal title, wizard title. These are "where am I" moments.
-- **Everything smaller** → default sans (Inter, set in `globals.css` as `--font-sans`): `h3`, body, labels, buttons, chips, form fields. These are scanning-text, not anchoring-text.
-- **Do not apply `font-serif` to chat messages, job cards, tracker rows, form labels, or button text.** It looks Victorian.
-- **`font-semibold` not `font-bold`** on serif headings — bold Georgia reads as AI-slop.
+- **One family everywhere in the app UI: Inter** (self-hosted via `next/font` in `layout.tsx`, wired to `--font-sans` in `globals.css`). Headings, body, labels, buttons, chips, form fields all use it. The old Georgia/Arial split is retired; do NOT reintroduce `font-serif` anywhere in the app or landing.
+- **Hierarchy comes from size and weight, not family.** Page/panel titles: `font-semibold` at the existing size scale. Body and labels: `font-normal` / `font-medium`.
+- **`font-semibold` not `font-bold`** on headings.
+- **Exemptions:** `src/components/cv-templates/**` and the exported PDF/DOCX keep Arial + Georgia (ATS-safe fonts in the applicant's own document). Email templates keep their inline fonts. The brand wordmark keeps Plus Jakarta Sans.
 
 ### Radius scale (3 + 1)
 Pick one role per element. Everything else is deprecated.
