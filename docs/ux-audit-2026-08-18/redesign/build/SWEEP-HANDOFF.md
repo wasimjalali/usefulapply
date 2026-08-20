@@ -1,7 +1,7 @@
 # Post-batch sweep: handoff
 
 **Updated 20 August 2026.** Branch `rebrand/usefulapply`. Staging is
-https://usefulapply.com, deployed from this branch at version `0102d48f`.
+https://usefulapply.com, deployed from this branch at version `33cf7c8d`.
 
 Passes 1 and 2 are done. The adversarial review on `62885ddc` is done. Pass 3
 has started.
@@ -10,7 +10,7 @@ has started.
 
 ## What landed
 
-Fourteen commits, all on `rebrand/usefulapply`, none on `main`. No PR.
+Eighteen commits, all on `rebrand/usefulapply`, none on `main`. No PR.
 
 | Commit | What |
 |---|---|
@@ -28,6 +28,11 @@ Fourteen commits, all on `rebrand/usefulapply`, none on `main`. No PR.
 | `c6db3306` | `fix:` job ads read as ads again, not as one run-on blob |
 | `86d3d75f` | `fix:` three copy and state bugs found walking staging |
 | `c483a857` | `fix:` pass 3 lands the first four Small backend gaps |
+| `1c15d7ea` | `docs:` the handoff carries the review, the bug list and pass 3 |
+| `96929936` | `docs:` plain hyphens on the CLOSED markers |
+| `04655cf9` | `fix:` the follow-up backfill would have mailed five months of history |
+| `eeaa935d` | `fix:` the rest of the code-review findings |
+| `abbda859` | `fix:` New application did nothing from the feed or the tracker |
 
 Passes 1 and 2 are described in the git history of the first nine commits. What
 follows is what this session added.
@@ -98,8 +103,49 @@ check and are recorded below as refuted.
 - The apply route's double-POST does not produce the duplicate applications
   seen on staging. See below.
 
-**Still to do:** `/code-review` at `high` on the branch. Only Wasim can invoke
-it.
+**`/code-review` at `high` has now run**, and its findings are below.
+
+---
+
+## What `/code-review` at `high` found
+
+Nine findings against `2aaf3fc9..HEAD`, every one of them in code this session
+wrote. All nine are fixed, in `04655cf9` and `eeaa935d`.
+
+**One had a deadline.** The follow-up backfill had no lower bound, so
+"created more than seven days ago" matched every Applied row ever written and
+the derived date made all of them overdue. Measured against the real database:
+97 rows across 15 verified users, oldest from 3 March, all queued to send on
+the 08:00 UTC sweep. Deployed the bound at 07:33 UTC, 27 minutes ahead of it.
+The same query now returns 6 rows across 4 users, which is what the feature is
+for. A stored date is still chased however old it is, because the user saw that
+date. A derived one is capped at 30 days, because inferring a chase for
+something that came due in March is noise.
+
+**The compaction batch stalled instead of draining.** The limit went on a query
+with nothing excluding rows an earlier pass had compacted, so every night
+refetched the same 200, skipped them all and returned 0. Row 201 onward would
+never have been compacted.
+
+**The interview window let in interviews that had already happened.** They can
+never be anyone's tomorrow, so they could never be sent or stamped, and they
+sat at the head of the oldest-first batch. Past 200 rows they would have pushed
+real reminders off the end permanently. The lower bound is now `now`.
+
+**The glued-list rule that guessed is gone.** It split on a word running into a
+capital, guarded by a hand-written list of words that carry an inner capital on
+purpose, which could never be complete: HealthTech, FullStack, SalesForce and
+Python3 all slipped through, and a false split also discarded the provider's
+clean sections. Measured before removing it: across 41 real ads, 61 lines split
+and not one needed this rule. Deleting it left the output identical.
+
+**Four smaller ones:** the card summary only stopped at a bullet when a block
+began with one; the salary reader gave up after the first figure, and once it
+kept looking it needed pay context to tell a range from a tuition allowance; a
+city made its country un-removable because the implication ran on every save
+rather than only on newly added cities; and the raced run path did not clear
+artifacts before reusing a stale row. Plus a docstring that claimed the
+reminder email and the tracker can never disagree, when they can by a day.
 
 ---
 
@@ -116,6 +162,16 @@ it.
 | 7 | Settings modal opened for signed-out visitors | Fixed, `86d3d75f` |
 | 8 | Feed header and sidebar badge disagree | **Wasim's call** |
 | 9 | Composer alignment | Verified on staging |
+| 10 | New application did nothing from the feed | Fixed, `abbda859` |
+
+### 10 was reported by Wasim mid-session
+
+Clicking "New application" while the feed canvas was open appeared to do
+nothing. It was not doing nothing: the button ticks a counter that ChatPanel
+watches, ChatPanel is mounted-but-hidden behind the feed rather than unmounted,
+so the reset genuinely ran and the workspace was fresh. Nothing switched the
+view back, so the user kept looking at the feed. The tick now returns to the
+application view, which also covers the tracker's copy of the same button.
 
 ### 1, 2 and 3 were one weakness
 
@@ -212,8 +268,7 @@ change or a prompt change, all of which this sweep was told to leave alone.
 
 ## What is left
 
-1. `/code-review` at `high` on the branch. Wasim only.
-2. Two decisions from the review: the shared SerpAPI budget, and the daily
+1. Two decisions from the review: the shared SerpAPI budget, and the daily
    cooldown's unreachable bypass.
 3. Two decisions from the bug list: what the sidebar badge counts (bug 8), and
    whether a repeat generation for the same job reuses its entry (bug 5).
