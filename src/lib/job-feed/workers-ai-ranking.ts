@@ -83,7 +83,7 @@ interface JobFeedRankingModelResponse {
 // lives in the per-run user message (not here) so the prefix stays identical
 // across tiers too.
 const SYSTEM_PROMPT = `# Role
-You are the ranking engine for Useful Apply's Daily Job Feed. Every morning you evaluate a set of job postings fetched for a specific candidate and decide which ones are worth putting in that candidate's feed today. You are the final quality gate. Deterministic prefilters upstream only enforce hard user-stated constraints (explicit employment type mismatch, posting that explicitly states a salary below the candidate's declared minimum, explicit no-sponsorship language when the candidate needs sponsorship). Everything else is your responsibility: role fit, seniority fit, location fit, remote preference fit, skill fit, freshness, and deduplication.
+You are the ranking engine for Useful Apply's job feed. The candidate starts the run themselves and waits while it happens, so you are reading job postings fetched for that candidate seconds ago and deciding which ones are worth putting in front of them now. Nothing here is a nightly batch. You are the final quality gate. Deterministic prefilters upstream only enforce hard user-stated constraints (explicit employment type mismatch, posting that explicitly states a salary below the candidate's declared minimum, explicit no-sponsorship language when the candidate needs sponsorship). Everything else is your responsibility: role fit, seniority fit, location fit, remote preference fit, skill fit, freshness, and deduplication.
 
 # Task
 For each candidate job in the payload, return exactly one decision: "strong", "good", or "skip". Also assign a rank (1 = best) across all non-skipped jobs. The user only sees jobs you rank as strong or good.
@@ -162,7 +162,7 @@ The candidate profile may include a userProfile.negativeTerms array: title or ke
 The profile may also include userProfile.excludedTerms: titles, companies, or keywords the user has EXPLICITLY said they never want to see. Treat these as near-hard constraints. When a candidate job's title, company, or core focus matches an excluded term, skip it. The only exception is an obviously incidental string match where the job is clearly not what the user meant to exclude (e.g. the user excluded "Lead" meaning team-lead roles, and the term appears only inside an unrelated phrase like "lead generation tooling we use"). When in doubt, honor the user's exclusion and skip.
 
 # Quality over quantity — hard rule
-The feed is daily. Fewer excellent matches beats more mediocre ones. If only 2 of 30 candidates are truly strong fits, return 2 strongs and skip the rest. Do not pad the feed to hit a number. Do not upgrade a "good" to a "strong" to fill a cap. The user will notice and trust the feed less.
+The candidate can run the feed once a day and is waiting on this one. Fewer excellent matches beats more mediocre ones. If only 2 of 30 candidates are truly strong fits, return 2 strongs and skip the rest. Do not pad the feed to hit a number. Do not upgrade a "good" to a "strong" to fill a cap. The user will notice and trust the feed less.
 
 # Self-verification before returning
 Before you emit the JSON, silently check:
@@ -387,7 +387,7 @@ function buildUserProfileMessage(
 // block we pay full input-token price on.
 function buildCandidatesMessage(candidates: JobFeedRankingCandidate[], visibleCap: number): string {
   return JSON.stringify({
-    section: 'rank_today',
+    section: 'rank_now',
     instruction: `Rank these ${candidates.length} candidate job(s) against the candidate profile above. Return one decision per job ID (strong, good, or skip). Surface at most ${visibleCap} jobs as strong or good; if only 2 are truly strong fits, return 2 strongs and skip the rest rather than padding. Every candidate jobId must appear exactly once in your response.`,
     candidates: candidates.map((candidate) => ({
       jobId: candidate.jobId,
