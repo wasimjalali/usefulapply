@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { Bell, BarChart3, Settings, X } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useSettingsStore, isSettingsPane, type SettingsPane } from '@/store/useSettingsStore';
 import { GeneralPane } from '@/components/settings/GeneralPane';
 import { UsageBillingPane } from '@/components/settings/UsageBillingPane';
@@ -17,6 +18,7 @@ const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export function SettingsModal() {
+  const { user, isLoading } = useAuth();
   const isOpen = useSettingsStore((s) => s.isOpen);
   const pane = useSettingsStore((s) => s.pane);
   const open = useSettingsStore((s) => s.open);
@@ -25,12 +27,16 @@ export function SettingsModal() {
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
   // Deep link: ?settings=usage opens the modal on that pane, then the param
-  // is dropped so a refresh does not reopen it.
+  // is dropped so a refresh does not reopen it. /settings, /profile and
+  // /account all land here, so a signed-out visitor gets the param too. There
+  // is nothing to show them, so wait for the session and drop the param
+  // without opening.
   useEffect(() => {
+    if (isLoading) return;
     const params = new URLSearchParams(window.location.search);
     const requested = params.get('settings');
     if (!isSettingsPane(requested)) return;
-    open(requested);
+    if (user) open(requested);
     params.delete('settings');
     const query = params.toString();
     window.history.replaceState(
@@ -38,7 +44,13 @@ export function SettingsModal() {
       '',
       `${window.location.pathname}${query ? `?${query}` : ''}`,
     );
-  }, [open]);
+  }, [open, user, isLoading]);
+
+  // A session that ends while the modal is open leaves a panel showing
+  // "Sign out" and a balance for nobody.
+  useEffect(() => {
+    if (!isLoading && !user && isOpen) close();
+  }, [isLoading, user, isOpen, close]);
 
   const handleClose = useCallback(() => {
     close();
@@ -82,7 +94,7 @@ export function SettingsModal() {
     };
   }, [isOpen, handleClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !user) return null;
 
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">

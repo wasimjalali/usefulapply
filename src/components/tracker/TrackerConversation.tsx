@@ -376,10 +376,7 @@ export function buildStateOfPlay(
     );
   }
   if (overdue.length > 0) {
-    const names = overdue
-      .slice(0, 2)
-      .map((entry) => entry.row.company ?? 'one role')
-      .join(', ');
+    const names = nameList(overdue.map((entry) => entry.row.company ?? 'one role'));
     parts.push(`**${countWord(overdue.length)} follow-up${overdue.length === 1 ? '' : 's'} overdue** (${names})`);
   }
   if (drafted.length > 0) {
@@ -420,6 +417,19 @@ export function buildStateOfPlay(
   }
 
   return { text, chips };
+}
+
+/**
+ * "Ellucian", "Ellucian and Revalize", "Ellucian, Revalize and 2 more". Naming
+ * two companies under a count of four reads as a miscount, so the rest get
+ * accounted for rather than dropped.
+ */
+function nameList(names: string[], shown = 2): string {
+  if (names.length === 1) return names[0];
+  if (names.length <= shown + 1) {
+    return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  }
+  return `${names.slice(0, shown).join(', ')} and ${names.length - shown} more`;
 }
 
 function countWord(count: number): string {

@@ -920,7 +920,7 @@ function buildOpening(params: {
               ? 'I searched for you'
               : `I ran ${searchCount} ${plural(searchCount, 'search', 'searches')} for you`
           } and found ${todayCount} ${plural(todayCount, 'new role', 'new roles')}.${strongLine}${dupLine}`
-        : `These ${plural(allJobs.length, 'role is', 'roles are')} from your last search.${strongLine} There is no automatic morning run. I can search again now.`;
+        : `${plural(allJobs.length, 'This role is', 'These roles are')} from your last search.${strongLine} There is no automatic morning run. I can search again now.`;
 
       return [message(
         body,
