@@ -33,8 +33,6 @@ export function TrackerCanvas() {
   const setActiveTab = useUIStore((s) => s.setActiveTab);
   const requestNewApplication = useUIStore((s) => s.requestNewApplication);
 
-  const rows = useTrackerStore(selectVisibleRows);
-  const countRows = useTrackerStore(selectRowsForCounts);
   const allRows = useTrackerStore((s) => s.rows);
   const loading = useTrackerStore((s) => s.loading);
   const error = useTrackerStore((s) => s.error);
@@ -47,6 +45,18 @@ export function TrackerCanvas() {
   const hideRejected = useTrackerStore((s) => s.hideRejected);
   const load = useTrackerStore((s) => s.load);
   const hydrateHideRejected = useTrackerStore((s) => s.hydrateHideRejected);
+
+  // Both lists are filtered here, not inside a zustand selector. A selector
+  // that returns a fresh array on every read never settles under
+  // useSyncExternalStore, which took the whole tracker down with React #185.
+  const rows = useMemo(
+    () => selectVisibleRows({ rows: allRows, search, hideRejected, statusFilter }),
+    [allRows, search, hideRejected, statusFilter],
+  );
+  const countRows = useMemo(
+    () => selectRowsForCounts({ rows: allRows, search, hideRejected }),
+    [allRows, search, hideRejected],
+  );
 
   // The anchor rides in state: the panel is portalled to the body, so it needs
   // the element it was opened from to position itself.

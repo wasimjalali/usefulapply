@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { MobileFeed } from '@/components/job-feed/MobileFeed';
 import { TrackerCanvas } from '@/components/tracker/TrackerCanvas';
 import { AppShell, GuidedLine } from '@/components/shell';
@@ -17,6 +17,9 @@ import { Briefcase, ClipboardList, Loader2 } from 'lucide-react';
 type ApplicationTab = 'cv' | 'cover-letter' | 'email';
 type Workspace = 'application-kit' | 'job-feed' | 'tracker';
 type MobileView = 'desktop-required' | 'job-feed' | 'tracker';
+
+/** Never fires: the value only has to differ between server and client. */
+const subscribeToNothing = () => () => {};
 
 function readDashboardQuery() {
   if (typeof window === 'undefined') {
@@ -56,6 +59,14 @@ export default function Dashboard() {
     return 'desktop-required';
   });
   const [isNarrow, setIsNarrow] = useState(false);
+  // The server always renders the spinner: it has no session and no query
+  // string. On the client the session store can already be resolved on the
+  // first render, and `mobileView` reads window.location.search, so the two
+  // trees disagreed and React threw away the server HTML (#418). Any click
+  // landing in that window was lost, which is why the first click on the
+  // sidebar did nothing. Hold the spinner until after mount so the first
+  // client render matches the server exactly.
+  const mounted = useSyncExternalStore(subscribeToNothing, () => true, () => false);
   const lastApplicationTabRef = useRef<ApplicationTab>('cv');
   const processedWorkspaceRef = useRef<string | null>(null);
   const hasKit = sessions.some(sessionHasKit) || sessionHasKit(currentSession);
@@ -143,7 +154,7 @@ export default function Dashboard() {
   // kit is still on the line (fit running, verdict shown, sign-up pending).
   const showGuidedLine = !hasKit && activeWorkspace === 'application-kit';
 
-  if (isLoading) {
+  if (!mounted || isLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-cream-100">
         <Loader2 className="w-8 h-8 animate-spin text-navy-600" />

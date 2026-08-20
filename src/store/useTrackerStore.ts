@@ -169,7 +169,9 @@ export const useTrackerStore = create<TrackerState>((set, get) => ({
 }));
 
 /** Rows after the search box, the count pill and the Hide rejected filter. */
-export function selectVisibleRows(state: TrackerState): TrackerApplicationRow[] {
+export function selectVisibleRows(
+  state: Pick<TrackerState, 'rows' | 'search' | 'hideRejected' | 'statusFilter'>,
+): TrackerApplicationRow[] {
   const query = state.search.trim().toLowerCase();
   return state.rows.filter((row) => {
     const status = toTrackerStatus(row.status);
@@ -184,7 +186,9 @@ export function selectVisibleRows(state: TrackerState): TrackerApplicationRow[] 
 }
 
 /** The count pills read the same rows the table does, minus the pill filter. */
-export function selectRowsForCounts(state: TrackerState): TrackerApplicationRow[] {
+export function selectRowsForCounts(
+  state: Pick<TrackerState, 'rows' | 'search' | 'hideRejected'>,
+): TrackerApplicationRow[] {
   const query = state.search.trim().toLowerCase();
   return state.rows.filter((row) => {
     if (state.hideRejected && toTrackerStatus(row.status) === 'rejected') return false;
