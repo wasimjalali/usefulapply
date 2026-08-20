@@ -43,11 +43,17 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Where:** UI `src/components/kit/ATSChangesView.tsx`; data `src/lib/agents/unified-writer-agent.ts` (`generateOptimizedCVData`), `src/lib/agents/prompts/cv-prompt.ts` (analysis schema), `useAgentWorkflow.ts` (maps `changes`).
 - **Needs:** the CV prompt to emit `changes: [{ section, before, after, reason }]` alongside `key_changes`, mapped into `generatedCV.changes`. Small prompt and schema change, plus a check it does not inflate output tokens much.
 
-### Screening answers are unpriced and the cap is client-side
-- **UI today:** a pasted screening question (or the "Answer screening questions" chip) answers from the CV on Plus and Max, free of credits, capped at 5 turns per application by the client (`screeningUsageCount`, persisted in `generated_cv._screeningUsageCount`).
-- **Missing:** no server-side cap (the chat route's per-session limit counts client-supplied history) and no credit cost. Plan gate (403) is server-side and holds.
-- **Where:** `src/components/ChatPanel.tsx` (`runScreening`, `SCREENING_TURN_CAP`), `src/app/api/chat/route.ts` (screening mode), `src/lib/credit-costs.ts`.
-- **Needs:** decide whether screening costs credits (0.25 or 0.5 per turn?) or keeps a server-enforced per-application cap. Small once decided.
+### Screening answers are unpriced and the cap is client-side - CLOSED
+- **Closed 20 August 2026 (A3).** Screening stays free. The cap is now a server-owned column, `application_sessions.screening_turns_used`, and only `/api/chat` writes it. The client sends the saved application id, the route claims one turn with a single conditional UPDATE (`used < cap`, scoped to the owner), and a miss is a 429 that carries the real count. Two requests racing cannot both pass.
+- **The turn is claimed last**, after the plan gate, the id check and the chat-history limit, so a request that never reaches the model does not spend one. A model failure hands the turn back, and only while the counter still reads the value that claim returned, so a slow failure cannot take back a turn a second request already claimed.
+- **The client counter is display only.** `updateSession` strips `screening_turns_used` and `prep_turns_used` at runtime as well as in its type, so a wholesale client sync cannot reset either. The readers take the higher of the column and the old embedded `_screeningUsageCount`, so a row written before the column keeps the turns it spent. Measured: 115 applications, none carrying an embedded count, so nothing was reset.
+- **Where:** `migrations/d1/0006_screening_prep_counters_and_credit_kind.sql`, `src/db/repos/sessions.ts` (`claimScreeningTurn`, `releaseScreeningTurn`), `src/app/api/chat/route.ts`, `src/lib/screening-answers.ts` (`SCREENING_TURN_CAP`), `src/components/ChatPanel.tsx`, `src/components/chat/useAgentWorkflow.ts`, `src/lib/open-session.ts`, `src/components/job-feed/feed-session-mapper.ts`.
+
+### The screening chip hides after two answers when the cap is five
+- **UI today:** the kit's "Answer screening questions" chip renders while `screeningUsageCount < 2`, so it disappears after two answers even though the cap is five and pasting a question still works.
+- **Missing:** nothing server side. `2` is doing two jobs in the client: a turn count and a "the user skipped this" sentinel, because `skip-screening` and the free-plan pitch both write `screeningUsageCount: 2`.
+- **Where:** `src/components/ChatPanel.tsx` (the kit-ready chip list, `skip-screening`, `start-screening-flow`).
+- **Needs:** a separate `screeningSkipped` flag so the chip can key on the real cap. Small. Found by the group 5 review; pre-existing, not introduced by it.
 
 ### Answers persist inside `generated_cv` JSON, not their own column
 - **UI today:** the Answers tab survives reload and session switch. Data rides in `generated_cv._screeningAnswers` (same embed pattern as `_optimizedCVData`), read back in `useSupabaseSync.ts` and the Job Feed mapper.
@@ -138,7 +144,8 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **UI today:** the chip loads that application and opens its conversation with a line telling the user to ask there.
 - **Missing:** there is no interview-prep generator. The kit agents write a CV, a cover letter and two emails, nothing that prepares someone for an interview.
 - **Where:** `src/components/tracker/TrackerConversation.tsx` (`prepChip`); backend would be `src/lib/agents/**`.
-- **Needs:** a prep prompt and a credit price, or the chip stays a hand-off. Medium, and it touches the agent prompts, which this batch was told not to change.
+- **Needs:** a prep prompt, then the ceiling. Medium, and it touches the agent prompts, which this batch was told not to change.
+- **The ceiling column already shipped (A6, 20 August 2026).** `application_sessions.prep_turns_used` is in migration 0006, with the same shape and the same server-owned guarantee as A3's counter: `updateSession` strips it, so only a route can ever write it. Nothing reads or writes it yet, on purpose. It went in early so production takes one migration pass rather than two. When the feature is built, copy `claimScreeningTurn`.
 
 ### Follow-up drafting from the tracker rides on the kit's session state - CLOSED
 - **Closed 20 August 2026.** `POST /api/tracker/follow-up` takes a session id, loads that row and the user's CVs from D1, builds MasterContext on the server and reuses `unifiedWriterAgent.generateFollowUpEmail`. It persists the letter on the session. The tracker no longer needs `currentSession` or `currentCV` in memory. Prompts were not touched.
@@ -198,15 +205,17 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 
 ### The new profile columns are not on the remote D1 yet
 - **UI today:** the panes read the new columns defensively. A missing `notify_*` boolean falls back to its default and a missing `timezone` / `date_format` falls back to the detected zone and `dmy`, so nothing crashes before the migration runs.
-- **Missing:** `migrations/d1/0005_tracker_dates_and_prefs.sql` has not been applied to the remote database. Until it is, a toggle writes and the write fails at the DB, and the pane shows "We could not save that."
-- **Where:** `migrations/d1/0005_tracker_dates_and_prefs.sql`.
-- **Needs:** run the migration on staging and production. Small, but it gates the whole Notifications pane.
+- **Missing:** nothing on staging. **Measured 20 August 2026** against `usefulapply-db --remote`: `d1_migrations` lists 0001 through 0005, and the five `profiles` columns are there. There is only one Useful Apply D1 database, so "production" here means the cutover, when the Supabase export is re-imported.
+- **Where:** `migrations/d1/0005_tracker_dates_and_prefs.sql`, and now `0006_screening_prep_counters_and_credit_kind.sql` alongside it.
+- **Needs:** at the Phase 9 cutover, run `npx wrangler d1 migrations apply usefulapply-db --remote` after the re-import, so 0005 and 0006 land together. One pass, which is what the group 5 batch was for. Add it to the Phase 9 runbook.
 
-### The usage breakdown leans on free-text transaction types
-- **UI today:** "Used 9: three fit checks, two kits, one rewrite" is computed client side from `credit_transactions`, bucketing `fit_analysis` as a fit check, `full_application` / `generation_after_fit` as a kit and everything else as a rewrite. The window starts at `user_credits.last_reset_date`.
-- **Missing:** `transaction_type` is a plain string (`action.toLowerCase()`), so a new credit action silently lands in the rewrite bucket. `last_reset_date` can also be null on old rows, in which case the whole transaction history counts as this month.
-- **Where:** UI `src/components/settings/UsageBillingPane.tsx`; backend `src/db/repos/credits.ts` (`deductAmount`, `getCreditTransactions`).
-- **Needs:** either a typed enum on the column or a small server-side summary endpoint that returns the month's buckets. Small.
+### The usage breakdown leans on free-text transaction types - CLOSED
+- **Closed 20 August 2026 (B10).** `credit_transactions` gains `transaction_kind`, a closed set of `fit`, `kit`, `rewrite`, `grant` and `refund`, written at insert by every path that writes a ledger row. `transaction_type` stays free text and keeps naming the exact action. `CREDIT_ACTION_KIND` maps every `CreditAction` to a bucket, so the compiler makes a new action pick one instead of landing in "rewrite" by default.
+- **Insert side only.** Amounts, balances, the deduction order, the OCC loops and the reservation lifecycle are untouched. The change is one column in five raw INSERTs plus the drizzle insert, and a `kind` argument on `deductAmount`, `addCredits` and `logCreditTransaction`.
+- **Two real corrections, both measured against the live ledger** (643 rows, nine types). `full_generation` is a retired name for a kit and had four rows counting as rewrites. A negative `refund` row is a clawback of bought credits, so it no longer counts as something the user spent. Rows written before the column read back through `LEGACY_TYPE_KIND`, so the historical breakdown still resolves.
+- **No CHECK constraint on the column.** SQLite cannot add a table-level check without rebuilding the table, and rebuilding the ledger to gain a constraint that can hard-fail a deduction is the wrong trade. The closed set is enforced in TypeScript at every write.
+- **Still open, and separate:** `last_reset_date` can be null on old rows, in which case the whole history counts as this month.
+- **Where:** `migrations/d1/0006_screening_prep_counters_and_credit_kind.sql`, `src/lib/credit-costs.ts`, `src/db/repos/credits.ts`, `src/components/settings/UsageBillingPane.tsx`.
 
 ### Stripe still returns to /subscription, which is now a redirect - CLOSED
 - **Closed 20 August 2026.** The three Stripe URLs (create-checkout success/cancel, create-addon-checkout success/cancel, create-portal return) now point at `/dashboard?settings=usage`. URL strings only. No webhook and no credit logic. `/subscription` still 308s for older links.
