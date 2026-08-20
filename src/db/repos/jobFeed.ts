@@ -55,6 +55,47 @@ export async function upsertSettings(userId: string, values: Record<string, unkn
   return row;
 }
 
+/**
+ * Clears the consent timestamp and pauses the feed. Idempotent: a missing
+ * row or an already-cleared one is still a successful withdraw.
+ */
+export async function withdrawConsent(userId: string): Promise<JobFeedSettings | null> {
+  const existing = await getSettings(userId);
+  if (!existing) return null;
+  if (!existing.consent_accepted_at && !existing.enabled) return existing;
+
+  const db = await getDb();
+  await db
+    .update(jobFeedSettings)
+    .set({
+      consent_accepted_at: null,
+      enabled: false,
+      updated_at: nowIso(),
+    })
+    .where(eq(jobFeedSettings.user_id, userId));
+
+  return getSettings(userId);
+}
+
+/**
+ * Records an explicit consent assertion on an existing settings row and
+ * turns the feed back on. Only those two columns move.
+ */
+export async function grantConsent(userId: string): Promise<JobFeedSettings> {
+  const db = await getDb();
+  await db
+    .update(jobFeedSettings)
+    .set({
+      consent_accepted_at: new Date().toISOString(),
+      enabled: true,
+      updated_at: nowIso(),
+    })
+    .where(eq(jobFeedSettings.user_id, userId));
+  const row = await getSettings(userId);
+  if (!row) throw new Error('Failed to persist job feed consent');
+  return row;
+}
+
 export async function getLatestRun(userId: string): Promise<JobFeedRun | null> {
   const db = await getDb();
   const rows = await db

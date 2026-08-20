@@ -202,7 +202,7 @@ export async function loadSearchStrategy(): Promise<SearchStrategy | null> {
   }
 }
 
-/** What the product read from the CV. Paid plans only; null otherwise. */
+/** What the product read from the CV. Free and paid; null if none is stored yet. */
 export async function loadCareerProfile(): Promise<CareerProfile | null> {
   if (isPreviewing()) return useFeedStore.getState().careerProfile;
   const generation = useFeedStore.getState().fetchGeneration;
@@ -227,7 +227,7 @@ export interface FeedRunOutcome {
   duplicateCount: number | null;
 }
 
-export async function runFeed(): Promise<FeedResult<FeedRunOutcome>> {
+export async function runFeed(options?: { consentAccepted?: boolean }): Promise<FeedResult<FeedRunOutcome>> {
   if (isPreviewing()) {
     return {
       ok: true,
@@ -236,10 +236,19 @@ export async function runFeed(): Promise<FeedResult<FeedRunOutcome>> {
   }
   useFeedStore.getState().setIsRunning(true);
   try {
-    const response = await fetch('/api/job-feed/run', { method: 'POST' });
+    const response = await fetch('/api/job-feed/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(
+        options?.consentAccepted === true ? { consent_accepted: true } : {},
+      ),
+    });
     const payload = await readJson(response);
     if (!response.ok) {
-      return { ok: false, error: humanError(response.status, "Today's run did not go through.") };
+      const fromServer = typeof payload.error === 'string' && payload.error.trim()
+        ? payload.error
+        : null;
+      return { ok: false, error: fromServer ?? humanError(response.status, "Today's run did not go through.") };
     }
     return {
       ok: true,
@@ -255,6 +264,21 @@ export async function runFeed(): Promise<FeedResult<FeedRunOutcome>> {
     return { ok: false, error: "Today's run did not go through. Try again in a moment." };
   } finally {
     useFeedStore.getState().setIsRunning(false);
+  }
+}
+
+export async function withdrawFeedConsent(): Promise<FeedResult<{ withdrawn: true }>> {
+  if (isPreviewing()) {
+    return { ok: true, data: { withdrawn: true } };
+  }
+  try {
+    const response = await fetch('/api/job-feed/consent/withdraw', { method: 'POST' });
+    if (!response.ok) {
+      return { ok: false, error: humanError(response.status, "I couldn't stop the feed. Try again in a moment.") };
+    }
+    return { ok: true, data: { withdrawn: true } };
+  } catch {
+    return { ok: false, error: "I couldn't stop the feed. Try again in a moment." };
   }
 }
 

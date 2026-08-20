@@ -37,6 +37,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 
+    let consentAccepted = false;
+    try {
+      const body = await request.json() as { consent_accepted?: unknown };
+      consentAccepted = body?.consent_accepted === true;
+    } catch {
+      // Empty or non-JSON body is a missing assertion, not a parse bug.
+    }
+
     const userTimeZone = await getUserTimeZone(user.id);
     const now = new Date();
     const todayKey = getLocalDateKey(now, userTimeZone);
@@ -82,6 +90,7 @@ export async function POST(request: NextRequest) {
       triggerSource: 'manual_user',
       now,
       orchestrator: 'direct',
+      consentAccepted,
     });
 
     const diagnostics = getJobFeedRunDiagnostics(result.run);
@@ -114,6 +123,11 @@ export async function POST(request: NextRequest) {
       errorMessage: result.run.error_message,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'JOB_FEED_CONSENT_REQUIRED') {
+      return NextResponse.json({
+        error: 'Please confirm I can search public job boards for you.',
+      }, { status: 400 });
+    }
     if (error instanceof Error && error.message === 'JOB_FEED_INSUFFICIENT_CV') {
       return NextResponse.json({
         error: "We couldn't find enough roles or experience in your CV to build your feed. Add your recent roles or key skills to your CV, then try again.",

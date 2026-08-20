@@ -41,9 +41,11 @@ export function canAccessJobFeed(subscriptionTier?: string | null): boolean {
  * which is gated on session identity (a logged-in free user always pays).
  *
  * Truly premium-exclusive actions (settings + settings/suggest, search-strategy
- * editing, and steering the feed) still require canAccessJobFeed (plus/max
- * only). Bookmarking a role (`saved`) and recording that it was opened are
- * available to anyone who can view the feed. Saving is free.
+ * generation, and steering the feed) still require canAccessJobFeed (plus/max
+ * only). Career-profile and search-strategy GETs are viewable: the free feed
+ * is CV-driven and builds that profile during its run. Bookmarking a role
+ * (`saved`) and recording that it was opened are available to anyone who can
+ * view the feed. Saving is free.
  *
  * Returns false for null/undefined/unknown tiers (fail-closed).
  */
@@ -173,6 +175,11 @@ export function getJobFeedOverviewState(params: {
     // CV, fall through to the run checks; the first run synthesizes the profile
     // and auto-provisions a minimal settings row.
     if (!hasPrimaryCv) return 'no_cv_required';
+    // Withdrawal must stick. Without this, a previous run keeps the canvas in
+    // ready/feed and "Build today's feed" would look like a normal rerun.
+    if (!settings?.consent_accepted_at || !settings.enabled) {
+      return 'awaiting_first_run';
+    }
   } else {
     if (!isJobFeedConfigured(settings)) return 'setup_required';
     if (!settings.enabled) return 'paused';

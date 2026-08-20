@@ -131,15 +131,27 @@ function deriveFreeFeedSeedRoles(profile: CareerProfile | null): string[] {
  * row uses safe defaults; the run still resolves search terms from the career
  * profile and search strategy at run time.
  *
+ * Consent is not invented here. The caller must pass `consentAccepted: true`
+ * from an explicit request field before a row is created. A missing assertion
+ * throws JOB_FEED_CONSENT_REQUIRED rather than stamping a timestamp the user
+ * never gave.
+ *
  * Only called for free users. Premium users must configure settings manually
  * through the settings UI (requireJobFeedAccess-gated).
  */
 export async function getOrProvisionFreeJobFeedSettingsAdmin(
   userId: string,
   seedRoles: string[],
+  options: { consentAccepted: boolean },
 ): Promise<JobFeedSettings> {
   const existing = await getJobFeedSettingsAdmin(userId);
-  if (existing) return existing;
+  if (existing) {
+    return ensureFreeFeedConsent(userId, existing, options.consentAccepted);
+  }
+
+  if (!options.consentAccepted) {
+    throw new Error('JOB_FEED_CONSENT_REQUIRED');
+  }
 
   if (seedRoles.length === 0) {
     throw new Error('Cannot provision free-tier job feed settings without at least one seed role from the career profile.');
@@ -169,7 +181,9 @@ export async function getOrProvisionFreeJobFeedSettingsAdmin(
     } as never);
   } catch (error) {
     const raced = await getJobFeedSettingsAdmin(userId);
-    if (raced) return raced;
+    if (raced) {
+      return ensureFreeFeedConsent(userId, raced, options.consentAccepted);
+    }
     throw new Error(`Failed to provision free-tier job feed settings: ${error instanceof Error ? error.message : 'unknown error'}`);
   }
 }
@@ -1162,14 +1176,36 @@ export async function getLatestManualCompletedJobFeedRunAdmin(userId: string): P
   return jobFeedRepo.getLatestManualCompletedRun(userId);
 }
 
+async function ensureFreeFeedConsent(
+  userId: string,
+  settings: JobFeedSettings,
+  consentAccepted: boolean,
+): Promise<JobFeedSettings> {
+  if (settings.consent_accepted_at && settings.enabled) {
+    return settings;
+  }
+  if (!consentAccepted) {
+    throw new Error('JOB_FEED_CONSENT_REQUIRED');
+  }
+  return jobFeedRepo.grantConsent(userId);
+}
+
 export async function runJobFeedFoundationWorkflow(params: {
   userId: string;
   triggerSource?: string;
   now?: Date;
   force?: boolean;
   orchestrator?: JobFeedRunDiagnostics['orchestrator'];
+  consentAccepted?: boolean;
 }): Promise<JobFeedRunWorkflowResult> {
-  const { userId, triggerSource = 'manual_user', now = new Date(), force = false, orchestrator = 'direct' } = params;
+  const {
+    userId,
+    triggerSource = 'manual_user',
+    now = new Date(),
+    force = false,
+    orchestrator = 'direct',
+    consentAccepted = false,
+  } = params;
 
   // Resolve the subscription tier early so we can auto-provision settings for
   // free users who have never gone through the (premium-only) settings UI.
@@ -1184,8 +1220,11 @@ export async function runJobFeedFoundationWorkflow(params: {
     // whose profile no longer matches the current schema version.
     const existingSettings = await getJobFeedSettingsAdmin(userId);
     if (existingSettings) {
-      settings = existingSettings;
+      settings = await ensureFreeFeedConsent(userId, existingSettings, consentAccepted);
     } else {
+      if (!consentAccepted) {
+        throw new Error('JOB_FEED_CONSENT_REQUIRED');
+      }
       // Seed target_roles from the synthesized career profile so the
       // provisioned row satisfies the non-empty target_roles constraint. The
       // profile is reused below for the search strategy
@@ -1198,7 +1237,7 @@ export async function runJobFeedFoundationWorkflow(params: {
         // error the route maps to a clear, user-actionable 422 instead.
         throw new Error('JOB_FEED_INSUFFICIENT_CV');
       }
-      settings = await getOrProvisionFreeJobFeedSettingsAdmin(userId, seedRoles);
+      settings = await getOrProvisionFreeJobFeedSettingsAdmin(userId, seedRoles, { consentAccepted: true });
     }
   } else {
     const loaded = await getJobFeedSettingsAdmin(userId);

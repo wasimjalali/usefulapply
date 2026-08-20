@@ -34,6 +34,7 @@ import {
   loadSearchStrategy,
   runFeed,
   saveFeedSettings,
+  withdrawFeedConsent,
 } from './feed-actions';
 import { countryLabel, escapeMarkdown, formatFeedDay, plural } from './feed-format';
 import {
@@ -306,7 +307,9 @@ export function FeedConversation() {
     // look like a dead button for the whole run.
     useFeedStore.getState().setPollGaveUp(false);
     startBuild(firstTime);
-    const result = await runFeed();
+    const feedSettings = useFeedStore.getState().overview?.settings;
+    const consentAccepted = !feedSettings?.consent_accepted_at || !feedSettings.enabled;
+    const result = await runFeed({ consentAccepted });
     if (!result.ok) {
       useFeedStore.getState().setBuild(null);
       say({ role: 'assistant', content: result.error });
@@ -484,6 +487,38 @@ export function FeedConversation() {
       case 'build-today':
         await triggerRun(false);
         return;
+      case 'withdraw-consent':
+        store.markChipUsed(selectFeedThreadKey(store), chip.id);
+        say({ role: 'user', content: 'Stop searching for me' });
+        say({
+          role: 'assistant',
+          content: "I'll stop searching public job boards and clear that you said yes. You can say yes again later if you want the feed back.",
+          chips: [
+            { id: 'withdraw-consent-yes', label: 'Yes, stop', variant: 'primary' },
+            { id: 'withdraw-consent-keep', label: 'Keep searching', variant: 'secondary' },
+          ],
+        });
+        return;
+      case 'withdraw-consent-keep':
+        store.markChipUsed(selectFeedThreadKey(store), chip.id);
+        say({ role: 'user', content: 'Keep searching' });
+        say({ role: 'assistant', content: "Still on. I'll keep using these settings." });
+        return;
+      case 'withdraw-consent-yes': {
+        store.markChipUsed(selectFeedThreadKey(store), chip.id);
+        say({ role: 'user', content: 'Yes, stop' });
+        const withdrawn = await withdrawFeedConsent();
+        if (!withdrawn.ok) {
+          say({ role: 'assistant', content: withdrawn.error });
+          return;
+        }
+        await loadFeedOverview({ quiet: true });
+        say({
+          role: 'assistant',
+          content: "Stopped. I'm not searching public job boards for you anymore. Say yes again when you want the feed back.",
+        });
+        return;
+      }
       case 'retry-load':
         await loadFeedOverview();
         return;
@@ -781,17 +816,22 @@ function buildOpening(params: {
         [{ id: 'upload-cv', label: 'Upload my CV', variant: 'primary' }],
       )];
 
-    case 'awaiting':
+    case 'awaiting': {
+      const awaitingChips: FeedChip[] = [{
+        id: overview?.state === 'paused' ? 'resume-feed' : 'build-feed',
+        label: overview?.state === 'paused' ? 'Turn it back on' : 'Build my feed',
+        variant: 'primary',
+      }];
+      if (overview?.settings?.consent_accepted_at) {
+        awaitingChips.push({ id: 'withdraw-consent', label: 'Stop searching for me', variant: 'secondary' });
+      }
       return [message(
         overview?.state === 'paused'
           ? 'Your feed is paused. Turn it back on and I\'ll use these settings on the next run.'
           : 'Everything\'s set. I\'ll search public job boards for you and rank what I find against your CV. Run it once a day, whenever you want a new list.',
-        [{
-          id: overview?.state === 'paused' ? 'resume-feed' : 'build-feed',
-          label: overview?.state === 'paused' ? 'Turn it back on' : 'Build my feed',
-          variant: 'primary',
-        }],
+        awaitingChips.filter((chip) => !usedChipIds.includes(chip.id)),
       )];
+    }
 
     case 'building':
       return [message('Building your feed. I\'ll show you what I\'m doing on the right.')];
@@ -917,6 +957,9 @@ function buildOpening(params: {
       if (canSteer) {
         chips.push({ id: 'only-remote', label: 'Only remote', variant: 'secondary' });
         chips.push({ id: 'raise-salary', label: 'Raise my salary floor', variant: 'secondary' });
+      }
+      if (overview?.settings?.consent_accepted_at) {
+        chips.push({ id: 'withdraw-consent', label: 'Stop searching for me', variant: 'secondary' });
       }
 
       const body = ranToday
