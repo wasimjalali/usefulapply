@@ -65,6 +65,12 @@ export interface ApplicationSession {
   createdAt: string;
   updatedAt: string;
   jobDescription: string;
+  /**
+   * The tracker status of the stored row. Only the load path sets it, and only
+   * findReusableSession reads it: a repeat generation must not overwrite an
+   * application the user has told us they sent.
+   */
+  status?: string;
   
   matchScore?: number;
   matchingSkills: string[];

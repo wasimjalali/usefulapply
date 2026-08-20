@@ -344,6 +344,48 @@ app was affected, because the signed-in routes are dynamic.
 4. **A repeat generation reuses its entry and overwrites it. Not built.** It
    would live at `src/hooks/useSupabaseSync.ts:466-484`.
 
+### The adversarial review on the overwrite path
+
+Five findings against `f1785737`. Three fixed, two recorded.
+
+**Critical, fixed.** The reuse had no guard on the target's tracker status, so a
+repeat generation would have replaced the CV and cover letter the user actually
+sent while the tracker kept saying "Applied". D1 holds the only copy: the store
+persists just `currentSession`, and there is no version history and no undo.
+Measured: **104 of 115 rows are past `drafted`**, so this was the common case,
+not a corner one. Reuse is now limited to rows still at `drafted`, which is the
+"generated twice before sending" case the decision was for. Anything further
+along gets its own entry, as before.
+
+That guard needed a second change to be real. `ApplicationSession` on the client
+had no tracker status at all, so the first version of the check read `undefined`
+and passed every time. `tsc` caught it. The load path now carries `row.status`.
+
+**High, fixed.** The draft's chat was appended to the reused row rather than
+replacing it, so a reload showed the previous generation's conversation sitting
+above the current one, discussing a CV that no longer existed. That thread also
+feeds regeneration context. It is cleared before the new messages are written.
+
+**Low, fixed.** `updateSession` returned success on a zero-row write, with no
+rowcount check, while `setTrackerStatus` two functions down in the same file
+explicitly calls that a failure. It mattered more once the reuse path stopped
+inserting, because a generation landing on a row that was no longer there would
+have vanished behind a success log.
+
+**Recorded, not fixed:**
+
+- **A reused entry keeps its original `created_at`,** so the tracker's SAVED
+  date and the sidebar order do not move. `stripIdentity` deliberately makes
+  `created_at` immutable through the update path, and weakening that guard to
+  win a sort order is the wrong trade. The kit panel does update on screen, so
+  the generation is not invisible.
+- **Two tabs on the same account can both reuse the same target**, and the
+  losing tab can later write its stale copy back. The stale-copy hazard already
+  exists for any saved session; the reuse path widens it slightly by routing a
+  new generation onto an existing id.
+
+---
+
 ### Also open
 
 - **`notify_feed_ready` controls nothing and now never can.** The toggle says

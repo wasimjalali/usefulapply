@@ -108,10 +108,16 @@ export async function updateSession(
 ): Promise<{ error: Error | null }> {
   const db = await getDb();
   // `updates` can arrive from a server action and must never re-parent the row.
-  await db
+  const updated = await db
     .update(applicationSessions)
     .set({ ...stripIdentity(updates as Record<string, unknown>), updated_at: nowIso() } as never)
-    .where(and(eq(applicationSessions.id, sessionId), eq(applicationSessions.user_id, userId)));
+    .where(and(eq(applicationSessions.id, sessionId), eq(applicationSessions.user_id, userId)))
+    .returning({ id: applicationSessions.id });
+  // A write that matched nothing is a failure, not a quiet success, same as
+  // setTrackerStatus below. It matters more since the reuse path stopped
+  // inserting: without this, a generation landing on a row that is no longer
+  // there would vanish behind a success log.
+  if (updated.length === 0) return { error: new Error('Application not found') };
   return { error: null };
 }
 

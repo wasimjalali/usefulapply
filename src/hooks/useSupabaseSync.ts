@@ -11,6 +11,7 @@ import {
   updateSession as updateSupabaseSession,
   getChatMessages,
   addChatMessage as addSupabaseChatMessage,
+  clearChatMessages as clearSupabaseChatMessages,
   getDocumentByType,
   saveDocument,
   getProfilePhotoUrl,
@@ -89,17 +90,25 @@ function normalizeText(value: string | null | undefined): string {
 }
 
 /**
- * The existing entry for this exact job, or null.
+ * The existing entry for this exact job, or null. Reusing it overwrites its CV
+ * and cover letter, and the row in D1 is the only copy, so both halves of this
+ * are deliberately narrow.
  *
  * The ad text is part of the match, not just the company and the title.
  * Measured against the real database: of the six duplicate
  * (user, company, title) groups, four hold two genuinely different ads, so
- * company and title alone would have overwritten a different role's CV and
- * cover letter four times out of six. With the ad in the key it matches the
- * two real repeats and leaves the rest alone.
+ * company and title alone would have overwritten a different role's work four
+ * times out of six. With the ad in the key it matches only the real repeats.
  *
- * A company and a title are still required, because an ad we could not parse
- * has neither. A local draft is never a target: it has nothing stored to
+ * `drafted` is the other half. Anything further along the tracker is a
+ * document the user told us they sent, and replacing that destroys the record
+ * of what they actually applied with while the tracker still says "Applied".
+ * A repeat on a sent application gets its own entry instead, which is what the
+ * product did before. Measured: 104 of 115 rows are past `drafted`, so this is
+ * the common case, not a corner one.
+ *
+ * A company, a title and an ad are all required, because an unparsed ad has
+ * none of them. A local draft is never a target: it has nothing stored to
  * reuse.
  */
 function findReusableSession(
@@ -113,6 +122,7 @@ function findReusableSession(
   return sessions.find((session) =>
     !session.id.startsWith('session-')
     && session.id !== candidate.id
+    && (session.status ?? 'drafted') === 'drafted'
     && normalizeText(session.company) === company
     && normalizeText(session.jobTitle) === title
     && normalizeText(session.jobDescription) === ad,
@@ -322,6 +332,7 @@ export function useSupabaseSync() {
           // Each session starts with empty chatMessages — they'll be loaded per-session
           const supabaseSessions: ApplicationSession[] = data.map((row) => ({
             id: row.id,
+            status: row.status ?? 'drafted',
             jobTitle: row.job_title || '',
             company: row.company || '',
             jobDescription: row.job_description || '',
@@ -595,6 +606,20 @@ export function useSupabaseSync() {
                 }
               }
               
+              // On a reuse the target already has the previous generation's
+              // conversation. Appending would leave a thread whose top half
+              // talks about a CV that no longer exists, and that thread is also
+              // what feeds regeneration context, so it is replaced, not added
+              // to. The screen already shows only the new draft's messages, so
+              // this is what makes a reload agree with it.
+              if (reuseTarget) {
+                try {
+                  await clearSupabaseChatMessages(newSession.id);
+                } catch (err) {
+                  console.error('[SupabaseSync] Error clearing chat for reused session:', err);
+                }
+              }
+
               // Sync existing chat messages to Supabase
               if (currentSession.chatMessages && currentSession.chatMessages.length > 0) {
                 console.log('[SupabaseSync] Syncing', currentSession.chatMessages.length, 'chat messages to new session');
