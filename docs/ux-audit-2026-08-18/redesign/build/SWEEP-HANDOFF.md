@@ -2,7 +2,7 @@
 
 **Updated 20 August 2026, second session.** Branch `rebrand/usefulapply`.
 Staging is https://usefulapply.com, deployed from this branch at version
-`8d219c7e`.
+`6e8f3950`.
 
 Passes 1 and 2 are done. Both adversarial reviews are done. Pass 3 landed its
 three unblocked entries and all four open decisions now have answers.
@@ -11,7 +11,7 @@ three unblocked entries and all four open decisions now have answers.
 
 ## What landed
 
-Twenty-nine commits, all on `rebrand/usefulapply`, none on `main`. No PR.
+Thirty-six commits, all on `rebrand/usefulapply`, none on `main`. No PR.
 
 | Commit | What |
 |---|---|
@@ -275,7 +275,7 @@ and rewrites the URL to `/dashboard`, the panes render, and Timezone reads
 `Europe/Berlin` with the date format on `20 Aug 2026`, which is what the
 formatter then uses everywhere.
 
-### The second walk, on version `8d219c7e`
+### The second walk, on version `6e8f3950`
 
 The five later commits were checked on the same Max account:
 
@@ -434,54 +434,49 @@ No PR has been opened and nothing has been merged to `main`.
 
 > You are continuing the post-batch sweep of the Useful Apply UX redesign on
 > branch `rebrand/usefulapply`. `main` is off limits: no PR, no merge. Staging
-> is https://usefulapply.com, deployed from this branch at version `746c1bae`.
+> is https://usefulapply.com, deployed from this branch at version `6e8f3950`.
 >
 > Read `docs/ux-audit-2026-08-18/redesign/build/SWEEP-HANDOFF.md` first, then
 > `BACKEND-GAPS.md` in the same directory. Both are current as of 20 August
-> 2026. Passes 1 and 2 are done, Pass 3 is done, and all four open decisions
-> are answered and built. Twenty-nine commits, none on `main`.
+> 2026.
 >
-> **1. Finish the adversarial review that was still running.** Three `opus`
-> agents were asked to attack `f1785737`, `dcad8bee` and `3e00fbea`, and the
-> session ended before the findings could be checked. Re-run it if you do not
-> have the output. The one that matters is `f1785737`: a repeat generation now
-> reuses an existing application entry and **overwrites its CV and cover
-> letter**, so a false match destroys a user's work. Trace `findReusableSession`
-> in `src/hooks/useSupabaseSync.ts` against a real load: is the ad text always
-> populated on loaded sessions, what happens when the reuse target is the
-> session on screen, and what happens to that row's tracker status, interview
-> date and follow-up date after the overwrite. Check every finding against the
-> code before acting on it.
+> **The sweep is finished.** Passes 1, 2 and 3 are done, all four open
+> decisions are answered and built, both adversarial reviews and the commit
+> security review are done with every finding fixed or recorded, the landing
+> cache is purged and everything is verified on the Max account in the browser.
+> Thirty-six commits, none on `main`. Do not redo any of it.
 >
-> **2. Walk staging on the Max account** and confirm the five new commits.
-> Specifically: the sidebar badge now reads "You're up to date" once the feed
-> has been opened and no longer disagrees with the canvas header; Notifications
-> has four rows, not five, with no "Today's feed is ready"; and the Timezone
-> row in General now reflects a **saved** value. That last one is checkable
-> from the database, and it is the real test:
+> **What is left is `BACKEND-GAPS.md`.** Every entry still open there was
+> deliberately skipped because it needs a schema change, an npm package, a
+> Stripe route, an auth change or a prompt change. Bring each one to Wasim with
+> the tradeoff rather than guessing, the way the four decisions were handled.
 >
-> ```
-> npx wrangler d1 execute usefulapply-db --remote --json --command "SELECT count(*) AS saved FROM profiles WHERE timezone IS NOT NULL"
-> ```
+> **Start with the three that are security or money, in this order:**
 >
-> It was 0 for every account before this session. Never run INSERT, UPDATE or
-> DELETE against the remote database.
+> 1. **`POST /api/job-feed/apply` does not check the credit balance.** Money,
+>    and the only one of the three a user could exploit today.
+> 2. **Job-feed rate limits are keyed by client IP, before authentication.** A
+>    shared IP throttles innocent users and a rotating one defeats the limit.
+> 3. **Deleting an account needs no re-authentication.** The endpoint
+>    authenticates and rate-limits but never asks for the current password, so
+>    a borrowed session destroys the account with no recovery. This one touches
+>    Better Auth, so it needs Wasim's sign-off before anything is written.
 >
-> **3. Purge the landing page edge cache.** Wasim asked for this to be done for
-> him and it was not reached. The bare URL is served with
-> `cache-control: s-maxage=31536000`, so the copy fix in `ed091d7b` is live in
-> the Worker but the edge still serves "Roles picked for you every morning".
-> Confirm with a cache-busting query first, purge the zone, then confirm
-> `https://usefulapply.com/` reads "Roles picked for you, whenever you ask"
-> without one. Worth proposing a shorter `s-maxage` on the landing route as
-> well, because otherwise every future copy change needs a manual purge.
+> **Two smaller things also worth raising:**
 >
-> **4. Then keep working `BACKEND-GAPS.md`.** Everything still open there needs
-> a schema change, an npm package, a Stripe route, an auth change or a prompt
-> change. Bring each one to Wasim rather than guessing. The security-flavoured
-> ones are worth raising first: job-feed rate limits are keyed by client IP
-> before authentication, `POST /api/job-feed/apply` does not check the credit
-> balance, and deleting an account needs no re-authentication.
+> - **The landing route needs a shorter `s-maxage`.** It is served with
+>   `s-maxage=31536000`, so every static copy change needs a manual Cloudflare
+>   purge to reach visitors. The zone was purged by hand this session. Propose
+>   the header change so it stops recurring.
+> - **The ranking system prompt still opens with "Every morning you evaluate"**
+>   (`workers-ai-ranking.ts:86`), which is stale now the feed is real time. It
+>   is a model prompt, so changing it can shift ranking behaviour. Ask first.
+>
+> **Two review findings were recorded rather than fixed.** Neither is urgent
+> and both are explained in this handoff: a reused entry keeps its `created_at`
+> because `stripIdentity` makes that column immutable on purpose, and two tabs
+> can race onto the same reuse target, which widens a stale-copy hazard that
+> already exists for any saved session.
 >
 > Rules: surgical edits only, npm only, no new packages. Do not touch Stripe
 > webhook or credit-deduction logic, D1 schema or migrations, Better Auth
@@ -494,19 +489,30 @@ No PR has been opened and nothing has been merged to `main`.
 > the default Node heap on this machine, on a clean `HEAD` too, so run it as
 > `NODE_OPTIONS=--max-old-space-size=8192 npx tsc --noEmit`. Then deploy with
 > `NEXT_PUBLIC_SITE_URL=https://usefulapply.com NEXT_PUBLIC_SITE_STAGE=staging npm run deploy:cf`
-> and verify on staging in the browser. The deploy hit a Cloudflare
-> `Authentication error [code: 10000]` on the secrets endpoint once and worked
-> on a straight retry of `npx opennextjs-cloudflare deploy`, which also skips
-> the rebuild.
+> and verify on staging in the browser. The deploy failed twice on transient
+> Cloudflare errors (`Authentication error [code: 10000]` on the secrets
+> endpoint, and "Could not create remote preview session") and worked on a
+> straight retry both times. `npx opennextjs-cloudflare deploy` alone skips the
+> rebuild when the build already succeeded.
 >
-> Three habits from these sessions that paid off, keep them. **Check every
-> agent finding against the code before acting on it**: five of the twenty-eight
-> raised so far did not survive that check. **Measure against the real database
-> instead of reasoning about it**, which caught the 97-row email blast, the
-> useless glued-list rule, the unbounded offer query, a Free SerpAPI rescue
-> that could never fire, and an overwrite rule that would have destroyed the
-> wrong CV four times out of six. **And check the clock before trusting a cron
-> result**: one reading of zero sent rows was just the sweep not having run yet.
+> Never run INSERT, UPDATE or DELETE against the remote database.
+>
+> **Three habits carried this work, keep them.**
+>
+> **Check every agent finding against the code before acting on it.** Five of
+> the thirty-three raised did not survive that check. One that did survive was
+> only half right, and fixing it properly needed a second change the agent had
+> not seen: the status guard it asked for read a field the client type did not
+> have, so the first version passed every time and `tsc` caught it.
+>
+> **Measure against the real database instead of reasoning about it.** That
+> caught a 97-row email blast, a glued-list rule that did nothing across 41
+> ads, an unbounded offer query, a Free SerpAPI rescue that could never fire
+> across all 11 stored strategies, and an overwrite rule that would have
+> destroyed the wrong CV in four of six cases.
+>
+> **Check the clock before trusting a cron result.** One reading of zero sent
+> rows was just the 08:00 UTC sweep not having run yet.
 >
 > Commit in logical chunks with conventional commits and push to
 > `rebrand/usefulapply`.
