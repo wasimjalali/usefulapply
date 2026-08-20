@@ -501,8 +501,10 @@ export async function listCheckInCandidates(welcomeCutoffIso: string, welcomeFlo
 export interface TrackerReminderCandidate {
   id: string;
   user_id: string;
+  status: string;
   company: string | null;
   job_title: string | null;
+  created_at: string | null;
   interview_at: string | null;
   follow_up_due_at: string | null;
   email: string;
@@ -523,8 +525,10 @@ export async function listInterviewReminderCandidates(
     .select({
       id: applicationSessions.id,
       user_id: applicationSessions.user_id,
+      status: applicationSessions.status,
       company: applicationSessions.company,
       job_title: applicationSessions.job_title,
+      created_at: applicationSessions.created_at,
       interview_at: applicationSessions.interview_at,
       follow_up_due_at: applicationSessions.follow_up_due_at,
       email: authUsers.email,
@@ -548,14 +552,28 @@ export async function listInterviewReminderCandidates(
 }
 
 /** Follow-ups due by the end of the window, same one-reminder-per-date guard. */
-export async function listFollowUpReminderCandidates(toIso: string): Promise<TrackerReminderCandidate[]> {
+/**
+ * Follow-ups that have come due, plus the ones that never got a stored date.
+ * An Applied row from before follow_up_due_at was written still shows the user
+ * a follow-up date derived from created_at, so the sweep has to see it too or
+ * the email the Notifications toggle promises never arrives. The exact
+ * business-day maths stays in the sweep, which uses the same helper the
+ * tracker does; `createdBeforeIso` is only a coarse floor so the query does not
+ * drag in rows that cannot possibly be due yet.
+ */
+export async function listFollowUpReminderCandidates(
+  toIso: string,
+  createdBeforeIso: string,
+): Promise<TrackerReminderCandidate[]> {
   const db = await getDb();
   return db
     .select({
       id: applicationSessions.id,
       user_id: applicationSessions.user_id,
+      status: applicationSessions.status,
       company: applicationSessions.company,
       job_title: applicationSessions.job_title,
+      created_at: applicationSessions.created_at,
       interview_at: applicationSessions.interview_at,
       follow_up_due_at: applicationSessions.follow_up_due_at,
       email: authUsers.email,
@@ -568,12 +586,21 @@ export async function listFollowUpReminderCandidates(toIso: string): Promise<Tra
     .where(and(
       inArray(applicationSessions.status, ['applied', 'follow_up']),
       isNull(applicationSessions.follow_up_reminder_sent_at),
-      sql`${applicationSessions.follow_up_due_at} is not null`,
-      lte(applicationSessions.follow_up_due_at, toIso),
+      or(
+        and(
+          sql`${applicationSessions.follow_up_due_at} is not null`,
+          lte(applicationSessions.follow_up_due_at, toIso),
+        ),
+        and(
+          isNull(applicationSessions.follow_up_due_at),
+          eq(applicationSessions.status, 'applied'),
+          lte(applicationSessions.created_at, createdBeforeIso),
+        ),
+      ),
       eq(profiles.notify_follow_up_due, true),
       eq(authUsers.emailVerified, true),
     ))
-    .orderBy(applicationSessions.follow_up_due_at)
+    .orderBy(sql`coalesce(${applicationSessions.follow_up_due_at}, ${applicationSessions.created_at})`)
     .limit(CRON_BATCH_LIMIT);
 }
 

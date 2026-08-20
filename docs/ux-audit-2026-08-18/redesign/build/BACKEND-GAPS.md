@@ -88,7 +88,8 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Where:** UI `src/components/job-feed/FeedConversation.tsx` (`applySteer`), `src/lib/job-feed/rerank-intent.ts`; backend `src/lib/job-feed/server.ts`, `src/lib/job-feed/workers-ai-ranking.ts`, `src/app/api/job-feed/run/route.ts`.
 - **Needs:** a `POST /api/job-feed/rerank` that re-runs the ranker over the run's existing canonical jobs with the new settings and rewrites `job_feed_ranked_items` (no SerpAPI cost, only a Workers AI call). Medium. Decision: is a re-rank free, or does it count against the daily run?
 
-### "Add Berlin" is understood but never saved
+### "Add Berlin" is understood but never saved — CLOSED
+- **Closed 20 August 2026.** `countryForCity` in constants.ts reverses `JOB_FEED_CITY_SUGGESTIONS` (accent, casing and alias tolerant), and `normalizeJobFeedSettingsInput` adds the implied country when a city names one. An unknown city changes nothing, which is the honest fallback.
 - **UI today:** `detectFeedIntent` recognises "add Berlin" and the assistant confirms "Berlin is in the search now." The city is added to `target_cities` on the settings payload.
 - **Missing:** a city outside the saved `target_countries` is searched in the wrong market, and nothing maps a city name to a country. `JOB_FEED_CITY_SUGGESTIONS` in constants.ts is a per-country list, not a reverse index, and the settings route does not validate that a city belongs to a selected country.
 - **Where:** `src/lib/job-feed/rerank-intent.ts`, `src/app/api/job-feed/settings/route.ts`, `src/lib/job-feed/constants.ts`.
@@ -100,7 +101,8 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Where:** `src/app/api/job-feed/overview/route.ts` (`visibleCap`, `totalCount`), UI `src/components/job-feed/FeedCanvas.tsx`.
 - **Needs:** return the uncapped count as a separate field (e.g. `jobsMatchedCount`) while keeping the item list capped. Small.
 
-### "Why it's a match" is empty on saved jobs
+### "Why it's a match" is empty on saved jobs — CLOSED
+- **Closed by `62885ddc`.** `listSavedJobFeedItemsAdmin` joins `listRankedItemsByJobIds`, so a saved job carries its badge and its reason. A job with no ranked row still shows neither, by design.
 - **UI today:** the job detail shows "Why it's a match" from `matchReason`, which this batch threaded through from `job_feed_ranked_items.reason`. The section is hidden when there is no reason.
 - **Missing:** `listSavedJobFeedItemsAdmin` builds its items straight from the feedback rows and the canonical jobs, with no ranked-item join, so every job opened from the Saved tab has `matchReason: null`. The same is true for any job whose run has aged out of the 7-day window.
 - **Where:** `src/lib/job-feed/server.ts` (`listSavedJobFeedItemsAdmin`, `toFeedItem`).
@@ -129,7 +131,8 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 
 ### Batch 4 (part A, tracker)
 
-### Reminder windows are UTC, not the user's timezone
+### Reminder windows are UTC, not the user's timezone — CLOSED
+- **Closed 20 August 2026.** The sweep queries a three-day UTC window (the smallest that contains every zone's tomorrow, UTC-12 to UTC+14) and then judges each candidate in its owner's own timezone. Day arithmetic runs on the day key, so a DST shift cannot skip a day.
 - **UI today:** the popover promises "I'll remind you the day before" and the daily cron (`0 8 * * *`) sends for interviews falling on tomorrow's **UTC** calendar day.
 - **Missing:** `profiles.timezone` is now stored (General pane sets it) but the cron does not read it, so a user in UTC+13 can get "tomorrow" a few hours early or late.
 - **Where:** `src/cron/tracker-reminders.ts` (`startOfUtcDay`), `src/db/repos/admin.ts` (`listInterviewReminderCandidates`).
@@ -159,7 +162,8 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Where:** `src/db/repos/admin.ts` (`listFollowUpReminderCandidates`), `src/lib/email/templates/tracker-reminder.ts`.
 - **Needs:** an offer-deadline branch in the sweep and its own two-line template. Small.
 
-### Applications that reached Applied before this batch get a NEXT date the cron cannot act on
+### Applications that reached Applied before this batch get a NEXT date the cron cannot act on — CLOSED
+- **Closed 20 August 2026.** No backfill. `listFollowUpReminderCandidates` also returns Applied rows with a null `follow_up_due_at`, and the sweep derives the date with the same `defaultFollowUpDue` the tracker shows the user, so the two cannot disagree.
 - **UI today:** an Applied row with no stored `follow_up_due_at` still shows "Follow up by <date>" or "Follow up overdue", derived from `created_at` plus seven business days, and counts toward "N follow-ups due this week".
 - **Missing:** the reminder sweep requires `follow_up_due_at is not null`, so those rows never trigger the email the Notifications toggle promises. No SQL backfill was written because `datetime()` returns a different string shape than the ISO values every other writer stores, which would break the date comparisons.
 - **Where:** `src/components/tracker/tracker-status.ts` (`defaultFollowUpDue`), `src/db/repos/admin.ts` (`listFollowUpReminderCandidates`).

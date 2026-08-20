@@ -8,6 +8,7 @@ import {
   JOB_FEED_VISIBLE_DEFAULT_COUNT,
   JOB_FEED_WORK_AUTH_OPTIONS,
   PREMIUM_JOB_FEED_TIERS,
+  countryForCity,
   legacyMarketFromCountries,
 } from '@/lib/job-feed/constants';
 import { splitCompositeRole } from '@/lib/job-feed/cv-suggestions';
@@ -291,12 +292,23 @@ export function normalizeJobFeedSettingsInput(input: unknown): { data?: JobFeedS
     return { error: 'Choose at least one country for your feed.' };
   }
 
+  const targetCities = sanitizeStringArray(payload.target_cities, 20);
+
+  // A city carries its country. "Add Berlin" from the chat used to leave
+  // target_countries alone, so the feed searched Berlin in whatever markets
+  // were already selected and came back with the wrong roles. A city we do not
+  // recognise is left as it is rather than guessed at.
+  for (const city of targetCities) {
+    const implied = countryForCity(city);
+    if (implied && !targetCountries.includes(implied) && targetCountries.length < 12) {
+      targetCountries.push(implied);
+    }
+  }
+
   const targetMarket = legacyMarketFromCountries(targetCountries);
   if (!MARKET_VALUES.has(targetMarket)) {
     return { error: 'Please choose a supported target market.' };
   }
-
-  const targetCities = sanitizeStringArray(payload.target_cities, 20);
 
   // remote_preferences multi-select — keep singular remote_preference as the
   // "primary" for legacy columns.

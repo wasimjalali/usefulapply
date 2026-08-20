@@ -219,6 +219,56 @@ export const JOB_FEED_CITY_SUGGESTIONS: Record<string, string[]> = {
   ae: ['Dubai', 'Abu Dhabi'],
 };
 
+/** Short forms and local spellings of cities already in the list above. */
+const JOB_FEED_CITY_ALIASES: Record<string, string> = {
+  nyc: 'New York',
+  'new york city': 'New York',
+  sf: 'San Francisco',
+  'bay area': 'San Francisco',
+  'den haag': 'The Hague',
+  muenchen: 'Munich',
+  munchen: 'Munich',
+  koln: 'Cologne',
+  koeln: 'Cologne',
+  wien: 'Vienna',
+  kobenhavn: 'Copenhagen',
+  goteborg: 'Gothenburg',
+  warszawa: 'Warsaw',
+  krakow: 'Kraków',
+  wroclaw: 'Wrocław',
+  bangalore: 'Bengaluru',
+  'new delhi': 'Delhi NCR',
+  delhi: 'Delhi NCR',
+};
+
+/** Accents, punctuation and casing all vary by who typed it. */
+function normalizeCityKey(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+const CITY_TO_COUNTRY = new Map<string, string>(
+  Object.entries(JOB_FEED_CITY_SUGGESTIONS).flatMap(([country, cities]) =>
+    cities.map((city) => [normalizeCityKey(city), country] as [string, string])
+  )
+);
+
+/**
+ * "Berlin" implies Germany. Without this a city added from the chat is searched
+ * in whatever markets the user already had, so "add Berlin" quietly returns US
+ * results. Returns null for a city we do not know, because inventing a country
+ * is worse than leaving the search as it was.
+ */
+export function countryForCity(city: string): string | null {
+  const key = normalizeCityKey(city);
+  const aliased = JOB_FEED_CITY_ALIASES[key];
+  return CITY_TO_COUNTRY.get(aliased ? normalizeCityKey(aliased) : key) ?? null;
+}
+
 export function legacyMarketFromCountries(countries: string[]): 'us' | 'canada' | 'us_canada' {
   const set = new Set(countries);
   if (set.has('us') && set.has('ca')) return 'us_canada';
