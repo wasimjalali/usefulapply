@@ -1073,7 +1073,10 @@ export function ChatPanel({
           // Folding the canvas widens this column to the whole window. The
           // surface stays full width; the cards inside it cap and centre so
           // they line up with the composer instead of running edge to edge.
-          className={`flex-1 overflow-auto space-y-4 relative [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[760px] ${
+          // scrollbar-gutter both-edges keeps this scroller's content box
+          // symmetric, so the centred cards line up with the centred composer
+          // instead of sitting a half-scrollbar to the left of it.
+          className={`flex-1 overflow-auto space-y-4 relative [scrollbar-gutter:stable_both-edges] [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[760px] ${
             isDesktopDocked ? 'px-4 pt-4 pb-3' : 'p-4'
           }`}
         >

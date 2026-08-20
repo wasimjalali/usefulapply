@@ -36,6 +36,12 @@ The sweep is not a rebuild and not a redesign. It is: delete what is no longer r
 
 **Pass 2, the bug hunt.** Walk all seven flows end to end on staging as a real user, on a Free account and a paid one, and fix what breaks. This is where the cross-batch seams show: a store written by batch 1 and read by batch 4, a session loaded by the feed and mutated by the tracker, an SSE stream that has to survive a trip to another workspace. Use the `debugger` agent for anything with a stack trace and the adversarial review for anything touching auth, credits or data.
 
+**Passes 1 and 2 are done (20 August 2026).** Nine commits on
+`rebrand/usefulapply`, staging deployed and walked. See `SWEEP-HANDOFF.md` for
+what landed, what is verified, the eight bugs found on staging and left open,
+and the kickoff prompt for the next session. The adversarial review on the
+job-feed commit `62885ddc` still has to run before any of it goes near `main`.
+
 **Pass 3, close the backend gaps that are cheap.** Work `BACKEND-GAPS.md` top to bottom and land the entries marked Small. The Medium and Large ones become their own tickets. The file is the work list; nothing in it gets dropped without a decision written next to it.
 
 Order matters: dead code first, so the bug hunt is not chasing code nobody calls, and the gaps last, so they land on a clean tree.
