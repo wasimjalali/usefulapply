@@ -56,11 +56,10 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Where:** `src/components/kit/KitExportHost.tsx`.
 - **Needs:** decision on adding jszip (or using the transitive one explicitly); then a single `<Name>_<Company>_kit.zip`. Small.
 
-### Cover letter "Updated just now" has no stored timestamp
-- **UI today:** the cover letter toolbar shows "<n> words", and "Updated just now · <n> words" only after the letter changed while the tab was open.
-- **Missing:** per-document `updatedAt` on the session (`coverLetter`, `email`, `followUpEmail`, `optimizedCVData`), so a reload cannot say when the letter last changed.
-- **Where:** `src/components/CoverLetterPanel.tsx`, `src/store/useSessionStore.ts`, `src/hooks/useSupabaseSync.ts`.
-- **Needs:** timestamps written by the generation and regenerate paths, persisted in the session row (JSON fields carry it without a schema change). Small.
+### Cover letter "Updated just now" has no stored timestamp - CLOSED
+- **Closed 20 August 2026.** `GeneratedCoverLetter` carries an optional `updatedAt`, stamped by the three paths that write a letter: generation, regeneration and a saved edit. It rides in the session JSON, so no schema change. The panel seeds its label from that stamp, so a reload still says when the letter changed, and past a day the label prints the date instead of "earlier".
+- **Only the cover letter.** `email`, `followUpEmail` and `optimizedCVData` have no toolbar that reports a time, so stamping them would be UI-less state.
+- **Where:** `src/lib/types.ts`, `src/components/CoverLetterPanel.tsx`, `src/components/chat/useAgentWorkflow.ts`, `src/lib/regenerate-client.ts`.
 
 ### Unknown credit balance still shows the priced chip
 - **UI today:** while `/api/credits/balance` is loading or failed, the rewrite chip renders priced; a short balance is caught by the server (402) and the chat says nothing was charged.

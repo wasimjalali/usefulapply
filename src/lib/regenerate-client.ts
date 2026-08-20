@@ -177,6 +177,7 @@ export async function regenerateDocument(target: RegenTarget, requestId: string 
         body: data.coverLetter,
         closing: '',
         signatureName: '',
+        updatedAt: new Date().toISOString(),
       };
       update({ coverLetter: letter });
       wordCount = countWords(data.coverLetter);

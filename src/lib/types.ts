@@ -89,6 +89,8 @@ export interface GeneratedCoverLetter {
   body: string;
   closing: string;
   signatureName: string;
+  /** ISO stamp of the last write. Rides in the session JSON, so no schema change. */
+  updatedAt?: string;
 }
 
 export interface GeneratedEmail {

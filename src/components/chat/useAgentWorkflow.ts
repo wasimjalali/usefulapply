@@ -817,6 +817,7 @@ export function useAgentWorkflow(options?: {
                       body: ctx.coverLetter,
                       closing: '',
                       signatureName: '',
+                      updatedAt: new Date().toISOString(),
                     },
                   });
                 }

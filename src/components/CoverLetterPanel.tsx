@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Card } from './ui/Card';
 import { useAppStore } from '@/store/useAppStore';
+import { useDatePrefs } from '@/hooks/useDatePrefs';
+import { formatDayMonth, type DatePrefs } from '@/lib/utils/format-date';
 import { useUIStore } from '@/store/useUIStore';
 import { Mail, Download, Copy, Check, FileText, Edit3, Maximize2, X, Zap, ChevronDown } from 'lucide-react';
 import type { GeneratedCoverLetter } from '@/lib/types';
@@ -25,18 +27,27 @@ interface CoverLetterPanelProps {
 
 const TOOL_CLASS = 'inline-flex h-9 items-center gap-2 rounded-full border border-cream-200 bg-cream-50 px-3.5 text-sm font-medium text-charcoal shadow-sm hover:bg-white transition-colors duration-200 cursor-pointer flex-shrink-0';
 
-function relativeLabel(ms: number, now: number): string {
+function relativeLabel(ms: number, now: number, prefs: DatePrefs): string {
   const mins = Math.floor((now - ms) / 60_000);
   if (mins < 1) return 'just now';
   if (mins < 60) return `${mins} min ago`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours} h ago`;
-  return 'earlier';
+  // Past a day "earlier" says nothing, and the stamp now survives a reload.
+  return `on ${formatDayMonth(new Date(ms), prefs)}`;
+}
+
+/** The letter's own stamp, or null when it predates the stamp or is unreadable. */
+function stampOf(letter: GeneratedCoverLetter | null | undefined): number | null {
+  if (!letter?.updatedAt) return null;
+  const ms = new Date(letter.updatedAt).getTime();
+  return Number.isNaN(ms) ? null : ms;
 }
 
 export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) {
   const { currentSession, isAgentWorking, agentWorkflowPhase, setCoverLetter, structuredCV } = useAppStore();
   const setPendingApplicationAction = useUIStore((state) => state.setPendingApplicationAction);
+  const datePrefs = useDatePrefs();
   const coverLetter = currentSession?.coverLetter;
   const pendingFitAnalysis = currentSession?.pendingFitAnalysis;
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -52,9 +63,9 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedCoverLetter, setEditedCoverLetter] = useState<GeneratedCoverLetter | null>(null);
   const [showFullPreview, setShowFullPreview] = useState(false);
-  // When the letter last changed while this tab was open (regeneration or a
-  // saved edit). Null until it changes once, so we never claim "just now" on load.
-  const [updatedAtMs, setUpdatedAtMs] = useState<number | null>(null);
+  // When the letter last changed. Seeded from the stamp the letter carries, so
+  // a reload can still say it; null only for letters written before the stamp.
+  const [updatedAtMs, setUpdatedAtMs] = useState<number | null>(() => stampOf(coverLetter));
   const lastLetterRef = useRef<GeneratedCoverLetter | null>(null);
   const lastSessionIdRef = useRef<string | null>(null);
   const { toast } = useToast();
@@ -73,13 +84,13 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
       // Another application: its letter is not "updated just now".
       lastSessionIdRef.current = sessionId;
       lastLetterRef.current = coverLetter ?? null;
-      setUpdatedAtMs(null);
+      setUpdatedAtMs(stampOf(coverLetter));
       return;
     }
     if (coverLetter) {
       // Identity check, so a StrictMode double-run on mount does not count as a change.
       if (lastLetterRef.current !== null && lastLetterRef.current !== coverLetter) {
-        setUpdatedAtMs(Date.now());
+        setUpdatedAtMs(stampOf(coverLetter) ?? Date.now());
       }
       lastLetterRef.current = coverLetter;
     }
@@ -243,7 +254,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   // Save edited cover letter to store
   const handleSaveEdits = () => {
     if (editedCoverLetter) {
-      setCoverLetter(editedCoverLetter);
+      setCoverLetter({ ...editedCoverLetter, updatedAt: new Date().toISOString() });
       setIsEditMode(false);
     }
   };
@@ -288,7 +299,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
 
   const wordCount = activeCoverLetter ? countWords(formatCoverLetterAsText(activeCoverLetter)) : 0;
   const statusLabel = updatedAtMs !== null
-    ? `Updated ${relativeLabel(updatedAtMs, nowMs)} · ${wordCount} words`
+    ? `Updated ${relativeLabel(updatedAtMs, nowMs, datePrefs)} · ${wordCount} words`
     : `${wordCount} words`;
 
   // Toolbar content — rendered via portal (desktop) or inline (mobile)
