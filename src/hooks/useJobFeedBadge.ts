@@ -9,7 +9,6 @@ type JobFeedSummary = {
   canAccess: boolean;
   latestRunDate: string | null;
   jobCount: number;
-  unprocessedCount: number;
   lastSeenRunDate: string | null;
 };
 
@@ -99,9 +98,6 @@ export function useJobFeedBadge(enabled: boolean, userId?: string | null) {
     summary.latestRunDate !== lastSeenDate
   );
 
-  const unprocessedCount = summary?.unprocessedCount ?? 0;
-  const hasPending = Boolean(summary?.canAccess && unprocessedCount > 0);
-
   const latestRunDate = summary?.latestRunDate ?? null;
   const acknowledge = useCallback(() => {
     if (!latestRunDate) return;
@@ -120,9 +116,7 @@ export function useJobFeedBadge(enabled: boolean, userId?: string | null) {
 
   return {
     hasNewRun,
-    hasPending,
     jobCount: summary?.jobCount ?? 0,
-    unprocessedCount,
     latestRunDate,
     canAccess: summary?.canAccess ?? false,
     acknowledge,

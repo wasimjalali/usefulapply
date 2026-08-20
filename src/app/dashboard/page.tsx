@@ -143,12 +143,14 @@ export default function Dashboard() {
     setMobileView(view);
     if (view === 'job-feed') {
       setActiveTab('jobs');
+      // Same as the sidebar: opening the feed is what clears the badge.
+      jobFeedBadge.acknowledge();
       return;
     }
     if (view === 'tracker') {
       setActiveTab('tracker');
     }
-  }, [setActiveTab]);
+  }, [setActiveTab, jobFeedBadge]);
 
   // The line owns every step until a kit exists. A session with a job but no
   // kit is still on the line (fit running, verdict shown, sign-up pending).
@@ -229,9 +231,9 @@ export default function Dashboard() {
             >
               <Briefcase className="w-5 h-5" />
               <span className="text-[10px] font-medium">Feed</span>
-              {jobFeedBadge.hasPending && (
+              {jobFeedBadge.hasNewRun && (
                 <span className="absolute top-0 right-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-gold-500 px-1 py-0.5 text-[9px] font-semibold leading-none text-white">
-                  {jobFeedBadge.unprocessedCount > 99 ? '99+' : jobFeedBadge.unprocessedCount}
+                  {jobFeedBadge.jobCount > 99 ? '99+' : jobFeedBadge.jobCount}
                 </span>
               )}
             </button>

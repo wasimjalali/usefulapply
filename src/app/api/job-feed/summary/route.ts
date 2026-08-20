@@ -21,35 +21,27 @@ export async function GET(request: NextRequest) {
     const user = await getCurrentUser(request);
 
     if (!user) {
-      return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, unprocessedCount: 0, lastSeenRunDate: null }, { status: 200 });
+      return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, lastSeenRunDate: null }, { status: 200 });
     }
 
     const profile = await getProfile(user.id);
 
     const canAccess = canViewJobFeed(profile?.subscription_tier ?? null);
     if (!canAccess) {
-      return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, unprocessedCount: 0, lastSeenRunDate: null });
+      return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, lastSeenRunDate: null });
     }
 
     const { run, items } = await listLatestJobFeedItemsAdmin({ userId: user.id });
-
-    // Unprocessed = jobs in today's feed the user has not acted on yet.
-    // Save, apply, dismiss, and "not relevant" ratings each clear the job from
-    // the unprocessed pool so the badge counts down as the user works through
-    // the feed. (applied / dismissed / rated_not_relevant already drop the
-    // item from `items`, so we only need to subtract saved here.)
-    const unprocessedCount = items.filter((item) => !item.feedback.savedAt).length;
 
     return NextResponse.json({
       canAccess: true,
       latestRunDate: run?.local_date ?? null,
       jobCount: items.length,
-      unprocessedCount,
       lastSeenRunDate: profile?.job_feed_last_seen_run_date ?? null,
     });
   } catch (error) {
     console.error('[job-feed/summary] unexpected error:', error);
-    return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, unprocessedCount: 0, lastSeenRunDate: null }, { status: 200 });
+    return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, lastSeenRunDate: null }, { status: 200 });
   }
 }
 

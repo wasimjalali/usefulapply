@@ -28,13 +28,14 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
   const setActiveTab = useUIStore((s) => s.setActiveTab);
   const jobFeedBadge = useJobFeedBadge(Boolean(user), user?.id ?? null);
 
-  // The badge counts roles still waiting on the user. Falling back to the run's
-  // total would make it climb back up once every role had been acted on, and
-  // nothing would ever clear it.
-  const feedCount = jobFeedBadge.hasPending ? jobFeedBadge.unprocessedCount : 0;
+  // The badge means "there is a run you have not opened". It used to count
+  // roles the user had not saved, which disagreed with the canvas header the
+  // moment they saved one and never cleared. Opening the feed acknowledges the
+  // run, so the badge and the header are never on screen with two numbers.
+  const feedCount = jobFeedBadge.hasNewRun ? jobFeedBadge.jobCount : 0;
   const feedLabel = feedCount > 0
     ? `${feedCount} new role${feedCount === 1 ? '' : 's'} for you`
-    : 'No new roles yet';
+    : 'You\u2019re up to date';
 
   const displayName = profile?.full_name || user?.name || user?.email || 'Your account';
   const initials = useMemo(() => {
