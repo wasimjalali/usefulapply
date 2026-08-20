@@ -1,6 +1,6 @@
 # Agentic Chat Plan
 
-Status: proposal, awaiting Wasim's feedback. Nothing here is implemented.
+Status: LOCKED by Wasim on 2026-08-20. Implementation starts in a fresh session; nothing here is implemented yet.
 
 The chat becomes the control surface of the product. gpt-oss-120b (now serving chat) supports function calling, so the assistant can execute real actions in the dashboard instead of only talking about them. The rule for scope: anything a user can do by clicking, they should be able to do by asking, minus payments and auth.
 
@@ -41,8 +41,24 @@ The chat becomes the control surface of the product. gpt-oss-120b (now serving c
 14. **Regenerate with instructions**: "make the cover letter shorter and mention the Munich project." Routes the instruction to the existing regen endpoints; the writing itself stays on Sonnet.
 15. **Follow-up drafting**: "write the follow-up for Bosch" after an interview passes.
 
-### Phase 5 — CV canvas edits (bridge to the Sonnet writer)
-16. **Targeted section edits**: "move the AWS cert higher", "tighten the summary to three lines." The tool translates the instruction into the CV-edit pipeline; anti-hallucination rules apply unchanged (nothing enters the CV that is not in the source CVs).
+### Phase 5 — CV canvas edits (split by edit scope)
+16. **Targeted section edits**: "move the AWS cert higher", "tighten the summary to three lines."
+    - *Mechanical edits* (reorder sections or bullets, delete an item, swap one or two words, retitle a heading): gpt-oss executes them directly as structural operations on the StructuredCV. No new prose is written, so no hallucination surface.
+    - *Prose edits* (rewrite the summary, rephrase bullets, any new sentence): gpt-oss calls the Sonnet writer pipeline as a tool. Sonnet writes all new CV prose; anti-hallucination rules apply unchanged (nothing enters the CV that is not in the source CVs). The per-edit Sonnet cost is small (cents) and worth it here.
+
+## gpt-oss prompt discipline (part of Phase 1)
+
+The chat system prompts were written for Claude and must be rewritten for gpt-oss:
+
+- **Separate prompts per surface** (main chat, screening, tracker), each following gpt-oss conventions rather than Claude conventions.
+- **Hard cap on thinking.** gpt-oss reads its reasoning level from the system prompt (harmony format): include `Reasoning: low` so it does not overthink conversational turns. Verify empirically in the `llm_generations` ledger that completion tokens per reply drop; if the directive is ignored on Workers AI, compensate with tighter budgets and measure again.
+- **Response shape rules in the prompt**: reply length limits, no markdown walls, one question at a time, match the app's voice rules (no em dashes, contractions, short sentences).
+- **Tool-use instructions**: when to call a tool vs answer directly, never invent tool results, never claim an action happened without a tool result confirming it.
+
+## Verification (every phase)
+
+- `npx tsc --noEmit` zero errors, lint clean, adversarial review on every phase (all phases touch user data through API routes).
+- After each phase deploys: **end-to-end visual verification with Claude in Chrome** against the live app, using Wasim's already-signed-in Max account. Exercise every new capability through the real chat UI: issue the command, watch the dashboard update, confirm the ledger row, screenshot the result. A phase is not done until the Chrome pass is clean.
 
 ## Out of scope, deliberately
 - Payments, subscription changes, Stripe portal actions. Chat links to billing, never transacts.
@@ -50,5 +66,5 @@ The chat becomes the control surface of the product. gpt-oss-120b (now serving c
 - Bulk destructive operations ("delete all my applications").
 - Autonomous credit spending without a confirm.
 
-## Suggested order
-Phase 1 and 2 together (a week-scale chunk: registry + read tools + tracker unification), then 3, then 4, then 5. Each phase ships behind its own commit with adversarial review, since every phase touches user data through API routes.
+## Order
+Phase 1 and 2 together (registry + gpt-oss prompt discipline + read tools + tracker unification), then 3, then 4, then 5. Each phase ships as its own commit on `rebrand/usefulapply` with adversarial review and a Claude-in-Chrome verification pass.
