@@ -5,6 +5,7 @@ import { consumeAnonymousCarryOver } from '@/lib/anonymous-generation';
 import { authClient } from '@/auth/client';
 import type { Profile } from '@/lib/supabase/types';
 import { getOrCreateProfileAction, getProfileAction, updateProfileAction } from '@/db/actions';
+import { detectTimezone } from '@/lib/utils/format-date';
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -171,6 +172,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setProfile(profileData);
           if (profileData?.subscription_tier) {
             posthog.people.set({ plan: profileData.subscription_tier });
+          }
+          // PREFERENCES shows the detected zone but only writes it when the
+          // user changes the dropdown, and it is already on their own zone, so
+          // nobody ever does. The column stayed null for every account, which
+          // left the reminder sweep judging "tomorrow" in UTC and every date
+          // in the app on the browser's guess. Save it once, here, because the
+          // server cannot detect it and most users never open settings.
+          if (profileData && !profileData.timezone) {
+            const detected = detectTimezone();
+            if (detected) {
+              setProfile({ ...profileData, timezone: detected } as Profile);
+              updateProfileAction(user.id, { timezone: detected } as Partial<Profile>)
+                .catch((err) => console.error('Timezone save error:', err));
+            }
           }
         })
         .catch((err) => console.error('Profile fetch error:', err));

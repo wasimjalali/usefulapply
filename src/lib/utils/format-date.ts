@@ -39,6 +39,15 @@ function isValid(date: Date): boolean {
   return !Number.isNaN(date.getTime());
 }
 
+/** The reader's own IANA zone, or null when the runtime will not say. */
+export function detectTimezone(): string | null {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+  } catch {
+    return null;
+  }
+}
+
 /** A stored zone the runtime does not know would throw inside Intl. */
 function safeZone(timeZone: string | null | undefined): string | undefined {
   if (!timeZone) return undefined;

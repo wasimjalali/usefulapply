@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { detectTimezone } from '@/lib/utils/format-date';
 import { authClient } from '@/auth/client';
 import { changePassword } from '@/lib/supabase';
 import { uploadAvatar, deleteAvatar } from '@/lib/supabase/storage';
@@ -27,11 +28,7 @@ const DATE_FORMATS = [
 ] as const;
 
 function detectedTimezone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-  } catch {
-    return 'UTC';
-  }
+  return detectTimezone() ?? 'UTC';
 }
 
 function timezoneOptions(current: string): Array<{ value: string; label: string }> {
