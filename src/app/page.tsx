@@ -179,13 +179,15 @@ export default function Home() {
           </div>
 
           <ScrollReveal delay={550}>
-            <div className="relative mx-auto mt-8 w-full max-w-[1040px]">
+            <div className="relative mx-auto mt-8 w-full max-w-[1120px]">
               <Image
                 src="/images/moments/kit-ready.webp"
                 alt="The Useful Apply workspace with a finished application kit: the conversation on the left and the tailored CV on the right"
                 width={1440}
                 height={900}
                 priority
+                quality={90}
+                sizes="(max-width: 1200px) 100vw, 1120px"
                 className="w-full rounded-2xl border border-cream-200 shadow-lg"
               />
             </div>
@@ -194,7 +196,7 @@ export default function Home() {
 
         {/* Three moments, text beside the screen, sides alternating. */}
         <section id="what-you-get" className="scroll-mt-24 bg-cream-100 px-4 py-10 sm:px-6 lg:px-8">
-          <div className="mx-auto flex max-w-6xl flex-col gap-10">
+          <div className="mx-auto flex max-w-7xl flex-col gap-10">
             {MOMENTS.map((moment, i) => (
               <ScrollReveal key={moment.title}>
                 <div
@@ -208,12 +210,14 @@ export default function Home() {
                     </h2>
                     <p className="mt-4 text-[15px] leading-relaxed text-warm-gray">{moment.body}</p>
                   </div>
-                  <div className="w-full lg:w-[680px]">
+                  <div className="w-full lg:w-[760px]">
                     <Image
                       src={moment.image}
                       alt={moment.alt}
                       width={1440}
                       height={900}
+                      quality={90}
+                      sizes="(max-width: 1023px) 100vw, 760px"
                       className="w-full rounded-2xl border border-cream-200 shadow-md"
                     />
                   </div>

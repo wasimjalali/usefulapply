@@ -52,6 +52,16 @@ Wasim wants more nav items (e.g. the comparison hub), that stays his call.
   the images show the corrected UI. The daily-feed moment is still the
   agreed placeholder until the end-to-end pass (see BACKEND-GAPS.md C1).
 
+**Rendering side fixed; retakes pending Wasim.** The hero renders at up
+to 1120px (was 1040) and the moments at 760px (was 680, container widened
+to `max-w-7xl`). Both now send `quality={90}` and a real `sizes` hint, so
+retina screens fetch the sharpest variant instead of the default-quality
+guess; AVIF/WebP negotiation was already on in `next.config.ts`. The
+current 1440px captures stay in place. The retakes happen with Wasim on
+the finished UI: capture at 2240px wide or more so the hero has a true 2x
+source, and the daily-feed moment stays the agreed placeholder until the
+end-to-end pass (BACKEND-GAPS.md C1).
+
 ## 3. Scrollbar color fights the UI (FIXED)
 
 - **Proof:** `ui-feedback/02-dashboard-pill-divider-toggle.png` (right edge),
