@@ -63,32 +63,6 @@ export interface SerpApiFetchResult {
   requestParams: Record<string, string>;
 }
 
-export interface SerpApiFilterGroup {
-  name: string;
-  options: Array<{
-    label: string;
-    value: string;
-  }>;
-}
-
-export interface LegacySerpApiJobResult {
-  id: string;
-  title: string;
-  company: string;
-  location: string;
-  remote: boolean;
-  via?: string;
-  share_link?: string;
-  thumbnail?: string;
-  posted_date?: string;
-  employment_type?: string;
-  salary?: string;
-  description?: string;
-  highlights?: SerpApiJob['job_highlights'];
-  apply_options?: SerpApiJob['apply_options'];
-  extensions?: string[];
-}
-
 export interface NormalizedSerpApiJob {
   canonical_key: string;
   source_provider: string;
@@ -387,54 +361,6 @@ export function isSerpApiNoResultsError(errorMessage?: string): boolean {
     'no results',
     'could not get results',
   ].some((pattern) => normalized.includes(pattern));
-}
-
-export function buildSerpApiFilterGroups(filters?: SerpApiFilter[]): SerpApiFilterGroup[] {
-  const filterMap = new Map<string, Array<{ label: string; value: string }>>();
-
-  for (const filter of filters || []) {
-    if (!Array.isArray(filter.options) || filter.options.length === 0) continue;
-
-    const existing = filterMap.get(filter.name) || [];
-    for (const option of filter.options) {
-      if (!option.uds || typeof option.uds !== 'string') continue;
-      if (existing.some((candidate) => candidate.value === option.uds)) continue;
-
-      existing.push({
-        label: option.name || option.q || 'Other',
-        value: option.uds,
-      });
-    }
-
-    if (existing.length > 0) {
-      filterMap.set(filter.name, existing);
-    }
-  }
-
-  return Array.from(filterMap.entries()).map(([name, options]) => ({
-    name,
-    options,
-  }));
-}
-
-export function toLegacyJobSearchResult(job: SerpApiJob): LegacySerpApiJobResult {
-  return {
-    id: job.job_id,
-    title: normalizeDisplayText(job.title) || 'Untitled role',
-    company: normalizeDisplayText(job.company_name) || 'Unknown company',
-    location: normalizeDisplayText(job.location) || 'Not specified',
-    remote: inferWorkMode(job) === 'remote',
-    via: normalizeOptionalText(job.via) ?? undefined,
-    share_link: normalizeOptionalText(job.share_link) ?? undefined,
-    thumbnail: normalizeOptionalText(job.thumbnail) ?? undefined,
-    posted_date: normalizeOptionalText(job.detected_extensions?.posted_at) ?? undefined,
-    employment_type: normalizeOptionalText(job.detected_extensions?.schedule_type) ?? undefined,
-    salary: normalizeOptionalText(job.detected_extensions?.salary) ?? undefined,
-    description: normalizeOptionalMultilineText(job.description) ?? undefined,
-    highlights: job.job_highlights,
-    apply_options: job.apply_options?.slice(0, 5),
-    extensions: job.extensions,
-  };
 }
 
 export function normalizeSerpApiJob(job: SerpApiJob): NormalizedSerpApiJob {

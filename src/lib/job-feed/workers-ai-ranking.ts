@@ -449,20 +449,24 @@ function validateModelRankingResponse(
     companyDisplay: string | null;
   }> = [];
 
+  // One malformed item must not discard the whole ranking. A bad entry is
+  // dropped and the rest of the model's judgement is kept, because the
+  // alternative is falling back to the deterministic keyword list for every
+  // candidate — a much worse feed than one missing role.
   for (const item of payload.items) {
-    if (!item || typeof item !== 'object') return null;
+    if (!item || typeof item !== 'object') continue;
 
     const jobId = typeof item.jobId === 'string' ? item.jobId.trim() : '';
     const decision = item.decision;
-    if (!jobId || !candidateById.has(jobId) || seenJobIds.has(jobId)) return null;
-    if (decision !== 'strong' && decision !== 'good' && decision !== 'skip') return null;
+    if (!jobId || !candidateById.has(jobId) || seenJobIds.has(jobId)) continue;
+    if (decision !== 'strong' && decision !== 'good' && decision !== 'skip') continue;
 
     seenJobIds.add(jobId);
     if (decision === 'skip') continue;
 
     const rank = typeof item.rank === 'number' && Number.isInteger(item.rank) && item.rank > 0
       ? item.rank : null;
-    if (rank === null) return null;
+    if (rank === null) continue;
 
     const companyDisplayRaw = typeof item.companyDisplay === 'string'
       ? item.companyDisplay.replace(/[\u0000-\u001f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '').trim()
@@ -476,7 +480,11 @@ function validateModelRankingResponse(
     });
   }
 
-  if (seenJobIds.size !== candidates.length) return null;
+  // A candidate the model never mentioned is an implicit skip. Only bail out
+  // when coverage is low enough that the response was truncated rather than
+  // merely imperfect; below that line the deterministic fallback is honest.
+  const coverageFloor = Math.ceil(candidates.length * 0.6);
+  if (seenJobIds.size < coverageFloor) return null;
 
   surfacedItems.sort((left, right) => {
     if (left.rank !== right.rank) return left.rank - right.rank;

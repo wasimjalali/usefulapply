@@ -28,9 +28,10 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
   const setActiveTab = useUIStore((s) => s.setActiveTab);
   const jobFeedBadge = useJobFeedBadge(Boolean(user), user?.id ?? null);
 
-  const feedCount = jobFeedBadge.hasPending
-    ? jobFeedBadge.unprocessedCount
-    : jobFeedBadge.jobCount;
+  // The badge counts roles still waiting on the user. Falling back to the run's
+  // total would make it climb back up once every role had been acted on, and
+  // nothing would ever clear it.
+  const feedCount = jobFeedBadge.hasPending ? jobFeedBadge.unprocessedCount : 0;
   const feedLabel = feedCount > 0
     ? `${feedCount} new role${feedCount === 1 ? '' : 's'} for you`
     : 'No new roles yet';

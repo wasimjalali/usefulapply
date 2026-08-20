@@ -1,8 +1,21 @@
 export const PREMIUM_JOB_FEED_TIERS = ['plus', 'max'] as const;
 export const JOB_FEED_PROVIDER = 'serpapi' as const;
+// The once-per-local-day cooldown is driven only by runs the user kicked off
+// themselves. Scheduled/system runs must not lock the manual button. These are
+// the exact values written to job_feed_runs.trigger_source by the run routes,
+// so the cooldown query and the workflow must both read from this list.
+export const MANUAL_JOB_FEED_TRIGGER_SOURCES = [
+  'manual_user',
+  'manual_debug',
+  'manual_debug_force',
+] as const;
 export const JOB_FEED_MAX_DAILY_QUERIES = 4;
+// How many career-profile titles get mirrored into settings.target_roles. The
+// settings writer and the drift check must slice to the same number, or the
+// "your target roles are out of date" flag is true for every profile with more
+// titles than this.
+export const JOB_FEED_MIRRORED_ROLE_LIMIT = 6;
 export const JOB_FEED_MAX_RAW_JOBS_PER_RUN = 40;
-export const JOB_FEED_PREFILTER_TARGET_MIN = 8;
 export const JOB_FEED_PREFILTER_HARD_CAP = 15;
 // Default visible jobs when the feed panel first renders (pre-"Load more").
 // First page shows this many; the "Load more" button fetches the rest from
@@ -164,7 +177,6 @@ export const JOB_FEED_COUNTRY_OPTIONS = [
   { value: 'ae', label: 'United Arab Emirates' },
 ] as const;
 
-export type JobFeedCountryCode = (typeof JOB_FEED_COUNTRY_OPTIONS)[number]['value'];
 
 // Popular cities per country. Used as quick-pick suggestions and (when the
 // user selects one) as location hints passed to SerpAPI. Users can still type
@@ -206,15 +218,6 @@ export const JOB_FEED_CITY_SUGGESTIONS: Record<string, string[]> = {
   sg: ['Singapore'],
   ae: ['Dubai', 'Abu Dhabi'],
 };
-
-export function getJobFeedCityOptionsForCountries(countries: string[]): string[] {
-  const unique = new Set<string>();
-  for (const country of countries) {
-    const cities = JOB_FEED_CITY_SUGGESTIONS[country] ?? [];
-    for (const city of cities) unique.add(city);
-  }
-  return Array.from(unique);
-}
 
 export function legacyMarketFromCountries(countries: string[]): 'us' | 'canada' | 'us_canada' {
   const set = new Set(countries);
@@ -349,10 +352,6 @@ export const JOB_FEED_TIMEZONE_LOOKUP = new Map<string, string>(
   JOB_FEED_TIMEZONE_OPTIONS.map((zone) => [zone.value, zone.label]),
 );
 
-export function getJobFeedTimeZoneLabel(value: string): string {
-  return JOB_FEED_TIMEZONE_LOOKUP.get(value) ?? value;
-}
-
 export const JOB_FEED_EMPLOYMENT_TYPE_OPTIONS = [
   { value: 'full_time', label: 'Full-time' },
   { value: 'part_time', label: 'Part-time' },
@@ -366,27 +365,6 @@ export const JOB_FEED_WORK_AUTH_OPTIONS = [
   { value: 'open_to_both', label: 'Open to both' },
   { value: 'needs_sponsorship', label: 'Needs sponsorship' },
 ] as const;
-
-export const JOB_FEED_SUGGESTED_ROLES = [
-  'Software Engineer',
-  'Frontend Engineer',
-  'Full Stack Engineer',
-  'Product Manager',
-  'Data Analyst',
-  'AI Engineer',
-];
-
-// City-only examples. The country is selected separately in the settings,
-// so users don't need to type it here.
-export const JOB_FEED_SUGGESTED_LOCATIONS = [
-  'New York',
-  'San Francisco',
-  'Berlin',
-  'London',
-  'Tokyo',
-];
-
-export const JOB_FEED_SUGGESTED_LANGUAGES = ['English', 'French'];
 
 export const JOB_FEED_DEFAULT_SETTINGS = {
   enabled: true,

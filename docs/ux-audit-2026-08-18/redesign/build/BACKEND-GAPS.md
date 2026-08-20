@@ -213,11 +213,9 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Where:** `src/app/api/stripe/create-checkout/route.ts`, `create-addon-checkout/route.ts`, `create-portal/route.ts`.
 - **Needs:** point the three URLs at `/dashboard?settings=usage`. Trivial, but it is a Stripe route, which this batch was told not to touch.
 
-### CreditIndicator is dead UI that still links at the old routes
-- **UI today:** `src/components/ui/CreditIndicator.tsx` is rendered nowhere. Only its `CREDIT_UPDATE_EVENT` export is still imported, by `LowCreditsModal` and `LowCreditsBanner`.
-- **Missing:** the component was not deleted because that export is live. Its three `/subscription` links and its `/pricing#addons` link now hop through the redirect.
-- **Where:** `src/components/ui/CreditIndicator.tsx`.
-- **Needs:** move `CREDIT_UPDATE_EVENT` to a small module and delete the component, or bring it back into the shell. Small.
+### CreditIndicator is dead UI that still links at the old routes — CLOSED
+- **Was:** `CreditIndicator.tsx` was rendered nowhere but could not be deleted, because `LowCreditsModal` and `LowCreditsBanner` imported its `CREDIT_UPDATE_EVENT`.
+- **Resolved in the post-batch sweep (pass 1, 19 August 2026):** all three components had zero inbound references and are deleted. The live event path was already elsewhere, `src/lib/utils/creditEvents.ts` plus `src/hooks/useCreditsBalance.ts`, so nothing had to move.
 
 ## Found in batch 5 (auth + marketing)
 
@@ -267,3 +265,83 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Missing:** the re-recorded demo. The old one still shows Karko AI branding (F24), so it could not be carried over.
 - **Where:** it goes back under the hero product shot in `src/app/page.tsx`.
 - **Needs:** the recording, then an embed. Flow 7 already schedules this for after the build.
+
+---
+
+## Found in the post-batch sweep (passes 1 and 2, 19 to 20 August 2026)
+
+These came out of the dead-code pass and the bug hunt. Everything here was
+deliberately left unfixed: each one needs a schema change, a product decision,
+or UI the locked flow docs do not specify.
+
+### Deleting an application is gone from the product
+- **UI today:** there is no way to delete an application. The tracker has no row action, no confirm, no bulk select.
+- **Missing:** nothing on the server. The whole chain is intact and orphaned: `deleteSessionAction` (`src/db/actions.ts`) to `deleteSession` (`src/db/repos/sessions.ts`). `useSessionStore.deleteSession` also has zero callers. The retired `TrackerPanel.tsx` carried both a single-row and a bulk delete, and both hit the server; batch 4 rebuilt the tracker without them and the commit note does not mention it.
+- **Where:** UI would go in `src/components/tracker/TrackerCanvas.tsx` next to the existing status popover trigger; a `remove` action in `src/store/useTrackerStore.ts` that calls `deleteSessionAction` and mirrors into `useSessionStore`.
+- **Needs:** small to medium, plus a decision from Wasim: single-row only, or bulk select as well, and whether delete is soft or hard.
+
+### `loadSession` blanks the workspace when the tracker and the session store disagree
+- **UI today:** clicking a tracker row opens that application. If the id is not in `useSessionStore.sessions`, `loadSession` sets `currentSession` to null: the kit goes blank with no message.
+- **Missing:** the two lists have different sources and different bounds. Tracker rows come from D1 via `listTrackerOverviewAction` and render as soon as they land; `sessions` is filled separately and later by `useSupabaseSync`, and stays empty if `getSessions` throws.
+- **Where:** `src/store/useSessionStore.ts` `loadSession`, `src/components/tracker/TrackerCanvas.tsx` `openApplication`, `src/components/tracker/TrackerConversation.tsx` `runFollowUp`.
+- **Needs:** a decision on the right behaviour: fetch the session on demand, or refuse to navigate and say so. Destroying `currentSession` on a lookup miss is wrong either way. Small once decided.
+
+### The tracker silently truncates at 300 applications
+- **UI today:** the tracker lists applications and shows count pills.
+- **Missing:** `listTrackerOverview` caps at `TRACKER_OVERVIEW_LIMIT = 300` and filters client-side. Past 300 the list is short and the pills understate, with no "showing the most recent 300" line. The route it replaced was server-paginated with a real `count(*)`.
+- **Where:** `src/db/repos/sessions.ts`, `src/components/tracker/TrackerCanvas.tsx`.
+- **Needs:** either a line of copy admitting the cap, or paging. Small. Not urgent at current volumes.
+
+### Chat history loads for the 10 most recent applications only
+- **UI today:** opening an older application from the sidebar or the tracker shows an empty conversation.
+- **Missing:** `useSupabaseSync` fetches chat messages for the 10 newest sessions. The messages are in D1; nothing reads them for the rest.
+- **Where:** `src/hooks/useSupabaseSync.ts`.
+- **Needs:** load a session's messages on open rather than in the initial sweep. Small. Pre-existing, not a batch regression.
+
+### A saved job stops working after 7 days
+- **UI today:** Saved is a permanent bookmark list with no time cutoff, so the card is still on screen. Every action on it (Check fit, feedback) 404s with "That role is no longer in your feed."
+- **Missing:** every write authorises through a live `job_feed_ranked_items` row, and cleanup deletes ranked items 7 days after their run. Making a saved job self-authorising needs `job_feed_application_generations.ranked_item_id` to accept null, which is a schema change.
+- **Where:** `src/lib/job-feed/server.ts` `authorizeJobFeedJobActionAdmin` and `createOrReuseJobFeedApplicationGenerationAdmin`, `src/lib/job-feed/cleanup.ts`.
+- **Needs:** a decision. Either the nullable column and a migration, or exempt saved canonical jobs from the retention delete, which changes the retention policy instead. Medium either way.
+
+### Per-tier input caps on the feed are not shown anywhere
+- **UI today:** Edit feed takes as many roles, countries and cities as the user types.
+- **Missing:** `getJobFeedInputCaps` lost its caller when batch 3 retired the wizard cards. The run still slices to the tier limit, so a Free user's second country is dropped with no signal and settings look honoured when they are not.
+- **Where:** `src/lib/job-feed/constants.ts` (the caps exist), `src/components/job-feed/FeedEditView.tsx` (the note would go in the Preferences pill).
+- **Needs:** one line of copy per tier against `getJobFeedInputCaps(tier)`. Small, but the wording is not in the locked flow doc.
+
+### Job-feed rate limits are keyed by client IP, before authentication
+- **UI today:** nothing visible until two users share an IP. `job-feed-run` is 2 per minute per IP, so two colleagues behind one NAT block each other's daily feed.
+- **Missing:** 11 of 14 job-feed routes rate-limit on `getClientIP` before `getCurrentUser`. `apply/generation`, `apply/status` and `career-profile` POST already do it correctly, auth first, keyed on `user.id`.
+- **Where:** `src/app/api/job-feed/**`.
+- **Needs:** move auth above the limiter and key on the user id, route by route. Medium, and it is worth doing as one deliberate change rather than inside a sweep.
+
+### `NEXT_PUBLIC_ENABLE_JOB_FEED_DEBUG` unlocks a forced feed run
+- **UI today:** nothing. The flag is set nowhere, so `/api/job-feed/dev/run` 404s today.
+- **Missing:** the gate is a `NEXT_PUBLIC_` variable, which is inlined into the client bundle and set through public config, yet it unlocks a route that runs the feed with `force: true`, bypassing the daily cooldown and spending SerpAPI and ranking budget.
+- **Where:** `src/app/api/job-feed/dev/run/route.ts`, `src/lib/job-feed/constants.ts` `isJobFeedDebugModeEnabled`.
+- **Needs:** a decision. `NODE_ENV !== 'production'` closes it but removes the ability to force a run against production data from a deployed environment. A server-only secret would keep both.
+
+### Consent can be granted but never withdrawn
+- **UI today:** the feed asks for consent once, with a chip. There is no way back.
+- **Missing:** `PUT /api/job-feed/settings` keeps any stored `consent_accepted_at` and ignores a payload that clears it, so a withdrawal is silently dropped. `enabled: false` still pauses the feed, so this is about the consent record itself.
+- **Where:** `src/app/api/job-feed/settings/route.ts`.
+- **Needs:** a decision on whether withdrawal is a product requirement, and if so where the control lives. Small once decided.
+
+### Free users are 403'd from their own career profile
+- **UI today:** Edit feed tells a free user "I haven't read your CV into a profile yet" about a profile that exists.
+- **Missing:** `GET /api/job-feed/career-profile` and `GET /api/job-feed/search-strategy` gate on `canAccessJobFeed`, which is paid only, while the free feed is explicitly CV-driven and synthesizes that profile during its run. The client swallows the 403.
+- **Where:** `src/app/api/job-feed/career-profile/route.ts`, `src/app/api/job-feed/search-strategy/route.ts`, `src/components/job-feed/FeedEditView.tsx`.
+- **Needs:** a decision. If the paywall is intended, the copy is wrong. If not, the GETs move to `canViewJobFeed`. Small either way.
+
+### `POST /api/job-feed/apply` does not check the credit balance
+- **UI today:** the Check fit button is gated client-side on the balance. The route is not.
+- **Missing:** the route gates on `canViewJobFeed` only, on the reasoning that the paywall lives downstream in the agent flow. A free user with no credits can create an `application_sessions` row and a generation intent and only be refused later, leaving both rows behind. The 403 copy in `feed-actions.ts` also says "needs an account with credits" when the route's only 403 is a plan gate.
+- **Where:** `src/app/api/job-feed/apply/route.ts`, `src/components/job-feed/feed-actions.ts`.
+- **Needs:** a decision from Wasim, because pre-checking the balance is credit logic. Deliberately untouched by the sweep.
+
+### Extra SerpAPI passes have no budget of their own
+- **UI today:** nothing visible.
+- **Missing:** the sweep fixed the overrun by making the pagination and fallback passes draw from one shared per-tier budget. In practice the main plan usually fills that budget, so those two passes now rarely fire. Keeping them would need an explicit `maxExtraQueries` per tier.
+- **Where:** `src/lib/job-feed/ingestion.ts`, `src/lib/job-feed/constants.ts`.
+- **Needs:** Wasim's approval either way, since `constants.ts` requires explicit sign-off on anything that raises the daily query count. Up to three extra calls a day on Max.

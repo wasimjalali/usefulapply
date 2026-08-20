@@ -200,8 +200,9 @@ function inferCountryForCity(city: string): string | null {
  * `maxQueries` entries in the strategy's natural priority order, while
  * guaranteeing every selected query's `fallbackTo` is also in the plan when
  * possible (so a zero-result long-tail can be retried without an extra
- * SerpAPI call beyond the daily budget — fallback retries cost at most
- * +1 SerpAPI call per run, gated by `JOB_FEED_FALLBACK_BUDGET`).
+ * SerpAPI call beyond the daily budget). A retry that does need its own call
+ * comes out of the leftover budget the main plan did not spend, never on top
+ * of it.
  */
 export function buildJobFeedSearchPlanFromStrategy(
   strategy: SearchStrategy,
@@ -308,14 +309,14 @@ async function applyDatePostedFiltersToPlan(
   }
 }
 
-// Maximum out-of-plan fallback SerpAPI calls per run. Keeps the cost bounded
-// when long-tail queries return zero results AND the strategy's fallbackTo
-// pointed to a query that wasn't in the main plan slice.
+// Per-pass ceilings for the two out-of-plan passes. Both draw from the SAME
+// remaining-call budget (daily budget minus the main plan), so a run can never
+// spend more SerpAPI calls than its tier's `maxDailyQueries`. Each call is real
+// money; see JOB_FEED_TIER_LIMITS in constants.ts.
 const JOB_FEED_FALLBACK_BUDGET = 1;
 
 // Maximum opportunistic page-2 fetches per run. Triggered when a main-pass
 // query returned a thin result set AND SerpAPI handed back a next_page_token.
-// Capped so worst-case cost is +50% over the daily budget, not +100%.
 const JOB_FEED_PAGINATION_BUDGET = 2;
 // Threshold below which a main-pass result counts as "thin" and qualifies for
 // an opportunistic page-2 retry. SerpAPI typically returns ~10 jobs per page,
@@ -350,6 +351,13 @@ export async function ingestJobFeedRunJobs(params: {
   // cache for subsequent runs. Fallback retries explicitly skip filtering
   // (set in their planItem construction).
   await applyDatePostedFiltersToPlan(admin, searchPlan);
+
+  // The plan length before the fallback pass appends its retries. Both later
+  // passes iterate the main plan only, and both draw from one shared pool of
+  // leftover calls so the tier's daily SerpAPI budget is a hard ceiling.
+  const mainPlanLength = searchPlan.length;
+  const dailyCallBudget = maxQueries ?? JOB_FEED_MAX_DAILY_QUERIES;
+  let extraCallsRemaining = Math.max(0, dailyCallBudget - mainPlanLength);
 
   const rawFetchIds: string[] = [];
   const observedJobs: ObservedNormalizedJob[] = [];
@@ -413,13 +421,13 @@ export async function ingestJobFeedRunJobs(params: {
   // ---- Pagination pass ----
   // Opportunistic page-2 retry: when a main-pass query returned a thin
   // result set AND SerpAPI handed back a next_page_token, fire one extra
-  // call to capture the second page. Bounded by JOB_FEED_PAGINATION_BUDGET
-  // and the rawJobs cap, so worst-case cost is +PAGINATION_BUDGET extra
-  // SerpAPI calls per run.
+  // call to capture the second page. Bounded by the shared leftover-call pool,
+  // the per-pass ceiling and the rawJobs cap, so it can only ever use calls the
+  // main plan did not spend.
   if (rawJobsFetched < maxRawJobs) {
-    let paginationBudget = JOB_FEED_PAGINATION_BUDGET;
+    let paginationBudget = Math.min(JOB_FEED_PAGINATION_BUDGET, extraCallsRemaining);
 
-    for (let i = 0; i < searchPlan.length && paginationBudget > 0; i += 1) {
+    for (let i = 0; i < mainPlanLength && paginationBudget > 0; i += 1) {
       const planItem = searchPlan[i];
       const nextToken = mainPassNextPageTokens[i];
       const mainCount = mainPassJobCounts[i];
@@ -443,6 +451,7 @@ export async function ingestJobFeedRunJobs(params: {
       for (const observed of pageTwoResult.observedJobs) observedJobs.push(observed);
       rawJobsFetched += pageTwoResult.observedJobs.length;
       paginationBudget -= 1;
+      extraCallsRemaining -= 1;
 
       if (rawJobsFetched >= maxRawJobs) break;
     }
@@ -451,13 +460,13 @@ export async function ingestJobFeedRunJobs(params: {
   // ---- Fallback pass ----
   // Only when a SearchStrategy is in play. We only retry long-tail / localized
   // entries whose main-pass call returned zero observations AND whose
-  // fallbackTo points into the strategy. Each retry consumes one extra
-  // SerpAPI call beyond `maxQueries` (capped by JOB_FEED_FALLBACK_BUDGET).
+  // fallbackTo points into the strategy. Retries come out of the same shared
+  // leftover-call pool the pagination pass drew from, never out of new budget.
   if (strategy && rawJobsFetched < maxRawJobs) {
-    let fallbacksRemaining = JOB_FEED_FALLBACK_BUDGET;
+    let fallbacksRemaining = Math.min(JOB_FEED_FALLBACK_BUDGET, extraCallsRemaining);
     const alreadyExecutedKeys = new Set(searchPlan.map((p) => `${p.country}::${p.query.toLowerCase()}`));
 
-    for (let i = 0; i < searchPlan.length && fallbacksRemaining > 0; i += 1) {
+    for (let i = 0; i < mainPlanLength && fallbacksRemaining > 0; i += 1) {
       const planItem = searchPlan[i];
       if (planItem.queryType === 'short_tail') continue;
       if (mainPassJobCounts[i] !== 0) continue;
@@ -503,6 +512,7 @@ export async function ingestJobFeedRunJobs(params: {
       rawJobsFetched += fetchResult.observedJobs.length;
       alreadyExecutedKeys.add(fallbackKey);
       fallbacksRemaining -= 1;
+      extraCallsRemaining -= 1;
       searchPlan.push(fallbackPlanItem); // make the fallback visible in diagnostics
 
       if (rawJobsFetched >= maxRawJobs) break;

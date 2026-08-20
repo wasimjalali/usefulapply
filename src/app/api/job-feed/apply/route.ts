@@ -6,6 +6,7 @@ import {
   createJobFeedApplicationSessionAdmin,
   getJobFeedApplicationSessionAdmin,
   getJobFeedFeedbackAdmin,
+  isJobFeedbackBlocked,
   recordJobFeedFeedbackAdmin,
   toJobFeedFeedbackState,
   transitionJobFeedApplicationGenerationAdmin,
@@ -107,6 +108,28 @@ export async function POST(request: NextRequest) {
     const validatedRunId = rankedItem.run_id;
 
     const existingFeedback = await getJobFeedFeedbackAdmin(user.id, jobId);
+    // Check the terminal state before the first write. recordJobFeedFeedbackAdmin
+    // throws for a blocked row further down, and by then an empty session and a
+    // generation intent are already in the sidebar. A stale client (dismiss,
+    // then Check fit from the still-open detail) hits exactly this.
+    if (
+      existingFeedback
+      && isJobFeedbackBlocked(existingFeedback)
+      && !existingFeedback.application_session_id
+    ) {
+      captureJobFeedActionRejected({
+        userId,
+        route: 'apply',
+        action: 'apply_started',
+        reason: 'feedback_terminal_state',
+        jobId,
+        runId: validatedRunId,
+        status: 409,
+        subscriptionTier,
+      });
+      return NextResponse.json({ error: 'This role has already moved on.' }, { status: 409 });
+    }
+
     let session = existingFeedback?.application_session_id
       ? await getJobFeedApplicationSessionAdmin({
           userId: user.id,

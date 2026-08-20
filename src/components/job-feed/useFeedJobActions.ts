@@ -32,6 +32,17 @@ function say(content: string) {
   state.addMessage(selectFeedThreadKey(state), { role: 'assistant', content });
 }
 
+/**
+ * The run to attribute an action to. A role opened from Saved may have been
+ * ranked days ago, so sending today's run id would mis-attribute it. Null lets
+ * the server resolve the job's own run.
+ */
+function actionRunId(): string | null {
+  const state = useFeedStore.getState();
+  if (state.listTab === 'saved') return null;
+  return state.overview?.feedRun?.id ?? null;
+}
+
 export function useFeedJobActions(): FeedJobActions {
   const posthog = usePostHog();
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
@@ -40,14 +51,13 @@ export function useFeedJobActions(): FeedJobActions {
     const store = useFeedStore.getState();
     store.openJobDetail(job.id);
     posthog?.capture('job_feed_item_opened', { job_id: job.id, company: job.company });
-    void recordFeedFeedback(job, 'opened', store.overview?.feedRun?.id ?? null);
+    void recordFeedFeedback(job, 'opened', actionRunId());
   }, [posthog]);
 
   const save = useCallback(async (job: JobFeedFeedItem) => {
     setBusyJobId(job.id);
     try {
-      const store = useFeedStore.getState();
-      const result = await recordFeedFeedback(job, 'saved', store.overview?.feedRun?.id ?? null);
+      const result = await recordFeedFeedback(job, 'saved', actionRunId());
       if (!result.ok) {
         say(result.error);
         return;

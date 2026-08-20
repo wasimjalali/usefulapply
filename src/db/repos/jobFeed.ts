@@ -1,4 +1,5 @@
 import { and, desc, eq, gte, inArray, sql } from 'drizzle-orm';
+import { MANUAL_JOB_FEED_TRIGGER_SOURCES } from '@/lib/job-feed/constants';
 import { chunk, D1_MAX_PARAMS, getDb, nowIso, stripIdentity } from '../client';
 import {
   jobFeedApplicationGenerationEvents,
@@ -104,7 +105,9 @@ export async function getLatestManualCompletedRun(userId: string): Promise<JobFe
     .where(and(
       eq(jobFeedRuns.user_id, userId),
       eq(jobFeedRuns.status, 'completed'),
-      eq(jobFeedRuns.trigger_source, 'manual'),
+      // Never a bare 'manual': the run routes write 'manual_user' and the
+      // debug variants, so matching one literal would return nothing.
+      inArray(jobFeedRuns.trigger_source, [...MANUAL_JOB_FEED_TRIGGER_SOURCES]),
     ))
     .orderBy(desc(jobFeedRuns.completed_at), desc(jobFeedRuns.created_at))
     .limit(1);
@@ -198,6 +201,26 @@ export async function listInboxRankedItems(userId: string, sinceIso: string): Pr
     ))
     .orderBy(desc(jobFeedRuns.created_at), jobFeedRankedItems.rank_position);
   return rows.map((r) => r.item) as JobFeedRankedItem[];
+}
+
+/**
+ * Ranked rows for a set of canonical jobs, newest run first. Used by the Saved
+ * list, which is not scoped to one run, so it can still show a match badge and
+ * the ranker's reason for a role bookmarked days ago.
+ */
+export async function listRankedItemsByJobIds(userId: string, jobIds: string[]): Promise<JobFeedRankedItem[]> {
+  if (jobIds.length === 0) return [];
+  const db = await getDb();
+  const out: JobFeedRankedItem[] = [];
+  for (const ids of chunk(jobIds, D1_MAX_PARAMS - 1)) {
+    const rows = await db
+      .select()
+      .from(jobFeedRankedItems)
+      .where(and(eq(jobFeedRankedItems.user_id, userId), inArray(jobFeedRankedItems.canonical_job_id, ids)))
+      .orderBy(desc(jobFeedRankedItems.created_at)) as JobFeedRankedItem[];
+    out.push(...rows);
+  }
+  return out;
 }
 
 export async function listRankedItemsForRun(userId: string, runId: string): Promise<JobFeedRankedItem[]> {

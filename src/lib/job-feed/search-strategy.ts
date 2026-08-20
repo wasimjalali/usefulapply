@@ -71,6 +71,11 @@ export function computeSettingsHash(settings: JobFeedSettings): string {
     employment_types: [...(settings.employment_types ?? [])].sort(),
     languages: [...(settings.languages ?? [])].sort(),
     target_market: settings.target_market ?? null,
+    // Work mode reaches the prompt, so "only remote" from the feed
+    // conversation has to invalidate the cached plan. Without these the saved
+    // preference changes and the run keeps firing the old queries.
+    remote_preferences: [...(settings.remote_preferences ?? [])].sort(),
+    remote_preference: settings.remote_preference ?? null,
   };
   return createHash('sha256').update(JSON.stringify(material)).digest('hex').slice(0, 16);
 }

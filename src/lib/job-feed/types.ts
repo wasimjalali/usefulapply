@@ -20,7 +20,6 @@ export type JobFeedOverviewState =
   | 'error';
 
 export type JobFeedCanonicalWorkMode = JobFeedCanonicalJob['work_mode'];
-export type JobFeedEmploymentType = NonNullable<JobFeedCanonicalJob['employment_type']>;
 export type JobFeedFitLabel = 'strong' | 'good';
 export type JobFeedFeedbackAction = 'opened' | 'saved' | 'dismissed' | 'apply_started' | 'applied' | 'rated_helpful' | 'rated_not_relevant';
 export type JobFeedMatchRating = 'helpful' | 'not_relevant';

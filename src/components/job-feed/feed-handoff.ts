@@ -31,7 +31,10 @@ export async function startFeedHandoff(
     };
   }
 
-  const runId = useFeedStore.getState().overview?.feedRun?.id ?? null;
+  // A role checked from Saved may have been ranked days ago, so today's run id
+  // would mis-attribute it. Null lets the server resolve the job's own run.
+  const feedState = useFeedStore.getState();
+  const runId = feedState.listTab === 'saved' ? null : (feedState.overview?.feedRun?.id ?? null);
   const created = await createFeedApplication(job, runId);
   if (!created.ok) return created;
 

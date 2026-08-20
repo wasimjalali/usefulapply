@@ -1,49 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { normalizeJobFeedSettingsInput } from '@/lib/job-feed/helpers';
+import { JOB_FEED_MIRRORED_ROLE_LIMIT } from '@/lib/job-feed/constants';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import { getOrSynthesizeCareerProfileAdmin } from '@/lib/job-feed/server';
-import { requireJobFeedAccess } from '@/lib/job-feed/auth';
 import type { JobFeedSettingsInput } from '@/lib/job-feed/types';
 import { getProfile } from '@/db/repos/profiles';
 import { getSettings, upsertSettings, upsertJobPreferences } from '@/db/repos/jobFeed';
 
 export const runtime = 'nodejs';
-
-export async function GET(request: NextRequest) {
-  try {
-    const ip = getClientIP(request);
-    const { allowed } = await checkRateLimit(`job-feed-settings:${ip}`, RATE_LIMITS['job-feed-settings']);
-    if (!allowed) {
-      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
-    }
-
-    const user = await getCurrentUser(request);
-
-    if (!user) {
-      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
-    }
-
-    const access = await requireJobFeedAccess(user);
-    if (!access.ok) {
-      return NextResponse.json({ error: access.error }, { status: access.status });
-    }
-
-    let settings;
-    try {
-      settings = await getSettings(user.id);
-    } catch (error) {
-      console.error('[job-feed/settings] GET error:', error instanceof Error ? error.message : error);
-      return NextResponse.json({ error: 'Failed to load job feed settings.' }, { status: 500 });
-    }
-
-    return NextResponse.json({ settings });
-  } catch (error) {
-    console.error('[job-feed/settings] GET unexpected error:', error);
-    return NextResponse.json({ error: 'Failed to load job feed settings.' }, { status: 500 });
-  }
-}
 
 export async function PUT(request: NextRequest) {
   try {
@@ -201,10 +167,19 @@ async function loadCareerProfileMirror(userId: string): Promise<CareerProfileMir
   const profile: CareerProfile | null = await getOrSynthesizeCareerProfileAdmin(userId);
   if (!profile) return null;
 
+  // Dedupe case-insensitively, matching the drift check in the overview route.
+  // Deduping by exact case here and by lowercase there made the two lengths
+  // disagree for any profile with the same title in two casings.
+  const seenTitles = new Set<string>();
   const targetRoles = profile.inferredTitles
     .map((title) => title.canonical)
-    .filter((value, index, all) => all.indexOf(value) === index)
-    .slice(0, 6);
+    .filter((value) => {
+      const key = value.trim().toLowerCase();
+      if (!key || seenTitles.has(key)) return false;
+      seenTitles.add(key);
+      return true;
+    })
+    .slice(0, JOB_FEED_MIRRORED_ROLE_LIMIT);
 
   const skillSet = new Set<string>();
   for (const cluster of [...profile.primarySkillClusters, ...profile.secondarySkillClusters]) {

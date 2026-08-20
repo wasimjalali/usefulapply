@@ -73,7 +73,13 @@ export function ConversationColumn({ onTabChange }: ConversationColumnProps) {
       >
         <PanelLeftClose className="h-3.5 w-3.5" />
       </button>
-      {showFeed && <FeedConversation />}
+      {/* Hidden rather than unmounted, like the application conversation below:
+          unmounting tears down the feed's run poller and refires a full
+          overview load on every visit, which flashes the loading state over a
+          feed that is already on screen. */}
+      <div className={`h-full w-full min-w-0 ${showFeed ? 'flex' : 'hidden'}`}>
+        <FeedConversation />
+      </div>
       {showTracker && <TrackerConversation />}
       <section
         className={`h-full w-full min-w-0 flex-col border-r border-cream-200 bg-cream-50 ${

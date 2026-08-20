@@ -178,10 +178,6 @@ export async function getLatestJobFeedRunAdmin(userId: string): Promise<JobFeedR
   return jobFeedRepo.getLatestRun(userId);
 }
 
-export async function getJobFeedRunAdmin(userId: string, runId: string): Promise<JobFeedRun | null> {
-  return jobFeedRepo.getRun(userId, runId);
-}
-
 export async function getJobFeedCanonicalJobAdmin(jobId: string): Promise<JobFeedCanonicalJob | null> {
   return adminRepo.getCanonicalJob(jobId);
 }
@@ -726,7 +722,15 @@ export async function recordJobFeedFeedbackAdmin(params: {
   const { userId, jobId, action, latestRunId = null, applicationSessionId = null } = params;
   const existing = await getJobFeedFeedbackAdmin(userId, jobId);
   if (existing && isJobFeedbackBlocked(existing)) {
-    if (existing.applied_at && action === 'apply_started' && existing.application_session_id) {
+    // Reopening a role is always allowed. Blocking it means re-reading the ad
+    // for a job whose kit already succeeded throws, and the detail view dies.
+    if (action === 'opened') {
+      return existing;
+    }
+    // An apply that already has a session is a no-op, not a new terminal
+    // action. Keyed on the session rather than applied_at, because a run that
+    // reached 'succeeded' never stamps applied_at.
+    if (action === 'apply_started' && existing.application_session_id) {
       return existing;
     }
 
@@ -841,14 +845,20 @@ export function toJobFeedFeedbackState(feedback: JobFeedFeedback | null): JobFee
   };
 }
 
-export async function listLatestJobFeedItemsAdmin(params: {
+/**
+ * The completed run the feed should be read from, or null when there is none
+ * inside the retention window. Split out from listLatestJobFeedItemsAdmin so
+ * callers that only need the run (the overview) do not pay for building and
+ * then discarding the whole item list.
+ */
+export async function resolveJobFeedRunForFeedAdmin(params: {
   userId: string;
   latestRun?: JobFeedRun | null;
-}): Promise<LatestJobFeedItemsResult> {
+}): Promise<JobFeedRun | null> {
   const candidateRun = params.latestRun ?? await getLatestJobFeedRunAdmin(params.userId);
   // Apply the inbox retention window to the candidate too. Without this the
   // fast-path accepts a stale completed run, the inbox path returns empty,
-  // and the metadata fallback below resurrects ranked_preview_jobs from a run
+  // and the metadata fallback resurrects ranked_preview_jobs from a run
   // whose ranked_items were already deleted by cleanup at day 7.
   const cutoffMs = Date.now() - JOB_FEED_INBOX_RETENTION_DAYS * 24 * 60 * 60 * 1000;
   const candidateFresh = candidateRun?.status === 'completed'
@@ -857,7 +867,15 @@ export async function listLatestJobFeedItemsAdmin(params: {
   const run = candidateFresh
     ? candidateRun
     : await getLatestCompletedJobFeedRunAdmin(params.userId);
-  if (!run || run.status !== 'completed') {
+  return run && run.status === 'completed' ? run : null;
+}
+
+export async function listLatestJobFeedItemsAdmin(params: {
+  userId: string;
+  latestRun?: JobFeedRun | null;
+}): Promise<LatestJobFeedItemsResult> {
+  const run = await resolveJobFeedRunForFeedAdmin(params);
+  if (!run) {
     return {
       run: null,
       items: [],
@@ -1037,22 +1055,49 @@ export async function listSavedJobFeedItemsAdmin(params: {
   userId: string;
 }): Promise<JobFeedFeedItem[]> {
   const feedbackRows = await jobFeedRepo.listSavedFeedback(params.userId);
-  const typedRows = feedbackRows.filter((row) => !isJobFeedbackBlocked(row));
+  // Saved is a bookmark list, not an inbox. Checking a fit or generating a kit
+  // does not un-bookmark a role, so the inbox's blocked set is too aggressive
+  // here: only an explicit dismiss or "not relevant" takes a role out.
+  const typedRows = feedbackRows.filter((row) => {
+    if (row.dismissed_at) return false;
+    const metadata = (row.metadata ?? null) as Record<string, unknown> | null;
+    return metadata?.match_rating !== 'not_relevant';
+  });
 
   if (typedRows.length === 0) {
     return [];
   }
 
   const jobIds = typedRows.map((row) => row.canonical_job_id);
-  const jobRows = await adminRepo.getCanonicalJobsByIds(jobIds);
+  const [jobRows, rankedRows] = await Promise.all([
+    adminRepo.getCanonicalJobsByIds(jobIds),
+    jobFeedRepo.listRankedItemsByJobIds(params.userId, jobIds),
+  ]);
   const jobsById = new Map(jobRows.map((row) => [row.id, row]));
+  // Newest run first from the query, so the first row wins for a job that has
+  // been ranked on more than one day.
+  const rankedByJobId = new Map<string, SupabaseJobFeedRankedItem>();
+  for (const row of rankedRows as SupabaseJobFeedRankedItem[]) {
+    if (!rankedByJobId.has(row.canonical_job_id)) rankedByJobId.set(row.canonical_job_id, row);
+  }
 
   // Preserve the saved_at DESC order from the feedback query.
   return typedRows
     .map((row) => {
       const job = jobsById.get(row.canonical_job_id);
       if (!job) return null;
-      return toFeedItem(job, row);
+      const ranked = rankedByJobId.get(row.canonical_job_id);
+      // Without the ranked row there is no badge and no reason to show, and a
+      // guess would be worse than the gap. toFeedItem leaves both null.
+      if (!ranked) return toFeedItem(job, row);
+      const preview = toRankedPreviewItem(ranked);
+      return toFeedItem(job, row, {
+        fitLabel: preview.fitLabel,
+        pipelineStage: 'ranked',
+        rankingSource: preview.rankingSource,
+        reason: preview.reason,
+        companyDisplay: preview.companyDisplay,
+      });
     })
     .filter((item): item is JobFeedFeedItem => item !== null);
 }
@@ -1102,21 +1147,8 @@ export async function getLatestCompletedJobFeedRunAdmin(userId: string): Promise
   return run;
 }
 
-// The 24h "Run for today" cooldown is driven only by runs the user kicked
-// off themselves. Scheduled/system runs must not lock the manual button.
-export const MANUAL_JOB_FEED_TRIGGER_SOURCES = [
-  'manual_user',
-  'manual_debug',
-  'manual_debug_force',
-] as const;
-
 export async function getLatestManualCompletedJobFeedRunAdmin(userId: string): Promise<JobFeedRun | null> {
   return jobFeedRepo.getLatestManualCompletedRun(userId);
-}
-
-export function isJobFeedRunStaleRunning(run: JobFeedRun | null, now: Date = new Date()): boolean {
-  if (!run || run.status !== 'running') return false;
-  return isStaleJobFeedRun(run, now);
 }
 
 export async function runJobFeedFoundationWorkflow(params: {
@@ -1135,19 +1167,28 @@ export async function runJobFeedFoundationWorkflow(params: {
 
   let settings: JobFeedSettings;
   if (isFreeUser) {
-    // Free users get automatic settings. Seed target_roles from their synthesized
-    // career profile so the provisioned row satisfies the non-empty target_roles
-    // constraint. The profile is reused below for the search strategy
-    // (getOrSynthesizeCareerProfileAdmin is cached, so this is one synthesis).
-    const careerProfileForSeed = await getOrSynthesizeCareerProfileAdmin(userId);
-    const seedRoles = deriveFreeFeedSeedRoles(careerProfileForSeed);
-    if (seedRoles.length === 0) {
-      // Sparse CV (no inferred or aspirational titles). Provisioning would throw
-      // a developer-facing error that surfaces as an opaque 500. Throw a tagged
-      // error the route maps to a clear, user-actionable 422 instead.
-      throw new Error('JOB_FEED_INSUFFICIENT_CV');
+    // Free users get automatic settings. Seed roles are only needed to CREATE
+    // the row, so reuse an existing one first: deriving them up front would
+    // fail a user whose feed already works but whose CV was since deleted or
+    // whose profile no longer matches the current schema version.
+    const existingSettings = await getJobFeedSettingsAdmin(userId);
+    if (existingSettings) {
+      settings = existingSettings;
+    } else {
+      // Seed target_roles from the synthesized career profile so the
+      // provisioned row satisfies the non-empty target_roles constraint. The
+      // profile is reused below for the search strategy
+      // (getOrSynthesizeCareerProfileAdmin is cached, so this is one synthesis).
+      const careerProfileForSeed = await getOrSynthesizeCareerProfileAdmin(userId);
+      const seedRoles = deriveFreeFeedSeedRoles(careerProfileForSeed);
+      if (seedRoles.length === 0) {
+        // Sparse CV (no inferred or aspirational titles). Provisioning would throw
+        // a developer-facing error that surfaces as an opaque 500. Throw a tagged
+        // error the route maps to a clear, user-actionable 422 instead.
+        throw new Error('JOB_FEED_INSUFFICIENT_CV');
+      }
+      settings = await getOrProvisionFreeJobFeedSettingsAdmin(userId, seedRoles);
     }
-    settings = await getOrProvisionFreeJobFeedSettingsAdmin(userId, seedRoles);
   } else {
     const loaded = await getJobFeedSettingsAdmin(userId);
     if (!loaded) {
@@ -1212,23 +1253,18 @@ export async function runJobFeedFoundationWorkflow(params: {
     await resetJobFeedRunArtifactsForRerun(existingRun.id);
   }
 
-  if (force && existingRun && existingRun.status !== 'running') {
-    await resetJobFeedRunArtifactsForRerun(existingRun.id);
-  }
+  // A force-rerun of a *completed* run must not clear its ranked items up
+  // front: if the rerun then fails (every fetch errored, the ranker is down,
+  // the request times out) the user is left with nothing and no way back.
+  // persistJobFeedRankedItemsForRunAdmin already deletes by run_id immediately
+  // before inserting, so the swap is atomic enough without this.
 
-  const run = existingRun ?? await createJobFeedRun({
-    user_id: userId,
-    local_date: localDate,
-    local_timezone: settings.user_timezone,
-    trigger_source: triggerSource,
-    idempotency_key: `${userId}:${localDate}`,
-    settings_snapshot: settings as unknown as Json,
-    metadata: {
-      stage: 'phase_4_ranking',
-      foundation_mode: true,
-      target_market: settings.target_market,
-      orchestrator,
-    },
+  const run = existingRun ?? await createJobFeedRunForToday({
+    userId,
+    localDate,
+    settings,
+    triggerSource,
+    orchestrator,
   });
 
   let runningRun = await updateJobFeedRun(run.id, {
@@ -1241,6 +1277,11 @@ export async function runJobFeedFoundationWorkflow(params: {
     completed_at: null,
     error_message: null,
     result_summary: null,
+    // Zero the previous attempt's counters too. Leaving them makes a failed
+    // rerun report "12 new roles today" over an empty list.
+    raw_jobs_fetched: 0,
+    jobs_after_prefilter: 0,
+    ranked_jobs_count: 0,
     metadata: mergeMetadata(run.metadata, {
       stage: 'phase_4_ranking',
       foundation_mode: true,
@@ -1375,14 +1416,24 @@ export async function runJobFeedFoundationWorkflow(params: {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown job feed workflow failure';
 
-    await updateJobFeedRun(run.id, {
-      status: 'failed',
-      completed_at: new Date().toISOString(),
-      error_message: errorMessage,
-      metadata: mergeMetadata(runningRun.metadata, {
-        workflow_status: 'failed',
-      }),
-    });
+    // Marking the run failed must never replace the real cause. If this write
+    // throws too, log it and still rethrow the original, otherwise the run is
+    // left 'running' AND the operator sees the wrong error.
+    try {
+      await updateJobFeedRun(run.id, {
+        status: 'failed',
+        completed_at: new Date().toISOString(),
+        error_message: errorMessage,
+        metadata: mergeMetadata(runningRun.metadata, {
+          workflow_status: 'failed',
+        }),
+      });
+    } catch (markFailedError) {
+      console.error(
+        '[job-feed] could not mark run failed:',
+        markFailedError instanceof Error ? markFailedError.message : markFailedError,
+      );
+    }
 
     throw error;
   }
@@ -1390,6 +1441,42 @@ export async function runJobFeedFoundationWorkflow(params: {
 
 async function getJobFeedRunByDate(userId: string, localDate: string): Promise<JobFeedRun | null> {
   return jobFeedRepo.getRunByDate(userId, localDate);
+}
+
+/**
+ * Insert today's run row, tolerating the read-then-insert race. Two clicks in
+ * the same tick both see "no run today" and both insert against a unique index
+ * on (user_id, local_date); the loser re-reads and reuses the winner's row
+ * rather than surfacing a raw 500.
+ */
+async function createJobFeedRunForToday(params: {
+  userId: string;
+  localDate: string;
+  settings: JobFeedSettings;
+  triggerSource: string;
+  orchestrator: JobFeedRunDiagnostics['orchestrator'];
+}): Promise<JobFeedRun> {
+  const { userId, localDate, settings, triggerSource, orchestrator } = params;
+  try {
+    return await createJobFeedRun({
+      user_id: userId,
+      local_date: localDate,
+      local_timezone: settings.user_timezone,
+      trigger_source: triggerSource,
+      idempotency_key: `${userId}:${localDate}`,
+      settings_snapshot: settings as unknown as Json,
+      metadata: {
+        stage: 'phase_4_ranking',
+        foundation_mode: true,
+        target_market: settings.target_market,
+        orchestrator,
+      },
+    });
+  } catch (error) {
+    const raced = await getJobFeedRunByDate(userId, localDate);
+    if (raced) return raced;
+    throw error;
+  }
 }
 
 async function createJobFeedRun(insert: {
@@ -1808,12 +1895,6 @@ function inferRankingSource(
     default:
       return null;
   }
-}
-
-function isMissingRankedItemsRelationError(error: { code?: string; message?: string }): boolean {
-  const message = (error.message ?? '').toLowerCase();
-  return error.code === '42P01'
-    || (message.includes('job_feed_ranked_items') && message.includes('does not exist'));
 }
 
 function buildFallbackJobDescription(job: JobFeedCanonicalJob): string {

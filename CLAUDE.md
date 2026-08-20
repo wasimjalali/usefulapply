@@ -15,7 +15,7 @@ Specialist agents are the **preferred** way to handle bug investigations, extern
 - **`karko-architect`** — For cross-cutting design decisions, refactors, and "where should this state live" questions. Use for anything that spans 3+ files or has non-obvious tradeoffs. Returns a plan with ordered steps; does not modify code itself. Powered by Opus.
 - **`supabase-dba`** — When writing or reviewing migrations in `supabase/migrations/`, changing RLS policies, touching schema, or when a query looks suspicious. Will not run migrations itself.
 - **`integration-tester`** — Before every commit touching components, hooks, API routes, or job-feed files. Runs tsc + lint + narrow spot-checks. Cheap and fast — uses Haiku.
-- **`job-feed-specialist`** — When editing anything under `src/lib/job-feed/**`, `src/inngest/job-feed.ts`, `src/app/api/job-feed/**`, or `src/components/job-feed/**`. Owns ingestion, prefilter, LLM ranker, batch reconcile, and settings flows.
+- **`job-feed-specialist`** — When editing anything under `src/lib/job-feed/**`, `src/app/api/job-feed/**`, or `src/components/job-feed/**`. Owns ingestion, prefilter, LLM ranker, batch reconcile, and settings flows.
 - **`karko-ui-designer`** — For UI/UX audits, redesigns, and visual polish. Carries brand tokens (navy/cream/gold), typography (Georgia+Arial), surface roles, radius/shadow scales, and anti-AI-slop rules in its system prompt. Can audit AND implement. Does NOT touch backend, API routes, data fetching, or Zustand stores.
 
 ### Opus escalation (automatic — do not wait to be asked)
@@ -142,9 +142,9 @@ Useful Apply is a Next.js 14+ app generating job application materials (CV, Cove
 - `src/lib/agents/prompts/` — Prompt builders (cv-prompt, cover-letter-prompt, email-prompts, fit-assessment-prompt)
 - `src/lib/models/` — Model configurations and task types
 - `src/lib/cv-parser/` — `section-splitter` (language detection + localized headers). CV parsing itself is LLM-only via `src/app/api/parse-cv/route.ts` (Claude reads the document and emits a `StructuredCV`); there are no per-section regex parser modules.
-- `src/app/api/` — API routes (agent-v2, regenerate, auth/*, stripe/*, contact, chat, generate-pdf, parse-cv)
+- `src/app/api/` — API routes (agent-v2, regenerate, auth/*, stripe/*, job-feed/*, tracker/*, contact, chat, credits/balance, files/*, parse-cv)
 - `src/hooks/` — React hooks (`useAgentV2` for SSE streaming)
-- `src/store/` — Zustand stores (useSessionStore, useCVStore, useUIStore)
+- `src/store/` — Zustand stores (useSessionStore, useCVStore, useUIStore, useFeedStore, useTrackerStore, useSettingsStore; `useAppStore` is a deprecated facade over the first three)
 - `src/components/` — React components (EmailPanel, ChatPanel, CVPanel, CoverLetterPanel, etc.)
 - `src/lib/middleware/rateLimiter.ts` — In-memory sliding window rate limiter
 - `src/lib/supabase/` — Supabase client, credits, sessions, accounts, admin

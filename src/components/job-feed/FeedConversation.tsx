@@ -264,11 +264,12 @@ export function FeedConversation() {
     store.addMessage(selectFeedThreadKey(store), message);
   }, []);
 
-  const currentSettingsInput = useCallback((): JobFeedSettingsInput => {
+  // Null when nothing is saved yet. The settings PUT is a full replace, so
+  // synthesising defaults here would overwrite countries, cities, work mode,
+  // salary floor and avoid-words the client has not loaded.
+  const currentSettingsInput = useCallback((): JobFeedSettingsInput | null => {
     const settings = useFeedStore.getState().overview?.settings;
-    return settings
-      ? toJobFeedInput(settings, browserTimeZone())
-      : createDefaultJobFeedInput(browserTimeZone());
+    return settings ? toJobFeedInput(settings, browserTimeZone()) : null;
   }, []);
 
   const startBuild = useCallback((firstTime: boolean) => {
@@ -295,6 +296,10 @@ export function FeedConversation() {
   }, [say]);
 
   const triggerRun = useCallback(async (firstTime: boolean) => {
+    // Clear the give-up flag first. It suppresses the building view in both
+    // columns, so leaving it set until the run returns makes "Run it again"
+    // look like a dead button for the whole run.
+    useFeedStore.getState().setPollGaveUp(false);
     startBuild(firstTime);
     const result = await runFeed();
     if (!result.ok) {
@@ -311,7 +316,6 @@ export function FeedConversation() {
       });
       return;
     }
-    useFeedStore.getState().setPollGaveUp(false);
     posthog?.capture('job_feed_manual_run_requested', { source: 'feed_conversation' });
     await finishBuild();
   }, [finishBuild, posthog, say, startBuild]);
@@ -357,6 +361,15 @@ export function FeedConversation() {
       return;
     }
 
+    const currentSettings = currentSettingsInput();
+    if (!currentSettings) {
+      say({
+        role: 'assistant',
+        content: "Give me a second, I'm still loading your feed settings. Ask me again in a moment and it'll stick.",
+      });
+      return;
+    }
+
     const store = useFeedStore.getState();
     const before = selectVisibleJobs(store);
     const nextFilters = {
@@ -370,7 +383,7 @@ export function FeedConversation() {
 
     if (!isPreviewing) {
       const saved = await saveFeedSettings(
-        applyFeedIntent(currentSettingsInput(), intent, intent.kind === 'add_city' ? cityFrom(intent.confirmation) : undefined),
+        applyFeedIntent(currentSettings, intent, intent.kind === 'add_city' ? cityFrom(intent.confirmation) : undefined),
       );
       if (!saved.ok) {
         store.setFilters(filters);
@@ -423,7 +436,12 @@ export function FeedConversation() {
         await triggerRun(false);
         return;
       case 'resume-feed': {
-        const saved = await saveFeedSettings({ ...currentSettingsInput(), enabled: true, consent_accepted: true });
+        const paused = currentSettingsInput();
+        if (!paused) {
+          say({ role: 'assistant', content: "Give me a second, I'm still loading your feed settings. Try that again in a moment." });
+          return;
+        }
+        const saved = await saveFeedSettings({ ...paused, enabled: true, consent_accepted: true });
         if (!saved.ok) {
           say({ role: 'assistant', content: saved.error });
           return;

@@ -21,16 +21,6 @@ const EMPTY_REJECTIONS: Record<JobFeedPrefilterRejectReason, number> = {
   seniority_mismatch: 0,
 };
 
-const SENIORITY_RANK: Record<NonNullable<JobFeedSettings['seniority_target']>, number> = {
-  intern: 0,
-  junior: 1,
-  mid: 2,
-  senior: 3,
-  lead: 4,
-  manager: 4,
-  staff: 5,
-};
-
 export function prefilterJobFeedJobs(params: {
   settings: JobFeedSettings;
   jobs: JobFeedCanonicalJob[];
@@ -154,27 +144,6 @@ function getRejectReasons(
 function hasEmploymentTypeMismatch(job: JobFeedCanonicalJob, settings: JobFeedSettings): boolean {
   if (!job.employment_type) return false;
   return !settings.employment_types.includes(job.employment_type);
-}
-
-function matchesRemotePreference(
-  preference: JobFeedSettings['remote_preference'],
-  job: JobFeedCanonicalJob,
-  settings: JobFeedSettings,
-): boolean {
-  switch (preference) {
-    case 'remote_only':
-      return job.work_mode === 'remote';
-    case 'remote_first':
-      return job.work_mode !== 'onsite' || matchesPreferredLocation(job, settings.preferred_locations);
-    case 'hybrid':
-      return job.work_mode === 'hybrid' || job.work_mode === 'remote';
-    case 'onsite':
-      return job.work_mode === 'onsite' || job.work_mode === 'hybrid';
-    case 'flexible':
-      return true;
-    default:
-      return true;
-  }
 }
 
 function getEffectiveRemotePreferences(settings: JobFeedSettings): Array<JobFeedSettings['remote_preference']> {
@@ -400,9 +369,9 @@ function matchesLocation(job: JobFeedCanonicalJob, preferredLocation: string): b
   const normalizedPreference = normalizeText(preferredLocation);
   if (!normalizedPreference) return false;
 
-  // Skip legacy "Remote (X)" chips saved on older profiles. Remote preference
-  // lives in settings.remote_preferences and is handled by matchesRemotePreference,
-  // so we don't want this string doing double duty.
+  // Skip legacy "Remote (X)" chips saved on older profiles. Work mode is a soft
+  // constraint the ranker reads off the description, so this string must not do
+  // double duty as one.
   if (normalizedPreference.includes('remote')) {
     return false;
   }
@@ -412,20 +381,6 @@ function matchesLocation(job: JobFeedCanonicalJob, preferredLocation: string): b
 
   return normalizedJobLocation.includes(normalizedPreference)
     || normalizedPreference.includes(normalizedJobLocation);
-}
-
-function inferSeniority(title: string): NonNullable<JobFeedSettings['seniority_target']> | null {
-  const normalizedTitle = normalizeText(title);
-
-  if (/(intern|internship|co op|coop)/.test(normalizedTitle)) return 'intern';
-  if (/(junior|jr|entry level|associate)\b/.test(normalizedTitle)) return 'junior';
-  if (/(staff|principal)\b/.test(normalizedTitle)) return 'staff';
-  if (/(manager|management)\b/.test(normalizedTitle)) return 'manager';
-  if (/(lead|head|director)\b/.test(normalizedTitle)) return 'lead';
-  if (/(senior|sr)\b/.test(normalizedTitle)) return 'senior';
-  if (/(mid|mid level|midlevel)\b/.test(normalizedTitle)) return 'mid';
-
-  return null;
 }
 
 function toJobPreview(job: JobFeedCanonicalJob): JobFeedJobPreview {

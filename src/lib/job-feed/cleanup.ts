@@ -4,10 +4,6 @@ import {
   JOB_FEED_RAW_PAYLOAD_RETENTION_DAYS,
   JOB_FEED_RUN_METADATA_RETENTION_DAYS,
 } from '@/lib/job-feed/constants';
-import type { Json } from '@/lib/supabase/types';
-
-const JOB_FEED_CLEANUP_COMPACTION_VERSION = 1;
-const UPDATE_BATCH_SIZE = 200;
 
 export interface JobFeedCleanupResult {
   rawPayloadRetentionDays: number;
@@ -86,77 +82,3 @@ async function compactOldRunMetadata(params: {
   return adminRepo.compactOldRunMetadata(params.runMetadataCutoff);
 }
 
-function isRedactedRawPayload(value: Json): boolean {
-  return isJsonRecord(value)
-    && value.redacted === true
-    && value.reason === 'retention_cleanup';
-}
-
-function isCompactedRunMetadata(value: Json): boolean {
-  return isJsonRecord(value)
-    && typeof value.cleanup_compacted_at === 'string';
-}
-
-function compactRunMetadata(metadata: Json, compactedAt: string): Json {
-  const record = isJsonRecord(metadata) ? metadata : {};
-  const compact: Record<string, Json> = {
-    cleanup_compacted_at: compactedAt,
-    cleanup_compaction_version: JOB_FEED_CLEANUP_COMPACTION_VERSION,
-    search_plan_count: getArrayCount(record.search_plan),
-    raw_fetch_count: getArrayCount(record.raw_fetch_ids),
-    failed_fetch_count: getArrayCount(record.failed_fetches),
-    ingestion_preview_count: getArrayCount(record.ingestion_preview_jobs),
-    survivors_preview_count: getArrayCount(record.prefilter_survivors_preview),
-    shortlist_preview_count: getArrayCount(record.shortlist_preview_jobs),
-    ranked_preview_count: getArrayCount(record.ranked_preview_jobs),
-  };
-
-  copyIfPresent(compact, record, 'stage');
-  copyIfPresent(compact, record, 'foundation_mode');
-  copyIfPresent(compact, record, 'target_market');
-  copyIfPresent(compact, record, 'last_trigger_source');
-  copyIfPresent(compact, record, 'workflow_status');
-  copyIfPresent(compact, record, 'canonical_jobs_count');
-  copyIfPresent(compact, record, 'canonical_jobs_created');
-  copyIfPresent(compact, record, 'canonical_jobs_updated');
-  copyIfPresent(compact, record, 'duplicate_count');
-  copyIfPresent(compact, record, 'prefilter_survivors_count');
-  copyIfPresent(compact, record, 'prefilter_rejected_count');
-  copyIfPresent(compact, record, 'prefilter_rejections_by_reason');
-  copyIfPresent(compact, record, 'ranking_candidate_count');
-  copyIfPresent(compact, record, 'ranking_status');
-  copyIfPresent(compact, record, 'ranking_error');
-  copyIfPresent(compact, record, 'ranking_model');
-  copyIfPresent(compact, record, 'ranked_items_materialized');
-
-  return compact;
-}
-
-function copyIfPresent(
-  target: Record<string, Json>,
-  source: Record<string, Json | undefined>,
-  key: string
-) {
-  const value = source[key];
-  if (value !== undefined) {
-    target[key] = value;
-  }
-}
-
-function getArrayCount(value: Json | undefined): number {
-  return Array.isArray(value) ? value.length : 0;
-}
-
-function isJsonRecord(value: Json): value is Record<string, Json | undefined> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function chunk<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size));
-  }
-
-  return chunks;
-}

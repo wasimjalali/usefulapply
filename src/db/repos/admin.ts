@@ -3,6 +3,7 @@
  * Stripe webhook. Everything else must go through a user-scoped repo.
  */
 import { and, desc, eq, gte, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm';
+import type { Json } from '@/lib/supabase/types';
 import { chunk, D1_MAX_PARAMS, isUniqueViolation, getDb, nowIso } from '../client';
 import {
   applicationSessions,
@@ -341,6 +342,73 @@ export async function redactOldRawFetchPayloads(cutoff: string): Promise<number>
   return Number((result as { meta?: { changes?: number } }).meta?.changes ?? 0);
 }
 
+const JOB_FEED_CLEANUP_COMPACTION_VERSION = 1;
+
+function isJsonRecord(value: Json): value is Record<string, Json | undefined> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getArrayCount(value: Json | undefined): number {
+  return Array.isArray(value) ? value.length : 0;
+}
+
+function copyIfPresent(
+  target: Record<string, Json>,
+  source: Record<string, Json | undefined>,
+  key: string,
+) {
+  const value = source[key];
+  if (value !== undefined) {
+    target[key] = value;
+  }
+}
+
+/** Already compacted, so the nightly pass can skip the row instead of rewriting it. */
+function isCompactedRunMetadata(value: Json): boolean {
+  return isJsonRecord(value) && typeof value.cleanup_compacted_at === 'string';
+}
+
+/**
+ * Shrink a finished run's metadata to the counters diagnostics actually read
+ * (ranking model and status, duplicate count, prefilter rejections, stage) and
+ * drop the bulky preview arrays. Replacing the blob wholesale would blind
+ * getJobFeedRunDiagnostics for every run past the retention window.
+ */
+function compactRunMetadata(metadata: Json, compactedAt: string): Json {
+  const record = isJsonRecord(metadata) ? metadata : {};
+  const compact: Record<string, Json> = {
+    cleanup_compacted_at: compactedAt,
+    cleanup_compaction_version: JOB_FEED_CLEANUP_COMPACTION_VERSION,
+    search_plan_count: getArrayCount(record.search_plan),
+    raw_fetch_count: getArrayCount(record.raw_fetch_ids),
+    failed_fetch_count: getArrayCount(record.failed_fetches),
+    ingestion_preview_count: getArrayCount(record.ingestion_preview_jobs),
+    survivors_preview_count: getArrayCount(record.prefilter_survivors_preview),
+    shortlist_preview_count: getArrayCount(record.shortlist_preview_jobs),
+    ranked_preview_count: getArrayCount(record.ranked_preview_jobs),
+  };
+
+  copyIfPresent(compact, record, 'stage');
+  copyIfPresent(compact, record, 'foundation_mode');
+  copyIfPresent(compact, record, 'target_market');
+  copyIfPresent(compact, record, 'last_trigger_source');
+  copyIfPresent(compact, record, 'workflow_status');
+  copyIfPresent(compact, record, 'canonical_jobs_count');
+  copyIfPresent(compact, record, 'canonical_jobs_created');
+  copyIfPresent(compact, record, 'canonical_jobs_updated');
+  copyIfPresent(compact, record, 'duplicate_count');
+  copyIfPresent(compact, record, 'prefilter_survivors_count');
+  copyIfPresent(compact, record, 'prefilter_rejected_count');
+  copyIfPresent(compact, record, 'prefilter_rejections_by_reason');
+  copyIfPresent(compact, record, 'ranking_candidate_count');
+  copyIfPresent(compact, record, 'ranking_status');
+  copyIfPresent(compact, record, 'ranking_error');
+  copyIfPresent(compact, record, 'ranking_model');
+  copyIfPresent(compact, record, 'ranked_items_materialized');
+
+  return compact;
+}
+
 export async function compactOldRunMetadata(cutoff: string): Promise<number> {
   const db = await getDb();
   const rows = await db
@@ -349,9 +417,13 @@ export async function compactOldRunMetadata(cutoff: string): Promise<number> {
     .where(and(eq(jobFeedRuns.status, 'completed'), lt(jobFeedRuns.completed_at, cutoff)));
   let compacted = 0;
   for (const row of rows) {
+    // Skip rows a previous pass already compacted, otherwise every historical
+    // run is rewritten on every nightly run, forever.
+    if (isCompactedRunMetadata(row.metadata as Json)) continue;
+    const now = nowIso();
     await db
       .update(jobFeedRuns)
-      .set({ metadata: { compacted: true }, updated_at: nowIso() })
+      .set({ metadata: compactRunMetadata(row.metadata as Json, now), updated_at: now })
       .where(eq(jobFeedRuns.id, row.id));
     compacted += 1;
   }

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/auth/server';
 import { canAccessJobFeed, canViewJobFeed, getJobFeedOverviewState } from '@/lib/job-feed/helpers';
-import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
+import { getJobFeedTierLimits, JOB_FEED_MIRRORED_ROLE_LIMIT } from '@/lib/job-feed/constants';
 import {
   getJobFeedRunDiagnostics,
   getLatestManualCompletedJobFeedRunAdmin,
   listJobFeedInboxPageAdmin,
-  listLatestJobFeedItemsAdmin,
+  resolveJobFeedRunForFeedAdmin,
 } from '@/lib/job-feed/server';
 import { JOB_FEED_INBOX_PAGE_SIZE } from '@/lib/job-feed/constants';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
@@ -81,13 +81,13 @@ export async function GET(request: NextRequest) {
 
     // Load the run metadata once; inbox pagination is a separate call so
     // we can keep the overview payload small even at scale.
-    const [feedRunSummary, firstPage, latestManualRun] = await Promise.all([
+    const [feedRun, firstPage, latestManualRun] = await Promise.all([
+      // Only the run is needed here. Building the item list too would join
+      // every ranked row in the window and throw it away, on a payload the
+      // client polls every 10s while a run is generating.
       latestRun
-        ? listLatestJobFeedItemsAdmin({
-            userId: user.id,
-            latestRun: latestRun ?? null,
-          }).then((result) => ({ run: result.run }))
-        : Promise.resolve({ run: null }),
+        ? resolveJobFeedRunForFeedAdmin({ userId: user.id, latestRun })
+        : Promise.resolve(null),
       listJobFeedInboxPageAdmin({
         userId: user.id,
         offset: 0,
@@ -114,8 +114,8 @@ export async function GET(request: NextRequest) {
     const backlogVisibleCount = !canAccess
       ? Math.min(rawBacklogCount, Math.max(0, visibleCap - rawTodayCount))
       : rawBacklogCount;
-    const runForState = latestRun && isStaleOverviewRun(latestRun) && feedRunSummary.run
-      ? feedRunSummary.run
+    const runForState = latestRun && isStaleOverviewRun(latestRun) && feedRun
+      ? feedRun
       : latestRun;
 
     // Compare saved target_roles in settings against AI-inferred titles in the
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
       settings: settings ?? null,
       latestRun: latestRun ?? null,
       latestManualRun: latestManualRun ?? null,
-      feedRun: feedRunSummary.run,
+      feedRun,
       latestRunDiagnostics: getJobFeedRunDiagnostics(latestRun ?? null),
       jobs,
       jobsTotalCount: totalCount,
@@ -170,9 +170,12 @@ function computeTargetRolesOutdated(
   if (!rawProfile || !isCurrentCareerProfile(rawProfile)) return false;
   const profile = rawProfile as CareerProfile;
 
+  // Same dedupe casing and same slice as the settings writer, otherwise the
+  // lengths never match and this reads as drift on every save.
   const profileRoles = profile.inferredTitles
     .map((title) => title.canonical.trim().toLowerCase())
-    .filter((v, i, a) => a.indexOf(v) === i)
+    .filter((v, i, a) => v.length > 0 && a.indexOf(v) === i)
+    .slice(0, JOB_FEED_MIRRORED_ROLE_LIMIT)
     .sort();
 
   const normalized = savedRoles

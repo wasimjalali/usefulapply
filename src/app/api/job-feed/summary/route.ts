@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/auth/server';
 import { canViewJobFeed } from '@/lib/job-feed/helpers';
-import { requireJobFeedAccess } from '@/lib/job-feed/auth';
 import { getProfile, updateProfile } from '@/db/repos/profiles';
 import { listLatestJobFeedItemsAdmin } from '@/lib/job-feed/server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
@@ -22,14 +21,14 @@ export async function GET(request: NextRequest) {
     const user = await getCurrentUser(request);
 
     if (!user) {
-      return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, unprocessedCount: 0 }, { status: 200 });
+      return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, unprocessedCount: 0, lastSeenRunDate: null }, { status: 200 });
     }
 
     const profile = await getProfile(user.id);
 
     const canAccess = canViewJobFeed(profile?.subscription_tier ?? null);
     if (!canAccess) {
-      return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, unprocessedCount: 0 });
+      return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, unprocessedCount: 0, lastSeenRunDate: null });
     }
 
     const { run, items } = await listLatestJobFeedItemsAdmin({ userId: user.id });
@@ -50,7 +49,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[job-feed/summary] unexpected error:', error);
-    return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, unprocessedCount: 0 }, { status: 200 });
+    return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, unprocessedCount: 0, lastSeenRunDate: null }, { status: 200 });
   }
 }
 
@@ -68,9 +67,15 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
-    const access = await requireJobFeedAccess(user);
-    if (!access.ok) {
-      return NextResponse.json({ canAccess: false, error: access.error }, { status: access.status });
+    // Match GET, which is free-tier. Gating this on the paid plans meant a free
+    // user got a badge from GET and then a 403 here, so their last-seen date
+    // was never written and the badge never cleared.
+    const profile = await getProfile(user.id);
+    if (!profile) {
+      return NextResponse.json({ error: 'Failed to update.' }, { status: 500 });
+    }
+    if (!canViewJobFeed(profile.subscription_tier)) {
+      return NextResponse.json({ canAccess: false, error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 
     const body = await request.json();
