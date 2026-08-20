@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/auth/server';
-import { canAccessJobFeed, canViewJobFeed, getJobFeedOverviewState } from '@/lib/job-feed/helpers';
+import { canAccessJobFeed, canViewJobFeed, getJobFeedOverviewState, getLocalDateKey } from '@/lib/job-feed/helpers';
 import { getJobFeedTierLimits, JOB_FEED_MIRRORED_ROLE_LIMIT } from '@/lib/job-feed/constants';
 import {
   getJobFeedRunDiagnostics,
@@ -60,6 +60,7 @@ export async function GET(request: NextRequest) {
         latestRunDiagnostics: null,
         jobs: [],
         jobsTotalCount: 0,
+        jobsMatchedCount: 0,
         jobsHasMore: false,
         jobsTodayCount: 0,
         jobsBacklogCount: 0,
@@ -121,6 +122,22 @@ export async function GET(request: NextRequest) {
     const runForState = latestRun && isStaleOverviewRun(latestRun) && feedRun
       ? feedRun
       : latestRun;
+    // Ranked count from today's run, before the free-tier list cap. Paid
+    // users already see every ranked row, so the two numbers match. A run
+    // from another day must not become "matched today".
+    const todayKey = getLocalDateKey(
+      new Date(),
+      settings?.user_timezone || latestRun?.local_timezone || 'UTC',
+    );
+    const rankedToday = latestRun?.local_date === todayKey
+      ? latestRun.ranked_jobs_count
+      : 0;
+    const jobsMatchedCount = Math.max(
+      0,
+      typeof rankedToday === 'number' && Number.isFinite(rankedToday)
+        ? rankedToday
+        : rawTodayCount,
+    );
 
     // Compare saved target_roles in settings against AI-inferred titles in the
     // career profile. Flag drift so the editing card can surface a notice.
@@ -138,6 +155,7 @@ export async function GET(request: NextRequest) {
       latestRunDiagnostics: getJobFeedRunDiagnostics(latestRun ?? null),
       jobs,
       jobsTotalCount: totalCount,
+      jobsMatchedCount,
       jobsHasMore: hasMore,
       jobsTodayCount,
       jobsBacklogCount: backlogVisibleCount,

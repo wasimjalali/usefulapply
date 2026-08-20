@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { CREDIT_UPDATE_EVENT } from '@/lib/utils/creditEvents';
 
@@ -13,7 +13,21 @@ export interface CreditBalance {
   nextResetDate: string | null;
 }
 
-export function useCreditsBalance() {
+export interface CreditsValue {
+  credits: CreditBalance | null;
+  isLoading: boolean;
+  refresh: () => Promise<void>;
+}
+
+export const CreditsContext = createContext<CreditsValue | null>(null);
+
+const IDLE: CreditsValue = {
+  credits: null,
+  isLoading: false,
+  refresh: async () => {},
+};
+
+export function useCreditsBalanceState(): CreditsValue {
   const { user } = useAuth();
   const [credits, setCredits] = useState<CreditBalance | null>(null);
   const [isLoading, setIsLoading] = useState(Boolean(user));
@@ -46,6 +60,10 @@ export function useCreditsBalance() {
   }, [fetchCredits]);
 
   return { credits, isLoading, refresh: fetchCredits };
+}
+
+export function useCreditsBalance(): CreditsValue {
+  return useContext(CreditsContext) ?? IDLE;
 }
 
 export function formatResetDate(iso: string | null | undefined): string | null {

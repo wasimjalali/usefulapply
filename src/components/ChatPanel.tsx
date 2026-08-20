@@ -176,7 +176,7 @@ export function ChatPanel({
     });
     setNeedsAccount(true);
   }
-  const { credits } = useCreditsBalance();
+  const { credits, isLoading: creditsLoading } = useCreditsBalance();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -1457,7 +1457,7 @@ export function ChatPanel({
           {spine && pendingRegen && !runningRegen && !isAgentWorking && (
             <DecisionChips
               chips={
-                (credits?.total ?? REGEN_META[pendingRegen].cost) >= REGEN_META[pendingRegen].cost
+                creditsLoading || (credits !== null && credits.total >= REGEN_META[pendingRegen].cost)
                   ? [
                       {
                         id: 'rewrite',
@@ -1465,7 +1465,10 @@ export function ChatPanel({
                         cost: `${REGEN_META[pendingRegen].cost} credits`,
                         variant: 'primary',
                         icon: <Edit3 className="h-4 w-4" />,
-                        onSelect: () => { void confirmRegen(pendingRegen); },
+                        onSelect: () => {
+                          if (creditsLoading) return;
+                          void confirmRegen(pendingRegen);
+                        },
                       },
                       {
                         id: 'keep-it',
@@ -1492,8 +1495,8 @@ export function ChatPanel({
                     ]
               }
               hint={
-                (credits?.total ?? REGEN_META[pendingRegen].cost) < REGEN_META[pendingRegen].cost
-                  ? `A rewrite needs ${REGEN_META[pendingRegen].cost}. Your ${credits?.planTier === 'free' ? 'free ' : ''}credits reset${formatResetDate(credits?.nextResetDate) ? ` on ${formatResetDate(credits?.nextResetDate)}` : ' next month'}.`
+                !creditsLoading && credits !== null && credits.total < REGEN_META[pendingRegen].cost
+                  ? `A rewrite needs ${REGEN_META[pendingRegen].cost}. Your ${credits.planTier === 'free' ? 'free ' : ''}credits reset${formatResetDate(credits.nextResetDate) ? ` on ${formatResetDate(credits.nextResetDate)}` : ' next month'}.`
                   : undefined
               }
             />

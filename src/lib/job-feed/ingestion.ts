@@ -28,6 +28,7 @@ import type {
   JobFeedIngestionFailure,
   JobFeedIngestionResult,
   JobFeedJobPreview,
+  JobFeedQueryProgress,
   JobFeedSearchPlanItem,
 } from '@/lib/job-feed/types';
 import type {
@@ -37,6 +38,7 @@ import type {
   Json,
   UpdateTables,
 } from '@/lib/supabase/types';
+import { getRun, updateRun } from '@/db/repos/jobFeed';
 
 interface ObservedNormalizedJob {
   draft: NormalizedSerpApiJob;
@@ -313,6 +315,34 @@ async function applyDatePostedFiltersToPlan(
 // remaining-call budget (daily budget minus the main plan), so a run can never
 // spend more SerpAPI calls than its tier's `maxDailyQueries`. Each call is real
 // money; see JOB_FEED_TIER_LIMITS in constants.ts.
+function asMetadataRecord(metadata: Json): Record<string, Json> {
+  if (metadata && typeof metadata === 'object' && !Array.isArray(metadata)) {
+    return { ...(metadata as Record<string, Json>) };
+  }
+  return {};
+}
+
+async function writeQueryProgress(
+  userId: string,
+  runId: string,
+  progress: JobFeedQueryProgress[],
+  writeChain: { current: Promise<void> },
+): Promise<void> {
+  const snapshot: JobFeedQueryProgress[] = progress.map((item) => ({ ...item }));
+  writeChain.current = writeChain.current.then(async () => {
+    try {
+      const run = await getRun(userId, runId);
+      if (!run) return;
+      await updateRun(userId, runId, {
+        metadata: { ...asMetadataRecord(run.metadata), progress: snapshot as unknown as Json },
+      });
+    } catch (error) {
+      console.error('[ingestion] progress write failed:', error);
+    }
+  });
+  await writeChain.current;
+}
+
 const JOB_FEED_FALLBACK_BUDGET = 1;
 
 // Maximum opportunistic page-2 fetches per run. Triggered when a main-pass
@@ -368,6 +398,15 @@ export async function ingestJobFeedRunJobs(params: {
   const dailyCallBudget = maxQueries ?? JOB_FEED_MAX_DAILY_QUERIES;
   let extraCallsRemaining = Math.max(0, dailyCallBudget - mainPlanLength);
 
+  const progress: JobFeedQueryProgress[] = searchPlan.map((item) => ({
+    query: item.query,
+    status: 'running',
+    found: 0,
+  }));
+  const progressWrites: { current: Promise<void> } = { current: Promise.resolve() };
+  const persistProgress = () => writeQueryProgress(userId, runId, progress, progressWrites);
+  await persistProgress();
+
   const rawFetchIds: string[] = [];
   const observedJobs: ObservedNormalizedJob[] = [];
   const failedFetches: JobFeedIngestionFailure[] = [];
@@ -391,13 +430,22 @@ export async function ingestJobFeedRunJobs(params: {
     ? Math.max(1, Math.ceil(maxRawJobs / searchPlan.length))
     : maxRawJobs;
   const mainPassResults = await Promise.allSettled(
-    searchPlan.map((planItem) => runOneSerpApiFetch({
-      admin,
-      runId,
-      userId,
-      planItem,
-      remainingRawCapacity: perCallCap,
-    })),
+    searchPlan.map(async (planItem, index) => {
+      const result = await runOneSerpApiFetch({
+        admin,
+        runId,
+        userId,
+        planItem,
+        remainingRawCapacity: perCallCap,
+      });
+      const slot = progress[index];
+      if (slot) {
+        slot.status = result.failedFetch ? 'failed' : 'done';
+        slot.found = result.observedJobs.length;
+      }
+      await persistProgress();
+      return result;
+    }),
   );
 
   // Per-plan-index next_page_token handed back by SerpAPI on the main pass.
@@ -415,6 +463,8 @@ export async function ingestJobFeedRunJobs(params: {
       const planItem = searchPlan[i];
       console.error('[ingestion] runOneSerpApiFetch threw:', message);
       failedFetches.push({ query: planItem.query, country: planItem.country, error: message });
+      const slot = progress[i];
+      if (slot) slot.status = 'failed';
       continue;
     }
 
@@ -426,6 +476,7 @@ export async function ingestJobFeedRunJobs(params: {
     mainPassJobCounts[i] = fetchResult.observedJobs.length;
     mainPassNextPageTokens[i] = fetchResult.nextPageToken;
   }
+  await persistProgress();
 
   // ---- Pagination pass ----
   // Opportunistic page-2 retry: when a main-pass query returned a thin
@@ -461,6 +512,12 @@ export async function ingestJobFeedRunJobs(params: {
       rawJobsFetched += pageTwoResult.observedJobs.length;
       paginationBudget -= 1;
       extraCallsRemaining -= 1;
+      const slot = progress[i];
+      if (slot) {
+        slot.found += pageTwoResult.observedJobs.length;
+        if (pageTwoResult.failedFetch && slot.found === 0) slot.status = 'failed';
+      }
+      await persistProgress();
 
       if (rawJobsFetched >= maxRawJobs) break;
     }
@@ -523,6 +580,12 @@ export async function ingestJobFeedRunJobs(params: {
       fallbacksRemaining -= 1;
       extraCallsRemaining -= 1;
       searchPlan.push(fallbackPlanItem); // make the fallback visible in diagnostics
+      progress.push({
+        query: fallbackPlanItem.query,
+        status: fetchResult.failedFetch ? 'failed' : 'done',
+        found: fetchResult.observedJobs.length,
+      });
+      await persistProgress();
 
       if (rawJobsFetched >= maxRawJobs) break;
     }
@@ -564,6 +627,12 @@ export async function ingestJobFeedRunJobs(params: {
       rawJobsFetched += fetchResult.observedJobs.length;
       extraCallsRemaining -= 1;
       searchPlan.push(retryPlanItem); // make the retry visible in diagnostics
+      progress.push({
+        query: retryPlanItem.query,
+        status: fetchResult.failedFetch ? 'failed' : 'done',
+        found: fetchResult.observedJobs.length,
+      });
+      await persistProgress();
     }
   }
 
@@ -581,6 +650,7 @@ export async function ingestJobFeedRunJobs(params: {
     duplicateCount: Math.max(0, observedJobs.length - aggregatedJobs.size),
     failedFetches,
     previewJobs: sortedCanonicalJobs.slice(0, 5).map(toJobPreview),
+    progress: progress.map((item) => ({ ...item })),
   };
 }
 

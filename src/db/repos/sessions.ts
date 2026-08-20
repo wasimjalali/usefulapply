@@ -181,7 +181,7 @@ export interface TrackerApplicationRow {
 }
 
 /** Enough for any real job hunt, and it bounds the tracker chat prompt. */
-const TRACKER_OVERVIEW_LIMIT = 300;
+export const TRACKER_OVERVIEW_LIMIT = 300;
 
 /**
  * Tracker: every generated session with the fields the count pills, the header

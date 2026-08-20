@@ -6,6 +6,7 @@ import { AlertCircle, ArrowUpRight, Briefcase, Check, Loader2, SlidersHorizontal
 import { useAuth } from '@/contexts/AuthContext';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
 import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
+import { readJobFeedQueryProgress, type JobFeedQueryProgress } from '@/lib/job-feed/types';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { useCreditsBalance } from '@/hooks/useCreditsBalance';
 import { resolveFeedBuild, useFeedStore } from '@/store/useFeedStore';
@@ -76,7 +77,19 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
 
   // Building takes the whole canvas: J2's searches are the thing to look at.
   if (build) {
-    return <BuildingCanvas queryBudget={queryBudget} strategy={strategy} canSteer={canSteer} build={build} />;
+    const liveRun = overview?.latestRun;
+    const liveProgress = liveRun && (liveRun.status === 'running' || liveRun.status === 'queued')
+      ? readJobFeedQueryProgress(liveRun.metadata)
+      : [];
+    return (
+      <BuildingCanvas
+        queryBudget={queryBudget}
+        strategy={strategy}
+        canSteer={canSteer}
+        build={build}
+        progress={liveProgress}
+      />
+    );
   }
 
   if (view === 'edit' && canSteer) {
@@ -86,6 +99,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         profile={careerProfile}
         strategy={strategy}
         queryBudget={queryBudget}
+        tier={tier}
         pill={editPill}
         onPillChange={(pill) => useFeedStore.getState().setEditPill(pill)}
         onBack={() => useFeedStore.getState().backToList()}
@@ -176,6 +190,8 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         : `${todayCount} new ${plural(todayCount, 'role', 'roles')} today`)
       : `${jobs.length} ${plural(jobs.length, 'role', 'roles')}`;
   const rankedFor = buildRankedForLine(overview, datePrefs);
+  const feedCap = overview?.feedCap ?? jobs.length;
+  const hiddenMatched = Math.max(0, (overview?.jobsMatchedCount ?? 0) - feedCap);
   const hasMore = !showingSaved
     && overview !== null
     && (overview.jobs.length + extraJobs.length) < (overview.jobsTotalCount ?? 0);
@@ -271,8 +287,11 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         {knownFree && !readOnly && !showingSaved && jobs.length > 0 && (
           <div className="flex items-center gap-4 rounded-2xl border border-gold-200 bg-gold-50 px-5 py-4">
             <p className="min-w-0 flex-1 text-sm leading-relaxed text-charcoal">
-              <strong className="font-semibold">You&apos;re seeing your top {jobs.length} today.</strong>{' '}
-              Plus shows every role that matched, searches more sources and lets you steer the feed.
+              <strong className="font-semibold">You&apos;re seeing your top {feedCap} today.</strong>
+              {hiddenMatched > 0
+                ? ` ${hiddenMatched} more ${plural(hiddenMatched, 'role', 'roles')} matched today.`
+                : ''}
+              {' '}Plus shows every role that matched, searches more sources and lets you steer the feed.
             </p>
             <button
               type="button"
@@ -305,19 +324,21 @@ function EmptyCanvas({ icon, title, body }: { icon: React.ReactNode; title: stri
 
 /**
  * J2. The searches are real: they come from the saved strategy, in the order
- * the run works through them. There is no per-query progress from the server
- * yet, so nothing here pretends to tick one off (see BACKEND-GAPS.md).
+ * the run works through them. Per-query found counts come from
+ * metadata.progress on the run row, polled with the overview.
  */
 function BuildingCanvas({
   queryBudget,
   strategy,
   canSteer,
   build,
+  progress,
 }: {
   queryBudget: number;
   strategy: ReturnType<typeof useFeedStore.getState>['strategy'];
   canSteer: boolean;
   build: NonNullable<ReturnType<typeof useFeedStore.getState>['build']>;
+  progress: JobFeedQueryProgress[];
 }) {
   const queries = (strategy?.queries ?? []).slice(0, queryBudget);
 
@@ -333,15 +354,21 @@ function BuildingCanvas({
       </header>
 
       <div className="min-h-0 flex-1 space-y-3 overflow-auto px-5 py-4">
-        {queries.map((query, index) => (
+        {queries.map((query, index) => {
+          const item = progress.find((entry) => entry.query === query.query) ?? progress[index];
+          const done = build.searchDone || item?.status === 'done' || item?.status === 'failed';
+          const foundLine = item && (item.status === 'done' || item.status === 'failed')
+            ? `${item.found} found`
+            : null;
+          return (
           <div
             key={`${query.query}-${index}`}
             className={`flex items-start gap-3 rounded-2xl border px-4 py-3 ${
-              build.searchDone ? 'border-gold-200 bg-gold-50' : 'border-cream-200 bg-cream-50'
+              done ? 'border-gold-200 bg-gold-50' : 'border-cream-200 bg-cream-50'
             }`}
           >
             <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full">
-              {build.searchDone ? (
+              {done ? (
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-gold-400 text-white">
                   <Check className="h-3 w-3" strokeWidth={2.5} />
                 </span>
@@ -352,9 +379,11 @@ function BuildingCanvas({
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-navy-800">{query.query}</p>
               <p className="mt-0.5 text-xs text-warm-gray">{query.rationale}</p>
+              {foundLine && <p className="mt-1 text-[11px] text-warm-gray">{foundLine}</p>}
             </div>
           </div>
-        ))}
+          );
+        })}
 
         {queries.length === 0 && (
           <p className="text-sm text-warm-gray">

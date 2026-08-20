@@ -1,11 +1,17 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { ConversationColumn } from '@/components/shell/ConversationColumn';
 import { CanvasColumn } from '@/components/shell/CanvasColumn';
 import { KitExportHost } from '@/components/kit/KitExportHost';
+import { CreditsContext, useCreditsBalanceState } from '@/hooks/useCreditsBalance';
 import { useUIStore, type KitTab } from '@/store/useUIStore';
+
+function CreditsProvider({ children }: { children: ReactNode }) {
+  const value = useCreditsBalanceState();
+  return <CreditsContext.Provider value={value}>{children}</CreditsContext.Provider>;
+}
 
 export function AppShell() {
   const isAgentWorking = useUIStore((s) => s.isAgentWorking);
@@ -39,16 +45,18 @@ export function AppShell() {
   };
 
   return (
-    <div className="relative flex h-full w-full min-w-0 min-h-0 bg-cream-100">
-      <KitExportHost />
-      <Sidebar isWorking={isAgentWorking} />
-      <ConversationColumn onTabChange={handleTabChange} />
-      <CanvasColumn
-        collapsed={canvasCollapsed}
-        onToggleCollapsed={() => setCanvasCollapsed(!canvasCollapsed)}
-        toolbarNode={toolbarNode}
-        setToolbarNode={setToolbarNode}
-      />
-    </div>
+    <CreditsProvider>
+      <div className="relative flex h-full w-full min-w-0 min-h-0 bg-cream-100">
+        <KitExportHost />
+        <Sidebar isWorking={isAgentWorking} />
+        <ConversationColumn onTabChange={handleTabChange} />
+        <CanvasColumn
+          collapsed={canvasCollapsed}
+          onToggleCollapsed={() => setCanvasCollapsed(!canvasCollapsed)}
+          toolbarNode={toolbarNode}
+          setToolbarNode={setToolbarNode}
+        />
+      </div>
+    </CreditsProvider>
   );
 }

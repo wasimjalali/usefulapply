@@ -135,19 +135,23 @@ export function FeedConversation() {
   // While a run is in flight the overview is the only source of truth for
   // "is it done". 5s while it is young, 10s after two minutes, capped.
   const runStatus = overview?.latestRun?.status;
+  const building = Boolean(build && !build.searchDone);
   useEffect(() => {
     if (isPreviewing) return;
-    const inFlight = runStatus === 'running' || runStatus === 'queued';
+    const inFlight = runStatus === 'running' || runStatus === 'queued' || isRunning || building;
     if (!inFlight) return;
 
     const startedAt = Date.now();
     let cancelled = false;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    let delayMs = 10_000;
+    // Same-tab runs need the per-query progress before the POST returns.
+    // 5s stays under the overview's 15/minute ceiling.
+    let delayMs = isRunning || building ? 5_000 : 10_000;
     let warned = false;
     const schedule = () => {
       if (cancelled) return;
       const elapsed = Date.now() - startedAt;
+      if (elapsed > 2 * 60_000 && delayMs < 10_000) delayMs = 10_000;
       if (elapsed > 20 * 60_000) {
         delayMs = 30_000;
         if (!warned) {
@@ -174,7 +178,7 @@ export function FeedConversation() {
       cancelled = true;
       if (timeoutId !== null) clearTimeout(timeoutId);
     };
-  }, [isPreviewing, runStatus]);
+  }, [building, isPreviewing, isRunning, runStatus]);
 
   // ---- derived ------------------------------------------------------------
 

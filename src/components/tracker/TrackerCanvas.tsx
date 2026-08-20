@@ -5,6 +5,7 @@ import { ArrowUpRight, ChevronDown, Loader2, Plus, Search, Trash2 } from 'lucide
 import { useAuth } from '@/contexts/AuthContext';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
 import { openStoredSession } from '@/lib/open-session';
+import { TRACKER_OVERVIEW_LIMIT } from '@/db/repos/sessions';
 import { useUIStore } from '@/store/useUIStore';
 import {
   selectRowsForCounts,
@@ -155,6 +156,9 @@ export function TrackerCanvas() {
   const headerLine = [
     `${countRows.length} application${countRows.length === 1 ? '' : 's'}`,
     dueThisWeek > 0 ? `${dueThisWeek} follow-up${dueThisWeek === 1 ? '' : 's'} due this week` : null,
+    allRows.length >= TRACKER_OVERVIEW_LIMIT
+      ? `Showing the most recent ${TRACKER_OVERVIEW_LIMIT}`
+      : null,
   ]
     .filter(Boolean)
     .join(' · ');

@@ -1503,6 +1503,7 @@ export async function runJobFeedFoundationWorkflow(params: {
           : null,
         ranked_preview_jobs: toJson(rankedPreviewItems),
         ranked_items_materialized: materializedRanking.materialized,
+        progress: toJson(ingestion.progress),
       }),
     });
 

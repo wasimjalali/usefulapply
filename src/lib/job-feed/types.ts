@@ -5,6 +5,7 @@ import type {
   JobFeedCanonicalJob,
   JobFeedRun,
   JobFeedSettings,
+  Json,
 } from '@/lib/supabase/types';
 
 export type JobFeedOverviewState =
@@ -57,8 +58,15 @@ export interface JobFeedOverviewResponse {
   // Subsequent pages come from /api/job-feed/inbox.
   jobs: JobFeedFeedItem[];
   // Total visible jobs across the whole 7-day inbox (blocked jobs already
-  // stripped). Drives Load More's remaining count.
+  // stripped). Drives Load More's remaining count. Free users see this
+  // capped at visibleCount; jobsMatchedCount is the uncapped figure.
   jobsTotalCount: number;
+  /**
+   * How many roles today's run ranked, before the free-tier list cap.
+   * The item list and jobsTotalCount stay capped. J7's "N more roles
+   * matched today" line reads this.
+   */
+  jobsMatchedCount: number;
   jobsHasMore: boolean;
   // How many jobs today's run delivered, unfiltered by user actions. This
   // is the agent's "how fresh is my feed" signal and stays fixed for the
@@ -94,6 +102,43 @@ export interface JobFeedRunDiagnostics {
   duplicateCount: number;
   failedFetchCount: number;
   rankedItemsMaterialized: boolean | null;
+}
+
+export type JobFeedQueryProgressStatus = 'pending' | 'running' | 'done' | 'failed';
+
+/** Written onto job_feed_runs.metadata.progress after each SerpAPI call. */
+export interface JobFeedQueryProgress {
+  query: string;
+  status: JobFeedQueryProgressStatus;
+  found: number;
+}
+
+const QUERY_PROGRESS_STATUSES: readonly JobFeedQueryProgressStatus[] = [
+  'pending',
+  'running',
+  'done',
+  'failed',
+];
+
+export function readJobFeedQueryProgress(metadata: Json | null | undefined): JobFeedQueryProgress[] {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return [];
+  const raw = (metadata as Record<string, unknown>).progress;
+  if (!Array.isArray(raw)) return [];
+  const items: JobFeedQueryProgress[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
+    const record = entry as Record<string, unknown>;
+    if (typeof record.query !== 'string' || !record.query.trim()) continue;
+    const status = QUERY_PROGRESS_STATUSES.includes(record.status as JobFeedQueryProgressStatus)
+      ? (record.status as JobFeedQueryProgressStatus)
+      : null;
+    if (!status) continue;
+    const found = typeof record.found === 'number' && Number.isFinite(record.found)
+      ? Math.max(0, Math.floor(record.found))
+      : 0;
+    items.push({ query: record.query, status, found });
+  }
+  return items;
 }
 
 export interface JobFeedSettingsInput {
@@ -244,6 +289,7 @@ export interface JobFeedIngestionResult {
   duplicateCount: number;
   failedFetches: JobFeedIngestionFailure[];
   previewJobs: JobFeedJobPreview[];
+  progress: JobFeedQueryProgress[];
 }
 
 export type JobFeedPrefilterRejectReason =

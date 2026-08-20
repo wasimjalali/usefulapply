@@ -5,7 +5,8 @@ import { ArrowLeft, Pencil } from 'lucide-react';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import type { SearchStrategy } from '@/lib/job-feed/search-strategy';
 import type { JobFeedOverviewResponse } from '@/lib/job-feed/types';
-import { countryLabel } from './feed-format';
+import { getJobFeedInputCaps } from '@/lib/job-feed/constants';
+import { countryLabel, plural } from './feed-format';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
 import { formatDayMonth } from '@/lib/utils/format-date';
 import type { FeedEditPill } from '@/store/useFeedStore';
@@ -19,6 +20,8 @@ interface FeedEditViewProps {
   strategy: SearchStrategy | null;
   /** How many of the planned queries today's plan actually runs. */
   queryBudget: number;
+  /** Plan the input caps are read against. */
+  tier: string | null;
   pill: FeedEditPill;
   onPillChange: (pill: FeedEditPill) => void;
   onBack: () => void;
@@ -53,6 +56,7 @@ export function FeedEditView({
   profile,
   strategy,
   queryBudget,
+  tier,
   pill,
   onPillChange,
   onBack,
@@ -97,6 +101,10 @@ export function FeedEditView({
   const plannedQueries = strategy?.queries ?? [];
   const todaysQueries = plannedQueries.slice(0, queryBudget);
   const laterQueries = plannedQueries.slice(queryBudget);
+  const caps = getJobFeedInputCaps(tier);
+  const capLine = caps.maxRoles > 0
+    ? `This plan searches up to ${caps.maxRoles} ${plural(caps.maxRoles, 'role', 'roles')} across ${caps.maxCountries} ${plural(caps.maxCountries, 'country', 'countries')}. Extra ones stay saved for a later run.`
+    : null;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -237,6 +245,7 @@ export function FeedEditView({
 
         {pill === 'preferences' && (
           <div className="rounded-2xl border border-cream-200 bg-cream-50 px-5 py-5 shadow-sm">
+            {capLine && <p className="mb-4 text-sm text-warm-gray">{capLine}</p>}
             {settings ? (
               <div className="grid grid-cols-2 gap-5">
                 <Row label="COUNTRIES" value={(settings.target_countries ?? []).map(countryLabel).join(', ') || 'Not set'} />
