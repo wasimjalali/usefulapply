@@ -678,7 +678,7 @@ export function FeedConversation() {
         <div ref={endRef} />
       </div>
 
-      <div className="flex-shrink-0 border-t border-cream-200 bg-cream-50 px-5 pb-4 pt-2.5">
+      <div className="flex-shrink-0 bg-cream-50 px-5 pb-4 pt-2.5">
         <div className="flex items-end gap-2 rounded-2xl border border-cream-200 bg-white px-3.5 py-2.5 shadow-sm">
           <textarea
             value={input}

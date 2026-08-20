@@ -1584,7 +1584,7 @@ export function ChatPanel({
 
         {/* Input Area — hidden while the launchpad owns the JD input */}
         {(spine || !isLaunchpadState) && (
-        <div className={isDesktopDocked || spine ? 'border-t border-cream-200 bg-cream-50 px-4 pt-2.5 pb-4 [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[760px]' : ''}>
+        <div className={isDesktopDocked || spine ? 'bg-cream-50 px-4 pt-2.5 pb-4 [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[760px]' : ''}>
           <ChatInput
             value={inputValue}
             onChange={setInputValue}
