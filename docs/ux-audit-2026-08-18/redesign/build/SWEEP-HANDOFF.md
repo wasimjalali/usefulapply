@@ -689,72 +689,117 @@ A8.
 
 ---
 
+## Backend pass groups 3 and 4, 20 August 2026
+
+Staging after this session is still `4c0fac87` until deploy. Git HEAD will
+move. Groups 3 and 4 landed together. None on `main`. Group 5 is the
+migration batch and needs Wasim in the loop.
+
+**A7.** Verification only, not rebuilt. A live Free run was not possible:
+Playwright is still locked on another Chrome instance, and no Free account
+was signed in. Recorded as pending a live check by Wasim. One run, through
+the app, confirm via run diagnostics and Workers Logs that the reserve
+fires (Free is maxDailyQueries 2 / maxMainQueries 1). Do not spend more
+than one run.
+
+**A8.** Plus is `maxDailyQueries: 3, maxMainQueries: 2`. Max is `5 / 4`.
+Free stays `2 / 1`. Pagination stays. The extra call is only spent on an
+empty or thin day. The constants comment records Wasim's 20 August
+sign-off, the way the Free reserve comment already does.
+`JOB_FEED_MAX_DAILY_QUERIES` is now 5 so the global ceiling matches Max.
+
+**B4.** Overview returns `jobsMatchedCount` as today's `ranked_jobs_count`,
+before the free-tier list cap. The item list and `jobsTotalCount` stay
+capped. J7 reads "N more roles matched today" when that number is above
+the cap. If ranking already capped the day at 5, the extra is 0 and the
+line does not invent a number.
+
+**B5.** Preferences pill states the cap against `getJobFeedInputCaps(tier)`.
+Free is 1 role and 1 country, Plus 2 and 2, Max 4 and 4.
+`getJobFeedInputCaps('free')` no longer returns the locked zeros.
+
+**B6.** One balance fetch at AppShell (`CreditsProvider`). ChatPanel and
+FeedCanvas read the same number. The rewrite chip no longer treats a
+missing balance as enough to pay. The 402 stays as the backstop.
+FeedCanvas's `canAffordFit` read was not rebuilt, only lifted.
+
+**B7.** `metadata.progress` is `{ query, status, found }[]`, written after
+each SerpAPI call. No schema change. The client polls the overview every
+5s while a run is in flight. BuildingCanvas ticks each query off with
+"N found". The completion write now carries `progress` so a stale
+`runningRun.metadata` merge cannot wipe it.
+
+**B8.** Tracker header adds "Showing the most recent 300" when the loaded
+list hits `TRACKER_OVERVIEW_LIMIT`. No paging.
+
+**B9.** `POST /api/tracker/follow-up` takes a session id, loads that row
+and the user's CVs from D1, builds MasterContext on the server and reuses
+`unifiedWriterAgent.generateFollowUpEmail`. It persists the letter. The
+tracker no longer needs `currentSession` or `currentCV` in memory.
+Prompts were not touched.
+
+**B11.** Verified. The Password row shows only "Change". The invented
+"Last changed" line is already omitted. Nothing written.
+
+**B12.** create-checkout, create-addon-checkout and create-portal now
+point at `/dashboard?settings=usage`. URL strings only. No webhook and
+no credit logic. `/subscription` still 308s for older links.
+
+**T3 review.** B9 charges credits, so the gate is T3. Four `grok-4.5`
+lenses. Cycle 1 security said NO: `reserveCredits` returns success for a
+captured or released `x-request-id`, so a replay regenerated follow-ups
+for free. Checked against `credits.ts:962-965` and confirmed. Cycle 2
+fixed it: generate only when status is `reserved`, captured replays the
+stored letter, a reserved row only replays if it wrote that letter
+(`reservationKey` on the JSON), persist-then-throw no longer refunds,
+null reservations fail closed, and the key includes `sessionId`. Residual
+Low: two in-flight POSTs with the same key can both generate under one
+paid reserve, bounded by the regenerate rate limit.
+
+**Verification.** `tsc` 0 errors. Lint 71 errors, 60 warnings (under
+72 / 60). Playwright was again locked on another Chrome instance, so the
+Max-account walk (tracker, older chat, delete with Keep then Delete,
+bookmark toggle, consent withdraw and re-grant) still did not run, and
+A7's Free run did not run.
+
+Stop here. Group 5 is the migration batch: A3's counter, A6's ceiling,
+B10's typed column and C3's pending production migration. Needs Wasim.
+
+---
+
 ## Kickoff prompt for the next session
 
-> You are continuing the post-batch sweep of the Useful Apply UX redesign on
-> branch `rebrand/usefulapply`. `main` is off limits: no PR, no merge. Staging
-> is https://usefulapply.com, deployed from this branch at version `6e8f3950`.
+> You are continuing the backend pass of the Useful Apply UX redesign on
+> branch `rebrand/usefulapply`. `main` is off limits: no PR, no merge.
 >
-> Read `docs/ux-audit-2026-08-18/redesign/build/SWEEP-HANDOFF.md` first, then
-> `BACKEND-GAPS.md` in the same directory. Both are current as of 20 August
-> 2026.
+> Read `docs/ux-audit-2026-08-18/redesign/build/BACKEND-DECISIONS.md` first,
+> then `BACKEND-GAPS.md` and `SWEEP-HANDOFF.md`. Groups 1 to 4 are done.
+> Group 5 is yours: the migration batch. It needs Wasim in the loop.
 >
-> **The sweep is finished.** Passes 1, 2 and 3 are done, all four open
-> decisions are answered and built, both adversarial reviews and the commit
-> security review are done with every finding fixed or recorded, the landing
-> cache is purged and everything is verified on the Max account in the browser.
-> Thirty-six commits, none on `main`. Do not redo any of it.
+> **Group 5:** A3's server-owned screening counter, A6's prep ceiling, B10's
+> typed transaction column, and C3's pending production migration. One
+> migration pass, not four. Confirm before running anything against
+> production D1. Staging already has the profile columns.
 >
-> **What is left is `BACKEND-GAPS.md`.** Every entry still open there was
-> deliberately skipped because it needs a schema change, an npm package, a
-> Stripe route, an auth change or a prompt change. Bring each one to Wasim with
-> the tradeoff rather than guessing, the way the four decisions were handled.
+> **Carry-overs, do not block on them:** A7's live Free run (one run, through
+> the app, check diagnostics and Workers Logs) and the signed-in Max-account
+> walk (tracker, older chat, delete with Keep then Delete, bookmark, consent
+> withdraw and re-grant). Playwright was locked on another Chrome instance
+> three sessions running.
 >
-> **Start with the three that are security or money, in this order:**
->
-> 1. **`POST /api/job-feed/apply` does not check the credit balance.** Money,
->    and the only one of the three a user could exploit today.
-> 2. **Job-feed rate limits are keyed by client IP, before authentication.** A
->    shared IP throttles innocent users and a rotating one defeats the limit.
-> 3. **Deleting an account needs no re-authentication.** The endpoint
->    authenticates and rate-limits but never asks for the current password, so
->    a borrowed session destroys the account with no recovery. This one touches
->    Better Auth, so it needs Wasim's sign-off before anything is written.
->
-> **Two smaller things also worth raising:**
->
-> - **The landing route needs a shorter `s-maxage`.** It is served with
->   `s-maxage=31536000`, so every static copy change needs a manual Cloudflare
->   purge to reach visitors. The zone was purged by hand this session. Propose
->   the header change so it stops recurring.
-> - **The ranking system prompt still opens with "Every morning you evaluate"**
->   (`workers-ai-ranking.ts:86`), which is stale now the feed is real time. It
->   is a model prompt, so changing it can shift ranking behaviour. Ask first.
->
-> **Two review findings were recorded rather than fixed.** Neither is urgent
-> and both are explained in this handoff: a reused entry keeps its `created_at`
-> because `stripIdentity` makes that column immutable on purpose, and two tabs
-> can race onto the same reuse target, which widens a stale-copy hazard that
-> already exists for any saved session.
->
-> Rules: surgical edits only, npm only, no new packages. Do not touch Stripe
-> webhook or credit-deduction logic, D1 schema or migrations, Better Auth
-> config, or `src/lib/agents/**` prompts without asking. Copy rules on any
+> Rules: surgical edits only, npm only, no new packages. Copy rules on any
 > user-facing string, and in docs and commit messages too: no em dashes,
-> contractions, short sentences, no filler, "X, Y and Z".
+> contractions, short sentences, no filler, "X, Y and Z". Group 5 is a
+> migration batch, so D1 schema is in scope after Wasim confirms.
 >
-> Before calling anything done: `npx tsc --noEmit` must be 0 errors, and
-> `npm run lint` must not exceed 72 errors and 61 warnings. Note tsc OOMs on
-> the default Node heap on this machine, on a clean `HEAD` too, so run it as
-> `NODE_OPTIONS=--max-old-space-size=8192 npx tsc --noEmit`. Then deploy with
+> Before calling anything done: `NODE_OPTIONS=--max-old-space-size=8192 npx tsc
+> --noEmit` must be 0 errors, and `npm run lint` must not exceed 72 errors and
+> 60 warnings. Then deploy with
 > `NEXT_PUBLIC_SITE_URL=https://usefulapply.com NEXT_PUBLIC_SITE_STAGE=staging npm run deploy:cf`
-> and verify on staging in the browser. The deploy failed twice on transient
-> Cloudflare errors (`Authentication error [code: 10000]` on the secrets
-> endpoint, and "Could not create remote preview session") and worked on a
-> straight retry both times. `npx opennextjs-cloudflare deploy` alone skips the
-> rebuild when the build already succeeded.
+> and verify on staging in the browser.
 >
-> Never run INSERT, UPDATE or DELETE against the remote database.
+> Never run INSERT, UPDATE or DELETE against the remote database except
+> through a written migration that Wasim has approved.
 >
 > **Three habits carried this work, keep them.**
 >

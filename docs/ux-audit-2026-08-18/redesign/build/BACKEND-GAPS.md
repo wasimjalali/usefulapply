@@ -67,19 +67,14 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Only the cover letter.** `email`, `followUpEmail` and `optimizedCVData` have no toolbar that reports a time, so stamping them would be UI-less state.
 - **Where:** `src/lib/types.ts`, `src/components/CoverLetterPanel.tsx`, `src/components/chat/useAgentWorkflow.ts`, `src/lib/regenerate-client.ts`.
 
-### Unknown credit balance still shows the priced chip
-- **UI today:** while `/api/credits/balance` is loading or failed, the rewrite chip renders priced; a short balance is caught by the server (402) and the chat says nothing was charged.
-- **Missing:** a balance that is always known on the client (or a balance pushed with the session), so the control can be the upgrade path before the click every time.
-- **Where:** `src/hooks/useCreditsBalance.ts`, `src/components/ChatPanel.tsx` (chips).
-- **Needs:** decide on a loading state for priced chips or include the balance in the auth/profile payload. Small.
+### Unknown credit balance still shows the priced chip - CLOSED
+- **Closed 20 August 2026.** Same cause as the feed-card gap: the rewrite chip and the cards now share the shell-level balance. While it is still loading the rewrite click is a no-op. After it lands, a short balance is the upgrade chip. The 402 stays as the backstop.
 
 ## Found in batch 3 (feed)
 
-### The run reports no progress until it finishes
-- **UI today:** J2 shows four named stages (Reading your profile, Planning your searches, Searching, Ranking against your CV) with a progress bar, and the canvas lists today's queries with their rationales. Stages 1 and 2 flip to done off real completions (the career-profile POST and the strategy POST return). Stage 3 stays active for the whole run and stages 3 and 4 both complete when the run does. The queries carry no per-query "N found".
-- **Missing:** `/api/job-feed/run` is one synchronous POST that returns only when the whole workflow is done. `runJobFeedFoundationWorkflow` writes `search_plan`, `raw_jobs_fetched` and the counts into `job_feed_runs` only at completion, and `metadata.stage` is set to `phase_4_ranking` before ingestion even starts, so polling the run tells you nothing about where it is.
-- **Where:** UI `src/components/job-feed/FeedConversation.tsx` (`buildStages`) and `src/components/job-feed/FeedCanvas.tsx` (`BuildingCanvas`); backend `src/app/api/job-feed/run/route.ts`, `src/lib/job-feed/server.ts` (`runJobFeedFoundationWorkflow`), `src/lib/job-feed/ingestion.ts`.
-- **Needs:** per-query progress written as the run goes (a `metadata.progress` array of `{ query, status, found }` updated after each SerpAPI call, or an SSE endpoint like `/api/agent-v2`), plus a stage marker the client can read. Medium. Decision: incremental row writes on `job_feed_runs` versus a real stream.
+### The run reports no progress until it finishes - CLOSED
+- **Closed 20 August 2026.** `metadata.progress` is an array of `{ query, status, found }` written after each SerpAPI call. No schema change. The client polls the overview every 5s while a run is in flight and BuildingCanvas ticks each query off with "N found". No SSE.
+- **Where:** `src/lib/job-feed/ingestion.ts`, `src/components/job-feed/FeedCanvas.tsx`, `src/components/job-feed/FeedConversation.tsx`.
 
 ### The design's "ten searches" is two on Plus and one on Free
 - **UI today:** the conversation and the building canvas say the real number: "I ran 2 searches for you", "2 searches today, in priority order", and Edit feed's Searches pill lists today's queries plus "N more queries are in the plan. Each morning works down the list."
@@ -100,11 +95,9 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Where:** `src/lib/job-feed/rerank-intent.ts`, `src/app/api/job-feed/settings/route.ts`, `src/lib/job-feed/constants.ts`.
 - **Needs:** a city-to-country lookup (reverse `JOB_FEED_CITY_SUGGESTIONS` plus a fallback), and the settings route adding the country when a city implies one. Small.
 
-### The free tier cannot say how many roles it is hiding
-- **UI today:** J7's line reads "You're seeing your top 5 today. Plus shows every role that matched, searches more sources and lets you steer the feed." The artboard says "9 more roles matched today."
-- **Missing:** the overview route caps both `jobs` and `jobsTotalCount` at the free tier's `visibleCount` before the client sees them, so the client cannot know the uncapped number.
-- **Where:** `src/app/api/job-feed/overview/route.ts` (`visibleCap`, `totalCount`), UI `src/components/job-feed/FeedCanvas.tsx`.
-- **Needs:** return the uncapped count as a separate field (e.g. `jobsMatchedCount`) while keeping the item list capped. Small.
+### The free tier cannot say how many roles it is hiding - CLOSED
+- **Closed 20 August 2026.** Overview returns `jobsMatchedCount` as today's `ranked_jobs_count`, before the free-tier list cap. The item list and `jobsTotalCount` stay capped. J7 reads the extra: "N more roles matched today." If ranking already capped the day at 5, the extra is 0 and the line does not invent a number.
+- **Where:** `src/app/api/job-feed/overview/route.ts`, `src/components/job-feed/FeedCanvas.tsx`.
 
 ### "Why it's a match" is empty on saved jobs - CLOSED
 - **Closed by `62885ddc`.** `listSavedJobFeedItemsAdmin` joins `listRankedItemsByJobIds`, so a saved job carries its badge and its reason. A job with no ranked row still shows neither, by design.
@@ -113,11 +106,9 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Where:** `src/lib/job-feed/server.ts` (`listSavedJobFeedItemsAdmin`, `toFeedItem`).
 - **Needs:** join the most recent `job_feed_ranked_items` row per canonical job in the saved query. Small.
 
-### Check fit from a card cannot price against the balance
-- **UI today:** every card carries a gold "Check fit · 0.5" and the detail carries "Check fit · 0.5 credits" with "Skip the check, generate the kit (2 credits)". The price is on the control before the click, but a user who cannot afford it still sees the same control and only learns after the click (the chat then says what the server said, and nothing is charged).
-- **Missing:** the feed does not read the credit balance, so a short balance cannot turn the control into the upgrade path the way `ChatPanel` does with `useCreditsBalance`. Doing it per card would also mean the balance drives 20 controls at once.
-- **Where:** UI `src/components/job-feed/FeedJobCard.tsx`, `src/components/job-feed/FeedJobDetail.tsx`; existing pattern `src/hooks/useCreditsBalance.ts`, `src/components/ChatPanel.tsx`.
-- **Needs:** decide whether the feed reads the balance (one fetch, gate all cards) or whether the price on the control plus a clean 402 is enough. Ties into the batch 2 gap "Unknown credit balance still shows the priced chip". Small once decided.
+### Check fit from a card cannot price against the balance - CLOSED
+- **Closed 20 August 2026.** One balance fetch at the dashboard shell (`CreditsProvider` in AppShell). ChatPanel, FeedCanvas and the feed cards all read that number. The 402 stays as the backstop. The rewrite chip no longer treats a missing balance as enough to pay.
+- **Where:** `src/hooks/useCreditsBalance.ts`, `src/components/shell/AppShell.tsx`, `src/components/ChatPanel.tsx`, `src/components/job-feed/FeedCanvas.tsx`.
 
 ### No morning scheduler, and the old "Run today" control was retired
 - **UI today:** the conversation offers "Build today's feed" when the latest run is not from today, and the copy no longer promises an overnight refresh. There is still no cron that searches while the user sleeps.
@@ -149,11 +140,9 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Where:** `src/components/tracker/TrackerConversation.tsx` (`prepChip`); backend would be `src/lib/agents/**`.
 - **Needs:** a prep prompt and a credit price, or the chip stays a hand-off. Medium, and it touches the agent prompts, which this batch was told not to change.
 
-### Follow-up drafting from the tracker rides on the kit's session state
-- **UI today:** the chip loads the application into the session store, then calls `regenerateDocument('follow-up')`, which reads `currentSession` and `currentCV`.
-- **Missing:** there is no server-side "generate the follow-up for session X" call, so the flow depends on the client having that session and the user's CV in memory. If the CV store is empty the request returns `NO_CONTEXT` and the user is told to open the application.
-- **Where:** `src/lib/regenerate-client.ts` (`buildContext`), `src/components/tracker/TrackerConversation.tsx`.
-- **Needs:** a session-scoped regenerate endpoint that builds its own context server side. Medium.
+### Follow-up drafting from the tracker rides on the kit's session state - CLOSED
+- **Closed 20 August 2026.** `POST /api/tracker/follow-up` takes a session id, loads that row and the user's CVs from D1, builds MasterContext on the server and reuses `unifiedWriterAgent.generateFollowUpEmail`. It persists the letter on the session. The tracker no longer needs `currentSession` or `currentCV` in memory. Prompts were not touched.
+- **Where:** `src/app/api/tracker/follow-up/route.ts`, `src/lib/regenerate-client.ts` `regenerateFollowUpForSession`, `src/components/tracker/TrackerConversation.tsx`.
 
 ### The tracker chat costs an LLM call on every message with no credit price
 - **UI today:** every message in the tracker conversation calls `/api/tracker/chat`, which runs `general_chat` on Claude to parse intent. It is rate limited (the `chat` limit, keyed per user) but free.
@@ -190,11 +179,8 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Decision (Wasim, 19 Aug 2026):** we do not want 2FA at this stage. The row is not rendered anywhere in the settings modal and should stay out until there is a reason to build it, so the UI never advertises something that does not exist.
 - **If it ever comes back:** Better Auth is created with no `plugins`, so it would need `better-auth/plugins/two-factor`, a `twoFactor` table and a TOTP enrolment flow.
 
-### "Last changed 3 months ago" under Password has no source
-- **UI today:** the Password row shows only "Change". The artboard's "Last changed ..." line is omitted rather than faked.
-- **Missing:** nothing records when a password was last changed. Better Auth's `account` row has `updatedAt`, but it also moves for unrelated writes, so it is not a truthful answer.
-- **Where:** UI `src/components/settings/GeneralPane.tsx`; backend a `password_changed_at` column on `profiles` written by the change-password path.
-- **Needs:** one column and one write. Small.
+### "Last changed 3 months ago" under Password has no source - CLOSED
+- **Closed 20 August 2026.** Verified: the Password row in `GeneralPane.tsx` shows only "Change". The invented "Last changed" line is already omitted, which is the decision's preferred outcome. Nothing written.
 
 ### Timezone and date format are stored but nothing reads them - CLOSED
 - **Closed 20 August 2026.** `src/lib/utils/format-date.ts` is the one formatter. It takes a `DatePrefs` (`timeZone` plus a `dmy` / `mdy` / `iso` order), falls back to the browser's own zone and `dmy` when there is no profile, and drops a stored zone the runtime does not know rather than throwing inside `Intl`. It is pure and dependency-free, so the Worker can use it too.
@@ -222,11 +208,9 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Where:** UI `src/components/settings/UsageBillingPane.tsx`; backend `src/db/repos/credits.ts` (`deductAmount`, `getCreditTransactions`).
 - **Needs:** either a typed enum on the column or a small server-side summary endpoint that returns the month's buckets. Small.
 
-### Stripe still returns to /subscription, which is now a redirect
-- **UI today:** `/subscription` 308s to `/dashboard?settings=usage` and carries `success`, `addon_success`, `canceled` and `addon_canceled` through, so the Usage pane can poll while the webhook lands.
-- **Missing:** the checkout and portal routes still hardcode `${BRAND.url}/subscription` as their success, cancel and return URL, so every payment return takes an extra hop.
+### Stripe still returns to /subscription, which is now a redirect - CLOSED
+- **Closed 20 August 2026.** The three Stripe URLs (create-checkout success/cancel, create-addon-checkout success/cancel, create-portal return) now point at `/dashboard?settings=usage`. URL strings only. No webhook and no credit logic. `/subscription` still 308s for older links.
 - **Where:** `src/app/api/stripe/create-checkout/route.ts`, `create-addon-checkout/route.ts`, `create-portal/route.ts`.
-- **Needs:** point the three URLs at `/dashboard?settings=usage`. Trivial, but it is a Stripe route, which this batch was told not to touch.
 
 ### CreditIndicator is dead UI that still links at the old routes - CLOSED
 - **Was:** `CreditIndicator.tsx` was rendered nowhere but could not be deleted, because `LowCreditsModal` and `LowCreditsBanner` imported its `CREDIT_UPDATE_EVENT`.
@@ -295,11 +279,9 @@ or UI the locked flow docs do not specify.
 - **Closed 20 August 2026.** `loadSession` no longer blanks on a miss. `openStoredSession` fetches the D1 row, then loads chat. Tracker follow-up and prep wait for that open, so a miss cannot regenerate the previous kit.
 - **Where:** `src/lib/open-session.ts`, `src/store/useSessionStore.ts`, tracker, sidebar, dashboard, ChatHistory.
 
-### The tracker silently truncates at 300 applications
-- **UI today:** the tracker lists applications and shows count pills.
-- **Missing:** `listTrackerOverview` caps at `TRACKER_OVERVIEW_LIMIT = 300` and filters client-side. Past 300 the list is short and the pills understate, with no "showing the most recent 300" line. The route it replaced was server-paginated with a real `count(*)`.
+### The tracker silently truncates at 300 applications - CLOSED
+- **Closed 20 August 2026.** A line of copy, not paging. The header adds "Showing the most recent 300" when the loaded list hits `TRACKER_OVERVIEW_LIMIT`. The largest account has 115.
 - **Where:** `src/db/repos/sessions.ts`, `src/components/tracker/TrackerCanvas.tsx`.
-- **Needs:** either a line of copy admitting the cap, or paging. Small. Not urgent at current volumes.
 
 ### Chat history loads for the 10 most recent applications only - CLOSED
 - **Closed 20 August 2026.** The initial sweep no longer fetches the 10 newest. `openStoredSession` loads that session's messages. ChatHistory used to do this itself; it now calls the same helper. Measured: 432 of 467 chat rows sat outside those 10.
@@ -309,11 +291,9 @@ or UI the locked flow docs do not specify.
 - **Closed 20 August 2026.** Cleanup skips ranked rows whose feedback has `saved_at`. Unsaving nulls `saved_at`, so the next sweep can take them. The bookmark was save-only; it now toggles. Measured before the change: 1 saved job, 0 already past 7 days.
 - **Where:** `src/db/repos/admin.ts` `deleteExpiredRankedItems`, `src/lib/job-feed/server.ts` `unsaved`, `src/app/api/job-feed/feedback/route.ts`, `src/components/job-feed/useFeedJobActions.ts`.
 
-### Per-tier input caps on the feed are not shown anywhere
-- **UI today:** Edit feed takes as many roles, countries and cities as the user types.
-- **Missing:** `getJobFeedInputCaps` lost its caller when batch 3 retired the wizard cards. The run still slices to the tier limit, so a Free user's second country is dropped with no signal and settings look honoured when they are not.
-- **Where:** `src/lib/job-feed/constants.ts` (the caps exist), `src/components/job-feed/FeedEditView.tsx` (the note would go in the Preferences pill).
-- **Needs:** one line of copy per tier against `getJobFeedInputCaps(tier)`. Small, but the wording is not in the locked flow doc.
+### Per-tier input caps on the feed are not shown anywhere - CLOSED
+- **Closed 20 August 2026.** The Preferences pill states the cap against `getJobFeedInputCaps(tier)`: "This plan searches up to N roles across M countries. Extra ones stay saved for a later run." Free is 1 and 1, Plus 2 and 2, Max 4 and 4. `getJobFeedInputCaps('free')` no longer returns the locked zeros.
+- **Where:** `src/lib/job-feed/constants.ts`, `src/components/job-feed/FeedEditView.tsx`.
 
 ### Job-feed rate limits are keyed by client IP, before authentication - CLOSED
 - **Closed 20 August 2026.** Two tiers now. Every job-feed handler runs a shared per-IP gate first, then authenticates, then applies its own limit keyed on the user id. The gate is one binding (`RATE_LIMIT_JOB_FEED_IP`, namespace 3131) at 600 a minute for the whole feed: it exists so an unauthenticated hammer cannot make every request pay a session lookup, not to price the route. Per-route ceilings are unchanged.
@@ -339,8 +319,6 @@ or UI the locked flow docs do not specify.
 - **Measured before the change:** 16 generation rows on the remote database, and all five that are not succeeded belong to one free test account holding 1 credit. Nobody had hit it.
 - **Where:** `src/app/api/job-feed/apply/route.ts`, `src/components/job-feed/feed-actions.ts`, `src/components/job-feed/feed-handoff.ts`.
 
-### Extra SerpAPI passes have no budget of their own
-- **UI today:** nothing visible.
-- **Missing:** the sweep fixed the overrun by making the pagination and fallback passes draw from one shared per-tier budget. In practice the main plan usually fills that budget, so those two passes now rarely fire. Keeping them would need an explicit `maxExtraQueries` per tier.
-- **Where:** `src/lib/job-feed/ingestion.ts`, `src/lib/job-feed/constants.ts`.
-- **Needs:** Wasim's approval either way, since `constants.ts` requires explicit sign-off on anything that raises the daily query count. Up to three extra calls a day on Max.
+### Extra SerpAPI passes have no budget of their own - CLOSED
+- **Closed 20 August 2026.** Plus is `maxDailyQueries: 3, maxMainQueries: 2`. Max is `5 / 4`. Free stays `2 / 1`. Pagination stays: it is the thin-day rescue and the two extra passes share one budget. The extra call is only spent on an empty or thin day. Sign-off from Wasim, 20 August, recorded in the constants comment the way the Free reserve already was.
+- **Where:** `src/lib/job-feed/constants.ts`.
