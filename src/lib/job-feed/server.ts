@@ -729,8 +729,9 @@ export async function recordJobFeedFeedbackAdmin(params: {
     }
     // An apply that already has a session is a no-op, not a new terminal
     // action. Keyed on the session rather than applied_at, because a run that
-    // reached 'succeeded' never stamps applied_at.
-    if (action === 'apply_started' && existing.application_session_id) {
+    // reached 'succeeded' never stamps applied_at. A dismissed or not-relevant
+    // row is blocked for a different reason and still throws.
+    if (action === 'apply_started' && canReuseBlockedFeedbackSession(existing)) {
       return existing;
     }
 
@@ -1256,16 +1257,58 @@ export async function runJobFeedFoundationWorkflow(params: {
   // A force-rerun of a *completed* run must not clear its ranked items up
   // front: if the rerun then fails (every fetch errored, the ranker is down,
   // the request times out) the user is left with nothing and no way back.
-  // persistJobFeedRankedItemsForRunAdmin already deletes by run_id immediately
-  // before inserting, so the swap is atomic enough without this.
+  // replaceRankedItemsForRun batches the delete with the inserts, so the swap
+  // happens in one step and only when there is a new ranking to swap in.
 
-  const run = existingRun ?? await createJobFeedRunForToday({
-    userId,
-    localDate,
-    settings,
-    triggerSource,
-    orchestrator,
-  });
+  const creation: { run: JobFeedRun; raced: boolean } = existingRun
+    ? { run: existingRun, raced: false }
+    : await createJobFeedRunForToday({
+        userId,
+        localDate,
+        settings,
+        triggerSource,
+        orchestrator,
+      });
+
+  // Another request created today's row between our read and our insert. The
+  // guards above ran against nothing, so run them again over the row that won,
+  // or we execute the whole workflow a second time and spend the tier's
+  // SerpAPI budget twice on the same day.
+  if (creation.raced) {
+    const winner = creation.run;
+
+    if (winner.status === 'completed' && !force) {
+      captureJobFeedRunIdempotencyConflict({
+        userId,
+        run: winner,
+        localDate,
+        triggerSource,
+        force,
+        reason: 'completed_run_exists',
+      });
+      return { run: winner, created: false, skipped: true };
+    }
+
+    if (winner.status === 'running' && !isStaleJobFeedRun(winner, now)) {
+      captureJobFeedRunIdempotencyConflict({
+        userId,
+        run: winner,
+        localDate,
+        triggerSource,
+        force,
+        reason: force ? 'running_run_blocks_force' : 'running_run_exists',
+      });
+
+      if (force) {
+        throw new Error('Cannot force-rerun a job feed run while it is still running.');
+      }
+
+      return { run: winner, created: false, skipped: true };
+    }
+  }
+
+  const run = creation.run;
+  const createdRun = !existingRun && !creation.raced;
 
   let runningRun = await updateJobFeedRun(run.id, {
     status: 'running',
@@ -1357,12 +1400,12 @@ export async function runJobFeedFoundationWorkflow(params: {
       // strongly than the auto-derived negativeTerms.
       excludedTerms: settings.excluded_terms ?? [],
     });
-    const rankedPreviewItems = rankingResult.items.map(toRankedPreviewRecord);
     const materializedRanking = await persistJobFeedRankedItemsForRunAdmin({
       runId: run.id,
       userId,
       items: rankingResult.items,
     });
+    const rankedPreviewItems = materializedRanking.preview;
 
     runningRun = await updateJobFeedRun(run.id, {
       status: 'completed',
@@ -1371,7 +1414,7 @@ export async function runJobFeedFoundationWorkflow(params: {
       result_summary: buildWorkflowResultSummary(ingestion, prefilter, rankingPrep, rankingResult),
       raw_jobs_fetched: ingestion.rawJobsFetched,
       jobs_after_prefilter: prefilter.survivors.length,
-      ranked_jobs_count: rankingResult.items.length,
+      ranked_jobs_count: rankedPreviewItems.length,
       metadata: mergeMetadata(runningRun.metadata, {
         stage: 'phase_4_ranking',
         workflow_status: 'completed',
@@ -1402,13 +1445,13 @@ export async function runJobFeedFoundationWorkflow(params: {
             })
           : null,
         ranked_preview_jobs: toJson(rankedPreviewItems),
-        ranked_items_materialized: materializedRanking,
+        ranked_items_materialized: materializedRanking.materialized,
       }),
     });
 
     return {
       run: runningRun,
-      created: !existingRun,
+      created: createdRun,
       skipped: false,
       forced: force,
       previewJobs: prefilter.shortlistPreview.length > 0 ? prefilter.shortlistPreview : ingestion.previewJobs,
@@ -1455,10 +1498,10 @@ async function createJobFeedRunForToday(params: {
   settings: JobFeedSettings;
   triggerSource: string;
   orchestrator: JobFeedRunDiagnostics['orchestrator'];
-}): Promise<JobFeedRun> {
+}): Promise<{ run: JobFeedRun; raced: boolean }> {
   const { userId, localDate, settings, triggerSource, orchestrator } = params;
   try {
-    return await createJobFeedRun({
+    const run = await createJobFeedRun({
       user_id: userId,
       local_date: localDate,
       local_timezone: settings.user_timezone,
@@ -1472,9 +1515,10 @@ async function createJobFeedRunForToday(params: {
         orchestrator,
       },
     });
+    return { run, raced: false };
   } catch (error) {
     const raced = await getJobFeedRunByDate(userId, localDate);
-    if (raced) return raced;
+    if (raced) return { run: raced, raced: true };
     throw error;
   }
 }
@@ -1652,13 +1696,16 @@ async function persistJobFeedRankedItemsForRunAdmin(params: {
   runId: string;
   userId: string;
   items: JobFeedRankedItemRecord[];
-}): Promise<boolean> {
-  await adminRepo.deleteRankedItemsByRunId(params.runId);
+}): Promise<{ materialized: boolean; preview: JobFeedRankedPreviewItem[] }> {
   if (params.items.length === 0) {
-    return true;
+    // A rerun that ranks nothing must not clear a working feed. The previous
+    // ranking stays put, and the run reports what actually survived instead of
+    // claiming an empty day.
+    const kept = await listJobFeedRankedItemsForRunAdmin(params.runId);
+    return { materialized: false, preview: kept.map(toRankedPreviewItem) };
   }
-  await jobFeedRepo.insertRankedItems(params.userId, params.items.map((item) => ({
-    run_id: params.runId,
+
+  await jobFeedRepo.replaceRankedItemsForRun(params.userId, params.runId, params.items.map((item) => ({
     canonical_job_id: item.canonicalJobId,
     rank_position: item.rank,
     fit_label: item.fitLabel,
@@ -1667,7 +1714,7 @@ async function persistJobFeedRankedItemsForRunAdmin(params: {
     deterministic_score: item.deterministicScore,
     metadata: item.companyDisplay ? { company_display: item.companyDisplay } : {},
   })));
-  return true;
+  return { materialized: true, preview: params.items.map(toRankedPreviewRecord) };
 }
 
 function toRankedPreviewItem(item: SupabaseJobFeedRankedItem): JobFeedRankedPreviewItem {
@@ -1707,6 +1754,23 @@ async function getJobFeedFeedbackMapAdmin(userId: string, jobIds: string[]): Pro
  * never resurface — the ranker also consumes this signal to avoid re-ranking
  * them in future runs.
  */
+/**
+ * A blocked row can still hand back the session it already has, but only when
+ * the block came from an application that actually ran. A dismissed row, or
+ * one the user rated not relevant, is a different kind of block and stays
+ * closed. Both the apply route and recordJobFeedFeedbackAdmin read this, so
+ * the two guards cannot drift apart.
+ */
+export function canReuseBlockedFeedbackSession(feedback: JobFeedFeedback | null | undefined): boolean {
+  if (!feedback?.application_session_id) return false;
+  if (feedback.dismissed_at) return false;
+  const metadata = (feedback.metadata ?? null) as Record<string, unknown> | null;
+  if (metadata && typeof metadata === 'object' && metadata.match_rating === 'not_relevant') {
+    return false;
+  }
+  return true;
+}
+
 export function isJobFeedbackBlocked(feedback: JobFeedFeedback | null | undefined): boolean {
   if (!feedback) return false;
   if (feedback.applied_at || feedback.generation_status === 'succeeded') return true;

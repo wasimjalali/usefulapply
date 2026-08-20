@@ -235,7 +235,17 @@ export async function listRankedItemsForRun(userId: string, runId: string): Prom
 // 11 bound values per ranked item row; keep each INSERT under D1's 100-param cap.
 const RANKED_ITEMS_ROWS_PER_INSERT = 8;
 
-export async function insertRankedItems(userId: string, items: Array<Omit<JobFeedRankedItem, 'id' | 'created_at' | 'user_id'> & { user_id?: string }>): Promise<void> {
+/**
+ * Swap a run's ranked items for a new set. The delete rides in the same batch
+ * as the inserts, so a run can never be left with the old list half gone and
+ * the new one not yet in. Callers must not pass an empty list: clearing a run
+ * without putting a ranking back wipes the user's feed.
+ */
+export async function replaceRankedItemsForRun(
+  userId: string,
+  runId: string,
+  items: Array<Omit<JobFeedRankedItem, 'id' | 'created_at' | 'user_id' | 'run_id'>>
+): Promise<void> {
   if (items.length === 0) return;
   const db = await getDb();
   const now = nowIso();
@@ -243,11 +253,12 @@ export async function insertRankedItems(userId: string, items: Array<Omit<JobFee
     id: crypto.randomUUID(),
     created_at: now,
     ...item,
+    run_id: runId,
     user_id: userId,
   }));
-  const [first, ...rest] = chunk(rows, RANKED_ITEMS_ROWS_PER_INSERT).map((part) => db.insert(jobFeedRankedItems).values(part));
-  // One atomic batch so a run never persists a partial ranking.
-  await db.batch([first, ...rest]);
+  const removal = db.delete(jobFeedRankedItems).where(eq(jobFeedRankedItems.run_id, runId));
+  const inserts = chunk(rows, RANKED_ITEMS_ROWS_PER_INSERT).map((part) => db.insert(jobFeedRankedItems).values(part));
+  await db.batch([removal, ...inserts]);
 }
 
 export async function getFeedback(userId: string, jobId: string): Promise<JobFeedFeedback | null> {

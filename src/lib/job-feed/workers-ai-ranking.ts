@@ -461,12 +461,21 @@ function validateModelRankingResponse(
     if (!jobId || !candidateById.has(jobId) || seenJobIds.has(jobId)) continue;
     if (decision !== 'strong' && decision !== 'good' && decision !== 'skip') continue;
 
-    seenJobIds.add(jobId);
-    if (decision === 'skip') continue;
+    // A skip is a real decision, so it counts toward coverage.
+    if (decision === 'skip') {
+      seenJobIds.add(jobId);
+      continue;
+    }
 
     const rank = typeof item.rank === 'number' && Number.isInteger(item.rank) && item.rank > 0
       ? item.rank : null;
+    // An unusable rank must not count. Counting it lets a model that returns
+    // every candidate with a bad rank score full coverage and hand back an
+    // empty ranking, which then reads as a successful run with no roles
+    // instead of falling through to the deterministic list.
     if (rank === null) continue;
+
+    seenJobIds.add(jobId);
 
     const companyDisplayRaw = typeof item.companyDisplay === 'string'
       ? item.companyDisplay.replace(/[\u0000-\u001f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '').trim()

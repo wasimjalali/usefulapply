@@ -665,9 +665,7 @@ async function runOneSerpApiFetch(params: {
     const errorPayload = toErrorPayload(error);
 
     if (error instanceof SerpApiHttpError) {
-      // Strip api_key=… so it never lands in logs even if SerpAPI ever
-      // echoes the request URL inside an error body.
-      const safeBody = error.bodyText.replace(/api_key=[^&"\s]+/gi, 'api_key=REDACTED').slice(0, 500);
+      const safeBody = redactSerpApiKey(error.bodyText).slice(0, 500);
       console.error(
         `[ingestion] SerpAPI ${error.status} for q="${planItem.query}" gl=${planItem.country}: ${safeBody}`,
       );
@@ -1020,11 +1018,18 @@ function getFetchErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Unknown SerpApi fetch failure.';
 }
 
+/** Strip api_key=… so the key never lands in a log or a stored payload, even
+ *  if SerpAPI echoes the request URL inside an error body. */
+function redactSerpApiKey(value: string): string {
+  return value.replace(/api_key=[^&"\s]+/gi, 'api_key=REDACTED');
+}
+
 function toErrorPayload(error: unknown): Json {
   if (error instanceof SerpApiHttpError) {
+    const safeBody = redactSerpApiKey(error.bodyText);
     return {
       status: error.status,
-      body: tryParseJson(error.bodyText) ?? error.bodyText,
+      body: tryParseJson(safeBody) ?? safeBody,
     };
   }
 

@@ -392,6 +392,7 @@ function compactRunMetadata(metadata: Json, compactedAt: string): Json {
   copyIfPresent(compact, record, 'foundation_mode');
   copyIfPresent(compact, record, 'target_market');
   copyIfPresent(compact, record, 'last_trigger_source');
+  copyIfPresent(compact, record, 'orchestrator');
   copyIfPresent(compact, record, 'workflow_status');
   copyIfPresent(compact, record, 'canonical_jobs_count');
   copyIfPresent(compact, record, 'canonical_jobs_created');
@@ -409,12 +410,19 @@ function compactRunMetadata(metadata: Json, compactedAt: string): Json {
   return compact;
 }
 
+const JOB_FEED_CLEANUP_COMPACTION_BATCH = 200;
+
 export async function compactOldRunMetadata(cutoff: string): Promise<number> {
   const db = await getDb();
+  // Bounded per pass. Every row compacted before this version fails the
+  // isCompactedRunMetadata check, so the first run after a version bump would
+  // otherwise rewrite the whole backlog in one invocation and blow the
+  // per-invocation subrequest cap. The backlog drains over several nights.
   const rows = await db
     .select({ id: jobFeedRuns.id, metadata: jobFeedRuns.metadata })
     .from(jobFeedRuns)
-    .where(and(eq(jobFeedRuns.status, 'completed'), lt(jobFeedRuns.completed_at, cutoff)));
+    .where(and(eq(jobFeedRuns.status, 'completed'), lt(jobFeedRuns.completed_at, cutoff)))
+    .limit(JOB_FEED_CLEANUP_COMPACTION_BATCH);
   let compacted = 0;
   for (const row of rows) {
     // Skip rows a previous pass already compacted, otherwise every historical

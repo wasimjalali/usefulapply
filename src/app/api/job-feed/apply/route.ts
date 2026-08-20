@@ -6,6 +6,7 @@ import {
   createJobFeedApplicationSessionAdmin,
   getJobFeedApplicationSessionAdmin,
   getJobFeedFeedbackAdmin,
+  canReuseBlockedFeedbackSession,
   isJobFeedbackBlocked,
   recordJobFeedFeedbackAdmin,
   toJobFeedFeedbackState,
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest) {
     if (
       existingFeedback
       && isJobFeedbackBlocked(existingFeedback)
-      && !existingFeedback.application_session_id
+      && !canReuseBlockedFeedbackSession(existingFeedback)
     ) {
       captureJobFeedActionRejected({
         userId,
