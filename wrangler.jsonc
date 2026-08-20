@@ -144,6 +144,17 @@
 			}
 		},
 		{
+			// First tier in front of every job-feed route. High on purpose: it
+			// caps a flood before the session lookup, and the per-route limit
+			// after auth is the one keyed on the user.
+			"name": "RATE_LIMIT_JOB_FEED_IP",
+			"namespace_id": "3131",
+			"simple": {
+				"limit": 600,
+				"period": 60
+			}
+		},
+		{
 			"name": "RATE_LIMIT_JOB_FEED_SETTINGS",
 			"namespace_id": "3110",
 			"simple": {

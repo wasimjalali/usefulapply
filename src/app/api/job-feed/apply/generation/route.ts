@@ -4,7 +4,7 @@ import { captureJobFeedActionRejected } from '@/lib/job-feed/analytics';
 import { getCurrentUser } from '@/auth/server';
 import { getProfile } from '@/db/repos/profiles';
 import { getGeneration, getLatestGenerationForSession } from '@/db/repos/jobFeed';
-import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 
 export const runtime = 'nodejs';
 
@@ -13,6 +13,11 @@ export async function GET(request: NextRequest) {
   let subscriptionTier: string | null = null;
 
   try {
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
+      return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
+    }
+
     const user = await getCurrentUser(request);
 
     if (!user) {

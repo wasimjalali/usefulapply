@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
 import { requireJobFeedAccess } from '@/lib/job-feed/auth';
 import {
@@ -27,15 +27,19 @@ interface CareerProfileResponseBody {
 
 export async function GET(request: NextRequest) {
   try {
-    const ip = getClientIP(request);
-    const { allowed } = await checkRateLimit(`career-profile:${ip}`, RATE_LIMITS['job-feed-settings']);
-    if (!allowed) {
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
     const auth = await authenticatePaidUser(request);
     if (!auth.ok) return auth.response;
     const { userId } = auth;
+
+    const { allowed } = await checkRateLimit(`career-profile:${userId}`, RATE_LIMITS['job-feed-settings']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
 
     const { profileRow, primaryDoc } = await loadProfileAndPrimaryCV(userId);
 
@@ -69,20 +73,21 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate-limit by user ID (not IP) so users behind shared IPs or VPNs
-    // don't burn each other's budget. Must authenticate first to get the ID.
-    const userForRateLimit = await getCurrentUser(request);
-    const rateLimitKey = userForRateLimit?.id
-      ? `career-profile-generate:${userForRateLimit.id}`
-      : `career-profile-generate:${getClientIP(request)}`;
-    const { allowed } = await checkRateLimit(rateLimitKey, RATE_LIMITS['career-profile-generate']);
-    if (!allowed) {
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
     const auth = await authenticatePaidUser(request);
     if (!auth.ok) return auth.response;
     const { userId } = auth;
+
+    // Keyed by user, not IP, so people behind one shared address or a VPN
+    // don't burn each other's budget.
+    const { allowed } = await checkRateLimit(`career-profile-generate:${userId}`, RATE_LIMITS['career-profile-generate']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
 
     let force = false;
     try {

@@ -3,7 +3,7 @@ import { getCurrentUser } from '@/auth/server';
 import { canViewJobFeed } from '@/lib/job-feed/helpers';
 import { getProfile, updateProfile } from '@/db/repos/profiles';
 import { listLatestJobFeedItemsAdmin } from '@/lib/job-feed/server';
-import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 
 export const runtime = 'nodejs';
 
@@ -12,9 +12,8 @@ export const runtime = 'nodejs';
 // the full overview (which includes settings, diagnostics, apply metadata).
 export async function GET(request: NextRequest) {
   try {
-    const ip = getClientIP(request);
-    const { allowed } = await checkRateLimit(`job-feed-overview:${ip}`, RATE_LIMITS['job-feed-overview']);
-    if (!allowed) {
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
@@ -22,6 +21,11 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, lastSeenRunDate: null }, { status: 200 });
+    }
+
+    const { allowed } = await checkRateLimit(`job-feed-overview:${user.id}`, RATE_LIMITS['job-feed-overview']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
     const profile = await getProfile(user.id);
@@ -47,9 +51,8 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const ip = getClientIP(request);
-    const { allowed } = await checkRateLimit(`job-feed-overview:${ip}`, RATE_LIMITS['job-feed-overview']);
-    if (!allowed) {
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
       return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
     }
 
@@ -57,6 +60,11 @@ export async function PATCH(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+
+    const { allowed } = await checkRateLimit(`job-feed-overview:${user.id}`, RATE_LIMITS['job-feed-overview']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
     }
 
     // Match GET, which is free-tier. Gating this on the paid plans meant a free

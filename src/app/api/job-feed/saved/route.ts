@@ -3,15 +3,14 @@ import { getCurrentUser } from '@/auth/server';
 import { canViewJobFeed } from '@/lib/job-feed/helpers';
 import { listSavedJobFeedItemsAdmin } from '@/lib/job-feed/server';
 import { getProfile } from '@/db/repos/profiles';
-import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
-    const ip = getClientIP(request);
-    const { allowed } = await checkRateLimit(`job-feed-saved:${ip}`, RATE_LIMITS['job-feed-saved']);
-    if (!allowed) {
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
@@ -19,6 +18,11 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+
+    const { allowed } = await checkRateLimit(`job-feed-saved:${user.id}`, RATE_LIMITS['job-feed-saved']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
     const profile = await getProfile(user.id);

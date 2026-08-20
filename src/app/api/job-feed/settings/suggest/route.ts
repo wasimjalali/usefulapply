@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
 import { extractJobFeedSuggestionsFromCV } from '@/lib/job-feed/cv-suggestions';
 import { canAccessJobFeed } from '@/lib/job-feed/helpers';
@@ -15,9 +15,8 @@ const MAX_STRUCTURED_CV_BYTES = 512_000;
 
 export async function POST(request: NextRequest) {
   try {
-    const ip = getClientIP(request);
-    const { allowed } = await checkRateLimit(`job-feed-settings:${ip}`, RATE_LIMITS['job-feed-settings']);
-    if (!allowed) {
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
@@ -25,6 +24,11 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+
+    const { allowed } = await checkRateLimit(`job-feed-settings:${user.id}`, RATE_LIMITS['job-feed-settings']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
     const profile = await getProfile(user.id);

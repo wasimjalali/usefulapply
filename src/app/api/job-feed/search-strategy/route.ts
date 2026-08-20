@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
 import { canAccessJobFeed } from '@/lib/job-feed/helpers';
 import {
@@ -37,15 +37,19 @@ interface SearchStrategyResponseBody {
 
 export async function GET(request: NextRequest) {
   try {
-    const ip = getClientIP(request);
-    const { allowed } = await checkRateLimit(`search-strategy:${ip}`, RATE_LIMITS['job-feed-settings']);
-    if (!allowed) {
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
     const auth = await authenticatePaidUser(request);
     if (!auth.ok) return auth.response;
     const { userId } = auth;
+
+    const { allowed } = await checkRateLimit(`search-strategy:${userId}`, RATE_LIMITS['job-feed-settings']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
 
     const settings = await getJobFeedSettingsAdmin(userId);
     if (!settings) {
@@ -123,15 +127,19 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const ip = getClientIP(request);
-    const { allowed } = await checkRateLimit(`search-strategy-generate:${ip}`, RATE_LIMITS['search-strategy-generate']);
-    if (!allowed) {
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
     const auth = await authenticatePaidUser(request);
     if (!auth.ok) return auth.response;
     const { userId } = auth;
+
+    const { allowed } = await checkRateLimit(`search-strategy-generate:${userId}`, RATE_LIMITS['search-strategy-generate']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
 
     const settings = await getJobFeedSettingsAdmin(userId);
     if (!settings) {

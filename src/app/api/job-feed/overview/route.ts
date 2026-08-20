@@ -9,7 +9,7 @@ import {
   resolveJobFeedRunForFeedAdmin,
 } from '@/lib/job-feed/server';
 import { JOB_FEED_INBOX_PAGE_SIZE } from '@/lib/job-feed/constants';
-import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { isCurrentCareerProfile, type CareerProfile } from '@/lib/job-feed/career-profile';
 import type { JobFeedRun } from '@/lib/supabase/types';
 import { getProfile } from '@/db/repos/profiles';
@@ -22,9 +22,8 @@ const STALE_OVERVIEW_RUN_MS = 15 * 60 * 1000;
 
 export async function GET(request: NextRequest) {
   try {
-    const ip = getClientIP(request);
-    const { allowed } = await checkRateLimit(`job-feed-overview:${ip}`, RATE_LIMITS['job-feed-overview']);
-    if (!allowed) {
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
@@ -32,6 +31,11 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+
+    const { allowed } = await checkRateLimit(`job-feed-overview:${user.id}`, RATE_LIMITS['job-feed-overview']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
     const profile = await getProfile(user.id);

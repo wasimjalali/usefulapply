@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { canAccessJobFeed, canViewJobFeed } from '@/lib/job-feed/helpers';
 import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
 import { listJobFeedInboxPageAdmin } from '@/lib/job-feed/server';
-import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
 import { getProfile } from '@/db/repos/profiles';
 
@@ -12,9 +12,8 @@ const MAX_PAGE_LIMIT = 50;
 
 export async function GET(request: NextRequest) {
   try {
-    const ip = getClientIP(request);
-    const { allowed } = await checkRateLimit(`job-feed-inbox:${ip}`, RATE_LIMITS['job-feed-inbox']);
-    if (!allowed) {
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
@@ -22,6 +21,11 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+
+    const { allowed } = await checkRateLimit(`job-feed-inbox:${user.id}`, RATE_LIMITS['job-feed-inbox']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
     const profile = await getProfile(user.id);

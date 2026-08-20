@@ -13,7 +13,7 @@ import {
   transitionJobFeedApplicationGenerationAdmin,
 } from '@/lib/job-feed/server';
 import { captureJobFeedActionRejected, captureJobFeedEvent } from '@/lib/job-feed/analytics';
-import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { getCurrentUser } from '@/auth/server';
 import { getProfile } from '@/db/repos/profiles';
@@ -28,13 +28,12 @@ export async function POST(request: NextRequest) {
   let subscriptionTier: string | null = null;
 
   try {
-    const ip = getClientIP(request);
-    const { allowed } = await checkRateLimit(`job-feed-apply:${ip}`, RATE_LIMITS['job-feed-apply']);
-    if (!allowed) {
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
       captureJobFeedActionRejected({
         route: 'apply',
         action: 'apply_started',
-        reason: 'rate_limited',
+        reason: 'rate_limited_ip',
         status: 429,
       });
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
@@ -52,6 +51,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
     userId = user.id;
+
+    const { allowed } = await checkRateLimit(`job-feed-apply:${user.id}`, RATE_LIMITS['job-feed-apply']);
+    if (!allowed) {
+      captureJobFeedActionRejected({
+        userId,
+        route: 'apply',
+        action: 'apply_started',
+        reason: 'rate_limited',
+        status: 429,
+      });
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
 
     const profile = await getProfile(user.id);
     subscriptionTier = profile?.subscription_tier ?? null;

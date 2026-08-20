@@ -63,6 +63,7 @@ const RATE_LIMIT_BINDING_NAMES = {
   'signin': 'RATE_LIMIT_SIGNIN',
   'forgot-password': 'RATE_LIMIT_FORGOT_PASSWORD',
   'post-confirm': 'RATE_LIMIT_POST_CONFIRM',
+  'job-feed-ip': 'RATE_LIMIT_JOB_FEED_IP',
   'job-feed-settings': 'RATE_LIMIT_JOB_FEED_SETTINGS',
   'job-feed-overview': 'RATE_LIMIT_JOB_FEED_OVERVIEW',
   'job-feed-saved': 'RATE_LIMIT_JOB_FEED_SAVED',
@@ -98,6 +99,7 @@ declare global {
     RATE_LIMIT_SIGNIN?: RateLimitBinding;
     RATE_LIMIT_FORGOT_PASSWORD?: RateLimitBinding;
     RATE_LIMIT_POST_CONFIRM?: RateLimitBinding;
+    RATE_LIMIT_JOB_FEED_IP?: RateLimitBinding;
     RATE_LIMIT_JOB_FEED_SETTINGS?: RateLimitBinding;
     RATE_LIMIT_JOB_FEED_OVERVIEW?: RateLimitBinding;
     RATE_LIMIT_JOB_FEED_SAVED?: RateLimitBinding;
@@ -230,6 +232,9 @@ export const RATE_LIMITS = {
   'signin':             { name: 'signin', limit: 5,  windowMs: 60_000 },
   'forgot-password':    { name: 'forgot-password', limit: 5,  windowMs: 60_000 },
   'post-confirm':       { name: 'post-confirm', limit: 5,  windowMs: 60_000 },
+  // First tier for every job-feed route. High on purpose: it is a flood gate
+  // in front of the session lookup, not the route's real limit.
+  'job-feed-ip':        { name: 'job-feed-ip', limit: 600, windowMs: 60_000 },
   'job-feed-settings':  { name: 'job-feed-settings', limit: 10, windowMs: 60_000 },
   'job-feed-overview':  { name: 'job-feed-overview', limit: 15, windowMs: 60_000 },
   'job-feed-saved':     { name: 'job-feed-saved', limit: 15, windowMs: 60_000 },
@@ -254,3 +259,15 @@ export const RATE_LIMITS = {
 } as const;
 
 export type RateLimitRoute = keyof typeof RATE_LIMITS;
+
+/**
+ * First tier of the job-feed limiters. A high per-IP ceiling that only stops a
+ * flood, checked before authentication so an unauthenticated hammer cannot make
+ * every request pay a session lookup. The per-route limit that follows runs
+ * after auth and is keyed on the user, so people behind one NAT no longer
+ * throttle each other.
+ */
+export async function checkJobFeedIpGate(request: Request): Promise<boolean> {
+  const { allowed } = await checkRateLimit(`job-feed-ip:${getClientIP(request)}`, RATE_LIMITS['job-feed-ip']);
+  return allowed;
+}

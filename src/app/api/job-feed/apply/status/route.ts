@@ -4,7 +4,7 @@ import { captureJobFeedActionRejected, captureJobFeedEvent } from '@/lib/job-fee
 import { updateJobFeedApplicationGenerationStatusAdmin } from '@/lib/job-feed/server';
 import { getCurrentUser } from '@/auth/server';
 import { getProfile } from '@/db/repos/profiles';
-import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
 
 export const runtime = 'nodejs';
@@ -19,6 +19,11 @@ export async function POST(request: NextRequest) {
   let subscriptionTier: string | null = null;
 
   try {
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
+      return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
+    }
+
     const user = await getCurrentUser(request);
 
     if (!user) {
