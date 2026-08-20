@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X, ArrowUpRight } from 'lucide-react';
@@ -16,19 +16,20 @@ const NAV_LINKS = [
   { href: '/about', label: 'About' },
 ];
 
+const subscribeToNothing = () => () => {};
+const getServerHint = () => null;
+
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const { user, isLoading } = useAuth();
   // The session resolves over the network, so the CTA would flash "Try it
   // free" at a signed-in visitor before flipping. The localStorage hint is
-  // synchronous: one frame after mount the CTA already knows which way to
-  // lean, and the resolved session settles it. null means "not decided yet"
-  // and renders a neutral placeholder for that first frame only.
-  const [hint, setHint] = useState<boolean | null>(null);
-  useEffect(() => {
-    setHint(hasStoredAuthHint());
-  }, []);
+  // synchronous: right after hydration the CTA already knows which way to
+  // lean, and the resolved session settles it. The server snapshot is null,
+  // "not decided yet", which renders a neutral placeholder for that first
+  // frame only. The store never emits; this is a synchronous client read.
+  const hint = useSyncExternalStore<boolean | null>(subscribeToNothing, hasStoredAuthHint, getServerHint);
   const isSignedIn: boolean | null = user ? true : isLoading ? hint : false;
 
   // Close the mobile menu on a route change (e.g. browser back/forward).

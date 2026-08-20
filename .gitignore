@@ -63,3 +63,7 @@ temp/
 .wrangler/
 .dev.vars
 scripts/migrate/out/
+
+# Session scratch and root-level verification screenshots stay out of git
+/todos/
+/*.png

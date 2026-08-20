@@ -23,6 +23,7 @@ import {
 } from '@/lib/supabase';
 import { AlertCircle } from 'lucide-react';
 import type { ParsedCV } from '@/lib/types';
+import type { Education, SkillCategory, StructuredCV, WorkExperience } from '@/lib/types/cv-schema';
 import {
   AUTHENTICATED_CV_UPLOAD_LIMIT_BYTES,
   formatUploadLimit,
@@ -79,7 +80,7 @@ function parseDocumentFile(
   storagePath?: string,
   documentType: 'primary_cv' | 'master_cv' = 'primary_cv',
   maxUploadSizeBytes = AUTHENTICATED_CV_UPLOAD_LIMIT_BYTES
-): Promise<{ parsedCV: ParsedCV; structuredCV: any }> {
+): Promise<{ parsedCV: ParsedCV; structuredCV: StructuredCV }> {
   if (file.size > maxUploadSizeBytes) {
     return Promise.reject(new Error(
       `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum: ${formatUploadLimit(maxUploadSizeBytes)}.`
@@ -129,13 +130,13 @@ function parseDocumentFile(
           contactInfo: result.structuredCV?.personal ?
             `${result.structuredCV.personal.fullName || ''}\n${result.structuredCV.personal.email || ''}\n${result.structuredCV.personal.phone || ''}` : '',
           summary: result.structuredCV?.summary || '',
-          experience: result.structuredCV?.experience?.map((e: any) =>
+          experience: result.structuredCV?.experience?.map((e: WorkExperience) =>
             `${e.position} at ${e.company}\n${e.bullets?.join('\n') || ''}`
           ).join('\n\n') || '',
-          education: result.structuredCV?.education?.map((e: any) =>
+          education: result.structuredCV?.education?.map((e: Education) =>
             `${e.degree} - ${e.institution}`
           ).join('\n') || '',
-          skills: result.structuredCV?.skills?.map((s: any) =>
+          skills: result.structuredCV?.skills?.map((s: SkillCategory) =>
             `${s.category}: ${s.skills?.join(', ') || ''}`
           ).join('\n') || '',
         },
