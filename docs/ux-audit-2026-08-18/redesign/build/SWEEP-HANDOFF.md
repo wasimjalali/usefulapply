@@ -268,9 +268,97 @@ change or a prompt change, all of which this sweep was told to leave alone.
 
 ## What is left
 
-1. Two decisions from the review: the shared SerpAPI budget, and the daily
-   cooldown's unreachable bypass.
-3. Two decisions from the bug list: what the sidebar badge counts (bug 8), and
-   whether a repeat generation for the same job reuses its entry (bug 5).
-4. The rest of Pass 3, all of it gated on one of the above.
-5. No PR has been opened and nothing has been merged to `main`.
+**Four decisions, all Wasim's.** Two are spend, two are product. Nothing else
+in the sweep is blocked on anything but these.
+
+1. **The shared SerpAPI budget.** Reserve a call inside the tier budget, which
+   costs one main query, or delete the two unreachable passes. Today a Free
+   user gets one query and no rescue if it returns nothing.
+2. **The daily cooldown bypass.** `firstSetupAfterRun` can never be true, so
+   editing roles or countries locks the user out until local midnight.
+   Reopening the window costs a SerpAPI run.
+3. **What the sidebar badge counts** (bug 8). It counts roles the user has not
+   saved, so it disagrees with the canvas header the moment they save one.
+4. **Whether a repeat generation for the same job reuses its entry** (bug 5).
+   Today it writes a second one. Reusing would overwrite the earlier CV and
+   cover letter, so it needs a call on replace versus version.
+
+**Three Pass 3 entries are landable now**, no decision needed: the cover letter
+`updatedAt` timestamps, the Offer respond-by email, and the shared date
+formatter for the stored timezone and date format. Everything else in
+`BACKEND-GAPS.md` needs a schema change, a decision, an npm package, a Stripe
+route, an auth change or a prompt change.
+
+**Two things Wasim has to verify himself:** the Max account, and the settings
+modal signed out. One click each.
+
+No PR has been opened and nothing has been merged to `main`.
+
+---
+
+## Kickoff prompt for the next session
+
+> You are continuing the post-batch sweep of the Useful Apply UX redesign on
+> branch `rebrand/usefulapply`. `main` is off limits: no PR, no merge. Staging
+> is https://usefulapply.com, deployed from this branch at version `33cf7c8d`.
+>
+> Read `docs/ux-audit-2026-08-18/redesign/build/SWEEP-HANDOFF.md` first, then
+> `BACKEND-GAPS.md` in the same directory. Both are current as of 20 August
+> 2026. Passes 1 and 2 are done, the adversarial review on `62885ddc` is done,
+> `/code-review` at `high` has run and all nine of its findings are fixed.
+> Nineteen commits, none on `main`.
+>
+> **1. Confirm the reminder sweep behaved.** The 08:00 UTC cron on 20 August
+> was the first to run with the follow-up backfill. Before that deploy it would
+> have mailed 97 rows across 15 users going back to 3 March; the bound cut it
+> to 6 rows across 4 users. Verify what actually went out, read only:
+>
+> ```
+> npx wrangler d1 execute usefulapply-db --remote --json --command "SELECT count(*) AS sent, count(DISTINCT user_id) AS users, min(created_at) AS oldest_app FROM application_sessions WHERE follow_up_reminder_sent_at >= '2026-08-20T00:00:00Z'"
+> ```
+>
+> Expect a single-digit count and no application older than about 30 days. If
+> it is larger, or anything from March went out, stop and tell Wasim before
+> doing anything else. Never run INSERT, UPDATE or DELETE against the remote
+> database.
+>
+> **2. Ask Wasim the four open decisions** before touching the code they gate.
+> They are listed under "What is left" in the handoff with the tradeoff for
+> each: the shared SerpAPI budget, the unreachable cooldown bypass, what the
+> sidebar badge counts, and whether a repeat generation reuses its entry. Do
+> not guess any of them. Ask once, together, and carry on with step 3 while
+> waiting.
+>
+> **3. Continue Pass 3.** Only three entries are landable without a decision,
+> so do these and stop: the cover letter `updatedAt` timestamps (batch 2), the
+> Offer respond-by email (batch 4 part A), and the shared date formatter that
+> reads the stored timezone and date format (batch 4 part B). Mark each closed
+> in `BACKEND-GAPS.md` as you land it. Everything else needs a schema change, a
+> decision, an npm package, a Stripe route, an auth change or a prompt change,
+> and goes to Wasim instead.
+>
+> **4. Two checks only Wasim can do:** the Max account, and the settings modal
+> while signed out. Only one Chrome browser is connected and it holds the Free
+> account, so do not sign him out to get there. Ask him to click both.
+>
+> Rules: surgical edits only, npm only, no new packages. Do not touch Stripe
+> webhook or credit-deduction logic, D1 schema or migrations, Better Auth
+> config, or `src/lib/agents/**` prompts without asking. Copy rules on any
+> user-facing string, and in docs and commit messages too: no em dashes,
+> contractions, short sentences, no filler, "X, Y and Z".
+>
+> Before calling anything done: `npx tsc --noEmit` must be 0 errors, and
+> `npm run lint` must not exceed 72 errors and 61 warnings. Note tsc OOMs on
+> the default Node heap on this machine, on a clean `HEAD` too, so run it as
+> `NODE_OPTIONS=--max-old-space-size=8192 npx tsc --noEmit`. Then deploy with
+> `NEXT_PUBLIC_SITE_URL=https://usefulapply.com NEXT_PUBLIC_SITE_STAGE=staging npm run deploy:cf`
+> and verify on staging in the browser on the Free account.
+>
+> Two habits from this session that paid off, keep them. Check every agent
+> finding against the code before acting on it: three of the twenty raised so
+> far did not survive that check. And measure heuristics against the real
+> database instead of reasoning about them, which is how both the 97-row email
+> blast and the useless glued-list rule were caught.
+>
+> Commit in logical chunks with conventional commits and push to
+> `rebrand/usefulapply`.
