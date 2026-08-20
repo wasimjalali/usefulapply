@@ -2,7 +2,13 @@ import { and, asc, desc, eq, isNull, lt, or, sql } from 'drizzle-orm';
 import { isUniqueViolation, runBatch, getDb, nowIso } from '../client';
 import { addonCreditPacks, creditReservations, creditTransactions, subscriptionPlans, userCredits } from '../schema';
 import type { SubscriptionTier } from '@/lib/supabase/types';
-import { CREDIT_COSTS, getTotalCredits, type CreditAction } from '@/lib/credit-costs';
+import {
+  CREDIT_ACTION_KIND,
+  CREDIT_COSTS,
+  getTotalCredits,
+  type CreditAction,
+  type CreditTransactionKind,
+} from '@/lib/credit-costs';
 
 export { CREDIT_COSTS, getTotalCredits, type CreditAction };
 
@@ -37,6 +43,8 @@ export interface CreditTransaction {
   user_id: string;
   amount: number;
   transaction_type: string;
+  /** Null on rows written before the column existed. Read it through `creditTransactionKind`. */
+  transaction_kind: string | null;
   session_id?: string | null;
   description?: string | null;
   metadata?: Record<string, unknown>;
@@ -161,7 +169,7 @@ export async function initializeUserCredits(userId: string): Promise<{ credits: 
   }
   const credits = rows[0] as UserCredits;
   if (inserted) {
-    await insertTransaction(userId, 4, 'monthly_reset', {
+    await insertTransaction(userId, 4, 'monthly_reset', 'grant', {
       description: 'Initial free plan credits',
       balanceBefore: 0,
       balanceAfter: 4,
@@ -240,13 +248,14 @@ export async function deductCredits(
   error: Error | null;
 }> {
   const amount = CREDIT_COSTS[action];
-  return deductAmount(userId, amount, action.toLowerCase(), options);
+  return deductAmount(userId, amount, action.toLowerCase(), CREDIT_ACTION_KIND[action], options);
 }
 
 export async function deductAmount(
   userId: string,
   amount: number,
   reason: string,
+  kind: CreditTransactionKind,
   options?: { sessionId?: string; description?: string },
 ): Promise<{
   success: boolean;
@@ -288,9 +297,9 @@ export async function deductAmount(
       `,
       sql`
         INSERT INTO credit_transactions (
-          id, user_id, amount, transaction_type, session_id, description, metadata, balance_before, balance_after, created_at
+          id, user_id, amount, transaction_type, transaction_kind, session_id, description, metadata, balance_before, balance_after, created_at
         )
-        SELECT ${txId}, ${userId}, ${-amount}, ${reason}, ${options?.sessionId ?? null},
+        SELECT ${txId}, ${userId}, ${-amount}, ${reason}, ${kind}, ${options?.sessionId ?? null},
                ${options?.description ?? `${reason} credit deduction`}, '{}', ${totalBefore}, ${totalAfter}, ${now}
         WHERE (SELECT changes()) > 0
       `,
@@ -310,6 +319,7 @@ export async function addCredits(
   amount: number,
   creditType: 'monthly' | 'rollover' | 'addon',
   transactionType: string,
+  kind: CreditTransactionKind,
   description?: string,
 ): Promise<{ success: boolean; newBalance: number; error: Error | null }> {
   const column =
@@ -338,9 +348,9 @@ export async function addCredits(
       `,
       sql`
         INSERT INTO credit_transactions (
-          id, user_id, amount, transaction_type, session_id, description, metadata, balance_before, balance_after, created_at
+          id, user_id, amount, transaction_type, transaction_kind, session_id, description, metadata, balance_before, balance_after, created_at
         )
-        SELECT ${txId}, ${userId}, ${amount}, ${transactionType}, NULL,
+        SELECT ${txId}, ${userId}, ${amount}, ${transactionType}, ${kind}, NULL,
                ${description ?? `${transactionType} credit addition`}, '{}', ${totalBefore}, ${totalBefore + amount}, ${now}
         WHERE (SELECT changes()) > 0
       `,
@@ -359,6 +369,7 @@ export async function logCreditTransaction(
   userId: string,
   amount: number,
   transactionType: string,
+  kind: CreditTransactionKind,
   options: {
     sessionId?: string;
     description?: string;
@@ -367,13 +378,14 @@ export async function logCreditTransaction(
     metadata?: Record<string, unknown>;
   },
 ): Promise<void> {
-  await insertTransaction(userId, amount, transactionType, options);
+  await insertTransaction(userId, amount, transactionType, kind, options);
 }
 
 async function insertTransaction(
   userId: string,
   amount: number,
   transactionType: string,
+  kind: CreditTransactionKind,
   options: {
     sessionId?: string;
     description?: string;
@@ -387,6 +399,7 @@ async function insertTransaction(
     user_id: userId,
     amount,
     transaction_type: transactionType,
+    transaction_kind: kind,
     session_id: options.sessionId ?? null,
     description: options.description ?? null,
     metadata: (options.metadata ?? {}) as Record<string, never>,
@@ -438,7 +451,7 @@ export async function upgradePlan(
   if (changes === 0) {
     return { success: false, error: new Error('Plan upgrade failed due to concurrent access') };
   }
-  await insertTransaction(userId, plan.credits_monthly, 'plan_upgrade', {
+  await insertTransaction(userId, plan.credits_monthly, 'plan_upgrade', 'grant', {
     description: `Upgraded to ${plan.name} plan`,
     balanceBefore: getTotalCredits(credits),
     balanceAfter: getTotalCredits(credits) + plan.credits_monthly,
@@ -491,9 +504,9 @@ export async function processMonthlyReset(userId: string): Promise<{ success: bo
     `,
     sql`
       INSERT INTO credit_transactions (
-        id, user_id, amount, transaction_type, session_id, description, metadata, balance_before, balance_after, created_at
+        id, user_id, amount, transaction_type, transaction_kind, session_id, description, metadata, balance_before, balance_after, created_at
       )
-      SELECT ${txId}, ${userId}, ${totalAfter - totalBefore}, 'monthly_reset', NULL,
+      SELECT ${txId}, ${userId}, ${totalAfter - totalBefore}, 'monthly_reset', 'grant', NULL,
              ${`Monthly credit reset for ${plan.name} plan`}, ${metadata}, ${totalBefore}, ${totalAfter}, ${now}
       WHERE (SELECT changes()) > 0
     `,
@@ -574,6 +587,7 @@ export async function processAddonPurchase(
     pack.credits,
     'addon',
     'addon_purchase',
+    'grant',
     `Purchased ${pack.name} (${pack.credits} credits)`,
   );
   if (!success) {
@@ -676,9 +690,9 @@ export async function applyAddonPurchase(
       `,
       sql`
         INSERT INTO credit_transactions (
-          id, user_id, amount, transaction_type, session_id, description, metadata, balance_before, balance_after, created_at
+          id, user_id, amount, transaction_type, transaction_kind, session_id, description, metadata, balance_before, balance_after, created_at
         )
-        SELECT ${txId}, ${userId}, ${creditsToAdd}, 'addon_purchase', NULL,
+        SELECT ${txId}, ${userId}, ${creditsToAdd}, 'addon_purchase', 'grant', NULL,
                ${options.description}, ${JSON.stringify(options.metadata)}, ${totalBefore}, ${totalAfter}, ${now}
         WHERE (SELECT changes()) > 0
       `,
@@ -873,9 +887,9 @@ export async function applyRefundRemoval(
       `,
       sql`
         INSERT INTO credit_transactions (
-          id, user_id, amount, transaction_type, session_id, description, metadata, balance_before, balance_after, created_at
+          id, user_id, amount, transaction_type, transaction_kind, session_id, description, metadata, balance_before, balance_after, created_at
         )
-        SELECT ${txId}, ${userId}, ${totalAfter - totalBefore}, 'refund', NULL,
+        SELECT ${txId}, ${userId}, ${totalAfter - totalBefore}, 'refund', 'refund', NULL,
                ${options.description}, ${JSON.stringify(options.metadata)}, ${totalBefore}, ${totalAfter}, ${now}
         WHERE (SELECT changes()) > 0
       `,
@@ -980,9 +994,9 @@ export async function reserveCredits(params: {
 
   const refundDeduction = async (reason: string, description: string) => {
     const { deductedFrom } = deductResult;
-    if (deductedFrom.monthly > 0) await addCredits(userId, deductedFrom.monthly, 'monthly', reason, description);
-    if (deductedFrom.rollover > 0) await addCredits(userId, deductedFrom.rollover, 'rollover', reason, description);
-    if (deductedFrom.addon > 0) await addCredits(userId, deductedFrom.addon, 'addon', reason, description);
+    if (deductedFrom.monthly > 0) await addCredits(userId, deductedFrom.monthly, 'monthly', reason, 'refund', description);
+    if (deductedFrom.rollover > 0) await addCredits(userId, deductedFrom.rollover, 'rollover', reason, 'refund', description);
+    if (deductedFrom.addon > 0) await addCredits(userId, deductedFrom.addon, 'addon', reason, 'refund', description);
   };
 
   const db = await getDb();
@@ -1097,11 +1111,11 @@ export async function releaseReservation(params: {
     const description = `Released reservation ${reservation.id}${params.reason ? `: ${params.reason}` : ''}`;
     const split = extractDeductedFrom(reservation.metadata, reservation.amount);
     if (split) {
-      if (split.monthly > 0) await addCredits(reservation.user_id, split.monthly, 'monthly', reason, description);
-      if (split.rollover > 0) await addCredits(reservation.user_id, split.rollover, 'rollover', reason, description);
-      if (split.addon > 0) await addCredits(reservation.user_id, split.addon, 'addon', reason, description);
+      if (split.monthly > 0) await addCredits(reservation.user_id, split.monthly, 'monthly', reason, 'refund', description);
+      if (split.rollover > 0) await addCredits(reservation.user_id, split.rollover, 'rollover', reason, 'refund', description);
+      if (split.addon > 0) await addCredits(reservation.user_id, split.addon, 'addon', reason, 'refund', description);
     } else {
-      await addCredits(reservation.user_id, reservation.amount, 'addon', reason, description);
+      await addCredits(reservation.user_id, reservation.amount, 'addon', reason, 'refund', description);
     }
   }
   return result;

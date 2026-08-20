@@ -13,6 +13,7 @@ import {
   type UserCredits,
   type CreditTransaction,
 } from '@/lib/supabase/credits';
+import { creditTransactionKind } from '@/lib/credit-costs';
 import { Caption, PaneHeading, RowGroup } from '@/components/settings/parts';
 
 // All four derive from PLANS so a repricing in one file moves every surface.
@@ -109,10 +110,14 @@ export function UsageBillingPane() {
     for (const tx of transactions) {
       if (tx.amount >= 0) continue;
       if (since && new Date(tx.created_at).getTime() < since) continue;
+      // A charge is what the writer said it was. A negative refund is a
+      // clawback of bought credits, not a thing the user spent, and an
+      // unrecognised row is left out rather than counted as a rewrite.
+      const kind = creditTransactionKind(tx);
+      if (kind === 'refund' || kind === 'grant' || kind === null) continue;
       used += -tx.amount;
-      const type = tx.transaction_type;
-      if (type === 'fit_analysis') fits += 1;
-      else if (type === 'full_application' || type === 'generation_after_fit') kits += 1;
+      if (kind === 'fit') fits += 1;
+      else if (kind === 'kit') kits += 1;
       else rewrites += 1;
     }
     return { used, fits, kits, rewrites };
