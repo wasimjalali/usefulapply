@@ -43,6 +43,14 @@ function nextDayKey(key: string): string {
   return new Date(Date.UTC(year, month - 1, day + 1)).toISOString().slice(0, 10);
 }
 
+/**
+ * How far back an Applied row with no stored follow-up date is still worth a
+ * reminder. The derived date is created_at plus seven business days, so this
+ * window covers roughly the last three weeks of due dates. Anything older was
+ * missed, and mailing it now is noise, not a reminder.
+ */
+const FOLLOW_UP_BACKFILL_DAYS = 30;
+
 /** Email Service errors where retrying can never help; keep the claim. */
 const PERMANENT_SEND_ERRORS = ['E_RECIPIENT_SUPPRESSED', 'E_VALIDATION_ERROR', 'E_SENDER_NOT_VERIFIED'];
 
@@ -91,19 +99,27 @@ export async function runTrackerReminders(now: Date = new Date()): Promise<Track
   // so the email arrives the day before, as the popover promises. Anything
   // already overdue is swept up by the same upper bound.
   //
-  // The bounds below are deliberately loose. Local "tomorrow" runs from UTC-12
+  // The upper bounds are deliberately loose. Local "tomorrow" runs from UTC-12
   // to UTC+14, so a three-day UTC window is the smallest one that contains
-  // every user's tomorrow; isDueForCandidate then does the exact per-user test.
-  const interviewFrom = startOfUtcDay(now, 0).toISOString();
+  // every user's tomorrow; the per-candidate checks below do the exact test.
+  //
+  // The lower bound is `now`, not the start of the UTC day: an interview that
+  // has already happened cannot be anybody's tomorrow, and letting those rows
+  // in would fill the batch with candidates that can never be sent and can
+  // never be stamped, crowding out real ones past CRON_BATCH_LIMIT.
+  const interviewFrom = now.toISOString();
   const interviewTo = startOfUtcDay(now, 3).toISOString();
   const followUpTo = startOfUtcDay(now, 3).toISOString();
   // Seven business days always spans at least nine calendar days, so nothing
-  // created inside the last week can be due. A coarse floor, tightened below.
+  // created inside the last week can be due yet.
   const createdBefore = startOfUtcDay(now, -7).toISOString();
+  // And nothing created before this is worth chasing now. A row that came due
+  // months ago and was never chased is history, not a reminder.
+  const createdAfter = startOfUtcDay(now, -FOLLOW_UP_BACKFILL_DAYS).toISOString();
 
   const [interviewCandidates, followUpCandidates] = await Promise.all([
     listInterviewReminderCandidates(interviewFrom, interviewTo),
-    listFollowUpReminderCandidates(followUpTo, createdBefore),
+    listFollowUpReminderCandidates(followUpTo, createdBefore, createdAfter),
   ]);
 
   const interviews = interviewCandidates.filter((candidate) =>
@@ -143,14 +159,28 @@ function isFollowUpDue(candidate: TrackerReminderCandidate, now: Date): boolean 
   const today = localDayKey(now, zone);
   if (!today) return false;
 
-  const due = candidate.follow_up_due_at
+  const stored = candidate.follow_up_due_at;
+  const due = stored
     ?? (candidate.status === 'applied'
       ? defaultFollowUpDue(candidate.created_at)?.toISOString() ?? null
       : null);
   if (!due) return false;
 
   const dueDay = localDayKey(due, zone);
-  return dueDay !== null && dueDay <= nextDayKey(today);
+  if (dueDay === null || dueDay > nextDayKey(today)) return false;
+
+  // A stored date is a promise the user saw, so it is chased however old it is.
+  // A derived one is our own inference, and inferring a chase for something
+  // that came due months ago is noise.
+  if (!stored) {
+    const floor = localDayKey(
+      new Date(now.getTime() - FOLLOW_UP_BACKFILL_DAYS * 86_400_000),
+      zone,
+    );
+    if (floor !== null && dueDay < floor) return false;
+  }
+
+  return true;
 }
 
 async function sendOne(

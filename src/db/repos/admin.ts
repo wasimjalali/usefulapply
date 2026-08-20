@@ -414,14 +414,19 @@ const JOB_FEED_CLEANUP_COMPACTION_BATCH = 200;
 
 export async function compactOldRunMetadata(cutoff: string): Promise<number> {
   const db = await getDb();
-  // Bounded per pass. Every row compacted before this version fails the
-  // isCompactedRunMetadata check, so the first run after a version bump would
-  // otherwise rewrite the whole backlog in one invocation and blow the
-  // per-invocation subrequest cap. The backlog drains over several nights.
+  // Bounded per pass, so a large backlog cannot blow the per-invocation
+  // subrequest cap. The filter is what makes the bound drain: rows a previous
+  // pass already compacted leave the result set, so each night takes the next
+  // slice instead of refetching the same one and skipping all of it.
   const rows = await db
     .select({ id: jobFeedRuns.id, metadata: jobFeedRuns.metadata })
     .from(jobFeedRuns)
-    .where(and(eq(jobFeedRuns.status, 'completed'), lt(jobFeedRuns.completed_at, cutoff)))
+    .where(and(
+      eq(jobFeedRuns.status, 'completed'),
+      lt(jobFeedRuns.completed_at, cutoff),
+      sql`json_extract(${jobFeedRuns.metadata}, '$.cleanup_compacted_at') is null`,
+    ))
+    .orderBy(jobFeedRuns.completed_at)
     .limit(JOB_FEED_CLEANUP_COMPACTION_BATCH);
   let compacted = 0;
   for (const row of rows) {
@@ -558,12 +563,15 @@ export async function listInterviewReminderCandidates(
  * a follow-up date derived from created_at, so the sweep has to see it too or
  * the email the Notifications toggle promises never arrives. The exact
  * business-day maths stays in the sweep, which uses the same helper the
- * tracker does; `createdBeforeIso` is only a coarse floor so the query does not
- * drag in rows that cannot possibly be due yet.
+ * tracker does; the two created_at bounds are only a coarse band so the query
+ * does not drag in rows that cannot possibly be due yet, and does not drag in
+ * every Applied row ever written. Without the lower bound the first sweep after
+ * this shipped would have mailed 97 rows going back five months.
  */
 export async function listFollowUpReminderCandidates(
   toIso: string,
   createdBeforeIso: string,
+  createdAfterIso: string,
 ): Promise<TrackerReminderCandidate[]> {
   const db = await getDb();
   return db
@@ -595,6 +603,7 @@ export async function listFollowUpReminderCandidates(
           isNull(applicationSessions.follow_up_due_at),
           eq(applicationSessions.status, 'applied'),
           lte(applicationSessions.created_at, createdBeforeIso),
+          gte(applicationSessions.created_at, createdAfterIso),
         ),
       ),
       eq(profiles.notify_follow_up_due, true),
