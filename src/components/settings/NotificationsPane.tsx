@@ -5,8 +5,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Caption, LinkButton, PaneHeading, Row, RowGroup, Toggle, ValueText } from '@/components/settings/parts';
 import { useSettingsStore } from '@/store/useSettingsStore';
 
+// `notify_feed_ready` is deliberately absent. The feed runs in real time on a
+// click and the user watches it finish, so there is no moment to mail. The
+// column stays in the DB, unused, rather than advertising an email that cannot
+// exist.
 const TOGGLES = [
-  { field: 'notify_feed_ready', label: "Today's feed is ready", fallback: true },
   { field: 'notify_follow_up_due', label: 'A follow-up or offer deadline is due', fallback: true },
   { field: 'notify_interview_tomorrow', label: 'An interview is tomorrow', fallback: true },
   { field: 'notify_credits_low', label: 'Credits are about to run out', fallback: true },
