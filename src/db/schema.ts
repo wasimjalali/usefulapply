@@ -382,6 +382,13 @@ export const applicationSessions = sqliteTable(
     follow_up_due_at: text('follow_up_due_at'),
     interview_reminder_sent_at: text('interview_reminder_sent_at'),
     follow_up_reminder_sent_at: text('follow_up_reminder_sent_at'),
+    // Server-owned turn counters. The client can write generated_cv wholesale,
+    // so anything that rides in there is a display number, not a cap. These two
+    // are the cap: only the route that spends the turn increments them.
+    screening_turns_used: integer('screening_turns_used').notNull().default(0),
+    // Interview prep is not built yet (A6). The column ships with A3's so the
+    // production database takes one migration pass instead of two.
+    prep_turns_used: integer('prep_turns_used').notNull().default(0),
     generated_artifacts: text('generated_artifacts', { mode: 'json' }).$type<Json>(),
     created_at: text('created_at').notNull().$defaultFn(isoNow),
     updated_at: text('updated_at').notNull().$defaultFn(isoNow),
@@ -492,6 +499,11 @@ export const creditTransactions = sqliteTable(
       .references(() => profiles.id, { onDelete: 'cascade' }),
     amount: real('amount').notNull(),
     transaction_type: text('transaction_type').notNull(),
+    // The bucket the usage breakdown reads. transaction_type stays free text
+    // and keeps naming the exact action; this one is the closed set, so a new
+    // credit action has to pick a bucket at the call site instead of landing in
+    // "rewrite" by default. Null on rows written before the column existed.
+    transaction_kind: text('transaction_kind'),
     session_id: text('session_id'),
     description: text('description'),
     metadata: text('metadata', { mode: 'json' }).$type<Json>().notNull().$defaultFn(emptyObject),
