@@ -1,16 +1,17 @@
 # Post-batch sweep: handoff
 
-**Updated 20 August 2026.** Branch `rebrand/usefulapply`. Staging is
-https://usefulapply.com, deployed from this branch at version `33cf7c8d`.
+**Updated 20 August 2026, second session.** Branch `rebrand/usefulapply`.
+Staging is https://usefulapply.com, deployed from this branch at version
+`0c759553`.
 
-Passes 1 and 2 are done. The adversarial review on `62885ddc` is done. Pass 3
-has started.
+Passes 1 and 2 are done. Both adversarial reviews are done. Pass 3 landed its
+three unblocked entries and all four open decisions now have answers.
 
 ---
 
 ## What landed
 
-Eighteen commits, all on `rebrand/usefulapply`, none on `main`. No PR.
+Twenty-four commits, all on `rebrand/usefulapply`, none on `main`. No PR.
 
 | Commit | What |
 |---|---|
@@ -33,6 +34,12 @@ Eighteen commits, all on `rebrand/usefulapply`, none on `main`. No PR.
 | `04655cf9` | `fix:` the follow-up backfill would have mailed five months of history |
 | `eeaa935d` | `fix:` the rest of the code-review findings |
 | `abbda859` | `fix:` New application did nothing from the feed or the tracker |
+| `d2c6133d` | `docs:` kickoff prompt for the next session |
+| `9dffa2b8` | `feat:` the saved timezone and date format now reach every date |
+| `79e80e7d` | `feat:` the cover letter says when it was last written |
+| `30671ae0` | `feat:` an Offer's respond-by date now gets its reminder |
+| `04695c95` | `fix:` the adversarial review findings on the three Pass 3 features |
+| `ed091d7b` | `fix:` the feed is real time, so the code and the copy say so |
 
 Passes 1 and 2 are described in the git history of the first nine commits. What
 follows is what this session added.
@@ -247,50 +254,83 @@ change or a prompt change, all of which this sweep was told to leave alone.
   `NODE_OPTIONS=--max-old-space-size=8192 npx tsc --noEmit`.
 - `npm run lint`: **72 errors, 61 warnings**, unchanged, against a 73 / 89
   baseline.
-- Deployed to staging as `0102d48f` and walked on the **Free** account: feed
-  conversation and canvas, the Glint job detail (headings, clean bullet lists,
-  prose still prose, salary chip), the tracker table and conversation, the
-  settings modal on `/settings`. Console clean, no React errors.
-- Checked anonymously over HTTP: `/`, `/pricing`, `/login`, `/signup` and all
-  five retired routes return 200 and land on the right settings pane.
+- Deployed to staging as `0c759553` and walked on the **Max** account: the
+  settings modal (General, Notifications), the tracker table and conversation,
+  the feed conversation and canvas, and an existing application's cover letter.
+  Console clean, no React errors.
+- Checked anonymously over HTTP: `/` and `/pricing` return 200, `/login` and
+  `/signup` redirect.
 
-### Not verified
+### Both "only Wasim can do" checks are now done
 
-- **The Max account.** Only one Chrome browser is connected and it holds the
-  Free account. Reaching the Max account needs a sign-in, which is Wasim's to
-  do.
-- **The settings modal signed out.** Verifying it needs a signed-out session,
-  and the only way there from here is signing Wasim out of his own. The
-  signed-in half was verified (the modal still opens on `/settings` and the
-  URL is rewritten). One click each way from Wasim closes both.
+The browser turned out to hold the **Max** account, not the Free one, so both
+open checks closed without a sign-in. The settings modal opens on `/settings`
+and rewrites the URL to `/dashboard`, the panes render, and Timezone reads
+`Europe/Berlin` with the date format on `20 Aug 2026`, which is what the
+formatter then uses everywhere.
+
+### What the walk confirmed, feature by feature
+
+- **Notifications** reads "A follow-up or offer deadline is due".
+- **The tracker** prints "Follow up by 27 Aug" in the saved order, and the
+  overdue rows agree with the header count, which is the zone-aware day math.
+- **The feed header** reads "Thursday 20 August", through the shared formatter.
+- **The cover letter** on an existing application shows "193 words" with no
+  "Updated" prefix. That is the fix working: the letter predates the stamp, so
+  there is nothing truthful to say, where before the review fix it would have
+  claimed "Updated just now" on every reload.
+
+---
+
+## One deployment problem worth knowing
+
+The bare landing URL is served with `cache-control: s-maxage=31536000`, so the
+CDN kept the old HTML after the deploy. `https://usefulapply.com/` still showed
+"Roles picked for you every morning" while the same URL with a cache-busting
+query showed the new line. The build artifact is correct and the Worker is
+correct; the edge copy is stale. **A static copy change needs a Cloudflare
+cache purge to reach visitors.** Nothing in the app is affected, because the
+signed-in routes are dynamic.
 
 ---
 
 ## What is left
 
-**Four decisions, all Wasim's.** Two are spend, two are product. Nothing else
-in the sweep is blocked on anything but these.
+**All four decisions are answered.** Two are already built, two are not.
 
-1. **The shared SerpAPI budget.** Reserve a call inside the tier budget, which
-   costs one main query, or delete the two unreachable passes. Today a Free
-   user gets one query and no rescue if it returns nothing.
-2. **The daily cooldown bypass.** `firstSetupAfterRun` can never be true, so
-   editing roles or countries locks the user out until local midnight.
-   Reopening the window costs a SerpAPI run.
-3. **What the sidebar badge counts** (bug 8). It counts roles the user has not
-   saved, so it disagrees with the canvas header the moment they save one.
-4. **Whether a repeat generation for the same job reuses its entry** (bug 5).
-   Today it writes a second one. Reusing would overwrite the earlier CV and
-   cover letter, so it needs a call on replace versus version.
+1. **The shared SerpAPI budget: raise the Free budget.** Give Free two calls a
+   day so a main query and a rescue both fit. **Not built.** It touches
+   `JOB_FEED_MAX_DAILY_QUERIES` and the tier limits in `constants.ts`, which
+   the file says needs explicit sign-off, and it costs real money per Free user.
+2. **The daily cooldown: no bypass. Built** in `ed091d7b`. The feed is real
+   time and user-started, one run per 24 hours, and a settings edit costs no
+   extra SerpAPI call: it applies to the next run. The dead `firstSetupAfterRun`
+   branch is gone and the limit is now stated before the click, not after it.
+3. **The sidebar badge: unseen runs only.** Wasim asked for the expert call and
+   this is it. The badge should mean "there is a feed you have not opened", so
+   it clears when the feed is opened and never competes with the canvas header.
+   **Not built.** Today the sidebar says "18 new roles for you" while the canvas
+   says "5 roles", which is the disagreement, and the conversation on the same
+   screen says the roles are from the last search rather than today.
+4. **A repeat generation reuses its entry and overwrites it. Not built.** It
+   would live at `src/hooks/useSupabaseSync.ts:466-484`.
 
-**Three Pass 3 entries are landable now**, no decision needed: the cover letter
-`updatedAt` timestamps, the Offer respond-by email, and the shared date
-formatter for the stored timezone and date format. Everything else in
-`BACKEND-GAPS.md` needs a schema change, a decision, an npm package, a Stripe
-route, an auth change or a prompt change.
+### Also open
 
-**Two things Wasim has to verify himself:** the Max account, and the settings
-modal signed out. One click each.
+- **`notify_feed_ready` controls nothing and now never can.** The toggle says
+  "Today's feed is ready", but the user starts the run themselves and watches
+  it, so there is no moment to mail. It should either come out of Notifications
+  or be repurposed. This is a UI decision, so it was left alone.
+- **The stored follow-up date is still chased however old it is.** That was a
+  deliberate call last session, so the review finding against it was recorded
+  rather than reversed. The offer date is bounded at 30 days, so the two are
+  now asymmetric on purpose.
+- **The sweep carries three batches of 200 in one invocation**, up from two,
+  and offers run last so they are the ones a truncated run would drop. Nowhere
+  near reachable at current volume: the offer query matches zero rows today.
+- **The ranking system prompt still opens with "Every morning you evaluate…"**
+  (`workers-ai-ranking.ts:86`). Factually stale under real time, but it is a
+  model prompt, so changing it can shift ranking behaviour. Left alone.
 
 No PR has been opened and nothing has been merged to `main`.
 
@@ -300,46 +340,40 @@ No PR has been opened and nothing has been merged to `main`.
 
 > You are continuing the post-batch sweep of the Useful Apply UX redesign on
 > branch `rebrand/usefulapply`. `main` is off limits: no PR, no merge. Staging
-> is https://usefulapply.com, deployed from this branch at version `33cf7c8d`.
+> is https://usefulapply.com, deployed from this branch at version `0c759553`.
 >
 > Read `docs/ux-audit-2026-08-18/redesign/build/SWEEP-HANDOFF.md` first, then
 > `BACKEND-GAPS.md` in the same directory. Both are current as of 20 August
-> 2026. Passes 1 and 2 are done, the adversarial review on `62885ddc` is done,
-> `/code-review` at `high` has run and all nine of its findings are fixed.
-> Nineteen commits, none on `main`.
+> 2026. Passes 1 and 2 are done, both adversarial reviews are done, Pass 3
+> landed its three unblocked entries and all four open decisions are answered.
+> Twenty-four commits, none on `main`.
 >
-> **1. Confirm the reminder sweep behaved.** The 08:00 UTC cron on 20 August
-> was the first to run with the follow-up backfill. Before that deploy it would
-> have mailed 97 rows across 15 users going back to 3 March; the bound cut it
-> to 6 rows across 4 users. Verify what actually went out, read only:
+> **1. Build the three answered decisions that are not built yet.** They are
+> listed under "What is left" in the handoff.
 >
-> ```
-> npx wrangler d1 execute usefulapply-db --remote --json --command "SELECT count(*) AS sent, count(DISTINCT user_id) AS users, min(created_at) AS oldest_app FROM application_sessions WHERE follow_up_reminder_sent_at >= '2026-08-20T00:00:00Z'"
-> ```
+> - **The sidebar badge counts unseen runs.** It should mean "there is a feed
+>   you have not opened", clear when the feed is opened, and stop competing
+>   with the canvas header. Today the sidebar says "18 new roles for you" while
+>   the canvas says "5 roles". Start at `summary/route.ts:41`, where
+>   `unprocessedCount` is defined as roles the user has not saved.
+> - **A repeat generation for the same job reuses its entry and overwrites it.**
+>   `src/hooks/useSupabaseSync.ts:466-484`. Confirm with Wasim what the user
+>   sees when it happens before you write the overwrite.
+> - **Raise the Free SerpAPI budget to two calls a day**, so a main query and a
+>   rescue both fit. This one spends money and `constants.ts` says the daily
+>   query count needs explicit sign-off, so confirm the number with Wasim
+>   first, then check the fallback pass is actually reachable afterwards.
 >
-> Expect a single-digit count and no application older than about 30 days. If
-> it is larger, or anything from March went out, stop and tell Wasim before
-> doing anything else. Never run INSERT, UPDATE or DELETE against the remote
-> database.
+> **2. Ask Wasim about `notify_feed_ready`.** The toggle says "Today's feed is
+> ready" and controls nothing. Under real time the user starts the run and
+> watches it, so there is no moment to mail. It comes out of Notifications or
+> it gets repurposed, and that is his call.
 >
-> **2. Ask Wasim the four open decisions** before touching the code they gate.
-> They are listed under "What is left" in the handoff with the tradeoff for
-> each: the shared SerpAPI budget, the unreachable cooldown bypass, what the
-> sidebar badge counts, and whether a repeat generation reuses its entry. Do
-> not guess any of them. Ask once, together, and carry on with step 3 while
-> waiting.
->
-> **3. Continue Pass 3.** Only three entries are landable without a decision,
-> so do these and stop: the cover letter `updatedAt` timestamps (batch 2), the
-> Offer respond-by email (batch 4 part A), and the shared date formatter that
-> reads the stored timezone and date format (batch 4 part B). Mark each closed
-> in `BACKEND-GAPS.md` as you land it. Everything else needs a schema change, a
-> decision, an npm package, a Stripe route, an auth change or a prompt change,
-> and goes to Wasim instead.
->
-> **4. Two checks only Wasim can do:** the Max account, and the settings modal
-> while signed out. Only one Chrome browser is connected and it holds the Free
-> account, so do not sign him out to get there. Ask him to click both.
+> **3. The landing page needs a Cloudflare cache purge.** The bare URL is
+> served with `s-maxage=31536000`, so the copy fix deployed in `ed091d7b` is
+> live in the Worker but the edge is still serving the old HTML. Ask Wasim to
+> purge, then confirm `https://usefulapply.com/` reads "Roles picked for you,
+> whenever you ask" without a cache-busting query.
 >
 > Rules: surgical edits only, npm only, no new packages. Do not touch Stripe
 > webhook or credit-deduction logic, D1 schema or migrations, Better Auth
@@ -352,13 +386,19 @@ No PR has been opened and nothing has been merged to `main`.
 > the default Node heap on this machine, on a clean `HEAD` too, so run it as
 > `NODE_OPTIONS=--max-old-space-size=8192 npx tsc --noEmit`. Then deploy with
 > `NEXT_PUBLIC_SITE_URL=https://usefulapply.com NEXT_PUBLIC_SITE_STAGE=staging npm run deploy:cf`
-> and verify on staging in the browser on the Free account.
+> and verify on staging in the browser. Note the deploy hit a Cloudflare
+> `Authentication error [code: 10000]` on the secrets endpoint once and worked
+> on a straight retry of `npx opennextjs-cloudflare deploy`, which also skips
+> the rebuild.
 >
-> Two habits from this session that paid off, keep them. Check every agent
-> finding against the code before acting on it: three of the twenty raised so
-> far did not survive that check. And measure heuristics against the real
-> database instead of reasoning about them, which is how both the 97-row email
-> blast and the useless glued-list rule were caught.
+> Three habits from these two sessions that paid off, keep them. Check every
+> agent finding against the code before acting on it: five of the twenty-eight
+> raised so far did not survive that check. Measure heuristics against the real
+> database instead of reasoning about them, which is how the 97-row email
+> blast, the useless glued-list rule and the unbounded offer query were all
+> caught. And check the clock before trusting a cron result: the first run of
+> this session read zero sent rows because the 08:00 UTC sweep had not fired
+> yet.
 >
 > Commit in logical chunks with conventional commits and push to
 > `rebrand/usefulapply`.
