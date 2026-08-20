@@ -349,7 +349,7 @@ export function ChatPanel({
   const [heroFocusRing, setHeroFocusRing] = useState(false);
   // Seeded from the current value, not from 0. The store is module-level and
   // survives client-side navigation, so comparing against 0 would re-fire the
-  // focus on every remount (e.g. returning from /documents) with no user click.
+  // focus on every remount (e.g. after a client-side navigation) with no user click.
   const handledJdFocusRef = useRef(jdFocusRequest);
   useEffect(() => {
     if (jdFocusRequest === handledJdFocusRef.current) return;
@@ -826,7 +826,7 @@ export function ChatPanel({
   const handleAction = async (action: string) => {
     switch (action) {
       case 'navigate-documents':
-        router.push('/documents');
+        openSettings('cv');
         break;
       case 'view-cv':
         onTabChange?.('cv');

@@ -46,7 +46,7 @@ because the new captures must show the UI after these fixes land.
   the images show the corrected UI. The daily-feed moment is still the
   agreed placeholder until the end-to-end pass (see BACKEND-GAPS.md C1).
 
-## 3. Scrollbar color fights the UI
+## 3. Scrollbar color fights the UI (FIXED)
 
 - **Proof:** `ui-feedback/02-dashboard-pill-divider-toggle.png` (right edge),
   also visible in `03-tracker-next-column.png`.
@@ -56,7 +56,11 @@ because the new captures must show the UI after these fixes land.
 - **Where:** `src/app/globals.css:83-141` (`::-webkit-scrollbar*` plus the
   Firefox fallback and `.scrollbar-on-dark`).
 
-## 4. Canvas collapse toggle jumps around
+**Fixed** in `c081a756`. Thumb is `#E7E0D2` (soft white-family) at rest,
+`#C9BDA4` deeper sand on hover, no navy anywhere. Firefox fallback follows.
+The design system's scrollbar rule was rewritten in the same commit.
+
+## 4. Canvas collapse toggle jumps around (FIXED)
 
 - **Proof:** `ui-feedback/02-dashboard-pill-divider-toggle.png` (icon at the
   vertical middle of the canvas edge).
@@ -67,7 +71,11 @@ because the new captures must show the UI after these fixes land.
 - **Where:** `src/components/shell/CanvasColumn.tsx:90-115` (the two
   branches around `onToggleCollapsed`).
 
-## 5. "New messages" pill shows when there are none
+**Fixed** in `bf1a2553`. The toggle sits at the bottom right in both
+states: open it floats at the canvas's bottom-right corner, collapsed it
+sits at the bottom of the rail, same pill style in both.
+
+## 5. "New messages" pill shows when there are none (FIXED)
 
 - **Proof:** `ui-feedback/02-dashboard-pill-divider-toggle.png` (pill above
   the composer on an empty New application).
@@ -82,7 +90,14 @@ because the new captures must show the UI after these fixes land.
 - **Where:** `src/components/ChatPanel.tsx` (`showScrollButton`, the scroll
   effects, and the view-switch path from `requestNewApplication`).
 
-## 6. A line sits above the chat box
+**Fixed** in `310c6e11`. Root cause confirmed: the panel stays mounted but
+display:none behind the feed and tracker, where no scroll event fires and
+every height reads 0, so `showScrollButton` froze at a stale "not at
+bottom". A ResizeObserver now recomputes the button from the container's
+geometry on reveal and on session change; nothing was hidden or papered
+over.
+
+## 6. A line sits above the chat box (FIXED)
 
 - **Proof:** `ui-feedback/02-dashboard-pill-divider-toggle.png`.
 - **Seen:** a full-width hairline separates the conversation from the
@@ -93,7 +108,10 @@ because the new captures must show the UI after these fixes land.
   on the input area wrapper). Check the tracker and feed composers for the
   same line so all three match.
 
-## 7. The tracker NEXT column opens the wrong thing
+**Fixed** in `a128e407`. The border-t is gone from the chat, tracker and
+feed composers alike; the composer's rounded border is the only separation.
+
+## 7. The tracker NEXT column opens the wrong thing (FIXED)
 
 - **Proof:** `ui-feedback/03-tracker-next-column.png` (status list open
   under "Follow up by 27 Aug").
@@ -110,7 +128,13 @@ because the new captures must show the UI after these fixes land.
 - **Where:** `src/components/tracker/TrackerCanvas.tsx` (NEXT cell),
   `src/components/tracker/tracker-status.ts` (`deriveNextStep`).
 
-## 8. Edit feed's Edit button leads to the retired documents page
+**Fixed** in `94cfb3be`. Every NEXT step now declares what a click does
+(`opens` on `deriveNextStep`): Send it and all follow-up labels open the
+application on the Emails tab through `openStoredSession`; Waiting, the
+interview date and the offer respond-by keep the date popover; Rejected
+stays inert. Label-by-label review recorded in `tracker-status.ts`.
+
+## 8. Edit feed's Edit button leads to the retired documents page (FIXED)
 
 - **Proof:** `ui-feedback/04-edit-feed-profile.png`.
 - **Seen:** in Edit feed, Profile pill, the "Edit" button on "What I read

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useRouter } from 'next/navigation';
+import { openSettings } from '@/store/useSettingsStore';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useAppStore } from '@/store/useAppStore';
@@ -81,7 +81,6 @@ interface CVPanelProps {
 }
 
 export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAts }: CVPanelProps = {}) {
-  const router = useRouter();
   const {
     currentCV,
     structuredCV,
@@ -301,10 +300,10 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           </div>
           <h3 className="text-lg font-bold tracking-tight text-charcoal mb-2">No CV uploaded</h3>
           <p className="text-sm text-warm-gray mb-6 leading-relaxed">
-            Upload your CV from the Documents library to get started with AI-powered optimization.
+            Upload your CV in Settings to get started.
           </p>
-          <Button variant="gold" onClick={() => router.push('/documents')}>
-            Open Documents
+          <Button variant="gold" onClick={() => openSettings('cv')}>
+            Upload your CV
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
           <p className="text-xs text-warm-gray/80 mt-4 leading-relaxed">

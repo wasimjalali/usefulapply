@@ -103,7 +103,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         pill={editPill}
         onPillChange={(pill) => useFeedStore.getState().setEditPill(pill)}
         onBack={() => useFeedStore.getState().backToList()}
-        onEditProfile={() => router.push('/documents')}
+        onEditProfile={() => openSettings('cv')}
       />
     );
   }

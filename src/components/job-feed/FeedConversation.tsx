@@ -296,6 +296,12 @@ export function FeedConversation() {
     let result = await loadFeedOverview({ quiet: true });
     if (!result.ok) result = await loadFeedOverview();
     useFeedStore.getState().setBuild(null);
+    // A run can re-plan the queries and refresh the CV read-out, so Edit
+    // feed's Searches and Profile pills must not keep the previous plan.
+    if (canSteer) {
+      void loadSearchStrategy();
+      void loadCareerProfile();
+    }
     if (!result.ok) {
       say({
         role: 'assistant',
@@ -303,7 +309,7 @@ export function FeedConversation() {
         chips: [{ id: 'retry-load', label: 'Try again', variant: 'primary' }],
       });
     }
-  }, [say]);
+  }, [canSteer, say]);
 
   const triggerRun = useCallback(async (firstTime: boolean) => {
     // Clear the give-up flag first. It suppresses the building view in both
