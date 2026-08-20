@@ -532,14 +532,19 @@ Confirmed by review: no page reads `cookies()` or `headers()` server-side, so
 nothing per-user is prerendered and the edge cannot serve one user's HTML to
 another. Route handlers do not inherit a layout's `revalidate`.
 
-**One thing to know.** `open-next.config.ts` sets only `incrementalCache`, so
-the queue resolves to `dummy`, whose `send()` throws. `revalidateIfRequired`
-catches it and logs "Failed to revalidate stale page". Before this change no
-page had a numeric revalidate so the path was never reached. Pages still
-regenerate through Next's own background revalidate, so this is log noise, not
-breakage. `wrangler.jsonc` already carries a `WORKER_SELF_REFERENCE` binding
-commented "so ISR revalidation can call this worker" that the config never
-wires up. Wiring `memoryQueue` would close both.
+**The queue, now fixed in `bb6bb3ec`.** `open-next.config.ts` set only
+`incrementalCache`, so the queue resolved to `dummy`, whose `send()` throws.
+`revalidateIfRequired` caught it and logged "Failed to revalidate stale page".
+Nothing was broken, because Next revalidates through its own background path,
+but it became log noise the moment pages got a real revalidate. `memoryQueue`
+is what the `WORKER_SELF_REFERENCE` binding was added for, and its comment in
+`wrangler.jsonc` has said so since the migration.
+
+Verified on `fdd834f5` with `wrangler tail`: waited past the 300 second window,
+forced a stale hit on `/` and `/pricing`, and got **two `x-isr` revalidation
+requests, zero "Failed to revalidate" lines and no exceptions**. So the
+revalidation now runs through the intended path rather than only through
+Next's fallback.
 
 ### The ranking prompt
 
