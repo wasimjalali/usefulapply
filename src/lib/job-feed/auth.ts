@@ -1,4 +1,4 @@
-import { canAccessJobFeed } from '@/lib/job-feed/helpers';
+import { canAccessJobFeed, canViewJobFeed } from '@/lib/job-feed/helpers';
 import { getProfile } from '@/db/repos/profiles';
 
 interface JobFeedAccessOk {
@@ -32,6 +32,24 @@ export async function requireJobFeedAccess(user: { id: string }): Promise<JobFee
 
   if (!canAccessJobFeed(profile.subscription_tier)) {
     return { ok: false, status: 403, error: 'Plan upgrade required.' };
+  }
+
+  return { ok: true, profile };
+}
+
+/**
+ * Discovery access: free, plus or max. Same missing-profile distinction as
+ * requireJobFeedAccess, so a missing row is not reported as a plan gate.
+ */
+export async function requireJobFeedView(user: { id: string }): Promise<JobFeedAccessResult> {
+  const profile = await getProfile(user.id);
+
+  if (!profile) {
+    return { ok: false, status: 500, error: 'Account setup incomplete.' };
+  }
+
+  if (!canViewJobFeed(profile.subscription_tier)) {
+    return { ok: false, status: 403, error: 'Job Feed is not available for this account.' };
   }
 
   return { ok: true, profile };

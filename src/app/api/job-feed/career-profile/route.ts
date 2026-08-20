@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
-import { requireJobFeedAccess } from '@/lib/job-feed/auth';
+import { requireJobFeedAccess, requireJobFeedView } from '@/lib/job-feed/auth';
 import {
   CAREER_PROFILE_SCHEMA_VERSION,
   isCurrentCareerProfile,
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const auth = await authenticatePaidUser(request);
+    const auth = await authenticateFeedViewer(request);
     if (!auth.ok) return auth.response;
     const { userId } = auth;
 
@@ -200,6 +200,20 @@ export async function POST(request: NextRequest) {
 
 type AuthSuccess = { ok: true; userId: string };
 type AuthFailure = { ok: false; response: NextResponse };
+
+async function authenticateFeedViewer(request: NextRequest): Promise<AuthSuccess | AuthFailure> {
+  const user = await getCurrentUser(request);
+  if (!user) {
+    return { ok: false, response: NextResponse.json({ error: 'Authentication required.' }, { status: 401 }) };
+  }
+
+  const access = await requireJobFeedView(user);
+  if (!access.ok) {
+    return { ok: false, response: NextResponse.json({ error: access.error }, { status: access.status }) };
+  }
+
+  return { ok: true, userId: user.id };
+}
 
 async function authenticatePaidUser(request: NextRequest): Promise<AuthSuccess | AuthFailure> {
   const user = await getCurrentUser(request);
