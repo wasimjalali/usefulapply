@@ -2,6 +2,7 @@ import {
   claimTrackerReminder,
   listFollowUpReminderCandidates,
   listInterviewReminderCandidates,
+  listOfferDeadlineCandidates,
   releaseTrackerReminderClaim,
   type TrackerReminderCandidate,
 } from '@/db/repos/admin';
@@ -10,6 +11,7 @@ import { sendEmail } from '@/lib/email/send';
 import {
   buildFollowUpReminderEmail,
   buildInterviewReminderEmail,
+  buildOfferDeadlineReminderEmail,
 } from '@/lib/email/templates/tracker-reminder';
 
 /**
@@ -89,10 +91,10 @@ function firstNameOf(candidate: TrackerReminderCandidate): string {
 }
 
 /**
- * One reminder per dated thing: an interview starting inside the window and a
- * follow-up that has come due. The claim is taken before the send, so a second
- * run in the same day is a no-op; a transient send failure releases it and the
- * next run retries.
+ * One reminder per dated thing: an interview starting inside the window, a
+ * follow-up that has come due, and an offer whose respond-by date has come up.
+ * The claim is taken before the send, so a second run in the same day is a
+ * no-op; a transient send failure releases it and the next run retries.
  */
 export async function runTrackerReminders(now: Date = new Date()): Promise<TrackerReminderResult> {
   // Interviews happening tomorrow, and follow-ups due by the end of tomorrow
@@ -117,14 +119,19 @@ export async function runTrackerReminders(now: Date = new Date()): Promise<Track
   // months ago and was never chased is history, not a reminder.
   const createdAfter = startOfUtcDay(now, -FOLLOW_UP_BACKFILL_DAYS).toISOString();
 
-  const [interviewCandidates, followUpCandidates] = await Promise.all([
+  const [interviewCandidates, followUpCandidates, offerCandidates] = await Promise.all([
     listInterviewReminderCandidates(interviewFrom, interviewTo),
     listFollowUpReminderCandidates(followUpTo, createdBefore, createdAfter),
+    listOfferDeadlineCandidates(followUpTo),
   ]);
 
   const interviews = interviewCandidates.filter((candidate) =>
     isInterviewTomorrow(candidate, now));
   const followUps = followUpCandidates.filter((candidate) =>
+    isFollowUpDue(candidate, now));
+  // Same question, "is it due by the end of the owner's tomorrow", and an offer
+  // deadline is always a stored date, so the derived branch never runs.
+  const offers = offerCandidates.filter((candidate) =>
     isFollowUpDue(candidate, now));
 
   const result: TrackerReminderResult = { processed: 0, sent: 0, skipped: 0, errors: 0 };
@@ -134,6 +141,9 @@ export async function runTrackerReminders(now: Date = new Date()): Promise<Track
   }
   for (const candidate of followUps) {
     await sendOne(candidate, 'follow_up', result, now);
+  }
+  for (const candidate of offers) {
+    await sendOne(candidate, 'offer', result, now);
   }
 
   return result;
@@ -185,16 +195,20 @@ function isFollowUpDue(candidate: TrackerReminderCandidate, now: Date): boolean 
 
 async function sendOne(
   candidate: TrackerReminderCandidate,
-  kind: 'interview' | 'follow_up',
+  kind: 'interview' | 'follow_up' | 'offer',
   result: TrackerReminderResult,
   now: Date,
 ): Promise<void> {
   result.processed += 1;
 
+  // An offer deadline claims the follow-up column. A row holds one status at a
+  // time, and moving to Offer with a new date clears the guard, so the two
+  // kinds can never contend for it.
+  const claimKind = kind === 'interview' ? 'interview' : 'follow_up';
   const claimedAt = now.toISOString();
   let claimed = false;
   try {
-    claimed = await claimTrackerReminder(candidate.id, kind, claimedAt);
+    claimed = await claimTrackerReminder(candidate.id, claimKind, claimedAt);
   } catch (error) {
     console.error(
       `[cron/tracker-reminders] claim failed for ${candidate.id}: ${error instanceof Error ? error.message : 'unknown'}`,
@@ -220,10 +234,13 @@ async function sendOne(
       })
     : null;
 
+  const person = { firstName: firstNameOf(candidate), company, role };
   const email =
     kind === 'interview'
-      ? buildInterviewReminderEmail({ firstName: firstNameOf(candidate), company, role, when })
-      : buildFollowUpReminderEmail({ firstName: firstNameOf(candidate), company, role });
+      ? buildInterviewReminderEmail({ ...person, when })
+      : kind === 'offer'
+        ? buildOfferDeadlineReminderEmail(person)
+        : buildFollowUpReminderEmail(person);
 
   try {
     await sendEmail({
@@ -242,7 +259,7 @@ async function sendOne(
     );
     if (isPermanentSendError(error)) return;
     try {
-      await releaseTrackerReminderClaim(candidate.id, kind, claimedAt);
+      await releaseTrackerReminderClaim(candidate.id, claimKind, claimedAt);
     } catch (releaseError) {
       console.error(
         `[cron/tracker-reminders] release failed for ${candidate.id}: ${releaseError instanceof Error ? releaseError.message : 'unknown'}`,

@@ -309,9 +309,12 @@ export function TrackerConversation() {
   );
 }
 
-/** Only interviews and follow-ups have a sender behind them. */
+/**
+ * Interviews, follow-ups and offer deadlines each have a sender behind them.
+ * An offer rides the follow-up toggle, which is why Notifications names both.
+ */
 function remindsFor(profile: unknown, status: TrackerStatus): boolean {
-  if (status !== 'interview' && status !== 'follow_up') return false;
+  if (status !== 'interview' && status !== 'follow_up' && status !== 'accepted') return false;
   const prefs = (profile ?? {}) as Record<string, unknown>;
   const key = status === 'interview' ? 'notify_interview_tomorrow' : 'notify_follow_up_due';
   return prefs[key] !== false && prefs[key] !== 0;

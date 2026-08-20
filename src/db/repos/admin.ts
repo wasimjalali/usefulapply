@@ -616,6 +616,47 @@ export async function listFollowUpReminderCandidates(
 }
 
 /**
+ * Offers with a respond-by date that has come due. Its own query because an
+ * offer deadline is always a date the user picked: there is no created_at
+ * fallback to derive and nothing to backfill.
+ *
+ * The claim reuses `follow_up_reminder_sent_at`, which is safe because a row
+ * holds one status at a time and moving to Offer with a new date clears the
+ * guard. `notify_follow_up_due` gates it, so Notifications says "a follow-up or
+ * offer deadline is due" rather than promising a toggle that does not exist.
+ */
+export async function listOfferDeadlineCandidates(toIso: string): Promise<TrackerReminderCandidate[]> {
+  const db = await getDb();
+  return db
+    .select({
+      id: applicationSessions.id,
+      user_id: applicationSessions.user_id,
+      status: applicationSessions.status,
+      company: applicationSessions.company,
+      job_title: applicationSessions.job_title,
+      created_at: applicationSessions.created_at,
+      interview_at: applicationSessions.interview_at,
+      follow_up_due_at: applicationSessions.follow_up_due_at,
+      email: authUsers.email,
+      full_name: profiles.full_name,
+      timezone: profiles.timezone,
+    })
+    .from(applicationSessions)
+    .innerJoin(profiles, eq(profiles.id, applicationSessions.user_id))
+    .innerJoin(authUsers, eq(authUsers.id, applicationSessions.user_id))
+    .where(and(
+      eq(applicationSessions.status, 'accepted'),
+      isNull(applicationSessions.follow_up_reminder_sent_at),
+      sql`${applicationSessions.follow_up_due_at} is not null`,
+      lte(applicationSessions.follow_up_due_at, toIso),
+      eq(profiles.notify_follow_up_due, true),
+      eq(authUsers.emailVerified, true),
+    ))
+    .orderBy(applicationSessions.follow_up_due_at)
+    .limit(CRON_BATCH_LIMIT);
+}
+
+/**
  * Claims one reminder. The conditional update is the lock: a second run, or a
  * second Worker, gets false and sends nothing.
  */

@@ -132,9 +132,9 @@ export function TrackerCanvas() {
   // The reminder columns are newer than the Profile type, so read them loosely
   // and treat a missing value as the column default (on).
   const remindersOn = (status: TrackerStatus) => {
-    // An offer's respond-by date is stored but the sweep does not mail it yet,
-    // so that step promises nothing.
-    if (status !== 'interview' && status !== 'follow_up') return false;
+    // An offer's respond-by date rides the follow-up toggle, which is why
+    // Notifications names both.
+    if (status !== 'interview' && status !== 'follow_up' && status !== 'accepted') return false;
     const prefs = (profile ?? {}) as Record<string, unknown>;
     const key = status === 'interview' ? 'notify_interview_tomorrow' : 'notify_follow_up_due';
     return prefs[key] !== false && prefs[key] !== 0;

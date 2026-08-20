@@ -155,11 +155,11 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Where:** `src/app/api/tracker/chat/route.ts`.
 - **Needs:** a decision. Either it stays free like the kit chat (consistent, and the calls are small) or it gets a ceiling. Small.
 
-### An Offer's respond-by date is stored but never mailed
-- **UI today:** picking Offer opens the same when-step and the date is saved, but the popover deliberately promises no reminder for it (`remindersOn` returns false for Offer), so the copy stays honest.
-- **Missing:** `listFollowUpReminderCandidates` filters status to `applied` and `follow_up`, so an offer deadline produces no email, and the follow-up template's wording would be wrong for one anyway.
-- **Where:** `src/db/repos/admin.ts` (`listFollowUpReminderCandidates`), `src/lib/email/templates/tracker-reminder.ts`.
-- **Needs:** an offer-deadline branch in the sweep and its own two-line template. Small.
+### An Offer's respond-by date is stored but never mailed - CLOSED
+- **Closed 20 August 2026.** `listOfferDeadlineCandidates` is its own query, because an offer deadline is always a date the user picked: there is no `created_at` fallback to derive and nothing to backfill. The sweep sends it with its own template, and the popover and the tracker conversation now promise the reminder for Offer.
+- **No new column.** The claim reuses `follow_up_reminder_sent_at`. A row holds one status at a time, and `setTrackerStatus` clears the guard whenever `follow_up_due_at` moves, so a row that already had its follow-up chased still gets the offer email. The one case it skips is an Offer saved on the exact date the follow-up used, which is the guard doing its job.
+- **No new toggle either.** It rides `notify_follow_up_due`, so Notifications now reads "A follow-up or offer deadline is due" rather than promising a switch that does not exist.
+- **Where:** `src/db/repos/admin.ts`, `src/cron/tracker-reminders.ts`, `src/lib/email/templates/tracker-reminder.ts`, `src/components/tracker/TrackerCanvas.tsx`, `src/components/tracker/TrackerConversation.tsx`, `src/components/settings/NotificationsPane.tsx`.
 
 ### Applications that reached Applied before this batch get a NEXT date the cron cannot act on - CLOSED
 - **Closed 20 August 2026.** No backfill. `listFollowUpReminderCandidates` also returns Applied rows with a null `follow_up_due_at`, and the sweep derives the date with the same `defaultFollowUpDue` the tracker shows the user, so the two cannot disagree.

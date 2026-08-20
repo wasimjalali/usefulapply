@@ -118,3 +118,38 @@ ${href}
 You can turn these off in Notifications.`,
   };
 }
+
+/**
+ * An offer deadline. Shorter than the follow-up email on purpose: there is
+ * nothing for us to draft here, the user just needs the date in front of them.
+ */
+export function buildOfferDeadlineReminderEmail({ firstName, company, role }: ReminderOpts): BuiltEmail {
+  const name = company ?? 'that offer';
+  const greeting = greetingFor(firstName);
+  const roleLine = role ? ` (${role})` : '';
+  const href = `${SITE_URL}/dashboard?workspace=tracker`;
+
+  return {
+    from: NOREPLY_FROM,
+    replyTo: BRAND.supportEmail,
+    subject: `Your ${name} offer needs an answer`,
+    html: shell(
+      greeting.html,
+      [
+        `You said you'd respond to the ${escapeHtml(name)} offer${escapeHtml(roleLine)} by tomorrow.`,
+        'The tracker has the role and your kit if you want to read it back first.',
+      ],
+      'Open the tracker',
+      href,
+    ),
+    text: `${greeting.text}
+
+You said you'd respond to the ${name} offer${roleLine} by tomorrow.
+
+The tracker has the role and your kit if you want to read it back first.
+
+${href}
+
+You can turn these off in Notifications.`,
+  };
+}
