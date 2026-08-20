@@ -17,7 +17,7 @@ because the new captures must show the UI after these fixes land.
 
 ---
 
-## 1. The landing nav is bare
+## 1. The landing nav is bare (FIXED)
 
 - **Proof:** `ui-feedback/01-landing-nav.png`
 - **Seen:** the top nav holds only "Pricing" and "Open app".
@@ -31,6 +31,12 @@ because the new captures must show the UI after these fixes land.
   (how it works / features, pricing) plus the imprint or contact the footer
   already carries. New pages are a product decision to put to Wasim, not
   something to invent.
+
+**Fixed.** The nav now carries What you get (the landing's own anchor),
+Pricing, Blog and About, plus Log in and the CTA. Correction to the note
+below: `/about` and `/blog` already exist as real pages and the footer
+already links them, so nothing was invented. No new pages were created; if
+Wasim wants more nav items (e.g. the comparison hub), that stays his call.
 
 ## 2. Landing product images are small and soft
 

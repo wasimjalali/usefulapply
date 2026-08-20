@@ -7,8 +7,14 @@ import { Menu, X, ArrowUpRight } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Blog, About and Contact live in the footer. The bar carries one link and one action.
-const NAV_LINKS = [{ href: '/pricing', label: 'Pricing' }];
+// Only pages and anchors that exist. Contact and the legal pages stay in
+// the footer.
+const NAV_LINKS = [
+  { href: '/#what-you-get', label: 'What you get' },
+  { href: '/pricing', label: 'Pricing' },
+  { href: '/blog', label: 'Blog' },
+  { href: '/about', label: 'About' },
+];
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
