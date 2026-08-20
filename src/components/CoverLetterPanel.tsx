@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { Card } from './ui/Card';
 import { useAppStore } from '@/store/useAppStore';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
-import { formatDayMonth, type DatePrefs } from '@/lib/utils/format-date';
+import { formatDate, formatDayMonth, type DatePrefs } from '@/lib/utils/format-date';
 import { useUIStore } from '@/store/useUIStore';
 import { Mail, Download, Copy, Check, FileText, Edit3, Maximize2, X, Zap, ChevronDown } from 'lucide-react';
 import type { GeneratedCoverLetter } from '@/lib/types';
@@ -34,7 +34,10 @@ function relativeLabel(ms: number, now: number, prefs: DatePrefs): string {
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours} h ago`;
   // Past a day "earlier" says nothing, and the stamp now survives a reload.
-  return `on ${formatDayMonth(new Date(ms), prefs)}`;
+  // Past a year the day and month alone would read as three days ago.
+  const then = new Date(ms);
+  const overAYear = now - ms > 365 * 86_400_000;
+  return `on ${overAYear ? formatDate(then, prefs) : formatDayMonth(then, prefs)}`;
 }
 
 /** The letter's own stamp, or null when it predates the stamp or is unreadable. */
@@ -90,7 +93,10 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
     if (coverLetter) {
       // Identity check, so a StrictMode double-run on mount does not count as a change.
       if (lastLetterRef.current !== null && lastLetterRef.current !== coverLetter) {
-        setUpdatedAtMs(stampOf(coverLetter) ?? Date.now());
+        // No clock fallback. A rehydrated letter is a new object with the same
+        // content, and every path that really writes one stamps it, so an
+        // unstamped change is a reload and has nothing truthful to report.
+        setUpdatedAtMs(stampOf(coverLetter));
       }
       lastLetterRef.current = coverLetter;
     }

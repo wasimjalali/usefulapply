@@ -136,7 +136,7 @@ export function buildOfferDeadlineReminderEmail({ firstName, company, role }: Re
     html: shell(
       greeting.html,
       [
-        `You said you'd respond to the ${escapeHtml(name)} offer${escapeHtml(roleLine)} by tomorrow.`,
+        `Your answer on the ${escapeHtml(name)} offer${escapeHtml(roleLine)} is due.`,
         'The tracker has the role and your kit if you want to read it back first.',
       ],
       'Open the tracker',
@@ -144,7 +144,7 @@ export function buildOfferDeadlineReminderEmail({ firstName, company, role }: Re
     ),
     text: `${greeting.text}
 
-You said you'd respond to the ${name} offer${roleLine} by tomorrow.
+Your answer on the ${name} offer${roleLine} is due.
 
 The tracker has the role and your kit if you want to read it back first.
 

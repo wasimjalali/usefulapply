@@ -220,7 +220,16 @@ export async function setTrackerStatus(
       // A reminder guard clears only when its date actually moved, so
       // re-saving the same date cannot send the same email twice.
       interview_reminder_sent_at: sql`case when coalesce(interview_at, '') = ${next.interview_at ?? ''} then interview_reminder_sent_at else null end`,
-      follow_up_reminder_sent_at: sql`case when coalesce(follow_up_due_at, '') = ${next.follow_up_due_at ?? ''} then follow_up_reminder_sent_at else null end`,
+      // The follow-up guard also clears when the row crosses into or out of
+      // Offer, because the two share this column but are different emails. The
+      // popover pins every non-interview date to 09:00 local, so a follow-up
+      // already chased and an offer due the same day serialise to the same
+      // string, and without this the offer email would be swallowed by a guard
+      // set for the follow-up while the popover promised it.
+      follow_up_reminder_sent_at: sql`case
+        when coalesce(follow_up_due_at, '') <> ${next.follow_up_due_at ?? ''} then null
+        when (status = 'accepted') <> (${next.status} = 'accepted') then null
+        else follow_up_reminder_sent_at end`,
       updated_at: nowIso(),
     })
     .where(and(eq(applicationSessions.id, sessionId), eq(applicationSessions.user_id, userId)))

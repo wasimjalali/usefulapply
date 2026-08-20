@@ -5,6 +5,8 @@
  */
 
 import {
+  addDaysToDayKey,
+  dayKey,
   formatDate,
   formatDateTime,
   formatDayMonth,
@@ -139,7 +141,8 @@ export interface NextStep {
 }
 
 export function deriveNextStep(row: TrackerRowDates, now: Date = new Date(), prefs?: DatePrefs): NextStep {
-  const today = startOfDay(now);
+  const today = dayKey(now, prefs?.timeZone);
+  const isPast = (due: Date) => dayKey(due, prefs?.timeZone) < today;
 
   switch (row.status) {
     case 'drafted':
@@ -148,7 +151,7 @@ export function deriveNextStep(row: TrackerRowDates, now: Date = new Date(), pre
     case 'applied': {
       const due = parseDate(row.followUpDueAt) ?? defaultFollowUpDue(row.createdAt);
       if (!due) return { label: 'Follow up', tone: 'default' };
-      if (startOfDay(due) < today) return { label: 'Follow up overdue', tone: 'overdue' };
+      if (isPast(due)) return { label: 'Follow up overdue', tone: 'overdue' };
       return { label: `Follow up by ${formatShortDate(due, prefs)}`, tone: 'default' };
     }
 
@@ -156,7 +159,7 @@ export function deriveNextStep(row: TrackerRowDates, now: Date = new Date(), pre
       // The spec's label is Waiting. The chase date is a reminder trigger, not
       // something the column reports, until it has actually passed.
       const due = parseDate(row.followUpDueAt);
-      if (due && startOfDay(due) < today) return { label: 'Follow up overdue', tone: 'overdue' };
+      if (due && isPast(due)) return { label: 'Follow up overdue', tone: 'overdue' };
       return { label: 'Waiting', tone: 'default' };
     }
 
@@ -185,14 +188,16 @@ export function defaultFollowUpDue(createdAt: string | null | undefined): Date |
 }
 
 /** How many follow-ups are due or overdue this week, for the header line. */
-export function countFollowUpsDueThisWeek(rows: TrackerRowDates[], now: Date = new Date()): number {
-  const today = startOfDay(now);
-  const weekEnd = new Date(today.getTime());
-  weekEnd.setDate(weekEnd.getDate() + 7);
+export function countFollowUpsDueThisWeek(
+  rows: TrackerRowDates[],
+  now: Date = new Date(),
+  prefs?: DatePrefs,
+): number {
+  const weekEnd = addDaysToDayKey(dayKey(now, prefs?.timeZone), 7);
   return rows.filter((row) => {
     if (row.status !== 'applied' && row.status !== 'follow_up') return false;
     const due = parseDate(row.followUpDueAt) ?? (row.status === 'applied' ? defaultFollowUpDue(row.createdAt) : null);
     if (!due) return false;
-    return startOfDay(due) < weekEnd;
+    return dayKey(due, prefs?.timeZone) < weekEnd;
   }).length;
 }

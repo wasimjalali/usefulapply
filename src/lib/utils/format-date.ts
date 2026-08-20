@@ -18,14 +18,25 @@ export interface DatePrefs {
 
 export const DEFAULT_DATE_PREFS: DatePrefs = { timeZone: undefined, order: 'dmy' };
 
-/**
- * The locale that puts the parts in the saved order. en-CA is YYYY-MM-DD, so it
- * carries ISO, and it also gives a 24-hour clock like en-GB.
- */
+/** The locale that puts the date parts in the saved order. en-CA is YYYY-MM-DD. */
 function localeFor(order: DateOrder): string {
   if (order === 'mdy') return 'en-US';
   if (order === 'iso') return 'en-CA';
   return 'en-GB';
+}
+
+/**
+ * The locale for a clock. en-CA is a 12-hour clock in current ICU ("04:05 p.m."),
+ * so it cannot carry the ISO order, whose time is 24-hour. Only the US order
+ * gets a 12-hour clock.
+ */
+function timeLocaleFor(order: DateOrder): string {
+  return order === 'mdy' ? 'en-US' : 'en-GB';
+}
+
+/** Intl throws on an invalid Date where toLocaleDateString returned a string. */
+function isValid(date: Date): boolean {
+  return !Number.isNaN(date.getTime());
 }
 
 /** A stored zone the runtime does not know would throw inside Intl. */
@@ -52,6 +63,7 @@ export function datePrefsFrom(
 
 /** "19 Aug 2026", or "2026-08-19" on ISO. */
 export function formatDate(date: Date, prefs: DatePrefs = DEFAULT_DATE_PREFS): string {
+  if (!isValid(date)) return '';
   if (prefs.order === 'iso') {
     return new Intl.DateTimeFormat('en-CA', {
       timeZone: prefs.timeZone,
@@ -74,6 +86,7 @@ export function formatDayMonth(
   prefs: DatePrefs = DEFAULT_DATE_PREFS,
   month: 'short' | 'long' = 'short',
 ): string {
+  if (!isValid(date)) return '';
   if (prefs.order === 'iso') {
     return new Intl.DateTimeFormat('en-CA', {
       timeZone: prefs.timeZone,
@@ -90,6 +103,7 @@ export function formatDayMonth(
 
 /** "Wednesday 19 August" for a conversation header. */
 export function formatLongDay(date: Date, prefs: DatePrefs = DEFAULT_DATE_PREFS): string {
+  if (!isValid(date)) return '';
   return new Intl.DateTimeFormat(localeFor(prefs.order), {
     timeZone: prefs.timeZone,
     weekday: 'long',
@@ -98,9 +112,10 @@ export function formatLongDay(date: Date, prefs: DatePrefs = DEFAULT_DATE_PREFS)
   }).format(date);
 }
 
-/** "09:25", or "09:25 AM" where the saved order is the US one. */
+/** "09:25", or "04:05 PM" where the saved order is the US one. */
 export function formatTime(date: Date, prefs: DatePrefs = DEFAULT_DATE_PREFS): string {
-  return new Intl.DateTimeFormat(localeFor(prefs.order), {
+  if (!isValid(date)) return '';
+  return new Intl.DateTimeFormat(timeLocaleFor(prefs.order), {
     timeZone: prefs.timeZone,
     hour: '2-digit',
     minute: '2-digit',
@@ -109,6 +124,7 @@ export function formatTime(date: Date, prefs: DatePrefs = DEFAULT_DATE_PREFS): s
 
 /** "Thu 21 Aug, 14:00". */
 export function formatDateTime(date: Date, prefs: DatePrefs = DEFAULT_DATE_PREFS): string {
+  if (!isValid(date)) return '';
   const day = prefs.order === 'iso'
     ? new Intl.DateTimeFormat('en-CA', {
         timeZone: prefs.timeZone,
@@ -123,4 +139,24 @@ export function formatDateTime(date: Date, prefs: DatePrefs = DEFAULT_DATE_PREFS
         month: 'short',
       }).format(date);
   return `${day}, ${formatTime(date, prefs)}`;
+}
+
+/**
+ * "2026-08-21" in the reader's saved zone. Sorts correctly as a plain string,
+ * so day comparisons can run on the key instead of on a browser-local Date.
+ */
+export function dayKey(date: Date, timeZone?: string): string {
+  if (!isValid(date)) return '';
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+/** Shift a day key by whole days. Done on the key, so a DST shift cannot skip one. */
+export function addDaysToDayKey(key: string, days: number): string {
+  const [year, month, day] = key.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
 }

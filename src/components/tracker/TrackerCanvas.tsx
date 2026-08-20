@@ -125,8 +125,10 @@ export function TrackerCanvas() {
           followUpDueAt: row.follow_up_due_at,
           createdAt: row.created_at,
         })),
+        new Date(),
+        datePrefs,
       ),
-    [allRows],
+    [allRows, datePrefs],
   );
 
   // The reminder columns are newer than the Profile type, so read them loosely

@@ -22,7 +22,6 @@ import {
   deriveNextStep,
   formatInterviewDate,
   parseDate,
-  startOfDay,
   toTrackerStatus,
   type TrackerStatus,
 } from './tracker-status';
@@ -348,7 +347,6 @@ export function buildStateOfPlay(
     };
   }
 
-  const today = startOfDay(now);
   const withStatus = rows.map((row) => ({ row, status: toTrackerStatus(row.status) }));
 
   const interviews = withStatus
@@ -367,7 +365,8 @@ export function buildStateOfPlay(
         followUpDueAt: entry.row.follow_up_due_at,
         createdAt: entry.row.created_at,
       },
-      today,
+      now,
+      prefs,
     );
     return next.tone === 'overdue';
   });

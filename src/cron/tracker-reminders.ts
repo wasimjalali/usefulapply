@@ -118,11 +118,15 @@ export async function runTrackerReminders(now: Date = new Date()): Promise<Track
   // And nothing created before this is worth chasing now. A row that came due
   // months ago and was never chased is history, not a reminder.
   const createdAfter = startOfUtcDay(now, -FOLLOW_UP_BACKFILL_DAYS).toISOString();
+  // An offer deadline gets the same floor, on the date itself rather than on
+  // created_at. Being late to answer an offer is worth a nudge; being a month
+  // late means the offer is gone and the email is noise.
+  const offerDueAfter = startOfUtcDay(now, -FOLLOW_UP_BACKFILL_DAYS).toISOString();
 
   const [interviewCandidates, followUpCandidates, offerCandidates] = await Promise.all([
     listInterviewReminderCandidates(interviewFrom, interviewTo),
     listFollowUpReminderCandidates(followUpTo, createdBefore, createdAfter),
-    listOfferDeadlineCandidates(followUpTo),
+    listOfferDeadlineCandidates(followUpTo, offerDueAfter),
   ]);
 
   const interviews = interviewCandidates.filter((candidate) =>

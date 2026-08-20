@@ -621,11 +621,19 @@ export async function listFollowUpReminderCandidates(
  * fallback to derive and nothing to backfill.
  *
  * The claim reuses `follow_up_reminder_sent_at`, which is safe because a row
- * holds one status at a time and moving to Offer with a new date clears the
- * guard. `notify_follow_up_due` gates it, so Notifications says "a follow-up or
- * offer deadline is due" rather than promising a toggle that does not exist.
+ * holds one status at a time and entering Offer clears the guard.
+ * `notify_follow_up_due` gates it, so Notifications says "a follow-up or offer
+ * deadline is due" rather than promising a toggle that does not exist.
+ *
+ * `fromIso` is not optional. Offer is terminal, so nobody moves a row out of it:
+ * without a floor a dead deadline stays a live candidate forever, and the day a
+ * user verifies their email or turns the toggle back on the whole backlog goes
+ * out at once, oldest first, pushing real reminders off the end of the batch.
  */
-export async function listOfferDeadlineCandidates(toIso: string): Promise<TrackerReminderCandidate[]> {
+export async function listOfferDeadlineCandidates(
+  toIso: string,
+  fromIso: string,
+): Promise<TrackerReminderCandidate[]> {
   const db = await getDb();
   return db
     .select({
@@ -649,6 +657,7 @@ export async function listOfferDeadlineCandidates(toIso: string): Promise<Tracke
       isNull(applicationSessions.follow_up_reminder_sent_at),
       sql`${applicationSessions.follow_up_due_at} is not null`,
       lte(applicationSessions.follow_up_due_at, toIso),
+      gte(applicationSessions.follow_up_due_at, fromIso),
       eq(profiles.notify_follow_up_due, true),
       eq(authUsers.emailVerified, true),
     ))

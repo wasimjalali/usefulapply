@@ -58,6 +58,7 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 
 ### Cover letter "Updated just now" has no stored timestamp - CLOSED
 - **Closed 20 August 2026.** `GeneratedCoverLetter` carries an optional `updatedAt`, stamped by the three paths that write a letter: generation, regeneration and a saved edit. It rides in the session JSON, so no schema change. The panel seeds its label from that stamp, so a reload still says when the letter changed, and past a day the label prints the date instead of "earlier".
+- **No clock fallback.** `useSupabaseSync` replaces the current session with a freshly parsed row, so the letter object changes identity on every authenticated load with the same content. Falling back to the clock there would have invented "Updated just now" for every letter written before the stamp.
 - **Only the cover letter.** `email`, `followUpEmail` and `optimizedCVData` have no toolbar that reports a time, so stamping them would be UI-less state.
 - **Where:** `src/lib/types.ts`, `src/components/CoverLetterPanel.tsx`, `src/components/chat/useAgentWorkflow.ts`, `src/lib/regenerate-client.ts`.
 
@@ -159,7 +160,9 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Closed 20 August 2026.** `listOfferDeadlineCandidates` is its own query, because an offer deadline is always a date the user picked: there is no `created_at` fallback to derive and nothing to backfill. The sweep sends it with its own template, and the popover and the tracker conversation now promise the reminder for Offer.
 - **No new column.** The claim reuses `follow_up_reminder_sent_at`. A row holds one status at a time, and `setTrackerStatus` clears the guard whenever `follow_up_due_at` moves, so a row that already had its follow-up chased still gets the offer email. The one case it skips is an Offer saved on the exact date the follow-up used, which is the guard doing its job.
 - **No new toggle either.** It rides `notify_follow_up_due`, so Notifications now reads "A follow-up or offer deadline is due" rather than promising a switch that does not exist.
-- **Where:** `src/db/repos/admin.ts`, `src/cron/tracker-reminders.ts`, `src/lib/email/templates/tracker-reminder.ts`, `src/components/tracker/TrackerCanvas.tsx`, `src/components/tracker/TrackerConversation.tsx`, `src/components/settings/NotificationsPane.tsx`.
+- **Bounded at 30 days.** Offer is terminal, so nobody moves a row out of it. Without a floor on the respond-by date a dead deadline stays a live candidate forever, and the day a user verifies their email or turns the toggle back on the whole backlog goes out at once, oldest first. Being late to answer an offer is worth a nudge; a month late means the offer is gone.
+- **Entering or leaving Offer re-arms the guard.** The popover pins every non-interview date to 09:00 local, so a follow-up already chased and an offer due the same day serialise to the same string and the old guard swallowed the offer email while the popover promised it.
+- **Where:** `src/db/repos/admin.ts`, `src/db/repos/sessions.ts`, `src/cron/tracker-reminders.ts`, `src/lib/email/templates/tracker-reminder.ts`, `src/components/tracker/TrackerCanvas.tsx`, `src/components/tracker/TrackerConversation.tsx`, `src/components/settings/NotificationsPane.tsx`.
 
 ### Applications that reached Applied before this batch get a NEXT date the cron cannot act on - CLOSED
 - **Closed 20 August 2026.** No backfill. `listFollowUpReminderCandidates` also returns Applied rows with a null `follow_up_due_at`, and the sweep derives the date with the same `defaultFollowUpDue` the tracker shows the user, so the two cannot disagree.
@@ -191,6 +194,7 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **`useDatePrefs()`** reads the two columns off the profile for components.
 - **Swapped:** the tracker rows and NEXT column, the tracker conversation opening, the feed conversation header, the feed's "last run" stamp, the feed profile "refreshed" date, the chat history list, the billing renewal date, and the cover letter's "Updated" label past a day.
 - **Not swapped, deliberately:** `StatusPopover`'s day chips. Those pick a date in the browser's own calendar and store it with local getters, so printing them in a different zone would make the chip disagree with what it saves.
+- **The day math moved too.** `deriveNextStep` and `countFollowUpsDueThisWeek` compared browser-local midnights while the label beside them printed in the saved zone, so a row could read "Follow up by 26 Aug" and be told it was overdue. Both now compare day keys in the saved zone, which is a no-op for a reader whose zone matches their browser.
 - **The reminder sweep already reads the zone**, per the entry above.
 
 ### Two of the five notification toggles have no sending path
