@@ -12,6 +12,11 @@ Format per entry:
 - **Needs:** rough size and any decision Wasim has to make
 ```
 
+**Every entry still open here now has a recommendation and, where one is
+needed, a stated decision, in `BACKEND-DECISIONS.md` next to this file.** Read
+that first: it groups the remaining work into what needs Wasim's call, what
+does not, and what is blocked on something outside the code.
+
 ---
 
 ## Found in batch 1 (shell, guided line)
