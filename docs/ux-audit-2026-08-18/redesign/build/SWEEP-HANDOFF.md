@@ -275,7 +275,26 @@ and rewrites the URL to `/dashboard`, the panes render, and Timezone reads
 `Europe/Berlin` with the date format on `20 Aug 2026`, which is what the
 formatter then uses everywhere.
 
-### What the walk confirmed, feature by feature
+### The second walk, on version `746c1bae`
+
+The five later commits were checked on the same Max account:
+
+- **The badge.** The sidebar reads "Today's feed / You're up to date" with no
+  number, where it used to say "18 new roles for you" beside a canvas header
+  saying "5 roles". The two numbers can no longer disagree, because there is
+  only one.
+- **The timezone.** `SELECT count(*) FROM profiles WHERE timezone IS NOT NULL`
+  went from **0 to 1** on page load, storing `Europe/Berlin`. That is the whole
+  fix: the column had never been written for any account.
+- **Notifications** has four rows. "Today's feed is ready" is gone.
+- Console clean, no React errors.
+- The landing page purge landed: the bare URL serves "Roles picked for you,
+  whenever you ask" with no cache buster.
+
+`/settings/notifications` returns 404, which is correct: no such route was ever
+defined, the modal opens at `/settings` and the pane is chosen inside it.
+
+### What the first walk confirmed, feature by feature
 
 - **Notifications** reads "A follow-up or offer deadline is due".
 - **The tracker** prints "Follow up by 27 Aug" in the saved order, and the
@@ -293,10 +312,14 @@ formatter then uses everywhere.
 The bare landing URL is served with `cache-control: s-maxage=31536000`, so the
 CDN kept the old HTML after the deploy. `https://usefulapply.com/` still showed
 "Roles picked for you every morning" while the same URL with a cache-busting
-query showed the new line. The build artifact is correct and the Worker is
-correct; the edge copy is stale. **A static copy change needs a Cloudflare
-cache purge to reach visitors.** Nothing in the app is affected, because the
-signed-in routes are dynamic.
+query showed the new line. The build artifact was correct and the Worker was
+correct; only the edge copy was stale.
+
+**Purged on 20 August 2026** (`purge_everything` on zone
+`usefulapply.com`), and the bare URL now serves the new line with no cache
+buster. It will happen again on the next static copy change, so either purge
+after each deploy or shorten `s-maxage` on the landing route. Nothing in the
+app was affected, because the signed-in routes are dynamic.
 
 ---
 
