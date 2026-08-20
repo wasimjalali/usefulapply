@@ -104,8 +104,13 @@ export default function Dashboard() {
       return;
     }
 
+    // Wait until the requested session is current before one-shot tab
+    // handling. ChatPanel already refuses to autostart against a different
+    // id, but marking nav processed here would still skip the workspace
+    // switch when the fetch later lands.
     if (requestedSessionId && currentSession?.id !== requestedSessionId) {
       void openStoredSession(requestedSessionId);
+      return;
     }
 
     const navKey = `${requestedWorkspace ?? ''}|${requestedSessionId ?? ''}|${requestedTab ?? ''}|${autostart ?? ''}`;

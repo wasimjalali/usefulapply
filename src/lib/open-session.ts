@@ -180,7 +180,13 @@ export async function openStoredSession(sessionId: string): Promise<boolean> {
     return useSessionStore.getState().currentSession?.id === sessionId;
   }
 
-  const row = await getStoredSession(sessionId);
+  let row;
+  try {
+    row = await getStoredSession(sessionId);
+  } catch (err) {
+    console.error('[openStoredSession] Session did not load:', err);
+    return false;
+  }
   if (generation !== openGeneration) return false;
   if (!row) return false;
 
