@@ -289,17 +289,13 @@ These came out of the dead-code pass and the bug hunt. Everything here was
 deliberately left unfixed: each one needs a schema change, a product decision,
 or UI the locked flow docs do not specify.
 
-### Deleting an application is gone from the product
-- **UI today:** there is no way to delete an application. The tracker has no row action, no confirm, no bulk select.
-- **Missing:** nothing on the server. The whole chain is intact and orphaned: `deleteSessionAction` (`src/db/actions.ts`) to `deleteSession` (`src/db/repos/sessions.ts`). `useSessionStore.deleteSession` also has zero callers. The retired `TrackerPanel.tsx` carried both a single-row and a bulk delete, and both hit the server; batch 4 rebuilt the tracker without them and the commit note does not mention it.
-- **Where:** UI would go in `src/components/tracker/TrackerCanvas.tsx` next to the existing status popover trigger; a `remove` action in `src/store/useTrackerStore.ts` that calls `deleteSessionAction` and mirrors into `useSessionStore`.
-- **Needs:** small to medium, plus a decision from Wasim: single-row only, or bulk select as well, and whether delete is soft or hard.
+### Deleting an application is gone from the product - CLOSED
+- **Closed 20 August 2026.** Single row, hard delete, plain confirm. Tracker hover trash opens `DeleteConfirm`. `deleteSession` now fails on a zero-row write. Chat and generation rows cascade. Feed feedback set-null.
+- **Where:** `src/components/tracker/TrackerCanvas.tsx`, `src/components/tracker/DeleteConfirm.tsx`, `src/store/useTrackerStore.ts` `remove`, `src/db/repos/sessions.ts`.
 
-### `loadSession` blanks the workspace when the tracker and the session store disagree
-- **UI today:** clicking a tracker row opens that application. If the id is not in `useSessionStore.sessions`, `loadSession` sets `currentSession` to null: the kit goes blank with no message.
-- **Missing:** the two lists have different sources and different bounds. Tracker rows come from D1 via `listTrackerOverviewAction` and render as soon as they land; `sessions` is filled separately and later by `useSupabaseSync`, and stays empty if `getSessions` throws.
-- **Where:** `src/store/useSessionStore.ts` `loadSession`, `src/components/tracker/TrackerCanvas.tsx` `openApplication`, `src/components/tracker/TrackerConversation.tsx` `runFollowUp`.
-- **Needs:** a decision on the right behaviour: fetch the session on demand, or refuse to navigate and say so. Destroying `currentSession` on a lookup miss is wrong either way. Small once decided.
+### `loadSession` blanks the workspace when the tracker and the session store disagree - CLOSED
+- **Closed 20 August 2026.** `loadSession` no longer blanks on a miss. `openStoredSession` fetches the D1 row, then loads chat. Tracker follow-up and prep wait for that open, so a miss cannot regenerate the previous kit.
+- **Where:** `src/lib/open-session.ts`, `src/store/useSessionStore.ts`, tracker, sidebar, dashboard, ChatHistory.
 
 ### The tracker silently truncates at 300 applications
 - **UI today:** the tracker lists applications and shows count pills.
@@ -307,17 +303,13 @@ or UI the locked flow docs do not specify.
 - **Where:** `src/db/repos/sessions.ts`, `src/components/tracker/TrackerCanvas.tsx`.
 - **Needs:** either a line of copy admitting the cap, or paging. Small. Not urgent at current volumes.
 
-### Chat history loads for the 10 most recent applications only
-- **UI today:** opening an older application from the sidebar or the tracker shows an empty conversation.
-- **Missing:** `useSupabaseSync` fetches chat messages for the 10 newest sessions. The messages are in D1; nothing reads them for the rest.
-- **Where:** `src/hooks/useSupabaseSync.ts`.
-- **Needs:** load a session's messages on open rather than in the initial sweep. Small. Pre-existing, not a batch regression.
+### Chat history loads for the 10 most recent applications only - CLOSED
+- **Closed 20 August 2026.** The initial sweep no longer fetches the 10 newest. `openStoredSession` loads that session's messages. ChatHistory used to do this itself; it now calls the same helper. Measured: 432 of 467 chat rows sat outside those 10.
+- **Where:** `src/lib/open-session.ts`, `src/hooks/useSupabaseSync.ts`.
 
-### A saved job stops working after 7 days
-- **UI today:** Saved is a permanent bookmark list with no time cutoff, so the card is still on screen. Every action on it (Check fit, feedback) 404s with "That role is no longer in your feed."
-- **Missing:** every write authorises through a live `job_feed_ranked_items` row, and cleanup deletes ranked items 7 days after their run. Making a saved job self-authorising needs `job_feed_application_generations.ranked_item_id` to accept null, which is a schema change.
-- **Where:** `src/lib/job-feed/server.ts` `authorizeJobFeedJobActionAdmin` and `createOrReuseJobFeedApplicationGenerationAdmin`, `src/lib/job-feed/cleanup.ts`.
-- **Needs:** a decision. Either the nullable column and a migration, or exempt saved canonical jobs from the retention delete, which changes the retention policy instead. Medium either way.
+### A saved job stops working after 7 days - CLOSED
+- **Closed 20 August 2026.** Cleanup skips ranked rows whose feedback has `saved_at`. Unsaving nulls `saved_at`, so the next sweep can take them. The bookmark was save-only; it now toggles. Measured before the change: 1 saved job, 0 already past 7 days.
+- **Where:** `src/db/repos/admin.ts` `deleteExpiredRankedItems`, `src/lib/job-feed/server.ts` `unsaved`, `src/app/api/job-feed/feedback/route.ts`, `src/components/job-feed/useFeedJobActions.ts`.
 
 ### Per-tier input caps on the feed are not shown anywhere
 - **UI today:** Edit feed takes as many roles, countries and cities as the user types.
