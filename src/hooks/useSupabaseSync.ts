@@ -83,6 +83,42 @@ function embedKitData(session: ApplicationSession): Record<string, unknown> | nu
   return base;
 }
 
+/** Whitespace and casing vary between a pasted ad and a feed handoff. */
+function normalizeText(value: string | null | undefined): string {
+  return (value ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+/**
+ * The existing entry for this exact job, or null.
+ *
+ * The ad text is part of the match, not just the company and the title.
+ * Measured against the real database: of the six duplicate
+ * (user, company, title) groups, four hold two genuinely different ads, so
+ * company and title alone would have overwritten a different role's CV and
+ * cover letter four times out of six. With the ad in the key it matches the
+ * two real repeats and leaves the rest alone.
+ *
+ * A company and a title are still required, because an ad we could not parse
+ * has neither. A local draft is never a target: it has nothing stored to
+ * reuse.
+ */
+function findReusableSession(
+  sessions: ApplicationSession[],
+  candidate: ApplicationSession,
+): ApplicationSession | null {
+  const company = normalizeText(candidate.company);
+  const title = normalizeText(candidate.jobTitle);
+  const ad = normalizeText(candidate.jobDescription);
+  if (!company || !title || !ad) return null;
+  return sessions.find((session) =>
+    !session.id.startsWith('session-')
+    && session.id !== candidate.id
+    && normalizeText(session.company) === company
+    && normalizeText(session.jobTitle) === title
+    && normalizeText(session.jobDescription) === ad,
+  ) ?? null;
+}
+
 export function useSupabaseSync() {
   const { user } = useAuth();
   const {
@@ -477,19 +513,32 @@ export function useSupabaseSync() {
           isCreatingSessionRef.current.add(currentSession.id);
           
           try {
-            // Create in Supabase
-            const { session: newSession, error } = await createSupabaseSession(
-              user.id,
-              currentSession.jobDescription
+            // A repeat generation for the same job reuses its entry rather than
+            // writing a second one (Wasim, 20 Aug 2026). The new CV and cover
+            // letter replace the old pair, which is the overwrite half of that
+            // call, so the match has to be exact: see findReusableSession.
+            const reuseTarget = findReusableSession(
+              useSessionStore.getState().sessions,
+              currentSession,
             );
-            
+            const created = reuseTarget
+              ? { session: reuseTarget, error: null }
+              : await createSupabaseSession(user.id, currentSession.jobDescription);
+            const newSession = created.session;
+            const error = created.error;
+
             if (error) {
               console.error('[SupabaseSync] Error creating session:', error);
               return;
             }
             
             if (newSession) {
-              console.log('[SupabaseSync] Created session in Supabase:', newSession.id);
+              console.log(
+                reuseTarget
+                  ? '[SupabaseSync] Reusing existing session for the same job:'
+                  : '[SupabaseSync] Created session in Supabase:',
+                newSession.id,
+              );
               
               const oldSessionId = currentSession.id;
               
@@ -499,11 +548,14 @@ export function useSupabaseSync() {
                 id: newSession.id,
               };
               
-              // Replace the old local session with the new Supabase session in the store
+              // Replace the old local session with the new Supabase session in
+              // the store. On a reuse the array holds both the local draft and
+              // the entry being written over, so the draft is dropped rather
+              // than left behind under a now-duplicate id.
               const sessionStore = useSessionStore.getState();
-              const updatedSessions = sessionStore.sessions.map((s) => 
-                s.id === oldSessionId ? updatedSession : s
-              );
+              const updatedSessions = sessionStore.sessions
+                .filter((s) => !(reuseTarget && s.id === oldSessionId))
+                .map((s) => (s.id === oldSessionId || s.id === newSession.id ? updatedSession : s));
               sessionStore.setSessions(updatedSessions);
               
               // Update current session ID
