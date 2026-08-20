@@ -21,7 +21,7 @@ export type JobFeedOverviewState =
 
 export type JobFeedCanonicalWorkMode = JobFeedCanonicalJob['work_mode'];
 export type JobFeedFitLabel = 'strong' | 'good';
-export type JobFeedFeedbackAction = 'opened' | 'saved' | 'dismissed' | 'apply_started' | 'applied' | 'rated_helpful' | 'rated_not_relevant';
+export type JobFeedFeedbackAction = 'opened' | 'saved' | 'unsaved' | 'dismissed' | 'apply_started' | 'applied' | 'rated_helpful' | 'rated_not_relevant';
 export type JobFeedMatchRating = 'helpful' | 'not_relevant';
 export type JobFeedPipelineStage = 'shortlisted' | 'ranked';
 export type JobFeedRankingSource = 'deterministic' | 'llm';

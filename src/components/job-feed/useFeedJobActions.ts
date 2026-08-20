@@ -56,20 +56,28 @@ export function useFeedJobActions(): FeedJobActions {
 
   const save = useCallback(async (job: JobFeedFeedItem) => {
     setBusyJobId(job.id);
+    const action = job.feedback.savedAt ? 'unsaved' : 'saved';
     try {
-      const result = await recordFeedFeedback(job, 'saved', actionRunId());
+      const result = await recordFeedFeedback(job, action, actionRunId());
       if (!result.ok) {
         say(result.error);
         return;
       }
-      posthog?.capture('job_feed_item_saved', { job_id: job.id, company: job.company });
+      posthog?.capture(action === 'saved' ? 'job_feed_item_saved' : 'job_feed_item_unsaved', {
+        job_id: job.id,
+        company: job.company,
+      });
       const next = useFeedStore.getState();
       if (next.savedJobs) {
-        const updated = { ...job, feedback: result.data };
-        const exists = next.savedJobs.some((item) => item.id === job.id);
-        next.setSavedJobs(exists
-          ? next.savedJobs.map((item) => (item.id === job.id ? updated : item))
-          : [...next.savedJobs, updated]);
+        if (action === 'unsaved') {
+          next.setSavedJobs(next.savedJobs.filter((item) => item.id !== job.id));
+        } else {
+          const updated = { ...job, feedback: result.data };
+          const exists = next.savedJobs.some((item) => item.id === job.id);
+          next.setSavedJobs(exists
+            ? next.savedJobs.map((item) => (item.id === job.id ? updated : item))
+            : [...next.savedJobs, updated]);
+        }
       }
     } finally {
       setBusyJobId(null);

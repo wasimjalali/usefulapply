@@ -44,10 +44,10 @@ export async function cleanupHistoricalJobFeedData(params?: {
 
   // Delete ranked_items whose parent run completed more than
   // `inboxRetentionDays` ago. After 7 days we consider the user has had
-  // enough time to decide; untouched roles fall out of the inbox. Runs
-  // and feedback rows are kept — runs for diagnostics/history, feedback
-  // so any past terminal action (applied/dismissed/not_relevant) still
-  // prevents re-surfacing the same canonical_job_id in future runs.
+  // enough time to decide; untouched roles fall out of the inbox. Saved
+  // bookmarks are exempt: every write still authorises through that row.
+  // Unsaving re-exposes them to the next sweep. Runs and feedback rows
+  // are kept, so a past terminal action still blocks re-surfacing.
   const rankedItemsDeleted = await deleteExpiredRankedInboxItems({ inboxCutoff });
 
   return {

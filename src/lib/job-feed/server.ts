@@ -734,8 +734,11 @@ export async function recordJobFeedFeedbackAdmin(params: {
     if (action === 'apply_started' && canReuseBlockedFeedbackSession(existing)) {
       return existing;
     }
-
-    throw new Error('This job feed item has already reached a terminal state.');
+    // Clearing a bookmark only drops saved_at so retention can take the
+    // ranked row. It does not undo a terminal action.
+    if (action !== 'unsaved') {
+      throw new Error('This job feed item has already reached a terminal state.');
+    }
   }
 
   const now = new Date().toISOString();
@@ -756,6 +759,12 @@ export async function recordJobFeedFeedbackAdmin(params: {
     case 'saved':
       basePatch.saved_at = existing?.saved_at ?? now;
       basePatch.dismissed_at = null;
+      break;
+    case 'unsaved':
+      if (!existing) {
+        throw new Error('Nothing to unsave.');
+      }
+      basePatch.saved_at = null;
       break;
     case 'dismissed':
       basePatch.dismissed_at = existing?.dismissed_at ?? now;

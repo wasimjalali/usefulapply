@@ -74,6 +74,7 @@ export function FeedJobDetail({
           type="button"
           disabled={busy}
           onClick={() => onSave(job)}
+          aria-label={isSaved ? 'Remove from saved' : 'Save this role'}
           aria-pressed={isSaved}
           className={`inline-flex h-9 items-center gap-2 rounded-full px-3 text-sm font-medium transition-colors duration-200 hover:bg-cream-50 cursor-pointer ${
             isSaved ? 'text-gold-600' : 'text-warm-gray hover:text-navy-800'

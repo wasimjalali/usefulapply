@@ -331,7 +331,7 @@ export async function saveFeedSettings(
 
 export async function recordFeedFeedback(
   job: JobFeedFeedItem,
-  action: 'opened' | 'saved' | 'dismissed' | 'rated_helpful' | 'rated_not_relevant',
+  action: 'opened' | 'saved' | 'unsaved' | 'dismissed' | 'rated_helpful' | 'rated_not_relevant',
   runId: string | null,
 ): Promise<FeedResult<JobFeedFeedbackResponse['feedback']>> {
   if (isPreviewing()) {
@@ -339,7 +339,11 @@ export async function recordFeedFeedback(
     const feedback = {
       ...job.feedback,
       openedAt: action === 'opened' ? (job.feedback.openedAt ?? now) : job.feedback.openedAt,
-      savedAt: action === 'saved' ? (job.feedback.savedAt ?? now) : job.feedback.savedAt,
+      savedAt: action === 'saved'
+        ? (job.feedback.savedAt ?? now)
+        : action === 'unsaved'
+          ? null
+          : job.feedback.savedAt,
     };
     useFeedStore.getState().patchJobFeedback(job.id, feedback);
     return { ok: true, data: feedback };

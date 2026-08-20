@@ -119,7 +119,7 @@ export function FeedJobCard({
                 event.stopPropagation();
                 onSave(job);
               }}
-              aria-label={isSaved ? 'Saved' : 'Save this role'}
+              aria-label={isSaved ? 'Remove from saved' : 'Save this role'}
               aria-pressed={isSaved}
               className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-200 hover:bg-cream-100 cursor-pointer ${
                 isSaved ? 'text-gold-600' : 'text-warm-gray hover:text-navy-700'

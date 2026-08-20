@@ -15,10 +15,10 @@ export const runtime = 'nodejs';
 
 // 'rated_helpful' / 'rated_not_relevant' capture the user's match-quality
 // signal from the details modal so the ranker can learn from it.
-const SUPPORTED_ACTIONS = new Set(['opened', 'saved', 'dismissed', 'rated_helpful', 'rated_not_relevant']);
+const SUPPORTED_ACTIONS = new Set(['opened', 'saved', 'unsaved', 'dismissed', 'rated_helpful', 'rated_not_relevant']);
 // Bookmarking and "I opened this" are part of viewing the feed. Ratings and
 // dismiss stay on Plus/Max because they train the ranker.
-const VIEW_ACTIONS = new Set(['opened', 'saved']);
+const VIEW_ACTIONS = new Set(['opened', 'saved', 'unsaved']);
 
 export async function POST(request: NextRequest) {
   let userId: string | null = null;
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
     const feedback = await recordJobFeedFeedbackAdmin({
       userId: user.id,
       jobId,
-      action: action as 'opened' | 'saved' | 'dismissed' | 'rated_helpful' | 'rated_not_relevant',
+      action: action as 'opened' | 'saved' | 'unsaved' | 'dismissed' | 'rated_helpful' | 'rated_not_relevant',
       latestRunId: validatedRunId,
     });
 

@@ -2,7 +2,7 @@
  * Cross-user / catalog queries. Only imported by cron handlers and the
  * Stripe webhook. Everything else must go through a user-scoped repo.
  */
-import { and, desc, eq, gte, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNotNull, isNull, lt, lte, notExists, or, sql } from 'drizzle-orm';
 import type { Json } from '@/lib/supabase/types';
 import { chunk, D1_MAX_PARAMS, isUniqueViolation, getDb, nowIso } from '../client';
 import {
@@ -329,7 +329,24 @@ export async function deleteExpiredRankedItems(inboxCutoff: string): Promise<num
     .select({ id: jobFeedRuns.id })
     .from(jobFeedRuns)
     .where(and(eq(jobFeedRuns.status, 'completed'), lt(jobFeedRuns.completed_at, inboxCutoff)));
-  const result = await db.delete(jobFeedRankedItems).where(inArray(jobFeedRankedItems.run_id, expiredRunIds));
+  // Saved bookmarks authorise through a live ranked row. Dropping those rows
+  // at day 7 404s every action on a job that is still on the Saved tab.
+  // Unsaving clears saved_at, so the next sweep can take the row.
+  const result = await db.delete(jobFeedRankedItems).where(
+    and(
+      inArray(jobFeedRankedItems.run_id, expiredRunIds),
+      notExists(
+        db
+          .select({ one: sql`1` })
+          .from(jobFeedFeedback)
+          .where(and(
+            eq(jobFeedFeedback.user_id, jobFeedRankedItems.user_id),
+            eq(jobFeedFeedback.canonical_job_id, jobFeedRankedItems.canonical_job_id),
+            isNotNull(jobFeedFeedback.saved_at),
+          )),
+      ),
+    ),
+  );
   return Number((result as { meta?: { changes?: number } }).meta?.changes ?? 0);
 }
 
