@@ -1,6 +1,6 @@
 # Agentic Chat Plan
 
-Status: LOCKED by Wasim on 2026-08-20. Implementation starts in a fresh session; nothing here is implemented yet.
+Status: LOCKED by Wasim on 2026-08-20. Phases 1 and 2 shipped on 2026-08-20 (tool registry, read/navigate tools, morning briefing, gpt-oss prompt discipline, tracker write unification, suggestion chips) and passed the Claude-in-Chrome pass on usefulapply.com. Phases 3 to 5 are not implemented yet. Note: "archive" in Phase 2 item 9 has no schema support (no archived column); delete shipped, archive needs a migration first.
 
 The chat becomes the control surface of the product. gpt-oss-120b (now serving chat) supports function calling, so the assistant can execute real actions in the dashboard instead of only talking about them. The rule for scope: anything a user can do by clicking, they should be able to do by asking, minus payments and auth.
 

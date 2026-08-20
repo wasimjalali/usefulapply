@@ -12,6 +12,7 @@ import { useAgentWorkflow } from './chat/useAgentWorkflow';
 import { useAppStore } from '@/store/useAppStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore, type KitTab } from '@/store/useUIStore';
+import { useTrackerStore } from '@/store/useTrackerStore';
 import { openSettings } from '@/store/useSettingsStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { submitMessageFeedback } from '@/lib/supabase';
@@ -824,6 +825,28 @@ export function ChatPanel({
   };
 
   const handleAction = async (action: string) => {
+    // Delete proposed by the chat's delete_application tool. The click is the
+    // confirming second request; the store's remove path re-checks ownership
+    // server-side.
+    if (action.startsWith('confirm-delete-application:')) {
+      if (!user) return;
+      const sessionId = action.slice('confirm-delete-application:'.length);
+      // The chip survives in the message history, so a second click has to
+      // read as "already gone", not as a second successful delete. Only
+      // trust the store once it has actually loaded rows.
+      const tracker = useTrackerStore.getState();
+      if (tracker.loadedOnce && !tracker.rows.some((row) => row.id === sessionId)) {
+        addChatMessage({ role: 'assistant', content: 'That one\'s already gone from your tracker.' });
+        return;
+      }
+      try {
+        await useTrackerStore.getState().remove(user.id, sessionId);
+        addChatMessage({ role: 'assistant', content: 'Deleted. It\'s gone from your tracker.' });
+      } catch {
+        addChatMessage({ role: 'assistant', content: 'That delete did not go through. Try again from the tracker.' });
+      }
+      return;
+    }
     switch (action) {
       case 'navigate-documents':
         openSettings('cv');
@@ -1175,6 +1198,7 @@ export function ChatPanel({
                       No job in mind? Pick one from your Job Feed
                       <ArrowRight className="w-3 h-3" />
                     </button>
+
                   </>
                 ) : (
                   <div className="text-center px-5 py-8">
@@ -1233,8 +1257,61 @@ export function ChatPanel({
                     className="text-sm text-charcoal"
                   />
                 </Card>
+                {/* A fresh job ad is present: lead with the fit prompts. The
+                    analyze chip runs the existing 0.5-credit fit flow, so the
+                    click itself is the user's spend decision. */}
+                {user && currentCV && currentSession.jobDescription && (
+                  <div className="mt-2.5 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={isAgentWorking}
+                      onClick={() => {
+                        addChatMessage({ role: 'user', content: 'Analyze this job description' });
+                        void runFitAnalysisFlow(currentSession.jobDescription);
+                      }}
+                      className="inline-flex items-center rounded-full border border-cream-200 bg-cream-50 px-3.5 py-1.5 text-xs font-medium text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                    >
+                      Analyze this job description · {CREDIT_COSTS.FIT_ANALYSIS} credits
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isAgentWorking}
+                      onClick={() => {
+                        addChatMessage({ role: 'user', content: 'How well do I fit this role?' });
+                        void handleGeneralChat('How well do I fit this role?');
+                      }}
+                      className="inline-flex items-center rounded-full border border-cream-200 bg-cream-50 px-3.5 py-1.5 text-xs font-medium text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                    >
+                      How well do I fit this role?
+                    </button>
+                  </div>
+                )}
                 <p className="text-xs text-warm-gray mt-1.5 ml-1">Just now</p>
               </div>
+            </div>
+          )}
+
+          {/* Spine empty state: suggested prompts that teach what the chat
+              can do. Clicking one sends it as the message, straight to chat,
+              so the JD heuristics never read a chip as a job ad. */}
+          {spine && user && currentCV && !currentSession?.jobDescription && messages.length === 0
+            && !isAgentWorking && !pendingDecisionJd && (
+            <div className="flex flex-wrap gap-2">
+              {['What should I do today?', 'Which follow-ups are due?', 'Refresh my job feed'].map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  onClick={() => {
+                    const store = useAppStore.getState();
+                    if (!store.currentSession) store.createNewSession('');
+                    useAppStore.getState().addChatMessage({ role: 'user', content: suggestion });
+                    void handleGeneralChat(suggestion);
+                  }}
+                  className="inline-flex items-center rounded-full border border-cream-200 bg-cream-50 px-3.5 py-1.5 text-xs font-medium text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
+                >
+                  {suggestion}
+                </button>
+              ))}
             </div>
           )}
 

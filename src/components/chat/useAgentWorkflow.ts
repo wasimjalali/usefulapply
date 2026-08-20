@@ -21,7 +21,10 @@ import { generateRequestId } from '@/lib/utils/requestId';
 import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
 import { computeFitLevel } from '@/lib/agents/prompts/fit-assessment-prompt';
 import { useToast } from '@/components/ui/Toast';
+import { useTrackerStore } from '@/store/useTrackerStore';
+import { openSettings } from '@/store/useSettingsStore';
 import type { JobFeedApplicationGeneration } from '@/lib/supabase/types';
+import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
 
 // AgentStepData type for V2 progress tracking
 export interface AgentStepData {
@@ -265,6 +268,24 @@ export function useAgentWorkflow(options?: {
     return "I'm here to help optimize your job applications. Paste a job description and I'll analyze it, optimize your CV, and create a tailored cover letter.";
   };
 
+  // What the server says a tool actually did. Stores refresh from it so the
+  // dashboard updates live without a reload.
+  const applyExecutedEffects = (executed: unknown) => {
+    if (!Array.isArray(executed)) return;
+    for (const effect of executed as ExecutedEffect[]) {
+      if (effect.type === 'navigate') {
+        if (effect.target === 'tracker') setActiveTab('tracker');
+        else if (effect.target === 'job-feed') setActiveTab('jobs');
+        else if (effect.target === 'documents') openSettings('cv');
+        else if (effect.target === 'billing') openSettings('usage');
+      } else if (effect.type === 'tracker_updated') {
+        if (user) void useTrackerStore.getState().load(user.id);
+      } else if (effect.type === 'refresh_credits') {
+        triggerCreditUpdate();
+      }
+    }
+  };
+
   const handleGeneralChat = async (message: string) => {
     setIsTyping(true);
 
@@ -316,6 +337,10 @@ export function useAgentWorkflow(options?: {
             hasGeneratedCV: !!currentSession?.generatedCV,
             hasGeneratedCoverLetter: !!currentSession?.coverLetter,
             hasGeneratedEmail: !!currentSession?.email,
+            // For the tool registry: the saved application this chat is on
+            // (the route validates the id) and the user's clock for dates.
+            sessionId: currentSession?.id,
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             ...screeningContext,
           },
         }),
@@ -323,12 +348,16 @@ export function useAgentWorkflow(options?: {
       });
 
       if (response.ok) {
-        const { reply, actions } = await response.json();
+        const { reply, actions, executed } = await response.json();
         addChatMessage({
           role: 'assistant',
           content: reply,
           actions: actions || [],
         });
+        // After the reply lands: a navigation effect switches the view, and
+        // doing that first would move the screen before the sentence
+        // explaining it is readable.
+        applyExecutedEffects(executed);
       } else if (response.status === 401) {
         // Signed out (or anonymous past the free run): ask for an account, never a canned reply.
         options?.onAnonymousLimitReached?.();

@@ -23,13 +23,55 @@ type WorkersAiBinding = {
   run(model: string, input: Record<string, unknown>): Promise<unknown>;
 };
 
+/** OpenAI-style function definition passed to the model. */
+export interface WorkersAiToolDefinition {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+}
+
+/** A tool call the model asked for, with arguments already parsed. */
+export interface WorkersAiToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
+/**
+ * A message in the tool round-trip. `tool_calls` rides on the assistant turn
+ * that asked; `tool_call_id` + `name` mark the result turn that answers it.
+ */
+export interface WorkersAiChatMessage {
+  role: 'user' | 'assistant' | 'tool';
+  content: string;
+  tool_calls?: Array<{
+    id: string;
+    type: 'function';
+    function: { name: string; arguments: string };
+  }>;
+  tool_call_id?: string;
+  name?: string;
+}
+
+// Tool calls arrive in the OpenAI chat.completion shape
+// (choices[0].message.tool_calls) or, on some Workers AI responses, at the
+// top level; arguments arrive as a JSON string or an object. Accept all four.
+type WorkersAiRawToolCall = {
+  id?: string;
+  type?: string;
+  name?: string;
+  arguments?: unknown;
+  function?: { name?: string; arguments?: unknown };
+};
+
 // Workers AI text models answer in the OpenAI chat.completion shape
 // (choices[0].message.content); some also mirror the text in `response`.
 type WorkersAiTextResponse = {
   id?: string;
   request_id?: string;
   response?: string;
-  choices?: Array<{ message?: { content?: string | null } }>;
+  tool_calls?: WorkersAiRawToolCall[];
+  choices?: Array<{ message?: { content?: string | null; tool_calls?: WorkersAiRawToolCall[] } }>;
   usage?: {
     prompt_tokens?: number;
     completion_tokens?: number;
@@ -45,6 +87,39 @@ function exactUsageNumber(value: unknown): number | null {
 
 function workersUsageJson(usage: WorkersAiTextResponse['usage']): Json | null {
   return usage ? JSON.parse(JSON.stringify(usage)) as Json : null;
+}
+
+function parseToolArguments(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      // Malformed arguments become an empty object; the tool answers with a
+      // validation error the model can read, instead of the call crashing.
+    }
+  }
+  return {};
+}
+
+function workersAiToolCalls(raw: WorkersAiTextResponse): WorkersAiToolCall[] {
+  const rawCalls = raw.choices?.[0]?.message?.tool_calls ?? raw.tool_calls ?? [];
+  const calls: WorkersAiToolCall[] = [];
+  for (const call of rawCalls) {
+    const name = call.function?.name ?? call.name;
+    if (typeof name !== 'string' || !name) continue;
+    calls.push({
+      id: typeof call.id === 'string' && call.id ? call.id : crypto.randomUUID(),
+      name,
+      arguments: parseToolArguments(call.function?.arguments ?? call.arguments),
+    });
+  }
+  return calls;
 }
 
 function workersAiText(raw: WorkersAiTextResponse): string {
@@ -96,6 +171,13 @@ export interface WorkersAiCallOptions {
   maxTokens?: number;
   jsonMode?: boolean;
   conversationHistory?: ConversationMessage[];
+  /**
+   * Full message list for tool round-trips (assistant tool_calls turns and
+   * role:"tool" results). Takes precedence over conversationHistory/prompt.
+   */
+  rawMessages?: WorkersAiChatMessage[];
+  /** Function definitions; when present the response may carry toolCalls. */
+  tools?: WorkersAiToolDefinition[];
   generationContext?: LlmGenerationContext;
 }
 
@@ -118,7 +200,7 @@ export async function callWorkersAI(options: WorkersAiCallOptions): Promise<Mode
   if (!env.AI) throw new Error('Workers AI binding unavailable');
   const ai = env.AI;
 
-  const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
+  const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string } | WorkersAiChatMessage> = [];
   let finalSystemPrompt = systemPrompt ?? '';
   if (jsonMode) {
     finalSystemPrompt += '\n\nIMPORTANT: You MUST respond with ONLY valid JSON. No markdown code blocks, no explanations, no text before or after the JSON. Start your response with { and end with }. Ensure all strings are properly escaped.';
@@ -126,7 +208,9 @@ export async function callWorkersAI(options: WorkersAiCallOptions): Promise<Mode
   if (finalSystemPrompt.trim()) {
     messages.push({ role: 'system', content: finalSystemPrompt });
   }
-  if (conversationHistory && conversationHistory.length > 0) {
+  if (options.rawMessages && options.rawMessages.length > 0) {
+    messages.push(...options.rawMessages);
+  } else if (conversationHistory && conversationHistory.length > 0) {
     for (const msg of conversationHistory) {
       messages.push({ role: msg.role, content: msg.content });
     }
@@ -153,6 +237,18 @@ export async function callWorkersAI(options: WorkersAiCallOptions): Promise<Mode
       temperature,
       max_tokens: maxTokens,
       ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
+      ...(options.tools && options.tools.length > 0
+        ? {
+            tools: options.tools.map((tool) => ({
+              type: 'function',
+              function: {
+                name: tool.name,
+                description: tool.description,
+                parameters: tool.parameters,
+              },
+            })),
+          }
+        : {}),
     })) as WorkersAiTextResponse;
   } catch (error) {
     try {
@@ -175,7 +271,8 @@ export async function callWorkersAI(options: WorkersAiCallOptions): Promise<Mode
 
   const text = workersAiText(raw);
   const content = jsonMode ? extractJsonObject(text) : text;
-  if (!content.trim()) {
+  const toolCalls = options.tools && options.tools.length > 0 ? workersAiToolCalls(raw) : [];
+  if (!content.trim() && toolCalls.length === 0) {
     // Reasoning ate the whole budget, or the response shape was unexpected.
     // Record it as a failure so the admin dashboard sees it, then surface it.
     try {
@@ -208,6 +305,7 @@ export async function callWorkersAI(options: WorkersAiCallOptions): Promise<Mode
 
   return {
     content,
+    ...(toolCalls.length > 0 ? { toolCalls } : {}),
     usage: {
       inputTokens: exactInputTokens ?? 0,
       outputTokens: exactOutputTokens ?? 0,

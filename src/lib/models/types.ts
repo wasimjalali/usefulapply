@@ -32,6 +32,8 @@ export interface ModelConfig {
 
 export interface ModelResponse {
   content: string;
+  /** Tool calls the model asked for (Workers AI function calling only). */
+  toolCalls?: Array<{ id: string; name: string; arguments: Record<string, unknown> }>;
   usage: {
     inputTokens: number;
     outputTokens: number;
