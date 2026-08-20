@@ -578,6 +578,52 @@ strong/good/skip calibration were not touched, and freshness reads
 
 ---
 
+## Backend pass group 1, 20 August 2026
+
+Staging is version `b65dd313`. Three commits on `rebrand/usefulapply`, none on
+`main`.
+
+| Commit | What |
+|---|---|
+| `b0f96fcd` | `fix:` fetch a missing session, load its chat, and delete one application |
+| `6c505f3f` | `fix:` keep saved jobs through the 7 day cleanup |
+| `110c0827` | `docs:` close the four BACKEND-GAPS entries |
+
+**A15.** `loadSession` no longer blanks the kit on a miss. `openStoredSession`
+fetches the D1 row. Tracker follow-up and prep wait for that open, so a miss
+cannot regenerate the previous kit.
+
+**B3.** The ten-newest chat sweep is gone. Messages load when the application
+opens. ChatHistory already did this; it now uses the same helper. Measured:
+432 of 467 chat rows sat outside those 10.
+
+**A14.** Single-row hard delete, plain confirm, hover trash on the tracker
+row. `deleteSession` fails on a zero-row write.
+
+**A16.** Cleanup skips ranked rows whose feedback has `saved_at`. Unsaving
+nulls it, so the next sweep can take them. The bookmark now toggles. Measured:
+1 saved job, 0 already past 7 days. There was no unsave path at all.
+
+**Step 0 found, besides A7:** A19 is half-done (`notify_feed_ready` already
+dropped in `80e05866`; `notify_credits_low` remains). B3's ChatHistory
+on-demand path was already built. B6 already reads the balance in FeedCanvas.
+Do not rebuild those.
+
+**T3 review:** four `grok -p` lenses died on `402 Grok Build usage balance
+exhausted`. Two Highs were found by checking the code anyway: follow-up would
+have regenerated the previous kit if the open failed, and a chat fetch error
+would have aborted the open. Both are fixed. Independent review is still
+owed.
+
+**Verification.** `tsc` 0 errors. Lint 71 errors, 60 warnings (under 72 / 60).
+Deployed first try as `b65dd313`. New copy is in the live dashboard chunk
+`2wc7wzhgnr2bb.js`. Browser was signed out, so the Max-account tracker walk
+did not run. Anonymous `/dashboard` 200, login opens, console clean.
+
+Stop here. Group 2 is A12, B1, B2, A11.
+
+---
+
 ## Kickoff prompt for the next session
 
 > You are continuing the post-batch sweep of the Useful Apply UX redesign on
