@@ -452,7 +452,3 @@ export const JOB_FEED_DEFAULT_SETTINGS = {
   employment_types: ['full_time'] as string[],
   work_authorization_status: 'open_to_both',
 } as const;
-
-export function isJobFeedDebugModeEnabled(): boolean {
-  return process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_ENABLE_JOB_FEED_DEBUG === 'true';
-}

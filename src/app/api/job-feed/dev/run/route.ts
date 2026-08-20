@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isJobFeedDebugModeEnabled } from '@/lib/job-feed/constants';
+import { timingSafeEqual } from 'crypto';
 import { canAccessJobFeed } from '@/lib/job-feed/helpers';
 import { runJobFeedFoundationWorkflow } from '@/lib/job-feed/server';
 import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
@@ -9,8 +9,19 @@ import { getProfile } from '@/db/repos/profiles';
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
+const DEBUG_SECRET_HEADER = 'x-job-feed-debug-secret';
+
+function isJobFeedDebugSecretValid(presented: string | null): boolean {
+  const secret = process.env.JOB_FEED_DEBUG_SECRET;
+  if (!secret || !presented) return false;
+  const expected = Buffer.from(secret);
+  const actual = Buffer.from(presented);
+  if (actual.length !== expected.length) return false;
+  return timingSafeEqual(actual, expected);
+}
+
 export async function POST(request: NextRequest) {
-  if (!isJobFeedDebugModeEnabled()) {
+  if (!isJobFeedDebugSecretValid(request.headers.get(DEBUG_SECRET_HEADER))) {
     return NextResponse.json({ error: 'Not found.' }, { status: 404 });
   }
 

@@ -154,7 +154,6 @@ NEXT_PUBLIC_APP_URL
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 NEXT_PUBLIC_POSTHOG_KEY
-NEXT_PUBLIC_ENABLE_JOB_FEED_DEBUG
 
 # Supabase (legacy, still listed until cutover)
 SUPABASE_SERVICE_ROLE_KEY
@@ -192,6 +191,10 @@ SERPAPI_API_KEY
 
 # Cron
 CRON_SECRET
+
+# Job feed debug run. Server-only. Send as header x-job-feed-debug-secret.
+# Unset, the route 404s. Not a NEXT_PUBLIC_ flag: that was inlined into the client.
+JOB_FEED_DEBUG_SECRET
 
 # PostHog (build-time)
 POSTHOG_PERSONAL_API_KEY
