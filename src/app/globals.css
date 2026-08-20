@@ -87,13 +87,11 @@ body {
    right of the document panel's scrollbar, and an 8px target sitting flush
    against a draggable seam is too easy to miss. The transparent border keeps
    the thumb reading as 8px while the track stays 12px wide and grabbable.
-   The thumb is a warm sand (#C4B69C), a step past cream-400. cream-400 on a
-   cream track measures 1.37:1, which is not a subtle thumb, it is an invisible
-   one, and a target nobody can see is the reason people grabbed the resize
-   sash by mistake. navy-400 read as a washed-out blue and gold-600 was too
-   loud. #C4B69C sits at ~1.9:1 on cream-100 and ~2.0:1 on white: findable at
-   rest, quiet, and navy-600 on hover is unmistakable. Deliberately below the
-   3:1 UI bar; the hover state carries the contrast.
+   The thumb is a soft white-family tone (#E7E0D2, between cream-200 and
+   cream-300). The earlier sand thumb (#C4B69C) with a navy-600 hover read
+   louder than every surface around it; Wasim asked for a thumb that sits
+   inside the cream family and only firms up on hover. Hover is #C9BDA4, a
+   deeper sand: clearly stronger, still warm, never navy.
    The track is transparent: an opaque cream band would paint a warm 12px
    stripe down every white document surface and every dark landing section.
    Chrome paints the scroller's own background under the gutter, so the 2px
@@ -109,7 +107,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #C4B69C; /* sand, a step past cream-400 */
+  background: #E7E0D2; /* soft white-family, between cream-200 and cream-300 */
   border-radius: 6px;
   border: 2px solid transparent;
   background-clip: padding-box;
@@ -118,7 +116,7 @@ body {
 /* The background shorthand above resets background-clip, so repeat it here or
    the thumb jumps from 8px to 12px on hover. */
 ::-webkit-scrollbar-thumb:hover {
-  background: #1E3A5F; /* navy-600 */
+  background: #C9BDA4; /* deeper sand, stronger but still warm */
   background-clip: padding-box;
 }
 
@@ -153,7 +151,7 @@ body {
    gutter. .scrollbar-hide still wins, a class beats the universal selector. */
 @supports (-moz-orient: inline) {
   html {
-    scrollbar-color: #C4B69C transparent; /* sand thumb */
+    scrollbar-color: #E7E0D2 transparent; /* soft white-family thumb */
   }
 
   * {
