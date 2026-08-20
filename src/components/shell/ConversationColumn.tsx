@@ -30,7 +30,11 @@ export function ConversationColumn({ onTabChange }: ConversationColumnProps) {
   // Folding the canvas hands this column the whole window. The conversation is
   // a reading column, so centre it and cap it instead of letting the cards and
   // the composer run to 1200px.
-  const readingWidth = canvasCollapsed ? 'mx-auto w-full max-w-[760px]' : 'w-full';
+  // The right border divides this column from the canvas. With the canvas
+  // folded there is nothing to divide, and it reads as a stray rule.
+  const readingWidth = canvasCollapsed
+    ? 'mx-auto w-full max-w-[760px]'
+    : 'w-full border-r border-cream-200';
 
   const title = currentSession
     ? [currentSession.company, currentSession.jobTitle].filter(Boolean).join(', ') || 'New application'
@@ -83,7 +87,7 @@ export function ConversationColumn({ onTabChange }: ConversationColumnProps) {
         </div>
       )}
       <section
-        className={`h-full min-w-0 flex-col border-r border-cream-200 bg-cream-50 ${readingWidth} ${
+        className={`h-full min-w-0 flex-col bg-cream-50 ${readingWidth} ${
           showFeed || showTracker ? 'hidden' : 'flex'
         }`}
       >
