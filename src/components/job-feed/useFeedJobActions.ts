@@ -6,7 +6,7 @@
  * anything worth telling the user lands in the feed conversation.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { usePostHog } from 'posthog-js/react';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { useCVStore } from '@/store/useCVStore';
@@ -46,6 +46,7 @@ function actionRunId(): string | null {
 export function useFeedJobActions(): FeedJobActions {
   const posthog = usePostHog();
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
+  const busyJobIdRef = useRef<string | null>(null);
 
   const openDetail = useCallback((job: JobFeedFeedItem) => {
     const store = useFeedStore.getState();
@@ -55,6 +56,8 @@ export function useFeedJobActions(): FeedJobActions {
   }, [posthog]);
 
   const save = useCallback(async (job: JobFeedFeedItem) => {
+    if (busyJobIdRef.current === job.id) return;
+    busyJobIdRef.current = job.id;
     setBusyJobId(job.id);
     const action = job.feedback.savedAt ? 'unsaved' : 'saved';
     try {
@@ -80,6 +83,7 @@ export function useFeedJobActions(): FeedJobActions {
         }
       }
     } finally {
+      busyJobIdRef.current = null;
       setBusyJobId(null);
     }
   }, [posthog]);

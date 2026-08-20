@@ -167,17 +167,20 @@ export const useTrackerStore = create<TrackerState>((set, get) => ({
   },
 
   remove: async (userId, sessionId) => {
-    const before = get().rows;
-    set({ rows: before.filter((row) => row.id !== sessionId), error: null });
+    const beforeRow = get().rows.find((row) => row.id === sessionId) ?? null;
+    set({ rows: get().rows.filter((row) => row.id !== sessionId), error: null });
     try {
       const { error } = await deleteSessionAction(userId, sessionId);
-      if (error) throw error;
+      const gone = !error || error.message === 'Application not found';
+      if (!gone) throw error;
       useSessionStore.getState().deleteSession(sessionId);
     } catch {
-      set({
-        rows: before,
+      set((state) => ({
+        rows: beforeRow && !state.rows.some((row) => row.id === sessionId)
+          ? [beforeRow, ...state.rows]
+          : state.rows,
         error: 'That application did not delete. Try again.',
-      });
+      }));
       throw new Error('Delete failed');
     }
   },

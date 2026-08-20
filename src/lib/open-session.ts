@@ -53,6 +53,7 @@ export interface StoredSessionRow {
 }
 
 let openGeneration = 0;
+const hydratedChatIds = new Set<string>();
 
 export function mapSessionRowToStore(row: StoredSessionRow): ApplicationSession {
   const generated = row.generated_cv ?? null;
@@ -144,15 +145,12 @@ function applyChat(sessionId: string, chatMessages: ChatMessage[]) {
 
 export async function hydrateChatIfEmpty(sessionId: string, generation = openGeneration): Promise<void> {
   if (sessionId.startsWith('session-')) return;
-  const existing = useSessionStore.getState().sessions.find((session) => session.id === sessionId)
-    ?? (useSessionStore.getState().currentSession?.id === sessionId
-      ? useSessionStore.getState().currentSession
-      : null);
-  if (existing && existing.chatMessages.length > 0) return;
+  if (hydratedChatIds.has(sessionId)) return;
 
   const messages = await getChatMessages(sessionId);
   if (generation !== openGeneration) return;
   if (useSessionStore.getState().currentSession?.id !== sessionId) return;
+  hydratedChatIds.add(sessionId);
   if (!messages || messages.length === 0) return;
   applyChat(sessionId, mapChatRowsToStore(messages));
 }

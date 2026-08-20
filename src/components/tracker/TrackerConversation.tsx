@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
 import type { DatePrefs } from '@/lib/utils/format-date';
 import { openStoredSession } from '@/lib/open-session';
+import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { regenerateDocument } from '@/lib/regenerate-client';
@@ -81,7 +82,7 @@ export function TrackerConversation() {
     async (sessionId: string) => {
       const row = rows.find((candidate) => candidate.id === sessionId);
       const opened = await openStoredSession(sessionId);
-      if (!opened) {
+      if (!opened || useSessionStore.getState().currentSession?.id !== sessionId) {
         say('I could not open that application. Try from the row.');
         return;
       }

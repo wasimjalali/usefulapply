@@ -341,7 +341,7 @@ export async function recordFeedFeedback(
       openedAt: action === 'opened' ? (job.feedback.openedAt ?? now) : job.feedback.openedAt,
       savedAt: action === 'saved'
         ? (job.feedback.savedAt ?? now)
-        : action === 'unsaved'
+        : action === 'unsaved' || action === 'dismissed'
           ? null
           : job.feedback.savedAt,
     };

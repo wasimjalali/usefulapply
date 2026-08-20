@@ -117,8 +117,9 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
               key={session.id}
               type="button"
               onClick={() => {
-                void openStoredSession(session.id);
-                setActiveTab('cv');
+                void openStoredSession(session.id).then((opened) => {
+                  if (opened) setActiveTab('cv');
+                });
               }}
               className={`flex w-full flex-col gap-1.5 rounded-lg px-3 py-2.5 text-left cursor-pointer ${
                 isCurrent

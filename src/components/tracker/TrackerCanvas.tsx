@@ -147,8 +147,9 @@ export function TrackerCanvas() {
   };
 
   const openApplication = (sessionId: string) => {
-    void openStoredSession(sessionId);
-    setActiveTab('cv');
+    void openStoredSession(sessionId).then((opened) => {
+      if (opened) setActiveTab('cv');
+    });
   };
 
   const headerLine = [
@@ -396,7 +397,7 @@ export function TrackerCanvas() {
               setDeleteError(null);
             }}
             onConfirm={() => {
-              if (!user) return;
+              if (!user || deleteBusy) return;
               setDeleteBusy(true);
               setDeleteError(null);
               void remove(user.id, deleteRow.id)

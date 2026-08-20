@@ -768,6 +768,7 @@ export async function recordJobFeedFeedbackAdmin(params: {
       break;
     case 'dismissed':
       basePatch.dismissed_at = existing?.dismissed_at ?? now;
+      basePatch.saved_at = null;
       break;
     case 'apply_started':
       basePatch.opened_at = existing?.opened_at ?? now;

@@ -93,50 +93,59 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    const {
-      workspace: requestedWorkspace,
-      session: requestedSessionId,
-      tab: requestedTab,
-      autostart,
-    } = readDashboardQuery();
+    let cancelled = false;
+    const run = async () => {
+      const {
+        workspace: requestedWorkspace,
+        session: requestedSessionId,
+        tab: requestedTab,
+        autostart,
+      } = readDashboardQuery();
 
-    if (!requestedWorkspace && !requestedSessionId && !requestedTab && !autostart) {
-      return;
-    }
+      if (!requestedWorkspace && !requestedSessionId && !requestedTab && !autostart) {
+        return;
+      }
 
-    // Wait until the requested session is current before one-shot tab
-    // handling. ChatPanel already refuses to autostart against a different
-    // id, but marking nav processed here would still skip the workspace
-    // switch when the fetch later lands.
-    if (requestedSessionId && currentSession?.id !== requestedSessionId) {
-      void openStoredSession(requestedSessionId);
-      return;
-    }
+      // Wait until the requested session is current before one-shot tab
+      // handling. A miss still switches workspace, otherwise a dead session
+      // id would pin the user on the wrong pane.
+      if (requestedSessionId && currentSession?.id !== requestedSessionId) {
+        const opened = await openStoredSession(requestedSessionId);
+        if (cancelled) return;
+        if (opened) return;
+      }
 
-    const navKey = `${requestedWorkspace ?? ''}|${requestedSessionId ?? ''}|${requestedTab ?? ''}|${autostart ?? ''}`;
-    if (processedWorkspaceRef.current === navKey) {
-      return;
-    }
-    processedWorkspaceRef.current = navKey;
+      if (cancelled) return;
 
-    const resolvedTab: ApplicationTab = requestedTab === 'cover-letter' || requestedTab === 'email'
-      ? requestedTab
-      : 'cv';
+      const navKey = `${requestedWorkspace ?? ''}|${requestedSessionId ?? ''}|${requestedTab ?? ''}|${autostart ?? ''}`;
+      if (processedWorkspaceRef.current === navKey) {
+        return;
+      }
+      processedWorkspaceRef.current = navKey;
 
-    if (requestedWorkspace === 'application-kit') {
-      setActiveTab(resolvedTab);
-      lastApplicationTabRef.current = resolvedTab;
-      return;
-    }
+      const resolvedTab: ApplicationTab = requestedTab === 'cover-letter' || requestedTab === 'email'
+        ? requestedTab
+        : 'cv';
 
-    if (requestedWorkspace === 'job-feed') {
-      setActiveTab('jobs');
-      return;
-    }
+      if (requestedWorkspace === 'application-kit') {
+        setActiveTab(resolvedTab);
+        lastApplicationTabRef.current = resolvedTab;
+        return;
+      }
 
-    if (requestedWorkspace === 'tracker') {
-      setActiveTab('tracker');
-    }
+      if (requestedWorkspace === 'job-feed') {
+        setActiveTab('jobs');
+        return;
+      }
+
+      if (requestedWorkspace === 'tracker') {
+        setActiveTab('tracker');
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
   }, [
     currentSession?.id,
     sessions.length,
