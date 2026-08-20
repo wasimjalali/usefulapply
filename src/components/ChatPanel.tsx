@@ -219,6 +219,22 @@ export function ChatPanel({
     setShowScrollButton(!isNearBottom());
   };
 
+  // Scroll events alone cannot keep the button honest: the panel stays
+  // mounted but display:none behind the feed and tracker, where no scroll
+  // fires and every height reads 0, so a stale "not at bottom" from before
+  // the view switch would survive into a fresh conversation. Recompute from
+  // the container's geometry on every resize (including the 0 to real-height
+  // jump on reveal) and on session change.
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const update = () => setShowScrollButton(!isNearBottom());
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [isNearBottom, currentSession?.id]);
+
   // Force-scroll to bottom when new messages arrive (user sent or AI responded)
   const prevMessageCount = useRef(0);
   useEffect(() => {
