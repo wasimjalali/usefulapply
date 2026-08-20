@@ -691,8 +691,8 @@ A8.
 
 ## Backend pass groups 3 and 4, 20 August 2026
 
-Staging after this session is still `4c0fac87` until deploy. Git HEAD will
-move. Groups 3 and 4 landed together. None on `main`. Group 5 is the
+Staging after this session is version `deb96619` (git HEAD `b164987d`).
+Groups 3 and 4 landed together. None on `main`. Group 5 is the
 migration batch and needs Wasim in the loop.
 
 **A7.** Verification only, not rebuilt. A live Free run was not possible:
@@ -757,10 +757,14 @@ Low: two in-flight POSTs with the same key can both generate under one
 paid reserve, bounded by the regenerate rate limit.
 
 **Verification.** `tsc` 0 errors. Lint 71 errors, 60 warnings (under
-72 / 60). Playwright was again locked on another Chrome instance, so the
-Max-account walk (tracker, older chat, delete with Keep then Delete,
-bookmark toggle, consent withdraw and re-grant) still did not run, and
-A7's Free run did not run.
+72 / 60). Deployed first try as `deb96619`. Live dashboard chunk
+`1_f_m8qvjtojg.js` carries "Showing the most recent", `jobsMatchedCount`,
+"This plan searches up to" and `/api/tracker/follow-up`. Over HTTP:
+follow-up unauthenticated 401, overview 401, checkout 401, `/dashboard`
+and `/login` 200. Playwright was again locked on another Chrome instance,
+so the Max-account walk (tracker, older chat, delete with Keep then
+Delete, bookmark toggle, consent withdraw and re-grant) still did not
+run, and A7's Free run did not run.
 
 Stop here. Group 5 is the migration batch: A3's counter, A6's ceiling,
 B10's typed column and C3's pending production migration. Needs Wasim.
