@@ -8,10 +8,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
 import type { DatePrefs } from '@/lib/utils/format-date';
 import { openStoredSession } from '@/lib/open-session';
-import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
-import { regenerateDocument } from '@/lib/regenerate-client';
+import { regenerateFollowUpForSession } from '@/lib/regenerate-client';
 import {
   trackerMessageId,
   useTrackerStore,
@@ -81,17 +80,13 @@ export function TrackerConversation() {
   const runFollowUp = useCallback(
     async (sessionId: string) => {
       const row = rows.find((candidate) => candidate.id === sessionId);
-      const opened = await openStoredSession(sessionId);
-      if (!opened || useSessionStore.getState().currentSession?.id !== sessionId) {
-        say('I could not open that application. Try from the row.');
-        return;
-      }
       setThinking(true);
-      const result = await regenerateDocument('follow-up');
+      const result = await regenerateFollowUpForSession(sessionId);
       setThinking(false);
       if (result.ok) {
+        const opened = await openStoredSession(sessionId);
         say(`Your follow-up for ${row?.company ?? 'that role'} is ready. It's in the Emails tab.`);
-        setActiveTab('email');
+        if (opened) setActiveTab('email');
         return;
       }
       if (result.code === 'INSUFFICIENT_CREDITS') {
@@ -99,7 +94,7 @@ export function TrackerConversation() {
         return;
       }
       if (result.code === 'NO_CONTEXT') {
-        say('I could not find that application’s job description. Open it and try from there.');
+        say('I could not find that application’s job description or your CV.');
         return;
       }
       say('That did not go through. Try again in a moment.');

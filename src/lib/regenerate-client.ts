@@ -210,3 +210,55 @@ export async function regenerateDocument(target: RegenTarget, requestId: string 
     return { ok: false, code: 'ERROR' };
   }
 }
+
+/**
+ * Tracker follow-up: the server loads the session and CV itself, so this
+ * does not depend on currentSession or currentCV being in memory.
+ */
+export async function regenerateFollowUpForSession(
+  sessionId: string,
+  requestId: string = generateRequestId(),
+): Promise<RegenResult> {
+  try {
+    const response = await fetch('/api/tracker/follow-up', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-request-id': requestId },
+      body: JSON.stringify({ sessionId }),
+    });
+
+    if (response.status === 401) return { ok: false, code: 'SIGNED_OUT' };
+    if (response.status === 402) {
+      const data = await response.json().catch(() => null);
+      return {
+        ok: false,
+        code: 'INSUFFICIENT_CREDITS',
+        required: data?.details?.required ?? REGEN_META['follow-up'].cost,
+        available: data?.details?.available ?? 0,
+      };
+    }
+    if (response.status === 400) {
+      const data = await response.json().catch(() => null);
+      if (data?.code === 'NO_CONTEXT') return { ok: false, code: 'NO_CONTEXT' };
+      return { ok: false, code: 'ERROR' };
+    }
+    if (!response.ok) {
+      console.error('[Tracker follow-up] failed:', response.status);
+      return { ok: false, code: 'ERROR' };
+    }
+
+    const data = await response.json();
+    if (!data.followUpEmail?.subject || !data.followUpEmail?.body) return { ok: false, code: 'ERROR' };
+    useSessionStore.getState().updateSessionById(sessionId, {
+      followUpEmail: {
+        subject: data.followUpEmail.subject,
+        body: data.followUpEmail.body,
+        recommendedDelay: data.followUpEmail.recommendedDelay || 5,
+      },
+    });
+    triggerCreditUpdate();
+    return { ok: true, wordCount: countWords(data.followUpEmail.body), sessionId };
+  } catch (error) {
+    console.error('[Tracker follow-up] error:', error);
+    return { ok: false, code: 'ERROR' };
+  }
+}
