@@ -269,11 +269,9 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Where:** `src/components/marketing/HomePricingButtons.tsx`, `src/app/auth/signup/page.tsx`.
 - **Needs:** carry the tier through sign-up and open checkout after verification, or drop the param. Small, but it needs a decision about when checkout should fire.
 
-### A failed verification resend still reports success
-- **UI today:** the check-email card now renders an error when the resend request fails, and all three callers set one.
-- **Missing:** `/api/auth/signup`'s `resendOnly` branch catches every `sendVerificationEmail` failure, logs it and returns `{ success: true }` with status 200, so a genuine email-infrastructure failure still reads as "Sent again." on screen.
+### A failed verification resend still reports success - CLOSED
+- **Closed 20 August 2026.** The `resendOnly` catch now splits unknown user from send failed. An unknown address still returns 200 so the endpoint cannot test whether an account exists. A real send failure returns 500. Better Auth 1.7 already does not throw for unknown or already-verified addresses, so the catch is the send-failure path; the unknown-user branch is the spec's split if that ever changes.
 - **Where:** `src/app/api/auth/signup/route.ts`.
-- **Needs:** a decision. The uniform 200 is what stops the endpoint being used to test whether an address has an account, so it can't simply return 500. Splitting "unknown user" from "send failed" inside the catch would fix it without weakening that. Small.
 
 ### The demo video is off the landing until it is re-recorded
 - **UI today:** the hero shows the kit screenshot and no video. The old Tella embed was removed with the rest of the pre-redesign hero.
@@ -322,23 +320,18 @@ or UI the locked flow docs do not specify.
 - **All fourteen handlers, not eleven.** `apply/generation`, `apply/status` and `career-profile` POST were already keyed on the user, but they had nothing in front of the session lookup, which is the other half of the problem.
 - **Where:** `src/app/api/job-feed/**`, `src/lib/middleware/rateLimiter.ts` (`checkJobFeedIpGate`), `wrangler.jsonc`.
 
-### `NEXT_PUBLIC_ENABLE_JOB_FEED_DEBUG` unlocks a forced feed run
-- **UI today:** nothing. The flag is set nowhere, so `/api/job-feed/dev/run` 404s today.
-- **Missing:** the gate is a `NEXT_PUBLIC_` variable, which is inlined into the client bundle and set through public config, yet it unlocks a route that runs the feed with `force: true`, bypassing the daily cooldown and spending SerpAPI and ranking budget.
-- **Where:** `src/app/api/job-feed/dev/run/route.ts`, `src/lib/job-feed/constants.ts` `isJobFeedDebugModeEnabled`.
-- **Needs:** a decision. `NODE_ENV !== 'production'` closes it but removes the ability to force a run against production data from a deployed environment. A server-only secret would keep both.
+### `NEXT_PUBLIC_ENABLE_JOB_FEED_DEBUG` unlocks a forced feed run - CLOSED
+- **Closed 20 August 2026.** The public flag is gone. `/api/job-feed/dev/run` checks header `x-job-feed-debug-secret` against server-only `JOB_FEED_DEBUG_SECRET` with a timing-safe compare. Unset or wrong, the route 404s. Not a `NODE_ENV` check, so a forced run against a deployed environment stays possible once the secret is set. The function was removed from `constants.ts` so it is no longer in the client bundle.
+- **Where:** `src/app/api/job-feed/dev/run/route.ts`.
 
-### Consent can be granted but never withdrawn
-- **UI today:** the feed asks for consent once, with a chip. There is no way back.
-- **Missing:** `PUT /api/job-feed/settings` keeps any stored `consent_accepted_at` and ignores a payload that clears it, so a withdrawal is silently dropped. `enabled: false` still pauses the feed, so this is about the consent record itself.
-- **Where:** `src/app/api/job-feed/settings/route.ts`.
-- **Needs:** a decision on whether withdrawal is a product requirement, and if so where the control lives. Small once decided.
+### Consent can be granted but never withdrawn - CLOSED
+- **Closed 20 August 2026.** `POST /api/job-feed/consent/withdraw` is tier-agnostic (`canViewJobFeed`), so it does not live behind the plus/max gate on PUT settings. It clears `consent_accepted_at` and sets `enabled: false`. Idempotent. The conversation offers "Stop searching for me" when consent is on file.
+- **The free run no longer invents the grant.** `getOrProvisionFreeJobFeedSettingsAdmin` requires `consentAccepted: true`. `POST /api/job-feed/run` reads `consent_accepted` from the body and the workflow throws `JOB_FEED_CONSENT_REQUIRED` (400) before it provisions or re-grants. A direct POST with no body does not record a consent the user never gave. `runFeed` only sends that field when consent is missing or the feed is off, so a later "Build today's feed" cannot undo a withdrawal. After withdraw, a free overview returns awaiting until they say yes again.
+- **Where:** `src/app/api/job-feed/consent/withdraw/route.ts`, `src/lib/job-feed/server.ts`, `src/app/api/job-feed/run/route.ts`, `src/db/repos/jobFeed.ts` `withdrawConsent`.
 
-### Free users are 403'd from their own career profile
-- **UI today:** Edit feed tells a free user "I haven't read your CV into a profile yet" about a profile that exists.
-- **Missing:** `GET /api/job-feed/career-profile` and `GET /api/job-feed/search-strategy` gate on `canAccessJobFeed`, which is paid only, while the free feed is explicitly CV-driven and synthesizes that profile during its run. The client swallows the 403.
-- **Where:** `src/app/api/job-feed/career-profile/route.ts`, `src/app/api/job-feed/search-strategy/route.ts`, `src/components/job-feed/FeedEditView.tsx`.
-- **Needs:** a decision. If the paywall is intended, the copy is wrong. If not, the GETs move to `canViewJobFeed`. Small either way.
+### Free users are 403'd from their own career profile - CLOSED
+- **Closed 20 August 2026.** GET `/api/job-feed/career-profile` and GET `/api/job-feed/search-strategy` now use `canViewJobFeed` via `requireJobFeedView`. POSTs stay paid (`canAccessJobFeed`). The free feed is CV-driven and builds that profile during its run, so the GETs have to be readable.
+- **Where:** `src/app/api/job-feed/career-profile/route.ts`, `src/app/api/job-feed/search-strategy/route.ts`, `src/lib/job-feed/auth.ts` `requireJobFeedView`.
 
 ### `POST /api/job-feed/apply` does not check the credit balance - CLOSED
 - **Closed 20 August 2026.** The client sends the same POST for the fit check (0.5) and the kit (2.0), so the mode now rides in the body and the route checks the cost that request will actually incur. It reads the balance through `checkCreditBalance` and never deducts, so no deduction logic moved. A finished kit reopens through this route and charges nothing, so that case skips the check. Anything else fails closed with a 402 that names the price and the balance.

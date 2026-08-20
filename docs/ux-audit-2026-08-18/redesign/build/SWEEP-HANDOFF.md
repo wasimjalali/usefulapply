@@ -580,7 +580,10 @@ strong/good/skip calibration were not touched, and freshness reads
 
 ## Backend pass group 1, 20 August 2026
 
-Staging is version `b65dd313`. Three commits on `rebrand/usefulapply`, none on
+Staging after group 1 is version `e76fd9ba` (git HEAD `1ecd42b7`). The section
+below predates two follow-up commits: the T3 High was fixed in `d79056e6`, the
+Lows in `1ecd42b7`. Group 1 was verified line by line against the code after
+those. Three commits on `rebrand/usefulapply` at the original landing, none on
 `main`.
 
 | Commit | What |
@@ -620,7 +623,69 @@ Deployed first try as `b65dd313`. New copy is in the live dashboard chunk
 `2wc7wzhgnr2bb.js`. Browser was signed out, so the Max-account tracker walk
 did not run. Anonymous `/dashboard` 200, login opens, console clean.
 
-Stop here. Group 2 is A12, B1, B2, A11.
+**T3 review follow-ups (after the original landing).** High in `d79056e6`, Lows
+in `1ecd42b7`. Staging `e76fd9ba`.
+
+---
+
+## Backend pass group 2, 20 August 2026
+
+Staging after this group is version `4c0fac87` (git HEAD `929aa4c8`). Four
+entries, in the locked order: A12, B1, B2, A11. None on `main`.
+
+**A12.** Consent withdrawal is a real control. `POST /api/job-feed/consent/withdraw`
+is tier-agnostic (`canViewJobFeed`), so GDPR is not behind the plus/max gate on
+PUT settings. It clears `consent_accepted_at` and sets `enabled: false`.
+Idempotent. The conversation offers "Stop searching for me" when consent is on
+file.
+
+The free run no longer invents the grant. `getOrProvisionFreeJobFeedSettingsAdmin`
+requires `consentAccepted: true`. `POST /api/job-feed/run` reads
+`consent_accepted` from the body. Missing it throws `JOB_FEED_CONSENT_REQUIRED`
+(400) before any row is created or re-granted. `runFeed` only sends that field
+when consent is missing or the feed is off, so a later ordinary run cannot undo
+a withdrawal. After withdraw, a free overview returns awaiting until they say
+yes again. A direct POST with no body does not record a consent the user never
+gave.
+
+**B1.** GET `/api/job-feed/career-profile` and GET `/api/job-feed/search-strategy`
+use `canViewJobFeed` via `requireJobFeedView`. POSTs stay paid. The free feed
+is CV-driven and builds that profile during its run.
+
+**B2.** The `resendOnly` catch in `/api/auth/signup` splits unknown user from
+send failed. Unknown address stays 200 so the endpoint cannot test whether an
+account exists. A real send failure returns 500. Better Auth 1.7 already does
+not throw for unknown or already-verified addresses, so the catch is the
+send-failure path.
+
+**A11.** `NEXT_PUBLIC_ENABLE_JOB_FEED_DEBUG` is gone. `/api/job-feed/dev/run`
+checks header `x-job-feed-debug-secret` against server-only
+`JOB_FEED_DEBUG_SECRET`. Unset or wrong, 404. Not a `NODE_ENV` check, so a
+forced run against a deployed environment stays possible once the secret is
+set. The helper was removed from `constants.ts`, so it is no longer in the
+client bundle.
+
+**T3 review.** Four `grok-4.5` lenses. Cycle 1 logic said NO: free pause 500'd,
+provision could return a withdrawn row, and the resend helper matched send
+failures as unknown-user. All three were checked against the code and fixed.
+Cycle 2 three lenses said NO: `runFeed` always sent `consent_accepted: true`,
+so the next ordinary run undid a withdraw. Fixed: the field is only sent when
+consent is missing or the feed is off, and a free overview after withdraw
+returns awaiting. Logic lens cycle 2 died (it tried to spawn tools). Residual
+Lows left: debug-secret length leak (same as CRON_SECRET), debug run omits
+consent (secret-gated).
+
+**Verification.** `tsc` 0 errors. Lint 71 errors, 60 warnings (under 72 / 60).
+Deployed first try as `4c0fac87`. Live dashboard chunk `3d8i78xq3egom.js`
+carries "Stop searching for me" and `/api/job-feed/consent/withdraw`. Over
+HTTP: debug run 404 with no secret and with a wrong secret, unknown-address
+resend 200, withdraw/career-profile/search-strategy/run unauthenticated 401,
+`/dashboard` and `/login` 200. Playwright was locked on another Chrome
+instance, so the Max-account tracker walk still did not run and signed-in
+withdraw was not clicked.
+
+Stop here. Group 3 is A7 verification (one live Free run, do not rebuild), then
+A8.
 
 ---
 
