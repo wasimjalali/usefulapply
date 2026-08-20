@@ -42,6 +42,11 @@ export function toStoreApplicationSession(
     : null;
 
   const generatedCvBlob = session.generated_cv as Record<string, unknown> | null;
+  // The row carries the server-owned counter, but the generated Supabase type
+  // predates the column. Same rule as open-session.ts: take the higher of the
+  // column and the old embedded number, so a row written before the column
+  // keeps the turns it already spent.
+  const screeningTurnsUsed = (session as unknown as { screening_turns_used?: number | null }).screening_turns_used;
 
   return {
     id: session.id,
@@ -75,9 +80,10 @@ export function toStoreApplicationSession(
     jobFeedGenerationId: generation.id,
     jobFeedGenerationAttempt: generation.attempt,
     companyResearch,
-    screeningUsageCount: typeof generatedCvBlob?._screeningUsageCount === 'number'
-      ? (generatedCvBlob._screeningUsageCount as number)
-      : 0,
+    screeningUsageCount: Math.max(
+      typeof screeningTurnsUsed === 'number' ? screeningTurnsUsed : 0,
+      typeof generatedCvBlob?._screeningUsageCount === 'number' ? (generatedCvBlob._screeningUsageCount as number) : 0,
+    ),
     cvEdits: Array.isArray(session.cv_edits) ? session.cv_edits as unknown as StoreApplicationSession['cvEdits'] : [],
     optimizedPdfRef: session.optimized_pdf_path
       ? {

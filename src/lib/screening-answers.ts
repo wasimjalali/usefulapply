@@ -6,6 +6,13 @@
  *   ---ANSWER_END---
  */
 
+/**
+ * Screening turns per application. The chat route is what enforces it, against
+ * `application_sessions.screening_turns_used`, which only that route writes.
+ * The client reads this number to say how many are left; it is not the cap.
+ */
+export const SCREENING_TURN_CAP = 5;
+
 export interface ParsedScreeningAnswer {
   question: string;
   answer: string;

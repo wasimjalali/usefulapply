@@ -38,7 +38,7 @@ import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { usePostHog } from 'posthog-js/react';
 import { NamedStages } from '@/components/shell/NamedStages';
 import { REGEN_META, detectRegenTarget, regenerateDocument, type RegenTarget } from '@/lib/regenerate-client';
-import { looksLikeScreeningQuestion, parseScreeningAnswers } from '@/lib/screening-answers';
+import { looksLikeScreeningQuestion, parseScreeningAnswers, SCREENING_TURN_CAP } from '@/lib/screening-answers';
 
 // Module-level dedupe set for Job Feed autostart. Kept as a safety net in
 // case the dashboard ever navigates between two sessions fast enough that
@@ -612,10 +612,6 @@ export function ChatPanel({
     }
   };
 
-  // Screening turns per application. The old chip allowed two entries; pasting
-  // from the composer is per question, so the cap is per answered turn.
-  const SCREENING_TURN_CAP = 5;
-
   const runScreening = async (question: string) => {
     if (!user) {
       askForAccount();
@@ -625,6 +621,8 @@ export function ChatPanel({
     const session = useSessionStore.getState().currentSession;
     const startedIn = session?.id ?? null;
     if (!startedIn) return;
+    // A local read of a spent cap saves a round trip. It is not the cap: the
+    // chat route holds that, on a column only it writes.
     if ((session?.screeningUsageCount ?? 0) >= SCREENING_TURN_CAP) {
       setIsScreeningMode(false);
       addChatMessage({
@@ -661,6 +659,20 @@ export function ChatPanel({
             content: 'Your session expired. Sign in again and paste the question once more.',
             actions: [{ label: 'Sign in', action: 'navigate-login' }],
           });
+        } else if (result.code === 'CAP_REACHED') {
+          // The server's number is the real one, so the local display catches up.
+          useSessionStore.getState().updateSessionById(startedIn, {
+            screeningUsageCount: result.turnsUsed ?? SCREENING_TURN_CAP,
+          });
+          addChatMessage({
+            role: 'assistant',
+            content: `That's the ${SCREENING_TURN_CAP} screening answers for this application. Start a new application for more.`,
+          });
+        } else if (result.code === 'NOT_SAVED') {
+          addChatMessage({
+            role: 'assistant',
+            content: 'This application hasn\'t saved yet. Give it a second and paste the question again.',
+          });
         } else {
           addChatMessage({
             role: 'assistant',
@@ -672,6 +684,10 @@ export function ChatPanel({
       const parsed = parseScreeningAnswers(result.reply);
       if (!parsed) {
         // No answer blocks: show the reply as a normal turn rather than lose it.
+        // The turn was still spent, so the displayed count follows the server.
+        if (result.turnsUsed !== null) {
+          useSessionStore.getState().updateSessionById(startedIn, { screeningUsageCount: result.turnsUsed });
+        }
         if (stillHere) addChatMessage({ role: 'assistant', content: result.reply });
         return;
       }
@@ -688,9 +704,10 @@ export function ChatPanel({
         createdAt: now,
       }));
       // Answers land on the application that asked, even if the user moved on.
+      // The count comes from the server, which just spent the turn.
       store.updateSessionById(startedIn, {
         screeningAnswers: [...existing, ...items],
-        screeningUsageCount: (target?.screeningUsageCount ?? 0) + 1,
+        screeningUsageCount: result.turnsUsed ?? (target?.screeningUsageCount ?? 0) + 1,
       });
       posthog?.capture('screening_answers_generated', { count: items.length });
       if (!stillHere) return;

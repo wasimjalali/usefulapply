@@ -371,7 +371,10 @@ export function useAgentWorkflow(options?: {
    */
   const fetchScreeningAnswers = async (
     question: string,
-  ): Promise<{ ok: true; reply: string } | { ok: false; code: 'PLAN_REQUIRED' | 'CHAT_LIMIT' | 'SIGNED_OUT' | 'ERROR' }> => {
+  ): Promise<
+    | { ok: true; reply: string; turnsUsed: number | null }
+    | { ok: false; code: 'PLAN_REQUIRED' | 'CHAT_LIMIT' | 'SIGNED_OUT' | 'NOT_SAVED' | 'CAP_REACHED' | 'ERROR'; turnsUsed?: number }
+  > => {
     // Own controller: this must never replace the SSE workflow's abort handle.
     const controller = new AbortController();
     try {
@@ -401,6 +404,9 @@ export function useAgentWorkflow(options?: {
             hasGeneratedCoverLetter: !!currentSession?.coverLetter,
             hasGeneratedEmail: !!currentSession?.email,
             mode: 'screening_answers' as const,
+            // The route spends the turn against this row, so it has to be the
+            // saved application, not the local draft id.
+            sessionId: currentSession?.id,
             jobDescription: currentSession?.jobDescription?.substring(0, 8000),
             matchingSkills: currentSession?.matchingSkills,
             missingSkills: currentSession?.missingSkills,
@@ -419,13 +425,19 @@ export function useAgentWorkflow(options?: {
         signal: controller.signal,
       });
       if (response.ok) {
-        const { reply } = await response.json();
-        return typeof reply === 'string' ? { ok: true, reply } : { ok: false, code: 'ERROR' };
+        const { reply, screeningTurnsUsed } = await response.json();
+        return typeof reply === 'string'
+          ? { ok: true, reply, turnsUsed: typeof screeningTurnsUsed === 'number' ? screeningTurnsUsed : null }
+          : { ok: false, code: 'ERROR' };
       }
       if (response.status === 401) return { ok: false, code: 'SIGNED_OUT' };
       if (response.status === 403) return { ok: false, code: 'PLAN_REQUIRED' };
       const errorData = await response.json().catch(() => null);
       if (errorData?.code === 'CHAT_LIMIT_REACHED') return { ok: false, code: 'CHAT_LIMIT' };
+      if (errorData?.code === 'SCREENING_SESSION_REQUIRED') return { ok: false, code: 'NOT_SAVED' };
+      if (errorData?.code === 'SCREENING_CAP_REACHED') {
+        return { ok: false, code: 'CAP_REACHED', turnsUsed: errorData.screeningTurnsUsed };
+      }
       return { ok: false, code: 'ERROR' };
     } catch {
       return { ok: false, code: 'ERROR' };

@@ -48,6 +48,8 @@ export interface StoredSessionRow {
   cv_edits?: unknown[] | null;
   optimized_pdf_path?: string | null;
   status?: string | null;
+  /** Server-owned. Optional because a row read before the migration has no value. */
+  screening_turns_used?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -104,9 +106,17 @@ export function mapSessionRowToStore(row: StoredSessionRow): ApplicationSession 
           url: row.optimized_pdf_path,
         }
       : undefined,
-    screeningUsageCount: typeof generated?._screeningUsageCount === 'number'
-      ? generated._screeningUsageCount
-      : 0,
+    // The server-owned column is the truth. The old embedded number is not a
+    // fallback for a database without the column (drizzle names the column in
+    // every select, so an unmigrated database throws, and the migration goes on
+    // before the deploy). It is the fallback for a row written before the
+    // column, which starts at 0 with no backfill. Taking the higher of the two
+    // means such a row keeps the turns it already spent. Measured on the live
+    // database: 115 applications, none carrying an embedded count.
+    screeningUsageCount: Math.max(
+      typeof row.screening_turns_used === 'number' ? row.screening_turns_used : 0,
+      typeof generated?._screeningUsageCount === 'number' ? generated._screeningUsageCount : 0,
+    ),
     chatMessages: [],
   };
 }

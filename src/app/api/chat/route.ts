@@ -4,11 +4,18 @@ import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
 import { getProfile } from '@/db/repos/profiles';
+import { claimScreeningTurn, releaseScreeningTurn } from '@/db/repos/sessions';
+import { SCREENING_TURN_CAP } from '@/lib/screening-answers';
 
 // Input/output limits
 const MAX_MESSAGE_LENGTH = 2_000;
 const MAX_SCREENING_MESSAGE_LENGTH = 5_000;
 const MAX_CHAT_MESSAGES_PER_SESSION = 10;
+
+// The application id has to be a real D1 row id. A client session carries a
+// `session-<timestamp>` id until it syncs, and a cap that accepts anything is
+// not a cap.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -35,6 +42,7 @@ interface ChatContext {
   hasGeneratedEmail?: boolean;
   // Screening question mode
   mode?: 'screening_answers';
+  sessionId?: string;
   jobDescription?: string;
   matchingSkills?: string[];
   missingSkills?: string[];
@@ -80,6 +88,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Plan gate: screening answers require a paid plan (Plus or Max)
+    let screeningSessionId: string | null = null;
+    let screeningTurnsUsed = 0;
     if (isScreeningMode) {
       const profile = await getProfile(user.id);
       const tier = profile?.subscription_tier;
@@ -89,6 +99,18 @@ export async function POST(req: NextRequest) {
           { status: 403 }
         );
       }
+
+      // The cap is per application and is spent below, not by the client. The
+      // count the client keeps rides inside generated_cv, which the client
+      // writes wholesale, so it can only ever be a display number.
+      const sessionId = context.sessionId;
+      if (!sessionId || !UUID_RE.test(sessionId)) {
+        return NextResponse.json(
+          { error: 'This application has not saved yet. Try the question again in a moment.', code: 'SCREENING_SESSION_REQUIRED' },
+          { status: 409 }
+        );
+      }
+      screeningSessionId = sessionId;
     }
 
     // Chat message limit per session (count user messages in history)
@@ -98,6 +120,28 @@ export async function POST(req: NextRequest) {
         { error: 'Chat message limit reached for this application. Start a new application to continue chatting.', code: 'CHAT_LIMIT_REACHED' },
         { status: 429 }
       );
+    }
+
+    // The turn is claimed last, after every gate that can refuse the request.
+    // Claiming earlier would spend a turn on a request that never reaches the
+    // model, and the chat limit above does exactly that.
+    if (screeningSessionId) {
+      const claim = await claimScreeningTurn(user.id, screeningSessionId, SCREENING_TURN_CAP);
+      if (!claim.ok) {
+        if (claim.reason === 'not_found') {
+          return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+        }
+        return NextResponse.json(
+          {
+            error: `That's the ${SCREENING_TURN_CAP} screening answers for this application.`,
+            code: 'SCREENING_CAP_REACHED',
+            screeningTurnsUsed: claim.turnsUsed,
+            screeningTurnCap: SCREENING_TURN_CAP,
+          },
+          { status: 429 }
+        );
+      }
+      screeningTurnsUsed = claim.turnsUsed;
     }
 
     const systemPrompt = isScreeningMode
@@ -117,21 +161,31 @@ export async function POST(req: NextRequest) {
     });
 
     // Use Claude for chat — screening mode gets higher token budget
-    const response = await callModel({
-      task: 'general_chat',
-      prompt: message,
-      systemPrompt,
-      conversationHistory,
-      ...(isScreeningMode && { maxTokens: 2000, temperature: 0.4 }),
-    });
+    let response;
+    try {
+      response = await callModel({
+        task: 'general_chat',
+        prompt: message,
+        systemPrompt,
+        conversationHistory,
+        ...(isScreeningMode && { maxTokens: 2000, temperature: 0.4 }),
+      });
+    } catch (modelError) {
+      // The turn was claimed before the call, so a failure here has to hand it
+      // back. Only this path releases: a client that gives up mid-call still
+      // pays for the turn it started.
+      if (screeningSessionId) await releaseScreeningTurn(user.id, screeningSessionId, screeningTurnsUsed);
+      throw modelError;
+    }
     const reply = response.content;
 
     const actions = isScreeningMode ? [] : extractActions(reply, context);
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       reply,
-      actions 
+      actions,
+      ...(isScreeningMode && { screeningTurnsUsed, screeningTurnCap: SCREENING_TURN_CAP }),
     });
   } catch (error) {
     const posthog = getPostHogServer();
