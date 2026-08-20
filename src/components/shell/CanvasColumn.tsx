@@ -88,11 +88,13 @@ export function CanvasColumn({
 
   if (collapsed) {
     return (
-      <div className="flex h-full w-12 flex-shrink-0 flex-col items-center border-l border-cream-200 bg-cream-100 py-3">
+      /* The toggle lives at the bottom right in both states, so it never
+         jumps when the canvas opens or closes. */
+      <div className="flex h-full w-12 flex-shrink-0 flex-col items-center justify-end border-l border-cream-200 bg-cream-100 py-4">
         <button
           type="button"
           onClick={onToggleCollapsed}
-          className="rounded-lg p-1.5 text-warm-gray hover:bg-cream-50 hover:text-navy-700 cursor-pointer"
+          className="rounded-full border border-cream-200 bg-cream-50 p-1.5 text-warm-gray shadow-sm hover:text-navy-700 cursor-pointer"
           aria-label="Expand canvas"
         >
           <PanelRightOpen className="h-4 w-4" />
@@ -106,10 +108,10 @@ export function CanvasColumn({
       <button
         type="button"
         onClick={onToggleCollapsed}
-        className="absolute left-0 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cream-200 bg-cream-50 p-1 text-warm-gray shadow-sm hover:text-navy-700 cursor-pointer"
+        className="absolute bottom-4 right-4 z-20 rounded-full border border-cream-200 bg-cream-50 p-1.5 text-warm-gray shadow-sm hover:text-navy-700 cursor-pointer"
         aria-label="Collapse canvas"
       >
-        <PanelRightClose className="h-3.5 w-3.5" />
+        <PanelRightClose className="h-4 w-4" />
       </button>
 
       {isKit && (
