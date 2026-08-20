@@ -2,6 +2,8 @@
 
 import { MessageSquare, ArrowRight } from 'lucide-react';
 import { useUIStore } from '@/store/useUIStore';
+import { useDatePrefs } from '@/hooks/useDatePrefs';
+import { formatDate } from '@/lib/utils/format-date';
 
 export interface SessionSummary {
   id: string;
@@ -39,6 +41,7 @@ function StatusDot({ hasGeneratedCV, hasFitAnalysis }: { hasGeneratedCV?: boolea
 }
 
 export function ChatHistory({ sessions, currentSessionId, onSelectSession, onClose }: ChatHistoryProps) {
+  const datePrefs = useDatePrefs();
   if (sessions.length === 0) {
     return (
       <>
@@ -78,11 +81,7 @@ export function ChatHistory({ sessions, currentSessionId, onSelectSession, onClo
                 </div>
                 <p className="text-xs text-warm-gray flex items-center gap-1 ml-4">
                   <MessageSquare className="w-3 h-3" />
-                  {new Date(session.updatedAt).toLocaleDateString(undefined, {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
+                  {formatDate(new Date(session.updatedAt), datePrefs)}
                 </p>
               </button>
             ))}

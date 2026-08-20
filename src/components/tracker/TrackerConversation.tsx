@@ -5,6 +5,8 @@ import { Loader2, Send } from 'lucide-react';
 import { BrandIcon } from '@/components/BrandLogo';
 import { MarkdownText } from '@/components/MarkdownText';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDatePrefs } from '@/hooks/useDatePrefs';
+import type { DatePrefs } from '@/lib/utils/format-date';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
@@ -35,6 +37,7 @@ interface TrackerAction {
 
 export function TrackerConversation() {
   const { user, profile } = useAuth();
+  const datePrefs = useDatePrefs();
   const rows = useTrackerStore((s) => s.rows);
   const messages = useTrackerStore((s) => s.messages);
   const thinking = useTrackerStore((s) => s.thinking);
@@ -53,7 +56,10 @@ export function TrackerConversation() {
   const [pendingFollowUp, setPendingFollowUp] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
-  const opening = useMemo(() => buildStateOfPlay(rows, hideRejected), [rows, hideRejected]);
+  const opening = useMemo(
+    () => buildStateOfPlay(rows, hideRejected, new Date(), datePrefs),
+    [rows, hideRejected, datePrefs],
+  );
 
   // Written once the fetch has landed, empty or not. The messages live in the
   // store, so leaving the tracker and coming back must not write it again.
@@ -330,6 +336,7 @@ export function buildStateOfPlay(
   rows: TrackerApplicationRow[],
   hideRejected: boolean,
   now: Date = new Date(),
+  prefs?: DatePrefs,
 ): { text: string; chips: TrackerChip[] } {
   if (rows.length === 0) {
     return {
@@ -371,7 +378,7 @@ export function buildStateOfPlay(
     const when = parseDate(first.row.interview_at);
     parts.push(
       `**${countWord(interviews.length)} interview${interviews.length === 1 ? '' : 's'}** (${first.row.company ?? 'one role'}${
-        when ? `, ${formatInterviewDate(when)}` : ''
+        when ? `, ${formatInterviewDate(when, prefs)}` : ''
       })`,
     );
   }

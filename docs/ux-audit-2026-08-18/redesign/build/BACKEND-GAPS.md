@@ -187,11 +187,12 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 - **Where:** UI `src/components/settings/GeneralPane.tsx`; backend a `password_changed_at` column on `profiles` written by the change-password path.
 - **Needs:** one column and one write. Small.
 
-### Timezone and date format are stored but nothing reads them
-- **UI today:** PREFERENCES saves `profiles.timezone` (auto-detected via `Intl.DateTimeFormat().resolvedOptions().timeZone`) and `profiles.date_format`.
-- **Missing:** every date in the app still renders with the browser locale and the browser timezone. No formatter reads these two columns, and the reminder emails do not use the timezone either.
-- **Where:** UI `src/components/settings/GeneralPane.tsx`; consumers would be the tracker rows, the feed and the reminder senders.
-- **Needs:** one shared date formatter that takes the profile, then swap the call sites. Small, but it spans the tracker (batch 4 part A) so it should land after both halves merge.
+### Timezone and date format are stored but nothing reads them - CLOSED
+- **Closed 20 August 2026.** `src/lib/utils/format-date.ts` is the one formatter. It takes a `DatePrefs` (`timeZone` plus a `dmy` / `mdy` / `iso` order), falls back to the browser's own zone and `dmy` when there is no profile, and drops a stored zone the runtime does not know rather than throwing inside `Intl`. It is pure and dependency-free, so the Worker can use it too.
+- **`useDatePrefs()`** reads the two columns off the profile for components.
+- **Swapped:** the tracker rows and NEXT column, the tracker conversation opening, the feed conversation header, the feed's "last run" stamp, the feed profile "refreshed" date, the chat history list, the billing renewal date, and the cover letter's "Updated" label past a day.
+- **Not swapped, deliberately:** `StatusPopover`'s day chips. Those pick a date in the browser's own calendar and store it with local getters, so printing them in a different zone would make the chip disagree with what it saves.
+- **The reminder sweep already reads the zone**, per the entry above.
 
 ### Two of the five notification toggles have no sending path
 - **UI today:** Notifications persists all five toggles through `updateProfileAction`. `notify_follow_up_due` and `notify_interview_tomorrow` are live: the `0 8 * * *` sweep in `src/cron/tracker-reminders.ts` reads them and sends. `notify_marketing` gates a manual send.

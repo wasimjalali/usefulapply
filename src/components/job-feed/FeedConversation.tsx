@@ -7,6 +7,7 @@ import { BrandIcon } from '@/components/BrandLogo';
 import { MarkdownText } from '@/components/MarkdownText';
 import { NamedStages, type NamedStage } from '@/components/shell/NamedStages';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDatePrefs } from '@/hooks/useDatePrefs';
 import { openSettings } from '@/store/useSettingsStore';
 import { useUIStore } from '@/store/useUIStore';
 import {
@@ -68,6 +69,7 @@ function browserTimeZone(): string {
 export function FeedConversation() {
   const posthog = usePostHog();
   const { user, profile } = useAuth();
+  const datePrefs = useDatePrefs();
 
   const status = useFeedStore((state) => state.status);
   const overview = useFeedStore((state) => state.overview);
@@ -554,7 +556,7 @@ export function FeedConversation() {
     if (phase === 'building') return 'Building · about a minute';
     if (phase === 'setup' || phase === 'awaiting') return 'Not built yet';
     if (phase === 'error') return overview?.state === 'error' ? "Today's run failed" : 'Feed did not load';
-    const day = formatFeedDay(new Date());
+    const day = formatFeedDay(new Date(), datePrefs);
     if (phase === 'feed') {
       const count = todayCount > 0 ? todayCount : totalCount;
       const label = todayCount > 0 ? 'new' : '';

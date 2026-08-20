@@ -4,6 +4,13 @@
  * "Follow-up sent" and `accepted` is "Offer". Map here, never in a component.
  */
 
+import {
+  formatDate,
+  formatDateTime,
+  formatDayMonth,
+  type DatePrefs,
+} from '@/lib/utils/format-date';
+
 export type TrackerStatus =
   | 'drafted'
   | 'applied'
@@ -92,23 +99,21 @@ export function parseDate(value: string | null | undefined): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-/** "19 Aug 2026" in the user's locale. */
-export function formatSavedDate(value: string | null | undefined): string {
+/** "19 Aug 2026" in the reader's saved zone and order. */
+export function formatSavedDate(value: string | null | undefined, prefs?: DatePrefs): string {
   const date = parseDate(value);
   if (!date) return '–';
-  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  return formatDate(date, prefs);
 }
 
-/** "27 Aug" in the user's locale. */
-export function formatShortDate(date: Date): string {
-  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+/** "27 Aug" in the reader's saved zone and order. */
+export function formatShortDate(date: Date, prefs?: DatePrefs): string {
+  return formatDayMonth(date, prefs);
 }
 
-/** "Thu 21 Aug, 14:00" in the user's locale. */
-export function formatInterviewDate(date: Date): string {
-  const day = date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
-  const time = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-  return `${day}, ${time}`;
+/** "Thu 21 Aug, 14:00" in the reader's saved zone and order. */
+export function formatInterviewDate(date: Date, prefs?: DatePrefs): string {
+  return formatDateTime(date, prefs);
 }
 
 /** An ISO datetime the DB and the reminder cron can both read. */
@@ -133,7 +138,7 @@ export interface NextStep {
   tone: 'default' | 'overdue' | 'action' | 'muted';
 }
 
-export function deriveNextStep(row: TrackerRowDates, now: Date = new Date()): NextStep {
+export function deriveNextStep(row: TrackerRowDates, now: Date = new Date(), prefs?: DatePrefs): NextStep {
   const today = startOfDay(now);
 
   switch (row.status) {
@@ -144,7 +149,7 @@ export function deriveNextStep(row: TrackerRowDates, now: Date = new Date()): Ne
       const due = parseDate(row.followUpDueAt) ?? defaultFollowUpDue(row.createdAt);
       if (!due) return { label: 'Follow up', tone: 'default' };
       if (startOfDay(due) < today) return { label: 'Follow up overdue', tone: 'overdue' };
-      return { label: `Follow up by ${formatShortDate(due)}`, tone: 'default' };
+      return { label: `Follow up by ${formatShortDate(due, prefs)}`, tone: 'default' };
     }
 
     case 'follow_up': {
@@ -158,13 +163,13 @@ export function deriveNextStep(row: TrackerRowDates, now: Date = new Date()): Ne
     case 'interview': {
       const at = parseDate(row.interviewAt);
       if (!at) return { label: 'Add a date', tone: 'muted' };
-      return { label: formatInterviewDate(at), tone: 'default' };
+      return { label: formatInterviewDate(at, prefs), tone: 'default' };
     }
 
     case 'accepted': {
       const due = parseDate(row.followUpDueAt);
       if (!due) return { label: 'Offer in hand', tone: 'default' };
-      return { label: `Respond by ${formatShortDate(due)}`, tone: 'default' };
+      return { label: `Respond by ${formatShortDate(due, prefs)}`, tone: 'default' };
     }
 
     case 'rejected':

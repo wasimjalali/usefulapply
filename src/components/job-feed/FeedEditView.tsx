@@ -6,6 +6,8 @@ import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import type { SearchStrategy } from '@/lib/job-feed/search-strategy';
 import type { JobFeedOverviewResponse } from '@/lib/job-feed/types';
 import { countryLabel } from './feed-format';
+import { useDatePrefs } from '@/hooks/useDatePrefs';
+import { formatDayMonth } from '@/lib/utils/format-date';
 import type { FeedEditPill } from '@/store/useFeedStore';
 
 const NUDGE_FLAG_KEY = 'usefulapply.feedEditNudgeSeen';
@@ -56,6 +58,7 @@ export function FeedEditView({
   onBack,
   onEditProfile,
 }: FeedEditViewProps) {
+  const datePrefs = useDatePrefs();
   // First visit only: a gold dot on the two pills nobody clicks, plus one
   // line saying what is behind them. Any pill click ends it for good.
   const [nudge, setNudge] = useState(false);
@@ -144,7 +147,7 @@ export function FeedEditView({
                 What I read from your CV
                 {profile?.generatedAt && (
                   <span className="ml-2 text-xs font-normal text-warm-gray">
-                    refreshed {new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(new Date(profile.generatedAt))}
+                    refreshed {formatDayMonth(new Date(profile.generatedAt), datePrefs)}
                   </span>
                 )}
               </h3>

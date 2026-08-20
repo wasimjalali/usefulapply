@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowUpRight, ChevronDown, Loader2, Plus, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDatePrefs } from '@/hooks/useDatePrefs';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
 import {
@@ -29,6 +30,7 @@ const SAVED_COLUMN_WIDTH = 760;
 
 export function TrackerCanvas() {
   const { user, profile } = useAuth();
+  const datePrefs = useDatePrefs();
   const loadSession = useSessionStore((s) => s.loadSession);
   const setActiveTab = useUIStore((s) => s.setActiveTab);
   const requestNewApplication = useUIStore((s) => s.requestNewApplication);
@@ -232,12 +234,16 @@ export function TrackerCanvas() {
 
             {rows.map((row) => {
               const status = toTrackerStatus(row.status);
-              const next = deriveNextStep({
-                status,
-                interviewAt: row.interview_at,
-                followUpDueAt: row.follow_up_due_at,
-                createdAt: row.created_at,
-              });
+              const next = deriveNextStep(
+                {
+                  status,
+                  interviewAt: row.interview_at,
+                  followUpDueAt: row.follow_up_due_at,
+                  createdAt: row.created_at,
+                },
+                new Date(),
+                datePrefs,
+              );
               const isOpen = openRow?.id === row.id;
               const hasDateStep = STATUSES_WITH_DATE.includes(status);
               return (
@@ -344,7 +350,7 @@ export function TrackerCanvas() {
                       wide ? '' : 'opacity-0 transition-opacity duration-200 group-hover:opacity-100'
                     }`}
                   >
-                    {formatSavedDate(row.created_at)}
+                    {formatSavedDate(row.created_at, datePrefs)}
                   </span>
                 </div>
               );

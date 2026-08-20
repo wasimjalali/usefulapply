@@ -6,22 +6,25 @@
 import type { JobFeedFeedItem, JobFeedOverviewResponse } from '@/lib/job-feed/types';
 import { JOB_FEED_COUNTRY_OPTIONS } from '@/lib/job-feed/constants';
 import { getLocalDateKey, isSafeExternalUrl } from '@/lib/job-feed/helpers';
+import {
+  DEFAULT_DATE_PREFS,
+  formatDayMonth,
+  formatLongDay,
+  formatTime,
+  type DatePrefs,
+} from '@/lib/utils/format-date';
 
 /** "Wednesday 19 August" for the conversation header. */
-export function formatFeedDay(date: Date): string {
-  return new Intl.DateTimeFormat('en-GB', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  }).format(date);
+export function formatFeedDay(date: Date, prefs?: DatePrefs): string {
+  return formatLongDay(date, prefs);
 }
 
-/** "09:25" from an ISO timestamp, in the reader's own clock. */
-export function formatFeedTime(value: string | null): string | null {
+/** "09:25" from an ISO timestamp, in the reader's saved clock. */
+export function formatFeedTime(value: string | null, prefs?: DatePrefs): string | null {
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' }).format(date);
+  return formatTime(date, prefs);
 }
 
 /** "3 days ago" from the freshness the provider gave us. Null when unknown. */
@@ -44,7 +47,10 @@ export function countryLabel(code: string): string {
  * Every part comes from saved settings or the run, so a missing part is left
  * out rather than guessed.
  */
-export function buildRankedForLine(overview: JobFeedOverviewResponse | null): string {
+export function buildRankedForLine(
+  overview: JobFeedOverviewResponse | null,
+  prefs?: DatePrefs,
+): string {
   if (!overview) return '';
   const parts: string[] = [];
 
@@ -58,7 +64,7 @@ export function buildRankedForLine(overview: JobFeedOverviewResponse | null): st
     parts.push(countries.map(countryLabel).join(' and '));
   }
 
-  const runStamp = formatRunStamp(overview);
+  const runStamp = formatRunStamp(overview, prefs);
   if (runStamp) parts.push(runStamp);
 
   return parts.join(' · ');
@@ -292,17 +298,20 @@ export function safeEmployerUrl(job: Pick<JobFeedFeedItem, 'applyUrl' | 'sourceU
 }
 
 /** "last run 09:25" when it is today, otherwise "last run 17 August". */
-function formatRunStamp(overview: JobFeedOverviewResponse): string | null {
+function formatRunStamp(overview: JobFeedOverviewResponse, prefs?: DatePrefs): string | null {
   const completedAt = overview.feedRun?.completed_at ?? null;
   if (!completedAt) return null;
   const date = new Date(completedAt);
   if (Number.isNaN(date.getTime())) return null;
   const timeZone = overview.settings?.user_timezone || overview.feedRun?.local_timezone || 'UTC';
+  // The day key runs in the feed's own zone, so the clock it prints has to as
+  // well, or "today" and the time beside it can disagree by a day.
+  const stamp: DatePrefs = { timeZone, order: prefs?.order ?? DEFAULT_DATE_PREFS.order };
   const runDay = overview.feedRun?.local_date ?? getLocalDateKey(date, timeZone);
   const today = getLocalDateKey(new Date(), timeZone);
   if (runDay === today) {
-    const time = formatFeedTime(completedAt);
+    const time = formatFeedTime(completedAt, stamp);
     return time ? `last run ${time}` : null;
   }
-  return `last run ${new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long' }).format(date)}`;
+  return `last run ${formatDayMonth(date, stamp, 'long')}`;
 }

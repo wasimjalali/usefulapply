@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDatePrefs } from '@/hooks/useDatePrefs';
+import { formatDayMonth, type DatePrefs } from '@/lib/utils/format-date';
 import { PLANS, CREDIT_PRICES } from '@/lib/plans';
 import {
   getUserCredits,
@@ -36,16 +38,17 @@ function tidy(n: number) {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
-function formatDay(iso: string | null | undefined) {
+function formatDay(iso: string | null | undefined, prefs?: DatePrefs) {
   if (!iso) return null;
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'long' });
+  return formatDayMonth(date, prefs, 'long');
 }
 
 
 export function UsageBillingPane() {
   const { user } = useAuth();
+  const datePrefs = useDatePrefs();
   const [credits, setCredits] = useState<UserCredits | null>(null);
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
@@ -95,7 +98,7 @@ export function UsageBillingPane() {
   const isFree = tier === 'free';
   const total = credits ? getTotalCredits(credits) : 0;
   const allowance = Math.max(PLAN_ALLOWANCE[tier] ?? 4, total);
-  const resets = formatDay(credits?.next_reset_date);
+  const resets = formatDay(credits?.next_reset_date, datePrefs);
 
   const spend = useMemo(() => {
     const since = credits?.last_reset_date ? new Date(credits.last_reset_date).getTime() : 0;

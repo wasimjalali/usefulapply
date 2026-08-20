@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, ArrowUpRight, Briefcase, Check, Loader2, SlidersHorizontal } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDatePrefs } from '@/hooks/useDatePrefs';
 import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { useCreditsBalance } from '@/hooks/useCreditsBalance';
@@ -29,6 +30,7 @@ interface FeedCanvasProps {
 export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
   const router = useRouter();
   const { profile } = useAuth();
+  const datePrefs = useDatePrefs();
   const { credits } = useCreditsBalance();
   const overview = useFeedStore((state) => state.overview);
   const status = useFeedStore((state) => state.status);
@@ -170,7 +172,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         ? `Your top ${jobs.length} today`
         : `${todayCount} new ${plural(todayCount, 'role', 'roles')} today`)
       : `${jobs.length} ${plural(jobs.length, 'role', 'roles')}`;
-  const rankedFor = buildRankedForLine(overview);
+  const rankedFor = buildRankedForLine(overview, datePrefs);
   const hasMore = !showingSaved
     && overview !== null
     && (overview.jobs.length + extraJobs.length) < (overview.jobsTotalCount ?? 0);
