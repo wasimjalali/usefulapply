@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { callModel } from '@/lib/models';
+import { callWorkersAI } from '@/lib/models/workers-ai';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
@@ -160,15 +160,25 @@ export async function POST(req: NextRequest) {
       content: message,
     });
 
-    // Use Claude for chat — screening mode gets higher token budget
+    // gpt-oss-120b on Workers AI. Budgets are several times the expected reply
+    // because the reasoning pass spends part of max_tokens before the answer;
+    // an exhausted budget throws and surfaces as a chat failure.
     let response;
     try {
-      response = await callModel({
-        task: 'general_chat',
+      response = await callWorkersAI({
         prompt: message,
         systemPrompt,
         conversationHistory,
-        ...(isScreeningMode && { maxTokens: 2000, temperature: 0.4 }),
+        generationContext: {
+          requestExecutionId: crypto.randomUUID(),
+          userId: user.id,
+          route: '/api/chat',
+          feature: 'chat',
+          operation: isScreeningMode ? 'screening_chat' : 'general_chat',
+        },
+        ...(isScreeningMode
+          ? { maxTokens: 8000, temperature: 0.4 }
+          : { maxTokens: 4000, temperature: 0.7 }),
       });
     } catch (modelError) {
       // The turn was claimed before the call, so a failure here has to hand it

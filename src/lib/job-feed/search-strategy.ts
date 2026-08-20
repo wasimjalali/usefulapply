@@ -12,7 +12,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { callAnthropic } from '@/lib/models/anthropic';
+import { callWorkersAI } from '@/lib/models/workers-ai';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import type { JobFeedSettings } from '@/lib/supabase/types';
@@ -20,7 +20,8 @@ import type { JobFeedSettings } from '@/lib/supabase/types';
 export const SEARCH_STRATEGY_SCHEMA_VERSION = 1 as const;
 
 const STRATEGY_TEMPERATURE = 0.4;
-const STRATEGY_MAX_TOKENS = 2000;
+// gpt-oss spends part of this budget reasoning before the JSON.
+const STRATEGY_MAX_TOKENS = 5000;
 
 export type SearchQueryType = 'short_tail' | 'long_tail' | 'localized';
 export type SearchExpectedRecall = 'high' | 'medium' | 'low';
@@ -165,16 +166,6 @@ Return ONLY valid JSON matching this shape:
 7. No em-dashes anywhere.
 `;
 
-export function buildSearchStrategySystemBlocks(): Array<{ type: 'text'; text: string; cache_control: { type: 'ephemeral' } }> {
-  return [
-    {
-      type: 'text',
-      text: SYSTEM_TEXT,
-      cache_control: { type: 'ephemeral' as const },
-    },
-  ];
-}
-
 export interface GenerateSearchStrategyResult {
   strategy: SearchStrategy;
   modelProvider: string;
@@ -192,9 +183,9 @@ export async function generateSearchStrategy(params: {
   const startTime = Date.now();
   const userPrompt = buildStrategyUserPrompt(params.profile, params.settings);
 
-  const response = await callAnthropic({
+  const response = await callWorkersAI({
     prompt: userPrompt,
-    systemBlocks: buildSearchStrategySystemBlocks(),
+    systemPrompt: SYSTEM_TEXT,
     temperature: STRATEGY_TEMPERATURE,
     maxTokens: STRATEGY_MAX_TOKENS,
     jsonMode: true,

@@ -11,7 +11,7 @@
  * guarantees in user-facing artifacts.
  */
 
-import { callAnthropic } from '@/lib/models/anthropic';
+import { callWorkersAI } from '@/lib/models/workers-ai';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import type { StructuredCV } from '@/lib/types/cv-schema';
 import {
@@ -21,7 +21,8 @@ import {
 } from '@/lib/job-feed/career-profile';
 
 const SYNTHESIS_TEMPERATURE = 0.4;
-const SYNTHESIS_MAX_TOKENS = 2500;
+// gpt-oss spends part of this budget reasoning before the JSON.
+const SYNTHESIS_MAX_TOKENS = 6000;
 
 const SYSTEM_TEXT = `# Role
 You are a career profile synthesizer for an AI job-search assistant. You read a candidate's structured CV and produce a concise, structured semantic profile. Downstream systems will use the profile to (1) generate effective job-search keywords, (2) localize search queries per market, and (3) rank candidate jobs against this person.
@@ -115,16 +116,6 @@ Return ONLY a single valid JSON object matching the schema below. No markdown, n
 7. targetDirection.pivot is null unless there's real pivot evidence; aspirationalTitles is empty when the candidate is staying on their current track.
 `;
 
-export function buildCareerProfileSystemBlocks(): Array<{ type: 'text'; text: string; cache_control: { type: 'ephemeral' } }> {
-  return [
-    {
-      type: 'text',
-      text: SYSTEM_TEXT,
-      cache_control: { type: 'ephemeral' as const },
-    },
-  ];
-}
-
 export interface GenerateCareerProfileResult {
   profile: CareerProfile;
   modelProvider: string;
@@ -141,9 +132,9 @@ export async function generateCareerProfile(
   const startTime = Date.now();
   const userPrompt = buildSynthesisUserPrompt(cv);
 
-  const response = await callAnthropic({
+  const response = await callWorkersAI({
     prompt: userPrompt,
-    systemBlocks: buildCareerProfileSystemBlocks(),
+    systemPrompt: SYSTEM_TEXT,
     temperature: SYNTHESIS_TEMPERATURE,
     maxTokens: SYNTHESIS_MAX_TOKENS,
     jsonMode: true,

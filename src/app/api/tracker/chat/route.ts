@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { callModel } from '@/lib/models';
+import { callWorkersAI } from '@/lib/models/workers-ai';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
 import { listTrackerOverview } from '@/db/repos/sessions';
@@ -178,12 +178,20 @@ export async function POST(req: NextRequest) {
       .join('\n');
 
     const now = new Date();
-    const response = await callModel({
-      task: 'general_chat',
+    // gpt-oss-120b reasons before answering, so the budget is well above the
+    // small JSON this prompt asks for.
+    const response = await callWorkersAI({
       systemPrompt: SYSTEM_PROMPT,
       temperature: 0.3,
-      maxTokens: 500,
+      maxTokens: 4000,
       jsonMode: true,
+      generationContext: {
+        requestExecutionId: crypto.randomUUID(),
+        userId: user.id,
+        route: '/api/tracker/chat',
+        feature: 'tracker',
+        operation: 'tracker_chat',
+      },
       prompt: `TODAY: ${now.toLocaleString('en-GB', { timeZone, dateStyle: 'full', timeStyle: 'short' })} (times are ${timeZone})
 
 APPLICATIONS:

@@ -6,7 +6,7 @@
 
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
-export type ModelProvider = 'anthropic' | 'bedrock' | 'digitalocean';
+export type ModelProvider = 'anthropic' | 'bedrock' | 'digitalocean' | 'workers-ai';
 
 export type TaskType =
   // Extraction & analysis
