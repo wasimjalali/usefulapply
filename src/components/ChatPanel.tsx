@@ -18,6 +18,7 @@ import { useFeedStore } from '@/store/useFeedStore';
 import { loadFeedOverview, loadSavedFeedJobs } from '@/components/job-feed/feed-actions';
 import { startFeedHandoff } from '@/components/job-feed/feed-handoff';
 import { buildSuggestedPrompts } from './chat/suggested-prompts';
+import ChatGreeting from './chat/ChatGreeting';
 import { openSettings } from '@/store/useSettingsStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { submitMessageFeedback } from '@/lib/supabase';
@@ -1876,7 +1877,9 @@ export function ChatPanel({
               can do. Clicking one sends it as the message, straight to chat,
               so the JD heuristics never read a chip as a job ad. */}
           {showSuggestedPrompts && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col items-center gap-5 px-4 py-10">
+              <ChatGreeting name={user?.name} />
+              <div className="flex flex-wrap justify-center gap-2">
               {suggestedPrompts.map((suggestion) => (
                 <button
                   key={suggestion}
@@ -1892,6 +1895,7 @@ export function ChatPanel({
                   {suggestion}
                 </button>
               ))}
+              </div>
             </div>
           )}
 

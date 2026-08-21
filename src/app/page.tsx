@@ -301,13 +301,13 @@ export default function Home() {
         </section>
 
         {/* Volume band. */}
-        <section className="bg-navy-700 px-4 py-16 sm:px-6 lg:px-8">
+        <section className="bg-cream-200 px-4 py-16 sm:px-6 lg:px-8">
           <ScrollReveal>
             <div className="mx-auto max-w-3xl text-center">
-              <h2 className="text-[32px] font-semibold leading-[1.15] text-white md:text-[40px]">
+              <h2 className="text-[32px] font-semibold leading-[1.15] text-navy-800 md:text-[40px]">
                 Everyone&apos;s applying more. It&apos;s working less.
               </h2>
-              <p className="mt-5 text-[17px] leading-relaxed text-navy-100">
+              <p className="mt-5 text-[17px] leading-relaxed text-charcoal">
                 AI flooded recruiters with lookalike applications. Filters tightened, good people got buried.
                 Useful Apply is the opposite of a bot. One job, one fit check, one application worth your name.
               </p>

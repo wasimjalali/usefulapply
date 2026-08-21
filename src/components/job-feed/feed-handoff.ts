@@ -76,6 +76,6 @@ export async function startFeedHandoff(
 /** "**Product Manager, B2B SaaS** · Avetta" plus where it came from. */
 export function buildHandoffHeadline(job: JobFeedFeedItem): string {
   const line = escapeMarkdown(buildJobHandoffLine(job));
-  const source = line ? `From today's feed · ${line}` : "From today's feed";
+  const source = line ? `From the job board · ${line}` : "From the job board";
   return `**${escapeMarkdown(job.title)}** · ${escapeMarkdown(job.company)}\n\n${source}`;
 }

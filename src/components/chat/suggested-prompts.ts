@@ -22,8 +22,8 @@ export interface SuggestedPromptState {
 const PROMPTS = {
   howItWorks: 'How does Useful Apply work?',
   today: 'What should I do today?',
-  feed: "Anything strong in today's feed?",
-  showFeed: "Show me today's job feed",
+  feed: "Anything strong on the job board today?",
+  showFeed: "Show me the job board",
   followUps: 'Which follow-ups are due?',
   interviews: 'What interviews do I have this week?',
 } as const;

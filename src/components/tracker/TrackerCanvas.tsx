@@ -223,7 +223,7 @@ export function TrackerCanvas() {
                 className="mt-4 inline-flex h-10 items-center gap-2 rounded-full bg-gold-400 px-5 text-sm font-semibold text-white hover:bg-gold-500 cursor-pointer"
               >
                 <Plus className="h-4 w-4" />
-                New application
+                New Application
               </button>
             )}
           </div>

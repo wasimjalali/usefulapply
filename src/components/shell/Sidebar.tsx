@@ -168,7 +168,7 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
           className="flex h-10 items-center gap-2 rounded-lg border border-cream-200 bg-cream-50 px-2.5 text-[13px] font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white"
         >
           <Plus className="h-3.5 w-3.5" strokeWidth={2} />
-          New application
+          New Application
         </button>
 
         <button
@@ -188,7 +188,7 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
             jobFeedBadge.acknowledge();
           }}
           aria-current={activeTab === 'jobs' ? 'page' : undefined}
-          aria-label={`Today's feed. ${feedLabel}`}
+          aria-label={`Job Board. ${feedLabel}`}
           title={feedLabel}
           className={`flex h-10 items-center gap-2 rounded-lg px-2.5 text-[13px] font-medium transition-colors duration-200 ${
             activeTab === 'jobs'
@@ -197,7 +197,7 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
           }`}
         >
           <Briefcase className="h-3.5 w-3.5 text-warm-gray" />
-          <span className="min-w-0 flex-1 truncate text-left">Today&apos;s feed</span>
+          <span className="min-w-0 flex-1 truncate text-left">Job Board</span>
           {feedCount > 0 && (
             <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-gold-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
               {feedCount}
@@ -216,7 +216,7 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
           }`}
         >
           <ClipboardList className="h-3.5 w-3.5 text-warm-gray" />
-          Tracker table
+          Application Tracker
         </button>
       </nav>
 

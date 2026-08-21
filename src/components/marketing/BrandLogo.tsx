@@ -95,7 +95,7 @@ function WordmarkPageU({ theme }: { theme: 'light' | 'dark' }) {
       viewBox={PAGE_VIEWBOX}
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
-      style={{ height: '0.74em', width: 'auto', display: 'inline-block', verticalAlign: 'baseline' }}
+      style={{ height: '1.02em', width: 'auto', display: 'inline-block', verticalAlign: '-0.08em' }}
     >
       <PageU theme={theme} />
     </svg>
@@ -112,7 +112,7 @@ export function BrandWordmark({
 }: Omit<LogoProps, 'variant'>) {
   const dims = SIZES[size];
   const rest = theme === 'light' ? '#0C1929' : '#FFFFFF';
-  const apply = theme === 'light' ? '#C4932E' : '#FFFFFF';
+  const apply = theme === 'light' ? '#C4932E' : '#D4A853';
   return (
     <span
       className={`flex w-max items-center ${className}`}

@@ -7,6 +7,7 @@ import { BrandIcon } from '@/components/BrandLogo';
 import { MarkdownText } from '@/components/MarkdownText';
 import { NamedStages, type NamedStage } from '@/components/shell/NamedStages';
 import { useAuth } from '@/contexts/AuthContext';
+import { withGreeting } from '@/components/chat/ChatGreeting';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
 import { openSettings } from '@/store/useSettingsStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -256,12 +257,16 @@ export function FeedConversation() {
     // picked is gone from every message, derived or not.
     const spent = usedChips.key === feedKey ? usedChips.ids : [];
     const items = [...openingMessages, ...(thread.key === feedKey ? thread.items : [])];
+    // The first message of the day greets the user by name and time of day.
+    if (items.length > 0) {
+      items[0] = { ...items[0], content: withGreeting(items[0].content, user?.name) };
+    }
     return items.map((item) => (
       item.chips?.some((chip) => spent.includes(chip.id))
         ? { ...item, chips: item.chips.filter((chip) => !spent.includes(chip.id)) }
         : item
     ));
-  }, [feedKey, openingMessages, thread, usedChips]);
+  }, [feedKey, openingMessages, thread, usedChips, user?.name]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -330,7 +335,7 @@ export function FeedConversation() {
       await loadFeedOverview({ quiet: true });
       say({
         role: 'assistant',
-        content: "Today's feed is already built. You can run it again tomorrow.",
+        content: "Today's board is already built. You can run it again tomorrow.",
       });
       return;
     }
@@ -641,7 +646,7 @@ export function FeedConversation() {
     <section className="flex h-full w-full min-w-0 flex-col border-r border-cream-200 bg-cream-50">
       <header className="flex flex-shrink-0 items-center gap-3 border-b border-cream-200 px-5 py-3.5">
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-base font-semibold text-navy-800">Today&apos;s feed</h2>
+          <h2 className="truncate text-base font-semibold text-navy-800">Job Board</h2>
           <p className="text-xs text-warm-gray">{headerSubtitle}</p>
         </div>
       </header>
@@ -873,7 +878,7 @@ function buildOpening(params: {
           ? "I searched but nothing came back strong enough to show you. Tell me what to loosen and the next run picks it up. Your countries, work mode and salary floor are all fair game."
           : 'I searched but nothing came back strong enough to show you.',
         canRunToday
-          ? [{ id: 'build-today', label: "Build today's feed", variant: 'primary' }]
+          ? [{ id: 'build-today', label: "Build today's board", variant: 'primary' }]
           : undefined,
       )];
 
@@ -980,7 +985,7 @@ function buildOpening(params: {
       const lead = strongTop[0] ?? allJobs[0];
       const chips: FeedChip[] = [];
       if (canRunToday) {
-        chips.push({ id: 'build-today', label: "Build today's feed", variant: 'primary' });
+        chips.push({ id: 'build-today', label: "Build today's board", variant: 'primary' });
       }
       if (lead) chips.push({ id: `why:${lead.id}`, label: `Why ${lead.company} first?`, variant: 'secondary' });
       if (canSteer) {
