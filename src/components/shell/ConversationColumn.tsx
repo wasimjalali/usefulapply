@@ -66,7 +66,12 @@ export function ConversationColumn({ onTabChange }: ConversationColumnProps) {
   return (
     <div
       className={`relative flex h-full min-h-0 ${
-        canvasCollapsed ? 'min-w-0 flex-1' : 'w-[520px] flex-shrink-0'
+        // A fixed 520px starved the CV on a 13" screen (it rendered at ~62%)
+        // and left a thousand pixels of dead canvas on a 5K. Scaling with the
+        // viewport between a readable floor and a cap fixes both ends: the
+        // canvas gets the room it needs when space is tight and stops
+        // hoarding it when there is plenty.
+        canvasCollapsed ? 'min-w-0 flex-1' : 'w-[clamp(400px,30vw,700px)] flex-shrink-0'
       }`}
     >
       {/* Hidden rather than unmounted, like the application conversation below:
