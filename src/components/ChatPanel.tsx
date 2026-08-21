@@ -14,6 +14,9 @@ import { isApplicationSession, useSessionStore } from '@/store/useSessionStore';
 import { useUIStore, type KitTab } from '@/store/useUIStore';
 import { useTrackerStore } from '@/store/useTrackerStore';
 import { useJobFeedBadge } from '@/hooks/useJobFeedBadge';
+import { useFeedStore } from '@/store/useFeedStore';
+import { loadFeedOverview, loadSavedFeedJobs } from '@/components/job-feed/feed-actions';
+import { startFeedHandoff } from '@/components/job-feed/feed-handoff';
 import { buildSuggestedPrompts } from './chat/suggested-prompts';
 import { openSettings } from '@/store/useSettingsStore';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,6 +45,27 @@ import { usePostHog } from 'posthog-js/react';
 import { NamedStages } from '@/components/shell/NamedStages';
 import { REGEN_META, detectRegenTarget, regenerateDocument, type RegenTarget } from '@/lib/regenerate-client';
 import { looksLikeScreeningQuestion, parseScreeningAnswers, SCREENING_TURN_CAP } from '@/lib/screening-answers';
+
+/**
+ * The feed item behind a job_id the chat proposed an application for. Reads
+ * today's list, anything loaded past the first page and the Saved tab, and
+ * refetches once before giving up: the proposal may be older than the feed
+ * currently in the store.
+ */
+async function findFeedJob(jobId: string) {
+  const fromStore = () => {
+    const state = useFeedStore.getState();
+    return [...(state.overview?.jobs ?? []), ...state.extraJobs, ...(state.savedJobs ?? [])]
+      .find((item) => item.id === jobId) ?? null;
+  };
+  const first = fromStore();
+  if (first) return first;
+  await loadFeedOverview({ quiet: true });
+  const second = fromStore();
+  if (second) return second;
+  await loadSavedFeedJobs();
+  return fromStore();
+}
 
 // Module-level dedupe set for Job Feed autostart. Kept as a safety net in
 // case the dashboard ever navigates between two sessions fast enough that
@@ -948,6 +972,12 @@ export function ChatPanel({
     setInputValue('');
   };
 
+  // Feed applications proposed in the chat. In-flight stops a double click
+  // from creating two sessions; done makes a click on an old chip say so
+  // instead of quietly doing nothing.
+  const feedApplyInFlight = useRef<Set<string>>(new Set());
+  const feedApplyDone = useRef<Set<string>>(new Set());
+
   const handleAction = async (action: string) => {
     // Delete proposed by the chat's delete_application tool. The click is the
     // confirming second request; the store's remove path re-checks ownership
@@ -968,6 +998,56 @@ export function ChatPanel({
         addChatMessage({ role: 'assistant', content: 'Deleted. It\'s gone from your tracker.' });
       } catch {
         addChatMessage({ role: 'assistant', content: 'That delete did not go through. Try again from the tracker.' });
+      }
+      return;
+    }
+    // An application for a feed role, proposed by propose_feed_application. The
+    // click is the confirming request and it runs the same handoff a feed card
+    // runs, so credits are reserved by the code that always reserves them.
+    if (action.startsWith('confirm-feed-apply:')) {
+      // Split on the first colon only: a job id is opaque and may carry one.
+      const rest = action.slice('confirm-feed-apply:'.length);
+      const split = rest.indexOf(':');
+      const mode = split > 0 ? rest.slice(0, split) : '';
+      const jobId = split > 0 ? rest.slice(split + 1) : '';
+      if ((mode !== 'analyze' && mode !== 'apply') || !jobId || jobId.length > 100) return;
+      if (isAgentWorking || isGenerating) return;
+      // The chip lives on in the message history, so a second click has to be
+      // a no-op, not a second application. The busy flags only rise after the
+      // handoff returns, which is far too late to stop a double click.
+      if (feedApplyInFlight.current.has(jobId)) return;
+      if (feedApplyDone.current.has(jobId)) {
+        addChatMessage({ role: 'assistant', content: 'That one\'s already open in your application kit.' });
+        return;
+      }
+      feedApplyInFlight.current.add(jobId);
+      try {
+        const job = await findFeedJob(jobId);
+        if (!job) {
+          addChatMessage({
+            role: 'assistant',
+            content: 'That role isn\'t in your feed any more. Open the feed and pick it from there.',
+          });
+          return;
+        }
+        // The role can come from today's list or from Saved, so the run it
+        // belongs to is not today's by default. Null lets the server resolve it.
+        const result = await startFeedHandoff(job, mode, { hasCV: Boolean(currentCV), runId: null });
+        if (!result.ok) {
+          addChatMessage({ role: 'assistant', content: result.error });
+          return;
+        }
+        feedApplyDone.current.add(jobId);
+        if (!result.autostarted) {
+          addChatMessage({
+            role: 'assistant',
+            content: 'That one\'s already open in your application kit. Check the panels on the right.',
+          });
+          return;
+        }
+        posthog?.capture('job_feed_item_applied', { job_id: job.id, company: job.company, mode, source: 'chat' });
+      } finally {
+        feedApplyInFlight.current.delete(jobId);
       }
       return;
     }

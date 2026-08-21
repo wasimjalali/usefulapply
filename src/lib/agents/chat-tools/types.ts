@@ -16,6 +16,9 @@ export type ExecutedEffect =
   | { type: 'tracker_updated'; sessionId: string; status: string }
   | { type: 'set_cv_template'; templateId: string }
   | { type: 'propose_application' }
+  | { type: 'feed_settings_updated' }
+  | { type: 'run_feed' }
+  | { type: 'feed_item_updated'; jobId: string; action: 'saved' | 'dismissed' }
   | { type: 'refresh_credits' };
 
 /** A quick-action chip rendered under the reply (same shape the chat already uses). */

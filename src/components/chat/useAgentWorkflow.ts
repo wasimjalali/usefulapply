@@ -24,6 +24,8 @@ import { useToast } from '@/components/ui/Toast';
 import { useTrackerStore } from '@/store/useTrackerStore';
 import { openSettings } from '@/store/useSettingsStore';
 import { writeDefaultTemplate } from '@/lib/cv-templates/default-template';
+import { loadFeedOverview, loadSavedFeedJobs } from '@/components/job-feed/feed-actions';
+import { useFeedStore } from '@/store/useFeedStore';
 import type { JobFeedApplicationGeneration } from '@/lib/supabase/types';
 import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
 
@@ -307,6 +309,25 @@ export function useAgentWorkflow(options?: {
         if (user) void useTrackerStore.getState().load(user.id);
       } else if (effect.type === 'refresh_credits') {
         triggerCreditUpdate();
+      } else if (effect.type === 'feed_settings_updated') {
+        // The settings panel and the feed both read the store, so one quiet
+        // reload is enough. Nothing on screen is replaced mid-read.
+        void loadFeedOverview({ quiet: true });
+      } else if (effect.type === 'run_feed') {
+        // The feed conversation owns the run and its progress UI. Raise the
+        // flag, then bring the user to the column that shows it.
+        useUIStore.getState().setPendingFeedRunAt(Date.now());
+        setActiveTab('jobs');
+      } else if (effect.type === 'feed_item_updated') {
+        // A dismiss drops the role from the list and a save changes which tab
+        // it belongs to. The Saved list is refetched rather than just cleared:
+        // clearing it while the user is looking at the Saved tab would blank
+        // the column, since nothing refetches on that tab except on entry.
+        void loadFeedOverview({ quiet: true });
+        if (useFeedStore.getState().savedJobs !== null) {
+          void loadSavedFeedJobs();
+        }
+        notifyJobFeedBadgeRefresh();
       }
     }
   };

@@ -87,6 +87,12 @@ interface UIState {
 
   // Sidebar "New application" signal. ChatPanel owns workflow-local reset.
   newApplicationRequest: number;
+
+  // "Refresh my feed" asked for in the chat. The feed conversation owns the
+  // run and its progress UI, so the chat only stamps the time; the feed
+  // consumes it and clears it. A timestamp rather than a flag, so a request
+  // nothing picked up expires instead of firing an unasked-for run later.
+  pendingFeedRunAt: number | null;
 }
 
 interface UIActions {
@@ -118,6 +124,9 @@ interface UIActions {
 
   requestNewApplication: () => void;
 
+  // Chat-requested feed run (see pendingFeedRunAt)
+  setPendingFeedRunAt: (value: number | null) => void;
+
   // Reset
   resetUI: () => void;
 }
@@ -142,6 +151,7 @@ const initialState: UIState = {
   pendingApplicationAction: null,
   jdFocusRequest: 0,
   newApplicationRequest: 0,
+  pendingFeedRunAt: null,
 };
 
 /**
@@ -177,6 +187,9 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
 
   // Panel action signal
   setPendingApplicationAction: (value) => set({ pendingApplicationAction: value }),
+
+  // Chat-requested feed run
+  setPendingFeedRunAt: (value) => set({ pendingFeedRunAt: value }),
 
   // Focus signal
   requestJdFocus: () => set((state) => ({ jdFocusRequest: state.jdFocusRequest + 1 })),

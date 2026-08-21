@@ -22,7 +22,7 @@ export type FeedHandoffResult =
 export async function startFeedHandoff(
   job: JobFeedFeedItem,
   mode: FeedHandoffMode,
-  options: { hasCV: boolean },
+  options: { hasCV: boolean; runId?: string | null },
 ): Promise<FeedHandoffResult> {
   if (!options.hasCV) {
     return {
@@ -33,8 +33,12 @@ export async function startFeedHandoff(
 
   // A role checked from Saved may have been ranked days ago, so today's run id
   // would mis-attribute it. Null lets the server resolve the job's own run.
+  // Which tab is open only says that for a click on a card, so a caller that
+  // knows better (the chat, where the role can come from anywhere) passes it.
   const feedState = useFeedStore.getState();
-  const runId = feedState.listTab === 'saved' ? null : (feedState.overview?.feedRun?.id ?? null);
+  const runId = options.runId !== undefined
+    ? options.runId
+    : (feedState.listTab === 'saved' ? null : (feedState.overview?.feedRun?.id ?? null));
   const created = await createFeedApplication(job, runId, mode);
   if (!created.ok) return created;
 

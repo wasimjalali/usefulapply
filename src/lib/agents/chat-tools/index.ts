@@ -9,12 +9,13 @@ import { READ_TOOLS } from './read-tools';
 import { APP_TOOLS } from './app-tools';
 import { INTENT_TOOLS } from './intent';
 import { WRITE_TOOLS } from './write-tools';
+import { FEED_TOOLS } from './feed-tools';
 import { NAVIGATE_TOOLS } from './navigate';
 import type { ChatTool, ChatToolContext, ChatToolResult } from './types';
 
 export type { ChatToolContext, ChatToolResult, ExecutedEffect, ChatActionChip, NavigateTarget } from './types';
 
-export const CHAT_TOOLS: ChatTool[] = [...READ_TOOLS, ...APP_TOOLS, ...INTENT_TOOLS, ...NAVIGATE_TOOLS, ...WRITE_TOOLS];
+export const CHAT_TOOLS: ChatTool[] = [...READ_TOOLS, ...APP_TOOLS, ...INTENT_TOOLS, ...NAVIGATE_TOOLS, ...WRITE_TOOLS, ...FEED_TOOLS];
 
 const TOOLS_BY_NAME = new Map(CHAT_TOOLS.map((tool) => [tool.name, tool]));
 

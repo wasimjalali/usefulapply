@@ -170,6 +170,9 @@ async function feedSnapshot(userId: string, limit: number) {
   return {
     run_completed_at: run.completed_at ?? null,
     items: items.slice(0, limit).map((item) => ({
+      // The stable id the feed write tools address a role by. An ordinal the
+      // model inferred would drift the moment the list changes.
+      job_id: item.id,
       title: wrapped(item.title),
       company: wrapped(item.company),
       location: item.location ? wrapped(item.location) : null,
@@ -177,6 +180,8 @@ async function feedSnapshot(userId: string, limit: number) {
       salary: item.salaryText ? wrapped(item.salaryText) : null,
       fit: item.fitLabel,
       why: item.matchReason ? `<<${sanitizeUntrustedText(item.matchReason, 200)}>>` : null,
+      saved: Boolean(item.feedback.savedAt),
+      dismissed: Boolean(item.feedback.dismissedAt),
     })),
   };
 }
@@ -184,7 +189,7 @@ async function feedSnapshot(userId: string, limit: number) {
 const getFeedDigest: ChatTool = {
   name: 'get_feed_digest',
   description:
-    'The latest job feed results: the strongest open matches with fit labels and why they match. Use when the user asks what is in their feed or whether anything strong came in.',
+    'The latest job feed results: the strongest open matches with fit labels, why they match and a job_id for each. Use when the user asks what is in their feed or whether anything strong came in, and always before saving, dismissing or applying to a feed role.',
   parameters: { type: 'object', properties: {}, additionalProperties: false },
   handler: async (_args, ctx) => {
     const digest = await feedSnapshot(ctx.userId, 8);

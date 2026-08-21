@@ -338,6 +338,25 @@ export function FeedConversation() {
     await finishBuild();
   }, [finishBuild, posthog, say, startBuild]);
 
+  // "Refresh my feed" asked for in the main chat. The run and its progress UI
+  // live here, so the chat only stamps the time and the shell brings the user
+  // to this column. The flag is read and cleared through getState, so a second
+  // effect invocation over the same closure cannot start a second run, and a
+  // stale request nothing picked up expires rather than firing later.
+  const pendingFeedRunAt = useUIStore((state) => state.pendingFeedRunAt);
+  useEffect(() => {
+    if (!pendingFeedRunAt) return;
+    const live = useUIStore.getState().pendingFeedRunAt;
+    if (!live) return;
+    useUIStore.getState().setPendingFeedRunAt(null);
+    if (Date.now() - live > 60_000) return;
+    // A run already drawing its progress here owns the column. Starting a
+    // second one would tear that progress down and report it as finished.
+    const feed = useFeedStore.getState();
+    if (feed.isRunning || feed.build) return;
+    void triggerRun(false);
+  }, [pendingFeedRunAt, triggerRun]);
+
   const completeSetup = useCallback(async (draft: JobFeedSettingsInput) => {
     startBuild(true);
     const saved = await saveFeedSettings(draft, { firstTime: true });

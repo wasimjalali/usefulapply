@@ -31,6 +31,11 @@ const GENERIC_TOKENS = new Set([
   'you', 'your', 'our', 'their', 'one', 'two', 'new', 'all', 'any', 'not',
   'job', 'jobs', 'role', 'roles', 'position', 'application', 'applications',
   'company', 'group', 'team', 'inc', 'llc', 'ltd', 'gmbh', 'co', 'corp',
+  // App vocabulary. A feed item's company is chosen by whoever posted the ad,
+  // so a poster naming itself "Remote Talent" would otherwise match an
+  // ordinary "show me the remote ones" and open the write gate on itself.
+  'feed', 'remote', 'hybrid', 'onsite', 'today', 'search', 'hiring',
+  'apply', 'save', 'saved', 'work', 'works', 'career', 'careers',
 ]);
 
 /**
