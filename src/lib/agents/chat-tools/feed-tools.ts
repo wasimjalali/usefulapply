@@ -594,13 +594,26 @@ const runFeed: ChatTool = {
 };
 
 /**
- * "the second one", "the top one", "that one", "#3". A position in the list the
- * model read this turn, rather than a name.
+ * "save the second one", "dismiss that one". A position in the list the model
+ * read this turn, rather than a name.
+ *
+ * Both halves are required, and both are read from the user's own words. A
+ * position word alone is far too common ("what's the top match?", "the first
+ * thing I need is...") and would otherwise open the write gate on any item the
+ * model picked, which is exactly what an instruction buried in a job ad wants.
+ * Pairing the position with the verb for the action being taken means the user
+ * has to have asked for that action, on a place in the list, themselves.
  */
-const POSITION_RE = /\b(first|second|third|fourth|fifth|last|top|next|previous|that one|this one|the one)\b|#\s*\d|\b\d(?:st|nd|rd|th)\b/i;
+const POSITION_RE = /\b(first|second|third|fourth|fifth|sixth|seventh|eighth|last)\b|\b(top|that|this) one\b|#\s*\d\b|\b\d(?:st|nd|rd|th)\b/i;
 
-function pointsAtPosition(message: string): boolean {
-  return POSITION_RE.test(message);
+const ACTION_WORDS = {
+  saved: /\b(save|saved|saving|bookmark|bookmarked|shortlist|keep)\b/i,
+  dismissed: /\b(dismiss|dismissed|hide|hidden|drop|remove|bin|discard|reject)\b/i,
+  apply: /\b(apply|applying|application|kit|fit|shortlist)\b/i,
+} as const;
+
+function pointsAtPosition(message: string, verbs: RegExp): boolean {
+  return POSITION_RE.test(message) && verbs.test(message);
 }
 
 /**
@@ -611,6 +624,7 @@ function pointsAtPosition(message: string): boolean {
 async function findNamedFeedJob(
   ctx: ChatToolContext,
   jobId: unknown,
+  verbs: RegExp,
 ): Promise<
   | { ok: true; job: { id: string; title: string; company: string }; runId: string | null }
   | { ok: false; error: string }
@@ -634,7 +648,7 @@ async function findNamedFeedJob(
   // reason: the message is the user's own words, pasted text is already
   // refused above, and the reply says which role actually moved.
   const named = userNamed({ company: authorized.job.company, job_title: authorized.job.title }, ctx.userMessage);
-  if (!named && !pointsAtPosition(ctx.userMessage)) {
+  if (!named && !pointsAtPosition(ctx.userMessage, verbs)) {
     return {
       ok: false,
       error: 'The user did not name this role in their message. Ask them to name the company or the title first.',
@@ -668,7 +682,7 @@ async function recordFeedAction(
     };
   }
 
-  const found = await findNamedFeedJob(ctx, jobId);
+  const found = await findNamedFeedJob(ctx, jobId, ACTION_WORDS[action]);
   if (!found.ok) return { data: { error: found.error } };
 
   // Same per-user ceiling /api/job-feed/feedback enforces: the tool loop can
@@ -756,7 +770,7 @@ const proposeFeedApplication: ChatTool = {
       return { data: { error: 'The job feed is not available on this account. Point the user at billing.' } };
     }
     const mode = args.mode === 'apply' ? 'apply' : 'analyze';
-    const found = await findNamedFeedJob(ctx, args.job_id);
+    const found = await findNamedFeedJob(ctx, args.job_id, ACTION_WORDS.apply);
     if (!found.ok) return { data: { error: found.error } };
 
     // The handoff refuses without a CV, so say it before the button rather
