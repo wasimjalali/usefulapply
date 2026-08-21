@@ -267,9 +267,23 @@ export function ChatPanel({
     }
   }, [isNearBottom]);
 
+  // Two thresholds, not one. With a single cut-off any pixel of height
+  // change near it flips the pill on, and an on/off flip that moves the
+  // layout flips it straight back: the pill visibly vibrates while you
+  // scroll. The dead band means a small change can never cross both.
+  const PILL_SHOW_DISTANCE = 120;
+  const PILL_HIDE_DISTANCE = 40;
+
+  const updateScrollButton = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const distance = container.scrollHeight - container.scrollTop - container.clientHeight;
+    setShowScrollButton((shown) => (shown ? distance > PILL_HIDE_DISTANCE : distance > PILL_SHOW_DISTANCE));
+  }, []);
+
   // Track scroll position to show/hide scroll-to-bottom button
   const handleScroll = () => {
-    setShowScrollButton(!isNearBottom());
+    updateScrollButton();
   };
 
   // Scroll events alone cannot keep the button honest: the panel stays
@@ -281,12 +295,11 @@ export function ChatPanel({
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
-    const update = () => setShowScrollButton(!isNearBottom());
-    update();
-    const ro = new ResizeObserver(update);
+    updateScrollButton();
+    const ro = new ResizeObserver(updateScrollButton);
     ro.observe(container);
     return () => ro.disconnect();
-  }, [isNearBottom, currentSession?.id]);
+  }, [updateScrollButton, currentSession?.id]);
 
   // Force-scroll to bottom when new messages arrive (user sent or AI responded)
   const prevMessageCount = useRef(0);
@@ -1789,9 +1802,13 @@ export function ChatPanel({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Scroll to bottom button */}
+        {/* Scroll to bottom button. The wrapper is zero height and the pill
+            floats out of it, so showing or hiding it never changes the
+            scroller's height. In the flow it did, which fired the
+            ResizeObserver above and fought its own visibility. */}
         {showScrollButton && (
-          <div className="flex justify-center -mt-12 relative z-10 pointer-events-none">
+          <div className="relative z-10 h-0 overflow-visible">
+            <div className="pointer-events-none absolute inset-x-0 -top-11 flex justify-center">
             <button
               onClick={() => scrollToBottom(true)}
               className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white text-navy-600 rounded-full shadow-lg border border-cream-200 hover:bg-cream-50 hover:shadow-lg transition-all cursor-pointer"
@@ -1799,6 +1816,7 @@ export function ChatPanel({
               <ArrowDown className="w-3 h-3" />
               New messages
             </button>
+            </div>
           </div>
         )}
 

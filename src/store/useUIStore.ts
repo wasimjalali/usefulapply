@@ -52,6 +52,8 @@ interface UIState {
   // CV template shown in the kit. Owned here so Download all can render the
   // same template from any kit tab, not only while CVPanel is mounted.
   cvTemplateId: string;
+  /** Dragged width of the conversation column, or null for its responsive default. */
+  conversationWidth: number | null;
 
   // A regeneration requested from the chat is running. The canvas banner
   // names the stage and the tab the result will land in.
@@ -100,6 +102,7 @@ interface UIActions {
   setConversationCollapsed: (collapsed: boolean) => void;
   setCanvasCollapsed: (collapsed: boolean) => void;
   setCvTemplateId: (id: string) => void;
+  setConversationWidth: (width: number | null) => void;
   setRegenStage: (stage: { title: string; tab: KitTab } | null) => void;
   requestKitDownload: () => void;
   setKitDownloadBusy: (busy: boolean) => void;
@@ -131,6 +134,7 @@ const initialState: UIState = {
   // Seeded with the fallback so server and first client render agree; the shell
   // hydrates it from localStorage on mount (see AppShell).
   cvTemplateId: FALLBACK_TEMPLATE_ID,
+  conversationWidth: null,
   regenStage: null,
   kitDownloadRequest: 0,
   kitDownloadBusy: false,
@@ -163,6 +167,7 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
   setCanvasCollapsed: (collapsed) =>
     set(collapsed ? { canvasCollapsed: true, conversationCollapsed: false } : { canvasCollapsed: false }),
   setCvTemplateId: (id) => set({ cvTemplateId: id }),
+  setConversationWidth: (width) => set({ conversationWidth: width }),
   setRegenStage: (stage) => set({ regenStage: stage }),
   requestKitDownload: () => set((state) => ({ kitDownloadRequest: state.kitDownloadRequest + 1 })),
   setKitDownloadBusy: (busy) => set({ kitDownloadBusy: busy }),

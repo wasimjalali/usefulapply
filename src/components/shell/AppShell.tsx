@@ -3,15 +3,20 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { ConversationColumn } from '@/components/shell/ConversationColumn';
+import { ColumnSash } from '@/components/shell/ColumnSash';
 import { CanvasColumn } from '@/components/shell/CanvasColumn';
 import { KitExportHost } from '@/components/kit/KitExportHost';
 import { CreditsContext, useCreditsBalanceState } from '@/hooks/useCreditsBalance';
 import { useUIStore, type KitTab } from '@/store/useUIStore';
+import { clampConversationWidth, readConversationWidth, writeConversationWidth } from '@/lib/shell/conversation-width';
 
 function CreditsProvider({ children }: { children: ReactNode }) {
   const value = useCreditsBalanceState();
   return <CreditsContext.Provider value={value}>{children}</CreditsContext.Provider>;
 }
+
+/** The sidebar is a fixed column; the sash needs it to know its drag range. */
+const SIDEBAR_WIDTH = 225;
 
 export function AppShell() {
   const isAgentWorking = useUIStore((s) => s.isAgentWorking);
@@ -21,6 +26,30 @@ export function AppShell() {
   const canvasCollapsed = useUIStore((s) => s.canvasCollapsed);
   const setCanvasCollapsed = useUIStore((s) => s.setCanvasCollapsed);
   const [toolbarNode, setToolbarNode] = useState<HTMLDivElement | null>(null);
+  const conversationRef = useRef<HTMLDivElement | null>(null);
+  const setConversationWidth = useUIStore((s) => s.setConversationWidth);
+  const conversationWidth = useUIStore((s) => s.conversationWidth);
+
+  // The store is not persisted, so the dragged width is read back on mount.
+  useEffect(() => {
+    const saved = readConversationWidth();
+    if (saved !== null) setConversationWidth(saved);
+  }, [setConversationWidth]);
+
+  // A width that fitted a wide window can starve the canvas on a narrow one,
+  // so it is re-clamped whenever the window changes.
+  useEffect(() => {
+    if (conversationWidth === null) return;
+    const onResize = () => {
+      const next = clampConversationWidth(conversationWidth, window.innerWidth, SIDEBAR_WIDTH);
+      if (next !== conversationWidth) {
+        setConversationWidth(next);
+        writeConversationWidth(next);
+      }
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [conversationWidth, setConversationWidth]);
 
   // Below this the 224px sidebar and the 520px conversation leave the canvas
   // nothing to draw in, and the tracker table is the widest thing in it. Fold
@@ -49,7 +78,13 @@ export function AppShell() {
       <div className="relative flex h-full w-full min-w-0 min-h-0 bg-cream-100">
         <KitExportHost />
         <Sidebar isWorking={isAgentWorking} />
-        <ConversationColumn onTabChange={handleTabChange} />
+        <ConversationColumn onTabChange={handleTabChange} columnRef={conversationRef} />
+        {!canvasCollapsed && (
+          <ColumnSash
+            getConversationWidth={() => conversationRef.current?.getBoundingClientRect().width ?? 0}
+            sidebarWidth={SIDEBAR_WIDTH}
+          />
+        )}
         <CanvasColumn
           collapsed={canvasCollapsed}
           onToggleCollapsed={() => setCanvasCollapsed(!canvasCollapsed)}

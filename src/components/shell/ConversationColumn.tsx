@@ -9,12 +9,17 @@ import { useUIStore, type KitTab } from '@/store/useUIStore';
 import { deriveApplicationStatus } from '@/components/shell/application-status';
 
 interface ConversationColumnProps {
+  /** Set by the shell so the sash can measure and drag this column. */
+  columnRef?: React.RefObject<HTMLDivElement | null>;
   onTabChange: (tab: KitTab) => void;
 }
 
-export function ConversationColumn({ onTabChange }: ConversationColumnProps) {
+export function ConversationColumn({ onTabChange, columnRef }: ConversationColumnProps) {
   const currentSession = useSessionStore((s) => s.currentSession);
   const isAgentWorking = useUIStore((s) => s.isAgentWorking);
+  // A width the user dragged to wins over the responsive default until they
+  // double-click the sash to hand it back.
+  const draggedWidth = useUIStore((s) => s.conversationWidth);
   const activeTab = useUIStore((s) => s.activeTab);
   const collapsed = useUIStore((s) => s.conversationCollapsed);
   const setCollapsed = useUIStore((s) => s.setConversationCollapsed);
@@ -63,15 +68,23 @@ export function ConversationColumn({ onTabChange }: ConversationColumnProps) {
     );
   }
 
+  const useDraggedWidth = !canvasCollapsed && draggedWidth !== null;
+
   return (
     <div
+      ref={columnRef}
+      style={useDraggedWidth ? { width: `${draggedWidth}px` } : undefined}
       className={`relative flex h-full min-h-0 ${
         // The canvas only ever needs one CV page plus its margins (816 + 128
         // = 944), and the sidebar takes 225. Everything past that is surplus,
         // so the chat takes it instead of leaving it as dead cream either
         // side of the page. calc goes negative on small screens, where the
         // floor takes over and the canvas keeps every pixel it can get.
-        canvasCollapsed ? 'min-w-0 flex-1' : 'w-[clamp(400px,calc(100vw_-_1169px),1000px)] flex-shrink-0'
+        canvasCollapsed
+          ? 'min-w-0 flex-1'
+          : useDraggedWidth
+            ? 'flex-shrink-0'
+            : 'w-[clamp(400px,calc(100vw_-_1169px),1000px)] flex-shrink-0'
       }`}
     >
       {/* Hidden rather than unmounted, like the application conversation below:
