@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { ArrowRight, Check } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
+import { BrandIcon } from '@/components/marketing/BrandLogo';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 
 import { BRAND } from '@/lib/brand';
@@ -311,6 +312,65 @@ export default function Home() {
                 AI flooded recruiters with lookalike applications. Filters tightened, good people got buried.
                 Useful Apply is the opposite of a bot. One job, one fit check, one application worth your name.
               </p>
+            </div>
+          </ScrollReveal>
+        </section>
+
+        {/* Paste from anywhere: boards on the left, the kit on the right. */}
+        <section className="bg-cream-100 px-4 py-16 sm:px-6 lg:px-8">
+          <ScrollReveal>
+            <div className="mx-auto max-w-3xl text-center">
+              <h2 className="text-[32px] font-semibold leading-[1.15] text-navy-800 md:text-[36px]">
+                Bring a job ad from anywhere
+              </h2>
+              <p className="mt-4 text-[17px] leading-relaxed text-warm-gray">
+                See a role on any job board or careers page? Copy the description and paste it into the chat.
+                Useful Apply checks the fit and builds the whole kit for that exact job.
+              </p>
+            </div>
+          </ScrollReveal>
+          <ScrollReveal delay={150}>
+            <div className="mx-auto mt-10 flex max-w-5xl flex-col items-center gap-8 lg:flex-row lg:justify-center lg:gap-10">
+              <div className="grid w-full max-w-md grid-cols-2 gap-3">
+                {[
+                  { name: 'LinkedIn', color: '#0A66C2' },
+                  { name: 'Indeed', color: '#2557A7' },
+                  { name: 'Glassdoor', color: '#0CAA41' },
+                  { name: 'StepStone', color: '#204577' },
+                  { name: 'Monster', color: '#6E46AE' },
+                  { name: 'ZipRecruiter', color: '#1D8649' },
+                ].map((board) => (
+                  <div
+                    key={board.name}
+                    className="flex h-14 items-center justify-center rounded-2xl border border-cream-200 bg-cream-50 shadow-sm"
+                  >
+                    <span className="text-[17px] font-semibold" style={{ color: board.color }}>
+                      {board.name}
+                    </span>
+                  </div>
+                ))}
+                <div className="col-span-2 flex h-10 items-center justify-center rounded-2xl border border-dashed border-cream-300 text-sm text-warm-gray">
+                  and any careers page
+                </div>
+              </div>
+              <div className="flex items-center justify-center lg:flex-col">
+                <ArrowRight className="h-7 w-7 rotate-90 text-gold-500 lg:rotate-0" />
+              </div>
+              <div className="w-full max-w-md rounded-2xl border border-cream-200 bg-cream-50 p-7 shadow-sm">
+                <div className="flex items-center gap-2.5">
+                  <BrandIcon size="sm" theme="light" />
+                  <span className="text-[17px] font-semibold text-navy-800">Useful Apply</span>
+                </div>
+                <ul className="mt-5 flex flex-col gap-2.5">
+                  {['Fit check for that exact role', 'Tailored CV', 'Cover letter', 'Application email', 'Follow-up email'].map((item) => (
+                    <li key={item} className="flex items-center gap-2.5 text-[15px] text-charcoal">
+                      <Check className="h-4 w-4 flex-shrink-0 text-gold-600" strokeWidth={2.5} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-5 text-sm text-warm-gray">Paste the ad, review the kit, send it yourself.</p>
+              </div>
             </div>
           </ScrollReveal>
         </section>

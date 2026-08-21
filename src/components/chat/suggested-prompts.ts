@@ -1,5 +1,5 @@
 /**
- * The three chips the chat empty state offers. They teach what the assistant
+ * The chips the chat empty state offers (up to four). They teach what the assistant
  * can do, so they have to match the state the user is actually in: a new user
  * with no applications should never be asked which follow-ups are due.
  *
@@ -20,10 +20,10 @@ export interface SuggestedPromptState {
 }
 
 const PROMPTS = {
-  howItWorks: 'How does Useful Apply work?',
+  intro: 'What can Useful Apply do for me?',
+  analyze: 'Analyze a job description for me',
+  runFeed: 'Run my job feed for today',
   today: 'What should I do today?',
-  feed: "Anything strong on the job board today?",
-  showFeed: "Show me the job board",
   followUps: 'Which follow-ups are due?',
   interviews: 'What interviews do I have this week?',
 } as const;
@@ -51,19 +51,15 @@ export function buildSuggestedPrompts(
   state: SuggestedPromptState,
   timeZone: string = Intl.DateTimeFormat().resolvedOptions().timeZone,
 ): string[] {
-  if (!state.hasCV) {
-    return [PROMPTS.howItWorks, PROMPTS.showFeed];
-  }
-  if (state.applicationCount === 0) {
-    return [PROMPTS.howItWorks, PROMPTS.today, PROMPTS.feed];
+  // First-time set: an introduction, the paste-a-job path and the feed.
+  if (!state.hasCV || state.applicationCount === 0) {
+    return [PROMPTS.intro, PROMPTS.analyze, PROMPTS.runFeed, PROMPTS.today];
   }
 
-  // Rungs 3 to 5 in order, then rung 6 as the default. An active user always
-  // gets the briefing chip; it just yields to anything more urgent.
+  // Active users: urgent chips first, then the everyday actions.
   const picks: string[] = [];
   if (hasFollowUpDue(state.trackerRows, timeZone)) picks.push(PROMPTS.followUps);
   if (hasUpcomingInterview(state.trackerRows, timeZone)) picks.push(PROMPTS.interviews);
-  if (state.newFeedCount > 0) picks.push(PROMPTS.feed);
-  picks.push(PROMPTS.today);
-  return picks.slice(0, 3);
+  picks.push(PROMPTS.analyze, PROMPTS.runFeed, PROMPTS.today);
+  return picks.slice(0, 4);
 }
