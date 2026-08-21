@@ -771,23 +771,21 @@ export function ChatPanel({
     }
     const meta = REGEN_META[target];
     const balance = credits?.total;
-    const cost = balance !== undefined
-      ? `Rewriting the ${meta.noun} costs ${meta.cost} credits (you have ${balance}).`
-      : `Rewriting the ${meta.noun} costs ${meta.cost} credits.`;
     // Only promise the draft when it can actually be paid for. Below this line
     // the chip swaps to the upgrade path, and a sentence promising the letter
-    // above an Upgrade button reads as a bug.
+    // above an Upgrade button reads as a bug. Stating the shortfall there is
+    // the honest thing to do; the affordable path never mentions credits.
     const affordable = balance === undefined || balance >= meta.cost;
     // With a note, the rewrite follows it. Without one it is a fresh draft.
-    // Either way the writer only uses what the CVs actually say, and the chip
-    // states the cost before anything is charged.
+    // Either way the writer only uses what the CVs actually say, and nothing
+    // is charged until the chip is confirmed.
     addChatMessage({
       role: 'assistant',
       content: !affordable
-        ? cost
+        ? `Rewriting the ${meta.noun} costs ${meta.cost} credits (you have ${balance}).`
         : instruction
-          ? `${cost} I'll write a fresh draft following your note. Anything you ask for that isn't in your CV gets left out.`
-          : `${cost} It's a fresh draft, not an edit of this one.`,
+          ? `I'll write a fresh draft of the ${meta.noun} following your note. Anything you ask for that isn't in your CV gets left out. Nothing changes until you confirm below.`
+          : `I'll write a fresh ${meta.noun}, not an edit of this one. Nothing changes until you confirm below.`,
     });
     setPendingRegen({
       target,
@@ -814,7 +812,7 @@ export function ChatPanel({
     }
     regenInFlightRef.current = true;
     setPendingRegen(null);
-    addChatMessage({ role: 'user', content: `Rewrite it · ${meta.cost} credits` });
+    addChatMessage({ role: 'user', content: 'Rewrite it' });
     setRunningRegen(target);
     setRegenStage({ title: meta.stage, tab: meta.tab });
     posthog?.capture('regeneration_requested', { section: meta.type, source: 'chat', with_instruction: Boolean(instruction) });
@@ -2164,7 +2162,7 @@ export function ChatPanel({
             />
           )}
 
-          {/* Rewrite from the chat: cost first, one gold chip, then a named stage */}
+          {/* Rewrite from the chat: one gold confirm chip, then a named stage */}
           {spine && pendingRegen && !runningRegen && !isAgentWorking && (
             <DecisionChips
               chips={
@@ -2173,7 +2171,6 @@ export function ChatPanel({
                       {
                         id: 'rewrite',
                         label: 'Rewrite it',
-                        cost: `${REGEN_META[pendingRegen.target].cost} credits`,
                         variant: 'primary',
                         icon: <Edit3 className="h-4 w-4" />,
                         onSelect: () => {
