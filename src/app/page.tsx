@@ -31,7 +31,7 @@ interface WorkflowStep {
   label: string;
   title: string;
   body: string;
-  image?: { src: string; alt: string };
+  image: { src: string; alt: string };
   kicker?: string;
   secondLine?: string;
   boldClose?: string;
@@ -77,6 +77,10 @@ const WORKFLOW_STEPS: WorkflowStep[] = [
     title: 'Change anything by chatting',
     body: 'A tighter summary, a different first line, more weight on your last role. Watch it land in the live preview. Six ATS-friendly templates keep the layout clean.',
     boldClose: 'You review everything before it goes anywhere. Then you send it yourself.',
+    image: {
+      src: '/images/moments/step4-chat-edit.webp',
+      alt: 'The chat rewriting a CV summary section, with the updated CV in the live preview',
+    },
   },
   {
     n: 5,
@@ -432,21 +436,15 @@ export default function Home() {
                   )}
                 </div>
                 <div className="w-full flex-1">
-                  {step.image ? (
-                    <Image
-                      src={step.image.src}
-                      alt={step.image.alt}
-                      width={1440}
-                      height={900}
-                      quality={90}
-                      sizes="(max-width: 1023px) 100vw, 660px"
-                      className="w-full rounded-2xl border border-cream-200 shadow-sm"
-                    />
-                  ) : (
-                    <div className="flex aspect-[16/10] w-full items-center justify-center rounded-2xl border border-cream-200 bg-cream-50 shadow-sm">
-                      <span className="text-sm text-warm-gray">Screenshot coming</span>
-                    </div>
-                  )}
+                  <Image
+                    src={step.image.src}
+                    alt={step.image.alt}
+                    width={1440}
+                    height={900}
+                    quality={90}
+                    sizes="(max-width: 1023px) 100vw, 660px"
+                    className="w-full rounded-2xl border border-cream-200 shadow-sm"
+                  />
                 </div>
               </div>
             </ScrollReveal>
