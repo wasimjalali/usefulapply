@@ -230,14 +230,19 @@ export interface ApplicationSession {
 /**
  * Is this session a real application, or just a chat container?
  *
- * Any first chat message calls createNewSession(), so a conversation with no
- * job ad in it would otherwise show up in the sidebar as "New application /
- * Role not set". Chat-only sessions stay usable as the current conversation;
- * they join the lists the moment a job ad lands in them.
+ * Any first chat message calls createNewSession(), and pasting an ad fills in
+ * its jobDescription before anything has been read out of it. Neither has a
+ * company or a role yet, so listing either one puts a "New application / Role
+ * not set" row in the sidebar with nothing in it.
+ *
+ * The test is therefore whether there is something to show: a company, a role,
+ * a generated kit or a fit analysis. A pasted ad joins the list the moment the
+ * user acts on it, which is when the company gets read out of it.
  */
 export function isApplicationSession(session: ApplicationSession): boolean {
   return Boolean(
-    session.jobDescription?.trim()
+    session.company?.trim()
+    || session.jobTitle?.trim()
     || session.generatedCV
     || session.pendingFitAnalysis,
   );
