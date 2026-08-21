@@ -338,7 +338,7 @@ export default function Home() {
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-navy-600 text-sm font-semibold text-white">
                       {step.n}
                     </span>
-                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-gold-600">
+                    <span className="text-sm font-medium text-warm-gray">
                       {step.label}
                     </span>
                   </div>
