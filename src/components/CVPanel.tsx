@@ -319,7 +319,10 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
 
   const isLoading = isAnalyzing || isGenerating || isAgentWorking;
   const displayContent = showOptimized && generatedCV ? generatedCV.content : currentCV.rawText;
-  const previewCVData = editedCVData || cvData;
+  // The edited buffer only ever paints the edit canvas. Outside edit mode the
+  // store is the source of truth: a chat edit applied while a stale buffer
+  // lingered would otherwise stay invisible until a reload.
+  const previewCVData = isEditMode ? (editedCVData || cvData) : cvData;
   const atsScore = optimizedCVData?.analysis?.ats_compatibility ?? null;
   const hasAtsInsights = Boolean(optimizedCVData?.analysis || generatedCV?.changes?.length);
   const TOOL_CLASS = 'flex items-center gap-2 h-9 px-3.5 text-sm font-medium bg-cream-50 border border-cream-200 rounded-full hover:bg-white transition-colors duration-200 cursor-pointer flex-shrink-0 shadow-sm text-charcoal';
@@ -645,7 +648,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                       } : undefined}
                     >
                       <div ref={cvTemplateRef}>
-                        <CVTemplateRenderer data={editedCVData || cvData} templateId={selectedTemplateId} />
+                        <CVTemplateRenderer data={cvData} templateId={selectedTemplateId} />
                       </div>
                       {/* Page break indicators — outside cvTemplateRef so not captured in PDF.
                           Keep the marker minimal so it communicates the split without obscuring content. */}
