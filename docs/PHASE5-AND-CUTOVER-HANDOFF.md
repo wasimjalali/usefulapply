@@ -4,6 +4,8 @@ Written 2026-08-21 by the session that built Phase 5. Branch `rebrand/usefulappl
 
 Read this first, then `docs/agentic-chat-phase5-plan.md` (its two closing sections carry the decisions and the full review pass).
 
+**Update 2026-08-21, later session: Part 1 is done.** All three verification steps ran and passed; the record and four findings (one high: the concurrent-canvas-edit guard) are in the phase doc under "Chrome verification pass". What remains is fixing those findings, then Part 2, the Phase 9 cutover.
+
 ---
 
 ## Where things stand
