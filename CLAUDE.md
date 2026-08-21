@@ -32,6 +32,17 @@ Escalate automatically for:
 ### When to parallelize
 If two agent tasks are independent (different files, different questions), spawn them in a **single message with multiple Agent tool calls** — they run concurrently.
 
+### Delegation policy: ox alpha via opencode (Wasim, 2026-08-21)
+**In every session in this repo, Fable is the orchestrator and verifier. The work itself is delegated to `opencode-go/ox-alpha-free` via the opencode CLI.** ox alpha is free until ~2026-08-28 and stronger than Opus; prefer it over Opus/Sonnet subagents for implementation, research, drafting and adversarial review while the free week lasts. Re-evaluate after.
+
+- **Fable does:** planning, task briefs, critical analysis of returned work, merging, verification (tsc, lint, diff review, browser checks), `/design` canvas work and anything requiring session context or user interaction.
+- **ox alpha does:** implementation, web research, copy drafts, adversarial review passes and other self-contained work.
+- **How to call it** (no manual copy-paste; run via Bash in background mode):
+  ```bash
+  opencode run -m opencode-go/ox-alpha-free "$(cat brief.md)" > result.md
+  ```
+  Write the brief to a file first. For implementation, run inside the repo so it can edit files, then review its diff before accepting. For research/drafts, run in the scratchpad and collect the output file.
+
 ---
 
 ## Working Rules

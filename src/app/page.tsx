@@ -1,12 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Check } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
-import { HeroAurora } from '@/components/marketing/HeroAurora';
-import { PlanCards } from '@/components/marketing/PlanCards';
 
 import { BRAND } from '@/lib/brand';
 
@@ -21,29 +19,139 @@ export const metadata: Metadata = {
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
 
-const MOMENTS = [
+const HERO_IMAGE = {
+  src: '/images/moments/kit-ready.webp',
+  alt: 'The Useful Apply workspace with a finished application kit: the conversation on the left and the tailored CV on the right',
+};
+
+interface WorkflowStep {
+  n: number;
+  label: string;
+  title: string;
+  body: string;
+  image?: { src: string; alt: string };
+  kicker?: string;
+  secondLine?: string;
+  boldClose?: string;
+}
+
+const WORKFLOW_STEPS: WorkflowStep[] = [
   {
-    title: 'See the fit before you spend anything',
-    body: "A score, what lines up, what's missing, and whether it's worth applying. The first check is free.",
-    image: '/images/moments/fit-result.webp',
-    alt: 'A fit result for a Product Manager role: 76% match, the strengths that line up and the gaps',
+    n: 1,
+    label: 'Find',
+    title: 'A shortlist, not a firehose',
+    body: 'Every morning, up to 20 fresh roles ranked against your career profile. Matched on skills, seniority and direction, not keyword bingo. Nothing looks right today? Come back tomorrow.',
+    image: {
+      src: '/images/moments/daily-feed.webp',
+      alt: "A job feed listing today's roles with match strength, salary and a check-fit button on each",
+    },
   },
   {
-    title: 'A kit you can send, every claim from your CV',
-    body: 'Tailored CV, cover letter, application email and follow-up. ATS-checked, with every change shown. Want it shorter? Just say so.',
-    image: '/images/moments/kit-ats.webp',
-    alt: 'The what-changed view of a tailored CV, showing each edit before and after with an ATS score',
+    n: 2,
+    label: 'Check the fit',
+    title: 'Know before you apply.',
+    body: "Run the ad against your real CV before you build anything. A clear read on the match and the reasoning behind it. If it's a pass, you lost nothing. If it's a go, you apply like it matters.",
+    image: {
+      src: '/images/moments/fit-result.webp',
+      alt: 'A fit result for a Product Manager role: 76% match, the strengths that line up and the gaps',
+    },
+    kicker:
+      "An auto-apply bot needs you to keep applying. Telling you when not to apply isn't in its business model. It's central to ours.",
   },
   {
-    title: 'Roles picked for you, whenever you ask',
-    body: 'Five on Free, twenty on Plus, once a day. One click checks the fit, one more writes the kit, and the tracker fills itself.',
-    // PLACEHOLDER: still the flow-7 mock. The feed reads from the server, so the
-    // real shot needs a signed-in account with a feed run. Replaced in the
-    // end-to-end pass (BACKEND-GAPS, batch 5).
-    image: '/images/moments/daily-feed.webp',
-    alt: "A job feed listing today's roles with match strength, salary and a check-fit button on each",
+    n: 3,
+    label: 'Get the kit',
+    title: 'The whole kit, built for this job',
+    body: "Tailored CV, cover letter, application email and follow-up email. The ad decides what to emphasize, never what's true about you. Facts come from one place: your real CV.",
+    secondLine: 'Most people never send a follow-up. Yours is already written.',
+    image: {
+      src: '/images/moments/kit-ats.webp',
+      alt: 'The what-changed view of a tailored CV, showing each edit before and after with an ATS score',
+    },
+  },
+  {
+    n: 4,
+    label: 'Review and send',
+    title: 'Change anything by chatting',
+    body: 'A tighter summary, a different first line, more weight on your last role. Watch it land in the live preview. Six ATS-friendly templates keep the layout clean.',
+    boldClose: 'You review everything before it goes anywhere. Then you send it yourself.',
+  },
+  {
+    n: 5,
+    label: 'Track',
+    title: 'Every application, remembered',
+    body: 'Everything you send lands in the tracker. Status, documents and follow-ups in one place, with chat when you want to dig in.',
   },
 ];
+
+interface LandingPlan {
+  tier: 'free' | 'plus' | 'max';
+  name: string;
+  price: string;
+  per?: string;
+  features: string[];
+  cta: string;
+  href: string;
+}
+
+const LANDING_PLANS: LandingPlan[] = [
+  {
+    tier: 'free',
+    name: 'Free',
+    price: '$0',
+    features: [
+      '2 full applications a month',
+      'Or 8 fit checks while you explore',
+      'Top 5 roles a day in your feed',
+    ],
+    cta: 'Start free',
+    href: '/dashboard',
+  },
+  {
+    tier: 'plus',
+    name: 'Plus',
+    price: '$19.99',
+    per: '/mo',
+    features: [
+      '25 full applications a month',
+      'Fit checks and rewrites from the same allowance',
+      'Top 20 roles a day in your feed',
+    ],
+    cta: 'Go Plus',
+    href: '/pricing',
+  },
+  {
+    tier: 'max',
+    name: 'Max',
+    price: '$79.99',
+    per: '/mo',
+    features: [
+      '100 full applications a month',
+      'Fit checks and rewrites from the same allowance',
+      'Top 20 roles a day, built for an all-out search',
+    ],
+    cta: 'Go Max',
+    href: '/pricing',
+  },
+];
+
+// Comparison cells: true = gold check, string = text verdict, false = dash.
+type CellValue = boolean | string;
+
+const COMPARISON_ROWS: { feature: string; cells: [CellValue, CellValue, CellValue] }[] = [
+  { feature: 'Fit check before you spend a minute', cells: [true, false, false] },
+  { feature: 'Built to stay grounded, nothing added that isn\'t yours', cells: [true, false, false] },
+  { feature: 'Remembers your CV and career profile', cells: [true, false, 'Varies'] },
+  { feature: 'CV, cover letter, application email and follow-up as one kit', cells: [true, 'Prompt by prompt', false] },
+  { feature: 'Edit by chatting, live document preview', cells: [true, false, false] },
+  { feature: 'Daily ranked shortlist and tracker built in', cells: [true, false, 'Varies'] },
+];
+
+function ComparisonCell({ value }: { value: CellValue }) {
+  if (value === true) return <Check aria-label="Yes" className="mx-auto h-4 w-4 text-gold-500" />;
+  if (value === false) return <span className="text-sm text-warm-gray">&ndash;</span>;
+  return <span className="text-xs text-warm-gray">{value}</span>;
+}
 
 export default function Home() {
   return (
@@ -148,84 +256,131 @@ export default function Home() {
       />
       <Navbar />
       <main>
-        {/* Hero: one gold action into the guided line, the kit screen as the proof. */}
-        <section className="relative overflow-hidden bg-cream-100 px-4 pb-10 pt-16 sm:px-6 lg:px-8 lg:pt-20">
-          <HeroAurora />
-          <div className="relative mx-auto max-w-5xl text-center">
-            <ScrollReveal delay={100}>
-              <h1 className="text-[40px] font-semibold leading-[1.05] tracking-tight text-navy-800 sm:text-[50px] lg:text-[56px]">
-                Your entire job search, <span className="text-gold-500">in one app.</span>
+        {/* Hero: split, copy left, the finished-kit workspace right. */}
+        <section className="bg-cream-100 px-4 pb-14 pt-16 sm:px-6 lg:px-8 lg:pt-24">
+          <div className="mx-auto flex max-w-7xl flex-col items-center gap-10 lg:flex-row lg:gap-16">
+            <ScrollReveal className="w-full lg:w-[430px] lg:flex-shrink-0">
+              <h1 className="text-[38px] font-semibold leading-[1.08] tracking-tight text-navy-800 sm:text-[46px] lg:text-[50px]">
+                Everything you need to apply for a job. Nothing sent for you.
               </h1>
-            </ScrollReveal>
-            <ScrollReveal delay={250}>
-              <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-warm-gray">
-                Upload your CV, paste a job, see your fit. Then a tailored CV, cover letter and emails in 90
-                seconds. Every word from your real CV, nothing invented.
+              <p className="mt-5 text-[17px] leading-relaxed text-warm-gray">
+                Fit check first. Then a tailored CV, cover letter and emails, grounded in what you&apos;ve
+                actually done and ready in about two minutes. You review, you send.
               </p>
-            </ScrollReveal>
-            <ScrollReveal delay={400}>
-              <div className="mt-7 flex flex-col items-center">
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Link
                   href="/dashboard"
-                  className="inline-flex h-12 items-center rounded-full bg-gold-400 px-7 text-[15px] font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer"
+                  className="inline-flex h-12 items-center justify-center rounded-lg bg-gold-400 px-7 text-[15px] font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer"
                 >
-                  Try it free
+                  Start free
                 </Link>
-                <p className="mt-4 text-sm text-warm-gray">
-                  Your first fit check is on us, no account needed.
-                </p>
+                <Link
+                  href="#what-you-get"
+                  className="inline-flex h-12 items-center justify-center rounded-lg border border-cream-200 bg-cream-50 px-7 text-[15px] font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
+                >
+                  See what you get
+                </Link>
               </div>
+              <p className="mt-4 text-sm text-warm-gray">
+                Your first fit check is on us, no account needed.
+              </p>
             </ScrollReveal>
-          </div>
-
-          <ScrollReveal delay={550}>
-            <div className="relative mx-auto mt-8 w-full max-w-[1120px]">
+            <ScrollReveal delay={150} className="w-full flex-1">
               <Image
-                src="/images/moments/kit-ready.webp"
-                alt="The Useful Apply workspace with a finished application kit: the conversation on the left and the tailored CV on the right"
+                src={HERO_IMAGE.src}
+                alt={HERO_IMAGE.alt}
                 width={1440}
                 height={900}
                 priority
                 quality={90}
-                sizes="(max-width: 1200px) 100vw, 1120px"
-                className="w-full rounded-2xl border border-cream-200 shadow-lg"
+                sizes="(max-width: 1023px) 100vw, 680px"
+                className="w-full rounded-2xl border border-cream-200 shadow-sm"
               />
+            </ScrollReveal>
+          </div>
+        </section>
+
+        {/* Volume band. */}
+        <section className="bg-navy-700 px-4 py-16 sm:px-6 lg:px-8">
+          <ScrollReveal>
+            <div className="mx-auto max-w-3xl text-center">
+              <h2 className="text-[32px] font-semibold leading-[1.15] text-white md:text-[40px]">
+                Everyone&apos;s applying more. It&apos;s working less.
+              </h2>
+              <p className="mt-5 text-[17px] leading-relaxed text-navy-100">
+                AI flooded recruiters with lookalike applications. Filters tightened, good people got buried.
+                Useful Apply is the opposite of a bot. One job, one fit check, one application worth your name.
+              </p>
             </div>
           </ScrollReveal>
         </section>
 
-        {/* Three moments, text beside the screen, sides alternating. */}
-        <section id="what-you-get" className="scroll-mt-24 bg-cream-100 px-4 py-10 sm:px-6 lg:px-8">
-          <div className="mx-auto flex max-w-7xl flex-col gap-10">
-            {MOMENTS.map((moment, i) => (
-              <ScrollReveal key={moment.title}>
-                <div
-                  className={`flex flex-col items-center gap-10 lg:flex-row lg:gap-16 ${
-                    i % 2 === 1 ? 'lg:flex-row-reverse' : ''
-                  }`}
-                >
-                  <div className="w-full lg:w-[320px] lg:flex-shrink-0">
-                    <h2 className="text-[30px] font-semibold leading-[1.15] text-navy-800">
-                      {moment.title}
-                    </h2>
-                    <p className="mt-4 text-[15px] leading-relaxed text-warm-gray">{moment.body}</p>
+        {/* Workflow heading. */}
+        <section id="what-you-get" className="scroll-mt-24 bg-cream-100 px-4 pb-2 pt-16 sm:px-6 lg:px-8">
+          <ScrollReveal>
+            <h2 className="text-center text-[32px] font-semibold leading-[1.1] text-navy-800 md:text-[36px]">
+              One job ad in. A full application out.
+            </h2>
+          </ScrollReveal>
+        </section>
+
+        {/* Five workflow steps, alternating splits, product shot dominant. */}
+        {WORKFLOW_STEPS.map((step, i) => (
+          <section key={step.n} className="bg-cream-100 px-4 py-10 sm:px-6 lg:px-8">
+            <ScrollReveal>
+              <div
+                className={`mx-auto flex max-w-6xl flex-col gap-10 lg:flex-row lg:items-center lg:gap-16 ${
+                  i % 2 === 1 ? 'lg:flex-row-reverse' : ''
+                }`}
+              >
+                <div className="w-full lg:w-[400px] lg:flex-shrink-0">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-navy-600 text-sm font-semibold text-white">
+                      {step.n}
+                    </span>
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-gold-600">
+                      {step.label}
+                    </span>
                   </div>
-                  <div className="w-full lg:w-[760px]">
+                  <h3 className="mt-4 text-[28px] font-semibold leading-[1.15] text-navy-800">
+                    {step.title}
+                  </h3>
+                  <p className="mt-4 text-[15px] leading-relaxed text-warm-gray">{step.body}</p>
+                  {step.secondLine && (
+                    <p className="mt-4 text-[15px] leading-relaxed text-warm-gray">{step.secondLine}</p>
+                  )}
+                  {step.boldClose && (
+                    <p className="mt-4 text-[15px] font-semibold leading-relaxed text-navy-800">
+                      {step.boldClose}
+                    </p>
+                  )}
+                  {step.kicker && (
+                    <div className="mt-6 rounded-2xl border border-cream-200 bg-cream-50 p-5 shadow-sm">
+                      <p className="text-sm leading-relaxed text-charcoal">{step.kicker}</p>
+                    </div>
+                  )}
+                </div>
+                <div className="w-full flex-1">
+                  {step.image ? (
                     <Image
-                      src={moment.image}
-                      alt={moment.alt}
+                      src={step.image.src}
+                      alt={step.image.alt}
                       width={1440}
                       height={900}
                       quality={90}
-                      sizes="(max-width: 1023px) 100vw, 760px"
-                      className="w-full rounded-2xl border border-cream-200 shadow-md"
+                      sizes="(max-width: 1023px) 100vw, 660px"
+                      className="w-full rounded-2xl border border-cream-200 shadow-sm"
                     />
-                  </div>
+                  ) : (
+                    <div className="flex aspect-[16/10] w-full items-center justify-center rounded-2xl border border-cream-200 bg-cream-50 shadow-sm">
+                      <span className="text-sm text-warm-gray">Screenshot coming</span>
+                    </div>
+                  )}
                 </div>
-              </ScrollReveal>
-            ))}
-          </div>
-        </section>
+              </div>
+            </ScrollReveal>
+          </section>
+        ))}
 
         {/* Founder note. */}
         <section className="bg-cream-100 px-4 py-6 sm:px-6 lg:px-8">
@@ -249,15 +404,136 @@ export default function Home() {
           </ScrollReveal>
         </section>
 
-        {/* Plans. Same cards as the settings modal. */}
-        <section className="bg-cream-100 px-4 py-10 sm:px-6 lg:px-8">
+        {/* Pricing: compact cards here, full detail on /pricing. */}
+        <section className="bg-cream-100 px-4 py-14 sm:px-6 lg:px-8">
           <ScrollReveal>
-            <h2 className="mb-7 text-center text-[32px] font-semibold leading-[1.1] text-navy-800 md:text-[36px]">
-              Start free. Pay when you&apos;re applying every week.
+            <h2 className="text-center text-[32px] font-semibold leading-[1.1] text-navy-800 md:text-[36px]">
+              Plans you can count
             </h2>
+            <p className="mx-auto mt-4 max-w-xl text-center text-[15px] leading-relaxed text-warm-gray">
+              Plain units, published monthly prices. You always know what you&apos;re buying.
+            </p>
           </ScrollReveal>
           <ScrollReveal delay={100}>
-            <PlanCards />
+            <div className="mx-auto mt-9 max-w-5xl">
+              <div className="grid gap-4 md:grid-cols-3">
+                {LANDING_PLANS.map((plan) => {
+                  const isPlus = plan.tier === 'plus';
+                  return (
+                    <div
+                      key={plan.tier}
+                      className={`flex flex-col rounded-2xl border p-6 shadow-sm ${
+                        isPlus ? 'border-gold-400' : 'border-cream-200'
+                      } bg-cream-50`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[15px] font-semibold text-navy-800">{plan.name}</span>
+                        {isPlus && (
+                          <span className="rounded-full bg-gold-400 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
+                            Most popular
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="mt-3 text-[32px] font-semibold leading-none text-navy-900">
+                        {plan.price}
+                        {plan.per && (
+                          <span className="ml-1 text-sm font-normal text-warm-gray">{plan.per}</span>
+                        )}
+                      </p>
+
+                      <ul className="mb-6 mt-4 flex-1 space-y-2.5">
+                        {plan.features.map((feature) => (
+                          <li key={feature} className="flex items-start gap-2 text-sm text-charcoal">
+                            <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-gold-500" />
+                            {feature}
+                          </li>
+                        ))}
+                      </ul>
+
+                      {isPlus ? (
+                        <Link
+                          href={plan.href}
+                          className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-gold-400 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer"
+                        >
+                          {plan.cta}
+                        </Link>
+                      ) : (
+                        <Link
+                          href={plan.href}
+                          className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-cream-200 bg-cream-50 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
+                        >
+                          {plan.cta}
+                        </Link>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p className="mt-6 text-center text-sm text-warm-gray">
+                Need more later? Top up with a credit pack for $19.99. Cancel anytime.
+              </p>
+              <p className="mt-2 text-center text-sm font-medium text-charcoal">
+                Whichever plan you pick, nothing sends itself. You review, you send.
+              </p>
+            </div>
+          </ScrollReveal>
+        </section>
+
+        {/* Comparison table + the navy card. */}
+        <section className="bg-cream-100 px-4 py-14 sm:px-6 lg:px-8">
+          <ScrollReveal>
+            <h2 className="text-center text-[32px] font-semibold leading-[1.1] text-navy-800 md:text-[36px]">
+              Why not ChatGPT or a free tool?
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-center text-[15px] leading-relaxed text-warm-gray">
+              Same engine class. The difference is the grounding, the memory and the workflow around it.
+            </p>
+          </ScrollReveal>
+          <ScrollReveal delay={100}>
+            <div className="mx-auto mt-9 max-w-4xl overflow-x-auto rounded-2xl border border-cream-200 bg-cream-50 shadow-sm">
+              <table className="w-full min-w-[640px] border-collapse">
+                <thead>
+                  <tr>
+                    <th className="px-6 py-5" aria-hidden />
+                    <th className="bg-gold-50 px-4 py-5 text-center text-sm font-semibold text-navy-800">
+                      Useful Apply
+                    </th>
+                    <th className="px-4 py-5 text-center text-sm font-medium text-warm-gray">ChatGPT</th>
+                    <th className="px-4 py-5 text-center text-sm font-medium text-warm-gray">
+                      Autofill tools
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {COMPARISON_ROWS.map((row) => (
+                    <tr key={row.feature} className="border-t border-cream-200">
+                      <td className="px-6 py-4 text-sm leading-relaxed text-charcoal">{row.feature}</td>
+                      <td className="bg-gold-50 px-4 py-4 text-center">
+                        <ComparisonCell value={row.cells[0]} />
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <ComparisonCell value={row.cells[1]} />
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <ComparisonCell value={row.cells[2]} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </ScrollReveal>
+          <ScrollReveal delay={150}>
+            <div className="mx-auto mt-8 max-w-4xl rounded-2xl bg-navy-700 p-8 md:p-10">
+              <h3 className="text-xl font-semibold text-white md:text-2xl">We prepare, you send.</h3>
+              <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-navy-100">
+                Useful Apply doesn&apos;t submit anything on your behalf. Not today, not ever. Every application
+                waits for your review and your click. That&apos;s not a gap we plan to close. It&apos;s the whole
+                point.
+              </p>
+            </div>
           </ScrollReveal>
         </section>
 
