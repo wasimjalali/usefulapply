@@ -71,7 +71,7 @@ export function ConversationColumn({ onTabChange }: ConversationColumnProps) {
         // so the chat takes it instead of leaving it as dead cream either
         // side of the page. calc goes negative on small screens, where the
         // floor takes over and the canvas keeps every pixel it can get.
-        canvasCollapsed ? 'min-w-0 flex-1' : 'w-[clamp(400px,calc(100vw-1169px),1000px)] flex-shrink-0'
+        canvasCollapsed ? 'min-w-0 flex-1' : 'w-[clamp(400px,calc(100vw_-_1169px),1000px)] flex-shrink-0'
       }`}
     >
       {/* Hidden rather than unmounted, like the application conversation below:
