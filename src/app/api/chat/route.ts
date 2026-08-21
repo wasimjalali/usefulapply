@@ -17,6 +17,8 @@ import { flattenUntrusted, knownTimeZone, looksPasted, sanitizeAdText } from '@/
 import { cvTemplateName, defaultCvTemplateName, isCvTemplateId } from '@/lib/cv-templates/catalog';
 import { validateCvShape } from '@/lib/cv-structure/validate';
 import type { TailoredCV } from '@/lib/cv-structure/types';
+import { sanitizeDashes } from '@/lib/config/typo-corrections';
+import { guardUnsupportedCvAdditionOffer } from '@/lib/agents/chat-reply-guard';
 
 // Input/output limits
 const MAX_MESSAGE_LENGTH = 2_000;
@@ -216,7 +218,7 @@ export async function POST(req: NextRequest) {
       }
       return NextResponse.json({
         success: true,
-        reply: response.content,
+        reply: sanitizeDashes(response.content),
         actions: [],
         screeningTurnsUsed,
         screeningTurnCap: SCREENING_TURN_CAP,
@@ -253,6 +255,7 @@ export async function POST(req: NextRequest) {
 
     const executed: ExecutedEffect[] = [];
     const confirmActions: ChatActionChip[] = [];
+    const failedToolNames: string[] = [];
     let reply = '';
     let lastToolNames = '';
 
@@ -296,6 +299,7 @@ export async function POST(req: NextRequest) {
         });
         for (const call of toolCalls) {
           const result = await executeChatTool(call.name, call.arguments, toolContext);
+          if (result.failed) failedToolNames.push(call.name);
           if (result.executed) executed.push(...result.executed);
           if (result.actions) confirmActions.push(...result.actions);
           history.push({
@@ -312,33 +316,74 @@ export async function POST(req: NextRequest) {
       // can spend its whole budget reasoning and return empty). Losing the
       // reply is survivable; telling the user nothing happened when a row
       // already moved is not, so the executed effects still go back.
-      if (executed.length === 0) throw loopError;
-      console.error('Chat tool loop failed after executed effects:', loopError);
-      // The message has to point at the right place, and it has to be true of
-      // each kind of effect. A tracker write is already committed to D1, so
-      // "saved" is a fact. A cv_structure_updated effect has committed nothing:
-      // it is a proposal the client can still refuse on a digest mismatch, and
-      // when it does it adds its own "I left it alone" line right after this
-      // one. Claiming it saved would make one of the two a lie.
-      const touchedCv = executed.some((effect) => effect.type === 'cv_structure_updated');
-      const touchedRow = executed.some((effect) => effect.type === 'tracker_updated');
-      if (touchedRow && touchedCv) {
-        reply = 'That change saved, but I could not finish the reply. The tracker row is updated, and the CV edit is in the CV panel if it went through.';
-      } else if (touchedRow) {
-        reply = 'That change saved, but I could not finish the reply. Check the tracker for the updated row.';
-      } else if (touchedCv) {
-        reply = 'I could not finish the reply. If the CV edit went through it is in the CV panel, with an Undo button on it.';
+      if (executed.length === 0) {
+        // No tool round completed means the first model call failed, which is
+        // still a real request outage and belongs on the route's normal 500
+        // path. Once lastToolNames is set, a tool result was already returned
+        // and only the follow-up wording failed. Surface that known shape
+        // directly instead of falling through to the client's generic chat
+        // fallback. Proposal chips are discarded so a half-finished round
+        // cannot offer an action beside an error reply.
+        if (!lastToolNames) throw loopError;
+        console.error('Chat reply failed after a tool round:', loopError);
+        confirmActions.length = 0;
+        reply = lastToolNames === 'propose_cv_rewrite'
+          ? 'I could not prepare that CV rewrite. Try again in a moment.'
+          : 'I could not complete that action. Try again in a moment.';
       } else {
-        reply = 'I could not finish the reply. Ask me again and I\'ll pick it up from there.';
+        console.error('Chat tool loop failed after executed effects:', loopError);
+        // The message has to point at the right place, and it has to be true of
+        // each kind of effect. A tracker write is already committed to D1, so
+        // "saved" is a fact. A cv_structure_updated effect has committed nothing:
+        // it is a proposal the client can still refuse on a digest mismatch.
+        const touchedCv = executed.some((effect) => effect.type === 'cv_structure_updated');
+        const touchedRow = executed.some((effect) => effect.type === 'tracker_updated');
+        if (touchedRow && touchedCv) {
+          reply = 'That change saved, but I could not finish the reply. The tracker row is updated, and the CV edit is in the CV panel if it went through.';
+        } else if (touchedRow) {
+          reply = 'That change saved, but I could not finish the reply. Check the tracker for the updated row.';
+        } else if (touchedCv) {
+          reply = 'I could not finish the reply. If the CV edit went through it is in the CV panel, with an Undo button on it.';
+        } else {
+          reply = 'I could not finish the reply. Ask me again and I\'ll pick it up from there.';
+        }
       }
     }
 
-    // Two operations in one turn can each return the same chip (two structure
-    // edits both offer Undo for the same application). Two identical buttons is
-    // never what was wanted, and the action string carries the whole target, so
-    // the first one wins.
+    // A handler exception is a known failure even when gpt-oss answers the
+    // tool result with a generic conversational fallback. Do not let that text
+    // turn a failed CV rewrite proposal into "I'm here to help" or otherwise
+    // hide what did not run.
+    if (failedToolNames.length > 0) {
+      const failedCvRewrite = failedToolNames.includes('propose_cv_rewrite');
+      const failureReply = failedCvRewrite
+        ? 'I could not prepare that CV rewrite. Try again in a moment.'
+        : 'I could not complete that action. Try again in a moment.';
+      // Never append to free-form model copy after a known handler failure. A
+      // mixed round may contain a stale success claim for the action that did
+      // not run. Successful handlers keep their action chips and effects, but
+      // the reply itself is the deterministic failure shape.
+      reply = failureReply;
+    }
+
+    // The tools cannot add a new claim to the source CVs. If the model offers
+    // that unsupported action anyway, replace it before it reaches the client.
+    reply = guardUnsupportedCvAdditionOffer(reply);
+
+    // The prompt bans long dashes, but the live model has ignored that rule.
+    // All free-form chat copy gets the same deterministic safety net as the
+    // document writers before any text reaches the client.
+    reply = sanitizeDashes(reply);
+
+    // Each structure operation carries the digest of the object it produced,
+    // so composed edits return different Undo action strings. Only the last
+    // one targets the final composed CV. Earlier chips would either refuse or
+    // misrepresent which operation they undo.
+    const rawActions = [...extractActions(reply, context), ...confirmActions];
+    const lastCvUndo = rawActions.findLast((chip) => chip.action.startsWith('undo-cv-edit:'));
     const seenActions = new Set<string>();
-    const actions = [...extractActions(reply, context), ...confirmActions].filter((chip) => {
+    const actions = rawActions.filter((chip) => {
+      if (chip.action.startsWith('undo-cv-edit:') && chip !== lastCvUndo) return false;
       if (seenActions.has(chip.action)) return false;
       seenActions.add(chip.action);
       return true;
@@ -543,6 +588,7 @@ Call a tool when the user asks about their applications, interviews, follow-ups,
 - Call get_cv_outline first, every time, and use its handles. Never guess a handle, an id or a position.
 - Section order on the page comes from the template, not from the CV. To change it, switch template with set_cv_template.
 - Reorders and heading changes apply straight away and an Undo button is shown, so just say in one line what changed. Deletes need the confirm button; never say something is removed before it is clicked.
+- If the user asks for a skill, metric, employer, certification or other claim their documents do not support, say it cannot be added and leave it out. Never offer to add unsupported content first, and never suggest that adding it would make a later rewrite possible.
 - Only the tailored CV for the open application can be edited from here, never the uploaded original.
 
 # Style

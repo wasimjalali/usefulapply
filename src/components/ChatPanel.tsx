@@ -50,7 +50,6 @@ import { generateRequestId } from '@/lib/utils/requestId';
 import { resolveHandle } from '@/lib/cv-structure/handles';
 import { applyDelete } from '@/lib/cv-structure/ops';
 import { cvStructureDigest, validateEdit } from '@/lib/cv-structure/validate';
-import { renderVisibility } from '@/lib/cv-structure/render-caps';
 import { parseUndoChip, takeUndo } from '@/lib/cv-structure/undo';
 import { looksLikeScreeningQuestion, parseScreeningAnswers, SCREENING_TURN_CAP } from '@/lib/screening-answers';
 
@@ -1129,20 +1128,9 @@ export function ChatPanel({
           localizedStrings: before.localizedStrings,
         },
       });
-      // Templates cap how many skill groups and how many items per group they
-      // render, so an entry past the cap can be deleted with the page looking
-      // identical. Saying "it's off your CV" there is true of the document and
-      // useless to someone comparing it against the canvas.
-      const stillLooksTheSame = renderVisibility(
-        before,
-        result.cv,
-        useUIStore.getState().cvTemplateId,
-      ).pageUnchanged;
       addChatMessage({
         role: 'assistant',
-        content: stillLooksTheSame
-          ? 'Removed. It was already past what this template shows, so the page looks the same.'
-          : 'Removed. It\'s off your CV.',
+        content: 'Removed. It\'s off your CV.',
       });
       return;
     }

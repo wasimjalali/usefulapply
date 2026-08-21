@@ -362,31 +362,12 @@ const deleteCvItem: ChatTool = {
     const outline = buildListOutline(before, resolved.list);
     const label = outline?.items[resolved.index]?.label ?? '<<that entry>>';
 
-    // A delete can never push OTHER content off the page: removing an entry
-    // only shifts later ones up into the rendered slice. What it can do is
-    // change nothing visible at all, when the entry was already past what this
-    // template paints. "Removed. It's off your CV." with an unchanged canvas
-    // reads as a broken feature, so the model is told to say it plainly.
-    //
-    // Skills are the only truncated section, so this only asks about skills.
-    // renderVisibility compares skills alone, and for a certification delete it
-    // would report "page unchanged" about a page that very much changed.
-    const inSkills = resolved.list === 'skills' || resolved.list.startsWith('skillitems:');
-    const pageUnchanged = inSkills
-      && renderVisibility(before, trial.cv, ctx.cvTemplateId).pageUnchanged;
-
     return {
       data: {
         ok: false,
         requires_confirmation: true,
         entry: label,
         list: resolved.list,
-        ...(pageUnchanged
-          ? {
-            already_off_the_page: true,
-            page_note: 'This template only shows the first 5 skill groups and the first 5 skills in each group, and this entry is past that, so it is not on the page today. Removing it takes it out of the CV for good but the page will look the same. Say that before they click.',
-          }
-          : {}),
         note: 'A confirm button is shown to the user. Name what would go, in one short line, and tell them to confirm it there. Nothing is removed yet.',
       },
       actions: [
@@ -403,7 +384,7 @@ const deleteCvItem: ChatTool = {
 const proposeCvRewrite: ChatTool = {
   name: 'propose_cv_rewrite',
   description:
-    'Offer to rewrite one section of the tailored CV with the writer that generated it. This is the tool for ANY request that changes wording: shorter, tighter, punchier, clearer, more senior, reworded, rephrased, "make it better", swapping a word or two, or mentioning something differently. It spends credits, so it never writes anything: it returns a button the user clicks. The rewrite runs under the same anti-hallucination rules as the original CV and works from the user\'s own documents, but those rules are instructions to a writer, not a proof, so never tell the user that nothing new can appear. Sections: summary, experience_bullets (one role), project_description (one project), custom_section_items (one custom section). Call get_cv_outline first and pass the handle of the entry for the three that need one.',
+    'Offer to rewrite one section of the tailored CV with the writer that generated it. This is the tool for ANY request that changes wording: shorter, tighter, punchier, clearer, more senior, reworded, rephrased, "make it better", swapping a word or two, or mentioning something differently. It spends credits, so it never writes anything: it returns a button the user clicks. The rewrite runs under the same anti-hallucination rules as the original CV and works from the user\'s own documents, but those rules are instructions to a writer, not a proof, so never tell the user that nothing new can appear. Never offer to add an unsupported skill, metric, employer, certification or other claim first, and never suggest that adding it would make a later rewrite possible. Say the source documents do not support it and leave it out. Sections: summary, experience_bullets (one role), project_description (one project), custom_section_items (one custom section). Call get_cv_outline first and pass the handle of the entry for the three that need one.',
   parameters: {
     type: 'object',
     properties: {
@@ -500,7 +481,7 @@ const proposeCvRewrite: ChatTool = {
         credits_available: balance,
         section,
         entry: label,
-        note: 'A button is shown to the user. Say what it costs and tell them to confirm it there. Nothing is written and nothing is spent yet. The rewrite works from what is already in their documents: do not promise them it cannot add anything, and do not promise anything new will appear either. Tell them to read it when it lands.',
+        note: 'A button is shown to the user. Say what it costs and tell them to confirm it there. Nothing is written and nothing is spent yet. The rewrite works from what is already in their documents: do not promise them it cannot add anything, do not promise anything new will appear, and never offer to add an unsupported claim first. Tell them to read it when it lands.',
       },
       actions: [
         {

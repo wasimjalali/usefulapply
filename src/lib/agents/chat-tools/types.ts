@@ -107,6 +107,8 @@ export interface ChatToolContext {
 export interface ChatToolResult {
   /** Fed back to the model as the tool result. Small, factual, JSON-serializable. */
   data: unknown;
+  /** The handler threw. The route must surface this rather than trust a generic model fallback. */
+  failed?: true;
   executed?: ExecutedEffect[];
   /** Confirm chips for destructive proposals; the click is the second, confirming request. */
   actions?: ChatActionChip[];

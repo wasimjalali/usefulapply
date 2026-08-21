@@ -46,6 +46,9 @@ export async function executeChatTool(
     return await tool.handler(args, ctx);
   } catch (error) {
     console.error(`[chat-tools] ${name} failed:`, error);
-    return { data: { error: 'That lookup failed. Tell the user to try again in a moment.' } };
+    return {
+      data: { error: 'That action failed. Tell the user what did not run and to try again in a moment.' },
+      failed: true,
+    };
   }
 }

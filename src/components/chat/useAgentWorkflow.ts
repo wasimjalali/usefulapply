@@ -284,8 +284,8 @@ export function useAgentWorkflow(options?: {
     executed: unknown,
     userMessage: string,
     opts: { startedIn: string | null; suppressProposal: boolean },
-  ) => {
-    if (!Array.isArray(executed)) return;
+  ): string | null => {
+    if (!Array.isArray(executed)) return null;
     // Effects that write to the open application only make sense if the user
     // is still looking at the one that asked. Switching applications mid
     // request would otherwise overwrite the wrong row.
@@ -298,6 +298,7 @@ export function useAgentWorkflow(options?: {
     const lastCvEdit = (executed as ExecutedEffect[])
       .filter((effect) => effect.type === 'cv_structure_updated')
       .at(-1);
+    let cvRefusal: string | null = null;
     for (const effect of executed as ExecutedEffect[]) {
       if (effect.type === 'propose_application') {
         if (opts.suppressProposal || !stillHere) continue;
@@ -316,32 +317,22 @@ export function useAgentWorkflow(options?: {
         // silence on purpose.
         if (effect !== lastCvEdit) continue;
         const live = useSessionStore.getState().currentSession;
-        // The reply was added to the transcript above and it says the edit
-        // landed. Every path out of here that does not write has to say
-        // otherwise, or that claim stands in the transcript forever with an
-        // Undo button next to a change that was never made.
+        // The server reply may say the edit landed. Every path out of here that
+        // does not write has to replace that claim before it reaches the
+        // transcript or gets an Undo button.
         if (!stillHere || !live || live.id !== effect.sessionId) {
-          addChatMessage({
-            role: 'assistant',
-            content: 'That one didn\'t land. You moved to another application while I was working on it, so I left both CVs alone. Open that one again and ask me there.',
-          });
+          cvRefusal = 'That one didn\'t land. You moved to another application while I was working on it, so I left both CVs alone. Open that one again and ask me there.';
           continue;
         }
         if (!live.optimizedCVData) {
-          addChatMessage({
-            role: 'assistant',
-            content: 'That one didn\'t land. There\'s no tailored CV open here any more.',
-          });
+          cvRefusal = 'That one didn\'t land. There\'s no tailored CV open here any more.';
           continue;
         }
         // A canvas edit that landed while the request was in flight would be
         // silently clobbered by an object computed from the older CV. The
         // digest is content-based, so an identical reload still applies.
         if (cvStructureDigest(live.optimizedCVData) !== effect.baseDigest) {
-          addChatMessage({
-            role: 'assistant',
-            content: 'Your CV changed while I was working on that, so I left it alone. Ask me again and I\'ll work from what\'s there now.',
-          });
+          cvRefusal = 'Your CV changed while I was working on that, so I left it alone. Ask me again and I\'ll work from what\'s there now.';
           continue;
         }
         const applied = {
@@ -388,6 +379,7 @@ export function useAgentWorkflow(options?: {
         notifyJobFeedBadgeRefresh();
       }
     }
+    return cvRefusal;
   };
 
   const handleGeneralChat = async (
@@ -468,17 +460,21 @@ export function useAgentWorkflow(options?: {
 
       if (response.ok) {
         const { reply, actions, executed } = await response.json();
-        addChatMessage({
-          role: 'assistant',
-          content: reply,
-          actions: actions || [],
-        });
-        // After the reply lands: a navigation effect switches the view, and
-        // doing that first would move the screen before the sentence
-        // explaining it is readable.
-        applyExecutedEffects(executed, message, {
+        // Apply effects before committing the assistant turn. A CV effect can
+        // be refused when the canvas changed during the request, and in that
+        // case the transcript must contain the refusal instead of the model's
+        // stale success claim. The rejected edit cannot be undone because it
+        // never landed, so its Undo action is removed too.
+        const effectRefusal = applyExecutedEffects(executed, message, {
           startedIn,
           suppressProposal: Boolean(opts?.suppressProposal),
+        });
+        addChatMessage({
+          role: 'assistant',
+          content: effectRefusal || reply,
+          actions: effectRefusal
+            ? (actions || []).filter((action: { action?: string }) => !action.action?.startsWith('undo-cv-edit:'))
+            : actions || [],
         });
         // A real ad the model read as a question would otherwise be a dead
         // end: no card, no run, no way back. The client offers a manual way

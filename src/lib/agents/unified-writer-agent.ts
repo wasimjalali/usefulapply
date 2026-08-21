@@ -45,6 +45,11 @@ import {
   type ResolvedCVSection,
 } from './prompts/cv-prompt';
 import { flattenUntrusted, sanitizeAdText } from './chat-tools/untrusted';
+import {
+  claimAcronymPluralAliases,
+  claimStem as stemOf,
+  claimWords as words,
+} from './claim-token-normalization';
 import { buildCoverLetterSystemBlocks, buildCoverLetterUserPrompt } from './prompts/cover-letter-prompt';
 import { buildApplicationEmailUserPrompt, buildApplicationEmailSystemBlocks, buildFollowUpEmailUserPrompt, buildFollowUpEmailSystemBlocks } from './prompts/email-prompts';
 import { buildFitAssessmentPrompt, buildFitAssessmentSystemBlocks, computeFitLevel } from './prompts/fit-assessment-prompt';
@@ -280,18 +285,6 @@ function quantityTokens(text: string): string[] {
 // SECTION REWRITE: WORDS
 // -----------------------------------------------------
 
-/**
- * Technology names ordinary word tokenisation would shred into a single
- * letter. Normalised on both sides, so a CV listing C# supports a rewrite that
- * says C#, and a CV that never mentions it never gains it.
- */
-const SYMBOL_NAMES: Array<[RegExp, string]> = [
-  [/c\+\+/g, 'cplusplus'],
-  [/c#/g, 'csharp'],
-  [/f#/g, 'fsharp'],
-  [/\.net\b/g, 'dotnet'],
-];
-
 /** German spelling variants fold, so "fünf" and "fuenf" are one word. */
 function foldUmlauts(lower: string): string {
   return lower
@@ -299,30 +292,6 @@ function foldUmlauts(lower: string): string {
     .replace(/ö/g, 'oe')
     .replace(/ü/g, 'ue')
     .replace(/ß/g, 'ss');
-}
-
-/** Lowercased word tokens. Apostrophes fold, so "client's" is "clients". */
-function words(text: string): string[] {
-  let lower = foldUmlauts(text.toLowerCase()).replace(/['’]/g, '');
-  for (const [pattern, name] of SYMBOL_NAMES) lower = lower.replace(pattern, name);
-  return lower.match(/[\p{L}\p{N}]+/gu) || [];
-}
-
-/**
- * A crude stem, only enough that "managing", "manages" and "managed" are one
- * word. Deliberately does not strip "-er": collapsing "leader" onto "lead"
- * would let a CV saying "leading the migration" support a rewrite that says
- * "team leader", which is the exact upgrade this guard exists to catch.
- */
-function stemOf(word: string): string {
-  if (word.length < 5) return word;
-  if (word.endsWith('ies')) return `${word.slice(0, -3)}y`;
-  for (const suffix of ['ing', 'ed', 'es', 'ly', 's']) {
-    if (word.endsWith(suffix) && word.length - suffix.length >= 3) {
-      return word.slice(0, -suffix.length);
-    }
-  }
-  return word;
 }
 
 /**
@@ -520,6 +489,7 @@ interface SourceIndex {
 
 function indexSource(sourceText: string): SourceIndex {
   const tokens = new Set(words(sourceText));
+  for (const alias of claimAcronymPluralAliases(sourceText).values()) tokens.add(alias);
   const stems = new Set<string>();
   const parts = new Set<string>();
   for (const token of tokens) {
@@ -562,6 +532,7 @@ function indexSource(sourceText: string): SourceIndex {
  */
 function introducedClaims(afterText: string, sourceText: string): string[] {
   const source = indexSource(sourceText);
+  const acronymAliases = claimAcronymPluralAliases(afterText);
   const seen = new Set<string>();
   const introduced: string[] = [];
 
@@ -573,6 +544,8 @@ function introducedClaims(afterText: string, sourceText: string): string[] {
     if (isNeutral(word)) continue;
     if (source.tokens.has(word)) continue;
     if (source.stems.has(stemOf(word))) continue;
+    const acronymBase = acronymAliases.get(word);
+    if (acronymBase && (source.tokens.has(acronymBase) || source.stems.has(acronymBase))) continue;
     // A long word built around a word the CV does contain reads as a compound,
     // not a new claim: German and Dutch CVs make these constantly ("Optimierung
     // von Prozessen" rewritten as "Prozessoptimierung"). Only the candidate may
@@ -615,6 +588,7 @@ function unsupportedInstructionTerms(instruction: string, sourceText: string): s
     // here and here only: "lead" stays a claim everywhere it could reach a CV.
     .replace(/\b(?:lead|leading|open|opening|start|starting)\s+with\b/gi, ' ')
     .replace(SHAPE_NUMERAL, ' ');
+  const acronymAliases = claimAcronymPluralAliases(asked);
   for (const word of words(asked)) {
     if (seen.has(word)) continue;
     seen.add(word);
@@ -622,6 +596,8 @@ function unsupportedInstructionTerms(instruction: string, sourceText: string): s
     if (/^[\p{Nd}]+$/u.test(word)) continue;
     if (isNeutral(word)) continue;
     if (source.tokens.has(word) || source.stems.has(stemOf(word))) continue;
+    const acronymBase = acronymAliases.get(word);
+    if (acronymBase && (source.tokens.has(acronymBase) || source.stems.has(acronymBase))) continue;
     terms.push(word);
   }
   return terms;
