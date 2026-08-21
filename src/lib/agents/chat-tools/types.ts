@@ -8,6 +8,8 @@
  * which check ownership per query. Tool arguments never carry a user id.
  */
 
+import type { TailoredCV } from '@/lib/cv-structure/types';
+
 export type NavigateTarget = 'tracker' | 'documents' | 'billing' | 'job-feed';
 
 /** What the client is told happened, so stores refresh without a reload. */
@@ -15,6 +17,17 @@ export type ExecutedEffect =
   | { type: 'navigate'; target: NavigateTarget }
   | { type: 'tracker_updated'; sessionId: string; status: string }
   | { type: 'set_cv_template'; templateId: string }
+  /**
+   * The whole new CV object, computed server-side and shipped ready to apply.
+   *
+   * The server ships the result rather than an operation for the client to
+   * replay, so there is exactly one resolution point: the object the reply
+   * describes is byte-identically the object that gets written, and several
+   * operations in one turn compose on the server's working copy instead of
+   * racing on the client's. `baseDigest` is the digest of the CV the server
+   * started from, so the client can refuse if a canvas edit landed meanwhile.
+   */
+  | { type: 'cv_structure_updated'; sessionId: string; cv: TailoredCV; baseDigest: string }
   | { type: 'propose_application' }
   | { type: 'feed_settings_updated' }
   | { type: 'run_feed' }
@@ -43,6 +56,52 @@ export interface ChatToolContext {
   timeZone: string;
   /** The saved application the client is looking at, if any (UUID-validated by the route). */
   sessionId: string | null;
+  /**
+   * The tailored CV the canvas is showing right now, sent by the client and
+   * shape-checked by the route. Null when there is none.
+   *
+   * This is the first client-supplied CONTENT in this context, so: it is not a
+   * trust escalation. `useSupabaseSync` already writes whatever the store holds
+   * straight into D1, so a client sending a forged CV here is only editing its
+   * own document, which it can already do directly through the canvas. The
+   * handler deliberately does NOT read the CV from D1 instead: `getSession`
+   * returns what the 2-second debounced sync last wrote, so a user who saves a
+   * canvas edit and immediately asks the chat to reorder would have that edit
+   * silently reverted by a D1-derived write. The store is the source of truth
+   * and D1 is downstream of it.
+   *
+   * What the tools guarantee is narrower than trust, and it is the part that
+   * matters: THE MODEL CANNOT WRITE CONTENT. The operations only permute,
+   * delete and pick from a closed enum, and the conservation check in
+   * cv-structure/validate.ts proves it on every edit.
+   */
+  tailoredCV: TailoredCV | null;
+  /**
+   * Read-before-edit, enforced mechanically rather than by prompt.
+   * `get_cv_outline` sets this; every edit tool refuses while it is false.
+   *
+   * Mutable scratch on a request-scoped object. The route builds one
+   * toolContext per request and passes the same object to every call, so this
+   * cannot leak between users in a Worker isolate the way a module-level Map
+   * would.
+   */
+  cvOutlineRead: boolean;
+  /**
+   * The working copy each successful edit mutates, so a second operation in the
+   * same turn sees current handles and the operations compose into one final
+   * object rather than two edits racing from the same base.
+   */
+  cvWorking: TailoredCV | null;
+  /**
+   * The template the canvas is rendering, validated against the catalog by the
+   * route, null when the client sent none or an id we do not know.
+   *
+   * Needed because the templates truncate skills while rendering, so what an
+   * edit does to the OBJECT and what it does to the PAGE are different
+   * questions and only the template can answer the second. See
+   * cv-structure/render-caps.ts.
+   */
+  cvTemplateId: string | null;
 }
 
 export interface ChatToolResult {

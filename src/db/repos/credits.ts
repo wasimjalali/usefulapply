@@ -930,6 +930,12 @@ export interface ReserveCreditResult {
   error: string | null;
   available?: number;
   required?: number;
+  /**
+   * Set when the failure is a replayed idempotency key rather than an empty
+   * balance. Callers that surface a balance message can branch on it; the
+   * ones that do not still fail closed, which is the half that matters.
+   */
+  code?: 'RESERVATION_SPENT';
 }
 
 export interface CaptureOrReleaseResult {
@@ -975,7 +981,29 @@ export async function reserveCredits(params: {
   const amount = CREDIT_COSTS[action];
   const existing = await getReservationByKey(userId, idempotencyKey);
   if (existing) {
-    return { success: true, reservation: existing, error: null };
+    // Only a reservation still in flight dedupes. That is what the idempotency
+    // key is for: a retried fetch, or a double-fired click, reuses the credits
+    // already held rather than deducting twice.
+    //
+    // A key whose reservation has been captured or released is SPENT, and
+    // treating it as a fresh success was a way to buy generations for nothing:
+    // the key rides in on the client's own `x-request-id` header, so replaying
+    // a spent id ran the model again, returned the document, and never moved
+    // the balance. Every paid path built on this helper was affected.
+    //
+    // Genuine retries are unharmed. Every caller mints a fresh request id per
+    // click, so a user retrying after a failure reserves normally; only a
+    // deliberate replay of a spent id lands here.
+    if (existing.status === 'reserved') {
+      return { success: true, reservation: existing, error: null };
+    }
+    return {
+      success: false,
+      reservation: existing,
+      error: `Reservation ${idempotencyKey} is already ${existing.status}`,
+      code: 'RESERVATION_SPENT',
+      required: amount,
+    };
   }
 
   const deductResult = await deductCredits(userId, action, {

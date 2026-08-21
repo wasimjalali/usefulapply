@@ -46,9 +46,18 @@ export function flattenInstruction(value: string): string {
  * All-caps block labels the writer prompts use as structure. Case-sensitive on
  * purpose: an ad using these words in ordinary prose is already lowercase and
  * is left untouched. Only the shouted, chrome-shaped form is neutralised.
+ *
+ * The list is a fixed enumeration, so a new all-caps heading added to a writer
+ * prompt is forgeable in the lowercase sense until it is added here. Adding a
+ * labelled block to a prompt and adding its label here are one change, not two.
+ *
+ * Order matters where one label is a prefix of another: alternation is
+ * leftmost-first, so the longer form has to come first or only its prefix gets
+ * lowercased.
  */
 const CHROME_LABELS = new RegExp(
   [
+    // Shared instruction chrome (cover letter, application email, follow-up).
     "APPLICANT[’']?S REWRITE INSTRUCTION",
     'BINDING LIMITS',
     'TWO CHANNELS',
@@ -61,6 +70,7 @@ const CHROME_LABELS = new RegExp(
     'VERIFICATION CHECK',
     'PRIMARY CV',
     'MASTER CV',
+    'VERIFIED METRICS LIST',
     'VERIFIED METRICS',
     'VERIFIED SKILL CONSTRAINT',
     'SKILLS YOU MAY CLAIM',
@@ -68,6 +78,63 @@ const CHROME_LABELS = new RegExp(
     'RELOCATION CONSTRAINT',
     'JOB-RELEVANT CONTEXT',
     'JOB DESCRIPTION',
+
+    // CV prompt chrome (src/lib/agents/prompts/cv-prompt.ts). The CV prompt is
+    // the one whose whole job is refusing to claim skills the CV does not have,
+    // so its own binding lists are the most valuable thing an ad could forge.
+    'VERIFIED SKILL LIST',
+    'VERIFIED MATCHING SKILLS',
+    'VERIFIED MISSING SKILLS',
+    'YOUR ROLE',
+    '"CHANGES" TAB LOGIC',
+    'HARD RULES',
+    // Shouted authority decoration the CV prompt puts beside its binding lists.
+    'DO NOT OVERRIDE',
+    'DO NOT ADD TO CV',
+    'BINDING CONSTRAINT',
+    'CV-FIT ASSESSMENT BINDING',
+    'TARGET JOB',
+    'CRITICAL RULES',
+    'DUAL-CV SOURCE RULES',
+    'SOURCING PRIORITY',
+    'DATA PRESERVATION RULES',
+    'OPTIMIZATION STRATEGY',
+    'EXPERIENCE SELECTION RULES',
+    'EXPERIENCE BULLET ACCURACY',
+    'QUANTIFIED CLAIMS RULE',
+    'THE FABRICATION TEST',
+    'SKILL ACCURACY',
+    'SKILL CATEGORIZATION',
+    'SKILL PROFICIENCY LEVEL PRESERVATION',
+    'METRIC ACCURACY',
+    'LANGUAGE PROFICIENCY ACCURACY',
+    'LANGUAGE CONSISTENCY',
+    'LANGUAGE RULE',
+    // Bare "=== LANGUAGE ===" is a heading in the CV user prompt. It has to sit
+    // after the three longer LANGUAGE labels or it eats their prefix.
+    'LANGUAGE',
+    'OCR CLEANUP',
+    'EDUCATION FIELD MAPPING',
+    'EDUCATION FORMATTING',
+    "DRIVER[’']?S LICENSE",
+    'ATS OPTIMIZATION',
+    'LENGTH & FORMAT CONSTRAINTS',
+    'OUTPUT COMPLETENESS',
+    'OUTPUT FORMAT',
+    'BANNED PUNCTUATION',
+    'BANNED AI-TELL PHRASES',
+    'NON-NEGOTIABLE',
+    // The anti-hallucination block is a numbered rule list, so "RULE 4b" is
+    // itself chrome an ad could restate with its own contents.
+    'RULE \\d+[a-dA-D]?',
+
+    // Section rewrite chrome (buildCVSectionRewriteUserPrompt).
+    'SECTION REWRITE SCOPE',
+    'SCOPE LOCK',
+    'CURRENT SECTION CONTENT',
+    'SECTION OUTPUT FORMAT',
+    'NUMBERS IN THIS SECTION',
+    'SHAPE RULE',
   ].join('|'),
   'g',
 );

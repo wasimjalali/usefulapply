@@ -25,13 +25,15 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 
 ## Found in batch 2 (Application Kit canvas)
 
-### Rewrite instructions never reach the writer
+### Rewrite instructions never reach the writer - CLOSED
+- **Closed 2026-08-21 (agentic chat Phase 4).** `MasterContext.userInstruction` exists, `/api/regenerate` takes an `instruction`, and the cover letter, email and follow-up prompts carry it in their own delimited block. It is capped at 300 characters and refused out loud over the cap, never truncated. An instruction never bends the anti-hallucination rules: if it asks for something the source CVs do not support, it is dropped. Verified in the Phase 4 Chrome pass with three hallucination tests.
 - **UI today:** the user types "make the cover letter shorter, two paragraphs, keep the churn number", the chat prices it ("Rewriting the cover letter costs 0.5 credits (you have 2.5). It's a fresh draft, not an edit of this one."), one gold chip runs it, the stage and done line follow. The instruction itself is not sent.
 - **Missing:** `/api/regenerate` takes `{ type, context }` only and `MasterContext` has no instruction field; the cover letter, email and follow-up prompts in `src/lib/agents/prompts/*` cannot take a user request. The K3 artboard shows the stage detail "Two paragraphs, churn result kept in the opening line", which needs the writer to honour and echo the request.
 - **Where:** UI `src/components/ChatPanel.tsx` (`startRegenPrompt`, `confirmRegen`), client `src/lib/regenerate-client.ts` (`regenerateDocument`), route `src/app/api/regenerate/route.ts`, agent `src/lib/agents/unified-writer-agent.ts` + prompts.
 - **Needs:** an `instruction` field on the regenerate payload and MasterContext, prompt blocks that apply it without breaking anti-hallucination rules, a stage detail line returned to the client. Medium. Decision: does an instructed rewrite cost the same 0.5?
 
-### CV rewrite from the chat
+### CV rewrite from the chat - CLOSED (at section scope)
+- **Closed 2026-08-21 (agentic chat Phase 5).** `/api/regenerate` takes `type: 'cv_section'` at `CREDIT_COSTS.CV_SECTION_REWRITE` (0.5), scoped to one section: summary, one role's bullets, one project description, or one custom section's items. Skills and certifications are deliberately excluded, because "rewriting" a skill name or a credential is fabrication, not prose. The chat also gained mechanical edits (reorder, delete, rename heading) that cost nothing and cannot write a character of new prose. A whole-CV regen is still only the full kit run; nobody has asked for one.
 - **UI today:** "rewrite my CV summary" gets a plain reply pointing at Edit on the CV tab or a fresh kit. No chip, no charge.
 - **Missing:** no regenerate type for the CV. The only way to re-tailor the CV is the full kit run (2 credits, rewrites everything).
 - **Where:** `src/lib/regenerate-client.ts` (`detectRegenTarget` returns `'cv'`), `src/components/ChatPanel.tsx` (`routeKitMessage`), route + agent as above.
@@ -224,6 +226,13 @@ Nothing recorded. If the batch 1 session left something out, add it here.
 ### CreditIndicator is dead UI that still links at the old routes - CLOSED
 - **Was:** `CreditIndicator.tsx` was rendered nowhere but could not be deleted, because `LowCreditsModal` and `LowCreditsBanner` imported its `CREDIT_UPDATE_EVENT`.
 - **Resolved in the post-batch sweep (pass 1, 19 August 2026):** all three components had zero inbound references and are deleted. The live event path was already elsewhere, `src/lib/utils/creditEvents.ts` plus `src/hooks/useCreditsBalance.ts`, so nothing had to move.
+
+### Base CV editing from the chat is display-only, so it was left out
+
+- **UI today:** the Documents pane lets you edit the base CV. Those edits land in `_editedCVData`, merged into the primary CV document's `structured_data`.
+- **Missing:** `useSupabaseSync` calls `_editedCVData` "a UI overlay, not a content change", and it is exactly that. It feeds only the CV canvas's Original view. The writer's anti-hallucination source is the document's `raw_text` string, which the overlay never touches, and the career profile and job feed read `structured_data`'s real fields, which it also never touches. So deleting a bullet from the base CV does not stop the writer claiming it, and does not change what the feed thinks you do.
+- **Where:** `src/hooks/useSupabaseSync.ts` (the sync and the "do NOT bump updated_at" comment), `src/store/useCVStore.ts`, `src/lib/cv-templates/build-cv-data.ts`.
+- **Needs:** a decision about whether base CV edits should be real. Making them real means re-rendering `raw_text` from the edited `CVData` (a lossy reverse-render of a parsed document) and invalidating the career profile, which rewrites the provenance every anti-hallucination guard checks against. That is its own phase with its own review. **Agreed with Wasim on 21 Aug 2026:** Phase 5 edits the tailored CV only, and this stays open rather than shipping a chat feature whose main job would be explaining what it does not do.
 
 ## Found in batch 5 (auth + marketing)
 

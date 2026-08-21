@@ -302,3 +302,220 @@ export async function regenerateFollowUpForSession(
     return { ok: false, code: 'ERROR' };
   }
 }
+
+/**
+ * One section of the tailored CV, rewritten by the Sonnet writer.
+ *
+ * Unlike the three document rewrites above, this one sends `optimizedCVData`
+ * with the request: the store is the source of truth for the tailored CV and
+ * D1 is downstream of a debounced write, so the server must operate on what
+ * the canvas is showing rather than on what has made it to the database.
+ *
+ * `applied` is computed on the server by diffing the returned section against
+ * the section as it stands, so a refusal is a fact rather than a claim. When
+ * the writer will not honour part of the instruction the section is left
+ * exactly as it was and nothing is charged.
+ */
+export type CvSectionRewriteResult =
+  | { ok: true; applied: true; label: string; omitted: string[]; sessionId: string }
+  | { ok: true; applied: false; message: string; sessionId: string }
+  | { ok: false; code: 'INSUFFICIENT_CREDITS'; required: number; available: number }
+  | { ok: false; code: 'NO_CONTEXT' }
+  | { ok: false; code: 'SIGNED_OUT' }
+  | { ok: false; code: 'ERROR' };
+
+/**
+ * The rewrite targets the route accepts, mirroring CVSectionKind in
+ * src/lib/agents/prompts/cv-prompt.ts. Exported as a value so the chip handler
+ * can check a section name off the wire before it spends anything.
+ */
+export const CV_REWRITE_SECTIONS = [
+  'summary',
+  'experience_bullets',
+  'project_description',
+  'custom_section_items',
+] as const;
+
+export type CvRewriteSection = (typeof CV_REWRITE_SECTIONS)[number];
+
+/**
+ * Writes the rewritten section onto the tailored CV. Only the one field the
+ * rewrite targeted changes, so `analysis`, `sectionHeaders` and
+ * `localizedStrings` survive by construction rather than by reassembly, which
+ * is the same guarantee CVPanel.onSave gets by listing them.
+ *
+ * Returns null when the target is no longer on the CV. That is not an error
+ * worth throwing: the section was deleted while the rewrite ran, and the
+ * honest outcome is to leave the document alone.
+ */
+/**
+ * The FIRST entry with this id, matching how `resolveCVSectionTarget` on the
+ * server picks the entry it rewrites. Entry ids come from model-generated JSON
+ * and nothing enforces that they are unique, which is why the structure tools
+ * address items by a hash of their content instead. This path has to use the
+ * id, because that is what the rewrite contract takes, so the least it can do
+ * is resolve it the same way both ends do. Writing every match would rewrite a
+ * role the user never named and destroy its bullets.
+ */
+function firstIndexById(list: Array<{ id: string }>, id: string | undefined): number {
+  if (!id) return -1;
+  return list.findIndex((entry) => entry.id === id);
+}
+
+function applyRewrittenSection(
+  cv: NonNullable<ApplicationSession['optimizedCVData']>,
+  kind: CvRewriteSection,
+  id: string | undefined,
+  content: string | string[],
+): NonNullable<ApplicationSession['optimizedCVData']> | null {
+  if (kind === 'summary') {
+    if (typeof content !== 'string') return null;
+    return { ...cv, summary: content };
+  }
+  if (kind === 'experience_bullets') {
+    if (!Array.isArray(content)) return null;
+    const at = firstIndexById(cv.experience, id);
+    if (at < 0) return null;
+    const experience = [...cv.experience];
+    experience[at] = { ...experience[at], bullets: content };
+    return { ...cv, experience };
+  }
+  if (kind === 'project_description') {
+    if (typeof content !== 'string' || !cv.projects) return null;
+    const at = firstIndexById(cv.projects, id);
+    if (at < 0) return null;
+    const projects = [...cv.projects];
+    projects[at] = { ...projects[at], description: content };
+    return { ...cv, projects };
+  }
+  if (!Array.isArray(content) || !cv.customSections) return null;
+  const at = firstIndexById(cv.customSections, id);
+  if (at < 0) return null;
+  const customSections = [...cv.customSections];
+  customSections[at] = { ...customSections[at], items: content };
+  return { ...cv, customSections };
+}
+
+export async function rewriteCvSection(
+  section: CvRewriteSection,
+  entryId: string,
+  expectedSessionId: string,
+  instruction?: string,
+  requestId: string = generateRequestId(),
+): Promise<CvSectionRewriteResult> {
+  const context = buildContext();
+  if (!context) return { ok: false, code: 'NO_CONTEXT' };
+  const sessionId = context.sessionId;
+  // Same structural guard the document rewrites use: the chip quoted a cost
+  // for one application, so a switch between the quote and the click drops the
+  // request rather than spending against the wrong job.
+  if (expectedSessionId !== sessionId) return { ok: false, code: 'NO_CONTEXT' };
+
+  const live = useSessionStore.getState().currentSession?.optimizedCVData;
+  if (!live) return { ok: false, code: 'NO_CONTEXT' };
+
+  const cleanInstruction = instruction ? flattenInstruction(instruction).slice(0, MAX_INSTRUCTION_CHARS) : '';
+
+  try {
+    const response = await fetch('/api/regenerate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-request-id': requestId },
+      body: JSON.stringify({
+        type: 'cv_section',
+        context: { ...context, optimizedCVData: live },
+        section: { kind: section, ...(entryId ? { id: entryId } : {}) },
+        ...(cleanInstruction ? { instruction: cleanInstruction } : {}),
+      }),
+    });
+
+    if (response.status === 401) return { ok: false, code: 'SIGNED_OUT' };
+    if (response.status === 402) {
+      const data = await response.json().catch(() => null);
+      return {
+        ok: false,
+        code: 'INSUFFICIENT_CREDITS',
+        required: data?.details?.required ?? CREDIT_COSTS.CV_SECTION_REWRITE,
+        available: data?.details?.available ?? 0,
+      };
+    }
+    // The route settles NO_SOURCE_CV, NO_CV_DATA and INVALID_SECTION before it
+    // reserves anything, so a 400 means nothing ran and nothing was charged.
+    // Saying so matters: INVALID_SECTION is reachable in ordinary use, because
+    // the chip carries an entry id frozen at proposal time and the entry can be
+    // deleted from the canvas before the click. Falling through to the generic
+    // error would tell the user a rewrite they never paid for might have landed.
+    if (response.status === 400) {
+      return {
+        ok: true,
+        applied: false,
+        message: 'That section is not on your CV any more, so nothing ran. Nothing was charged.',
+        sessionId,
+      };
+    }
+    if (!response.ok) {
+      console.error('[CV section rewrite] failed:', response.status);
+      return { ok: false, code: 'ERROR' };
+    }
+
+    const data = await response.json();
+    if (data.applied !== true) {
+      // Refused or unchanged. The section was not touched and the route has
+      // already released the reservation, so there is nothing to write here.
+      return {
+        ok: true,
+        applied: false,
+        message: typeof data.message === 'string' && data.message.trim()
+          ? data.message
+          : 'That section is unchanged.',
+        sessionId,
+      };
+    }
+
+    // Re-read at write time rather than reusing `live`: a canvas edit may have
+    // landed while the writer ran, and rebuilding from the stale copy would
+    // silently revert it. The rewritten section still goes on, because that is
+    // what was paid for; everything else comes from what is stored now. Read
+    // by id, not from currentSession, so the result lands on the application
+    // that asked for it even if the user has moved to another one.
+    const { currentSession, sessions } = useSessionStore.getState();
+    const target = currentSession?.id === sessionId
+      ? currentSession
+      : sessions.find((candidate) => candidate.id === sessionId);
+    const next = target?.optimizedCVData
+      ? applyRewrittenSection(target.optimizedCVData, section, entryId || undefined, data.content)
+      : null;
+    if (!next) {
+      // The credits are spent: the route captured before it answered. Say so
+      // rather than implying a free retry, which is the mistake Phase 4 fixed
+      // on the follow-up route.
+      return {
+        ok: true,
+        applied: false,
+        message: 'That section is not on your CV any more, so the rewrite had nowhere to land. It was still charged.',
+        sessionId,
+      };
+    }
+    useSessionStore.getState().updateSessionById(sessionId, { optimizedCVData: next });
+    triggerCreditUpdate();
+    return {
+      ok: true,
+      applied: true,
+      label: typeof data.label === 'string' ? data.label : '',
+      // What the writer would not put in, on a rewrite that otherwise
+      // succeeded. Half of it is the model's own wording, so it is advisory and
+      // the reply says "left out" rather than stating it as a finding. Capped
+      // and flattened server-side; re-capped here because a UI string should
+      // never trust a length promise it did not make itself.
+      omitted: Array.isArray(data.omitted)
+        ? data.omitted
+          .filter((entry: unknown): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+          .slice(0, 5)
+          .map((entry: string) => entry.trim().slice(0, 120))
+        : [],
+      sessionId,
+    };
+  } catch (error) {
+    console.error('[CV section rewrite] error:', error);
+    return { ok: false, code: 'ERROR' };
+  }
+}

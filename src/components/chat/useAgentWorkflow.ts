@@ -26,6 +26,8 @@ import { openSettings } from '@/store/useSettingsStore';
 import { writeDefaultTemplate } from '@/lib/cv-templates/default-template';
 import { loadFeedOverview, loadSavedFeedJobs } from '@/components/job-feed/feed-actions';
 import { useFeedStore } from '@/store/useFeedStore';
+import { cvStructureDigest } from '@/lib/cv-structure/validate';
+import { rememberUndo } from '@/lib/cv-structure/undo';
 import type { JobFeedApplicationGeneration } from '@/lib/supabase/types';
 import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
 
@@ -288,6 +290,14 @@ export function useAgentWorkflow(options?: {
     // is still looking at the one that asked. Switching applications mid
     // request would otherwise overwrite the wrong row.
     const stillHere = useSessionStore.getState().currentSession?.id === opts.startedIn;
+    // Several structure edits in one turn each ship the WHOLE composed object
+    // from the server's working copy, so the last one already contains all of
+    // them. Applying them in sequence would fail every one after the first, on
+    // its own base digest, and leave the CV half way through what the reply
+    // says happened. Only the last one is applied.
+    const lastCvEdit = (executed as ExecutedEffect[])
+      .filter((effect) => effect.type === 'cv_structure_updated')
+      .at(-1);
     for (const effect of executed as ExecutedEffect[]) {
       if (effect.type === 'propose_application') {
         if (opts.suppressProposal || !stillHere) continue;
@@ -300,6 +310,54 @@ export function useAgentWorkflow(options?: {
         useUIStore.getState().setCvTemplateId(effect.templateId);
         useAppStore.getState().updateCurrentSession({ selectedTemplate: effect.templateId });
         writeDefaultTemplate(effect.templateId);
+      } else if (effect.type === 'cv_structure_updated') {
+        // Not a failure: several edits in one turn each ship the whole composed
+        // object, so only the last one is the edit. The others are dropped in
+        // silence on purpose.
+        if (effect !== lastCvEdit) continue;
+        const live = useSessionStore.getState().currentSession;
+        // The reply was added to the transcript above and it says the edit
+        // landed. Every path out of here that does not write has to say
+        // otherwise, or that claim stands in the transcript forever with an
+        // Undo button next to a change that was never made.
+        if (!stillHere || !live || live.id !== effect.sessionId) {
+          addChatMessage({
+            role: 'assistant',
+            content: 'That one didn\'t land. You moved to another application while I was working on it, so I left both CVs alone. Open that one again and ask me there.',
+          });
+          continue;
+        }
+        if (!live.optimizedCVData) {
+          addChatMessage({
+            role: 'assistant',
+            content: 'That one didn\'t land. There\'s no tailored CV open here any more.',
+          });
+          continue;
+        }
+        // A canvas edit that landed while the request was in flight would be
+        // silently clobbered by an object computed from the older CV. The
+        // digest is content-based, so an identical reload still applies.
+        if (cvStructureDigest(live.optimizedCVData) !== effect.baseDigest) {
+          addChatMessage({
+            role: 'assistant',
+            content: 'Your CV changed while I was working on that, so I left it alone. Ask me again and I\'ll work from what\'s there now.',
+          });
+          continue;
+        }
+        const applied = {
+          ...effect.cv,
+          // Same three keys CVPanel.onSave preserves. sectionHeaders comes from
+          // the effect, because rename_heading is the one operation that
+          // legitimately changes it.
+          analysis: live.optimizedCVData.analysis,
+          localizedStrings: live.optimizedCVData.localizedStrings,
+        };
+        // The snapshot is the live object itself, so undo restores analysis,
+        // sectionHeaders and localizedStrings by construction. The digest of
+        // what we are about to write rides along, so a later canvas edit or a
+        // confirmed delete makes the Undo chip refuse instead of reverting it.
+        rememberUndo(live.id, live.optimizedCVData, cvStructureDigest(applied));
+        useAppStore.getState().updateCurrentSession({ optimizedCVData: applied });
       } else if (effect.type === 'navigate') {
         if (effect.target === 'tracker') setActiveTab('tracker');
         else if (effect.target === 'job-feed') setActiveTab('jobs');
@@ -394,6 +452,14 @@ export function useAgentWorkflow(options?: {
             sessionId: currentSession?.id,
             timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             cvTemplateId: useUIStore.getState().cvTemplateId,
+            // The tailored CV the canvas is showing, for the structure tools.
+            // Sent from the store rather than read server-side from D1: the
+            // sync into D1 is debounced by two seconds, so a canvas edit the
+            // user just saved would otherwise be reverted by an edit computed
+            // from the older row. Omitted entirely when there is none.
+            ...(currentSession?.optimizedCVData
+              ? { optimizedCVData: currentSession.optimizedCVData }
+              : {}),
             ...screeningContext,
           },
         }),

@@ -6,6 +6,8 @@ export const CREDIT_COSTS = {
   COVER_LETTER_REGEN: 0.5,
   EMAIL_REGEN: 0.5,
   FOLLOW_UP_REGEN: 0.5,
+  /** One section of an already-tailored CV. Priced with the other single-document rewrites, approved 2026-08-21. */
+  CV_SECTION_REWRITE: 0.5,
 } as const;
 
 export type CreditAction = keyof typeof CREDIT_COSTS;
@@ -30,6 +32,7 @@ export const CREDIT_ACTION_KIND: Record<CreditAction, CreditTransactionKind> = {
   COVER_LETTER_REGEN: 'rewrite',
   EMAIL_REGEN: 'rewrite',
   FOLLOW_UP_REGEN: 'rewrite',
+  CV_SECTION_REWRITE: 'rewrite',
 };
 
 /**

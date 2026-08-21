@@ -43,8 +43,15 @@ import { useCreditsBalance, formatResetDate } from '@/hooks/useCreditsBalance';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { usePostHog } from 'posthog-js/react';
 import { NamedStages } from '@/components/shell/NamedStages';
-import { REGEN_META, detectRegenTarget, instructionFromMessage, regenerateDocument, regenerateFollowUpForSession, type RegenTarget } from '@/lib/regenerate-client';
+import { CV_REWRITE_SECTIONS, REGEN_META, detectRegenTarget, instructionFromMessage, regenerateDocument, regenerateFollowUpForSession, rewriteCvSection, type CvRewriteSection, type RegenTarget } from '@/lib/regenerate-client';
 import { generateRequestId } from '@/lib/utils/requestId';
+// The confirm path re-resolves and re-validates with the same pure functions
+// the server used, so the two can never disagree about what a handle means.
+import { resolveHandle } from '@/lib/cv-structure/handles';
+import { applyDelete } from '@/lib/cv-structure/ops';
+import { cvStructureDigest, validateEdit } from '@/lib/cv-structure/validate';
+import { renderVisibility } from '@/lib/cv-structure/render-caps';
+import { parseUndoChip, takeUndo } from '@/lib/cv-structure/undo';
 import { looksLikeScreeningQuestion, parseScreeningAnswers, SCREENING_TURN_CAP } from '@/lib/screening-answers';
 
 /**
@@ -262,10 +269,20 @@ export function ChatPanel({
   // instruction from an earlier message.
   const [pendingRegen, setPendingRegen] = useState<PendingRegen | null>(null);
   const [runningRegen, setRunningRegen] = useState<RegenTarget | null>(null);
+  // A CV section rewrite is paid and takes as long as a document rewrite, so
+  // it needs its own progress line. It is a separate flag rather than a fourth
+  // RegenTarget because REGEN_META and regenerateDocument are both keyed on
+  // that union, and a CV section is not one of the three documents they write.
+  const [runningCvRewrite, setRunningCvRewrite] = useState(false);
   const [runningScreening, setRunningScreening] = useState(false);
   // Refs, not state: a guard that flips synchronously so a double click never
   // starts a second paid request.
   const regenInFlightRef = useRef(false);
+  const cvRewriteInFlightRef = useRef(false);
+  // The message that raised a CV rewrite chip. Ephemeral on purpose: it is
+  // replaced by the next message sent, so a chip further up the conversation
+  // can never run against a note the user has since changed.
+  const cvRewriteNoteRef = useRef<{ text: string; sessionId: string | null } | null>(null);
   const screeningInFlightRef = useRef(false);
   const setRegenStage = useUIStore((state) => state.setRegenStage);
   const requestKitDownload = useUIStore((state) => state.requestKitDownload);
@@ -966,13 +983,11 @@ export function ChatPanel({
     const openTab = useUIStore.getState().activeTab;
     const openDocument = openTab === 'cover-letter' ? 'cover-letter' : openTab === 'email' ? 'email' : openTab === 'cv' ? 'cv' : null;
     const target = detectRegenTarget(text, openDocument);
-    if (target === 'cv') {
-      addChatMessage({
-        role: 'assistant',
-        content: 'I can\'t rewrite the CV on its own yet. Use Edit on the CV tab to change any line, or paste the job ad again for a fresh kit.',
-      });
-      return true;
-    }
+    // The CV is no longer a dead end: the chat can reorder it, drop an item,
+    // switch a heading, or price a section rewrite. Fall through so the model
+    // reads the outline and picks the right one of those, rather than
+    // answering here with a rule about what it can and cannot do.
+    if (target === 'cv') return false;
     if (target) {
       // The message that asked for the rewrite is the instruction. A message
       // too long to be a request is refused out loud, not silently dropped.
@@ -1003,6 +1018,9 @@ export function ChatPanel({
     setPendingDecisionJd(null);
     setAdFallbackJd(null);
     setPendingRegen(null);
+    // This message replaces any earlier rewrite note. A CV rewrite chip raised
+    // by the reply to it may use it; one raised before it may not.
+    cvRewriteNoteRef.current = { text, sessionId: currentSession?.id ?? null };
     if (spine && currentSession?.generatedCV && (isScreeningMode || !isObviousJobAd(text))) {
       const draft = text;
       setInputValue('');
@@ -1058,6 +1076,224 @@ export function ChatPanel({
   const followUpInFlight = useRef<Set<string>>(new Set());
 
   const handleAction = async (action: string) => {
+    // One entry removed from the tailored CV, proposed by delete_cv_item.
+    //
+    // This click can land arbitrarily long after the proposal, so unlike the
+    // immediate reorder path it re-checks reality rather than trusting what the
+    // reply said: it re-resolves the handle against the LIVE store CV with the
+    // same shared resolver the server used, then re-runs the full validator.
+    // Content-derived handles make that a real check. If the entry is gone or
+    // its text has changed, resolution fails instead of hitting a neighbour.
+    if (action.startsWith('confirm-cv-delete:')) {
+      const rest = action.slice('confirm-cv-delete:'.length);
+      const split = rest.indexOf(':');
+      const sessionId = split > 0 ? rest.slice(0, split) : '';
+      const handle = split > 0 ? rest.slice(split + 1) : '';
+      if (!sessionId || !handle || handle.length > 120) return;
+      const live = useSessionStore.getState().currentSession;
+      if (!live || live.id !== sessionId) {
+        addChatMessage({
+          role: 'assistant',
+          content: 'That was for a different application. Open it and ask me again there.',
+        });
+        return;
+      }
+      const before = live.optimizedCVData;
+      if (!before) {
+        addChatMessage({ role: 'assistant', content: 'There\'s no tailored CV open here any more.' });
+        return;
+      }
+      if (!resolveHandle(before, handle)) {
+        addChatMessage({
+          role: 'assistant',
+          content: 'That one\'s already gone, or it\'s changed since I offered it. Ask me again and I\'ll look at what\'s there now.',
+        });
+        return;
+      }
+      const result = applyDelete(before, handle);
+      if (!result.ok) {
+        addChatMessage({ role: 'assistant', content: result.error });
+        return;
+      }
+      const failure = validateEdit(before, result.cv, { removed: result.removed });
+      if (failure) {
+        addChatMessage({ role: 'assistant', content: failure });
+        return;
+      }
+      // Same three keys CVPanel.onSave preserves, and no undo chip: the confirm
+      // was the safety net, and one mechanism per operation.
+      useSessionStore.getState().updateCurrentSession({
+        optimizedCVData: {
+          ...result.cv,
+          analysis: before.analysis,
+          localizedStrings: before.localizedStrings,
+        },
+      });
+      // Templates cap how many skill groups and how many items per group they
+      // render, so an entry past the cap can be deleted with the page looking
+      // identical. Saying "it's off your CV" there is true of the document and
+      // useless to someone comparing it against the canvas.
+      const stillLooksTheSame = renderVisibility(
+        before,
+        result.cv,
+        useUIStore.getState().cvTemplateId,
+      ).pageUnchanged;
+      addChatMessage({
+        role: 'assistant',
+        content: stillLooksTheSame
+          ? 'Removed. It was already past what this template shows, so the page looks the same.'
+          : 'Removed. It\'s off your CV.',
+      });
+      return;
+    }
+    // Undo of the last immediate structure edit. Entirely client-side: the slot
+    // holds the live store object from just before the edit, so putting it back
+    // restores analysis, sectionHeaders and localizedStrings exactly.
+    // The chip carries the digest of the CV its own edit produced, so a chip
+    // further up the conversation refuses instead of reverting whatever the
+    // newest edit was. Chips persisted before that carried no digest and still
+    // parse; they fall back to the live-digest check they always had.
+    if (action.startsWith('undo-cv-edit:')) {
+      const target = action.slice('undo-cv-edit:'.length);
+      const chip = parseUndoChip(target);
+      if (!chip) return;
+      const live = useSessionStore.getState().currentSession;
+      const snapshot = live && live.id === chip.sessionId && live.optimizedCVData
+        ? takeUndo(target, cvStructureDigest(live.optimizedCVData))
+        : null;
+      if (!snapshot) {
+        // No claim about where the change is. It may have been superseded, it
+        // may belong to another application, or it may never have landed at
+        // all, and this handler cannot tell those apart.
+        addChatMessage({
+          role: 'assistant',
+          content: 'I can\'t undo that one from here. Check the CV canvas for what\'s actually on it.',
+        });
+        return;
+      }
+      useSessionStore.getState().updateCurrentSession({ optimizedCVData: snapshot });
+      addChatMessage({ role: 'assistant', content: 'Put back the way it was.' });
+      return;
+    }
+    // A CV section rewrite, proposed by propose_cv_rewrite. The click is the
+    // confirming second request and the only thing that spends credits: the
+    // tool handler never calls the route.
+    //
+    // The instruction is deliberately NOT in the action string. This chip is
+    // persisted in message history and survives reloads, so an instruction
+    // baked into it would become a stale note that outlives the conversation,
+    // which is the shape Phase 4 rejected for the follow-up. It rides ephemeral
+    // state instead: the message that raised the chip, usable only while that
+    // chip is still the newest thing said. Scroll back to an older one and it
+    // is a plain rewrite of that section, which is what its label promises.
+    if (action.startsWith('confirm-cv-rewrite:')) {
+      if (!user) return;
+      const rest = action.slice('confirm-cv-rewrite:'.length);
+      const firstColon = rest.indexOf(':');
+      const sessionId = firstColon > 0 ? rest.slice(0, firstColon) : '';
+      const afterSession = firstColon > 0 ? rest.slice(firstColon + 1) : '';
+      const secondColon = afterSession.indexOf(':');
+      // The entry id is opaque and may itself carry a colon, so only the first
+      // two separators are structural.
+      const section = secondColon >= 0 ? afterSession.slice(0, secondColon) : afterSession;
+      const entryId = secondColon >= 0 ? afterSession.slice(secondColon + 1) : '';
+      if (!sessionId || sessionId.length > 100) return;
+      if (!CV_REWRITE_SECTIONS.includes(section as CvRewriteSection)) return;
+      if (cvRewriteInFlightRef.current) return;
+      // Shared with the follow-up and the document rewrites: two paid paths
+      // running at once clear each other's stage and drop a result in silence
+      // after the credits are spent.
+      if (regenInFlightRef.current) {
+        addChatMessage({
+          role: 'assistant',
+          content: 'One rewrite at a time. Let this one finish and ask again.',
+        });
+        return;
+      }
+      const live = useSessionStore.getState().currentSession;
+      if (live?.id !== sessionId) {
+        addChatMessage({
+          role: 'assistant',
+          content: 'That rewrite was for a different application. Open it and ask me again there. Nothing was charged.',
+        });
+        return;
+      }
+      if (!live.optimizedCVData) {
+        addChatMessage({
+          role: 'assistant',
+          content: 'There\'s no tailored CV open here any more, so there\'s no section to rewrite. Nothing was charged.',
+        });
+        return;
+      }
+      // Only the newest reply's chip carries the note that asked for it. Any
+      // message since has replaced what the user wants, so an older chip runs
+      // without one rather than applying a request they have moved on from.
+      const latest = messages[messages.length - 1];
+      const isNewest = latest?.role === 'assistant'
+        && (latest.actions || []).some((chip) => chip.action === action);
+      const note = isNewest && cvRewriteNoteRef.current?.sessionId === sessionId
+        ? cvRewriteNoteRef.current.text
+        : null;
+      cvRewriteInFlightRef.current = true;
+      regenInFlightRef.current = true;
+      setRunningCvRewrite(true);
+      setRegenStage({ title: 'Rewriting that section of your CV', tab: 'cv' });
+      posthog?.capture('regeneration_requested', { section: 'cv_section', source: 'chat', with_instruction: Boolean(note) });
+      try {
+        const result = await rewriteCvSection(section as CvRewriteSection, entryId, sessionId, note ?? undefined);
+        if (result.ok && result.applied) {
+          const done = result.label
+            ? `Rewritten. ${result.label} is updated on your CV.`
+            : 'Rewritten. That section is updated on your CV.';
+          // A rewrite can honour the shape half of a request and refuse the
+          // content half, and that is the common case, not the rare one.
+          // Reporting it as clean success is the silent narrowing the rules
+          // forbid, so what was left out is said in the same breath.
+          const left = result.omitted.join(', ');
+          addChatMessage({
+            role: 'assistant',
+            content: left
+              ? `${done} I left out ${left}, your CV doesn't mention it.`
+              : done,
+          });
+        } else if (result.ok) {
+          // The route already released the reservation on a refusal, and its
+          // message says which words it could not support. Relay it as it is.
+          addChatMessage({ role: 'assistant', content: result.message });
+        } else if (result.code === 'INSUFFICIENT_CREDITS') {
+          addChatMessage({
+            role: 'assistant',
+            content: `That rewrite needs ${result.required} credits and you have ${result.available}. Nothing was charged.`,
+            actions: [{ label: 'Upgrade to Plus · 50 credits a month', action: 'navigate-pricing', icon: 'new' }],
+          });
+        } else if (result.code === 'SIGNED_OUT') {
+          addChatMessage({
+            role: 'assistant',
+            content: 'Your session expired. Sign in again and ask for the rewrite once more. Nothing was charged.',
+            actions: [{ label: 'Sign in', action: 'navigate-login' }],
+          });
+        } else if (result.code === 'NO_CONTEXT') {
+          addChatMessage({
+            role: 'assistant',
+            content: 'I can\'t rewrite that without the job ad and your CV. Open the application and check both are there. Nothing was charged.',
+          });
+        } else {
+          // No billing claim: the route captures before it answers, so a
+          // dropped connection late in the call means the rewrite may have
+          // landed and been paid for.
+          addChatMessage({
+            role: 'assistant',
+            content: 'That rewrite didn\'t come back. Check the CV tab before asking again, in case it landed anyway.',
+          });
+        }
+      } finally {
+        cvRewriteInFlightRef.current = false;
+        regenInFlightRef.current = false;
+        setRunningCvRewrite(false);
+        setRegenStage(null);
+      }
+      return;
+    }
     // Delete proposed by the chat's delete_application tool. The click is the
     // confirming second request; the store's remove path re-checks ownership
     // server-side.
@@ -1985,7 +2221,7 @@ export function ChatPanel({
             />
           )}
 
-          {spine && (runningRegen || runningScreening) && (
+          {spine && (runningRegen || runningScreening || runningCvRewrite) && (
             <div className="flex gap-3">
               <div className="flex-shrink-0 h-fit">
                 <BrandIcon size="xs" theme="light" />
@@ -1993,7 +2229,11 @@ export function ChatPanel({
               <div className="flex-1 rounded-2xl border border-cream-200 bg-white p-3 shadow-sm">
                 <NamedStages
                   stages={[{
-                    title: runningRegen ? REGEN_META[runningRegen].stage : 'Answering from your CV',
+                    title: runningRegen
+                      ? REGEN_META[runningRegen].stage
+                      : runningCvRewrite
+                        ? 'Rewriting that section of your CV'
+                        : 'Answering from your CV',
                     state: 'active',
                   }]}
                 />
@@ -2007,6 +2247,7 @@ export function ChatPanel({
             !isScreeningMode &&
             !pendingRegen &&
             !runningRegen &&
+            !runningCvRewrite &&
             !runningScreening &&
             !!currentSession?.generatedCV &&
             !(fitAnalysisContextId || hasFreshPendingFitAnalysis) && (
