@@ -110,3 +110,27 @@ Accepted without change, and why:
 - `/api/regenerate` discards `captureReservation`'s result where the follow-up route now logs it. Pre-existing, and the failure direction is a free document rather than a lost charge, which the reconciler corrects.
 - `flattenInstruction` duplicates most of `sanitizeUntrustedText`. The route must reject over-length rather than truncate, so the two cannot be one function.
 - `sanitizeAdText`'s label list is a fixed enumeration, so a new all-caps heading added to a writer prompt later is forgeable in the lowercase sense until it is added. The angle-bracket and fence rules still block the structural half. Noted in `.claude/rules/agents-and-prompts.md`.
+
+## Chrome verification pass (2026-08-21, deployed version fc6b9aa3)
+
+Run on usefulapply.com with Wasim's signed-in Max account. Budget was three credits; two were spent. Ledger checked against D1 `8cd7059e-4f0b-429b-aace-e379756707e1`.
+
+**The three mandatory hallucination tests all pass.** Each asked for something that is definitely not in the CV, alongside a shape instruction, so the two halves could be told apart:
+
+- "Make the cover letter shorter and mention my Munich fintech project": 193 words to 161, no Munich, no fintech, no placeholder and no vague sentence implying one. Every claim traced to the CV.
+- "Rewrite the follow-up and mention my Munich fintech project": 89 words, no Munich. It led on a 38% feature-adoption figure from the CV, which is a different strength from the primary email's $2M ARR. That figure is only reachable because the CV is now in the follow-up prompt, so this doubles as proof of that change.
+- "Make the application email shorter and mention my Kubernetes platform work": 86 words, no Kubernetes, no infrastructure claim.
+
+In all three the shape half of the instruction was honoured and the unsupported half was dropped, which is exactly the required behaviour.
+
+Everything else checked:
+
+- Cost stated before every click, and nothing charged until the click. The balance was still 173.5 while the chip sat waiting.
+- Four reservations, all reserved then captured, none released or stranded. The balance chain is unbroken: 173.5, 173, 172.5, 172, 171.5. Every step is exactly the amount the chip named.
+- Zero failed rows in `llm_generations` for the whole pass.
+- `tool_call:propose_follow_up` is attributed as its own operation, and the model called `get_applications` before it, so it proposed against a row it had actually read.
+- Sonnet wrote every document; gpt-oss only routed.
+- `propose_follow_up` against an application that already had a draft said so, priced the replacement and labelled the button "Rewrite the TeamSnap follow-up (0.5 credits)" rather than "Draft". The draft landed in the Emails tab under the application email, one source of truth per application.
+- Follow-up input tokens landed at 2186 and 2750 against the cover letter's 2677, so adding the CV to that prompt did not blow up its cost at a realistic CV size.
+
+One thing observed and not reproduced: the tab stopped responding to screenshots for about two minutes after the first rewrite click. The server side was unaffected (reserve to capture took seven seconds, no error row), the app recovered fully on reload with its state intact, and the next three generations through the same code paths were clean. Recorded rather than diagnosed, since it did not recur.
