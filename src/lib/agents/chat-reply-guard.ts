@@ -8,6 +8,9 @@ const ADDITION_OFFER = /\b(?:want me to|would you like me to|should i|shall i|ca
 const PROMISED_INCLUSION = [
   /\b(?:version|rewrite|revision)\s+(?:with|including)\s+([^.!?\n]{1,180}?)\s+(?:will|should)\s+(?:appear|show\s+up|land|be\s+(?:ready|available))\b/i,
   /\b(?:version|rewrite|revision)\s+(?:will|should)\s+(?:include|add|contain|feature|place)\s+([^.!?\n]{1,180}?)(?=\s+(?:once|after|when)\b|[.!?\n]|$)/i,
+  // The live model paraphrases freely ("the version that adds X and notes
+  // Y"), so any rewrite noun followed by an adding verb counts as a promise.
+  /\b(?:version|rewrite|revision)\b[^.!?\n]{0,60}?\b(?:adds?|includes?|including|inserts?|mentions?|notes?|features?|highlights?|incorporat(?:es?|ing))\s+([^.!?\n]{1,180}?)(?=\s+(?:once|after|when)\b|[.!?\n]|$)/i,
 ];
 const CLAIM_LIKE_INCLUSION = /\b(?:certifications?|credentials?|employers?|compan(?:y|ies)|teams?|skills?|expertise|metrics?)\b|[\p{Nd}]/u;
 const REWRITE_SHAPE = /\b[\p{Nd}]+\s+(?:(?:tighter|shorter|clearer|stronger|punchier|concise)\s+)?(?:bullets?|items?|sentences?|lines?|points?|paragraphs?|words?|sections?)\b/giu;

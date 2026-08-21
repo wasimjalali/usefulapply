@@ -50,6 +50,19 @@ test('replaces a direct promise with plural claim nouns', () => {
   );
 });
 
+test('replaces a paraphrased promise that adds and notes unsupported claims', () => {
+  const reply = 'Click the button to confirm and see the punchier version that adds your AWS Solutions Architect certification and notes the 25-person team you led.';
+  assert.equal(
+    guardUnsupportedCvAdditionOffer(reply, { cvRewriteProposed: true }),
+    "I can't add your AWS Solutions Architect certification and notes the 25-person team you led from this request. CV rewrites only use details supported by your documents.",
+  );
+});
+
+test('leaves a paraphrased promise about shape and emphasis alone', () => {
+  const reply = 'The punchier version that highlights your strongest achievements will be ready after you confirm.';
+  assert.equal(guardUnsupportedCvAdditionOffer(reply, { cvRewriteProposed: true }), reply);
+});
+
 test('does not treat an ordinary rewrite description as an unsupported claim', () => {
   const replies = [
     'The rewrite with tighter wording will be ready after you confirm.',
