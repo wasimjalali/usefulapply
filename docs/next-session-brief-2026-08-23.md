@@ -90,9 +90,15 @@ close it when done.
 - **Non-chat price tags.** Job Board cards ("Check fit · 0.5"), the paste-a-job decision
   chips and GuidedLine still wear per-action prices. Out of scope of the chat pass by
   design; needs Wasim's call whether they follow the simplified language too.
-- **Stray chunk 404 after deploys.** Two verification passes saw a 404 on one
-  `_next/static/chunks/*.js` reference right after deploying. Looked like CDN cache lag and
-  pages rendered fine; check whether it persists on a cold load.
+- **Chunk 404s after deploys: FIXED 2026-08-21 (commit 05afa481).** Root cause: each deploy
+  replaces the whole Workers static-asset set, so tabs running the previous build 404 on
+  their old hashed chunks, and for about a minute after a deploy the ISR/SWR machinery can
+  serve one stale prerendered HTML copy referencing them. `ChunkReloadGuard` (root layout)
+  now hard-reloads such a tab once, 60s cooldown, production only; verified live by fault
+  injection (single reload, cooldown holds, no interference). A 16-fetch sweep 15 minutes
+  post-deploy found zero stale refs, so the stale-HTML window self-heals. Optional hardening
+  if it ever matters: OpenNext automatic cache purge, or `expireTime` in next.config to
+  shrink the advertised 30-day stale-while-revalidate.
 - **Logo verification gaps.** Admin shell (behind Cloudflare Access) and a real sent email
   were not visually verified; the email logo asset itself is live and correct.
 - After the landing work: Phase 9 cutover (runbook in docs/usefulapply-master-plan.md,
