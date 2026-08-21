@@ -6,6 +6,7 @@ import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { BrandIcon } from '@/components/marketing/BrandLogo';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
+import { PricingAurora } from '@/components/marketing/PricingAurora';
 
 import { BRAND } from '@/lib/brand';
 
@@ -257,8 +258,12 @@ export default function Home() {
       />
       <Navbar />
       <main>
+        {/* Aurora-backed first fold: hero + volume band share one backdrop,
+            same treatment as the pricing page. */}
+        <div className="relative overflow-hidden">
+        <PricingAurora />
         {/* Hero: split, copy left, the finished-kit workspace right. */}
-        <section className="bg-cream-100 px-4 pb-14 pt-16 sm:px-6 lg:px-8 lg:pt-24">
+        <section className="relative px-4 pb-14 pt-16 sm:px-6 lg:px-8 lg:pt-24">
           <div className="mx-auto flex max-w-7xl flex-col items-center gap-10 lg:flex-row lg:gap-16">
             <ScrollReveal className="w-full lg:w-[430px] lg:flex-shrink-0">
               <h1 className="text-[38px] font-semibold leading-[1.08] tracking-tight text-navy-800 sm:text-[46px] lg:text-[50px]">
@@ -302,7 +307,7 @@ export default function Home() {
         </section>
 
         {/* Volume band. */}
-        <section className="bg-cream-200 px-4 py-16 sm:px-6 lg:px-8">
+        <section className="relative px-4 py-16 sm:px-6 lg:px-8">
           <ScrollReveal>
             <div className="mx-auto max-w-3xl text-center">
               <h2 className="text-[32px] font-semibold leading-[1.15] text-navy-800 md:text-[40px]">
@@ -315,6 +320,8 @@ export default function Home() {
             </div>
           </ScrollReveal>
         </section>
+        </div>
+        {/* /Aurora-backed first fold */}
 
         {/* Paste from anywhere: boards on the left, the kit on the right. */}
         <section className="bg-cream-100 px-4 py-16 sm:px-6 lg:px-8">
