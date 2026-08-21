@@ -1215,7 +1215,7 @@ export function ChatPanel({
           // scrollbar-gutter both-edges keeps this scroller's content box
           // symmetric, so the centred cards line up with the centred composer
           // instead of sitting a half-scrollbar to the left of it.
-          className={`flex-1 overflow-auto space-y-4 relative [scrollbar-gutter:stable_both-edges] [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[760px] ${
+          className={`flex-1 overflow-auto space-y-4 relative [scrollbar-gutter:stable_both-edges] [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[820px] ${
             isDesktopDocked ? 'px-4 pt-4 pb-3' : 'p-4'
           }`}
         >
@@ -1804,7 +1804,7 @@ export function ChatPanel({
 
         {/* Input Area — hidden while the launchpad owns the JD input */}
         {(spine || !isLaunchpadState) && (
-        <div className={isDesktopDocked || spine ? 'bg-cream-50 px-4 pt-2.5 pb-4 [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[760px]' : ''}>
+        <div className={isDesktopDocked || spine ? 'bg-cream-50 px-4 pt-2.5 pb-4 [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[820px]' : ''}>
           <ChatInput
             value={inputValue}
             onChange={setInputValue}
