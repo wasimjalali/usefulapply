@@ -569,6 +569,36 @@ const SHAPE_NUMERAL = (() => {
 })();
 
 /**
+ * Words that describe the SHAPE of a requested rewrite: how long it should be,
+ * how tight, how it should read. They are directions to the writer, never
+ * something the applicant's CV has to support, so an instruction containing
+ * them is not asking for content the documents can fail to back.
+ *
+ * SCOPED TO unsupportedInstructionTerms() AND NOTHING ELSE. introducedClaims()
+ * does not see this list and must not: a rewrite that actually writes "sharper"
+ * into the CV is still refused unless the applicant's own documents use the
+ * word. This only stops the advisory list from telling a user their CV "doesn't
+ * mention" the word "sharper" when all they asked for was a sharper line.
+ *
+ * The line drawn is the same one NEUTRAL_WORDS draws, and it is drawn tighter
+ * here because this list gets no second look: a word stays out the moment it
+ * could read as seniority, ownership, scope or a quantity. "senior", "lead",
+ * "strategic", "expert" and every numeral above one are deliberately absent.
+ */
+const INSTRUCTION_SHAPE_WORDS = new Set([
+  // How many, where the count is describing the output and not a team.
+  'one', 'single',
+  // How it should read.
+  'sharp', 'sharper', 'crisp', 'crisper', 'snappy', 'snappier', 'tight',
+  'lean', 'leaner', 'compact', 'dense', 'denser', 'wordy', 'verbose',
+  'fluff', 'fluffy', 'waffle', 'repetitive', 'generic', 'bland', 'boring',
+  'flat', 'formal', 'informal', 'casual', 'conversational', 'plain',
+  'polished', 'readable', 'smooth', 'smoother', 'natural', 'tidy', 'tidier',
+  // German, alongside the German grammar already in NEUTRAL_WORDS.
+  'kuerzer', 'praegnanter', 'knapper', 'praeziser', 'schaerfer',
+]);
+
+/**
  * Distinctive words in the instruction that appear nowhere in the applicant's
  * own documents. Advisory now: the output check above is the lock, and this one
  * exists so we can tell the user which part of their request the CV could not
@@ -578,6 +608,12 @@ const SHAPE_NUMERAL = (() => {
  * "make it five bullets" asks for nothing the CV has to support. The numeral is
  * spared only where a shape noun follows it, never globally: "a team of five"
  * is still a claim about the applicant, and it is still caught.
+ *
+ * Style words go the same way, via INSTRUCTION_SHAPE_WORDS. "Tighten my summary
+ * into one sharper line" used to come back as ["one", "sharper"] and render as
+ * "I left out one, sharper, your CV doesn't mention it", which is nonsense: the
+ * user asked for a shape, not for content, and nothing was left out. Only
+ * concrete content the documents cannot back belongs in this list.
  */
 function unsupportedInstructionTerms(instruction: string, sourceText: string): string[] {
   const source = indexSource(sourceText);
@@ -595,6 +631,7 @@ function unsupportedInstructionTerms(instruction: string, sourceText: string): s
     if (word.length < 2) continue;
     if (/^[\p{Nd}]+$/u.test(word)) continue;
     if (isNeutral(word)) continue;
+    if (INSTRUCTION_SHAPE_WORDS.has(word) || INSTRUCTION_SHAPE_WORDS.has(stemOf(word))) continue;
     if (source.tokens.has(word) || source.stems.has(stemOf(word))) continue;
     const acronymBase = acronymAliases.get(word);
     if (acronymBase && (source.tokens.has(acronymBase) || source.stems.has(acronymBase))) continue;
