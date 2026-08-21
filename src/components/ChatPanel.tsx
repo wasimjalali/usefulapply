@@ -43,7 +43,8 @@ import { useCreditsBalance, formatResetDate } from '@/hooks/useCreditsBalance';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { usePostHog } from 'posthog-js/react';
 import { NamedStages } from '@/components/shell/NamedStages';
-import { REGEN_META, detectRegenTarget, regenerateDocument, type RegenTarget } from '@/lib/regenerate-client';
+import { REGEN_META, detectRegenTarget, instructionFromMessage, regenerateDocument, regenerateFollowUpForSession, type RegenTarget } from '@/lib/regenerate-client';
+import { generateRequestId } from '@/lib/utils/requestId';
 import { looksLikeScreeningQuestion, parseScreeningAnswers, SCREENING_TURN_CAP } from '@/lib/screening-answers';
 
 /**
@@ -73,6 +74,17 @@ async function findFeedJob(jobId: string) {
 // itself only renders on desktop/tablet (mobile shows a "Best on desktop"
 // screen), so we no longer have a desktop+mobile dual-mount race.
 const autostartedApplySessionIds = new Set<string>();
+
+/**
+ * Applications whose follow-up this tab has already drafted. Module level for
+ * the same reason as the set above: ChatPanel mounts twice on desktop, and a
+ * per-mount ref would let the second mount pay for the same draft again. A
+ * session id is immutable, so an entry here can never come to mean a different
+ * application. It does not survive a reload, so a chip clicked again in a new
+ * tab still charges; the proposal labels the button "Rewrite" once a draft
+ * exists, so that cost is stated before the click either way.
+ */
+const followUpDone = new Set<string>();
 
 function buildJobFeedAutostartKey(params: {
   sessionId: string;
@@ -117,6 +129,17 @@ export function looksAdShaped(text: string): boolean {
 
 /** Below this a message is a question, whatever the model called it. */
 const MIN_JOB_AD_CHARS = 200;
+
+/**
+ * A rewrite waiting on its cost chip. It carries the note the user typed and
+ * the application it was raised for: the click has to spend against the same
+ * job the cost was quoted for, not whichever one is open by then.
+ */
+interface PendingRegen {
+  target: RegenTarget;
+  instruction: string | null;
+  sessionId: string | null;
+}
 
 interface ChatPanelProps {
   onTabChange?: (tab: KitTab) => void;
@@ -233,8 +256,11 @@ export function ChatPanel({
   const [adFallbackJd, setAdFallbackJd] = useState<string | null>(null);
   const [needsAccount, setNeedsAccount] = useState(false);
   // Regeneration from the chat: the cost chip waits in pendingRegen, the
-  // named stage shows while runningRegen is set.
-  const [pendingRegen, setPendingRegen] = useState<RegenTarget | null>(null);
+  // named stage shows while runningRegen is set. The pending chip carries the
+  // instruction the user typed and the application it was raised for, so a
+  // chip cannot fire a rewrite against a different application or with an
+  // instruction from an earlier message.
+  const [pendingRegen, setPendingRegen] = useState<PendingRegen | null>(null);
   const [runningRegen, setRunningRegen] = useState<RegenTarget | null>(null);
   const [runningScreening, setRunningScreening] = useState(false);
   // Refs, not state: a guard that flips synchronously so a double click never
@@ -712,42 +738,80 @@ export function ChatPanel({
 
   // ---- Kit follow-ups: rewrite requests and screening questions ----------
 
-  const startRegenPrompt = (target: RegenTarget) => {
+  // A cost chip raised against one application must not stay on screen under
+  // another one's conversation. Clicking it there already refuses and charges
+  // nothing, but showing it at all is the stale card the plan rules out.
+  useEffect(() => {
+    if (pendingRegen && pendingRegen.sessionId !== (currentSession?.id ?? null)) {
+      setPendingRegen(null);
+    }
+  }, [currentSession?.id, pendingRegen]);
+
+  const startRegenPrompt = (target: RegenTarget, instruction: string | null) => {
     if (!user) {
       askForAccount();
       return;
     }
     const meta = REGEN_META[target];
     const balance = credits?.total;
-    // The regenerate route takes no instruction: say so before the click.
+    const cost = balance !== undefined
+      ? `Rewriting the ${meta.noun} costs ${meta.cost} credits (you have ${balance}).`
+      : `Rewriting the ${meta.noun} costs ${meta.cost} credits.`;
+    // Only promise the draft when it can actually be paid for. Below this line
+    // the chip swaps to the upgrade path, and a sentence promising the letter
+    // above an Upgrade button reads as a bug.
+    const affordable = balance === undefined || balance >= meta.cost;
+    // With a note, the rewrite follows it. Without one it is a fresh draft.
+    // Either way the writer only uses what the CVs actually say, and the chip
+    // states the cost before anything is charged.
     addChatMessage({
       role: 'assistant',
-      content: balance !== undefined
-        ? `Rewriting the ${meta.noun} costs ${meta.cost} credits (you have ${balance}). It's a fresh draft, not an edit of this one.`
-        : `Rewriting the ${meta.noun} costs ${meta.cost} credits. It's a fresh draft, not an edit of this one.`,
+      content: !affordable
+        ? cost
+        : instruction
+          ? `${cost} I'll write a fresh draft following your note. Anything you ask for that isn't in your CV gets left out.`
+          : `${cost} It's a fresh draft, not an edit of this one.`,
     });
-    setPendingRegen(target);
+    setPendingRegen({
+      target,
+      instruction,
+      sessionId: useSessionStore.getState().currentSession?.id ?? null,
+    });
   };
 
-  const confirmRegen = async (target: RegenTarget) => {
+  const confirmRegen = async (pending: PendingRegen) => {
     if (regenInFlightRef.current) return;
-    regenInFlightRef.current = true;
+    const { target, instruction } = pending;
     const meta = REGEN_META[target];
     const startedIn = useSessionStore.getState().currentSession?.id ?? null;
+    // The chip was raised against one application. If the user has switched
+    // since, the note and the cost on screen belong to a different job, so
+    // the chip is dropped rather than charged against the wrong one.
+    if (pending.sessionId !== startedIn) {
+      setPendingRegen(null);
+      addChatMessage({
+        role: 'assistant',
+        content: 'That rewrite was for the application you had open before. Ask again here and I\'ll cost it up for this one. Nothing was charged.',
+      });
+      return;
+    }
+    regenInFlightRef.current = true;
     setPendingRegen(null);
     addChatMessage({ role: 'user', content: `Rewrite it · ${meta.cost} credits` });
     setRunningRegen(target);
     setRegenStage({ title: meta.stage, tab: meta.tab });
-    posthog?.capture('regeneration_requested', { section: meta.type, source: 'chat' });
+    posthog?.capture('regeneration_requested', { section: meta.type, source: 'chat', with_instruction: Boolean(instruction) });
     try {
-      const result = await regenerateDocument(target);
+      const result = await regenerateDocument(target, generateRequestId(), instruction ?? undefined, pending.sessionId);
       // The document lands on the application that asked for it; the chat
       // line only makes sense if the user is still looking at that one.
       if (useSessionStore.getState().currentSession?.id !== startedIn) return;
       if (result.ok) {
         addChatMessage({
           role: 'assistant',
-          content: `Done, ${result.wordCount} words. The new ${meta.noun} is on the right.`,
+          content: instruction
+            ? `Done, ${result.wordCount} words. The new ${meta.noun} is on the right. I followed your note as far as your CV backs it up, so give it a read.`
+            : `Done, ${result.wordCount} words. The new ${meta.noun} is on the right.`,
           actions: [{ label: meta.stage, action: 'stage-done' }],
         });
       } else if (result.code === 'INSUFFICIENT_CREDITS') {
@@ -910,7 +974,17 @@ export function ChatPanel({
       return true;
     }
     if (target) {
-      startRegenPrompt(target);
+      // The message that asked for the rewrite is the instruction. A message
+      // too long to be a request is refused out loud, not silently dropped.
+      const parsed = instructionFromMessage(text);
+      if (!parsed.ok && parsed.reason === 'too_long') {
+        addChatMessage({
+          role: 'assistant',
+          content: `That's a lot to take in at once. Tell me in a sentence what to change about the ${REGEN_META[target].noun} and I'll cost it up.`,
+        });
+        return true;
+      }
+      startRegenPrompt(target, parsed.ok ? parsed.instruction : null);
       return true;
     }
     if (isScreeningMode || looksLikeScreeningQuestion(text)) {
@@ -924,9 +998,11 @@ export function ChatPanel({
     if (!inputValue.trim()) return;
     const text = inputValue.trim();
     // A card raised by the previous message must not outlive it: clicking it
-    // later would run a job ad the user has moved on from.
+    // later would run a job ad the user has moved on from, or spend credits
+    // on a rewrite note they have since replaced.
     setPendingDecisionJd(null);
     setAdFallbackJd(null);
+    setPendingRegen(null);
     if (spine && currentSession?.generatedCV && (isScreeningMode || !isObviousJobAd(text))) {
       const draft = text;
       setInputValue('');
@@ -977,6 +1053,9 @@ export function ChatPanel({
   // instead of quietly doing nothing.
   const feedApplyInFlight = useRef<Set<string>>(new Set());
   const feedApplyDone = useRef<Set<string>>(new Set());
+  // In-flight follow-ups. Synchronous, so a double click cannot get past it
+  // before the first request has even started. The done set is module level.
+  const followUpInFlight = useRef<Set<string>>(new Set());
 
   const handleAction = async (action: string) => {
     // Delete proposed by the chat's delete_application tool. The click is the
@@ -998,6 +1077,80 @@ export function ChatPanel({
         addChatMessage({ role: 'assistant', content: 'Deleted. It\'s gone from your tracker.' });
       } catch {
         addChatMessage({ role: 'assistant', content: 'That delete did not go through. Try again from the tracker.' });
+      }
+      return;
+    }
+    // A follow-up draft proposed by propose_follow_up. The click is the
+    // confirming request and it runs the same tracker follow-up path the
+    // tracker's own button runs, so credits are reserved by the code that
+    // always reserves them. No handler ever writes this without a click.
+    if (action.startsWith('confirm-follow-up:')) {
+      if (!user) return;
+      const sessionId = action.slice('confirm-follow-up:'.length);
+      if (!sessionId || sessionId.length > 100) return;
+      if (followUpInFlight.current.has(sessionId)) return;
+      // The two paid paths share runningRegen and regenStage, and this one
+      // switches the current session when it lands. Starting it over a rewrite
+      // that is still running would clear that rewrite's stage and move the
+      // session out from under it, so its result would be dropped in silence
+      // after the credits were spent. One at a time.
+      if (regenInFlightRef.current) {
+        addChatMessage({
+          role: 'assistant',
+          content: 'One rewrite at a time. Let this one finish and ask again.',
+        });
+        return;
+      }
+      if (followUpDone.has(sessionId)) {
+        addChatMessage({ role: 'assistant', content: 'That follow-up is already written. It\'s in the Emails tab.' });
+        return;
+      }
+      followUpInFlight.current.add(sessionId);
+      regenInFlightRef.current = true;
+      const meta = REGEN_META['follow-up'];
+      setRunningRegen('follow-up');
+      setRegenStage({ title: meta.stage, tab: meta.tab });
+      posthog?.capture('regeneration_requested', { section: meta.type, source: 'chat_tracker' });
+      try {
+        const result = await regenerateFollowUpForSession(sessionId);
+        if (result.ok) {
+          followUpDone.add(sessionId);
+          // One source of truth per application: the draft lands in the same
+          // place the tracker's button puts it.
+          const opened = await openStoredSession(sessionId);
+          if (opened) onTabChange?.('email');
+          addChatMessage({
+            role: 'assistant',
+            content: `Your follow-up is ready, ${result.wordCount} words. It's in the Emails tab.`,
+          });
+        } else if (result.code === 'INSUFFICIENT_CREDITS') {
+          addChatMessage({
+            role: 'assistant',
+            content: `That follow-up needs ${result.required} credits and you have ${result.available}. Nothing was charged.`,
+            actions: [{ label: 'Upgrade to Plus · 50 credits a month', action: 'navigate-pricing', icon: 'new' }],
+          });
+        } else if (result.code === 'SIGNED_OUT') {
+          addChatMessage({
+            role: 'assistant',
+            content: 'Your session expired. Sign in again and ask for the follow-up once more. Nothing was charged.',
+            actions: [{ label: 'Sign in', action: 'navigate-login' }],
+          });
+        } else if (result.code === 'NO_CONTEXT') {
+          addChatMessage({
+            role: 'assistant',
+            content: 'I can\'t write that follow-up without the job ad and your CV. Open the application and check both are there.',
+          });
+        } else {
+          addChatMessage({
+            role: 'assistant',
+            content: 'That follow-up didn\'t come back. If it landed anyway it\'s in the Emails tab, so check there before asking again.',
+          });
+        }
+      } finally {
+        followUpInFlight.current.delete(sessionId);
+        regenInFlightRef.current = false;
+        setRunningRegen(null);
+        setRegenStage(null);
       }
       return;
     }
@@ -1787,12 +1940,12 @@ export function ChatPanel({
           {spine && pendingRegen && !runningRegen && !isAgentWorking && (
             <DecisionChips
               chips={
-                creditsLoading || (credits !== null && credits.total >= REGEN_META[pendingRegen].cost)
+                creditsLoading || (credits !== null && credits.total >= REGEN_META[pendingRegen.target].cost)
                   ? [
                       {
                         id: 'rewrite',
                         label: 'Rewrite it',
-                        cost: `${REGEN_META[pendingRegen].cost} credits`,
+                        cost: `${REGEN_META[pendingRegen.target].cost} credits`,
                         variant: 'primary',
                         icon: <Edit3 className="h-4 w-4" />,
                         onSelect: () => {
@@ -1825,8 +1978,8 @@ export function ChatPanel({
                     ]
               }
               hint={
-                !creditsLoading && credits !== null && credits.total < REGEN_META[pendingRegen].cost
-                  ? `A rewrite needs ${REGEN_META[pendingRegen].cost}. Your ${credits.planTier === 'free' ? 'free ' : ''}credits reset${formatResetDate(credits.nextResetDate) ? ` on ${formatResetDate(credits.nextResetDate)}` : ' next month'}.`
+                !creditsLoading && credits !== null && credits.total < REGEN_META[pendingRegen.target].cost
+                  ? `A rewrite needs ${REGEN_META[pendingRegen.target].cost}. Your ${credits.planTier === 'free' ? 'free ' : ''}credits reset${formatResetDate(credits.nextResetDate) ? ` on ${formatResetDate(credits.nextResetDate)}` : ' next month'}.`
                   : undefined
               }
             />

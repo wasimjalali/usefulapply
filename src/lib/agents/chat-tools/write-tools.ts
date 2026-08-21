@@ -20,7 +20,7 @@ import type { ChatTool, ChatToolContext, ChatToolResult } from './types';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-async function findOwnedNamedRow(
+export async function findOwnedNamedRow(
   ctx: ChatToolContext,
   applicationId: unknown,
 ): Promise<

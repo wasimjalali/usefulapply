@@ -40,6 +40,9 @@ export interface MasterContext {
   detectedLanguage?: string; // ISO 639-1 codes (e.g., 'en', 'de', 'fr', 'es')
   userLanguageOverride?: string; // ISO 639-1 codes
 
+  /** A rewrite instruction typed by the applicant in the chat composer. User-authored, already length-capped and flattened by the route. Never ad-authored. */
+  userInstruction?: string;
+
   // Applicant profile (extracted from CV by Context Agent)
   applicant?: {
     name: string;

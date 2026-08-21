@@ -213,9 +213,34 @@ export async function POST(request: NextRequest) {
     }
     persisted = true;
 
-    const captured = await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
-    if (!captured.success) {
-      console.warn('[Tracker follow-up] Capture did not land; credits stay reserved.');
+    // Past this point the letter is saved and durable, so the only truthful
+    // response is success. A capture that fails must not turn a delivered
+    // follow-up into a 500: the user would be told it failed, click again, pay
+    // again, and wait on the reconciler to refund the first one. The capture is
+    // CAS-guarded and idempotent, so one retry is safe by construction; if it
+    // still does not land the reservation stays reserved and
+    // releaseStaleReservations refunds it, which costs us one free follow-up
+    // and is the right way to err.
+    let captureLanded = false;
+    for (let attempt = 0; attempt < 2 && !captureLanded; attempt += 1) {
+      try {
+        const captured = await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
+        captureLanded = captured.success;
+      } catch (captureError) {
+        console.error('[Tracker follow-up] Capture threw; letter is saved and returned anyway:', captureError);
+      }
+    }
+    if (!captureLanded) {
+      console.error('[Tracker follow-up] Capture did not land. The letter was delivered and the reservation stays reserved for the reconciler to release.');
+      try {
+        const posthog = getPostHogServer();
+        posthog.captureException(new Error('Follow-up capture did not land'), 'server_error', {
+          endpoint: '/api/tracker/follow-up',
+          feature: 'regeneration',
+          reservation_key: reservationKey,
+        });
+        await posthog.flush();
+      } catch (_) { /* ignore PostHog errors */ }
     }
     return NextResponse.json({
       followUpEmail: {

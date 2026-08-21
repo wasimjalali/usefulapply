@@ -11,6 +11,7 @@ import type { GeneratedCoverLetter } from '@/lib/types';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { generateRequestId } from '@/lib/utils/requestId';
 import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
+import { MAX_INSTRUCTION_CHARS, flattenInstruction } from '@/lib/agents/chat-tools/untrusted';
 
 export type RegenTarget = 'cover-letter' | 'email' | 'follow-up';
 
@@ -55,7 +56,13 @@ export function detectRegenTarget(text: string, openDocument: RegenTarget | 'cv'
   const t = text.trim().toLowerCase();
   // "What did you change in the CV?" is a question about the kit, not an order.
   if (/^(what|why|how|when|where|which|who|did|do|does|is|are|was|were|have|has)\b/.test(t)) return null;
-  const verbs = /\b(rewrite|re-write|redo|regenerate|generate again|write (it )?again|try again|shorter|shorten|longer|tighten|trim|cut|expand|punchier|formal|casual|friendlier|warmer|tone|rephrase|reword|change|make (it|the|my|this)|improve|better|fix|update|adjust|different|new version|another version|two paragraphs|one paragraph|three paragraphs)\b/;
+  // Two families. Shape verbs ask for the same content written differently;
+  // content verbs ask for something specific to go in or come out. Capability
+  // 14's own example is "mention the Munich project", which carries no shape
+  // verb at all, so leaving that family out would strand the feature's most
+  // natural phrasing. Widening is safe because a verb alone never routes: the
+  // message still has to name a document, or say "it" with one open.
+  const verbs = /\b(rewrite|re-write|redo|regenerate|generate again|write (it )?again|try again|shorter|shorten|longer|tighten|trim|cut|expand|punchier|formal|casual|friendlier|warmer|tone|rephrase|reword|change|make (it|the|my|this)|improve|better|fix|update|adjust|different|new version|another version|two paragraphs|one paragraph|three paragraphs|mention|include|add|put in|emphasi[sz]e|highlight|focus on|lead with|open with|start with|end with|remove|drop|leave out|take out|swap)\b/;
   if (!verbs.test(t)) return null;
   if (/\bfollow[- ]?up\b/.test(t)) return 'follow-up';
   if (/\bcover letter\b|\bletter\b/.test(t)) return 'cover-letter';
@@ -64,6 +71,19 @@ export function detectRegenTarget(text: string, openDocument: RegenTarget | 'cv'
   // "Make it shorter" while a document is open means that document.
   if (openDocument && /\b(it|this|that)\b/.test(t)) return openDocument;
   return null;
+}
+
+/**
+ * The composer message that asked for the rewrite IS the instruction: it is
+ * user-authored and short. Returns null when there is nothing usable, or when
+ * the message is long enough to be a paste rather than a request, so the
+ * caller can say so instead of quietly dropping it.
+ */
+export function instructionFromMessage(text: string): { ok: true; instruction: string } | { ok: false; reason: 'too_long' | 'empty' } {
+  const clean = flattenInstruction(text);
+  if (!clean) return { ok: false, reason: 'empty' };
+  if (clean.length > MAX_INSTRUCTION_CHARS) return { ok: false, reason: 'too_long' };
+  return { ok: true, instruction: clean };
 }
 
 export type RegenResult =
@@ -128,20 +148,40 @@ function countWords(text: string): number {
 /**
  * Calls the regenerate route and writes the result into the session the
  * request was built for. If the user has moved to another application while
- * it ran, nothing is written. `requestId` lets a retry of the same rewrite
- * reuse the server's idempotency key instead of reserving credits twice.
+ * it ran, nothing is written. `requestId` becomes the server's idempotency
+ * key. Every caller currently passes a fresh one, so a genuine retry reserves
+ * again: pass a stored id to make a retry dedupe.
  */
-export async function regenerateDocument(target: RegenTarget, requestId: string = generateRequestId()): Promise<RegenResult> {
+export async function regenerateDocument(
+  target: RegenTarget,
+  requestId: string = generateRequestId(),
+  instruction?: string,
+  expectedSessionId?: string | null,
+): Promise<RegenResult> {
   const context = buildContext();
   if (!context) return { ok: false, code: 'NO_CONTEXT' };
   const meta = REGEN_META[target];
   const sessionId = context.sessionId;
+  // The caller quoted a cost for one application. The context is read from the
+  // store here rather than passed in, so this check is what makes "spend on the
+  // job the cost was quoted for" structural instead of a timing accident that a
+  // future await in the caller could quietly undo.
+  if (expectedSessionId != null && expectedSessionId !== sessionId) {
+    return { ok: false, code: 'NO_CONTEXT' };
+  }
+  // Flattened here as well as on the server so the two agree on what "empty"
+  // means: a message of only punctuation must not travel as an instruction.
+  const cleanInstruction = instruction ? flattenInstruction(instruction).slice(0, MAX_INSTRUCTION_CHARS) : '';
 
   try {
     const response = await fetch('/api/regenerate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-request-id': requestId },
-      body: JSON.stringify({ type: meta.type, context }),
+      body: JSON.stringify({
+        type: meta.type,
+        context,
+        ...(cleanInstruction ? { instruction: cleanInstruction } : {}),
+      }),
     });
 
     if (response.status === 401) return { ok: false, code: 'SIGNED_OUT' };
