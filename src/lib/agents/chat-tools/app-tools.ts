@@ -12,7 +12,7 @@
  */
 
 import { getSession } from '@/db/repos/sessions';
-import { CV_TEMPLATE_CATALOG, CV_TEMPLATE_IDS, cvTemplateName } from '@/lib/cv-templates/catalog';
+import { CV_TEMPLATE_IDS, cvTemplateCatalogForPrompt, cvTemplateName } from '@/lib/cv-templates/catalog';
 import { flattenUntrusted } from './untrusted';
 import type { ChatTool, ChatToolResult } from './types';
 
@@ -53,7 +53,11 @@ const getApplicationOverview: ChatTool = {
 
 const setCvTemplate: ChatTool = {
   name: 'set_cv_template',
-  description: `Switch the CV canvas to a different template and save it as the user's default for future applications. Call it only when the user asks to change or use a template. A question about templates ("which one suits Germany", "what would it look like in X") is a question: answer it and do not call this. Reversible, so when they do ask, apply it straight away. Templates: ${CV_TEMPLATE_CATALOG.map((template) => `${template.id} (${template.name}, ${template.market}${template.bestFor ? `, ${template.bestFor}` : ''})`).join('; ')}.`,
+  description: `Switch the CV canvas to a different template and save it as the user's default for future applications. Call it only when the user asks to change or use a template. A question about templates ("which one suits Germany", "what would it look like in X") is a question: answer it and do not call this. Reversible, so when they do ask, apply it straight away.
+
+Always call a template by the quoted name below, which is what the app shows the user. Never name a template after its template_id and never invent a layout for one.
+
+${cvTemplateCatalogForPrompt()}`,
   parameters: {
     type: 'object',
     properties: {

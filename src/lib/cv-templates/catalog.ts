@@ -16,6 +16,8 @@ export interface CvTemplateCatalogEntry {
   market: string;
   /** The short "best for" line the strip shows under the name. */
   bestFor: string;
+  /** What the layout actually is, so the model never invents one. */
+  description: string;
 }
 
 /** Matches TemplateStrip: the definitions star the default, the strip tags it instead. */
@@ -42,7 +44,19 @@ export const CV_TEMPLATE_CATALOG: CvTemplateCatalogEntry[] = CV_TEMPLATE_DEFINIT
   name: cleanName(template.name),
   market: MARKETS[template.region] ?? template.region,
   bestFor: BEST_FOR[template.id] ?? '',
+  description: template.description,
 }));
+
+/**
+ * How the templates are described to the model. Ids like "german-ats" are
+ * internal: the strip shows "Portrait ATS", so the assistant has to say
+ * "Portrait ATS" too. The name leads and the id is labelled as the argument.
+ */
+export function cvTemplateCatalogForPrompt(): string {
+  return CV_TEMPLATE_CATALOG
+    .map((template) => `"${template.name}" (pass template_id=${template.id}): ${template.description} ${template.market}.${template.bestFor ? ` Best for: ${template.bestFor}.` : ''}`)
+    .join('\n');
+}
 
 export const CV_TEMPLATE_IDS: string[] = CV_TEMPLATE_CATALOG.map((template) => template.id);
 
