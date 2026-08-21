@@ -3,6 +3,7 @@ import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ScrollbarReveal } from "@/components/ScrollbarReveal";
+import ChunkReloadGuard from "@/components/ChunkReloadGuard";
 import { ToastProvider } from "@/components/ui/Toast";
 import { PostHogProvider } from "@/providers/PostHogProvider";
 import PostHogPageView from "@/providers/PostHogPageView";
@@ -200,6 +201,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <ScrollbarReveal />
+        <ChunkReloadGuard />
         <PostHogProvider>
           <AuthProvider>
             <PostHogPageView />
