@@ -23,6 +23,7 @@ import { computeFitLevel } from '@/lib/agents/prompts/fit-assessment-prompt';
 import { useToast } from '@/components/ui/Toast';
 import { useTrackerStore } from '@/store/useTrackerStore';
 import { openSettings } from '@/store/useSettingsStore';
+import { writeDefaultTemplate } from '@/lib/cv-templates/default-template';
 import type { JobFeedApplicationGeneration } from '@/lib/supabase/types';
 import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
 
@@ -108,6 +109,18 @@ function formatFitAnalysisMessage(
 export function useAgentWorkflow(options?: {
   onInsufficientCredits?: (required: number, available: number) => void | Promise<void>;
   onAnonymousLimitReached?: () => void;
+  /**
+   * The model read the message as a pasted job ad. The client shows the
+   * credit-aware decision card; the user's click is what starts a run, so
+   * classification never spends credits.
+   */
+  onProposeApplication?: (jobDescription: string) => void;
+  /**
+   * The reply came back and the model did NOT read the message as an ad.
+   * The client decides whether to offer a manual way in, so a model that
+   * misses a real ad is never a dead end.
+   */
+  onChatAnsweredWithoutProposal?: (message: string) => void;
 }) {
   const { user } = useAuth();
   const datePrefs = useDatePrefs();
@@ -232,13 +245,6 @@ export function useAgentWorkflow(options?: {
     addChatMessage({
       role: 'assistant',
       content: '⚠️ Generation stopped. No problem! When you\'re ready, paste a new job description to start a fresh application.',
-      actions: [
-        {
-          label: 'Start New Application',
-          action: 'start-new-application',
-          icon: 'new',
-        }
-      ],
     });
   };
 
@@ -270,10 +276,29 @@ export function useAgentWorkflow(options?: {
 
   // What the server says a tool actually did. Stores refresh from it so the
   // dashboard updates live without a reload.
-  const applyExecutedEffects = (executed: unknown) => {
+  const applyExecutedEffects = (
+    executed: unknown,
+    userMessage: string,
+    opts: { startedIn: string | null; suppressProposal: boolean },
+  ) => {
     if (!Array.isArray(executed)) return;
+    // Effects that write to the open application only make sense if the user
+    // is still looking at the one that asked. Switching applications mid
+    // request would otherwise overwrite the wrong row.
+    const stillHere = useSessionStore.getState().currentSession?.id === opts.startedIn;
     for (const effect of executed as ExecutedEffect[]) {
-      if (effect.type === 'navigate') {
+      if (effect.type === 'propose_application') {
+        if (opts.suppressProposal || !stillHere) continue;
+        // Classification only. The decision card the client shows is where
+        // the user picks fit analysis or the full kit, so nothing is spent
+        // here and nothing starts.
+        options?.onProposeApplication?.(userMessage);
+      } else if (effect.type === 'set_cv_template') {
+        if (!stillHere) continue;
+        useUIStore.getState().setCvTemplateId(effect.templateId);
+        useAppStore.getState().updateCurrentSession({ selectedTemplate: effect.templateId });
+        writeDefaultTemplate(effect.templateId);
+      } else if (effect.type === 'navigate') {
         if (effect.target === 'tracker') setActiveTab('tracker');
         else if (effect.target === 'job-feed') setActiveTab('jobs');
         else if (effect.target === 'documents') openSettings('cv');
@@ -286,8 +311,14 @@ export function useAgentWorkflow(options?: {
     }
   };
 
-  const handleGeneralChat = async (message: string) => {
+  const handleGeneralChat = async (
+    message: string,
+    opts?: { suppressProposal?: boolean },
+  ) => {
     setIsTyping(true);
+    // The reply lands asynchronously; effects that touch the open application
+    // check this before applying.
+    const startedIn = currentSession?.id ?? null;
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -341,6 +372,7 @@ export function useAgentWorkflow(options?: {
             // (the route validates the id) and the user's clock for dates.
             sessionId: currentSession?.id,
             timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            cvTemplateId: useUIStore.getState().cvTemplateId,
             ...screeningContext,
           },
         }),
@@ -357,7 +389,19 @@ export function useAgentWorkflow(options?: {
         // After the reply lands: a navigation effect switches the view, and
         // doing that first would move the screen before the sentence
         // explaining it is readable.
-        applyExecutedEffects(executed);
+        applyExecutedEffects(executed, message, {
+          startedIn,
+          suppressProposal: Boolean(opts?.suppressProposal),
+        });
+        // A real ad the model read as a question would otherwise be a dead
+        // end: no card, no run, no way back. The client offers a manual way
+        // in when the text looked like an ad and no proposal came back.
+        const proposed = Array.isArray(executed)
+          && (executed as ExecutedEffect[]).some((effect) => effect.type === 'propose_application');
+        if (!proposed && !opts?.suppressProposal
+          && useSessionStore.getState().currentSession?.id === startedIn) {
+          options?.onChatAnsweredWithoutProposal?.(message);
+        }
       } else if (response.status === 401) {
         // Signed out (or anonymous past the free run): ask for an account, never a canned reply.
         options?.onAnonymousLimitReached?.();
@@ -366,10 +410,7 @@ export function useAgentWorkflow(options?: {
         if (errorData?.code === 'CHAT_LIMIT_REACHED') {
           addChatMessage({
             role: 'assistant',
-            content: 'You\'ve reached the chat message limit for this application. Start a new application to continue.',
-            actions: [
-              { label: 'Start New Application', action: 'start-new-application', icon: 'new' },
-            ],
+            content: 'You\'ve reached the chat message limit for this application. Start a new application from the sidebar to keep going.',
           });
         } else {
           addChatMessage({
@@ -1028,7 +1069,10 @@ export function useAgentWorkflow(options?: {
     };
 
     if (!currentSession) {
-      createNewSession(messageContent);
+      // No job description yet: this is a conversation until an ad lands in
+      // it. Passing the message here would file every typed question as an
+      // application (isApplicationSession reads jobDescription).
+      createNewSession('');
       addChatMessage({
         role: 'user',
         content: messageContent,
@@ -1041,14 +1085,9 @@ export function useAgentWorkflow(options?: {
         return undefined;
       }
 
-      const isJobDescription = messageContent.length > 100 ||
-        /job|position|role|responsibilities|requirements|qualifications|experience/i.test(messageContent);
-
-      if (isJobDescription) {
-        runWorkflowForJD(messageContent);
-      } else {
-        handleGeneralChat(messageContent);
-      }
+      // Classification is the model's job now (propose_application), so an
+      // unclicked message never starts a paid run from keyword counting.
+      handleGeneralChat(messageContent);
     } else {
       addChatMessage({
         role: 'user',
@@ -1075,37 +1114,10 @@ export function useAgentWorkflow(options?: {
         return undefined;
       }
 
-      // When in screening mode, always route to chat (never re-detect as JD)
-      const jobKeywords = /\b(responsibilities|requirements|qualifications|experience required|skills required|about the role|job description|we are looking for|you will|must have|nice to have|salary|benefits|apply|candidate|position|vacancy)\b/i;
-      // Once an application is finished the composer is mostly edit requests,
-      // so a new JD has to carry at least two job-ad markers; length plus a
-      // single common word ("apply", "position") is not enough to start over.
-      const sessionHasCompletedApplication = Boolean(currentSession.generatedCV);
-      const isLikelyJobDescription = !isScreeningMode && !sessionHasCompletedApplication && messageContent.length > 200 && jobKeywords.test(messageContent);
-      // Count with a global regex: a non-global match() returns [hit, group]
-      // and would read one marker as two.
-      const markerHits = (messageContent.match(new RegExp(jobKeywords.source, 'gi')) || []).length;
-      const isShortJobPost = !isScreeningMode && messageContent.length > 100 && markerHits >= 2;
-      const isNewJobDescription = isLikelyJobDescription || isShortJobPost;
-
-      if (isNewJobDescription) {
-        setFitAnalysisContextId(null);
-        setFitAnalysisJD('');
-        setFitAnalysisContextData(null);
-        useAppStore.getState().updateCurrentSession({
-          requirements: null,
-          gaps: null,
-          generatedCV: null,
-          matchScore: undefined,
-          matchingSkills: [],
-          missingSkills: [],
-          suggestions: [],
-          pendingFitAnalysis: null,
-        });
-        runWorkflowForJD(messageContent);
-      } else {
-        handleGeneralChat(messageContent);
-      }
+      // No heuristic auto-start here either. A pasted ad is recognised by the
+      // model, which calls propose_application; the user's click on the
+      // decision card is what spends credits.
+      handleGeneralChat(messageContent);
     }
 
     return undefined;

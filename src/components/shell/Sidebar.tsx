@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSessionStore } from '@/store/useSessionStore';
+import { isApplicationSession, useSessionStore } from '@/store/useSessionStore';
 import { openStoredSession } from '@/lib/open-session';
 import { useUIStore } from '@/store/useUIStore';
 import { openSettings } from '@/store/useSettingsStore';
@@ -34,8 +34,11 @@ const SEARCH_DIALOG_FOCUSABLE =
 export function Sidebar({ isWorking = false }: SidebarProps) {
   const requestNewApplication = useUIStore((s) => s.requestNewApplication);
   const { user, profile } = useAuth();
-  const sessions = useSessionStore((s) => s.sessions);
+  const allSessions = useSessionStore((s) => s.sessions);
   const currentSession = useSessionStore((s) => s.currentSession);
+  // Chat-only conversations are not applications, so they never get a row
+  // here or in search. They appear the moment a job ad lands in them.
+  const sessions = useMemo(() => allSessions.filter(isApplicationSession), [allSessions]);
 
   const activeTab = useUIStore((s) => s.activeTab);
   const setActiveTab = useUIStore((s) => s.setActiveTab);

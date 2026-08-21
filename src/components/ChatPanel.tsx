@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Card } from './ui/Card';
 import { MarkdownText } from './MarkdownText';
 import { ChatMessage, type ChatMessageData } from './chat/ChatMessage';
@@ -10,9 +10,11 @@ import { FeedbackModal } from './chat/FeedbackModal';
 import { AgentProgressV2 } from './AgentProgressV2';
 import { useAgentWorkflow } from './chat/useAgentWorkflow';
 import { useAppStore } from '@/store/useAppStore';
-import { useSessionStore } from '@/store/useSessionStore';
+import { isApplicationSession, useSessionStore } from '@/store/useSessionStore';
 import { useUIStore, type KitTab } from '@/store/useUIStore';
 import { useTrackerStore } from '@/store/useTrackerStore';
+import { useJobFeedBadge } from '@/hooks/useJobFeedBadge';
+import { buildSuggestedPrompts } from './chat/suggested-prompts';
 import { openSettings } from '@/store/useSettingsStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { submitMessageFeedback } from '@/lib/supabase';
@@ -60,6 +62,38 @@ function buildJobFeedAutostartKey(params: {
   ].join(':');
 }
 
+/**
+ * Unambiguous pasted job ads only. These skip the model and show the decision
+ * chips instantly; everything else goes to /api/chat, where gpt-oss decides
+ * whether it is an ad (propose_application) or a question to answer. Keeping
+ * this test narrow is the point: the old heuristic turned any longish message
+ * with one marker word into a job ad.
+ */
+const JOB_AD_MARKERS = /\b(responsibilities|requirements|qualifications|job description|we are looking for|must have|nice to have|about the role|you will|salary|benefits|apply|candidate|position|vacancy)\b/gi;
+
+export function isObviousJobAd(text: string): boolean {
+  if (text.length <= 350) return false;
+  const distinct = new Set((text.match(JOB_AD_MARKERS) || []).map((hit) => hit.toLowerCase())).size;
+  // The composer caps at 2000 characters, so anything near that is a paste,
+  // but a long paste is not automatically an ad: pasting your own CV text
+  // into an edit request is just as long. Markers are what separate them.
+  if (text.length > 1800) return distinct >= 2;
+  return distinct >= 3;
+}
+
+/**
+ * Ad-shaped enough to offer the user a way in, not enough to decide for them.
+ * Only used after the model has answered without calling propose_application,
+ * so a real ad it misread is never a dead end.
+ */
+export function looksAdShaped(text: string): boolean {
+  if (text.length < 350) return false;
+  return new Set((text.match(JOB_AD_MARKERS) || []).map((hit) => hit.toLowerCase())).size >= 2;
+}
+
+/** Below this a message is a question, whatever the model called it. */
+const MIN_JOB_AD_CHARS = 200;
+
 interface ChatPanelProps {
   onTabChange?: (tab: KitTab) => void;
   isMobileDrawer?: boolean;
@@ -89,6 +123,12 @@ export function ChatPanel({
     isAgentWorking,
     sessions,
   } = useAppStore();
+
+  // The workflow hook is created before the handlers it calls back into, so
+  // the callbacks read them from refs. Assigned in an effect, never during
+  // render: a render React discards must not leave a ref behind.
+  const presentJobAdDecisionRef = useRef<((jd: string) => void) | null>(null);
+  const offerAdFallbackRef = useRef<((jd: string) => void) | null>(null);
 
   // Agent workflow hook — handles all SSE logic, JD detection, fit analysis, generation
   const {
@@ -146,6 +186,15 @@ export function ChatPanel({
     onAnonymousLimitReached: () => {
       askForAccount();
     },
+    onProposeApplication: (jd) => {
+      // A short message is a question whatever the model decided, and acting
+      // on it would overwrite the real job description with it.
+      if (jd.trim().length < MIN_JOB_AD_CHARS) return;
+      presentJobAdDecisionRef.current?.(jd);
+    },
+    onChatAnsweredWithoutProposal: (message) => {
+      offerAdFallbackRef.current?.(message);
+    },
   });
 
   const [inputValue, setInputValue] = useState('');
@@ -155,6 +204,9 @@ export function ChatPanel({
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
   const [shortCredits, setShortCredits] = useState<{ required: number; available: number } | null>(null);
   const [pendingDecisionJd, setPendingDecisionJd] = useState<string | null>(null);
+  // The model answered an ad-shaped message as a question. One chip, no cost,
+  // so a missed classification is recoverable without re-pasting.
+  const [adFallbackJd, setAdFallbackJd] = useState<string | null>(null);
   const [needsAccount, setNeedsAccount] = useState(false);
   // Regeneration from the chat: the cost chip waits in pendingRegen, the
   // named stage shows while runningRegen is set.
@@ -539,15 +591,77 @@ export function ChatPanel({
     }, 2000);
   };
 
-  // Once a kit exists the composer is mostly edit requests, so a new job ad
-  // has to look like one: long and carrying at least two job-ad markers.
-  // Length alone would turn a long change request into a new application.
-  const looksLikeJobAd = (text: string) => {
-    const markers = /\b(responsibilities|requirements|qualifications|job description|we are looking for|must have|nice to have|about the role|you will|salary|benefits|apply|candidate|position|vacancy)\b/gi;
-    const hits = (text.match(markers) || []).length;
-    if (currentSession?.generatedCV) return text.length > 100 && hits >= 2;
-    return text.length > 100 || hits > 0;
+  // ---- Adaptive empty-state chips -------------------------------------
+
+  const chatIsEmpty = Boolean(
+    spine && user && !currentSession?.jobDescription && messages.length === 0
+    && !isAgentWorking && !pendingDecisionJd,
+  );
+  const trackerRows = useTrackerStore((state) => state.rows);
+  const trackerLoadedOnce = useTrackerStore((state) => state.loadedOnce);
+  const jobFeedBadge = useJobFeedBadge(chatIsEmpty && Boolean(user), user?.id ?? null);
+  // The chips need the tracker to know whether a follow-up is due. Load it
+  // once, and only while the empty state is actually on screen.
+  useEffect(() => {
+    if (!chatIsEmpty || !user || trackerLoadedOnce) return;
+    void useTrackerStore.getState().load(user.id);
+  }, [chatIsEmpty, user, trackerLoadedOnce]);
+
+  // Paint the chips once, settled. Rendering before the tracker lands would
+  // swap them under the pointer a beat later.
+  const showSuggestedPrompts = chatIsEmpty && trackerLoadedOnce;
+
+  const applicationCount = sessions.filter(isApplicationSession).length;
+  const newFeedCount = jobFeedBadge.hasNewRun ? jobFeedBadge.jobCount : 0;
+  const suggestedPrompts = useMemo(
+    () => buildSuggestedPrompts({
+      hasCV: Boolean(currentCV),
+      applicationCount,
+      trackerRows,
+      newFeedCount,
+    }),
+    [currentCV, applicationCount, trackerRows, newFeedCount],
+  );
+
+  // Show the credit-aware decision card for a job ad. The ad lands on a
+  // session first so the run has it, but no run starts and nothing is spent
+  // until the user picks a chip.
+  const presentJobAdDecision = (jd: string) => {
+    if (!currentSession) {
+      useAppStore.getState().createNewSession(jd);
+    } else if (!currentSession.generatedCV) {
+      // A new ad on an unfinished application replaces it. Without this the
+      // fit result from the previous ad stays live and its "generate the kit"
+      // chip would spend 2 credits building for the wrong job.
+      setJobDescription(jd);
+      setFitAnalysisContextId(null);
+      setFitAnalysisJD('');
+      setFitAnalysisContextData(null);
+      useAppStore.getState().updateCurrentSession({
+        requirements: null,
+        gaps: null,
+        generatedCV: null,
+        matchScore: undefined,
+        matchingSkills: [],
+        missingSkills: [],
+        suggestions: [],
+        pendingFitAnalysis: null,
+      });
+    }
+    setAdFallbackJd(null);
+    setPendingDecisionJd(jd);
+    setShortCredits(null);
   };
+
+  const offerAdFallback = (message: string) => {
+    if (!looksAdShaped(message)) return;
+    setAdFallbackJd(message);
+  };
+
+  useEffect(() => {
+    presentJobAdDecisionRef.current = presentJobAdDecision;
+    offerAdFallbackRef.current = offerAdFallback;
+  });
 
   // Commit a pasted job ad to a session right before a run starts. A finished
   // application stays in the sidebar; the new job opens its own conversation.
@@ -667,8 +781,7 @@ export function ChatPanel({
         } else if (result.code === 'CHAT_LIMIT') {
           addChatMessage({
             role: 'assistant',
-            content: 'You\'ve reached the chat limit for this application. Start a new application to keep going.',
-            actions: [{ label: 'Start new application', action: 'start-new-application', icon: 'new' }],
+            content: 'You\'ve reached the chat limit for this application. Start a new application from the sidebar to keep going.',
           });
         } else if (result.code === 'SIGNED_OUT') {
           addChatMessage({
@@ -773,7 +886,11 @@ export function ChatPanel({
   const handleSend = async () => {
     if (!inputValue.trim()) return;
     const text = inputValue.trim();
-    if (spine && currentSession?.generatedCV && (isScreeningMode || !looksLikeJobAd(text))) {
+    // A card raised by the previous message must not outlive it: clicking it
+    // later would run a job ad the user has moved on from.
+    setPendingDecisionJd(null);
+    setAdFallbackJd(null);
+    if (spine && currentSession?.generatedCV && (isScreeningMode || !isObviousJobAd(text))) {
       const draft = text;
       setInputValue('');
       addChatMessage({ role: 'user', content: draft });
@@ -782,7 +899,7 @@ export function ChatPanel({
       await handleGeneralChat(draft);
       return;
     }
-    if (spine && looksLikeJobAd(text) && !isScreeningMode) {
+    if (spine && isObviousJobAd(text) && !isScreeningMode) {
       if (!user && hasUsedFreeGeneration()) {
         askForAccount();
         setInputValue('');
@@ -790,14 +907,8 @@ export function ChatPanel({
       }
       // With a kit on screen the new application only starts when a chip is
       // picked (see beginJobRun), so a misread edit request costs nothing.
-      if (!currentSession) {
-        useAppStore.getState().createNewSession(text);
-      } else if (!currentSession.generatedCV) {
-        setJobDescription(text);
-      }
       addChatMessage({ role: 'user', content: text });
-      setPendingDecisionJd(text);
-      setShortCredits(null);
+      presentJobAdDecision(text);
       setInputValue('');
       return;
     }
@@ -1073,7 +1184,7 @@ export function ChatPanel({
         <div className="relative">
         {showHistory && (
           <ChatHistory
-            sessions={sessions.map(s => ({
+            sessions={sessions.filter(isApplicationSession).map(s => ({
               id: s.id,
               company: s.company,
               jobTitle: s.jobTitle,
@@ -1294,10 +1405,9 @@ export function ChatPanel({
           {/* Spine empty state: suggested prompts that teach what the chat
               can do. Clicking one sends it as the message, straight to chat,
               so the JD heuristics never read a chip as a job ad. */}
-          {spine && user && currentCV && !currentSession?.jobDescription && messages.length === 0
-            && !isAgentWorking && !pendingDecisionJd && (
+          {showSuggestedPrompts && (
             <div className="flex flex-wrap gap-2">
-              {['What should I do today?', 'Which follow-ups are due?', 'Refresh my job feed'].map((suggestion) => (
+              {suggestedPrompts.map((suggestion) => (
                 <button
                   key={suggestion}
                   type="button"
@@ -1481,21 +1591,21 @@ export function ChatPanel({
                           void runFitAnalysisFlow(jd);
                         },
                       },
-                      ...(currentSession?.generatedCV
-                        ? [{
-                            id: 'not-a-job',
-                            label: 'Not a job ad, just a question',
-                            variant: 'secondary' as const,
-                            onSelect: () => {
-                              const jd = pendingDecisionJd;
-                              setPendingDecisionJd(null);
-                              void (async () => {
-                                if (await routeKitMessage(jd)) return;
-                                await handleGeneralChat(jd);
-                              })();
-                            },
-                          }]
-                        : []),
+                      {
+                        id: 'not-a-job',
+                        label: 'Not a job ad, just a question',
+                        variant: 'secondary' as const,
+                        onSelect: () => {
+                          const jd = pendingDecisionJd;
+                          setPendingDecisionJd(null);
+                          void (async () => {
+                            if (currentSession?.generatedCV && await routeKitMessage(jd)) return;
+                            // Same text, same model: without this it would be
+                            // read as an ad again and the card would return.
+                            await handleGeneralChat(jd, { suppressProposal: true });
+                          })();
+                        },
+                      },
                     ]}
                   />
                   <button
@@ -1512,6 +1622,23 @@ export function ChatPanel({
                 </div>
               )}
             </div>
+          )}
+
+          {spine && !isAgentWorking && !pendingDecisionJd && adFallbackJd && (
+            <DecisionChips
+              chips={[
+                {
+                  id: 'treat-as-job-ad',
+                  label: 'That was a job ad, start an application',
+                  variant: 'secondary',
+                  icon: <Plus className="h-4 w-4" />,
+                  onSelect: () => {
+                    const jd = adFallbackJd;
+                    presentJobAdDecision(jd);
+                  },
+                },
+              ]}
+            />
           )}
 
           {spine && needsAccount && !user && !isAgentWorking && (

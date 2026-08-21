@@ -14,6 +14,8 @@ export type NavigateTarget = 'tracker' | 'documents' | 'billing' | 'job-feed';
 export type ExecutedEffect =
   | { type: 'navigate'; target: NavigateTarget }
   | { type: 'tracker_updated'; sessionId: string; status: string }
+  | { type: 'set_cv_template'; templateId: string }
+  | { type: 'propose_application' }
   | { type: 'refresh_credits' };
 
 /** A quick-action chip rendered under the reply (same shape the chat already uses). */
@@ -28,6 +30,12 @@ export interface ChatToolContext {
   userId: string;
   /** The user's own message this turn. Row-touching writes are gated on it naming the target. */
   userMessage: string;
+  /**
+   * The message looks pasted (a job ad, not a typed instruction), so naming a
+   * company in it is not the user vouching for that target. Row-touching
+   * writes refuse when this is set.
+   */
+  userMessagePasted: boolean;
   /** Validated IANA zone; 'UTC' when the client sent none. */
   timeZone: string;
   /** The saved application the client is looking at, if any (UUID-validated by the route). */

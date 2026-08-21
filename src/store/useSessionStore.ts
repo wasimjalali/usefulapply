@@ -211,6 +211,9 @@ export interface ApplicationSession {
   /** Screening answers generated from the chat. Persisted inside generated_cv as _screeningAnswers. */
   screeningAnswers?: ScreeningAnswerItem[];
 
+  /** The CV template this application renders with. Persisted as selected_template. */
+  selectedTemplate?: string;
+
   cvEdits: CVEdit[];
   optimizedPdfRef?: {
     id: string;
@@ -222,6 +225,22 @@ export interface ApplicationSession {
   };
   
   chatMessages: ChatMessage[];
+}
+
+/**
+ * Is this session a real application, or just a chat container?
+ *
+ * Any first chat message calls createNewSession(), so a conversation with no
+ * job ad in it would otherwise show up in the sidebar as "New application /
+ * Role not set". Chat-only sessions stay usable as the current conversation;
+ * they join the lists the moment a job ad lands in them.
+ */
+export function isApplicationSession(session: ApplicationSession): boolean {
+  return Boolean(
+    session.jobDescription?.trim()
+    || session.generatedCV
+    || session.pendingFitAnalysis,
+  );
 }
 
 interface SessionState {

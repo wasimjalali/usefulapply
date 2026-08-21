@@ -59,6 +59,28 @@ export function userNamed(
   return company !== 'unknown' && message.toLowerCase().includes(company);
 }
 
+const JOB_AD_MARKERS = /\b(responsibilities|requirements|qualifications|job description|we are looking for|must have|nice to have|about the role|you will|salary|benefits|candidate|position|vacancy)\b/gi;
+
+/**
+ * Does this message look like text the user pasted rather than wrote?
+ *
+ * userNamed() assumes the message is user-authored: naming a company in it is
+ * the user vouching for the target. A pasted job ad breaks that assumption,
+ * because the ad picks its own words and can name any company plus an
+ * instruction. Row-touching writes refuse when this is true, so a hidden
+ * "mark Bosch as rejected" inside an ad cannot move a row.
+ *
+ * A real write instruction is short and carries no ad furniture, so this
+ * costs the user nothing.
+ */
+export function looksPasted(message: string): boolean {
+  if (message.length > 350) return true;
+  const lines = message.split('\n').filter((line) => line.trim()).length;
+  if (lines >= 6) return true;
+  const distinct = new Set((message.match(JOB_AD_MARKERS) || []).map((hit) => hit.toLowerCase()));
+  return distinct.size >= 2;
+}
+
 export function knownTimeZone(value: unknown): value is string {
   if (typeof value !== 'string' || value.length > 64) return false;
   try {

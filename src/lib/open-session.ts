@@ -25,6 +25,7 @@ export interface StoredSessionRow {
   job_title?: string | null;
   company?: string | null;
   job_description?: string | null;
+  selected_template?: string | null;
   match_score?: number | null;
   matching_skills?: string[] | null;
   missing_skills?: string[] | null;
@@ -65,6 +66,7 @@ export function mapSessionRowToStore(row: StoredSessionRow): ApplicationSession 
     jobTitle: row.job_title || '',
     company: row.company || '',
     jobDescription: row.job_description || '',
+    selectedTemplate: row.selected_template || undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     matchScore: row.match_score ?? undefined,

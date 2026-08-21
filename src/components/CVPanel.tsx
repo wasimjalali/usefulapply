@@ -106,6 +106,9 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const setCvTemplateId = useUIStore((s) => s.setCvTemplateId);
   const setSelectedTemplateId = (id: string) => {
     setCvTemplateId(id);
+    // The application stores its own template too, so the chat can answer
+    // "which template is this using" without guessing.
+    useSessionStore.getState().updateCurrentSession({ selectedTemplate: id });
     writeDefaultTemplate(id);
   };
   const [showTemplates, setShowTemplates] = useState(false);
