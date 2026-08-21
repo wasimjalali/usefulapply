@@ -1,19 +1,11 @@
-// BrandLogo.tsx: Useful Apply logo component kit
-// The mark is the letter U drawn as a sheet of paper: solid U with the top-right corner folded in gold.
-// It is the first letter of the wordmark ("Useful Apply", Plus Jakarta Sans 800) and, standalone with
-// no tile or background, it is also the icon, favicon and chat avatar. One drawing, everywhere.
+// BrandLogo (app): approved logo concept A, "Page-U".
+// A document sheet with a gold folded corner, the U carved into the page.
+// In the wordmark the icon replaces the letter U of "Useful", sized to the cap
+// height and baseline-aligned so the lockup reads as one word: "Useful Apply".
+// Wordmark font: Plus Jakarta Sans 700 (the brand wordmark font).
 // Same prop API as before, so call sites do not change.
 
 import React from 'react';
-
-// Brand colors (design-system tokens from globals.css)
-export const BRAND_COLORS = {
-  navyText: '#0C1929', // navy-900, U glyph and "seful" on light surfaces
-  gold: '#D4A853', // gold-400, fold and "Apply" on dark surfaces
-  goldText: '#C4932E', // gold-500, fold and "Apply" on light surfaces
-  cream: '#FEFDFB', // cream-50
-  white: '#FFFFFF', // U glyph and "seful" on dark surfaces
-} as const;
 
 interface LogoProps {
   variant?: 'full' | 'icon' | 'wordmark';
@@ -33,27 +25,46 @@ const SIZES = {
 
 const WORDMARK_STYLE: React.CSSProperties = {
   fontFamily: 'var(--font-plus-jakarta), system-ui, sans-serif',
-  fontWeight: 800,
+  fontWeight: 700,
   letterSpacing: '-0.02em',
   lineHeight: 1,
   whiteSpace: 'nowrap',
 };
 
-// Glyph in an 84 x 100 box. Stems 24 wide to match the 800 weight of the wordmark.
-// Body: U with the top-right corner cut on the diagonal. Fold: the gold triangle in that corner.
-export const U_GLYPH_VIEWBOX = '0 0 84 100';
-export const U_GLYPH_BODY =
-  'M0 0 H24 V58 A18 18 0 0 0 60 58 V0 H62 L84 22 V58 A42 42 0 0 1 0 58 Z';
-export const U_GLYPH_FOLD = 'M62 0 V22 H84 Z';
+// The Page-U drawing. Tight viewBox around the sheet so its rendered height
+// maps exactly to the cap height when placed in the wordmark.
+// Sheet: x 7-25, y 3-28 in the 32x32 reference grid.
+const PAGE_VIEWBOX = '7 3 18 25';
 
-function glyphColors(theme: 'light' | 'dark') {
+const PAGE_PATH = 'M7 3 h12 l6 6 v10 c0 5 -4 9 -9 9 s-9 -4 -9 -9 Z';
+const FOLD_PATH = 'M19 3 l6 6 h-6 Z';
+const U_PATH = 'M12 12 v6.5 a4 4 0 0 0 8 0 V12';
+
+function pageColors(theme: 'light' | 'dark') {
   return theme === 'light'
-    ? { ink: BRAND_COLORS.navyText, fold: BRAND_COLORS.goldText }
-    : { ink: BRAND_COLORS.white, fold: BRAND_COLORS.gold };
+    ? { page: '#1E3A5F', fold: '#D4A853', carve: '#FEFDFB' }
+    : { page: '#FEFDFB', fold: '#D4A853', carve: '#12243B' };
+}
+
+function PageU({ theme }: { theme: 'light' | 'dark' }) {
+  const { page, fold, carve } = pageColors(theme);
+  return (
+    <>
+      <path d={PAGE_PATH} fill={page} />
+      <path d={FOLD_PATH} fill={fold} />
+      <path
+        d={U_PATH}
+        stroke={carve}
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        fill="none"
+      />
+    </>
+  );
 }
 
 // ============================================
-// 1. ICON: the U glyph alone, no tile, centered in a square box
+// 1. ICON: the Page-U sheet alone, centered on its square reference grid
 //    Use for: favicon, chat avatar, empty states, small spaces
 // ============================================
 export function BrandIcon({
@@ -61,44 +72,40 @@ export function BrandIcon({
   size = 'md',
   className = '',
 }: Omit<LogoProps, 'variant'>) {
-  const s = SIZES[size].icon;
-  const { ink, fold } = glyphColors(theme);
   return (
     <svg
-      width={s}
-      height={s}
-      viewBox="-8 0 100 100"
+      width={32}
+      height={32}
+      viewBox="0 0 32 32"
+      style={{ width: SIZES[size].icon, height: SIZES[size].icon }}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       role="img"
       aria-label="Useful Apply"
     >
-      <path d={U_GLYPH_BODY} fill={ink} />
-      <path d={U_GLYPH_FOLD} fill={fold} />
+      <PageU theme={theme} />
     </svg>
   );
 }
 
-// The U glyph sized to the cap height of the wordmark, sitting on its baseline
-function WordmarkU({ theme }: { theme: 'light' | 'dark' }) {
-  const { ink, fold } = glyphColors(theme);
+// The sheet sized to the cap height of the wordmark, sitting on its baseline
+function WordmarkPageU({ theme }: { theme: 'light' | 'dark' }) {
   return (
     <svg
-      viewBox={U_GLYPH_VIEWBOX}
+      viewBox={PAGE_VIEWBOX}
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
-      style={{ height: '0.74em', width: 'auto', display: 'inline-block', verticalAlign: 'baseline' }}
+      style={{ height: '1.02em', width: 'auto', display: 'inline-block', verticalAlign: '-0.08em' }}
     >
-      <path d={U_GLYPH_BODY} fill={ink} />
-      <path d={U_GLYPH_FOLD} fill={fold} />
+      <PageU theme={theme} />
     </svg>
   );
 }
 
 // ============================================
-// 2. WORDMARK: "Useful Apply" with the drawn U as its first letter
-//    Use for: navbar, footer, auth pages, marketing
+// 2. WORDMARK: "Useful Apply" with the Page-U sheet as its first letter
+//    Use for: navbar, sidebar, auth pages, empty states
 // ============================================
 export function BrandWordmark({
   theme = 'light',
@@ -106,8 +113,8 @@ export function BrandWordmark({
   className = '',
 }: Omit<LogoProps, 'variant'>) {
   const dims = SIZES[size];
-  const rest = theme === 'light' ? BRAND_COLORS.navyText : BRAND_COLORS.white;
-  const apply = theme === 'light' ? BRAND_COLORS.goldText : BRAND_COLORS.gold;
+  const rest = theme === 'light' ? '#0C1929' : '#FFFFFF';
+  const apply = theme === 'light' ? '#C4932E' : '#D4A853';
   return (
     <span
       className={`flex w-max items-center ${className}`}
@@ -116,15 +123,17 @@ export function BrandWordmark({
       aria-label="Useful Apply"
     >
       <span style={{ ...WORDMARK_STYLE, fontSize: dims.font, color: rest }}>
-        <WordmarkU theme={theme} />
-        seful <span style={{ color: apply }}>Apply</span>
+        <WordmarkPageU theme={theme} />
+        <span aria-hidden="true">
+          seful <span style={{ color: apply }}>Apply</span>
+        </span>
       </span>
     </span>
   );
 }
 
 // ============================================
-// 3. FULL LOGO: the wordmark is the full logo, the U carries the mark
+// 3. FULL LOGO: the wordmark is the full logo, the sheet carries the mark
 // ============================================
 export function BrandLogoFull(props: Omit<LogoProps, 'variant'>) {
   return <BrandWordmark {...props} />;

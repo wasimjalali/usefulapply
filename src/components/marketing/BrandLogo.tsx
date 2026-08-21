@@ -122,7 +122,9 @@ export function BrandWordmark({
     >
       <span style={{ ...WORDMARK_STYLE, fontSize: dims.font, color: rest }}>
         <WordmarkPageU theme={theme} />
-        seful <span style={{ color: apply }}>Apply</span>
+        <span aria-hidden="true">
+          seful <span style={{ color: apply }}>Apply</span>
+        </span>
       </span>
     </span>
   );
