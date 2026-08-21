@@ -459,6 +459,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
             onClick={() => {
               // Save changes via ref, then exit edit mode
               editableCVRef.current?.save();
+              setEditedCVData(null);
               setIsEditMode(false);
             }}
             className="h-9 px-3.5 text-sm font-semibold text-white bg-navy-600 hover:bg-navy-700 rounded-full transition-colors duration-200 cursor-pointer flex-shrink-0 shadow-sm"

@@ -332,7 +332,7 @@ const NEUTRAL_WORDS = new Set([
   'there', 'then', 'than', 'we', 'our', 'us', 'you', 'your', 'yours', 'my',
   'me', 'mine', 'he', 'she', 'his', 'her', 'him', 'who', 'whom', 'whose',
   'what', 'when', 'where', 'which', 'while', 'why', 'how', 'with', 'from',
-  'into', 'onto', 'about', 'across', 'within', 'through', 'between', 'after',
+  'into', 'onto', 'about', 'around', 'across', 'within', 'through', 'between', 'after',
   'before', 'during', 'since', 'until', 'upon', 'over', 'under', 'out', 'off',
   'up', 'down', 'again', 'also', 'just', 'only', 'both', 'each', 'every',
   'any', 'all', 'some', 'many', 'much', 'more', 'most', 'less', 'least',
@@ -407,7 +407,7 @@ function isNeutral(word: string): boolean {
 const ANCHOR_STOPWORDS = new Set([
   'the', 'and', 'for', 'with', 'from', 'that', 'this', 'was', 'were', 'are',
   'has', 'have', 'had', 'into', 'over', 'than', 'then', 'their', 'there',
-  'which', 'while', 'across', 'within', 'about', 'also', 'more', 'less',
+  'which', 'while', 'across', 'within', 'about', 'around', 'also', 'more', 'less',
   'other', 'such', 'been', 'being', 'per', 'via', 'not', 'all', 'any',
   'der', 'die', 'das', 'und', 'von', 'mit', 'fuer', 'den', 'dem', 'ein',
   'eine', 'als', 'bei', 'auf', 'aus', 'ist', 'sind', 'sich', 'durch', 'ueber',

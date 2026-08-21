@@ -35,6 +35,18 @@ test('keeps unsafe short-word collisions distinct', () => {
   assert.notEqual(claimStem('axes'), claimStem('axe'));
 });
 
+test('folds supported short verb inflections without broader collisions', () => {
+  for (const word of ['own', 'owns', 'owning', 'owned']) {
+    assert.equal(claimStem(word), 'own');
+  }
+  for (const word of ['run', 'runs', 'running']) {
+    assert.equal(claimStem(word), 'run');
+  }
+  assert.notEqual(claimStem('owner'), claimStem('own'));
+  assert.notEqual(claimStem('runner'), claimStem('run'));
+  assert.notEqual(claimStem('rune'), claimStem('run'));
+});
+
 test('does not collapse distinct technology names or authority claims', () => {
   assert.notEqual(claimStem('javascript'), claimStem('java'));
   assert.notEqual(claimStem('leader'), claimStem('leading'));

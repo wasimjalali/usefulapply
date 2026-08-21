@@ -367,8 +367,14 @@ export async function POST(req: NextRequest) {
     }
 
     // The tools cannot add a new claim to the source CVs. If the model offers
-    // that unsupported action anyway, replace it before it reaches the client.
-    reply = guardUnsupportedCvAdditionOffer(reply);
+    // or promises that unsupported action anyway, replace it before it reaches
+    // the client and suppress the rewrite chip that would only refuse later.
+    const cvRewriteProposed = confirmActions.some((chip) =>
+      chip.action.startsWith('confirm-cv-rewrite:'),
+    );
+    const guardedReply = guardUnsupportedCvAdditionOffer(reply, { cvRewriteProposed });
+    const unsupportedCvAdditionBlocked = cvRewriteProposed && guardedReply !== reply;
+    reply = guardedReply;
 
     // The prompt bans long dashes, but the live model has ignored that rule.
     // All free-form chat copy gets the same deterministic safety net as the
@@ -379,7 +385,10 @@ export async function POST(req: NextRequest) {
     // so composed edits return different Undo action strings. Only the last
     // one targets the final composed CV. Earlier chips would either refuse or
     // misrepresent which operation they undo.
-    const rawActions = [...extractActions(reply, context), ...confirmActions];
+    const safeConfirmActions = unsupportedCvAdditionBlocked
+      ? confirmActions.filter((chip) => !chip.action.startsWith('confirm-cv-rewrite:'))
+      : confirmActions;
+    const rawActions = [...extractActions(reply, context), ...safeConfirmActions];
     const lastCvUndo = rawActions.findLast((chip) => chip.action.startsWith('undo-cv-edit:'));
     const seenActions = new Set<string>();
     const actions = rawActions.filter((chip) => {

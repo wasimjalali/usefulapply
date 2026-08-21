@@ -13,6 +13,18 @@ const SYMBOL_NAMES: Array<[RegExp, string]> = [
   [/\.net\b/g, 'dotnet'],
 ];
 
+// Exact exceptions for short verbs that the five-character safety floor would
+// otherwise leave split. Keep this allowlist narrow to avoid new collisions.
+const SHORT_VERB_STEMS = new Map([
+  ['own', 'own'],
+  ['owns', 'own'],
+  ['owning', 'own'],
+  ['owned', 'own'],
+  ['run', 'run'],
+  ['runs', 'run'],
+  ['running', 'run'],
+]);
+
 /** German spelling variants fold, so "fünf" and "fuenf" are one word. */
 function foldUmlauts(lower: string): string {
   return lower
@@ -51,14 +63,17 @@ export function claimAcronymPluralAliases(text: string): Map<string, string> {
 }
 
 /**
- * A conservative morphology fold for ordinary words. The five-character
- * floor prevents short-word collisions such as does/DOE and axes/axe.
+ * A conservative morphology fold for ordinary words. Apart from the exact
+ * short-verb allowlist above, the five-character floor prevents collisions
+ * such as does/DOE and axes/axe.
  *
  * Deliberately does not strip "-er": collapsing "leader" onto "lead" would
  * let a CV saying "leading the migration" support the stronger claim "team
  * leader".
  */
 export function claimStem(word: string): string {
+  const shortVerbStem = SHORT_VERB_STEMS.get(word);
+  if (shortVerbStem) return shortVerbStem;
   if (word.length < 5) return word;
   if (word.endsWith('ies') && word.length > 4) return `${word.slice(0, -3)}y`;
   for (const suffix of ['ing', 'ed', 'es', 'ly', 's']) {
