@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
 
 const HERO_IMAGE = {
-  src: '/images/moments/kit-ready.webp',
+  src: '/images/moments/hero-workspace.webp',
   alt: 'The Useful Apply workspace with a finished application kit: the conversation on the left and the tailored CV on the right',
 };
 
@@ -44,8 +44,8 @@ const WORKFLOW_STEPS: WorkflowStep[] = [
     title: 'A shortlist, not a firehose',
     body: 'Every morning, up to 20 fresh roles ranked against your career profile. Matched on skills, seniority and direction, not keyword bingo. Nothing looks right today? Come back tomorrow.',
     image: {
-      src: '/images/moments/daily-feed.webp',
-      alt: "A job feed listing today's roles with match strength, salary and a check-fit button on each",
+      src: '/images/moments/step1-job-board.webp',
+      alt: "The Job Board listing today's ranked roles with match strength, salary and location on each",
     },
   },
   {
@@ -54,7 +54,7 @@ const WORKFLOW_STEPS: WorkflowStep[] = [
     title: 'Know before you apply.',
     body: "Run the ad against your real CV before you build anything. A clear read on the match and the reasoning behind it. If it's a pass, you lost nothing. If it's a go, you apply like it matters.",
     image: {
-      src: '/images/moments/fit-result.webp',
+      src: '/images/moments/step2-fit-result.webp',
       alt: 'A fit result for a Product Manager role: 76% match, the strengths that line up and the gaps',
     },
     kicker:
@@ -67,8 +67,8 @@ const WORKFLOW_STEPS: WorkflowStep[] = [
     body: "Tailored CV, cover letter, application email and follow-up email. The ad decides what to emphasize, never what's true about you. Facts come from one place: your real CV.",
     secondLine: 'Most people never send a follow-up. Yours is already written.',
     image: {
-      src: '/images/moments/kit-ats.webp',
-      alt: 'The what-changed view of a tailored CV, showing each edit before and after with an ATS score',
+      src: '/images/moments/step3-kit-tabs.webp',
+      alt: 'A finished application kit with CV, cover letter and email tabs and the tailored CV preview',
     },
   },
   {
@@ -83,6 +83,10 @@ const WORKFLOW_STEPS: WorkflowStep[] = [
     label: 'Track',
     title: 'Every application, remembered',
     body: 'Everything you send lands in the tracker. Status, documents and follow-ups in one place, with chat when you want to dig in.',
+    image: {
+      src: '/images/moments/step5-tracker.webp',
+      alt: 'The application tracker with statuses, match scores and follow-up dates for twenty applications',
+    },
   },
 ];
 
