@@ -56,8 +56,9 @@ export function buildSuggestedPrompts(
     return [PROMPTS.intro, PROMPTS.analyze, PROMPTS.runFeed, PROMPTS.today];
   }
 
-  // Active users: urgent chips first, then the everyday actions.
-  const picks: string[] = [];
+  // Active users: the introduction stays first, urgent chips next, then the
+  // everyday actions.
+  const picks: string[] = [PROMPTS.intro];
   if (hasFollowUpDue(state.trackerRows, timeZone)) picks.push(PROMPTS.followUps);
   if (hasUpcomingInterview(state.trackerRows, timeZone)) picks.push(PROMPTS.interviews);
   picks.push(PROMPTS.analyze, PROMPTS.runFeed, PROMPTS.today);

@@ -228,7 +228,10 @@ export function TrackerCanvas() {
             )}
           </div>
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-cream-200 bg-cream-50 shadow-sm">
+          <div className="min-w-[720px] overflow-hidden rounded-2xl border border-cream-200 bg-cream-50 shadow-sm">
+            {/* min-w matches the grid's fixed tracks (68+150+150+100/72+32 + gaps
+                + padding): below ~720px the application column would collapse to
+                0 and the headers would overlap. A starved canvas scrolls instead. */}
             <div
               className={`grid items-center gap-3 border-b border-cream-200 px-5 py-2.5 text-[11px] font-semibold tracking-[0.08em] text-warm-gray ${
                 wide
