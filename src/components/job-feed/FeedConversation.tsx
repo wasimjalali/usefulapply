@@ -23,6 +23,7 @@ import { useFeedJobLists } from './useVisibleFeedJobs';
 import {
   JOB_FEED_COUNTRY_OPTIONS,
   getJobFeedTierLimits,
+  legacyMarketFromCountries,
 } from '@/lib/job-feed/constants';
 import { createDefaultJobFeedInput, getLocalDateKey, toJobFeedInput } from '@/lib/job-feed/helpers';
 import type { JobFeedFeedItem, JobFeedSettingsInput } from '@/lib/job-feed/types';
@@ -85,6 +86,7 @@ export function FeedConversation() {
   const thread = useFeedStore((state) => state.thread);
   const setupStep = useFeedStore((state) => state.setupStep);
   const setupDraft = useFeedStore((state) => state.setupDraft);
+  const editingPreferences = useFeedStore((state) => state.editingPreferences);
   const filters = useFeedStore((state) => state.filters);
   const usedChips = useFeedStore((state) => state.usedChips);
 
@@ -191,6 +193,9 @@ export function FeedConversation() {
     }
     if (build || isRunning) return 'building';
     if (!overview) return 'error';
+    // Re-running the guided setup to edit existing preferences takes over the
+    // conversation until it's saved or cancelled.
+    if (editingPreferences) return 'setup';
     switch (overview.state) {
       case 'upgrade_required':
         return 'upgrade';
@@ -210,7 +215,7 @@ export function FeedConversation() {
       default:
         return 'feed';
     }
-  }, [build, isRunning, overview, pollGaveUp, status]);
+  }, [build, editingPreferences, isRunning, overview, pollGaveUp, status]);
 
   const { all: allJobs } = useFeedJobLists();
   const todayCount = overview?.jobsTodayCount ?? 0;
@@ -238,6 +243,7 @@ export function FeedConversation() {
       tier,
       setupStep,
       setupDraft,
+      editingPreferences,
       errorMessage,
       build,
       queryBudget,
@@ -245,8 +251,8 @@ export function FeedConversation() {
       usedChipIds: usedChips.key === feedKey ? usedChips.ids : [],
     }),
     [
-      allJobs, build, canRunToday, canSteer, careerProfile, errorMessage, feedKey,
-      knownFree, overview, phase, queryBudget, setupDraft, setupStep,
+      allJobs, build, canRunToday, canSteer, careerProfile, editingPreferences, errorMessage,
+      feedKey, knownFree, overview, phase, queryBudget, setupDraft, setupStep,
       strategy?.queries.length, tier, todayCount, totalCount, usedChips,
     ],
   );
@@ -383,14 +389,33 @@ export function FeedConversation() {
     await finishBuild();
   }, [finishBuild, posthog, say, startBuild]);
 
+  /** Save a preferences edit made through the guided setup, without a run. */
+  const completePreferencesEdit = useCallback(async (draft: JobFeedSettingsInput) => {
+    const saved = await saveFeedSettings(draft);
+    if (!saved.ok) {
+      say({ role: 'assistant', content: saved.error });
+      return;
+    }
+    useFeedStore.getState().clearEditingPreferences();
+    await loadFeedOverview({ quiet: true });
+    say({ role: 'assistant', content: 'Saved. The next run searches with these.' });
+  }, [say]);
+
   /** Save a steering change and narrow what is already on screen. */
   const applySteer = useCallback(async (text: string) => {
     const intent = detectFeedIntent(text);
     if (intent.kind === 'unknown') {
       say({
         role: 'assistant',
-        content: 'I can change where I look, the work mode, the salary floor and the words to avoid. Try "only remote", "salary floor 150K" or "no agencies".',
+        content: 'I can change where I look, the work mode, the salary floor and the words to avoid. Try "only remote", "add Germany", "salary floor 150K" or "no agencies".',
       });
+      return;
+    }
+
+    // An honest answer beats a silent no-op: the country was understood but
+    // the feed doesn't search it.
+    if (intent.kind === 'unsupported_country') {
+      say({ role: 'assistant', content: `${intent.confirmation} I can search these: US, Canada, UK and most of Western Europe, plus Australia, New Zealand, India, Singapore and the UAE.` });
       return;
     }
 
@@ -409,6 +434,37 @@ export function FeedConversation() {
         role: 'assistant',
         content: "Give me a second, I'm still loading your feed settings. Ask me again in a moment and it'll stick.",
       });
+      return;
+    }
+
+    // Refuse a removal that would leave nowhere to search; the settings row
+    // must keep at least one country.
+    if (intent.kind === 'remove_country') {
+      const remaining = (currentSettings.target_countries ?? []).filter(
+        (code) => !intent.countries.includes(code),
+      );
+      if (remaining.length === 0) {
+        say({
+          role: 'assistant',
+          content: "That's every country you have, and I need at least one to search in. Add another first, then I can drop this one.",
+        });
+        return;
+      }
+    }
+
+    // Country changes only shape the next run, so skip the on-screen filter
+    // pass and save the new list directly.
+    const isCountryChange = intent.kind === 'add_country' || intent.kind === 'remove_country' || intent.kind === 'set_countries';
+    if (isCountryChange) {
+      if (!isPreviewing) {
+        const saved = await saveFeedSettings(applyFeedIntent(currentSettings, intent));
+        if (!saved.ok) {
+          say({ role: 'assistant', content: saved.error });
+          return;
+        }
+      }
+      posthog?.capture('job_feed_steered', { intent: intent.kind });
+      say({ role: 'assistant', content: `${intent.confirmation} The next run searches with it.` });
       return;
     }
 
@@ -471,9 +527,18 @@ export function FeedConversation() {
     switch (chip.id) {
       case 'consent': {
         const base = createDefaultJobFeedInput(browserTimeZone());
-        await completeSetup({ ...base, ...setupDraft, enabled: true, consent_accepted: true });
+        const draft = { ...base, ...setupDraft, enabled: true, consent_accepted: true };
+        if (store.editingPreferences) {
+          await completePreferencesEdit(draft);
+        } else {
+          await completeSetup(draft);
+        }
         return;
       }
+      case 'cancel-edit':
+        store.clearEditingPreferences();
+        say({ role: 'assistant', content: 'Kept your preferences as they were.' });
+        return;
       case 'build-feed':
         await triggerRun(false);
         return;
@@ -581,7 +646,7 @@ export function FeedConversation() {
       say({ role: 'assistant', content: buildWhyAnswer(job) });
       return;
     }
-  }, [allJobs, applySteer, completeSetup, currentSettingsInput, posthog, say, setupDraft, triggerRun]);
+  }, [allJobs, applySteer, completePreferencesEdit, completeSetup, currentSettingsInput, posthog, say, setupDraft, triggerRun]);
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
@@ -604,7 +669,7 @@ export function FeedConversation() {
         const draft: Partial<JobFeedSettingsInput> = {
           ...store.setupDraft,
           target_countries: parsed.countries,
-          target_market: parsed.countries.length === 1 && parsed.countries[0] === 'ca' ? 'canada' : 'us',
+          target_market: legacyMarketFromCountries(parsed.countries),
           remote_preference: parsed.remotePreference ?? store.setupDraft.remote_preference ?? base.remote_preference,
           remote_preferences: [parsed.remotePreference ?? store.setupDraft.remote_preference ?? base.remote_preference],
           salary_floor: parsed.salaryFloor ?? store.setupDraft.salary_floor ?? null,
@@ -802,6 +867,7 @@ function buildOpening(params: {
   tier: string | null;
   setupStep: 0 | 1 | 2 | 3;
   setupDraft: Partial<JobFeedSettingsInput>;
+  editingPreferences: boolean;
   errorMessage: string | null;
   build: unknown;
   queryBudget: number;
@@ -810,8 +876,8 @@ function buildOpening(params: {
 }): FeedMessage[] {
   const {
     phase, overview, careerProfile, allJobs, todayCount, canSteer,
-    canRunToday, setupStep, setupDraft, errorMessage, queryBudget,
-    plannedQueries, usedChipIds,
+    canRunToday, setupStep, setupDraft, editingPreferences, errorMessage,
+    queryBudget, plannedQueries, usedChipIds,
   } = params;
   const message = (content: string, chips?: FeedChip[], note?: string): FeedMessage => ({
     id: `feed-opening-${content.slice(0, 24)}`,
@@ -884,12 +950,19 @@ function buildOpening(params: {
 
     case 'setup': {
       const items: FeedMessage[] = [];
-      const readOut = describeProfile(careerProfile);
-      items.push(message(
-        readOut
-          ? `I read your CV: ${readOut}. I'll search for roles like that when you build the feed. Three quick things I can't guess from the CV.`
-          : "I'll search public job boards for roles like yours when you build the feed. Three quick things I can't read off your CV.",
-      ));
+      if (editingPreferences) {
+        items.push(message(
+          "Let's go over where I look. Answer the three questions again and I'll save the new answers.",
+          [{ id: 'cancel-edit', label: 'Keep what I had', variant: 'secondary' }],
+        ));
+      } else {
+        const readOut = describeProfile(careerProfile);
+        items.push(message(
+          readOut
+            ? `I read your CV: ${readOut}. I'll search for roles like that when you build the feed. Three quick things I can't guess from the CV.`
+            : "I'll search public job boards for roles like yours when you build the feed. Three quick things I can't read off your CV.",
+        ));
+      }
 
       items.push({
         id: 'setup-q1',
@@ -954,8 +1027,15 @@ function buildOpening(params: {
         items.push({
           id: 'setup-consent',
           role: 'assistant',
-          content: 'I\'ll search public job boards on your behalf. OK?',
-          chips: [{ id: 'consent', label: 'Yes, build my feed', variant: 'primary' }],
+          content: editingPreferences
+            ? 'That\'s everything. Save these?'
+            : 'I\'ll search public job boards on your behalf. OK?',
+          chips: editingPreferences
+            ? [
+                { id: 'consent', label: 'Save my preferences', variant: 'primary' },
+                { id: 'cancel-edit', label: 'Keep what I had', variant: 'secondary' },
+              ]
+            : [{ id: 'consent', label: 'Yes, build my feed', variant: 'primary' }],
         });
       }
       return items;

@@ -110,6 +110,8 @@ interface FeedState {
   /** Setup question the conversation is on (J1). */
   setupStep: 0 | 1 | 2 | 3;
   setupDraft: Partial<JobFeedSettingsInput>;
+  /** True when the user is re-running the guided setup to edit existing preferences. */
+  editingPreferences: boolean;
 }
 
 interface FeedActions {
@@ -142,6 +144,8 @@ interface FeedActions {
   markChipUsed: (key: string, chipId: string) => void;
   setSetupStep: (step: FeedState['setupStep']) => void;
   patchSetupDraft: (patch: Partial<JobFeedSettingsInput>) => void;
+  startPreferencesEdit: (seed: Partial<JobFeedSettingsInput>) => void;
+  clearEditingPreferences: () => void;
   resetFeed: () => void;
 }
 
@@ -170,6 +174,7 @@ const initialState: FeedState = {
   usedChips: { key: '', ids: [] },
   setupStep: 0,
   setupDraft: {},
+  editingPreferences: false,
 };
 
 let messageSeq = 0;
@@ -252,6 +257,8 @@ export const useFeedStore = create<FeedState & FeedActions>()((set) => ({
 
   setSetupStep: (step) => set({ setupStep: step }),
   patchSetupDraft: (patch) => set((state) => ({ setupDraft: { ...state.setupDraft, ...patch } })),
+  startPreferencesEdit: (seed) => set({ editingPreferences: true, setupStep: 0, setupDraft: seed }),
+  clearEditingPreferences: () => set({ editingPreferences: false, setupStep: 0, setupDraft: {} }),
   resetFeed: () => set((state) => ({ ...initialState, fetchGeneration: state.fetchGeneration + 1 })),
 }));
 
