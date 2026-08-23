@@ -1,15 +1,18 @@
-# Karko AI, application answer bank
+# Useful Apply: application answer bank
+
+Keep this current: update when the product, stack or direction changes.
 
 **Owner:** Wasim Jalali
-**Last updated:** 2026-07-25
-**Companion to:** `KARKO-AI-SOURCE-OF-TRUTH.md` (the fact layer). This file is the writing layer.
+**Last updated:** 2026-08-23
+**Companion to:** `SOURCE-OF-TRUTH.md` (the fact layer). This file is the writing layer.
 **Use for:** Y Combinator, other accelerators, angel and pre-seed conversations, grants, startup competitions, press.
+**Brand:** Useful Apply (formerly Karko AI). Legal entity remains Karko AI Inc., a Delaware C-Corp.
 
 ---
 
 ## 0. How to use this
 
-- Every answer below is built from facts in the source-of-truth file. If you change a number here, change it there first.
+- Every answer below is built from facts in `SOURCE-OF-TRUTH.md`. If you change a number here, change it there first.
 - Answers are written to be pasted and lightly trimmed, not read out loud verbatim.
 - Anything in `[brackets]` is a blank you must fill before sending.
 - **Read §7 (landmines) before every submission.** It is a list of things that have already cost one rejection.
@@ -22,9 +25,8 @@
 |---|---|---|
 | 50 char limit | `AI agent that runs your entire job search` | 41 |
 | 50 char limit, alt | `AI agent for the entire job search in one app` | 45 |
-| 50 char limit, alt | `AI job application agent. Search in one app.` | 44 |
 | Twitter bio style | The AI job application agent. Your entire job search, in one app. | |
-| Investor sentence | Karko AI is the AI job application agent. It replaces the seven-tool job search workflow with one loop: search, fit, tailor, screen, track. | |
+| Investor sentence | Useful Apply is the AI job application agent. It replaces the seven-tool job search workflow with one loop: search, fit, tailor, screen, track. | |
 
 ---
 
@@ -32,11 +34,11 @@
 
 ### What is your company going to make?
 
-> Karko AI is an AI agent that runs the whole job search in one app. You upload your CV once. Every morning you get matched roles. Before you spend time, you see a fit score with real gaps. In about 90 seconds you get a complete application: tailored CV, cover letter, email and screening answers, with every line grounded in your actual experience. Nothing invented. Every application is tracked automatically. It replaces the seven tools job seekers juggle today: job board, resume builder, ATS checker, cover letter AI, email drafts, screening prep and a tracking spreadsheet.
+> Useful Apply is an AI agent that runs the whole job search in one app. You upload your CV once. Every morning you get matched roles. Before you spend time, you see a fit score with real gaps. In about 90 seconds you get a complete application: tailored CV, cover letter, email and screening answers, with every line grounded in your actual experience. You review everything before it goes anywhere. Every application is tracked automatically. It replaces the seven tools job seekers juggle today: job board, resume builder, ATS checker, cover letter AI, email drafts, screening prep and a tracking spreadsheet.
 
 ### Why did you pick this idea? Do you have domain expertise?
 
-> I needed it myself. I ran out of money building a startup in Germany, had no degree to fall back on, and generic applications got zero interviews. Tailoring by hand took 45 to 60 minutes each and still failed. I built the workflow manually inside Claude with my CV as context, then turned it into a product. Then I pointed it at my own search: 60+ applications, every one written by Karko, 5 interviews, and I was hired as an AI Specialist through one of them. That is the job I hold today. The product didn't just help me apply, it got me the job. Domain proof is personal use plus a live product, not recruiting theory.
+> I needed it myself. I ran out of money building a startup in Germany, had no degree to fall back on, and generic applications got zero interviews. Tailoring by hand took 45 to 60 minutes each and still failed. I built the workflow manually inside Claude with my CV as context, then turned it into a product. Then I pointed it at my own search: 60+ applications, every one written by the product, 5 interviews, and I was hired as an AI Specialist through one of them. That is the job I hold today. The product didn't just help me apply, it got me the job. Domain proof is personal use plus a live product, not recruiting theory.
 
 ### Who are your competitors? What do you understand that they don't?
 
@@ -44,25 +46,28 @@
 >
 > Where they stop is where we live. ChatGPT's resume tool is English only; we generate in seven languages with German CV conventions and two German templates, and LinkedIn only reached German in January. None of them writes the application email, the follow-up or the screening answers. And a general chatbot will invent a metric if you push it, whereas refusing to is our highest-priority generation rule.
 >
+> We're also not the first full loop; Jobscan and Career.io ship one too. Our claim is narrower and better: we're trying to be the loop a job seeker can trust, with honest public pricing, grounded output and the user's hand on every send.
+>
 > ChatGPT can build a website too. Lovable and Replit still win, because purpose-built beats general at a specific job. That's the bet.
 >
-> Then there's the auto-apply group, including Sorce and Tsenta from your own batches. They automate submission. We deliberately don't, and that's a considered call: Indeed's terms now explicitly prohibit automating Indeed Apply, and Cloudflare has said it will block agent-class bots by default from September. My read is that the submission layer is closing. They're automating the layer that's closing. We automate the part that isn't, which is the skilled work between finding a role and sending something worth reading.
+> Then there's the auto-apply group, including Sorce and Tsenta from YC batches. They automate submission. We deliberately don't, and that's a considered call: Indeed's terms now explicitly prohibit automating Indeed Apply, and Cloudflare is shipping behavioural detection that blocks agent-class bots by default. My read is that the submission layer is closing. They're automating the layer that's closing. We automate the part that isn't, which is the skilled work between finding a role and sending something worth reading.
 
 ### How do you make money? How much could you make?
 
-> Credit-based subscription. Free, Plus at $19.99 a month, Max at $79.99 a month, plus credit top-ups on paid plans. Both paid plans get the Smart Job Feed at up to 25 roles a day, and Max searches twice as wide, 4 job titles across 4 countries. Job search is episodic, so churn is real and I don't pretend otherwise. Near-term growth is activation and free-to-paid conversion, not market-size slides. The economics are modelled, not guessed: $0.21 of inference per full application today, $0.40 revenue per credit, and 73 to 80% gross margin on a paid subscription at realistic utilization. The number I actually watch is free-to-paid conversion, because blended break-even sits at about 4.7% and that is where the business is won or lost.
+> Credit-based subscription. Free, Plus at $19.99 a month, Max at $79.99 a month, plus credit top-ups on paid plans. Both paid plans get the Smart Job Feed at up to 25 roles a day, and Max searches twice as wide, 4 job titles across 4 countries. Job search is episodic, so churn is real and I don't pretend otherwise. Near-term growth is activation and free-to-paid conversion, not market-size slides. The economics are modelled, not guessed: about $0.21 of inference per full application today, $0.40 revenue per credit, and 73 to 80% gross margin on a paid subscription at realistic utilization. The number I actually watch is free-to-paid conversion, because blended break-even sits at about 4.7% and that is where the business is won or lost.
 
 ### How far along are you?
 
-> Live at karkoai.com with paid billing. Since my Spring 2026 application I rebuilt Karko from a one-step application generator into the full loop: matched job feed, fit analysis, a 90-second application kit with CV, cover letter, emails and screening answers, a tracker, and anti-hallucination so output only uses the user's real CV. Most of that came out of five months shipping against feedback from a small group of early users on free access, while I was out of money and job hunting. I was hired as an AI Specialist in May through an application Karko wrote, and have built around that job since. About 120 people reach the site in a typical week, all organic, with zero marketing spend ever. First paying customer converted 9 July. Honest gap: activation. Most visitors don't reach a second page. Nobody has tried to grow this yet, which is the opportunity and the risk in the same sentence.
+> Live at usefulapply.com with paid billing. Since my Spring 2026 application, filed under the previous name Karko AI, I rebuilt it from a one-step application generator into the full loop: matched job feed, fit analysis, a 90-second application kit with CV, cover letter, emails and screening answers, a tracker, and grounding rules so output only uses the user's real CV. Along the way I migrated the entire stack from Vercel and Supabase to Cloudflare. Most of that came out of five months shipping against feedback from a small group of early users on free access, while I was out of money and job hunting. I was hired as an AI Specialist in May through an application the product wrote, and have built around that job since. About 120 people reach the site in a typical week, all organic, with zero marketing spend ever. First paying customer converted 9 July. Honest gap: activation. Most visitors don't reach a second page. Nobody has tried to grow this yet, which is the opportunity and the risk in the same sentence.
 
 ### Progress bullets (short-field version)
 
-> - Live at karkoai.com with paid billing. Free / Plus $19.99 / Max $79.99, credit-based.
+> - Live at usefulapply.com with paid billing. Free / Plus $19.99 / Max $79.99, credit-based.
 > - Rebuilt since Spring 2026 into the full loop: feed, fit, 90-second kit, screening, tracker.
+> - Migrated the whole stack to Cloudflare (Workers, D1, R2, KV).
 > - About 120 people reach the site in a typical week, all organic. Zero paid marketing, no launch push yet.
 > - 1 paying customer.
-> - **I was hired as an AI Specialist through an application Karko wrote.** 60+ applications through the product, 5 interviews, one offer. First-time job seeker, no degree.
+> - **I was hired as an AI Specialist through an application the product wrote.** 60+ applications through it, 5 interviews, one offer. First-time job seeker, no degree.
 > - Five months of product work driven by a small design-partner cohort on free access, while I was unfunded and job hunting.
 > - Zero marketing spend, ever. No launch, no ads. All traffic organic.
 > - First paying customer converted 9 July, organically, at $19.99.
@@ -70,25 +75,25 @@
 
 ### How many users, how many paying, who pays the most?
 
-> About 120 people reach the site in a typical week, organic only through Google and direct, with zero marketing spend ever. One paying customer, on the $19.99 Plus plan, converted 9 July. Before that a small group of early users, around 5 to 10, had free access and acted as design partners; their feedback drove five months of product work. I don't claim 122 weekly active users in the product sense, because most first visits don't go deep yet. Activation is the open problem and I know where the funnel breaks.
+> About 120 people reach the site in a typical week, organic only through Google and direct, with zero marketing spend ever. One paying customer, on the $19.99 Plus plan, converted 9 July. Before that a small group of early users, around 5 to 10, had free access and acted as design partners; their feedback drove five months of product work. I don't claim those visitors are weekly active users in the product sense, because most first visits don't go deep yet. Activation is the open problem and I know where the funnel breaks.
 
 ### Do you have revenue?
 
-> Yes, $19.99 MRR. One paying customer on Plus, converted 9 July 2026, entirely organic. Context worth giving: Karko has never been marketed. No launch, no ads, no distribution push, zero spend. For the first three months I was out of money and job hunting, building the product alongside my own search with a small group of early users on free access shaping it. Since May it has run beside a full-time job. So conversion isn't a thing I tried and failed at. It's a thing nobody has tried yet.
+> Yes, $19.99 MRR. One paying customer on Plus, converted 9 July 2026, entirely organic. Context worth giving: the product has never been marketed. No launch, no ads, no distribution push, zero spend. For the first three months I was out of money and job hunting, building alongside my own search with a small group of early users on free access shaping it. Since May it has run beside a full-time job. So conversion isn't a thing I tried and failed at. It's a thing nobody has tried yet.
 
 ### How long have you been working on this, and how much full-time?
 
-> I have been building Karko since January 2026, so about seven months, and it has been live and evolving for roughly five of those. I am currently employed full-time as an AI Specialist, and that job came through using Karko. I build around the job. If accepted I will leave the job and work exclusively on Karko.
+> I have been building it since January 2026, so about seven months, live and evolving for roughly five of those. I am currently employed full-time as an AI Specialist, and that job came through using the product itself. I build around the job. If accepted I will leave the job and work exclusively on Useful Apply.
 
 ### Tech stack
 
-> Next.js 16 with React 19 and TypeScript, Tailwind CSS 4, Supabase for Postgres, auth and storage, Vercel for hosting, Stripe for payments, PostHog for analytics, Resend for transactional email, Inngest for background jobs. Generation runs on Claude Sonnet 4.6 through Amazon Bedrock in production and the Anthropic API directly in development, with Haiku 4.5 as a fallback. Job feed ranking uses GPT-4.1-mini on Azure OpenAI, with SerpAPI for job data. I write all the code with Claude Code, Cursor and similar AI coding tools.
+> Next.js 16 with React 19 and TypeScript, Tailwind CSS 4 and Zustand, running on Cloudflare Workers via OpenNext. Cloudflare D1 for data with Drizzle, R2 for file storage, KV for caching, Better Auth for accounts, Cloudflare Email Service for transactional email, Stripe for payments, PostHog for analytics. Generation runs on Claude Sonnet 4.6 through Amazon Bedrock. Lighter high-volume tasks like chat and job-feed ranking run on open-weight GPT-OSS-120B through Cloudflare Workers AI, with SerpAPI for job data. I write all the code with Claude Code, Cursor and similar AI coding tools.
 
-*If they push on model choice, this is a strong answer:* the four documents a user actually sends to an employer are moving to Claude Opus 5, and everything upstream stays on Sonnet 4.6. That call was made on GDPval-AA v2, the benchmark that grades human-expert-scored professional deliverables, not on SWE-bench, which is the number everyone quotes and is irrelevant to a product that writes no code. Only 4 of 14 call sites migrate. It ships when the Bedrock access request clears. **Do not claim Karko runs Opus 5 today. It does not.**
+*If they push on model choice:* the documents a user actually sends to an employer run on Sonnet 4.6 via Bedrock, because output quality there is the product. High-volume auxiliary tasks run on cost-efficient open-weight models through Workers AI, which keeps unit economics sane without touching what gets read. **Do not claim any model upgrade before it ships.**
 
 ### Who writes the code?
 
-> I write all of it. I taught myself full-stack development in about three months and ship with AI coding tools. No non-founder has contributed technical work. 383 commits, all mine.
+> I write all of it. I taught myself full-stack development in about three months and ship with AI coding tools. No non-founder has contributed technical work. 383 commits as of late July 2026, all mine.
 
 ### Are you looking for a co-founder?
 
@@ -98,7 +103,7 @@
 
 ### Where do you live, where would the company be based?
 
-> Kaiserslautern, Germany. The company is Karko AI Inc., a Delaware C-Corp. [After the program: San Francisco.]
+> Kaiserslautern, Germany. The company is Karko AI Inc., trading as Useful Apply, a Delaware C-Corp. [After the program: San Francisco.]
 
 ### Explain your location decision
 
@@ -106,11 +111,11 @@
 
 ### Commit exclusively for the next year?
 
-> Yes. If accepted I will leave my job and work exclusively on Karko AI for the next year.
+> Yes. If accepted I will leave my job and work exclusively on Useful Apply for the next year.
 
 ### Equity and entity
 
-> Karko AI Inc. is a Delaware C-Corp, incorporated February 9, 2026 via Stripe Atlas. 10,000,000 shares of Common Stock authorized at $0.00001 par. I hold 7,000,000 shares, which is 100% of the issued and outstanding stock, on a standard 4-year vest with a 1-year cliff and a filed 83(b). Sole director, and I hold both officer roles. No option pool has been adopted yet.
+> Useful Apply is operated by Karko AI Inc., a Delaware C-Corp incorporated February 9, 2026 via Stripe Atlas. 10,000,000 shares of Common Stock authorized at $0.00001 par. I hold 7,000,000 shares, which is 100% of the issued and outstanding stock, on a standard 4-year vest with a 1-year cliff and a filed 83(b). Sole director, and I hold both officer roles. No option pool has been adopted yet.
 
 **Equity percentage on a form: 100%.** Not 70%. The other 3,000,000 shares are authorized but unissued, and no equity incentive plan exists, so there is no pool to subtract. Earlier drafts said 70% and that was wrong.
 
@@ -134,11 +139,11 @@
 
 ### One paragraph
 
-> I left Afghanistan and built a life in Germany with no degree. At 17 I started with 200 EUR in Amazon retail arbitrage and scaled it to 150,000+ EUR across four marketplaces over three years, then turned a 30,000-follower audience into an AZAV-certified training company that did another 30,000 EUR. I taught myself full-stack development in three months and built Kursfind AI, an AI marketplace for German vocational training. I paused it: two-sided marketplace, one regulated market, and I ran out of money. So I started applying for jobs. Generic applications got zero interviews and hand-tailoring took 45 to 60 minutes each. I built the workflow inside Claude, then turned it into Karko AI. Sixty-plus applications through it, 5 interviews, and then the offer: I was hired as an AI Specialist through an application my own product wrote. That is the job I have today, and Karko is the product I keep building.
+> I left Afghanistan and built a life in Germany with no degree. At 17 I started with 200 EUR in Amazon retail arbitrage and scaled it to 150,000+ EUR across four marketplaces over three years, then turned a 30,000-follower audience into an AZAV-certified training company that did another 30,000 EUR. I taught myself full-stack development in three months and built Kursfind AI, an AI marketplace for German vocational training. I paused it: two-sided marketplace, one regulated market, and I ran out of money. So I started applying for jobs. Generic applications got zero interviews and hand-tailoring took 45 to 60 minutes each. I built the workflow inside Claude, then turned it into Useful Apply. Sixty-plus applications through it, 5 interviews, and then the offer: I was hired as an AI Specialist through an application my own product wrote. That is the job I have today, and Useful Apply is the product I keep building.
 
 ### Long version
 
-Use §4.5 of `KARKO-AI-SOURCE-OF-TRUTH.md`, the eight-step timeline.
+Use §4 of `SOURCE-OF-TRUTH.md`, the eight-step timeline.
 
 ### The best single line to lead with
 
@@ -158,7 +163,7 @@ Use §4.5 of `KARKO-AI-SOURCE-OF-TRUTH.md`, the eight-step timeline.
 
 **Things you have built**
 
-> - Karko AI, karkoai.com. AI job application agent, built solo. Unified agent architecture with function calling, anti-hallucination constraints, fit assessment, multi-market output in 7 languages. Live with paid billing.
+> - Useful Apply, usefulapply.com. AI job application agent, built solo. Unified agent architecture with grounding constraints, fit assessment, multi-market output in 7 languages. Live with paid billing on Cloudflare.
 > - Kursfind AI, kursfind.de. Germany's first AI-native marketplace for government-funded vocational training. Full-stack MVP solo in 4 weeks on Next.js with AI course matching.
 > - Wasim Academy, wasimacademy.org. AZAV-certified training provider delivering AI and e-commerce courses in German and English. 30K EUR revenue.
 > - Useful Build, usefulbuild.com. Applied AI systems firm for SMBs. Site live, no clients yet.
@@ -174,7 +179,7 @@ Use §4.5 of `KARKO-AI-SOURCE-OF-TRUTH.md`, the eight-step timeline.
 
 **Entrepreneurship programs, clubs, hacker houses**
 
-> None. I have been building businesses independently since finishing high school: e-commerce, then a training company, then Kursfind AI, now Karko AI.
+> None. I have been building businesses independently since finishing high school: e-commerce, then a training company, then Kursfind AI, now Useful Apply.
 
 **Accelerators participated in**
 
@@ -184,7 +189,7 @@ Use §4.5 of `KARKO-AI-SOURCE-OF-TRUTH.md`, the eight-step timeline.
 
 ## 5. Application history (answer "what changed since last time" from this)
 
-### Y Combinator, Spring 2026, Karko AI. Rejected.
+### Y Combinator, Spring 2026, applied as Karko AI. Rejected.
 
 What was submitted: a one-line pitch of "AI that tailors your full job application in 90sec", a live product where the founder was the only real user, zero revenue, pricing at Free 20 apps / $29.99 for 60 / $49.99 for 120, no legal entity at submit time, and a mid-process update announcing a $500K post-money SAFE at a $5M cap.
 
@@ -204,7 +209,7 @@ Why it likely failed:
 
 ### The "what changed" answer
 
-> I applied in Spring 2026 with Karko when I was essentially the only user, the product was a one-step generator (paste a job, get a CV, cover letter and email), and revenue was zero. Since then: the full job-search loop is live (feed, fit, kit, screening, tracker), paid plans are live, people find it organically without any marketing, there is a first paying customer, and I used Karko to land my AI Specialist role. Karko is the company I am applying with now.
+> I applied in Spring 2026 under the name Karko AI, when I was essentially the only user, the product was a one-step generator (paste a job, get a CV, cover letter and email), and revenue was zero. Since then: the full job-search loop is live (feed, fit, 90-second kit, screening, tracker), paid plans are live, the stack migrated to Cloudflare, people find it organically without any marketing, there is a first paying customer, and I used the product to land my AI Specialist role. It rebranded to Useful Apply along the way, and that is the company I am applying with now.
 
 ---
 
@@ -214,15 +219,14 @@ Why it likely failed:
 |---|---|
 | Why does nobody get past page one? | Name it as the top product problem, say what you are testing next. Do not deflect. |
 | One paying customer, why so few? | Because nobody has tried yet. Zero marketing spend to date, no launch, and I was unfunded and job hunting for the first five months, then employed full time. That's the honest answer, and it's better than it sounds: it means the conversion question is still open rather than already answered badly. Then point at what the first funded months go to: activation first, conversion second. |
-| Job search ends when someone gets hired. What's the retention story? | Acknowledge the built-in churn event, and that you are the example. Then give the actual plan: re-engagement, or B2B2C through bootcamps/universities/outplacement. **[confirm] which one you actually believe.** |
-| What does a full application kit cost you? | $0.21 today on Sonnet 4.6, going to $0.32 when the Opus 5 migration ships. Revenue is $0.40 per credit, so a paid subscription runs 73 to 80% gross margin at realistic utilization. |
-| So the economics work? | For paid users, yes. Blended is the honest answer: free is 4 credits against zero revenue, so break-even is about 4.7% free-to-paid against a 2-5% freemium norm. We sit on that line. Halving the free tier moves break-even to 2.9%, which is a bigger lever than the entire model decision. |
-| What do the AWS credits do for you? | They don't change unit economics, they postpone them by about 13,000 applications. The point of that window is to measure real utilization and real conversion, which no spreadsheet can give you. |
-| Why do you win in a category with hundreds of entrants? | Mechanism, not absence of competitors: the full grounded loop with anti-hallucination as the product, and a data flywheel from fit analyses. Concede both are early. |
+| Job search ends when someone gets hired. What's the retention story? | Acknowledge the built-in churn event, and that you are the example. Then give the actual plan, as a sequence: consumer today, institutions next (universities, bootcamps, outplacement renew even when individuals churn), a talent marketplace last. **[confirm] which stage you actually believe in most.** |
+| What does a full application kit cost you? | About $0.21 of inference today on Sonnet 4.6, modelled July 2026. Revenue is $0.40 per credit, so a paid subscription runs 73 to 80% gross margin at realistic utilization. |
+| So the economics work? | For paid users, yes. Blended is the honest answer: free credits cost against zero revenue, so break-even is about 4.7% free-to-paid against a 2-5% freemium norm. We sit on that line, which makes activation the single most important number in the business. |
+| Why do you win in a category with hundreds of entrants? | Mechanism, not absence of competitors: the full grounded loop with trust as the product, multi-market depth the free incumbents lack, and a data flywheel from fit analyses. Concede all three are early, and concede Jobscan and Career.io already ship a full loop. |
 | You are solo and employed. Is this real? | The job came through the product and it seeded real applied-AI experience. If funded, you leave. Say it plainly. |
 | What is your cap table? | 7,000,000 shares issued to you, 100% of outstanding, of 10,000,000 authorized. No pool adopted. 4-year vest, 1-year cliff, 83(b) filed on time. Clean and boring, which is what you want. |
 | Have you raised or signed a SAFE? | No. Never. Verified against the Drive folder: the SAFE files there are blank templates. |
-| What jurisdictions do you operate in? | US entity, you are resident in Germany. **[confirm]** the German tax registration status first, see §3.6 of the source-of-truth file. |
+| What jurisdictions do you operate in? | US entity (Karko AI Inc.), you are resident in Germany. **[confirm]** the German tax registration status first. |
 
 ---
 
@@ -234,15 +238,16 @@ Why it likely failed:
 4. **Never present cloud credits as unit economics.**
 5. **No future-tense co-founders.** Names and dates, or clean solo.
 6. **Never headline shipping velocity.** "Built in 3 days" advertises thin demand proof.
-7. **One clean entity fact:** Karko AI Inc., Delaware C-Corp, operating, Stripe live. No contradictions between fields.
+7. **One clean entity fact:** Useful Apply, operated by Karko AI Inc., Delaware C-Corp, Stripe live. No contradictions between fields, and don't mix the brand and legal names up mid-form.
 8. **Never announce a fundraise that isn't moving.**
 9. **Pricing must match the live site:** $19.99 and $79.99, never the old $29.99 / $49.99.
 10. **Never claim full-time.** You are employed. Own it, the job is the best story you have.
-11. **Never quote 122 WAU or 122 DAU.** Use the visitor framing in §8.1 of the source-of-truth file.
-12. **Never write Cargo or Carco.** The name is Karko AI.
-13. **Never write Claude Sonnet 4.5.** Production is 4.6.
+11. **Never quote 122 WAU or DAU figures.** Use the ~120 weekly visitors framing from the source-of-truth file.
+12. **The brand name is Useful Apply.** Never write Cargo or Carco. Historical references may say Karko AI once, clearly marked as the former name.
+13. **Never write Claude Sonnet 4.5.** Production is Sonnet 4.6. And never claim a model upgrade before it ships.
 14. **Never write 70% equity.** You own 100% of the issued stock.
-15. **No em dashes** in any application text.
+15. **Never promise zero hallucinations.** Grounding is a design commitment plus human review. Pair every trust claim with "you review before it goes anywhere".
+16. **No em dashes** in any application text.
 
 ---
 
@@ -250,39 +255,14 @@ Why it likely failed:
 
 Run this every time, for any application.
 
-- [ ] Pull fresh PostHog numbers. The ones in the source-of-truth file are dated.
+- [ ] Pull fresh PostHog numbers. The ones in the source-of-truth file are dated 2026-07-21.
 - [ ] Confirm exact Stripe MRR, plan and paying-customer count.
 - [ ] Equity percentage says **100%**, not 70%.
 - [ ] Confirm current age, city and visa wording.
 - [ ] Confirm employment status and the exclusivity answer.
 - [ ] Pricing on the form matches the live site.
 - [ ] Test-account password rotated. No credentials anywhere in the text.
-- [ ] Demo path ready. A 2-minute demo already exists at `Karko AI/05_Marketing/2026-05-01_karkoai_2min_demo.mp4`, plus 4K full demos. Use one of those or a fresh Loom, with a clean demo account.
+- [ ] Demo path ready. A 2-minute demo exists in Drive (`05_Marketing/2026-05-01_karkoai_2min_demo.mp4`), plus 4K full demos. Use one of those or a fresh Loom, with a clean demo account.
 - [ ] Read §7 landmines top to bottom.
-- [ ] Proofread for em dashes, for "Cargo/Carco", and for "Sonnet 4.5".
+- [ ] Proofread for em dashes, for "Cargo/Carco", for "Sonnet 4.5", and for any leftover karkoai.com links.
 - [ ] Deadline and timezone double-checked.
-
----
-
-## 9. Live application: YC Fall 2026
-
-**Deadline: July 27, 2026, 8pm PT.** Slots locked on 2026-07-22 after a Grok and Fable 5 review of the full decision pack.
-
-| Field | Value |
-|---|---|
-| Primary | Karko AI |
-| Company name on form | Karko AI |
-| Secondary / other ideas | Useful Build |
-| Category | Recruiting |
-| Batch | Fall 2026 / current |
-| 12-month focus if funded | Karko AI exclusively. Useful Build parked under the same entity, no client commitments. |
-
-**Why Karko is primary, in one line:** it is the only asset with evidence a partner can verify tonight (live full-loop product, organic discovery, a paying customer, and a founder hired through his own tool), and the Spring-to-Fall re-application arc only exists for Karko.
-
-All answers for this application are in §2 through §5 above. The only field not covered there is the "other ideas" paragraph:
-
-> Useful Build: an applied AI systems firm for small and mid-size businesses. Companies buy ChatGPT and Claude seats and still run on email, spreadsheets and tribal knowledge. I live this daily: as an AI Specialist I shipped more than six internal systems in my first two months because my employer had AI seats but no systems. Useful Build builds owned internal tools, agents and document Q&A around one real workflow, with fixed scope and fixed price, then trains the team on what we built and on tools like Claude Code. The client owns the source. The site is live at usefulbuild.com; no clients yet, outreach starting now. It sits next to the interest in AI-native services and SaaS challengers, and it stays a parked brand under Karko AI Inc. while I build Karko.
-
-**One rule for that paragraph:** it shows range, it never hedges against the primary. No sentence suggesting Karko might be the wrong market.
-
-**After submission:** don't treat an interview invite as validation of soft metrics. Work activation first, the first-page drop, then free-to-paid.
