@@ -13,7 +13,7 @@ Specialist agents are the **preferred** way to handle bug investigations, extern
 - **`agent-expert`** — When editing anything in `src/lib/agents/`, `src/lib/agents/prompts/`, `src/lib/models/`, `src/app/api/agent-v2/`, or the `useAgentV2` / `useAgentWorkflow` hooks. Also for anti-hallucination rule changes, SSE event semantics, context-builder work, CV pipeline, fit-assessment prompts. Powered by Opus.
 - **`ui-tester`** — After any UI change to `/dashboard`, `/applications`, `/documents`, `/` (landing), or shared components (ChatPanel, CVPanel, CoverLetterPanel, EmailPanel, FeedConversation, FeedCanvas). Uses Playwright MCP. Run before calling a UI task done.
 - **`karko-architect`** — For cross-cutting design decisions, refactors, and "where should this state live" questions. Use for anything that spans 3+ files or has non-obvious tradeoffs. Returns a plan with ordered steps; does not modify code itself. Powered by Opus.
-- **`supabase-dba`** — When writing or reviewing migrations in `supabase/migrations/`, changing RLS policies, touching schema, or when a query looks suspicious. Will not run migrations itself.
+- **`supabase-dba`** — When writing or reviewing D1 migrations in `migrations/d1/`, touching schema, or when a query looks suspicious. Will not run migrations itself. (Legacy `supabase/migrations/` is frozen until decommission.)
 - **`integration-tester`** — Before every commit touching components, hooks, API routes, or job-feed files. Runs tsc + lint + narrow spot-checks. Cheap and fast — uses Haiku.
 - **`job-feed-specialist`** — When editing anything under `src/lib/job-feed/**`, `src/app/api/job-feed/**`, or `src/components/job-feed/**`. Owns ingestion, prefilter, LLM ranker, batch reconcile, and settings flows.
 - **`karko-ui-designer`** — For UI/UX audits, redesigns, and visual polish. Carries brand tokens (navy/cream/gold), typography (Georgia+Arial), surface roles, radius/shadow scales, and anti-AI-slop rules in its system prompt. Can audit AND implement. Does NOT touch backend, API routes, data fetching, or Zustand stores.
@@ -57,10 +57,10 @@ If two agent tasks are independent (different files, different questions), spawn
 - Only pause and confirm before:
   - **Deleting files** — Grep for all imports/references first; if dead code, delete without asking
   - **Adding new npm packages** — state what and why, confirm before installing
-  - **Changing Supabase DB schema** — always write a migration in `supabase/migrations/`, confirm before running
+  - **Changing D1 schema** — always write a migration in `migrations/d1/`, confirm before running
   - **Modifying Stripe webhook/credit logic** — financial logic, confirm intent first
   - **Force-push or git history rewrites** — always confirm
-  - **Touching Supabase auth or session handling** — security-sensitive
+  - **Touching Better Auth or session handling** — security-sensitive
 
 ### Code-Change Discipline
 - **Surgical changes.** Touch only what the task requires. No drive-by refactors, no reformatting adjacent code, no "while I'm here" cleanups. Match existing style even if you disagree.
@@ -97,10 +97,10 @@ If two agent tasks are independent (different files, different questions), spawn
 - **Never read, log, or modify `.env.local`**
 - Never hardcode secrets, API keys, or tokens in any source file
 - **If you notice an exposed secret or security vulnerability — flag it immediately**
-- Watch for: SQL injection, XSS, unprotected API routes, Stripe webhook bypass, exposed Supabase service role key in client-side code
+- Watch for: SQL injection, XSS, unprotected API routes, Stripe webhook bypass, secrets leaking into client-side code
 
-### Database / Supabase
-- **Never modify production DB directly** — always write a SQL migration in `supabase/migrations/`
+### Database / D1
+- **Never modify production DB schema directly** — always write a SQL migration in `migrations/d1/`, applied with `npx wrangler d1 migrations apply usefulapply-db`
 - Migration filenames: descriptive snake_case (e.g., `fix_starter_credits_10.sql`)
 - Before writing a migration, check existing migrations to avoid conflicts
 
@@ -193,13 +193,13 @@ Useful Apply is a Next.js 14+ app generating job application materials (CV, Cove
 Every skill, metric, and claim must trace to the Primary CV or Master CV. The JD is for keyword matching only — never a source of facts about the applicant. See `src/lib/agents/prompts/` for the full rule blocks. See `.claude/rules/agents-and-prompts.md` for a summary.
 
 ### API Route Pattern
-Every API route must: (1) authenticate via `supabase.auth.getUser()`, (2) check rate limit, (3) validate input lengths, (4) return generic error messages (never `error.message`). See `.claude/rules/security.md`.
+Every API route must: (1) authenticate via the Better Auth session, (2) check rate limit, (3) validate input lengths, (4) return generic error messages (never `error.message`). See `.claude/rules/security.md`.
 
 ### Stripe / Credits Pattern
 `userId` always comes from the authenticated session — never from the request body. Use optimistic concurrency for `deductCredits()`. See `.claude/rules/stripe-and-credits.md`.
 
-### Supabase Migrations
-Before writing any migration, read `supabase/migrations/` to check for conflicts. Run in Supabase SQL Editor (no CLI used).
+### D1 Migrations
+Before writing any migration, read `migrations/d1/` to check for conflicts. Apply with `npx wrangler d1 migrations apply usefulapply-db` (add `--remote` for production).
 
 ---
 
@@ -253,7 +253,7 @@ The 6 CV templates and their color/market tokens live in `.claude/rules/cv-templ
 ---
 
 ## Documentation
-- `README.md` — Project overview
-- `SETUP.md` / `INSTALLATION_STEPS.md` — Setup instructions
-- `SUPABASE_SCHEMA_GUIDE.md` / `SUPABASE_SETUP_GUIDE.md` — DB reference
-- `STRIPE_SETUP_GUIDE.md` — Stripe integration
+- `README.md` — Project overview (current Cloudflare stack)
+- `SETUP.md` — Local dev and bindings setup
+- `docs/usefulapply-master-plan.md` — Migration/cutover runbook (Phases 9-10 remain)
+- `company/` — Source of truth + application answer bank for external applications. **Keep these two files updated whenever the product, stack or direction changes.**
