@@ -87,8 +87,9 @@ export function buildCvData(input: BuildCvDataInput): CVData | null {
     };
   }
 
-  // Original view: prefer the user's saved edits of the original CV.
-  if (!showOptimized && editedOriginalCVData) {
+  // Original view: prefer the user's saved edits of the original CV. Also
+  // taken pre-kit, where showOptimized is true but there is no tailored CV.
+  if (!(showOptimized && optimizedCVData) && editedOriginalCVData) {
     const merged = { ...editedOriginalCVData, personal: { ...editedOriginalCVData.personal } };
     if (photoDataUrl) {
       merged.personal.photoUrl = photoDataUrl;
